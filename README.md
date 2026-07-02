@@ -1,4 +1,4 @@
-# YA VIENE - Sistema de Monitoreo de Transporte Público en Tiempo Real
+# YaViene - Sistema de Monitoreo de Transporte Público en Tiempo Real
 
 ## 1. Descripción del Problema
 
@@ -10,7 +10,7 @@ El sistema de transporte público colectivo en ciudades como Barranquilla carece
 
 ## 2. Solución Propuesta
 
-YA VIENE propone una infraestructura digital basada en una aplicación móvil de doble propósito que utiliza el modelo BYOD (Bring Your Own Device) para capturar datos geográficos sin requerir inversión inicial en hardware por parte de las empresas transportadoras.
+YaViene propone una infraestructura digital basada en una aplicación móvil de doble propósito que utiliza el modelo BYOD (Bring Your Own Device) para capturar datos geográficos sin requerir inversión inicial en hardware por parte de las empresas transportadoras.
 
 ### 2.1. Funcionalidad del Sistema
 * **Perfil Conductor:** La aplicación accede al módulo GPS del dispositivo móvil para transmitir coordenadas, velocidad y sentido de marcha mediante una conexión de bajo impacto en el plan de datos.
@@ -20,8 +20,8 @@ YA VIENE propone una infraestructura digital basada en una aplicación móvil de
 
 El ecosistema técnico se fundamenta en tecnologías de alta concurrencia y procesamiento geoespacial.
 
-### 3.1. Desarrollo Mobile (Frontend)
-* **Framework:** Flutter (Dart). Implementación de una base de código único para despliegue en Android e iOS, garantizando rendimiento nativo y manejo fluido de capas cartográficas.
+### 3.1. Desarrollo Mobile
+* **Framework:** Flutter Dart. Implementación de una base de código único para despliegue en Android e iOS, garantizando rendimiento nativo y manejo fluido de capas cartográficas.
 * **Motor de Mapas:** Mapbox SDK. Utilizado para la renderización de mapas vectoriales y cálculos de rutas.
 
 ### 3.2. Arquitectura Backend
@@ -35,9 +35,9 @@ El ecosistema técnico se fundamenta en tecnologías de alta concurrencia y proc
 * **Caché de Alta Velocidad:** Redis. Almacenamiento en memoria de las últimas coordenadas conocidas para reducir la latencia de respuesta en las peticiones de los usuarios.
 
 ### 3.4. Infraestructura
-* **Cloud Computing:** Amazon Web Services (AWS) o Google Cloud Platform (GCP).
-* **Servicios:** Contenedores (Docker) y orquestación para escalabilidad horizontal según la demanda del servicio.
+* **Cloud Computing:** Amazon Web Services o Google Cloud Platform.
+* **Servicios:** Contenedores y orquestación para escalabilidad horizontal según la demanda del servicio.
 
 ## 4. Estrategia de Trabajo
 
-El desarrollo se ejecutará bajo la modalidad del "Plan A": validación de concepto y viabilidad técnica utilizando los sensores de los dispositivos móviles de los conductores. Este enfoque permite la iteración rápida del software y la acumulación de datos de tráfico antes de una posible transición a hardware IoT dedicado.
+El desarrollo se ejecutará bajo la modalidad de validación de concepto y viabilidad técnica utilizando los sensores de los dispositivos móviles de los conductores. Este enfoque permite la iteración rápida del software y la acumulación de datos de tráfico antes de una posible transición a hardware IoT dedicado.
