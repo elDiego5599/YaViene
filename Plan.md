@@ -27,7 +27,8 @@ La condición para que esta transición no duela: **el resto del sistema (Redis,
 
 | Capa | Tecnología | Rol |
 |---|---|---|
-| Apps móviles | Flutter (Dart) + Mapbox SDK | Un solo código base para conductor y pasajero |
+| Apps móviles | Flutter (Dart) + Mapbox SDK | Arquitectura Monorepo. Paquete core compartido, pero compila a **dos apps distintas** para aislar permisos. |
+| Gestión de Estado | Riverpod o BLoC en Flutter | Aislamiento de redibujado de UI para alto rendimiento con datos (MQTT/WebSocket) en tiempo real. |
 | Backend | Node.js | Procesamiento asíncrono de alta concurrencia |
 | Ingesta GPS | MQTT | Bajo consumo, resiliente a redes inestables |
 | Emisión en tiempo real | WebSockets (Socket.io, con *rooms*) | Evita saturar la red con broadcast global |
@@ -154,3 +155,19 @@ El ecosistema opera bajo el principio de "Zero Trust" (Cero Confianza). El backe
 ## 9. Próximo paso inmediato
 
 Arrancar exclusivamente con el **MVP 0**. Levantar servidor MQTT local, programar captura GPS en background en Flutter, instalar en un teléfono Android económico y realizar trabajo de campo trazando rutas por Barranquilla. Validar batería y latencia de ingesta antes de avanzar con interfaces gráficas.
+
+---
+
+## 10. Consideraciones Específicas para el Desarrollo Móvil (Flutter)
+
+**A. Arquitectura Monorepo vs App Única**
+Aunque Flutter permite compartir el 100% del código, la app del conductor y la del pasajero tienen casos de uso y permisos muy distintos (ej. *background location* vs app ligera). Se recomienda un enfoque de **monorepositorio**, compartiendo el `core` (modelos, utilidades, clientes de red), pero generando y publicando **dos apps distintas**. Esto evita rechazos en las tiendas por pedir permisos innecesarios a los pasajeros.
+
+**B. Gestión de Estado para Tiempo Real**
+La recepción continua de coordenadas a través de MQTT/WebSockets requiere una gestión de estado reactiva sólida (como **Riverpod** o **BLoC**). Esto es vital para aislar la reconstrucción de la interfaz de usuario. Si la UI entera se redibuja en cada *tick* (cada segundo), el rendimiento caerá y la batería se agotará rápidamente. Solo el marcador en el mapa o el panel de estado debe redibujarse.
+
+**C. Optimización de Costos y Batería (Mapbox en Conductor)**
+Mapbox se factura por cargas y consume recursos del dispositivo. Para la app del conductor —activa en turnos de 8+ horas—, se debe cuestionar si el conductor realmente necesita ver el mapa. Reemplazar el mapa por un panel con texto grande (estado de conexión, ruta actual, velocidad) ahorrará batería de forma crítica y reducirá costos de la API.
+
+**D. Plataforma Ideal para el Plan A (Android)**
+Para la fase inicial BYOD (celulares personales), **Android** es la plataforma ideal y requerida. Mantener un servicio activo enviando GPS en background en iOS es mucho más restrictivo y el sistema operativo puede "matar" la app más fácilmente. Enfocar el esfuerzo del *Foreground Service* en Android garantiza la viabilidad del MVP 0.
