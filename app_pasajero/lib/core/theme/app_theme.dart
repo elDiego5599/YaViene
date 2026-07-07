@@ -1,6 +1,6 @@
 /// =============================================================================
 /// SISTEMA DE DISEÑO — APP THEME
-/// 
+///
 /// Paleta institucional de "Ya Viene":
 ///   - Azul Institucional (#1565C0): Color primario. Evoca confianza,
 ///     institucionalidad y transporte público. Visible bajo el sol tropical.
@@ -12,10 +12,13 @@
 ///   - Verde Activo (#2E7D32): Para buses en servicio y confirmaciones.
 ///
 /// WCAG AA: Todos los pares de color cumplen un ratio mínimo de 4.5:1.
+///
+/// TIPOGRAFÍA: Se usa la familia 'Inter' registrada de forma nativa en
+/// pubspec.yaml (assets/fonts/). NO se usa google_fonts en runtime.
+/// Esto elimina el FOUT y la dependencia de red en una app de misión crítica.
 /// =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Todas las constantes de color de la paleta institucional.
 /// Usar SIEMPRE estas constantes, nunca hardcodear colores en los widgets.
@@ -52,8 +55,12 @@ abstract class AppColors {
 /// Escala tipográfica institucional.
 /// Fuente base: Inter (legible, moderna, diseñada para pantallas).
 abstract class AppTextStyles {
-  static TextStyle get _base => GoogleFonts.inter(
+  // Estilo base: familia Inter nativa, cargada desde assets/fonts/.
+  // No depende de red ni de google_fonts en runtime.
+  static const TextStyle _base = TextStyle(
+    fontFamily: 'Inter',
     color: AppColors.textPrimary,
+    decoration: TextDecoration.none,
   );
 
   // ── Encabezados ───────────────────────────────────────────────────────────
@@ -161,7 +168,14 @@ abstract class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
 
       // ── Tipografía global ────────────────────────────────────────────────
-      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
+      // Aplica Inter como fuente de texto base en todo el tema Material.
+      // La familia 'Inter' está registrada nativamente en pubspec.yaml.
+      fontFamily: 'Inter',
+      textTheme: ThemeData.light().textTheme.apply(
+        fontFamily: 'Inter',
+        bodyColor: AppColors.textPrimary,
+        displayColor: AppColors.textPrimary,
+      ),
 
       // ── AppBar ───────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
@@ -226,7 +240,7 @@ abstract class AppTheme {
       ),
 
       // ── Card ──────────────────────────────────────────────────────────────
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.background,
         elevation: AppElevation.low,
         shadowColor: AppColors.textPrimary.withOpacity(0.08),
