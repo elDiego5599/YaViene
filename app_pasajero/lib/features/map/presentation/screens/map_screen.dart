@@ -1,24 +1,26 @@
 /// =============================================================================
-/// PANTALLA PRINCIPAL: MapScreen
+/// PANTALLA PRINCIPAL: MapScreen (MVP 1 — Mapa Real)
 ///
 /// Arquitectura de capas (Stack):
 ///
-///   ┌─────────────────────────────────────┐
-///   │  CAPA 3: AppBar institucional        │ ← Siempre visible
-///   ├─────────────────────────────────────┤
-///   │  CAPA 2: FilterPanel               │ ← Empresa / Ruta / Sentido
-///   │  (superpuesto sobre el mapa)        │   Fondo blanco con borde sutil
-///   ├─────────────────────────────────────┤
-///   │  CAPA 1: MapPlaceholder            │ ← Fondo gris claro
-///   │  (se reemplazará por Mapbox SDK)    │   con ícono centrado
-///   ├─────────────────────────────────────┤
-///   │  CAPA 0: ETA BottomSheet           │ ← Panel inferior semipermanente
-///   │  (ETA + botón de alerta)            │   fijo en la parte baja
-///   └─────────────────────────────────────┘
-///
-/// Cada capa es un widget independiente para facilitar el reemplazo
-/// individual sin afectar las demás (ej: reemplazar MapPlaceholder
-/// por MapboxMap sin tocar el FilterPanel ni el BottomSheet).
+///   ┌─────────────────────────────────────────┐
+///   │  AppBar: Institucional                  │ ← Siempre visible
+///   ├─────────────────────────────────────────┤
+///   │ ┌─────────────────────────────────────┐ │
+///   │ │ CAPA 3: FilterPanel                 │ │ ← Empresa / Ruta / Sentido
+///   │ │ (Panel flotante sobre el mapa)      │ │   Fondo blanco, sombra sutil
+///   │ ├─────────────────────────────────────┤ │
+///   │ │ CAPA 2: DEBUG Tick Badge            │ │ ← Solo en debug mode
+///   │ ├─────────────────────────────────────┤ │
+///   │ │ CAPA 1: MapWidget (Mapbox REAL)     │ │ ← Motor nativo Mapbox
+///   │ │ - Polilínea de ruta (azul)          │ │   Actualizado internamente
+///   │ │ - Paradas fijas (círculos sólidos)  │ │   sin reconstruir widgets
+///   │ │ - Paradas informales (halos)        │ │
+///   │ │ - Bus en movimiento (ícono rotado)  │ │
+///   │ ├─────────────────────────────────────┤ │
+///   │ │ CAPA 0: EtaBottomSheet             │ │ ← Panel inferior fijo
+///   │ └─────────────────────────────────────┘ │
+///   └─────────────────────────────────────────┘
 /// =============================================================================
 
 import 'package:flutter/material.dart';
@@ -27,7 +29,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/providers/app_providers.dart';
 import '../widgets/filter_panel.dart';
-import '../widgets/map_placeholder.dart';
+import '../widgets/map_widget.dart';
 import '../widgets/eta_bottom_sheet.dart';
 
 class MapScreen extends ConsumerWidget {
@@ -35,6 +37,11 @@ class MapScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Leer la ruta seleccionada para pasarla al MapWidget.
+    // Como MapWidget es un ConsumerStatefulWidget, usamos el ID de la ruta
+    // para que didUpdateWidget detecte el cambio y recargue las capas.
+    final selectedRoute = ref.watch(selectedRouteProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       // ── AppBar ─────────────────────────────────────────────────────────────
@@ -44,13 +51,16 @@ class MapScreen extends ConsumerWidget {
       ),
       body: Stack(
         children: [
-          // ── CAPA 1: Mapa (Placeholder — se reemplaza por Mapbox SDK) ───────
-          const Positioned.fill(
-            child: MapPlaceholder(),
+          // ── CAPA 1: Mapa Real (Mapbox) ─────────────────────────────────────
+          // MapWidget es un View nativo que ocupa toda la pantalla.
+          // NO se reconstruye cuando el bus emite nuevas coordenadas.
+          Positioned.fill(
+            child: MapWidgetView(
+              routeId: selectedRoute?.id,
+            ),
           ),
 
           // ── CAPA 2: Panel de Filtros (Empresa / Ruta / Sentido) ────────────
-          // Posicionado en la parte superior, sobre el mapa.
           const Positioned(
             top: 0,
             left: 0,
@@ -58,9 +68,7 @@ class MapScreen extends ConsumerWidget {
             child: FilterPanel(),
           ),
 
-          // ── CAPA 3: Indicador de ticks en tiempo real (DEBUG) ─────────────
-          // Canario de rendimiento: solo muestra que los datos llegan sin
-          // redibujar toda la pantalla. Eliminar en producción.
+          // ── CAPA 3: Canario de Rendimiento (solo debug) ────────────────────
           const Positioned(
             top: 8,
             right: 12,
@@ -68,7 +76,6 @@ class MapScreen extends ConsumerWidget {
           ),
 
           // ── CAPA 4: ETA Bottom Sheet ───────────────────────────────────────
-          // Anclado al fondo. Semipermanente (no se puede cerrar con swipe).
           const Positioned(
             bottom: 0,
             left: 0,
@@ -95,23 +102,20 @@ class _MapAppBar extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       leading: Padding(
         padding: const EdgeInsets.only(left: AppSpacing.md),
-        child: Row(
-          children: [
-            // Logo institucional (placeholder hasta tener el asset)
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: const Icon(
-                Icons.directions_bus_rounded,
-                color: AppColors.onPrimary,
-                size: 20,
-              ),
+        child: Center(
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-          ],
+            child: const Icon(
+              Icons.directions_bus_rounded,
+              color: AppColors.onPrimary,
+              size: 20,
+            ),
+          ),
         ),
       ),
       leadingWidth: 56,
@@ -133,7 +137,6 @@ class _MapAppBar extends StatelessWidget {
         ],
       ),
       actions: [
-        // Botón de centrar mi ubicación
         Semantics(
           label: 'Centrar mapa en mi ubicación',
           button: true,
@@ -141,6 +144,7 @@ class _MapAppBar extends StatelessWidget {
             icon: const Icon(Icons.my_location_rounded),
             onPressed: () {
               // TODO: Implementar centrado de mapa en MVP 1
+              // Usar mapboxMap.easeTo() con las coordenadas del pasajero
             },
             color: AppColors.primary,
             tooltip: 'Mi ubicación',
@@ -154,8 +158,10 @@ class _MapAppBar extends StatelessWidget {
 
 // =============================================================================
 // Badge de Debug: Canario de Rendimiento
-// Muestra el tick del StreamProvider cada segundo.
-// Verificar en Flutter DevTools que SOLO este widget se redibuja.
+// Muestra el tick del realtimeTickProvider cada segundo.
+// VERIFICAR en Flutter DevTools → Rebuild Stats:
+//   - SOLO este widget debe aparecer con rebuild count > 0 por tick.
+//   - MapWidget, FilterPanel y EtaBottomSheet deben tener rebuild count = 0.
 // =============================================================================
 
 class _RealtimeTickDebugBadge extends ConsumerWidget {
@@ -165,7 +171,6 @@ class _RealtimeTickDebugBadge extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tickAsync = ref.watch(realtimeTickProvider);
 
-    // Solo se muestra en modo debug (assert solo se ejecuta en debug mode)
     bool isDebug = false;
     assert(() {
       isDebug = true;
@@ -185,7 +190,7 @@ class _RealtimeTickDebugBadge extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Text(
-          'WS TICK: $tick',
+          'WS: $tick',
           style: AppTextStyles.caption.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w700,
