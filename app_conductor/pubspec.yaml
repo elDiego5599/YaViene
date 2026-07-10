@@ -1,0 +1,47 @@
+name: ya_viene_conductor
+description: Aplicación para conductores (MVP 0) - Alta resiliencia y Foreground Service.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── Dependencia Monorepo (Core compartido) ──────────────────────────────────
+  # Importamos el paquete core para reusar el Theme (Inter nativa), Modelos, etc.
+  ya_viene_core:
+    path: ../ya_viene_core
+
+  # ── State Management ─────────────────────────────────────────────────────────
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # ── Background & GPS ─────────────────────────────────────────────────────────
+  flutter_background_service: ^3.4.6
+  flutter_background_service_android: ^3.3.3
+  geolocator: ^13.0.7
+  permission_handler: ^11.3.1
+
+  # ── Networking & MQTT ───────────────────────────────────────────────────────
+  mqtt_client: ^10.2.1
+
+  # ── Local Storage (Offline Buffer) ──────────────────────────────────────────
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+
+  # ── Utilities ─────────────────────────────────────────────────────────────────
+  logger: ^2.4.0
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  riverpod_generator: ^2.4.3
+  build_runner: ^2.4.11
+
+flutter:
+  uses-material-design: true

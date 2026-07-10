@@ -8,7 +8,7 @@
 /// =============================================================================
 
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 class MapPlaceholder extends StatelessWidget {
   const MapPlaceholder({super.key});
