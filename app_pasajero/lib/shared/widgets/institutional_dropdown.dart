@@ -25,7 +25,7 @@
 /// =============================================================================
 
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 class InstitutionalDropDown<T> extends StatelessWidget {
   final String label;
@@ -87,7 +87,7 @@ class InstitutionalDropDown<T> extends StatelessWidget {
             ),
           ),
           dropdownColor: AppColors.background,
-          borderRadius: AppRadius.card,
+          borderRadius: BorderRadius.circular(AppRadius.card),
           items: items.map((item) {
             return DropdownMenuItem<T>(
               value: item,
@@ -158,7 +158,7 @@ class _FieldSkeletonState extends State<_FieldSkeleton>
               height: 52,
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: AppRadius.card,
+                borderRadius: BorderRadius.circular(AppRadius.card),
                 border: Border.all(color: AppColors.divider),
               ),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -209,7 +209,7 @@ class _FieldError extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
             color: AppColors.error.withOpacity(0.06),
-            borderRadius: AppRadius.card,
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: AppColors.error.withOpacity(0.4)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -219,7 +219,7 @@ class _FieldError extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(message,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+                    style: AppTextStyles.body.copyWith(color: AppColors.error, fontSize: 12)),
               ),
               if (onRetry != null)
                 GestureDetector(

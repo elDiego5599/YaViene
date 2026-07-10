@@ -19,7 +19,7 @@
 /// =============================================================================
 
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String label;
@@ -56,10 +56,10 @@ class PrimaryButton extends StatelessWidget {
           backgroundColor: isDisabled
               ? AppColors.textDisabled
               : backgroundColor,
-          foregroundColor: AppColors.onPrimary,
+          foregroundColor: Colors.white,
           elevation: 0,
           shadowColor: Colors.transparent,
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.button),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
           padding: EdgeInsets.zero,
         ),
         child: isLoading
@@ -68,7 +68,7 @@ class PrimaryButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.onPrimary),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
             : Row(

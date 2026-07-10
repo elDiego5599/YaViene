@@ -26,8 +26,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/providers/app_providers.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import '../widgets/filter_panel.dart';
 import '../widgets/map_widget.dart';
 import '../widgets/eta_bottom_sheet.dart';
@@ -55,7 +54,7 @@ class MapScreen extends ConsumerWidget {
           // MapWidget es un View nativo que ocupa toda la pantalla.
           // NO se reconstruye cuando el bus emite nuevas coordenadas.
           Positioned.fill(
-            child: MapWidgetView(
+            child: MapWidget(
               routeId: selectedRoute?.id,
             ),
           ),
@@ -112,7 +111,7 @@ class _MapAppBar extends StatelessWidget {
             ),
             child: const Icon(
               Icons.directions_bus_rounded,
-              color: AppColors.onPrimary,
+              color: Colors.white,
               size: 20,
             ),
           ),
@@ -132,7 +131,7 @@ class _MapAppBar extends StatelessWidget {
           ),
           Text(
             'Barranquilla',
-            style: AppTextStyles.caption,
+            style: AppTextStyles.label,
           ),
         ],
       ),
@@ -191,7 +190,7 @@ class _RealtimeTickDebugBadge extends ConsumerWidget {
         ),
         child: Text(
           'WS: $tick',
-          style: AppTextStyles.caption.copyWith(
+          style: AppTextStyles.label.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w700,
           ),

@@ -10,6 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # ── Paquetes Locales (Monorepo) ─────────────────────────────────────────────
+  ya_viene_core:
+    path: ../ya_viene_core
+
   # ── State Management ─────────────────────────────────────────────────────────
   flutter_riverpod: ^2.5.1
   riverpod_annotation: ^2.3.5
@@ -17,10 +21,8 @@ dependencies:
   # ── Navigation ───────────────────────────────────────────────────────────────
   go_router: ^14.2.0
 
-  # ── Mapa (Motor nativo Mapbox — fuente de capas/GeoJSON gestionado internamente)
-  # NOTA: Requiere un Mapbox Access Token en AndroidManifest.xml e Info.plist.
-  # Ver: https://docs.mapbox.com/android/maps/guides/install/
-  mapbox_maps_flutter: ^2.23.1
+  # ── Mapa (Motor nativo MapLibre GL — Open Source sin llaves)
+  maplibre_gl: ^0.26.1
 
   # ── Networking & Real-time ────────────────────────────────────────────────────
   # NOTA: El pasajero SOLO consume via WebSocket (lectura). NO hay MQTT.

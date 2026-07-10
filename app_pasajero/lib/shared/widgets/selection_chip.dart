@@ -19,7 +19,7 @@
 /// =============================================================================
 
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 class SelectionChip extends StatelessWidget {
   final String label;
@@ -50,7 +50,7 @@ class SelectionChip extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: AppRadius.chip,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.divider,
             width: 1.5,
@@ -67,7 +67,7 @@ class SelectionChip extends StatelessWidget {
                   icon,
                   key: ValueKey(isSelected),
                   size: 16,
-                  color: isSelected ? AppColors.onPrimary : AppColors.textSecondary,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
                 ),
               ),
               const SizedBox(width: AppSpacing.xs + 2),
@@ -75,7 +75,7 @@ class SelectionChip extends StatelessWidget {
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: AppTextStyles.label.copyWith(
-                color: isSelected ? AppColors.onPrimary : AppColors.textSecondary,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
               child: Text(label),
