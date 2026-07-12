@@ -6,6 +6,8 @@
 /// (ej. estado de autenticación) en el futuro sin refactorizar nada.
 /// =============================================================================
 
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,10 +49,9 @@ class _NotFoundScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text('Ruta no encontrada', style: Theme.of(context).textTheme.bodyLarge),
+        child: Text('Ruta no encontrada',
+            style: Theme.of(context).textTheme.bodyLarge),
       ),
     );
   }
 }
-
-

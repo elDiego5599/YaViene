@@ -25,30 +25,28 @@ import '../models/route_trajectory.dart';
 /// FutureProvider que devuelve la trayectoria de la ruta seleccionada.
 /// Los 10 puntos siguen un corredor ficticio en el norte de Barranquilla,
 /// representando el tramo Soledad → Centro.
-final routeTrajectoryProvider =
-    FutureProvider.autoDispose.family<RouteTrajectory, String>(
-  (ref, routeId) async {
-    // Simula latencia de red (el LineString viene de PostGIS via REST)
-    await Future.delayed(const Duration(milliseconds: 400));
+final routeTrajectoryProvider = FutureProvider.autoDispose
+    .family<RouteTrajectory, String>((ref, routeId) async {
+  // Simula latencia de red (el LineString viene de PostGIS via REST)
+  await Future.delayed(const Duration(milliseconds: 400));
 
-    return RouteTrajectory(
-      routeId: routeId,
-      routeName: 'Ruta 1 Ida — Centro/Soledad',
-      points: const [
-        GeoPoint(lat: 10.9200, lon: -74.7800), // Punto 1: Soledad
-        GeoPoint(lat: 10.9320, lon: -74.7870), // Punto 2
-        GeoPoint(lat: 10.9440, lon: -74.7920), // Punto 3
-        GeoPoint(lat: 10.9560, lon: -74.7975), // Punto 4
-        GeoPoint(lat: 10.9650, lon: -74.8010), // Punto 5: Calle 30
-        GeoPoint(lat: 10.9740, lon: -74.8040), // Punto 6
-        GeoPoint(lat: 10.9840, lon: -74.8060), // Punto 7: Murillo
-        GeoPoint(lat: 10.9930, lon: -74.8070), // Punto 8
-        GeoPoint(lat: 11.0020, lon: -74.8075), // Punto 9: El Prado
-        GeoPoint(lat: 11.0120, lon: -74.8080), // Punto 10: Centro
-      ],
-    );
-  },
-);
+  return RouteTrajectory(
+    routeId: routeId,
+    routeName: 'Ruta 1 Ida — Centro/Soledad',
+    points: const [
+      GeoPoint(lat: 10.9200, lon: -74.7800), // Punto 1: Soledad
+      GeoPoint(lat: 10.9320, lon: -74.7870), // Punto 2
+      GeoPoint(lat: 10.9440, lon: -74.7920), // Punto 3
+      GeoPoint(lat: 10.9560, lon: -74.7975), // Punto 4
+      GeoPoint(lat: 10.9650, lon: -74.8010), // Punto 5: Calle 30
+      GeoPoint(lat: 10.9740, lon: -74.8040), // Punto 6
+      GeoPoint(lat: 10.9840, lon: -74.8060), // Punto 7: Murillo
+      GeoPoint(lat: 10.9930, lon: -74.8070), // Punto 8
+      GeoPoint(lat: 11.0020, lon: -74.8075), // Punto 9: El Prado
+      GeoPoint(lat: 11.0120, lon: -74.8080), // Punto 10: Centro
+    ],
+  );
+});
 
 // =============================================================================
 // PROVIDER 2: Paradas de la Ruta (dato estático — se carga una vez)
@@ -105,10 +103,10 @@ final busStopsProvider =
 );
 
 // =============================================================================
-// PROVIDER 3: Bus en Movimiento (Stream — emite cada segundo)
+// PROVIDER 3: Bus en Movimiento (Stream — emite cada 3 segundos)
 //
 // ARQUITECTURA DE AISLAMIENTO DE RENDER:
-//   Este provider emite una nueva [BusPosition] cada segundo.
+//   Este provider emite una nueva [BusPosition] cada 3 segundos.
 //   El widget [MapWidget] observa este provider con un ref.listen() —
 //   NO con ref.watch() — para actualizar solo el GeoJsonSource de Mapbox
 //   sin reconstruir ningún widget de Flutter.
@@ -119,7 +117,7 @@ final busStopsProvider =
 // =============================================================================
 
 /// StreamProvider que simula un bus moviendose a lo largo de la ruta,
-/// actualizado cada segundo. Emite una [BusPosition] con:
+/// actualizado cada 3 segundos. Emite una [BusPosition] con:
 ///   - lat/lon interpolados a lo largo de los 10 puntos de la ruta.
 ///   - heading calculado dinámicamente (ángulo entre punto actual y siguiente).
 ///   - El tick 15 simula señal débil (isGhostBus: true) para probar el ícono gris.
@@ -139,12 +137,11 @@ final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) async* {
   ];
 
   int tick = 0;
-  int waypointIndex = 0;
   // Sub-pasos de interpolación entre cada par de waypoints
   const stepsPerSegment = 10;
 
   while (true) {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 3));
 
     final segmentIndex = (tick ~/ stepsPerSegment) % (waypoints.length - 1);
     final t = (tick % stepsPerSegment) / stepsPerSegment; // 0.0 → 1.0

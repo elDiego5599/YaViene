@@ -5,6 +5,8 @@
 /// router centralizado.
 /// =============================================================================
 
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,7 +54,7 @@ class YaVieneApp extends ConsumerWidget {
       // ── TEMA: Solo Light Mode, sin posibilidad de toggle ──────────────────
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.lightTheme, // El dark theme también usa light
-      themeMode: ThemeMode.light,     // Forzado al modo claro
+      themeMode: ThemeMode.light, // Forzado al modo claro
 
       // ── NAVEGACIÓN ────────────────────────────────────────────────────────
       routerConfig: router,

@@ -7,6 +7,8 @@
 /// diseño del panel de filtros y el BottomSheet puedan validarse ya.
 /// =============================================================================
 
+library;
+
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -16,7 +18,8 @@ class MapPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFE8EFF5), // Azul-gris muy claro, similar al fondo de mapas
+      color: const Color(
+          0xFFE8EFF5), // Azul-gris muy claro, similar al fondo de mapas
       child: Stack(
         children: [
           // Cuadrícula sutil que simula los tiles de un mapa
@@ -38,7 +41,7 @@ class MapPlaceholder extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadius.lg),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.textPrimary.withOpacity(0.08),
+                        color: AppColors.textPrimary.withValues(alpha: 0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 6),
                       ),
@@ -59,8 +62,9 @@ class MapPlaceholder extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Mapbox SDK',
-                  style: AppTextStyles.caption.copyWith(
+                  'MapLibre GL',
+                  style: AppTextStyles.body.copyWith(
+                    fontSize: 11,
                     color: AppColors.textDisabled,
                     fontWeight: FontWeight.w600,
                   ),

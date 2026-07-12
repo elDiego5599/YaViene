@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-// Note: We need a shared primary_button. Since it's in app_pasajero/lib/shared/widgets, we might need to duplicate it or move it to core.
-// For MVP 0, we'll assume it exists or we can just build a custom button here since we need a large red button.
 
 import '../tracking/gps_manager.dart';
 import 'fraud_blocker_screen.dart';
