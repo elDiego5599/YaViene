@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../../../shared/widgets/selection_chip.dart';
-import '../../../../shared/widgets/institutional_dropdown.dart' show InstitutionalDropDown;
 
 class FilterPanel extends ConsumerWidget {
   const FilterPanel({super.key});
@@ -11,7 +9,8 @@ class FilterPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final companiesAsync = ref.watch(companiesProvider);
     final selectedCompany = ref.watch(selectedCompanyProvider);
-    final routesAsync = ref.watch(routesByCompanyProvider(selectedCompany?.id ?? ''));
+    final routesAsync =
+        ref.watch(routesByCompanyProvider(selectedCompany?.id ?? ''));
     final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedDirection = ref.watch(selectedSentidoProvider);
 
@@ -41,11 +40,12 @@ class FilterPanel extends ConsumerWidget {
                   selectedItem: selectedCompany,
                   itemLabel: (c) => c.name,
                   onChanged: (c) {
-                    ref.read(selectedCompanyProvider.notifier).state = c;
-                    ref.read(selectedRouteProvider.notifier).state = null;
+                    ref.read(selectedCompanyProvider.notifier).select(c);
+                    ref.read(selectedRouteProvider.notifier).clear();
                   },
                 ),
-                loading: () => const LinearProgressIndicator(color: AppColors.primaryLight),
+                loading: () =>
+                    const LinearProgressIndicator(color: AppColors.primarySoft),
                 error: (_, __) => const Text('Error al cargar empresas'),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -57,33 +57,33 @@ class FilterPanel extends ConsumerWidget {
                   items: routes,
                   selectedItem: selectedRoute,
                   itemLabel: (r) => r.name,
-                  onChanged: (r) => ref.read(selectedRouteProvider.notifier).state = r,
+                  onChanged: (r) =>
+                      ref.read(selectedRouteProvider.notifier).select(r),
                 ),
-                loading: () => const LinearProgressIndicator(color: AppColors.primaryLight),
+                loading: () =>
+                    const LinearProgressIndicator(color: AppColors.primarySoft),
                 error: (_, __) => const SizedBox.shrink(),
               ),
               const SizedBox(height: AppSpacing.md),
               if (selectedRoute != null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: SelectionChip(
-                        label: 'Ida',
-                        icon: Icons.arrow_forward_rounded,
-                        isSelected: selectedDirection == RouteSentido.ida,
-                        onTap: () => ref.read(selectedSentidoProvider.notifier).state = RouteSentido.ida,
-                      ),
+                AnimatedSelectionChip<RouteSentido>(
+                  selectedValue: selectedDirection,
+                  options: const [
+                    AnimatedSelectionOption(
+                      value: RouteSentido.ida,
+                      label: 'Ida',
+                      icon: Icons.arrow_forward_rounded,
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: SelectionChip(
-                        label: 'Vuelta',
-                        icon: Icons.arrow_back_rounded,
-                        isSelected: selectedDirection == RouteSentido.vuelta,
-                        onTap: () => ref.read(selectedSentidoProvider.notifier).state = RouteSentido.vuelta,
-                      ),
+                    AnimatedSelectionOption(
+                      value: RouteSentido.vuelta,
+                      label: 'Vuelta',
+                      icon: Icons.arrow_back_rounded,
                     ),
                   ],
+                  onChanged: (direction) {
+                    ref.read(selectedSentidoProvider.notifier).state =
+                        direction;
+                  },
                 ),
             ],
           ),

@@ -19,18 +19,18 @@ import '../models/company.dart';
 
 // =============================================================================
 // PROVIDER 1: Tick de Tiempo Real (Canario de Rendimiento)
-// Emite un contador cada segundo. Permite verificar en ProfileMode que
+// Emite un contador cada 3 segundos. Permite verificar en ProfileMode que
 // la UI NO parpadea completa con cada tick — solo el widget que lo consuma.
 // =============================================================================
 
-/// StreamProvider que emite un [int] (contador) cada segundo.
+/// StreamProvider que emite un [int] (contador) cada 3 segundos.
 /// VERIFICACIÓN: Envolve el widget que muestre este valor en un
 /// [Consumer] aislado y usa Flutter DevTools para confirmar que
 /// solo ese widget se redibuja.
 final realtimeTickProvider = StreamProvider.autoDispose<int>((ref) async* {
   int tick = 0;
   while (true) {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 3));
     yield tick++;
   }
 });
@@ -40,25 +40,23 @@ final realtimeTickProvider = StreamProvider.autoDispose<int>((ref) async* {
 // =============================================================================
 
 /// StreamProvider que emite una lista de [BusPosition] simulando el movimiento
-/// de 3 buses en un corredor de prueba cada 2 segundos.
+/// de 3 buses en un corredor de prueba cada 3 segundos.
 /// Reemplazar el Stream por la conexión real a Socket.io en el MVP 1.
-final busPositionsProvider =
-    StreamProvider.autoDispose.family<List<BusPosition>, String>(
-  (ref, routeId) async* {
-    // Posiciones base del corredor de prueba (ruta ficticia en Barranquilla)
-    double baseLat = 11.0041;
-    double baseLon = -74.8070;
+final busPositionsProvider = StreamProvider.autoDispose
+    .family<List<BusPosition>, String>((ref, routeId) async* {
+      // Posiciones base del corredor de prueba (ruta ficticia en Barranquilla)
+      double baseLat = 11.0041;
+      double baseLon = -74.8070;
 
-    yield _generateDummyPositions(routeId, baseLat, baseLon, tick: 0);
+      yield _generateDummyPositions(routeId, baseLat, baseLon, tick: 0);
 
-    int tick = 0;
-    await for (final _ in Stream.periodic(const Duration(seconds: 2))) {
-      tick++;
-      baseLat += 0.0001 * tick; // Simula movimiento hacia el norte
-      yield _generateDummyPositions(routeId, baseLat, baseLon, tick: tick);
-    }
-  },
-);
+      int tick = 0;
+      await for (final _ in Stream.periodic(const Duration(seconds: 3))) {
+        tick++;
+        baseLat += 0.0001 * tick; // Simula movimiento hacia el norte
+        yield _generateDummyPositions(routeId, baseLat, baseLon, tick: tick);
+      }
+    });
 
 List<BusPosition> _generateDummyPositions(
   String routeId,
@@ -118,8 +116,8 @@ final companiesProvider = FutureProvider<List<Company>>((ref) async {
 /// StateNotifierProvider para la empresa seleccionada actualmente.
 final selectedCompanyProvider =
     StateNotifierProvider<SelectedCompanyNotifier, Company?>(
-  (ref) => SelectedCompanyNotifier(),
-);
+      (ref) => SelectedCompanyNotifier(),
+    );
 
 class SelectedCompanyNotifier extends StateNotifier<Company?> {
   SelectedCompanyNotifier() : super(null);
@@ -131,32 +129,46 @@ class SelectedCompanyNotifier extends StateNotifier<Company?> {
 // ---
 
 /// FutureProvider.family que carga las rutas de una empresa específica.
-final routesByCompanyProvider =
-    FutureProvider.autoDispose.family<List<RouteInfo>, String>(
-  (ref, companyId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // Datos simulados filtrados por empresa
-    final allRoutes = {
-      '1': [
-        const RouteInfo(id: '101', name: 'Ruta 1 - Centro/Soledad', companyId: '1'),
-        const RouteInfo(id: '102', name: 'Ruta 2 - Murillo/Terminal', companyId: '1'),
-      ],
-      '2': [
-        const RouteInfo(id: '201', name: 'Ruta 5 - Riomar/Abello', companyId: '2'),
-      ],
-      '3': [
-        const RouteInfo(id: '301', name: 'Troncal - Portal/Caribe', companyId: '3'),
-      ],
-    };
-    return allRoutes[companyId] ?? [];
-  },
-);
+final routesByCompanyProvider = FutureProvider.autoDispose
+    .family<List<RouteInfo>, String>((ref, companyId) async {
+      await Future.delayed(const Duration(milliseconds: 300));
+      // Datos simulados filtrados por empresa
+      final allRoutes = {
+        '1': [
+          const RouteInfo(
+            id: '101',
+            name: 'Ruta 1 - Centro/Soledad',
+            companyId: '1',
+          ),
+          const RouteInfo(
+            id: '102',
+            name: 'Ruta 2 - Murillo/Terminal',
+            companyId: '1',
+          ),
+        ],
+        '2': [
+          const RouteInfo(
+            id: '201',
+            name: 'Ruta 5 - Riomar/Abello',
+            companyId: '2',
+          ),
+        ],
+        '3': [
+          const RouteInfo(
+            id: '301',
+            name: 'Troncal - Portal/Caribe',
+            companyId: '3',
+          ),
+        ],
+      };
+      return allRoutes[companyId] ?? [];
+    });
 
 /// StateNotifierProvider para la ruta seleccionada.
 final selectedRouteProvider =
     StateNotifierProvider<SelectedRouteNotifier, RouteInfo?>(
-  (ref) => SelectedRouteNotifier(),
-);
+      (ref) => SelectedRouteNotifier(),
+    );
 
 class SelectedRouteNotifier extends StateNotifier<RouteInfo?> {
   SelectedRouteNotifier() : super(null);

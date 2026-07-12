@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/shared/widgets/primary_button.dart';
 import 'login_screen.dart';
 
 class FraudBlockerScreen extends StatelessWidget {

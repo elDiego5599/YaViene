@@ -23,6 +23,8 @@
 ///   └─────────────────────────────────────────┘
 /// =============================================================================
 
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -185,7 +187,7 @@ class _RealtimeTickDebugBadge extends ConsumerWidget {
           vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
-          color: AppColors.success.withOpacity(0.9),
+          color: AppColors.success.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Text(

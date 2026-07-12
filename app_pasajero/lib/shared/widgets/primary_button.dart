@@ -18,6 +18,8 @@
 /// ```
 /// =============================================================================
 
+library;
+
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -43,8 +45,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor =
-        isDestructive ? AppColors.error : AppColors.primary;
+    final backgroundColor = isDestructive ? AppColors.error : AppColors.primary;
     final isDisabled = onPressed == null || isLoading;
 
     return SizedBox(
@@ -53,13 +54,13 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isDisabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isDisabled
-              ? AppColors.textDisabled
-              : backgroundColor,
+          backgroundColor:
+              isDisabled ? AppColors.textDisabled : backgroundColor,
           foregroundColor: Colors.white,
           elevation: 0,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg)),
           padding: EdgeInsets.zero,
         ),
         child: isLoading
@@ -68,7 +69,7 @@ class PrimaryButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
             : Row(

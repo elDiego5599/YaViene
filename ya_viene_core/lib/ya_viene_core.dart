@@ -13,3 +13,6 @@ export 'core/theme/app_theme.dart';
 // ── Providers ──────────────────────────────────────────────────────────────
 export 'core/providers/app_providers.dart';
 export 'core/providers/map_providers.dart';
+
+// ── Shared Widgets ─────────────────────────────────────────────────────────
+export 'shared/widgets/widgets.dart';
