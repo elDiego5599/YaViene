@@ -1,0 +1,18 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="routeGrad" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00FA9A" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#27272A" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="#09090B" />
+  <path d="M 120 392 C 120 180, 392 400, 392 120" fill="none" stroke="url(#routeGrad)" stroke-width="56" stroke-linecap="round" />
+
+  <circle cx="120" cy="392" r="64" fill="#FFFFFF" opacity="0.12" />
+  <circle cx="120" cy="392" r="28" fill="none" stroke="#D4D4D8" stroke-width="14" />
+  <circle cx="120" cy="392" r="6" fill="#D4D4D8" opacity="0.9" />
+
+  <circle cx="392" cy="120" r="64" fill="#00FA9A" opacity="0.15" />
+  <circle cx="392" cy="120" r="28" fill="#00FA9A" />
+  <circle cx="392" cy="120" r="12" fill="#FFFFFF" />
+</svg>
