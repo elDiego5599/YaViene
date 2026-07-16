@@ -40,6 +40,7 @@ dependencies:
   # sección `flutter.fonts` de este archivo y se leen del bundle de la app.
   # Esto elimina el FOUT (Flash of Unstyled Text) y la dependencia de red.
   cached_network_image: ^3.3.1
+  flutter_svg: ^2.0.10+1
 
   # ── Utilities ─────────────────────────────────────────────────────────────────
   equatable: ^2.0.5
@@ -59,7 +60,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # assets:
-  #   - assets/fonts/
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - assets/icon/
