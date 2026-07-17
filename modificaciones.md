@@ -160,8 +160,17 @@ Los widgets se exportan desde `ya_viene_core` y son reutilizados por ambas apps.
 | `assets/fonts/` | Vacío (solo .gitkeep) |
 | `assets/icons/` | Vacío (el bus 2.5D está embebido como PNG base64 en `map_widget.dart`) |
 | `assets/images/` | Vacío (solo .gitkeep) |
+| `assets/icon/` | `ya_viene_logo.svg` (icono final), `foreground.svg` (capa frontal para Android adaptive icon) |
 
 La sección `assets:` en pubspec.yaml está comentada. Las fuentes Inter se usan en el tema pero no están cargadas físicamente.
+
+### App Icon
+
+- **Diseño final:** Círculo verde (`#00A859`) con ondas de conectividad blancas + bus azul marino (`#14274E`) con parabrisas blanco y faros amarillos.
+- **Android Adaptive Icon:** Configurado con 2 capas:
+  - Background: `@color/ic_launcher_background` → `#00A859`
+  - Foreground: `@mipmap/ic_launcher_foreground` (solo bus + ondas, fondo transparente, optimizado para safe zone 66%)
+- **PNGs generados** con `rsvg-convert` para todas las densidades (mdpi a xxxhdpi), tanto para `ic_launcher.png` (icono completo) como `ic_launcher_foreground.png` (solo foreground).
 
 ### Plataformas
 
@@ -225,8 +234,12 @@ Con la app corriendo, presioná `r` en la terminal para ver cambios al instante.
 
 ## Commit history importante
 
-- `fd56e46` — Initial commit
-- `69091a1` — Plan de proyecto con MVPs
-- `796ccbc` — Primeras vistas y lógica básica
-- `6623547` — **Migración a MapLibre** (Mapbox → MapLibre, creación de ya_viene_core, app_conductor)
-- `(next)` — **Shared widgets movidos a `ya_viene_core`** (PrimaryButton, SelectionChip, InstitutionalDropDown; fix imports en app_conductor; fix caption → body en map_placeholder; fix test)
+| Commit | Mensaje | Descripción |
+|---|---|---|
+| `69091a1` | Plan de projecto con los MVP incluidos | Primer commit con plan |
+| `796ccbc` | primeras vistas y logica basica | Vistas iniciales |
+| `6623547` | migracion a maplibre | Migración Mapbox → MapLibre, creación de `ya_viene_core`, `app_conductor` |
+| `d7a2057` | arreglo mapa que no salia y mejoras UI UX | Fix mapa, shared widgets movidos a core, imports |
+| `c1f795a` | nuevo logo para la app | Primer icono (oscuro con radar neón) |
+| `114eafa` | cambio de icono | Icono final verde con bus azul, adaptive icon, foreground separado, safe zone corregido |
+| `65e0911` | gitignore y limpieza de archivos generados | `.gitignore`, limpieza de `.dart_tool/`, `.DS_Store`
