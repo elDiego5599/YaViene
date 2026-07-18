@@ -14,3 +14,7 @@ build/
 .idea/
 .env
 modificaciones.md
+
+# Firebase config (project-specific, not tracked)
+app_pasajero/android/app/google-services.json
+app_pasajero/ios/Runner/GoogleService-Info.plist

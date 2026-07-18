@@ -10,12 +10,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
 
   // Forzar orientación vertical — la app no debe rotarse en el uso cotidiano
   await SystemChrome.setPreferredOrientations([

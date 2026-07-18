@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/providers/auth_provider.dart';
+import 'otp_verification_screen.dart';
 
-class PremiumLoginScreen extends StatefulWidget {
+class PremiumLoginScreen extends ConsumerStatefulWidget {
   const PremiumLoginScreen({super.key});
 
   @override
-  State<PremiumLoginScreen> createState() => _PremiumLoginScreenState();
+  ConsumerState<PremiumLoginScreen> createState() =>
+      _PremiumLoginScreenState();
 }
 
-class _PremiumLoginScreenState extends State<PremiumLoginScreen> {
+class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final ValueNotifier<bool> _isValidPhone = ValueNotifier<bool>(false);
 
@@ -35,10 +39,24 @@ class _PremiumLoginScreenState extends State<PremiumLoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
-    context.go('/map');
+    final phone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final auth = ref.read(authProvider);
+    auth.addListener(() {
+      if (auth.state.status == AuthStatus.codeSent && mounted) {
+        context.go('/otp', extra: phone);
+      } else if (auth.state.status == AuthStatus.error && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(auth.state.errorMessage ?? 'Error al enviar código'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    });
+    await auth.verifyPhone(phone);
   }
 
   @override
