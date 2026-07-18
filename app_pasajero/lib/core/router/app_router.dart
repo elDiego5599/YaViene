@@ -13,11 +13,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/premium_login_screen.dart';
+import '../../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 
 /// Rutas nombradas para evitar strings mágicos en el código.
 abstract class AppRoutes {
   static const String login = '/';
+  static const String otp = '/otp';
   static const String map = '/map';
   static const String routeDetail = '/route/:routeId';
   static const String alertSettings = '/alerts';
@@ -34,6 +36,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.login,
         name: 'login',
         builder: (context, state) => const PremiumLoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.otp,
+        name: 'otp',
+        builder: (context, state) {
+          final phone = state.extra as String? ?? '';
+          return OtpVerificationScreen(phoneNumber: phone);
+        },
       ),
       GoRoute(
         path: AppRoutes.map,
