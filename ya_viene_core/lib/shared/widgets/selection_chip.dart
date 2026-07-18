@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../ya_viene_core.dart';
 
@@ -77,7 +78,10 @@ class AnimatedSelectionChip<T> extends StatelessWidget {
                       child: _SelectionSegment<T>(
                         option: option,
                         isSelected: option.value == selectedValue,
-                        onTap: () => onChanged(option.value),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          onChanged(option.value);
+                        },
                       ),
                     ),
                 ],

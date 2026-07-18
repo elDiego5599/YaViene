@@ -7,7 +7,6 @@
 /// pendientes para enviarlas en ráfaga (burst) vía MQTT.
 /// =============================================================================
 
-import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
@@ -15,6 +14,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 class OfflineBufferRepository {
   static const _dbName = 'yaviene_offline_buffer.db';
   static const _tableName = 'pending_positions';
+  static const _maxRecords = 1000;
 
   Database? _db;
 
@@ -62,6 +62,21 @@ class OfflineBufferRepository {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    await _trimToLimit();
+  }
+
+  /// Elimina los registros más antiguos si se excede el límite máximo.
+  Future<void> _trimToLimit() async {
+    final count = Sqflite.firstIntValue(
+        await _db!.rawQuery('SELECT COUNT(*) FROM $_tableName'))!;
+    if (count > _maxRecords) {
+      final deleteCount = count - _maxRecords;
+      await _db!.delete(
+        _tableName,
+        where: 'id IN (SELECT id FROM $_tableName ORDER BY timestamp ASC LIMIT ?)',
+        whereArgs: [deleteCount],
+      );
+    }
   }
 
   /// Retorna TODAS las posiciones pendientes de sincronizar.

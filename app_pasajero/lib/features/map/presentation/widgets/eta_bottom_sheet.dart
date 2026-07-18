@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -28,154 +30,180 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
       alignment: Alignment.bottomCenter,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.sheet),
-          ),
-          boxShadow: AppShadows.floating,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
         ),
-        child: SafeArea(
-          top: false,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              _isExpanded ? AppSpacing.xl : AppSpacing.lg,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppRadius.sheet),
+              ),
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
+              ),
+              boxShadow: AppShadows.floating,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _isExpanded = !_isExpanded),
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: _isExpanded ? 56 : 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color:
-                            _isExpanded ? AppColors.primary : AppColors.divider,
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                      ),
-                    ),
-                  ),
+            child: SafeArea(
+              top: false,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  _isExpanded ? AppSpacing.xl : AppSpacing.lg,
                 ),
-                Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                      ),
-                      child: const Icon(
-                        Icons.directions_bus_rounded,
-                        color: AppColors.primaryDeep,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Bus hacia', style: AppTextStyles.label),
-                          const SizedBox(height: 2),
-                          Text(
-                            destination,
-                            style: AppTextStyles.h2,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () =>
+                          setState(() => _isExpanded = !_isExpanded),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          width: _isExpanded ? 56 : 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: _isExpanded
+                                ? AppColors.primary
+                                : AppColors.divider,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.pill),
                           ),
-                        ],
-                      ),
-                    ),
-                    AnimatedRotation(
-                      turns: _isExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOutCubic,
-                      child: IconButton(
-                        tooltip: _isExpanded ? 'Contraer' : 'Expandir',
-                        icon: const Icon(Icons.keyboard_arrow_up_rounded),
-                        color: AppColors.textSecondary,
-                        onPressed: () =>
-                            setState(() => _isExpanded = !_isExpanded),
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  height: _isExpanded ? AppSpacing.xl : AppSpacing.lg,
-                ),
-                Center(
-                  child: Column(
-                    children: [
-                      Text('3', style: AppTextStyles.etaNumber),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'minutos para llegar a tu parada',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.textSecondary,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                if (_isExpanded) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.backgroundWarm,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border: Border.all(color: AppColors.divider),
                     ),
-                    child: Row(
+                    Row(
                       children: [
-                        const Icon(Icons.route_rounded,
-                            color: AppColors.primaryDeep),
-                        const SizedBox(width: AppSpacing.sm),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus_rounded,
+                            color: AppColors.primaryDeep,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
-                          child: Text(
-                            selectedRoute.name,
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const PulsingDot(color: AppColors.success),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text('Actualizando en tiempo real',
+                                      style: AppTextStyles.label),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                destination,
+                                style: AppTextStyles.h2,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _isExpanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          child: IconButton(
+                            tooltip: _isExpanded ? 'Contraer' : 'Expandir',
+                            icon:
+                                const Icon(Icons.keyboard_arrow_up_rounded),
+                            color: AppColors.textSecondary,
+                            onPressed: () => setState(
+                                () => _isExpanded = !_isExpanded),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xl),
-                _PremiumAlertButton(
-                  isActive: alertActive,
-                  onPressed: () {
-                    final next = !alertActive;
-                    ref.read(proximityAlertProvider.notifier).state = next;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            next ? 'Alerta activada' : 'Alerta desactivada'),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutCubic,
+                      height: _isExpanded ? AppSpacing.xl : AppSpacing.lg,
+                    ),
+                    Center(
+                      child: Column(
+                        children: [
+                          Text('3', style: AppTextStyles.etaNumber),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'minutos para llegar a tu parada',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.body.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                    if (_isExpanded) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundWarm,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.route_rounded,
+                                color: AppColors.primaryDeep),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                selectedRoute.name,
+                                style: AppTextStyles.body.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.xl),
+                    _PremiumAlertButton(
+                      isActive: alertActive,
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        final next = !alertActive;
+                        ref.read(proximityAlertProvider.notifier).state = next;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                next ? 'Alerta activada' : 'Alerta desactivada'),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -210,7 +238,10 @@ class _PremiumAlertButtonState extends State<_PremiumAlertButton> {
         : AppColors.primaryDeep;
 
     return GestureDetector(
-      onTap: widget.onPressed,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        widget.onPressed();
+      },
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapCancel: () => setState(() => _isPressed = false),
       onTapUp: (_) => setState(() => _isPressed = false),

@@ -12,11 +12,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/screens/premium_login_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 
 /// Rutas nombradas para evitar strings mágicos en el código.
 abstract class AppRoutes {
-  static const String map = '/';
+  static const String login = '/';
+  static const String map = '/map';
   static const String routeDetail = '/route/:routeId';
   static const String alertSettings = '/alerts';
 }
@@ -26,8 +28,13 @@ abstract class AppRoutes {
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     debugLogDiagnostics: true,
-    initialLocation: AppRoutes.map,
+    initialLocation: AppRoutes.login,
     routes: [
+      GoRoute(
+        path: AppRoutes.login,
+        name: 'login',
+        builder: (context, state) => const PremiumLoginScreen(),
+      ),
       GoRoute(
         path: AppRoutes.map,
         name: 'map',
