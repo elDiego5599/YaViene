@@ -19,33 +19,79 @@ class FilterPanel extends ConsumerWidget {
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
             child: Container(
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.78),
-                borderRadius: BorderRadius.circular(AppRadius.card),
+                color: Colors.white.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: Colors.white.withValues(alpha: 0.6),
                   width: 1.5,
                 ),
-                boxShadow: AppShadows.floating,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF14274E).withValues(alpha: 0.08),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF14274E),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.directions_bus_rounded,
+                            color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        '¿Qué bus esperas?',
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF00A859).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'EN VIVO',
+                          style: TextStyle(
+                            color: Color(0xFF00A859),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
                   companiesAsync.when(
                     data: (companies) => InstitutionalDropDown<Company>(
                       label: 'Empresa',
                       hint: 'Selecciona una empresa',
-                      icon: Icons.business,
+                      icon: Icons.business_rounded,
                       items: companies,
                       selectedItem: selectedCompany,
                       itemLabel: (c) => c.name,
@@ -58,12 +104,12 @@ class FilterPanel extends ConsumerWidget {
                         const LinearProgressIndicator(color: AppColors.primarySoft),
                     error: (_, __) => const Text('Error al cargar empresas'),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: 12),
                   routesAsync.when(
                     data: (routes) => InstitutionalDropDown<RouteInfo>(
                       label: 'Ruta',
                       hint: 'Selecciona una ruta',
-                      icon: Icons.route_outlined,
+                      icon: Icons.alt_route_rounded,
                       items: routes,
                       selectedItem: selectedRoute,
                       itemLabel: (r) => r.name,
@@ -74,20 +120,21 @@ class FilterPanel extends ConsumerWidget {
                         const LinearProgressIndicator(color: AppColors.primarySoft),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (selectedRoute != null)
+
+                  if (selectedRoute != null) ...[
+                    const SizedBox(height: 16),
                     AnimatedSelectionChip<RouteSentido>(
                       selectedValue: selectedDirection,
                       options: const [
                         AnimatedSelectionOption(
                           value: RouteSentido.ida,
                           label: 'Ida',
-                          icon: Icons.arrow_forward_rounded,
+                          icon: Icons.east_rounded,
                         ),
                         AnimatedSelectionOption(
                           value: RouteSentido.vuelta,
                           label: 'Vuelta',
-                          icon: Icons.arrow_back_rounded,
+                          icon: Icons.west_rounded,
                         ),
                       ],
                       onChanged: (direction) {
@@ -96,6 +143,7 @@ class FilterPanel extends ConsumerWidget {
                             direction;
                       },
                     ),
+                  ],
                 ],
               ),
             ),

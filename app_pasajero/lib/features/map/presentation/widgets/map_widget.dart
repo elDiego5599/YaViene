@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -137,7 +138,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             _kBusGhostIconId,
             _kBusIconId
           ],
-          iconSize: 1.2,
+          iconSize: 1.6,
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           iconRotate: ['get', 'heading'],
@@ -148,17 +149,51 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<void> _loadBusIcons() async {
     if (_mapController == null) return;
     try {
-      final busIcon =
-          (await rootBundle.load('assets/images/bus_marker.png'))
-              .buffer
-              .asUint8List();
-      final ghostIcon =
-          (await rootBundle.load('assets/images/bus_marker_ghost.png'))
-              .buffer
-              .asUint8List();
-      await _mapController!.addImage(_kBusIconId, busIcon);
-      await _mapController!.addImage(_kBusGhostIconId, ghostIcon);
-    } catch (_) {}
+      final activeBusIcon = await _createMarkerImage(
+          const Color(0xFF14274E), const Color(0xFF00A859));
+      final ghostBusIcon = await _createMarkerImage(
+          const Color(0xFF94A3B8), const Color(0xFFE2E8F0));
+
+      await _mapController!.addImage(_kBusIconId, activeBusIcon);
+      await _mapController!.addImage(_kBusGhostIconId, ghostBusIcon);
+    } catch (e) {
+      debugPrint('Error generando iconos: $e');
+    }
+  }
+
+  Future<Uint8List> _createMarkerImage(
+      Color centerColor, Color haloColor) async {
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+
+    final haloPaint = Paint()
+      ..color = haloColor.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(50, 50), 45, haloPaint);
+
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(50, 50), 32, borderPaint);
+
+    final centerPaint = Paint()
+      ..color = centerColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(const Offset(50, 50), 26, centerPaint);
+
+    final arrowPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final path = Path()
+      ..moveTo(50, 32)
+      ..lineTo(60, 46)
+      ..lineTo(40, 46)
+      ..close();
+    canvas.drawPath(path, arrowPaint);
+
+    final img = await pictureRecorder.endRecording().toImage(100, 100);
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return data!.buffer.asUint8List();
   }
 
   Future<void> _reloadMapData() async {

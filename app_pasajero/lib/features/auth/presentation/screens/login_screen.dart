@@ -39,15 +39,17 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() async {
+  void _handleLogin() {
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
     final phone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
     final auth = ref.read(authProvider);
-    auth.addListener(() {
+    void listener() {
       if (auth.state.status == AuthStatus.codeSent && mounted) {
-        context.go('/otp', extra: phone);
+        auth.removeListener(listener);
+        context.replace('/otp', extra: phone);
       } else if (auth.state.status == AuthStatus.error && mounted) {
+        auth.removeListener(listener);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(auth.state.errorMessage ?? 'Error al enviar código'),
@@ -55,8 +57,9 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
           ),
         );
       }
-    });
-    await auth.verifyPhone(phone);
+    }
+    auth.addListener(listener);
+    auth.verifyPhone(phone);
   }
 
   @override
@@ -270,12 +273,38 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                         );
                       },
                     ),
+                    _DebugSkipButton(),
                   ],
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DebugSkipButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    bool isDebug = false;
+    assert(() { isDebug = true; return true; }());
+    if (!isDebug) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextButton(
+          onPressed: () => context.replace('/map'),
+          child: const Text(
+            'Saltar inicio de sesión (debug)',
+            style: TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 13,
+            ),
+          ),
+        ),
       ),
     );
   }

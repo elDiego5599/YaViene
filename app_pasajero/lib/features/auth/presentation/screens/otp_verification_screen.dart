@@ -60,7 +60,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final success = await auth.verifyCode(code);
     if (success && mounted) {
       HapticFeedback.heavyImpact();
-      context.go('/map');
+      context.replace('/map');
     } else if (mounted) {
       for (final c in _controllers) {
         c.clear();
@@ -262,7 +262,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                       child: TextButton(
                         onPressed: () {
                           ref.read(authProvider).reset();
-                          context.go('/');
+                          context.replace('/');
                         },
                         child: const Text(
                           'Cambiar número',
@@ -326,7 +326,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                 ),
                                 onPressed: () {
                                   ref.read(authProvider).reset();
-                                  context.go('/');
+                                  context.replace('/');
                                 },
                                 child: const Text(
                                   'Volver e intentar de nuevo',
