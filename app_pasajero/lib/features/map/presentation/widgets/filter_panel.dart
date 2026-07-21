@@ -46,14 +46,29 @@ class FilterPanel extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF14274E),
-                          borderRadius: BorderRadius.circular(14),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Scaffold.of(context).openDrawer();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: const Icon(Icons.menu_rounded,
+                              color: Color(0xFF14274E), size: 22),
                         ),
-                        child: const Icon(Icons.directions_bus_rounded,
-                            color: Colors.white, size: 22),
                       ),
                       const SizedBox(width: 16),
                       const Text(

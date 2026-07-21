@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +12,9 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     with SingleTickerProviderStateMixin {
-  bool _isExpanded = false;
+  bool _isExpanded = true;
+
+  void _toggleSheet() => setState(() => _isExpanded = !_isExpanded);
 
   @override
   Widget build(BuildContext context) {
@@ -26,184 +27,157 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final destination =
         selectedDirection == RouteSentido.ida ? 'Centro' : 'Soledad';
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.bottomCenter,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.82),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppRadius.sheet),
-              ),
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 1.5,
-                ),
-              ),
-              boxShadow: AppShadows.floating,
-            ),
-            child: SafeArea(
-              top: false,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  AppSpacing.sm,
-                  AppSpacing.lg,
-                  _isExpanded ? AppSpacing.xl : AppSpacing.lg,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () =>
-                          setState(() => _isExpanded = !_isExpanded),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          width: _isExpanded ? 56 : 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: _isExpanded
-                                ? AppColors.primary
-                                : AppColors.divider,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.pill),
-                          ),
-                        ),
+    return GestureDetector(
+      onVerticalDragEnd: (details) {
+        if (details.primaryVelocity! > 0 && _isExpanded) {
+          _toggleSheet();
+        } else if (details.primaryVelocity! < 0 && !_isExpanded) {
+          _toggleSheet();
+        }
+      },
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF14274E).withValues(alpha: 0.08),
+                blurRadius: 32,
+                offset: const Offset(0, -8),
+              )
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _toggleSheet,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16, bottom: 24),
+                    child: Container(
+                      width: 48,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.primarySoft,
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                          ),
-                          child: const Icon(
-                            Icons.directions_bus_rounded,
-                            color: AppColors.primaryDeep,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const PulsingDot(color: AppColors.success),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Text('Actualizando en tiempo real',
-                                      style: AppTextStyles.label),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                destination,
-                                style: AppTextStyles.h2,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        AnimatedRotation(
-                          turns: _isExpanded ? 0.5 : 0,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          child: IconButton(
-                            tooltip: _isExpanded ? 'Contraer' : 'Expandir',
-                            icon:
-                                const Icon(Icons.keyboard_arrow_up_rounded),
-                            color: AppColors.textSecondary,
-                            onPressed: () => setState(
-                                () => _isExpanded = !_isExpanded),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 280),
-                      curve: Curves.easeOutCubic,
-                      height: _isExpanded ? AppSpacing.xl : AppSpacing.lg,
-                    ),
-                    Center(
-                      child: Column(
-                        children: [
-                          Text('3', style: AppTextStyles.etaNumber),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'minutos para llegar a tu parada',
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_isExpanded) ...[
-                      const SizedBox(height: AppSpacing.lg),
+                  ),
+                ),
+                
+                // Header (Icon & Destination)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
                       Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppSpacing.md),
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundWarm,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.divider),
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Row(
+                        child: const Icon(
+                          Icons.directions_bus_rounded,
+                          color: Color(0xFF14274E),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.route_rounded,
-                                color: AppColors.primaryDeep),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                selectedRoute.name,
-                                style: AppTextStyles.body.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF00A859),
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'EN TIEMPO REAL',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF00A859),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              destination,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                                letterSpacing: -0.5,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
                     ],
-                    const SizedBox(height: AppSpacing.xl),
-                    _PremiumAlertButton(
-                      isActive: alertActive,
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        final next = !alertActive;
-                        ref.read(proximityAlertProvider.notifier).state = next;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                next ? 'Alerta activada' : 'Alerta desactivada'),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                
+                if (_isExpanded) ...[
+                  const SizedBox(height: 32),
+                  // Massive ETA Number (Quizlet Style)
+                  Column(
+                    children: [
+                      const Text(
+                        '3',
+                        style: TextStyle(
+                          fontSize: 84,
+                          fontWeight: FontWeight.w200,
+                          color: Color(0xFF14274E),
+                          height: 0.9,
+                          letterSpacing: -3.0,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'minutos para llegar a tu parada',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                ],
+
+                // Sticky Premium Alert Button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                  child: _StickyAlertButton(
+                    isActive: alertActive,
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      final next = !alertActive;
+                      ref.read(proximityAlertProvider.notifier).state = next;
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -212,30 +186,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 }
 
-class _PremiumAlertButton extends StatefulWidget {
+class _StickyAlertButton extends StatefulWidget {
   final bool isActive;
   final VoidCallback onPressed;
 
-  const _PremiumAlertButton({
+  const _StickyAlertButton({
     required this.isActive,
     required this.onPressed,
   });
 
   @override
-  State<_PremiumAlertButton> createState() => _PremiumAlertButtonState();
+  State<_StickyAlertButton> createState() => _StickyAlertButtonState();
 }
 
-class _PremiumAlertButtonState extends State<_PremiumAlertButton> {
+class _StickyAlertButtonState extends State<_StickyAlertButton> {
   bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor =
-        widget.isActive ? AppColors.successLight : AppColors.primaryDeep;
-    final foregroundColor = widget.isActive ? AppColors.success : Colors.white;
-    final borderColor = widget.isActive
-        ? AppColors.success.withValues(alpha: 0.28)
-        : AppColors.primaryDeep;
+    // KOHO Style Segmented/Sticky buttons use absolute colors for states
+    final backgroundColor = widget.isActive ? const Color(0xFF0F172A) : const Color(0xFF00A859);
 
     return GestureDetector(
       onTap: () {
@@ -246,22 +216,27 @@ class _PremiumAlertButtonState extends State<_PremiumAlertButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       onTapUp: (_) => setState(() => _isPressed = false),
       child: AnimatedScale(
-        scale: _isPressed ? 0.975 : 1,
-        duration: const Duration(milliseconds: 120),
+        scale: _isPressed ? 0.96 : 1,
+        duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutCubic,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 240),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           width: double.infinity,
-          height: 56,
+          height: 64, // Massive pill
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(color: borderColor),
-            boxShadow: widget.isActive ? null : AppShadows.soft,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: widget.isActive ? [] : [
+              BoxShadow(
+                color: const Color(0xFF00A859).withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              )
+            ],
           ),
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
+            duration: const Duration(milliseconds: 200),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
             child: Row(
@@ -271,18 +246,20 @@ class _PremiumAlertButtonState extends State<_PremiumAlertButton> {
                 Icon(
                   widget.isActive
                       ? Icons.check_circle_rounded
-                      : Icons.notifications_none_rounded,
-                  color: foregroundColor,
-                  size: 21,
+                      : Icons.notifications_active_rounded,
+                  color: Colors.white,
+                  size: 24,
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: 12),
                 Text(
                   widget.isActive
                       ? 'ALERTA ACTIVADA'
-                      : 'AVISARME CUANDO ESTE CERCA',
-                  style: AppTextStyles.labelLarge.copyWith(
-                    color: foregroundColor,
+                      : 'AVISARME AL ESTAR CERCA',
+                  style: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],

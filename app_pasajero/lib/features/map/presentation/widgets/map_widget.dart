@@ -1,10 +1,10 @@
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../utils/marker_generator.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -147,51 +147,47 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<void> _loadBusIcons() async {
-    if (_mapController == null) return;
     try {
-      final activeBusIcon = await _createMarkerImage(
-          const Color(0xFF14274E), const Color(0xFF00A859));
-      final ghostBusIcon = await _createMarkerImage(
-          const Color(0xFF94A3B8), const Color(0xFFE2E8F0));
-
-      await _mapController!.addImage(_kBusIconId, activeBusIcon);
-      await _mapController!.addImage(_kBusGhostIconId, ghostBusIcon);
-    } catch (e) {
-      debugPrint('Error generando iconos: $e');
-    }
+      final activeBytes = await MarkerGenerator.generateBusMarker(isGhost: false);
+      final ghostBytes = await MarkerGenerator.generateBusMarker(isGhost: true);
+      await _mapController!.addImage(_kBusIconId, activeBytes);
+      await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
+    } catch (_) {}
   }
 
   Future<Uint8List> _createMarkerImage(
       Color centerColor, Color haloColor) async {
+    const double size = 60;
+    const center = Offset(size / 2, size / 2);
     final pictureRecorder = ui.PictureRecorder();
     final canvas = Canvas(pictureRecorder);
 
     final haloPaint = Paint()
       ..color = haloColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(50, 50), 45, haloPaint);
+    canvas.drawCircle(center, 28, haloPaint);
 
     final borderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(50, 50), 32, borderPaint);
+    canvas.drawCircle(center, 18, borderPaint);
 
     final centerPaint = Paint()
       ..color = centerColor
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(const Offset(50, 50), 26, centerPaint);
+    canvas.drawCircle(center, 14, centerPaint);
 
     final arrowPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
     final path = Path()
-      ..moveTo(50, 32)
-      ..lineTo(60, 46)
-      ..lineTo(40, 46)
+      ..moveTo(30, 16)
+      ..lineTo(36, 26)
+      ..lineTo(24, 26)
       ..close();
     canvas.drawPath(path, arrowPaint);
 
-    final img = await pictureRecorder.endRecording().toImage(100, 100);
+    final img = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     return data!.buffer.asUint8List();
   }

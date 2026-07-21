@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../widgets/filter_panel.dart';
+import '../widgets/search_pill_bar.dart';
 import '../widgets/map_widget.dart';
 import '../widgets/eta_bottom_sheet.dart';
 
@@ -16,6 +16,7 @@ class MapScreen extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
+      drawer: const _PremiumDrawer(),
       body: Stack(
         children: [
           Positioned.fill(
@@ -24,32 +25,34 @@ class MapScreen extends ConsumerWidget {
 
           const Positioned(
             top: 0, left: 0, right: 0,
-            child: FilterPanel(),
+            child: SearchPillBar(),
           ),
 
           const Positioned(
-            top: 0, right: 12,
+            bottom: 120, left: 16,
             child: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(top: 12.0),
-                child: _RealtimeTickDebugBadge(),
-              ),
+              child: _RealtimeTickDebugBadge(),
             ),
           ),
 
           Positioned(
-            right: 16,
-            bottom: 120,
-            child: FloatingActionButton(
-              heroTag: 'gps_btn',
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF14274E),
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            right: AppSpacing.md,
+            bottom: 140,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                boxShadow: AppShadows.soft,
               ),
-              onPressed: () {},
-              child: const Icon(Icons.my_location_rounded),
+              child: IconButton(
+                iconSize: 28,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                color: AppColors.primaryDeep,
+                onPressed: () {
+                  // TODO: Centrar en GPS
+                },
+                icon: const Icon(Icons.my_location_rounded),
+              ),
             ),
           ),
 
@@ -59,6 +62,78 @@ class MapScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PremiumDrawer extends StatelessWidget {
+  const _PremiumDrawer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: const Color(0xFF14274E),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ya Viene',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -1.0,
+                ),
+              ),
+              const SizedBox(height: 64),
+              _DrawerItem(icon: Icons.person_rounded, title: 'Mi Perfil'),
+              const SizedBox(height: 32),
+              _DrawerItem(icon: Icons.history_rounded, title: 'Historial'),
+              const SizedBox(height: 32),
+              _DrawerItem(icon: Icons.settings_rounded, title: 'Ajustes'),
+              const Spacer(),
+              const Text(
+                'v1.0.0 (BETA)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const _DrawerItem({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        const SizedBox(width: 24),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -74,23 +149,17 @@ class _RealtimeTickDebugBadge extends ConsumerWidget {
     if (!isDebug) return const SizedBox.shrink();
 
     return tickAsync.when(
-      data: (tick) => ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF059669).withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Text('WS: $tick',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5)),
+      data: (tick) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.success,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Text(
+          'WS: $tick',
+          style: AppTextStyles.label.copyWith(
+            color: Colors.white,
+            fontSize: 10,
           ),
         ),
       ),
