@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 abstract class AppColors {
   // ── Paleta KOHO Style ──────────────────────────────────────────────────────
@@ -44,7 +45,6 @@ abstract class AppRadius {
 }
 
 abstract class AppShadows {
-  // Sombra sólida y sutil para tarjetas flotantes, SIN Blur de fondo
   static final List<BoxShadow> floating = [
     BoxShadow(
       color: const Color(0xFF14274E).withValues(alpha: 0.08),
@@ -70,23 +70,22 @@ abstract class AppShadows {
 }
 
 abstract class AppTextStyles {
-  static const TextStyle _base = TextStyle(
-    fontFamily: 'Inter',
+  static final TextStyle _base = GoogleFonts.plusJakartaSans(
     color: AppColors.textPrimary,
     decoration: TextDecoration.none,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   );
 
   static final TextStyle h1 = _base.copyWith(
-    fontSize: 28.0, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -0.5,
+    fontSize: 28.0, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -0.6,
   );
   
   static final TextStyle h2 = _base.copyWith(
-    fontSize: 22.0, fontWeight: FontWeight.w800, height: 1.2, letterSpacing: -0.3,
+    fontSize: 22.0, fontWeight: FontWeight.w800, height: 1.2, letterSpacing: -0.4,
   );
 
   static final TextStyle h3 = _base.copyWith(
-    fontSize: 18.0, fontWeight: FontWeight.w700, height: 1.3,
+    fontSize: 18.0, fontWeight: FontWeight.w700, height: 1.3, letterSpacing: -0.3,
   );
 
   static final TextStyle bodyLarge = _base.copyWith(
@@ -106,7 +105,7 @@ abstract class AppTextStyles {
   );
   
   static final TextStyle etaNumber = _base.copyWith(
-    fontSize: 64.0, fontWeight: FontWeight.w800, height: 0.9, letterSpacing: -2.5, color: AppColors.primaryDeep,
+    fontSize: 84.0, fontWeight: FontWeight.w200, height: 0.9, letterSpacing: -3.0, color: AppColors.primaryDeep,
   );
 }
 
@@ -116,13 +115,7 @@ abstract class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
-      fontFamily: 'Inter',
-      
-      textTheme: ThemeData.light().textTheme.apply(
-        fontFamily: 'Inter',
-        bodyColor: AppColors.textPrimary,
-        displayColor: AppColors.textPrimary,
-      ),
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(),
 
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
