@@ -1,10 +1,3 @@
-/// =============================================================================
-/// ROUTER CENTRALIZADO (GoRouter)
-///
-/// Define todas las rutas de la aplicación en un solo lugar.
-/// Se expone como un Provider de Riverpod para poder inyectar dependencias
-/// (ej. estado de autenticación) en el futuro sin refactorizar nada.
-/// =============================================================================
 
 library;
 
@@ -16,7 +9,6 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 
-/// Rutas nombradas para evitar strings mágicos en el código.
 abstract class AppRoutes {
   static const String login = '/';
   static const String otp = '/otp';
@@ -25,8 +17,6 @@ abstract class AppRoutes {
   static const String alertSettings = '/alerts';
 }
 
-/// Provider del router. Al ser un Provider simple (no StateProvider),
-/// GoRouter se instancia una sola vez y se reutiliza.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     debugLogDiagnostics: true,
@@ -50,15 +40,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'map',
         builder: (context, state) => const MapScreen(),
       ),
-      // FUTURO: Agregar rutas de detalle de ruta y configuración de alertas
-      // GoRoute(path: AppRoutes.routeDetail, ...),
-      // GoRoute(path: AppRoutes.alertSettings, ...),
     ],
     errorBuilder: (context, state) => const _NotFoundScreen(),
   );
 });
 
-/// Pantalla de error 404 interna — no debería verse en producción.
 class _NotFoundScreen extends StatelessWidget {
   const _NotFoundScreen();
 

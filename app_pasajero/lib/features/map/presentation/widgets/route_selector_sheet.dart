@@ -28,7 +28,6 @@ class RouteSelectorSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 48,
@@ -41,7 +40,6 @@ class RouteSelectorSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // Title & Subtitle Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -79,12 +77,11 @@ class RouteSelectorSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // Segmented Control (iOS Style con Destinos Explícitos)
               Container(
                 height: 52,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9), // Slate 100
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -112,7 +109,6 @@ class RouteSelectorSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // Select Company (Premium ListTile)
               const Text(
                 'EMPRESA',
                 style: TextStyle(
@@ -137,7 +133,6 @@ class RouteSelectorSheet extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // Select Route (Premium ListTile)
               const Text(
                 'RUTA',
                 style: TextStyle(
@@ -164,7 +159,6 @@ class RouteSelectorSheet extends ConsumerWidget {
 
               const SizedBox(height: 32),
 
-              // Confirm Button (Enterprise CTA con Padding y Estado Elegante)
               ElevatedButton(
                 onPressed: selectedRoute != null
                     ? () {

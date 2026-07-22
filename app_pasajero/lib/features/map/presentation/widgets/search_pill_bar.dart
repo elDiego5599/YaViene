@@ -20,10 +20,10 @@ class SearchPillBar extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(999), // Forma de píldora
+            borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF14274E).withValues(alpha: 0.08), // Sombra suave de color
+                color: const Color(0xFF14274E).withValues(alpha: 0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               )
@@ -31,7 +31,6 @@ class SearchPillBar extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              // ZONA 1: Botón de Menú / Ajustes (Izquierda)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
@@ -42,7 +41,7 @@ class SearchPillBar extends ConsumerWidget {
                   width: 44,
                   height: 44,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFF1F5F9), // Gris suave sutil
+                    color: Color(0xFFF1F5F9),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -55,7 +54,6 @@ class SearchPillBar extends ConsumerWidget {
 
               const SizedBox(width: 12),
 
-              // ZONA 2: Área Central Interactiva (Abre Selector de Rutas)
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -120,7 +118,6 @@ class SearchPillBar extends ConsumerWidget {
 
               const SizedBox(width: 8),
 
-              // ZONA 3: Botón de Acción / Limpieza de Filtro (Derecha)
               if (selectedRoute != null)
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -132,7 +129,7 @@ class SearchPillBar extends ConsumerWidget {
                     width: 44,
                     height: 44,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFEF2F2), // Rojo suave para limpiar
+                      color: Color(0xFFFEF2F2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -158,7 +155,7 @@ class SearchPillBar extends ConsumerWidget {
                     width: 44,
                     height: 44,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFF1F5F9), // Gris clarito
+                      color: Color(0xFFF1F5F9),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

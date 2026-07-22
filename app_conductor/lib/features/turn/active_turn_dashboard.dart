@@ -81,7 +81,6 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             children: [
-              // ── Panel de Tiempo Principal ─────────────────────────────────────
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
@@ -117,7 +116,6 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
               
               const SizedBox(height: AppSpacing.xl),
               
-              // ── Estado de Transmisión (Verde Pastel) ────────────────────────
               _StatusCard(
                 title: 'Transmisión GPS',
                 subtitle: isTracking ? 'Emitiendo en alta precisión' : 'Esperando señal...',
@@ -127,7 +125,6 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
               
               const SizedBox(height: AppSpacing.md),
               
-              // ── Sincronización Offline ───────────────────────────────────────
               const _StatusCard(
                 title: 'Sincronización',
                 subtitle: 'Conectado al servidor central',
@@ -138,7 +135,6 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
 
               const Spacer(),
               
-              // ── Botón de Cerrar Turno ───────────────────────────────────────
               ElevatedButton(
                 onPressed: _closeTurn,
                 style: ElevatedButton.styleFrom(

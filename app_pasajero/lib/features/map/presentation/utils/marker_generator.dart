@@ -3,17 +3,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class MarkerGenerator {
-  /// Dibuja el marcador premium basado en el diseño del usuario (hola.svg)
-  /// directamente en memoria usando Canvas. Súper rápido, 0 dependencias.
   static Future<Uint8List> generateBusMarker({bool isGhost = false}) async {
-    const double size = 160.0; // Alta resolución para retina
+    const double size = 160.0;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    // Escalar dibujo original (512x512) al tamaño deseado
     canvas.scale(size / 512.0);
 
-    // Colores basados en el tema
     final Color primaryDeep = isGhost ? const Color(0xFF94A3B8) : const Color(0xFF14274E);
     final Color emerald = isGhost ? const Color(0xFFCBD5E1) : const Color(0xFF00A859);
     final Color yellow = isGhost ? const Color(0xFFE2E8F0) : const Color(0xFFFFC107);
@@ -21,14 +17,12 @@ class MarkerGenerator {
 
     final Paint paint = Paint()..style = PaintingStyle.fill;
 
-    // 1. Fondo: Azul Marino redondeado
     paint.color = primaryDeep;
     canvas.drawRRect(
       RRect.fromRectAndRadius(const Rect.fromLTWH(0, 0, 512, 512), const Radius.circular(115)),
       paint,
     );
 
-    // 2. Pin de ubicación (Emerald)
     paint.color = emerald;
     final Path pinPath = Path()
       ..moveTo(256, 70)
@@ -40,32 +34,25 @@ class MarkerGenerator {
       ..close();
     canvas.drawPath(pinPath, paint);
 
-    // 3. Núcleo amarillo
     paint.color = yellow;
     canvas.drawCircle(const Offset(256, 225), 85, paint);
 
-    // 4. Llantas traseras
     paint.color = white;
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(216, 255, 16, 24), const Radius.circular(6)), paint);
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(280, 255, 16, 24), const Radius.circular(6)), paint);
 
-    // 5. Cuerpo del bus (Blanco)
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(210, 180, 92, 85), const Radius.circular(16)), paint);
 
-    // 6. Parabrisas (Azul Marino)
     paint.color = primaryDeep;
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(222, 195, 68, 32), const Radius.circular(6)), paint);
 
-    // 7. Faros amarillos
     paint.color = yellow;
     canvas.drawCircle(const Offset(228, 245), 8, paint);
     canvas.drawCircle(const Offset(284, 245), 8, paint);
 
-    // 8. Parrilla
     paint.color = primaryDeep;
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(246, 243, 20, 4), const Radius.circular(2)), paint);
 
-    // Ondas de conectividad superiores (solo si está activo)
     if (!isGhost) {
       final Paint strokePaint = Paint()
         ..color = white.withValues(alpha: 0.8)

@@ -16,12 +16,11 @@ class _TurnAssignmentScreenState extends State<TurnAssignmentScreen> {
   void _startTurn() {
     if (_selectedBus == null || _selectedRoute == null) return;
     
-    // Al iniciar turno, delegamos al Dashboard que arrancará el GpsManager
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => ActiveTurnDashboard(
-          empresaId: 'EMP-01', // Viene del JWT del login en producción
+          empresaId: 'EMP-01',
           busId: _selectedBus!,
           routeId: _selectedRoute!,
         ),
@@ -47,7 +46,6 @@ class _TurnAssignmentScreenState extends State<TurnAssignmentScreen> {
             ),
             const SizedBox(height: AppSpacing.xl),
             
-            // Dropdown genérico simplificado para MVP 0
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Bus asignado'),
               items: const [

@@ -49,7 +49,6 @@ class MapScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(AppSpacing.md),
                 color: AppColors.primaryDeep,
                 onPressed: () {
-                  // TODO: Centrar en GPS
                 },
                 icon: const Icon(Icons.my_location_rounded),
               ),
@@ -80,7 +79,6 @@ class _PremiumDrawer extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Logo & App Name
               const Text(
                 'Ya Viene',
                 style: TextStyle(
@@ -92,7 +90,6 @@ class _PremiumDrawer extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Profile Card (KOHO Style)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -156,7 +153,6 @@ class _PremiumDrawer extends StatelessWidget {
 
               const SizedBox(height: 36),
 
-              // Navigation Items with Tonal Icon Containers (Headspace/KOHO Style)
               _DrawerItem(
                 icon: Icons.person_outline_rounded,
                 bgColor: const Color(0xFFEEF2FF),
@@ -191,30 +187,8 @@ class _PremiumDrawer extends StatelessWidget {
 
               const Spacer(),
 
-              // Divider & Footer
               Divider(color: Colors.white.withValues(alpha: 0.12)),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Ya Viene Enterprise',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  Text(
-                    'v1.0.0',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),

@@ -1,11 +1,3 @@
-/// =============================================================================
-/// WIDGET: MapPlaceholder
-///
-/// Ocupa el 100% del espacio disponible.
-/// Será reemplazado por el widget real de Mapbox en el MVP 1.
-/// El placeholder simula visualmente la sensación del mapa para que el
-/// diseño del panel de filtros y el BottomSheet puedan validarse ya.
-/// =============================================================================
 
 library;
 
@@ -19,16 +11,14 @@ class MapPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(
-          0xFFE8EFF5), // Azul-gris muy claro, similar al fondo de mapas
+          0xFFE8EFF5),
       child: Stack(
         children: [
-          // Cuadrícula sutil que simula los tiles de un mapa
           CustomPaint(
             painter: _GridPainter(),
             size: Size.infinite,
           ),
 
-          // Centro: Ícono y texto indicativo
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -78,7 +68,6 @@ class MapPlaceholder extends StatelessWidget {
   }
 }
 
-/// Painter que dibuja una cuadrícula sutil para simular tiles de mapa.
 class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

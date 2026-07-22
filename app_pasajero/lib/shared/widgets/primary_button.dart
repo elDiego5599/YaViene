@@ -1,22 +1,3 @@
-/// =============================================================================
-/// ÁTOMO: PrimaryButton
-///
-/// Botón principal de la aplicación. Estilo institucional: limpio, sólido,
-/// sin gradientes ni sombras dramáticas. Touch target mínimo: 52dp.
-///
-/// Uso:
-/// ```dart
-/// PrimaryButton(
-///   label: 'Activar alerta',
-///   onPressed: () => ...,
-/// )
-/// PrimaryButton(
-///   label: 'Cargando...',
-///   isLoading: true,
-///   onPressed: null,
-/// )
-/// ```
-/// =============================================================================
 
 library;
 
@@ -28,10 +9,8 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
 
-  /// [isDestructive]: Si es true, usa el color de error en lugar del primario.
   final bool isDestructive;
 
-  /// [icon]: Ícono opcional a la izquierda del label (Material Icons).
   final IconData? icon;
 
   const PrimaryButton({
@@ -50,7 +29,7 @@ class PrimaryButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 52, // Touch target WCAG: mínimo 48dp
+      height: 52,
       child: ElevatedButton(
         onPressed: isDisabled ? null : onPressed,
         style: ElevatedButton.styleFrom(

@@ -1,8 +1,3 @@
-/// =============================================================================
-/// ENTRY POINT — APP CONDUCTOR (MVP 0)
-///
-/// Diseño de UI puramente utilitario, de alto contraste. Cero Mapas.
-/// =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,13 +10,11 @@ import 'features/turn/login_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Forzar vertical
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Inicializar Background Service
   await initializeBackgroundService();
 
   runApp(
@@ -39,8 +32,6 @@ class YaVieneConductorApp extends StatelessWidget {
     return MaterialApp(
       title: 'Ya Viene Conductor',
       debugShowCheckedModeBanner: false,
-      // Se reutiliza el tema institucional estricto (Light Mode, Inter)
-      // desde el paquete app_pasajero
       theme: AppTheme.lightTheme,
       home: const LoginScreen(),
     );
