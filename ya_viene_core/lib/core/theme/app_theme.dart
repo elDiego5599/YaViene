@@ -2,23 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract class AppColors {
-  // ── Paleta KOHO Style ──────────────────────────────────────────────────────
-  static const Color primaryDeep = Color(0xFF14274E); // Fondo azul marino oscuro profundo
-  static const Color primary = Color(0xFF00A859);     // Verde esmeralda vibrante
+  static const Color primaryDeep = Color(0xFF14274E);
+  static const Color primary = Color(0xFF00A859);
   static const Color primaryTint = Color(0xFFE6F7F0);
   
-  // ── Fondos ───────────────────────────────────────────────────────────────
-  static const Color background = Color(0xFFF8F9FA);  // Blanco crudo/gris perla muy claro para contraste
-  static const Color surface = Color(0xFFFFFFFF);     // Tarjetas de Blanco puro
+  static const Color background = Color(0xFFF8F9FA);
+  static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF1F5F9);
   static const Color divider = Color(0xFFE5E7EB);
   
-  // ── Tipografía ───────────────────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFF0F172A); // Casi negro, excelente contraste
-  static const Color textSecondary = Color(0xFF64748B); // Gris medio
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);
   
-  // ── Estados ─────────────────────────────────────────────────────────────
   static const Color busGhost = Color(0xFF94A3B8); 
   static const Color error = Color(0xFFDC2626);
   static const Color errorLight = Color(0xFFFEE2E2);

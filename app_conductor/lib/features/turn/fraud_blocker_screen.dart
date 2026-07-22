@@ -8,7 +8,7 @@ class FraudBlockerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.error, // Fondo rojo sólido de alerta
+      backgroundColor: AppColors.error,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -55,7 +55,6 @@ class FraudBlockerScreen extends StatelessWidget {
                     (route) => false,
                   );
                 },
-                // Sobrescribimos colores para que el botón se vea bien sobre rojo
                 colorOverride: Colors.white,
                 textColorOverride: AppColors.error,
               ),

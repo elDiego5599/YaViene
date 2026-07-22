@@ -16,13 +16,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     setState(() => _isLoading = true);
-    // Simular llamada HTTP al backend
     await Future.delayed(const Duration(seconds: 1));
     setState(() => _isLoading = false);
 
     if (!mounted) return;
     
-    // Navegar a asignación de turno (código duro por ahora para el flujo)
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const TurnAssignmentScreen()),

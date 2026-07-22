@@ -1,10 +1,3 @@
-/// =============================================================================
-/// BACKGROUND SERVICE CONFIG
-///
-/// Inicializa el servicio en primer plano para Android.
-/// Esto garantiza que el SO no asigne una prioridad baja a nuestra app
-/// cuando el conductor apaga la pantalla, manteniendo el ciclo GPS y MQTT vivos.
-/// =============================================================================
 
 import 'dart:async';
 import 'dart:ui';
@@ -17,10 +10,8 @@ Future<void> initializeBackgroundService() async {
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(
-      // Punto de entrada cuando el servicio corre en background
       onStart: onBackgroundStart,
       
-      // La notificación que se mostrará permanentemente en el celular
       autoStart: false,
       isForegroundMode: true,
       
@@ -37,11 +28,8 @@ Future<void> initializeBackgroundService() async {
   );
 }
 
-/// Punto de entrada Aislado (Isolate) de Dart.
-/// Aquí NO hay acceso a la UI ni a Riverpod global (se debe inicializar otro scope).
 @pragma('vm:entry-point')
 void onBackgroundStart(ServiceInstance service) async {
-  // Solo se necesita para iOS en este paquete
   DartPluginRegistrant.ensureInitialized();
 
   if (service is AndroidServiceInstance) {
@@ -58,8 +46,6 @@ void onBackgroundStart(ServiceInstance service) async {
     service.stopSelf();
   });
 
-  // TODO: En este Isolate, inicializar Geolocator, OfflineBufferRepository y MQTT.
-  // El código correrá continuamente aquí aunque la actividad principal sea destruida.
 }
 
 @pragma('vm:entry-point')

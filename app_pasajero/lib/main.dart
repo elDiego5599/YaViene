@@ -1,9 +1,3 @@
-/// =============================================================================
-/// PUNTO DE ENTRADA DE LA APLICACIÓN
-/// Envuelve toda la app en ProviderScope (Riverpod) para que los providers
-/// estén disponibles globalmente. La app está forzada a Light Mode y usa el
-/// router centralizado.
-/// =============================================================================
 
 library;
 
@@ -19,13 +13,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Forzar orientación vertical — la app no debe rotarse en el uso cotidiano
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Estilo de la barra de estado: iconos oscuros sobre fondo claro
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -35,7 +27,6 @@ void main() async {
   );
 
   runApp(
-    // ProviderScope es el contenedor raíz de todos los providers de Riverpod
     const ProviderScope(
       child: YaVieneApp(),
     ),
@@ -53,15 +44,12 @@ class YaVieneApp extends ConsumerWidget {
       title: 'Ya Viene',
       debugShowCheckedModeBanner: false,
 
-      // ── TEMA: Solo Light Mode, sin posibilidad de toggle ──────────────────
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.lightTheme, // El dark theme también usa light
-      themeMode: ThemeMode.light, // Forzado al modo claro
+      darkTheme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
 
-      // ── NAVEGACIÓN ────────────────────────────────────────────────────────
       routerConfig: router,
 
-      // ── LOCALIZACIÓN ─────────────────────────────────────────────────────
       locale: const Locale('es', 'CO'),
     );
   }

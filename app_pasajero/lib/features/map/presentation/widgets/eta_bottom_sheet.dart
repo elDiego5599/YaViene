@@ -56,7 +56,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle bar
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _toggleSheet,
@@ -73,7 +72,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   ),
                 ),
                 
-                // Header (Icon, Live Badge, Destination & Chevron)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
@@ -133,7 +131,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                           ],
                         ),
                       ),
-                      // Chevron toggle button
                       IconButton(
                         icon: AnimatedRotation(
                           turns: _isExpanded ? 0.5 : 0.0,
@@ -152,7 +149,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                 
                 if (_isExpanded) ...[
                   const SizedBox(height: 28),
-                  // Massive ETA Number (Quizlet Style)
                   Column(
                     children: [
                       const Text(
@@ -182,7 +178,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   const SizedBox(height: 20),
                 ],
 
-                // Sticky Premium Alert Button
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                   child: _StickyAlertButton(
@@ -239,7 +234,7 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           width: double.infinity,
-          height: 60, // Massive pill
+          height: 60,
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(999),
