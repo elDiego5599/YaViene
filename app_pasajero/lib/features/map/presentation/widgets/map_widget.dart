@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -153,43 +152,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
     } catch (_) {}
-  }
-
-  Future<Uint8List> _createMarkerImage(
-      Color centerColor, Color haloColor) async {
-    const double size = 60;
-    const center = Offset(size / 2, size / 2);
-    final pictureRecorder = ui.PictureRecorder();
-    final canvas = Canvas(pictureRecorder);
-
-    final haloPaint = Paint()
-      ..color = haloColor.withValues(alpha: 0.3)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 28, haloPaint);
-
-    final borderPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 18, borderPaint);
-
-    final centerPaint = Paint()
-      ..color = centerColor
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, 14, centerPaint);
-
-    final arrowPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final path = Path()
-      ..moveTo(30, 16)
-      ..lineTo(36, 26)
-      ..lineTo(24, 26)
-      ..close();
-    canvas.drawPath(path, arrowPaint);
-
-    final img = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
-    final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
   }
 
   Future<void> _reloadMapData() async {

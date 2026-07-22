@@ -23,7 +23,7 @@ class RouteSelectorSheet extends ConsumerWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,30 +41,57 @@ class RouteSelectorSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // Title
-              const Text(
-                'Elige tu ruta',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.5,
-                ),
+              // Title & Subtitle Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Elige tu ruta',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7F0),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF00A859)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Cada 8 min',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF00A859),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
 
-              // Segmented Control (iOS Style)
+              // Segmented Control (iOS Style con Destinos Explícitos)
               Container(
-                height: 48,
+                height: 52,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9), // Slate 100
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   children: [
                     _Segment(
                       title: 'Ida',
+                      subtitle: 'Centro → Soledad',
                       isSelected: selectedDirection == RouteSentido.ida,
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -73,6 +100,7 @@ class RouteSelectorSheet extends ConsumerWidget {
                     ),
                     _Segment(
                       title: 'Vuelta',
+                      subtitle: 'Soledad → Centro',
                       isSelected: selectedDirection == RouteSentido.vuelta,
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -89,7 +117,7 @@ class RouteSelectorSheet extends ConsumerWidget {
                 'EMPRESA',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: Color(0xFF64748B),
                   letterSpacing: 1.0,
                 ),
@@ -98,22 +126,23 @@ class RouteSelectorSheet extends ConsumerWidget {
               companiesAsync.when(
                 data: (companies) => _PremiumSelectorTile(
                   title: selectedCompany?.name ?? 'Selecciona una empresa',
+                  subtitle: selectedCompany != null ? 'Empresa de transporte masivo' : null,
                   icon: Icons.business_rounded,
                   isActive: selectedCompany != null,
                   onTap: () => _showCompanySelector(context, ref, companies),
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Text('Error'),
+                error: (_, __) => const Text('Error al cargar empresas'),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Select Route (Premium ListTile)
               const Text(
                 'RUTA',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: Color(0xFF64748B),
                   letterSpacing: 1.0,
                 ),
@@ -122,6 +151,7 @@ class RouteSelectorSheet extends ConsumerWidget {
               routesAsync.when(
                 data: (routes) => _PremiumSelectorTile(
                   title: selectedRoute?.name ?? 'Selecciona una ruta',
+                  subtitle: selectedRoute != null ? 'Frecuencia continua en vivo' : 'Requiere seleccionar empresa',
                   icon: Icons.alt_route_rounded,
                   isActive: selectedRoute != null,
                   onTap: selectedCompany == null
@@ -133,8 +163,8 @@ class RouteSelectorSheet extends ConsumerWidget {
               ),
 
               const SizedBox(height: 32),
-              
-              // Confirm Button
+
+              // Confirm Button (Enterprise CTA con Padding y Estado Elegante)
               ElevatedButton(
                 onPressed: selectedRoute != null
                     ? () {
@@ -147,21 +177,22 @@ class RouteSelectorSheet extends ConsumerWidget {
                   disabledBackgroundColor: const Color(0xFFE2E8F0),
                   foregroundColor: Colors.white,
                   disabledForegroundColor: const Color(0xFF94A3B8),
-                  minimumSize: const Size(double.infinity, 56),
+                  minimumSize: const Size(double.infinity, 58),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Confirmar',
+                child: Text(
+                  selectedRoute != null ? 'Ver buses en vivo' : 'Selecciona una ruta para continuar',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: selectedRoute != null ? Colors.white : const Color(0xFF94A3B8),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -185,14 +216,25 @@ class RouteSelectorSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: companies.map((c) => ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.business_rounded, color: Color(0xFF14274E), size: 20),
+              ),
               title: Text(
                 c.name,
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
+                  letterSpacing: -0.4,
                 ),
               ),
+              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
               onTap: () {
                 HapticFeedback.selectionClick();
                 ref.read(selectedCompanyProvider.notifier).select(c);
@@ -222,14 +264,33 @@ class RouteSelectorSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: routes.map((r) => ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F7F0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.alt_route_rounded, color: Color(0xFF00A859), size: 20),
+              ),
               title: Text(
                 r.name,
                 style: const TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
+                  letterSpacing: -0.4,
                 ),
               ),
+              subtitle: const Text(
+                'Frecuencia cada 8 min • Tiempo real',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
               onTap: () {
                 HapticFeedback.selectionClick();
                 ref.read(selectedRouteProvider.notifier).select(r);
@@ -245,11 +306,13 @@ class RouteSelectorSheet extends ConsumerWidget {
 
 class _Segment extends StatelessWidget {
   final String title;
+  final String subtitle;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _Segment({
     required this.title,
+    required this.subtitle,
     required this.isSelected,
     required this.onTap,
   });
@@ -265,25 +328,38 @@ class _Segment extends StatelessWidget {
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
                     )
                   ]
                 : [],
           ),
           alignment: Alignment.center,
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-              color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? const Color(0xFF00A859) : const Color(0xFF94A3B8),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -293,12 +369,14 @@ class _Segment extends StatelessWidget {
 
 class _PremiumSelectorTile extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final IconData icon;
   final bool isActive;
   final VoidCallback? onTap;
 
   const _PremiumSelectorTile({
     required this.title,
+    this.subtitle,
     required this.icon,
     required this.isActive,
     this.onTap,
@@ -312,29 +390,60 @@ class _PremiumSelectorTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? const Color(0xFF14274E).withValues(alpha: 0.2) : const Color(0xFFE2E8F0),
+            width: isActive ? 1.5 : 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF14274E).withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
+                color: isActive ? const Color(0xFFE6F7F0) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: const Color(0xFF14274E), size: 20),
+              child: Icon(
+                icon,
+                color: isActive ? const Color(0xFF00A859) : const Color(0xFF94A3B8),
+                size: 22,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                      color: isActive ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),

@@ -83,7 +83,7 @@ class MarkerGenerator {
 
     final picture = recorder.endRecording();
     final image = await picture.toImage(size.toInt(), size.toInt());
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,7 +66,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF14274E),
       body: SafeArea(
         bottom: false,
         child: LayoutBuilder(
@@ -85,7 +86,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF00A859).withValues(alpha: 0.3),
+                                    color: const Color(0xFF00A859).withValues(alpha: 0.35),
                                     blurRadius: 50,
                                     spreadRadius: 10,
                                   ),
@@ -93,26 +94,28 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                               ),
                               child: SvgPicture.asset(
                                 'assets/icon/ya_viene_logo.svg',
-                                width: 100,
-                                height: 100,
+                                width: 108,
+                                height: 108,
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 24),
                             const Text(
                               'Ya Viene',
                               style: TextStyle(
-                                fontSize: 36,
+                                fontSize: 40,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,
-                                letterSpacing: -1,
+                                letterSpacing: -1.2,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text(
                               'Tu ciudad en tiempo real.',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.white.withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withValues(alpha: 0.75),
+                                letterSpacing: -0.3,
                               ),
                             ),
                           ],
@@ -124,9 +127,16 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(40),
-                            topRight: Radius.circular(40),
+                            topLeft: Radius.circular(36),
+                            topRight: Radius.circular(36),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x1A14274E),
+                              blurRadius: 32,
+                              offset: Offset(0, -10),
+                            ),
+                          ],
                         ),
                         child: SafeArea(
                           top: false,
@@ -137,16 +147,18 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                               const Text(
                                 'Ingresa tu número',
                                 style: TextStyle(
-                                  fontSize: 24,
+                                  fontSize: 26,
                                   fontWeight: FontWeight.w800,
                                   color: Color(0xFF0F172A),
+                                  letterSpacing: -0.6,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               const Text(
                                 'Te enviaremos un código para validar tu cuenta.',
                                 style: TextStyle(
                                   fontSize: 15,
+                                  fontWeight: FontWeight.w500,
                                   color: Color(0xFF64748B),
                                 ),
                               ),
@@ -155,6 +167,9 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
                                 ),
                                 child: TextField(
                                   controller: _phoneController,
@@ -165,8 +180,9 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   maxLength: 10,
                                   style: const TextStyle(
                                     fontSize: 22,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w800,
                                     letterSpacing: 2,
+                                    color: Color(0xFF0F172A),
                                   ),
                                   decoration: InputDecoration(
                                     counterText: '',
@@ -179,9 +195,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                           Text(
                                             '+57',
                                             style: TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF94A3B8),
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF64748B),
+                                              letterSpacing: -0.3,
                                             ),
                                           ),
                                         ],
@@ -204,38 +221,38 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                 builder: (context, isValid, child) {
                                   return SizedBox(
                                     width: double.infinity,
-                                    height: 60,
+                                    height: 58,
                                     child: ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: isValid
-                                            ? const Color(0xFF00A859)
+                                            ? const Color(0xFF14274E)
                                             : const Color(0xFFE2E8F0),
                                         foregroundColor: isValid
                                             ? Colors.white
                                             : const Color(0xFF94A3B8),
-                                        elevation: isValid ? 8 : 0,
-                                        shadowColor: isValid
-                                            ? const Color(0xFF00A859)
-                                                .withValues(alpha: 0.5)
-                                            : null,
+                                        disabledBackgroundColor: const Color(0xFFE2E8F0),
+                                        disabledForegroundColor: const Color(0xFF94A3B8),
+                                        elevation: 0,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(30),
+                                              BorderRadius.circular(999),
                                         ),
                                       ),
                                       onPressed: isValid ? _handleLogin : null,
-                                      child: const Text(
+                                      child: Text(
                                         'Continuar',
                                         style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.3,
+                                          color: isValid ? Colors.white : const Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ),
                                   );
                                 },
                               ),
-                              _DebugSkipButton(),
+                              if (kDebugMode) _DebugSkipButton(),
                             ],
                           ),
                         ),
@@ -255,20 +272,18 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 class _DebugSkipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    bool isDebug = false;
-    assert(() { isDebug = true; return true; }());
-    if (!isDebug) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 16),
       child: SizedBox(
         width: double.infinity,
         child: TextButton(
           onPressed: () => context.replace('/map'),
           child: const Text(
-            'Saltar inicio de sesión (debug)',
+            'Saltar inicio de sesión (Modo Pruebas)',
             style: TextStyle(
               color: Color(0xFF94A3B8),
               fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),

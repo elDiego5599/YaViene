@@ -56,15 +56,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle
+                // Handle bar
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _toggleSheet,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 16, bottom: 24),
+                    padding: const EdgeInsets.only(top: 14, bottom: 18),
                     child: Container(
-                      width: 48,
-                      height: 6,
+                      width: 44,
+                      height: 5,
                       decoration: BoxDecoration(
                         color: const Color(0xFFE2E8F0),
                         borderRadius: BorderRadius.circular(999),
@@ -73,7 +73,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   ),
                 ),
                 
-                // Header (Icon & Destination)
+                // Header (Icon, Live Badge, Destination & Chevron)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
@@ -88,6 +88,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                         child: const Icon(
                           Icons.directions_bus_rounded,
                           color: Color(0xFF14274E),
+                          size: 24,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -121,7 +122,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                             Text(
                               destination,
                               style: const TextStyle(
-                                fontSize: 22,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF0F172A),
                                 letterSpacing: -0.5,
@@ -132,12 +133,25 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                           ],
                         ),
                       ),
+                      // Chevron toggle button
+                      IconButton(
+                        icon: AnimatedRotation(
+                          turns: _isExpanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 250),
+                          child: const Icon(
+                            Icons.keyboard_arrow_up_rounded,
+                            color: Color(0xFF64748B),
+                            size: 28,
+                          ),
+                        ),
+                        onPressed: _toggleSheet,
+                      ),
                     ],
                   ),
                 ),
                 
                 if (_isExpanded) ...[
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
                   // Massive ETA Number (Quizlet Style)
                   Column(
                     children: [
@@ -151,23 +165,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                           letterSpacing: -3.0,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 6),
+                      const Text(
                         'minutos para llegar a tu parada',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
+                          color: Color(0xFF64748B),
+                          letterSpacing: -0.2,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 32),
+                ] else ...[
+                  const SizedBox(height: 20),
                 ],
 
                 // Sticky Premium Alert Button
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                   child: _StickyAlertButton(
                     isActive: alertActive,
                     onPressed: () {
@@ -204,7 +221,6 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
 
   @override
   Widget build(BuildContext context) {
-    // KOHO Style Segmented/Sticky buttons use absolute colors for states
     final backgroundColor = widget.isActive ? const Color(0xFF0F172A) : const Color(0xFF00A859);
 
     return GestureDetector(
@@ -223,7 +239,7 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           width: double.infinity,
-          height: 64, // Massive pill
+          height: 60, // Massive pill
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(999),
@@ -248,15 +264,15 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
                       ? Icons.check_circle_rounded
                       : Icons.notifications_active_rounded,
                   color: Colors.white,
-                  size: 24,
+                  size: 22,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Text(
                   widget.isActive
                       ? 'ALERTA ACTIVADA'
                       : 'AVISARME AL ESTAR CERCA',
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
                     letterSpacing: 0.5,
