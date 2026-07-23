@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/map_view_state.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({super.key});
@@ -12,9 +13,27 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     with SingleTickerProviderStateMixin {
-  bool _isExpanded = true;
+  static const double _expandedMapInset = 338;
+  static const double _collapsedMapInset = 166;
 
-  void _toggleSheet() => setState(() => _isExpanded = !_isExpanded);
+  bool _isExpanded = true;
+  double _lastPublishedInset = -1;
+
+  void _toggleSheet() {
+    setState(() => _isExpanded = !_isExpanded);
+    _publishMapInset();
+  }
+
+  void _publishMapInset([double? forcedInset]) {
+    final inset =
+        forcedInset ?? (_isExpanded ? _expandedMapInset : _collapsedMapInset);
+    if (_lastPublishedInset == inset) return;
+    _lastPublishedInset = inset;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(mapBottomInsetProvider.notifier).state = inset;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +41,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final selectedDirection = ref.watch(selectedSentidoProvider);
     final alertActive = ref.watch(proximityAlertProvider);
 
-    if (selectedRoute == null) return const SizedBox.shrink();
+    if (selectedRoute == null) {
+      _publishMapInset(0);
+      return const SizedBox.shrink();
+    }
+
+    _publishMapInset();
 
     final destination =
         selectedDirection == RouteSentido.ida ? 'Centro' : 'Soledad';
@@ -71,7 +95,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     ),
                   ),
                 ),
-                
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
@@ -146,12 +169,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     ],
                   ),
                 ),
-                
                 if (_isExpanded) ...[
                   const SizedBox(height: 28),
-                  Column(
+                  const Column(
                     children: [
-                      const Text(
+                      Text(
                         '3',
                         style: TextStyle(
                           fontSize: 84,
@@ -161,8 +183,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                           letterSpacing: -3.0,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
+                      SizedBox(height: 6),
+                      Text(
                         'minutos para llegar a tu parada',
                         style: TextStyle(
                           fontSize: 15,
@@ -177,7 +199,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                 ] else ...[
                   const SizedBox(height: 20),
                 ],
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                   child: _StickyAlertButton(
@@ -216,7 +237,8 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = widget.isActive ? const Color(0xFF0F172A) : const Color(0xFF00A859);
+    final backgroundColor =
+        widget.isActive ? const Color(0xFF065F46) : const Color(0xFF00A859);
 
     return GestureDetector(
       onTap: () {
@@ -238,12 +260,12 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(999),
-            boxShadow: widget.isActive ? [] : [
+            boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00A859).withValues(alpha: 0.25),
+                color: backgroundColor.withValues(alpha: 0.24),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
-              )
+              ),
             ],
           ),
           child: AnimatedSwitcher(
