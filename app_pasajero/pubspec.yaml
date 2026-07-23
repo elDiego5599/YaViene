@@ -61,7 +61,6 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   custom_lint: ^0.7.6
   riverpod_lint: ^2.3.13
-  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true
@@ -69,11 +68,3 @@ flutter:
   assets:
     - assets/images/
     - assets/icon/
-
-flutter_native_splash:
-  color: "#14274E"
-  image: "assets/icon/ic_launcher_foreground.png"
-  android_12:
-    image: "assets/icon/ic_launcher_foreground.png"
-    icon_background_color: "#14274E"
-    color: "#14274E"
