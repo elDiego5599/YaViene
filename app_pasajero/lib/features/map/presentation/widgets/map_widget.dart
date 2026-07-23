@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/map_view_state.dart';
 import '../utils/marker_generator.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
@@ -17,6 +18,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     with WidgetsBindingObserver {
   MapLibreMapController? _mapController;
   ProviderSubscription<AsyncValue<BusPosition>>? _movingBusSubscription;
+  ProviderSubscription<double>? _mapInsetSubscription;
+  RouteTrajectory? _lastTrajectory;
+  double _currentBottomInset = 0;
   bool _layersReady = false;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
@@ -35,12 +39,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _mapInsetSubscription =
+        ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {
+      _applyMapBottomInset(next);
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _movingBusSubscription?.close();
+    _mapInsetSubscription?.close();
     _mapController?.dispose();
     super.dispose();
   }
@@ -68,6 +77,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       await _loadBusIcons();
       await _initializeMapSources();
       _layersReady = true;
+      await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
+          animated: false);
       if (widget.routeId != null) await _reloadMapData();
       _movingBusSubscription ??=
           ref.listenManual(movingBusProvider, (previous, next) {
@@ -137,7 +148,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             _kBusGhostIconId,
             _kBusIconId
           ],
-          iconSize: 1.6,
+          iconSize: 1.0,
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           iconRotate: ['get', 'heading'],
@@ -147,10 +158,28 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   Future<void> _loadBusIcons() async {
     try {
-      final activeBytes = await MarkerGenerator.generateBusMarker(isGhost: false);
+      final activeBytes =
+          await MarkerGenerator.generateBusMarker(isGhost: false);
       final ghostBytes = await MarkerGenerator.generateBusMarker(isGhost: true);
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
+    } catch (_) {}
+  }
+
+  Future<void> _applyMapBottomInset(double bottomInset,
+      {bool animated = true}) async {
+    _currentBottomInset = bottomInset;
+    if (_mapController == null || !mounted || kIsWeb) return;
+
+    try {
+      await _mapController!.updateContentInsets(
+        EdgeInsets.only(bottom: bottomInset),
+        animated,
+      );
+      final trajectory = _lastTrajectory;
+      if (trajectory != null) {
+        _fitRouteToVisibleViewport(trajectory, animated: animated);
+      }
     } catch (_) {}
   }
 
@@ -165,14 +194,48 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   void _updateRouteSource(RouteTrajectory trajectory) {
     if (_mapController == null || !mounted) return;
+    _lastTrajectory = trajectory;
     _mapController!.setGeoJsonSource(
         _kRouteSourceId, trajectory.toGeoJsonFeatureCollection());
-    final center = trajectory.center;
-    _mapController!.animateCamera(
-      CameraUpdate.newCameraPosition(
-          CameraPosition(target: LatLng(center.lat, center.lon), zoom: 12.5)),
-      duration: const Duration(milliseconds: 800),
+    _fitRouteToVisibleViewport(trajectory, animated: true);
+  }
+
+  void _fitRouteToVisibleViewport(RouteTrajectory trajectory,
+      {required bool animated}) {
+    if (_mapController == null || trajectory.points.isEmpty || !mounted) return;
+
+    double minLat = trajectory.points.first.lat;
+    double maxLat = trajectory.points.first.lat;
+    double minLon = trajectory.points.first.lon;
+    double maxLon = trajectory.points.first.lon;
+
+    for (final point in trajectory.points) {
+      if (point.lat < minLat) minLat = point.lat;
+      if (point.lat > maxLat) maxLat = point.lat;
+      if (point.lon < minLon) minLon = point.lon;
+      if (point.lon > maxLon) maxLon = point.lon;
+    }
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLon),
+      northeast: LatLng(maxLat, maxLon),
     );
+    final update = CameraUpdate.newLatLngBounds(
+      bounds,
+      left: 40,
+      top: 148,
+      right: 40,
+      bottom: _currentBottomInset + 32,
+    );
+
+    if (animated) {
+      _mapController!.animateCamera(
+        update,
+        duration: const Duration(milliseconds: 800),
+      );
+    } else {
+      _mapController!.moveCamera(update);
+    }
   }
 
   void _updateStopsSources(List<BusStop> stops) {

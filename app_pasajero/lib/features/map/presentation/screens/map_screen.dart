@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../widgets/search_pill_bar.dart';
-import '../widgets/map_widget.dart';
 import '../widgets/eta_bottom_sheet.dart';
+import '../widgets/idle_status_chip.dart';
+import '../widgets/map_widget.dart';
+import '../widgets/search_pill_bar.dart';
 
 class MapScreen extends ConsumerWidget {
   const MapScreen({super.key});
@@ -22,41 +22,18 @@ class MapScreen extends ConsumerWidget {
           Positioned.fill(
             child: MapWidget(routeId: selectedRoute?.id),
           ),
-
           const Positioned(
-            top: 0, left: 0, right: 0,
+            top: 0,
+            left: 0,
+            right: 0,
             child: SearchPillBar(),
           ),
-
+          if (selectedRoute == null)
+            const Positioned.fill(child: IdleStatusChip()),
           const Positioned(
-            bottom: 120, left: 16,
-            child: SafeArea(
-              child: _RealtimeTickDebugBadge(),
-            ),
-          ),
-
-          Positioned(
-            right: AppSpacing.md,
-            bottom: 140,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: AppShadows.soft,
-              ),
-              child: IconButton(
-                iconSize: 28,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                color: AppColors.primaryDeep,
-                onPressed: () {
-                },
-                icon: const Icon(Icons.my_location_rounded),
-              ),
-            ),
-          ),
-
-          const Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: EtaBottomSheet(),
           ),
         ],
@@ -89,7 +66,6 @@ class _PremiumDrawer extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -130,9 +106,11 @@ class _PremiumDrawer extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00A859).withValues(alpha: 0.2),
+                              color: const Color(0xFF00A859)
+                                  .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: const Text(
@@ -150,9 +128,7 @@ class _PremiumDrawer extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 36),
-
               _DrawerItem(
                 icon: Icons.person_outline_rounded,
                 bgColor: const Color(0xFFEEF2FF),
@@ -184,9 +160,7 @@ class _PremiumDrawer extends StatelessWidget {
                 title: 'Ajustes',
                 onTap: () => Navigator.pop(context),
               ),
-
               const Spacer(),
-
               Divider(color: Colors.white.withValues(alpha: 0.12)),
               const SizedBox(height: 16),
             ],
@@ -257,59 +231,6 @@ class _DrawerItem extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _RealtimeTickDebugBadge extends ConsumerWidget {
-  const _RealtimeTickDebugBadge();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tickAsync = ref.watch(realtimeTickProvider);
-    if (!kDebugMode) return const SizedBox.shrink();
-
-    return tickAsync.when(
-      data: (tick) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                color: Color(0xFF00A859),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'DEBUG WS: $tick',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
