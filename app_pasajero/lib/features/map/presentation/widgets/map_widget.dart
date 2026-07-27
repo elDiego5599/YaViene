@@ -69,7 +69,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
       next.whenData(_updateBusSourceData);
-    });
+    }, fireImmediately: true);
   }
 
   @override
@@ -163,32 +163,41 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _kBusSourceId,
         _kBusLayerId,
         const SymbolLayerProperties(
-          iconImage: _kBusIconId,
-          iconSize: 0.85,
+          iconImage: [
+            'case',
+            ['==', ['get', 'isGhost'], true],
+            _kBusGhostIconId,
+            _kBusIconId
+          ],
+          iconSize: [
+            'case',
+            ['==', ['get', 'isSelected'], true],
+            1.2,
+            0.85
+          ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           iconRotate: ['get', 'heading'],
           iconRotationAlignment: 'map',
         ));
 
-    _mapController!.onFeatureTapped.add((p, c, id) {
-      _mapController!.queryRenderedFeatures(
-          p, [_kBusLayerId], null).then((features) {
-        if (features.isNotEmpty) {
-          final busId = features.first['properties']['busId'] as String;
-          final success =
-              ref.read(selectedBusesProvider.notifier).toggleBus(busId);
+    _mapController!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) async {
+      final features = await _mapController!
+          .queryRenderedFeatures(point, [_kBusLayerId], null);
+      if (features.isNotEmpty) {
+        final busId = features.first['properties']['busId'] as String;
+        final success =
+            ref.read(selectedBusesProvider.notifier).toggleBus(busId);
 
-          if (!success && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text("Solo puedes seguir hasta 2 buses a la vez.",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: Color(0xFF14274E),
-            ));
-          }
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Solo puedes seguir hasta 2 buses a la vez.",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: Color(0xFF14274E),
+          ));
         }
-      });
-    } as OnFeatureInteractionCallback);
+      }
+    });
   }
 
   Future<void> _loadBusIcons() async {
