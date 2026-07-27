@@ -36,14 +36,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedDirection = ref.watch(selectedSentidoProvider);
     final selectedBuses = ref.watch(selectedBusesProvider);
-
-    if (selectedRoute == null) {
-      _publishMapInset(0);
-      return const SizedBox.shrink();
-    }
 
     _publishMapInset();
 

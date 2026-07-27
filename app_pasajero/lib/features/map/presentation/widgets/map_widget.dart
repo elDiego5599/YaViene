@@ -62,12 +62,23 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     ref.read(appLifecycleProvider.notifier).state = state;
   }
 
+  void _setupBusSubscription(String routeId) {
+    _movingBusSubscription?.close();
+    _movingBusSubscription =
+        ref.listenManual(busPositionsProvider(routeId), (previous, next) {
+      if (!mounted) return;
+      if (_lifecycleState != AppLifecycleState.resumed) return;
+      next.whenData(_updateBusSourceData);
+    });
+  }
+
   @override
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId && _layersReady) {
       _hasFitInitialRoute = false;
       _reloadMapData();
+      _setupBusSubscription(widget.routeId ?? '');
     }
   }
 
@@ -84,12 +95,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
       if (widget.routeId != null) await _reloadMapData();
-      _movingBusSubscription ??=
-          ref.listenManual(busPositionsProvider(widget.routeId ?? ''), (previous, next) {
-        if (!mounted) return;
-        if (_lifecycleState != AppLifecycleState.resumed) return;
-        next.whenData(_updateBusSourceData);
-      });
+      _setupBusSubscription(widget.routeId ?? '');
     } catch (_) {}
   }
 
