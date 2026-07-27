@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
+import '../providers/tracking_providers.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -17,7 +18,7 @@ class MapWidget extends ConsumerStatefulWidget {
 class _MapWidgetState extends ConsumerState<MapWidget>
     with WidgetsBindingObserver {
   MapLibreMapController? _mapController;
-  ProviderSubscription<AsyncValue<BusPosition>>? _movingBusSubscription;
+  ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
   RouteTrajectory? _lastTrajectory;
   double _currentBottomInset = 0;
@@ -84,7 +85,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           animated: false);
       if (widget.routeId != null) await _reloadMapData();
       _movingBusSubscription ??=
-          ref.listenManual(movingBusProvider, (previous, next) {
+          ref.listenManual(busPositionsProvider(widget.routeId ?? ''), (previous, next) {
         if (!mounted) return;
         if (_lifecycleState != AppLifecycleState.resumed) return;
         next.whenData(_updateBusSourceData);
@@ -137,26 +138,59 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     await _mapController!.addSource(
         _kBusSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
+
+    await _mapController!.addCircleLayer(
+        _kBusSourceId,
+        'bus-selected-halo-layer',
+        const CircleLayerProperties(
+          circleRadius: 18.0,
+          circleColor: '#2563EB',
+          circleOpacity: 0.25,
+          circleStrokeWidth: 2.0,
+          circleStrokeColor: '#2563EB',
+        ),
+        filter: ['==', ['get', 'isSelected'], true]);
+
     await _mapController!.addSymbolLayer(
         _kBusSourceId,
         _kBusLayerId,
         const SymbolLayerProperties(
           iconImage: [
             'case',
-            [
-              '==',
-              ['get', 'isGhost'],
-              true
-            ],
+            ['==', ['get', 'isGhost'], true],
             _kBusGhostIconId,
             _kBusIconId
           ],
-          iconSize: 1.0,
+          iconSize: [
+            'case',
+            ['==', ['get', 'isSelected'], true],
+            1.2,
+            0.85
+          ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           iconRotate: ['get', 'heading'],
           iconRotationAlignment: 'map',
         ));
+
+    _mapController!.onFeatureTapped.add((p, c, id) {
+      _mapController!.queryRenderedFeatures(
+          p, [_kBusLayerId], null).then((features) {
+        if (features.isNotEmpty) {
+          final busId = features.first['properties']['busId'] as String;
+          final success =
+              ref.read(selectedBusesProvider.notifier).toggleBus(busId);
+
+          if (!success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Solo puedes seguir hasta 2 buses a la vez.",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              backgroundColor: Color(0xFF14274E),
+            ));
+          }
+        }
+      });
+    } as OnFeatureInteractionCallback);
   }
 
   Future<void> _loadBusIcons() async {
@@ -263,25 +297,25 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     });
   }
 
-  void _updateBusSourceData(BusPosition position) {
+  void _updateBusSourceData(List<BusPosition> positions) {
     if (_mapController == null || !mounted) return;
+    final selectedBuses = ref.read(selectedBusesProvider);
     _mapController!.setGeoJsonSource(_kBusSourceId, {
       'type': 'FeatureCollection',
-      'features': [
-        {
-          'type': 'Feature',
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [position.lon, position.lat]
-          },
-          'properties': {
-            'busId': position.busId,
-            'heading': position.heading,
-            'speedKmh': position.speedKmh,
-            'isGhost': position.shouldShowAsGhost,
-          },
-        }
-      ],
+      'features': positions.map((pos) => {
+        'type': 'Feature',
+        'geometry': {
+          'type': 'Point',
+          'coordinates': [pos.lon, pos.lat]
+        },
+        'properties': {
+          'busId': pos.busId,
+          'heading': pos.heading,
+          'speedKmh': pos.speedKmh,
+          'isGhost': pos.shouldShowAsGhost,
+          'isSelected': selectedBuses.contains(pos.busId),
+        },
+      }).toList(),
     });
   }
 

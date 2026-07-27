@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
+import '../providers/tracking_providers.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({super.key});
@@ -11,11 +12,9 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
 }
 
-class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
-    with SingleTickerProviderStateMixin {
+class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _expandedMapInset = 338;
   static const double _collapsedMapInset = 166;
-
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
 
@@ -39,7 +38,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedDirection = ref.watch(selectedSentidoProvider);
-    final alertActive = ref.watch(proximityAlertProvider);
+    final selectedBuses = ref.watch(selectedBusesProvider);
 
     if (selectedRoute == null) {
       _publishMapInset(0);
@@ -53,10 +52,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 
     return GestureDetector(
       onVerticalDragEnd: (details) {
-        if (details.primaryVelocity! > 0 && _isExpanded) {
-          _toggleSheet();
-        } else if (details.primaryVelocity! < 0 && !_isExpanded) {
-          _toggleSheet();
+        if (details.primaryVelocity != null) {
+          if (details.primaryVelocity! > 0 && _isExpanded) {
+            _toggleSheet();
+          } else if (details.primaryVelocity! < 0 && !_isExpanded) {
+            _toggleSheet();
+          }
         }
       },
       child: AnimatedSize(
@@ -64,6 +65,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         curve: Curves.easeOutCubic,
         alignment: Alignment.bottomCenter,
         child: Container(
+          width: double.infinity,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -95,121 +97,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.directions_bus_rounded,
-                          color: Color(0xFF14274E),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF00A859),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'EN TIEMPO REAL',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF00A859),
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              destination,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                                letterSpacing: -0.5,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: AnimatedRotation(
-                          turns: _isExpanded ? 0.5 : 0.0,
-                          duration: const Duration(milliseconds: 250),
-                          child: const Icon(
-                            Icons.keyboard_arrow_up_rounded,
-                            color: Color(0xFF64748B),
-                            size: 28,
-                          ),
-                        ),
-                        onPressed: _toggleSheet,
-                      ),
-                    ],
-                  ),
-                ),
-                if (_isExpanded) ...[
-                  const SizedBox(height: 28),
-                  const Column(
-                    children: [
-                      Text(
-                        '3',
-                        style: TextStyle(
-                          fontSize: 84,
-                          fontWeight: FontWeight.w200,
-                          color: Color(0xFF14274E),
-                          height: 0.9,
-                          letterSpacing: -3.0,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'minutos para llegar a tu parada',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                ] else ...[
-                  const SizedBox(height: 20),
-                ],
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-                  child: _StickyAlertButton(
-                    isActive: alertActive,
-                    onPressed: () {
-                      HapticFeedback.mediumImpact();
-                      final next = !alertActive;
-                      ref.read(proximityAlertProvider.notifier).state = next;
-                    },
-                  ),
-                ),
+                if (selectedBuses.isEmpty)
+                  _buildEmptyState()
+                else if (selectedBuses.length == 1)
+                  _buildSingleBusState(selectedBuses.first, destination)
+                else
+                  _buildMultiBusState(selectedBuses, destination),
               ],
             ),
           ),
@@ -217,14 +110,134 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       ),
     );
   }
+
+  Widget _buildEmptyState() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 10, 24, 40),
+          child: Column(
+            children: [
+              Icon(Icons.touch_app_rounded, color: Color(0xFF94A3B8), size: 32),
+              SizedBox(height: 12),
+              Text(
+                "Toca un bus en el mapa",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              ),
+              SizedBox(height: 4),
+              Text(
+                "Selecciona hasta 2 buses para seguir su ETA",
+                style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildSingleBusState(String busId, String destination) {
+    final isActive = ref.watch(activeAlertsProvider).contains(busId);
+
+    return Column(
+      children: [
+        const Text("3",
+            style: TextStyle(
+                fontSize: 84,
+                fontWeight: FontWeight.w200,
+                color: Color(0xFF14274E),
+                height: 0.9,
+                letterSpacing: -3.0)),
+        const SizedBox(height: 6),
+        Text("minutos para llegar a tu parada \u2022 Bus $busId",
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B))),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          child: _StickyAlertButton(
+            isActive: isActive,
+            label: isActive ? "ALERTA ACTIVADA" : "AVISARME AL ESTAR CERCA",
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMultiBusState(Set<String> buses, String destination) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          ...buses.map((busId) {
+            final eta = buses.first == busId ? "3" : "12";
+            final isActive = ref.watch(activeAlertsProvider).contains(busId);
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.directions_bus_rounded,
+                        color: Color(0xFF14274E), size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Bus $busId",
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A))),
+                        Text("Llega en $eta min",
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF00A859))),
+                      ],
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: isActive,
+                    activeTrackColor: const Color(0xFF00A859),
+                    onChanged: (val) {
+                      HapticFeedback.lightImpact();
+                      ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
+                    },
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
 }
 
 class _StickyAlertButton extends StatefulWidget {
   final bool isActive;
+  final String label;
   final VoidCallback onPressed;
 
   const _StickyAlertButton({
     required this.isActive,
+    required this.label,
     required this.onPressed,
   });
 
@@ -285,9 +298,7 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  widget.isActive
-                      ? 'ALERTA ACTIVADA'
-                      : 'AVISARME AL ESTAR CERCA',
+                  widget.label,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
