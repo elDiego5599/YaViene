@@ -72,7 +72,7 @@ List<BusPosition> _generateDummyPositions(
 }
 
 
-final companiesProvider = FutureProvider<List<Company>>((ref) async {
+final companiesProvider = FutureProvider.autoDispose<List<Company>>((ref) async {
   await Future.delayed(const Duration(milliseconds: 500));
   return [
     const Company(id: '1', name: 'Coolitoral S.A.'),
@@ -82,7 +82,7 @@ final companiesProvider = FutureProvider<List<Company>>((ref) async {
 });
 
 final selectedCompanyProvider =
-    StateNotifierProvider<SelectedCompanyNotifier, Company?>(
+    StateNotifierProvider.autoDispose<SelectedCompanyNotifier, Company?>(
       (ref) => SelectedCompanyNotifier(),
     );
 
@@ -129,7 +129,7 @@ final routesByCompanyProvider = FutureProvider.autoDispose
     });
 
 final selectedRouteProvider =
-    StateNotifierProvider<SelectedRouteNotifier, RouteInfo?>(
+    StateNotifierProvider.autoDispose<SelectedRouteNotifier, RouteInfo?>(
       (ref) => SelectedRouteNotifier(),
     );
 
@@ -143,9 +143,9 @@ class SelectedRouteNotifier extends StateNotifier<RouteInfo?> {
 
 enum RouteSentido { ida, vuelta }
 
-final selectedSentidoProvider = StateProvider<RouteSentido>(
+final selectedSentidoProvider = StateProvider.autoDispose<RouteSentido>(
   (ref) => RouteSentido.ida,
 );
 
 
-final proximityAlertProvider = StateProvider<bool>((ref) => false);
+final proximityAlertProvider = StateProvider.autoDispose<bool>((ref) => false);

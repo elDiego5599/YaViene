@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
-import '../utils/marker_generator.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -22,6 +22,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   RouteTrajectory? _lastTrajectory;
   double _currentBottomInset = 0;
   bool _layersReady = false;
+  bool _hasFitInitialRoute = false;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
   static const _kRouteSourceId = 'route-source';
@@ -63,6 +64,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId && _layersReady) {
+      _hasFitInitialRoute = false;
       _reloadMapData();
     }
   }
@@ -157,13 +159,16 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<void> _loadBusIcons() async {
+    if (_mapController == null) return;
     try {
-      final activeBytes =
-          await MarkerGenerator.generateBusMarker(isGhost: false);
-      final ghostBytes = await MarkerGenerator.generateBusMarker(isGhost: true);
+      final activeBytes = (await rootBundle.load('assets/images/bus_25d_active.png')).buffer.asUint8List();
+      final ghostBytes = (await rootBundle.load('assets/images/bus_25d_ghost.png')).buffer.asUint8List();
+
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Error cargando assets 2.5D: $e");
+    }
   }
 
   Future<void> _applyMapBottomInset(double bottomInset,
@@ -197,7 +202,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _lastTrajectory = trajectory;
     _mapController!.setGeoJsonSource(
         _kRouteSourceId, trajectory.toGeoJsonFeatureCollection());
-    _fitRouteToVisibleViewport(trajectory, animated: true);
+
+    if (!_hasFitInitialRoute) {
+      _fitRouteToVisibleViewport(trajectory, animated: true);
+      _hasFitInitialRoute = true;
+    }
   }
 
   void _fitRouteToVisibleViewport(RouteTrajectory trajectory,
