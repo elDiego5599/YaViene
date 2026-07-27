@@ -294,7 +294,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     return MapLibreMap(
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
-      styleString: 'asset://styles/custom_warm_positron.json',
+      styleString:
+          'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       initialCameraPosition: const CameraPosition(
         target: LatLng(11.0041, -74.8070),
         zoom: 11.0,
