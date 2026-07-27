@@ -1,10 +1,16 @@
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bus_position.dart';
 import '../models/bus_stop.dart';
 import '../models/route_trajectory.dart';
+
+
+final appLifecycleProvider = StateProvider.autoDispose<AppLifecycleState>(
+  (ref) => AppLifecycleState.resumed,
+);
 
 
 final routeTrajectoryProvider = FutureProvider.autoDispose
@@ -76,7 +82,7 @@ final busStopsProvider =
 );
 
 
-final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) async* {
+final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) {
   const waypoints = [
     (lat: 10.9200, lon: -74.7800),
     (lat: 10.9320, lon: -74.7870),
@@ -90,31 +96,27 @@ final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) async* {
     (lat: 11.0120, lon: -74.8080),
   ];
 
+  final controller = StreamController<BusPosition>();
   int tick = 0;
   const stepsPerSegment = 10;
+  Timer? timer;
 
-  while (true) {
-    await Future.delayed(const Duration(seconds: 3));
-
+  void tickCallback() {
     final segmentIndex = (tick ~/ stepsPerSegment) % (waypoints.length - 1);
     final t = (tick % stepsPerSegment) / stepsPerSegment;
-
     final from = waypoints[segmentIndex];
     final to = waypoints[(segmentIndex + 1) % waypoints.length];
-
     final lat = from.lat + (to.lat - from.lat) * t;
     final lon = from.lon + (to.lon - from.lon) * t;
-
     final dLat = to.lat - from.lat;
     final dLon = to.lon - from.lon;
     final heading = (math.atan2(dLon, dLat) * 180 / math.pi + 360) % 360;
-
     final isGhost = tick == 15;
     final timestamp = isGhost
         ? DateTime.now().subtract(const Duration(seconds: 95))
         : DateTime.now();
 
-    yield BusPosition(
+    controller.add(BusPosition(
       busId: 'B-001',
       routeId: 'R-101',
       lat: lat,
@@ -123,8 +125,25 @@ final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) async* {
       speedKmh: 35 + (tick % 10).toDouble(),
       timestamp: timestamp,
       isGhostBus: isGhost,
-    );
-
+    ));
     tick++;
   }
+
+  ref.listen(appLifecycleProvider, (_, state) {
+    if (state == AppLifecycleState.resumed) {
+      timer ??= Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
+    } else {
+      timer?.cancel();
+      timer = null;
+    }
+  });
+
+  ref.onDispose(() {
+    timer?.cancel();
+    controller.close();
+  });
+
+  timer = Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
+
+  return controller.stream;
 });

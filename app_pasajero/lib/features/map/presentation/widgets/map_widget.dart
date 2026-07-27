@@ -58,6 +58,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _lifecycleState = state;
+    ref.read(appLifecycleProvider.notifier).state = state;
   }
 
   @override
@@ -293,8 +294,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     return MapLibreMap(
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
-      styleString:
-          'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      styleString: 'asset://styles/custom_warm_positron.json',
       initialCameraPosition: const CameraPosition(
         target: LatLng(11.0041, -74.8070),
         zoom: 11.0,

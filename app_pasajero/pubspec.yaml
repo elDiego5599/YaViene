@@ -68,5 +68,6 @@ flutter:
   assets:
     - assets/images/
     - assets/icon/
+    - assets/styles/
     - assets/images/bus_25d_active.png
     - assets/images/bus_25d_ghost.png
