@@ -95,8 +95,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
       if (widget.routeId != null) await _reloadMapData();
-      _setupBusSubscription(widget.routeId ?? '');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('MapWidget._onStyleLoadedCallback error: $e');
+    }
+    _setupBusSubscription(widget.routeId ?? '');
   }
 
   Future<void> _initializeMapSources() async {
@@ -161,18 +163,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _kBusSourceId,
         _kBusLayerId,
         const SymbolLayerProperties(
-          iconImage: [
-            'case',
-            ['==', ['get', 'isGhost'], true],
-            _kBusGhostIconId,
-            _kBusIconId
-          ],
-          iconSize: [
-            'case',
-            ['==', ['get', 'isSelected'], true],
-            1.2,
-            0.85
-          ],
+          iconImage: _kBusIconId,
+          iconSize: 0.85,
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           iconRotate: ['get', 'heading'],
@@ -304,7 +296,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   void _updateBusSourceData(List<BusPosition> positions) {
-    if (_mapController == null || !mounted) return;
+    if (_mapController == null || !mounted || !_layersReady) return;
     final selectedBuses = ref.read(selectedBusesProvider);
     _mapController!.setGeoJsonSource(_kBusSourceId, {
       'type': 'FeatureCollection',
