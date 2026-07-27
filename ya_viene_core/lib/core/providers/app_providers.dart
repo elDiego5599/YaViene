@@ -1,34 +1,47 @@
 
 import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bus_position.dart';
 import '../models/route_info.dart';
 import '../models/company.dart';
-
-
-final realtimeTickProvider = StreamProvider.autoDispose<int>((ref) async* {
-  int tick = 0;
-  while (true) {
-    await Future.delayed(const Duration(seconds: 3));
-    yield tick++;
-  }
-});
+import 'map_providers.dart' show appLifecycleProvider;
 
 
 final busPositionsProvider = StreamProvider.autoDispose
-    .family<List<BusPosition>, String>((ref, routeId) async* {
+    .family<List<BusPosition>, String>((ref, routeId) {
+      final controller = StreamController<List<BusPosition>>();
+      int tick = 0;
       double baseLat = 11.0041;
       double baseLon = -74.8070;
+      Timer? timer;
 
-      yield _generateDummyPositions(routeId, baseLat, baseLon, tick: 0);
+      controller.add(_generateDummyPositions(routeId, baseLat, baseLon, tick: 0));
 
-      int tick = 0;
-      await for (final _ in Stream.periodic(const Duration(seconds: 3))) {
+      void tickCallback() {
         tick++;
         baseLat += 0.0001 * tick;
-        yield _generateDummyPositions(routeId, baseLat, baseLon, tick: tick);
+        controller.add(_generateDummyPositions(routeId, baseLat, baseLon, tick: tick));
       }
+
+      ref.listen(appLifecycleProvider, (_, state) {
+        if (state == AppLifecycleState.resumed) {
+          timer ??= Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
+        } else {
+          timer?.cancel();
+          timer = null;
+        }
+      });
+
+      ref.onDispose(() {
+        timer?.cancel();
+        controller.close();
+      });
+
+      timer = Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
+
+      return controller.stream;
     });
 
 List<BusPosition> _generateDummyPositions(
