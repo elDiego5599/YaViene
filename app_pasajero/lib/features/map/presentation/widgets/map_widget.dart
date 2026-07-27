@@ -151,11 +151,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _kBusSourceId,
         'bus-selected-halo-layer',
         const CircleLayerProperties(
-          circleRadius: 18.0,
-          circleColor: '#2563EB',
-          circleOpacity: 0.25,
-          circleStrokeWidth: 2.0,
-          circleStrokeColor: '#2563EB',
+          circleRadius: 24.0,
+          circleColor: '#00A859',
+          circleOpacity: 0.45,
+          circleBlur: 0.8,
+          circleStrokeWidth: 0.0,
         ),
         filter: ['==', ['get', 'isSelected'], true]);
 

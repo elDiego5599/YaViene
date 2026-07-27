@@ -173,19 +173,27 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF14274E).withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Icon(Icons.directions_bus_rounded,
-                        color: Color(0xFF14274E), size: 20),
+                        color: Color(0xFF14274E), size: 24),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -196,22 +204,58 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                             style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A))),
+                                color: Color(0xFF0F172A),
+                                letterSpacing: -0.3)),
+                        const SizedBox(height: 2),
                         Text("Llega en $eta min",
                             style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
                                 color: Color(0xFF00A859))),
                       ],
                     ),
                   ),
-                  Switch.adaptive(
-                    value: isActive,
-                    activeTrackColor: const Color(0xFF00A859),
-                    onChanged: (val) {
+                  GestureDetector(
+                    onTap: () {
                       HapticFeedback.lightImpact();
                       ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
                     },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? const Color(0xFF00A859)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isActive
+                                ? Icons.check_circle_rounded
+                                : Icons.notifications_active_rounded,
+                            color: isActive
+                                ? Colors.white
+                                : const Color(0xFF14274E),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isActive ? "Activada" : "Avisarme",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: isActive
+                                  ? Colors.white
+                                  : const Color(0xFF14274E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
