@@ -65,17 +65,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
                     shape: BoxShape.circle,
-                    boxShadow: _menuPressed
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xFF14274E).withValues(alpha: 0.15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            )
-                          ]
-                        : null,
+                    color: _menuPressed
+                        ? const Color(0xFFF1F5F9)
+                        : Colors.transparent,
                   ),
                   child: const Icon(
                     Icons.menu_rounded,
@@ -155,7 +148,6 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   }
 
   Widget _buildActionButton({
-    required Color bgColor,
     required Color iconColor,
     required IconData icon,
     required VoidCallback onTap,
@@ -171,17 +163,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: bgColor,
           shape: BoxShape.circle,
-          boxShadow: _actionPressed
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF14274E).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
+          color: _actionPressed
+              ? const Color(0xFFF1F5F9)
+              : Colors.transparent,
         ),
         child: Icon(icon, color: iconColor, size: 20),
       ),
@@ -190,7 +175,6 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   Widget _buildCloseButton() {
     return _buildActionButton(
-      bgColor: const Color(0xFFFEF2F2),
       iconColor: const Color(0xFFDC2626),
       icon: Icons.close_rounded,
       onTap: () {
@@ -202,7 +186,6 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   Widget _buildFilterButton() {
     return _buildActionButton(
-      bgColor: const Color(0xFFF1F5F9),
       iconColor: const Color(0xFF14274E),
       icon: Icons.tune_rounded,
       onTap: () {
