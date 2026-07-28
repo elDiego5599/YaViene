@@ -173,8 +173,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           iconSize: [
             'case',
             ['==', ['get', 'isSelected'], true],
-            1.2,
-            0.85
+            ['interpolate', ['linear'], ['zoom'], 11, 1.5, 15, 2.5],
+            ['interpolate', ['linear'], ['zoom'], 11, 1.0, 15, 2.0]
           ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,

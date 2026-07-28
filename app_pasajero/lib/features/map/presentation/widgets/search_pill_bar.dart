@@ -4,11 +4,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'route_selector_sheet.dart';
 
-class SearchPillBar extends ConsumerWidget {
+class SearchPillBar extends ConsumerStatefulWidget {
   const SearchPillBar({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SearchPillBar> createState() => _SearchPillBarState();
+}
+
+class _SearchPillBarState extends ConsumerState<SearchPillBar> {
+  bool _menuPressed = false;
+  bool _actionPressed = false;
+
+  void _onMenuTap() {
+    HapticFeedback.lightImpact();
+    Scaffold.of(context).openDrawer();
+  }
+
+  void _onSearchTap() {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const RouteSelectorSheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
 
     return SafeArea(
@@ -33,16 +56,26 @@ class SearchPillBar extends ConsumerWidget {
             children: [
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
+                onTap: _onMenuTap,
+                onTapDown: (_) => setState(() => _menuPressed = true),
+                onTapUp: (_) => setState(() => _menuPressed = false),
+                onTapCancel: () => setState(() => _menuPressed = false),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
                   width: 44,
                   height: 44,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF1F5F9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
                     shape: BoxShape.circle,
+                    boxShadow: _menuPressed
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF14274E).withValues(alpha: 0.15),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                        : null,
                   ),
                   child: const Icon(
                     Icons.menu_rounded,
@@ -57,15 +90,7 @@ class SearchPillBar extends ConsumerWidget {
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => const RouteSelectorSheet(),
-                    );
-                  },
+                  onTap: _onSearchTap,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -119,56 +144,76 @@ class SearchPillBar extends ConsumerWidget {
               const SizedBox(width: 8),
 
               if (selectedRoute != null)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    ref.read(selectedRouteProvider.notifier).clear();
-                  },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFEF2F2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFFDC2626),
-                      size: 20,
-                    ),
-                  ),
-                )
+                _buildCloseButton()
               else
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => const RouteSelectorSheet(),
-                    );
-                  },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF1F5F9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.tune_rounded,
-                      color: Color(0xFF14274E),
-                      size: 20,
-                    ),
-                  ),
-                ),
+                _buildFilterButton(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required Color bgColor,
+    required Color iconColor,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onTapDown: (_) => setState(() => _actionPressed = true),
+      onTapUp: (_) => setState(() => _actionPressed = false),
+      onTapCancel: () => setState(() => _actionPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+          boxShadow: _actionPressed
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF14274E).withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Icon(icon, color: iconColor, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildCloseButton() {
+    return _buildActionButton(
+      bgColor: const Color(0xFFFEF2F2),
+      iconColor: const Color(0xFFDC2626),
+      icon: Icons.close_rounded,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        ref.read(selectedRouteProvider.notifier).clear();
+      },
+    );
+  }
+
+  Widget _buildFilterButton() {
+    return _buildActionButton(
+      bgColor: const Color(0xFFF1F5F9),
+      iconColor: const Color(0xFF14274E),
+      icon: Icons.tune_rounded,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => const RouteSelectorSheet(),
+        );
+      },
     );
   }
 }
