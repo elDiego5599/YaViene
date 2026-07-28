@@ -204,64 +204,59 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<void> _loadBusIcons() async {
     if (_mapController == null) return;
     try {
-      final activeBytes = await _createAppleStyleMarker(const Color(0xFF14274E));
-      final ghostBytes = await _createAppleStyleMarker(const Color(0xFF94A3B8));
+      final activeBytes = await _createFlatTransitMarker(
+          const Color(0xFF14274E), isGhost: false);
+      final ghostBytes = await _createFlatTransitMarker(
+          const Color(0xFF94A3B8), isGhost: true);
 
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
     } catch (e) {
-      debugPrint("Error generando iconos Apple Style: $e");
+      debugPrint("Error generando iconos Flat: $e");
     }
   }
 
-  Future<Uint8List> _createAppleStyleMarker(Color centerColor) async {
-    const size = 140;
-    const center = Offset(size / 2, size / 2);
-    const radius = size / 2.8;
+  Future<Uint8List> _createFlatTransitMarker(Color baseColor,
+      {required bool isGhost}) async {
+    const size = 80;
+    const centerX = size / 2;
+    const centerY = size / 2;
     final pictureRecorder = ui.PictureRecorder();
     final canvas = Canvas(pictureRecorder);
 
-    final shadowPath = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-    canvas.drawShadow(shadowPath, Colors.black.withValues(alpha: 0.4), 12.0, false);
+    final shadowPath = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(centerX, centerY + 2), width: 32, height: 60),
+          const Radius.circular(10)));
+    canvas.drawShadow(
+        shadowPath, Colors.black.withValues(alpha: 0.15), 4.0, false);
 
-    final borderPaint = Paint()
-      ..color = Colors.white
+    final bodyPaint = Paint()
+      ..color = baseColor
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, radius, borderPaint);
+    final bodyRect = RRect.fromRectAndRadius(
+        Rect.fromCenter(
+            center: Offset(centerX, centerY), width: 32, height: 60),
+        const Radius.circular(10));
+    canvas.drawRRect(bodyRect, bodyPaint);
 
-    final innerPaint = Paint()
-      ..color = centerColor
+    final glassPaint = Paint()
+      ..color = Colors.white.withValues(alpha: isGhost ? 0.5 : 0.95)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, radius - 8, innerPaint);
+    final glassRect = RRect.fromRectAndRadius(
+        Rect.fromCenter(
+            center: Offset(centerX, centerY - 18), width: 24, height: 10),
+        const Radius.circular(4));
+    canvas.drawRRect(glassRect, glassPaint);
 
-    final arrowPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final arrowPath = Path()
-      ..moveTo(center.dx, center.dy - radius - 10)
-      ..lineTo(center.dx - 12, center.dy - radius + 6)
-      ..lineTo(center.dx + 12, center.dy - radius + 6)
-      ..close();
-    canvas.drawPath(arrowPath, arrowPaint);
-
-    final iconStr = String.fromCharCode(Icons.directions_bus_rounded.codePoint);
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-      text: TextSpan(
-        text: iconStr,
-        style: TextStyle(
-          fontSize: 54,
-          fontFamily: Icons.directions_bus_rounded.fontFamily,
-          package: Icons.directions_bus_rounded.fontPackage,
-          color: Colors.white,
-        ),
-      ),
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(center.dx - (textPainter.width / 2), center.dy - (textPainter.height / 2)),
-    );
+    if (!isGhost) {
+      final lightPaint = Paint()
+        ..color = const Color(0xFF00A859)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(centerX - 8, centerY + 24), 3, lightPaint);
+      canvas.drawCircle(Offset(centerX + 8, centerY + 24), 3, lightPaint);
+    }
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
