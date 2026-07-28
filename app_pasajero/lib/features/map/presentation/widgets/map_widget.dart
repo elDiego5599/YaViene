@@ -73,13 +73,26 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }, fireImmediately: true);
   }
 
+  void _teardownBusSubscription() {
+    _movingBusSubscription?.close();
+    _movingBusSubscription = null;
+    if (_mapController != null && mounted) {
+      const emptyGeoJson = {"type": "FeatureCollection", "features": []};
+      _mapController!.setGeoJsonSource(_kBusSourceId, emptyGeoJson);
+    }
+  }
+
   @override
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId && _layersReady) {
       _hasFitInitialRoute = false;
-      _reloadMapData();
-      _setupBusSubscription(widget.routeId ?? '');
+      if (widget.routeId != null) {
+        _reloadMapData();
+        _setupBusSubscription(widget.routeId!);
+      } else {
+        _teardownBusSubscription();
+      }
     }
   }
 
@@ -95,11 +108,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _layersReady = true;
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
-      if (widget.routeId != null) await _reloadMapData();
+      if (widget.routeId != null) {
+        await _reloadMapData();
+        _setupBusSubscription(widget.routeId!);
+      }
     } catch (e) {
       debugPrint('MapWidget._onStyleLoadedCallback error: $e');
     }
-    _setupBusSubscription(widget.routeId ?? '');
   }
 
   Future<void> _initializeMapSources() async {

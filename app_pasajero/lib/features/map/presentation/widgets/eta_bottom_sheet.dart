@@ -14,7 +14,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _expandedMapInset = 338;
-  static const double _collapsedMapInset = 166;
+  static const double _collapsedMapInset = 120;
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
 
@@ -97,12 +97,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                     ),
                   ),
                 ),
-                if (selectedBuses.isEmpty)
-                  _buildEmptyState()
-                else if (selectedBuses.length == 1)
-                  _buildSingleBusState(selectedBuses.first, destination)
-                else
-                  _buildMultiBusState(selectedBuses, destination),
+                if (_isExpanded)
+                  if (selectedBuses.isEmpty)
+                    _buildEmptyState()
+                  else if (selectedBuses.length == 1)
+                    _buildSingleBusState(selectedBuses.first, destination)
+                  else
+                    _buildMultiBusState(selectedBuses, destination),
               ],
             ),
           ),
@@ -124,7 +125,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               ),
               SizedBox(height: 4),
               Text(
-                "Selecciona hasta 2 buses para ver su tiempo de llegada",
+                "Selecciona hasta 2 buses para darle seguimiento",
                 style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
               ),
             ],
