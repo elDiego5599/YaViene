@@ -1,6 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
@@ -203,14 +204,68 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<void> _loadBusIcons() async {
     if (_mapController == null) return;
     try {
-      final activeBytes = (await rootBundle.load('assets/images/bus_25d_active.png')).buffer.asUint8List();
-      final ghostBytes = (await rootBundle.load('assets/images/bus_25d_ghost.png')).buffer.asUint8List();
+      final activeBytes = await _createAppleStyleMarker(const Color(0xFF14274E));
+      final ghostBytes = await _createAppleStyleMarker(const Color(0xFF94A3B8));
 
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
     } catch (e) {
-      debugPrint("Error cargando assets 2.5D: $e");
+      debugPrint("Error generando iconos Apple Style: $e");
     }
+  }
+
+  Future<Uint8List> _createAppleStyleMarker(Color centerColor) async {
+    const size = 140;
+    const center = Offset(size / 2, size / 2);
+    const radius = size / 2.8;
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+
+    final shadowPath = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
+    canvas.drawShadow(shadowPath, Colors.black.withValues(alpha: 0.4), 12.0, false);
+
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius, borderPaint);
+
+    final innerPaint = Paint()
+      ..color = centerColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius - 8, innerPaint);
+
+    final arrowPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final arrowPath = Path()
+      ..moveTo(center.dx, center.dy - radius - 10)
+      ..lineTo(center.dx - 12, center.dy - radius + 6)
+      ..lineTo(center.dx + 12, center.dy - radius + 6)
+      ..close();
+    canvas.drawPath(arrowPath, arrowPaint);
+
+    final iconStr = String.fromCharCode(Icons.directions_bus_rounded.codePoint);
+    final textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+      text: TextSpan(
+        text: iconStr,
+        style: TextStyle(
+          fontSize: 54,
+          fontFamily: Icons.directions_bus_rounded.fontFamily,
+          package: Icons.directions_bus_rounded.fontPackage,
+          color: Colors.white,
+        ),
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(center.dx - (textPainter.width / 2), center.dy - (textPainter.height / 2)),
+    );
+
+    final img = await pictureRecorder.endRecording().toImage(size, size);
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return data!.buffer.asUint8List();
   }
 
   Future<void> _applyMapBottomInset(double bottomInset,
