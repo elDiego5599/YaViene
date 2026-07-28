@@ -242,7 +242,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     final shadowPath = Path()
       ..addRRect(RRect.fromRectAndRadius(
           Rect.fromCenter(
-              center: Offset(centerX, centerY + 2), width: 32, height: 60),
+              center: const Offset(centerX, centerY + 2), width: 32, height: 60),
           const Radius.circular(10)));
     canvas.drawShadow(
         shadowPath, Colors.black.withValues(alpha: 0.15), 4.0, false);
@@ -252,7 +252,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       ..style = PaintingStyle.fill;
     final bodyRect = RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: Offset(centerX, centerY), width: 32, height: 60),
+            center: const Offset(centerX, centerY), width: 32, height: 60),
         const Radius.circular(10));
     canvas.drawRRect(bodyRect, bodyPaint);
 
@@ -261,7 +261,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       ..style = PaintingStyle.fill;
     final glassRect = RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: Offset(centerX, centerY - 18), width: 24, height: 10),
+            center: const Offset(centerX, centerY - 18), width: 24, height: 10),
         const Radius.circular(4));
     canvas.drawRRect(glassRect, glassPaint);
 
@@ -269,8 +269,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final lightPaint = Paint()
         ..color = const Color(0xFF00A859)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(centerX - 8, centerY + 24), 3, lightPaint);
-      canvas.drawCircle(Offset(centerX + 8, centerY + 24), 3, lightPaint);
+      canvas.drawCircle(const Offset(centerX - 8, centerY + 24), 3, lightPaint);
+      canvas.drawCircle(const Offset(centerX + 8, centerY + 24), 3, lightPaint);
     }
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
