@@ -35,6 +35,53 @@ class BusStop extends Equatable {
          'Las paradas informales deben tener radioInfluenciaM definido.',
        );
 
+  factory BusStop.fromJson(Map<String, dynamic> json) {
+    return BusStop(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      tipo: BusStopType.values.firstWhere(
+        (e) => e.name == json['tipo'],
+        orElse: () => BusStopType.fija,
+      ),
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
+      orden: (json['orden'] as num?)?.toInt() ?? 0,
+      radioInfluenciaM: (json['radioInfluenciaM'] as num?)?.toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'tipo': tipo.name,
+      'lat': lat,
+      'lon': lon,
+      'orden': orden,
+      'radioInfluenciaM': radioInfluenciaM,
+    };
+  }
+
+  BusStop copyWith({
+    String? id,
+    String? name,
+    BusStopType? tipo,
+    double? lat,
+    double? lon,
+    int? orden,
+    double? radioInfluenciaM,
+  }) {
+    return BusStop(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      tipo: tipo ?? this.tipo,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      orden: orden ?? this.orden,
+      radioInfluenciaM: radioInfluenciaM ?? this.radioInfluenciaM,
+    );
+  }
+
   Map<String, dynamic> toGeoJsonFeature() {
     return {
       'type': 'Feature',
@@ -53,5 +100,5 @@ class BusStop extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, lat, lon, tipo, orden];
+  List<Object?> get props => [id, name, lat, lon, tipo, orden, radioInfluenciaM];
 }

@@ -11,6 +11,34 @@ class RouteInfo extends Equatable {
     required this.companyId,
   });
 
+  factory RouteInfo.fromJson(Map<String, dynamic> json) {
+    return RouteInfo(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      companyId: json['companyId'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'companyId': companyId,
+    };
+  }
+
+  RouteInfo copyWith({
+    String? id,
+    String? name,
+    String? companyId,
+  }) {
+    return RouteInfo(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      companyId: companyId ?? this.companyId,
+    );
+  }
+
   @override
   List<Object?> get props => [id, name, companyId];
 }

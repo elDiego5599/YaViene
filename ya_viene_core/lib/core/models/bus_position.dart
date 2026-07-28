@@ -23,11 +23,61 @@ class BusPosition extends Equatable {
     required this.isGhostBus,
   });
 
+  factory BusPosition.fromJson(Map<String, dynamic> json) {
+    return BusPosition(
+      busId: json['busId'] as String? ?? '',
+      routeId: json['routeId'] as String? ?? '',
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
+      heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
+      speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+      isGhostBus: json['isGhostBus'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'busId': busId,
+      'routeId': routeId,
+      'lat': lat,
+      'lon': lon,
+      'heading': heading,
+      'speedKmh': speedKmh,
+      'timestamp': timestamp.toIso8601String(),
+      'isGhostBus': isGhostBus,
+    };
+  }
+
+  BusPosition copyWith({
+    String? busId,
+    String? routeId,
+    double? lat,
+    double? lon,
+    double? heading,
+    double? speedKmh,
+    DateTime? timestamp,
+    bool? isGhostBus,
+  }) {
+    return BusPosition(
+      busId: busId ?? this.busId,
+      routeId: routeId ?? this.routeId,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      heading: heading ?? this.heading,
+      speedKmh: speedKmh ?? this.speedKmh,
+      timestamp: timestamp ?? this.timestamp,
+      isGhostBus: isGhostBus ?? this.isGhostBus,
+    );
+  }
+
   int get secondsSinceUpdate =>
       DateTime.now().difference(timestamp).inSeconds;
 
   bool get shouldShowAsGhost => secondsSinceUpdate > 90;
 
   @override
-  List<Object?> get props => [busId, routeId, lat, lon, heading, timestamp];
+  List<Object?> get props => [
+    busId, routeId, lat, lon, heading, speedKmh, timestamp, isGhostBus,
+  ];
 }
