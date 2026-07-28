@@ -9,7 +9,6 @@ class RealtimeService implements RealtimeRepository {
   final _connectionStateController = StreamController<ConnectionStatus>.broadcast();
   final _busPositionController = StreamController<Map<String, dynamic>>.broadcast();
   final _batchPositionController = StreamController<List<Map<String, dynamic>>>.broadcast();
-  Timer? _mockTimer;
 
   @override
   Stream<ConnectionStatus> get connectionStateStream => _connectionStateController.stream;
@@ -58,32 +57,7 @@ class RealtimeService implements RealtimeRepository {
   }
 
   @override
-  void startMockStream() {
-    _mockTimer?.cancel();
-    _connectionStateController.add(ConnectionStatus.connected);
-    _mockTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (timer.tick % 10 == 0) {
-        _connectionStateController.add(ConnectionStatus.reconnecting);
-        Future.delayed(const Duration(seconds: 2), () {
-          _connectionStateController.add(ConnectionStatus.connected);
-        });
-        return;
-      }
-      _busPositionController.add({
-        'busId': 'B-001',
-        'routeId': '101',
-        'lat': 10.9650 + (timer.tick % 10) * 0.0005,
-        'lon': -74.8010 + (timer.tick % 10) * 0.0003,
-        'heading': 45.0 + (timer.tick * 5 % 360),
-        'speedKmh': 35.0,
-        'timestamp': DateTime.now().toIso8601String(),
-      });
-    });
-  }
-
-  @override
   void dispose() {
-    _mockTimer?.cancel();
     _socket?.disconnect();
     _socket?.dispose();
     _connectionStateController.close();

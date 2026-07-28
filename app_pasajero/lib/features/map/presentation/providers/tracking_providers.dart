@@ -2,19 +2,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'realtime_providers.dart';
-import '../../../../config.dart';
 
 final busPositionsSourceProvider = StreamProvider.autoDispose
     .family<List<BusPosition>, String>((ref, routeId) {
-      if (AppConfig.useMockData) {
-        final controller = StreamController<List<BusPosition>>();
-        ref.listen(busPositionsProvider(routeId), (_, next) {
-          next.whenData((data) => controller.add(data));
-        }, fireImmediately: true);
-        ref.onDispose(() => controller.close());
-        return controller.stream;
-      }
-
       final service = ref.watch(realtimeServiceProvider);
       final controller = StreamController<List<BusPosition>>();
 

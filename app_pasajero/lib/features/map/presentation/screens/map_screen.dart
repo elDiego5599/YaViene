@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/realtime_providers.dart';
-import '../../../../config.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
 import '../widgets/map_widget.dart';
@@ -20,12 +19,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final service = ref.read(realtimeServiceProvider);
-      if (AppConfig.useMockData) {
-        service.startMockStream();
-      } else {
-        service.connect();
-      }
+      ref.read(realtimeServiceProvider).connect();
     });
   }
 

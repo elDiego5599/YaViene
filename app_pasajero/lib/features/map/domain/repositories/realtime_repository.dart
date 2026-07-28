@@ -9,7 +9,6 @@ abstract class RealtimeRepository {
   void connect();
   void subscribeToRoute(String routeId);
   void unsubscribeFromRoute(String routeId);
-  void startMockStream();
   void dispose();
   bool get isConnected;
 }
