@@ -27,7 +27,7 @@ class ActiveTurnDashboard extends ConsumerStatefulWidget {
 }
 
 class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
-  DateTime _startTime = DateTime.now();
+  final DateTime _startTime = DateTime.now();
   Timer? _timer;
 
   @override
@@ -202,7 +202,7 @@ class _StatusCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: isActive ? Colors.white.withOpacity(0.5) : AppColors.background,
+              color: isActive ? Colors.white.withValues(alpha: 0.5) : AppColors.background,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(icon, color: iconColor, size: 28),
