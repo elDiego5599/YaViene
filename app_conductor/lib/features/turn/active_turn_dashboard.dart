@@ -10,12 +10,16 @@ class ActiveTurnDashboard extends ConsumerStatefulWidget {
   final String empresaId;
   final String busId;
   final String routeId;
+  final String phoneNumber;
+  final String jwtToken;
 
   const ActiveTurnDashboard({
     super.key,
     required this.empresaId,
     required this.busId,
     required this.routeId,
+    required this.phoneNumber,
+    required this.jwtToken,
   });
 
   @override
@@ -33,6 +37,8 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
       empresaId: widget.empresaId,
       busId: widget.busId,
       routeId: widget.routeId,
+      phoneNumber: widget.phoneNumber,
+      jwtToken: widget.jwtToken,
     ));
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {

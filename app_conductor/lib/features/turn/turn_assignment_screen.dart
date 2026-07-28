@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../config.dart';
 import 'active_turn_dashboard.dart';
 
 class TurnAssignmentScreen extends StatefulWidget {
-  const TurnAssignmentScreen({super.key});
+  final String phoneNumber;
+  const TurnAssignmentScreen({super.key, required this.phoneNumber});
 
   @override
   State<TurnAssignmentScreen> createState() => _TurnAssignmentScreenState();
@@ -12,20 +16,51 @@ class TurnAssignmentScreen extends StatefulWidget {
 class _TurnAssignmentScreenState extends State<TurnAssignmentScreen> {
   String? _selectedBus;
   String? _selectedRoute;
+  bool _loading = false;
 
-  void _startTurn() {
+  Future<void> _startTurn() async {
     if (_selectedBus == null || _selectedRoute == null) return;
-    
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ActiveTurnDashboard(
-          empresaId: 'EMP-01',
-          busId: _selectedBus!,
-          routeId: _selectedRoute!,
+
+    setState(() => _loading = true);
+
+    try {
+      final uri = Uri.parse('${AppConfig.backendUrl}/api/drivers/register');
+      final client = HttpClient();
+      final request = await client.postUrl(uri);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({
+        'phoneNumber': widget.phoneNumber,
+        'busId': _selectedBus,
+        'routeId': _selectedRoute,
+        'empresaId': 'EMP-01',
+      }));
+
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      final token = data['token'] as String;
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ActiveTurnDashboard(
+            empresaId: 'EMP-01',
+            busId: _selectedBus!,
+            routeId: _selectedRoute!,
+            phoneNumber: widget.phoneNumber,
+            jwtToken: token,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error de conexión: $e')),
+      );
+      setState(() => _loading = false);
+    }
   }
 
   @override
@@ -69,9 +104,9 @@ class _TurnAssignmentScreenState extends State<TurnAssignmentScreen> {
             const Spacer(),
             
             PrimaryButton(
-              label: 'INICIAR TRANSMISIÓN',
-              icon: Icons.cell_tower_rounded,
-              onPressed: _selectedBus != null && _selectedRoute != null
+              label: _loading ? 'CONECTANDO...' : 'INICIAR TRANSMISIÓN',
+              icon: _loading ? Icons.hourglass_top_rounded : Icons.cell_tower_rounded,
+              onPressed: _selectedBus != null && _selectedRoute != null && !_loading
                   ? _startTurn
                   : null,
             ),

@@ -23,7 +23,11 @@ class _LoginScreenState extends State<LoginScreen> {
     
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const TurnAssignmentScreen()),
+      MaterialPageRoute(
+        builder: (_) => TurnAssignmentScreen(
+          phoneNumber: _cedulaController.text,
+        ),
+      ),
     );
   }
 

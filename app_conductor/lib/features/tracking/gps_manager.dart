@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../core/offline/offline_buffer_repository.dart';
+import 'mqtt_service.dart';
 
 enum TrackingState {
   stopped,
@@ -26,6 +27,7 @@ class GpsManager {
   final Ref _ref;
   final Logger _logger = Logger();
   final OfflineBufferRepository _offlineBuffer = OfflineBufferRepository();
+  final MqttService _mqttService = MqttService();
   
   StreamSubscription<Position>? _positionStream;
 
@@ -35,6 +37,8 @@ class GpsManager {
     required String empresaId,
     required String busId,
     required String routeId,
+    required String phoneNumber,
+    required String jwtToken,
   }) async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -52,6 +56,13 @@ class GpsManager {
         return;
       }
     }
+
+    await _mqttService.connect(
+      empresaId: empresaId,
+      busId: busId,
+      phoneNumber: phoneNumber,
+      jwtToken: jwtToken,
+    );
 
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -83,8 +94,13 @@ class GpsManager {
       );
 
       await _offlineBuffer.savePosition(busPosition);
+      _mqttService.publishPosition(
+        lat: position.latitude,
+        lon: position.longitude,
+        heading: position.heading,
+        speedKmh: position.speed * 3.6,
+      );
 
-      
       _logger.i('GPS Validado: $busId en ${position.latitude}, ${position.longitude}');
     });
   }
@@ -92,6 +108,7 @@ class GpsManager {
   void stopTracking() {
     _positionStream?.cancel();
     _positionStream = null;
+    _mqttService.disconnect();
     if (_ref.read(trackingStateProvider.notifier).state == TrackingState.tracking) {
       _ref.read(trackingStateProvider.notifier).state = TrackingState.stopped;
     }

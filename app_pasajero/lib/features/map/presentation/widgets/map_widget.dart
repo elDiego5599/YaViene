@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
-import '../providers/tracking_providers.dart';
+import '../providers/tracking_providers.dart' show busPositionsSourceProvider, selectedBusesProvider;
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -66,7 +66,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _setupBusSubscription(String routeId) {
     _movingBusSubscription?.close();
     _movingBusSubscription =
-        ref.listenManual(busPositionsProvider(routeId), (previous, next) {
+        ref.listenManual(busPositionsSourceProvider(routeId), (previous, next) {
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
       next.whenData(_updateBusSourceData);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../data/services/realtime_service.dart';
+import '../providers/realtime_providers.dart';
 
 class IdleStatusChip extends ConsumerWidget {
   const IdleStatusChip({super.key});
