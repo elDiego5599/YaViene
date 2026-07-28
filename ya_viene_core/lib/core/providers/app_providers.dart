@@ -93,12 +93,12 @@ final companiesProvider = FutureProvider.autoDispose<List<Company>>((ref) async 
 });
 
 final selectedCompanyProvider =
-    StateNotifierProvider.autoDispose<SelectedCompanyNotifier, Company?>(
-      (ref) => SelectedCompanyNotifier(),
+    StateNotifierProvider.autoDispose<_SelectedCompanyNotifier, Company?>(
+      (ref) => _SelectedCompanyNotifier(),
     );
 
-class SelectedCompanyNotifier extends StateNotifier<Company?> {
-  SelectedCompanyNotifier() : super(null);
+class _SelectedCompanyNotifier extends StateNotifier<Company?> {
+  _SelectedCompanyNotifier() : super(null);
 
   void select(Company company) => state = company;
   void clear() => state = null;
@@ -140,12 +140,12 @@ final routesByCompanyProvider = FutureProvider.autoDispose
     });
 
 final selectedRouteProvider =
-    StateNotifierProvider.autoDispose<SelectedRouteNotifier, RouteInfo?>(
-      (ref) => SelectedRouteNotifier(),
+    StateNotifierProvider.autoDispose<_SelectedRouteNotifier, RouteInfo?>(
+      (ref) => _SelectedRouteNotifier(),
     );
 
-class SelectedRouteNotifier extends StateNotifier<RouteInfo?> {
-  SelectedRouteNotifier() : super(null);
+class _SelectedRouteNotifier extends StateNotifier<RouteInfo?> {
+  _SelectedRouteNotifier() : super(null);
 
   void select(RouteInfo route) => state = route;
   void clear() => state = null;
