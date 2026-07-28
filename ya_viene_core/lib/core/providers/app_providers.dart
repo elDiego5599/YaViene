@@ -32,14 +32,12 @@ final busPositionsProvider = StreamProvider.autoDispose
           timer?.cancel();
           timer = null;
         }
-      });
+      }, fireImmediately: true);
 
       ref.onDispose(() {
         timer?.cancel();
         controller.close();
       });
-
-      timer = Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
 
       return controller.stream;
     });
