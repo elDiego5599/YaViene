@@ -36,8 +36,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedDirection = ref.watch(selectedSentidoProvider);
     final selectedBuses = ref.watch(selectedBusesProvider);
+
+    if (selectedRoute == null) {
+      _publishMapInset(0);
+      return const SizedBox.shrink();
+    }
 
     _publishMapInset();
 
@@ -118,7 +124,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               ),
               SizedBox(height: 4),
               Text(
-                "Selecciona hasta 2 buses para seguir su ETA",
+                "Selecciona hasta 2 buses para ver su tiempo de llegada",
                 style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
               ),
             ],
