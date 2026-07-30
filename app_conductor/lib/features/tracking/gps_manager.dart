@@ -113,8 +113,8 @@ class GpsManager {
     });
 
     _healthTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (_positionCount == 0) {
-        _logger.w('HEALTH: Sin posiciones en los últimos 15s — reconectando MQTT');
+      if (!_mqttService.isConnected || _positionCount == 0) {
+        _logger.w('HEALTH: MQTT caído o sin posiciones en 15s — reconectando');
         _initiateReconnect(
           empresaId: empresaId,
           busId: busId,
