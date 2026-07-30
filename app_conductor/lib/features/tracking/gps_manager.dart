@@ -158,6 +158,7 @@ class GpsManager {
     required String phoneNumber,
     required String jwtToken,
   }) async {
+    if (_mqttService.isConnected) return;
     _logger.i('Intentando reconexión MQTT...');
     await _mqttService.connect(
       empresaId: empresaId,

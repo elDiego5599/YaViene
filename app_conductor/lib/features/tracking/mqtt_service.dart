@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -52,8 +51,7 @@ class MqttService {
     _client!.onDisconnected = () {
       if (_connected) {
         _connected = false;
-        _logger.w('MQTT desconectado — intentando reconexión en 3s');
-        Future.delayed(const Duration(seconds: 3), _tryReconnect);
+        _logger.w('MQTT desconectado');
       }
     };
 
@@ -64,17 +62,6 @@ class MqttService {
       _logger.e('Error conectando MQTT: $e');
       _connected = false;
       return false;
-    }
-  }
-
-  Future<void> _tryReconnect() async {
-    if (_connected || _client == null || _host == null) return;
-    _logger.i('MQTT reconectando...');
-    try {
-      await _client!.connect();
-    } catch (e) {
-      _logger.w('MQTT reconexión falló: $e — reintentando en 5s');
-      Future.delayed(const Duration(seconds: 5), _tryReconnect);
     }
   }
 
