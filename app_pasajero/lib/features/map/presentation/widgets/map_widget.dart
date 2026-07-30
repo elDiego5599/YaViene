@@ -38,6 +38,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kBusIconId = 'bus-icon-active';
   static const _kBusGhostIconId = 'bus-icon-ghost';
 
+  static final LatLngBounds _colombiaBounds = LatLngBounds(
+    southwest: const LatLng(-4.227, -79.023),
+    northeast: const LatLng(12.556, -66.869),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -412,6 +417,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       scrollGesturesEnabled: true,
       tiltGesturesEnabled: false,
       zoomGesturesEnabled: true,
+      minMaxZoomPreference: const MinMaxZoomPreference(5.0, 18.5),
+      cameraTargetBounds: CameraTargetBounds(_colombiaBounds),
     );
   }
 }
