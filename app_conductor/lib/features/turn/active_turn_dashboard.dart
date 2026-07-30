@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../tracking/gps_manager.dart';
+import '../../config.dart';
 import 'fraud_blocker_screen.dart';
 import 'login_screen.dart';
 
@@ -53,8 +56,18 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
     super.dispose();
   }
 
-  void _closeTurn() {
+  Future<void> _closeTurn() async {
+    try {
+      final client = HttpClient();
+      final uri = Uri.parse('${AppConfig.backendUrl}/api/buses/${widget.busId}/offline');
+      final request = await client.postUrl(uri);
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({}));
+      await request.close();
+    } catch (_) {}
+
     ref.read(gpsManagerProvider).stopTracking();
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
