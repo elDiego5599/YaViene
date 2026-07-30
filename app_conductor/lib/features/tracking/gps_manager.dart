@@ -33,6 +33,7 @@ class GpsManager {
   Timer? _healthTimer;
   Timer? _syncTimer;
   int _positionCount = 0;
+  bool _isSyncing = false;
 
   GpsManager(this._ref);
 
@@ -127,20 +128,26 @@ class GpsManager {
     });
 
     _syncTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
-      if (!_mqttService.isConnected) return;
-      await _offlineBuffer.syncPendingPositions(
-        (batch) async {
-          for (final pos in batch) {
-            _mqttService.publishPosition(
-              lat: pos.lat,
-              lon: pos.lon,
-              heading: pos.heading,
-              speedKmh: pos.speedKmh,
-            );
-          }
-          return true;
-        },
-      );
+      if (_isSyncing || !_mqttService.isConnected) return;
+
+      _isSyncing = true;
+      try {
+        await _offlineBuffer.syncPendingPositions(
+          (batch) async {
+            for (final pos in batch) {
+              _mqttService.publishPosition(
+                lat: pos.lat,
+                lon: pos.lon,
+                heading: pos.heading,
+                speedKmh: pos.speedKmh,
+              );
+            }
+            return true;
+          },
+        );
+      } catch (_) {} finally {
+        _isSyncing = false;
+      }
     });
   }
 
