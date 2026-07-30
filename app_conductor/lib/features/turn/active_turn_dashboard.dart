@@ -5,6 +5,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../tracking/gps_manager.dart';
 import 'fraud_blocker_screen.dart';
+import 'login_screen.dart';
 
 class ActiveTurnDashboard extends ConsumerStatefulWidget {
   final String empresaId;
@@ -54,7 +55,10 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
 
   void _closeTurn() {
     ref.read(gpsManagerProvider).stopTracking();
-    Navigator.of(context).pop();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   String _formatDuration(Duration duration) {

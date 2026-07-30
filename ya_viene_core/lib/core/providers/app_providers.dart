@@ -111,26 +111,26 @@ final routesByCompanyProvider = FutureProvider.autoDispose
       final allRoutes = {
         '1': [
           const RouteInfo(
-            id: '101',
+            id: 'R-101',
             name: 'Ruta 1 - Centro/Soledad',
             companyId: '1',
           ),
           const RouteInfo(
-            id: '102',
+            id: 'R-102',
             name: 'Ruta 2 - Murillo/Terminal',
             companyId: '1',
           ),
         ],
         '2': [
           const RouteInfo(
-            id: '201',
+            id: 'R-201',
             name: 'Ruta 5 - Riomar/Abello',
             companyId: '2',
           ),
         ],
         '3': [
           const RouteInfo(
-            id: '301',
+            id: 'R-301',
             name: 'Troncal - Portal/Caribe',
             companyId: '3',
           ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -14,25 +15,29 @@ class MqttService {
   String? _busId;
   String? _phoneNumber;
 
+  String? _host;
+
   Future<bool> connect({
     required String empresaId,
     required String busId,
     required String phoneNumber,
     required String jwtToken,
   }) async {
+    disconnect();
+
     _empresaId = empresaId;
     _busId = busId;
     _phoneNumber = phoneNumber;
 
     final uri = Uri.parse(AppConfig.backendUrl);
-    final host = uri.host;
+    _host = uri.host;
 
-    _client = MqttServerClient(host, 'conductor_${busId}_${Random().nextInt(9999)}');
+    _client = MqttServerClient(_host!, 'conductor_${busId}_${Random().nextInt(9999)}');
     _client!.port = AppConfig.mqttPort;
     _client!.keepAlivePeriod = 10;
     _client!.connectTimeoutPeriod = 5000;
     _client!.logging(on: false);
-    _client!.autoReconnect = true;
+    _client!.autoReconnect = false;
 
     final connMsg = MqttConnectMessage()
         .withClientIdentifier('conductor_${busId}_${Random().nextInt(9999)}')
@@ -42,11 +47,14 @@ class MqttService {
 
     _client!.onConnected = () {
       _connected = true;
-      _logger.i('MQTT conectado a $host:${AppConfig.mqttPort}');
+      _logger.i('MQTT conectado a $_host:${AppConfig.mqttPort}');
     };
     _client!.onDisconnected = () {
-      _connected = false;
-      _logger.w('MQTT desconectado');
+      if (_connected) {
+        _connected = false;
+        _logger.w('MQTT desconectado — intentando reconexión en 3s');
+        Future.delayed(const Duration(seconds: 3), _tryReconnect);
+      }
     };
 
     try {
@@ -56,6 +64,17 @@ class MqttService {
       _logger.e('Error conectando MQTT: $e');
       _connected = false;
       return false;
+    }
+  }
+
+  Future<void> _tryReconnect() async {
+    if (_connected || _client == null || _host == null) return;
+    _logger.i('MQTT reconectando...');
+    try {
+      await _client!.connect();
+    } catch (e) {
+      _logger.w('MQTT reconexión falló: $e — reintentando en 5s');
+      Future.delayed(const Duration(seconds: 5), _tryReconnect);
     }
   }
 
@@ -77,14 +96,23 @@ class MqttService {
       'timestamp': DateTime.now().toIso8601String(),
     });
 
-    final builder = MqttClientPayloadBuilder()..addString(payload);
-    _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
-    return true;
+    try {
+      final builder = MqttClientPayloadBuilder()..addString(payload);
+      final bytes = builder.payload;
+      if (bytes == null) return false;
+      _client!.publishMessage(topic, MqttQos.atLeastOnce, bytes);
+      return true;
+    } catch (e) {
+      _logger.e('Error publicando posición: $e');
+      return false;
+    }
   }
 
   void disconnect() {
-    _client?.disconnect();
-    _client = null;
+    if (_client != null) {
+      try { _client!.disconnect(); } catch (_) {}
+      _client = null;
+    }
     _connected = false;
   }
 

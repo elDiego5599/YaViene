@@ -28,8 +28,11 @@ class GpsManager {
   final Logger _logger = Logger();
   final OfflineBufferRepository _offlineBuffer = OfflineBufferRepository();
   final MqttService _mqttService = MqttService();
-  
+
   StreamSubscription<Position>? _positionStream;
+  Timer? _healthTimer;
+  Timer? _syncTimer;
+  int _positionCount = 0;
 
   GpsManager(this._ref);
 
@@ -50,7 +53,7 @@ class GpsManager {
     if (!status.isGranted) {
       await Permission.locationWhenInUse.request();
       status = await Permission.locationAlways.request();
-      
+
       if (!status.isGranted) {
         _ref.read(trackingStateProvider.notifier).state = TrackingState.error;
         return;
@@ -74,7 +77,7 @@ class GpsManager {
 
     _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) async {
-      
+
       if (position.isMocked) {
         _logger.w('FRAUDE DETECTADO: El conductor $busId está usando Fake GPS.');
         stopTracking();
@@ -94,18 +97,72 @@ class GpsManager {
       );
 
       await _offlineBuffer.savePosition(busPosition);
-      _mqttService.publishPosition(
-        lat: position.latitude,
-        lon: position.longitude,
-        heading: position.heading,
-        speedKmh: position.speed * 3.6,
-      );
 
-      _logger.i('GPS Validado: $busId en ${position.latitude}, ${position.longitude}');
+      try {
+        _mqttService.publishPosition(
+          lat: position.latitude,
+          lon: position.longitude,
+          heading: position.heading,
+          speedKmh: position.speed * 3.6,
+        );
+      } catch (_) {}
+
+      _positionCount++;
+    });
+
+    _healthTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (_positionCount == 0) {
+        _logger.w('HEALTH: Sin posiciones en los últimos 15s — reconectando MQTT');
+        _initiateReconnect(
+          empresaId: empresaId,
+          busId: busId,
+          routeId: routeId,
+          phoneNumber: phoneNumber,
+          jwtToken: jwtToken,
+        );
+      }
+      _positionCount = 0;
+    });
+
+    _syncTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      if (!_mqttService.isConnected) return;
+      await _offlineBuffer.syncPendingPositions(
+        (batch) async {
+          for (final pos in batch) {
+            _mqttService.publishPosition(
+              lat: pos.lat,
+              lon: pos.lon,
+              heading: pos.heading,
+              speedKmh: pos.speedKmh,
+            );
+          }
+          return true;
+        },
+      );
     });
   }
 
+  Future<void> _initiateReconnect({
+    required String empresaId,
+    required String busId,
+    required String routeId,
+    required String phoneNumber,
+    required String jwtToken,
+  }) async {
+    _logger.i('Intentando reconexión MQTT...');
+    await _mqttService.connect(
+      empresaId: empresaId,
+      busId: busId,
+      phoneNumber: phoneNumber,
+      jwtToken: jwtToken,
+    );
+  }
+
   void stopTracking() {
+    _healthTimer?.cancel();
+    _healthTimer = null;
+    _syncTimer?.cancel();
+    _syncTimer = null;
     _positionStream?.cancel();
     _positionStream = null;
     _mqttService.disconnect();
