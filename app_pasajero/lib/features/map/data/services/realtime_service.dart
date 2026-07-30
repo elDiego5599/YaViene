@@ -9,6 +9,7 @@ class RealtimeService implements RealtimeRepository {
   final _connectionStateController = StreamController<ConnectionStatus>.broadcast();
   final _busPositionController = StreamController<Map<String, dynamic>>.broadcast();
   final _batchPositionController = StreamController<List<Map<String, dynamic>>>.broadcast();
+  final _busLeftController = StreamController<String>.broadcast();
 
   @override
   Stream<ConnectionStatus> get connectionStateStream => _connectionStateController.stream;
@@ -16,6 +17,8 @@ class RealtimeService implements RealtimeRepository {
   Stream<Map<String, dynamic>> get busPositionStream => _busPositionController.stream;
   @override
   Stream<List<Map<String, dynamic>>> get batchPositionStream => _batchPositionController.stream;
+  @override
+  Stream<String> get busLeftStream => _busLeftController.stream;
 
   @override
   void connect() {
@@ -44,6 +47,10 @@ class RealtimeService implements RealtimeRepository {
       final buses = batch['buses'] as List<dynamic>;
       _batchPositionController.add(buses.cast<Map<String, dynamic>>());
     });
+    _socket!.on('bus:left', (data) {
+      final busId = (data as Map<String, dynamic>)['busId'] as String?;
+      if (busId != null) _busLeftController.add(busId);
+    });
   }
 
   @override
@@ -63,6 +70,7 @@ class RealtimeService implements RealtimeRepository {
     _connectionStateController.close();
     _busPositionController.close();
     _batchPositionController.close();
+    _busLeftController.close();
   }
 
   @override

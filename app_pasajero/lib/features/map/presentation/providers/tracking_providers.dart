@@ -7,23 +7,36 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
     .family<List<BusPosition>, String>((ref, routeId) {
       final service = ref.watch(realtimeServiceProvider);
       final controller = StreamController<List<BusPosition>>();
+      final positions = <String, BusPosition>{};
 
       service.subscribeToRoute(routeId);
 
       final batchSub = service.batchPositionStream.listen((batch) {
-        final positions = batch.map((json) => _jsonToBusPosition(json)).toList();
-        if (positions.isNotEmpty) controller.add(positions);
+        positions.clear();
+        for (final json in batch) {
+          final pos = _jsonToBusPosition(json);
+          positions[pos.busId] = pos;
+        }
+        if (positions.isNotEmpty) controller.add(positions.values.toList());
       });
 
       final liveSub = service.busPositionStream.listen((json) {
         final pos = _jsonToBusPosition(json);
-        controller.add([pos]);
+        positions[pos.busId] = pos;
+        controller.add(positions.values.toList());
+      });
+
+      final leftSub = service.busLeftStream.listen((busId) {
+        if (positions.remove(busId) != null) {
+          controller.add(positions.values.toList());
+        }
       });
 
       ref.onDispose(() {
         service.unsubscribeFromRoute(routeId);
         batchSub.cancel();
         liveSub.cancel();
+        leftSub.cancel();
         controller.close();
       });
 
