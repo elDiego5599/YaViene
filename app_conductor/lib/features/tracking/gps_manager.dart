@@ -77,6 +77,7 @@ class GpsManager {
 
     _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen((Position position) async {
+      _positionCount++;
 
       if (position.isMocked) {
         _logger.w('FRAUDE DETECTADO: El conductor $busId está usando Fake GPS.');
@@ -107,7 +108,8 @@ class GpsManager {
         );
       } catch (_) {}
 
-      _positionCount++;
+    }, onError: (error) {
+      _logger.w('Error en stream GPS: $error');
     });
 
     _healthTimer = Timer.periodic(const Duration(seconds: 15), (_) {
