@@ -389,7 +389,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           'busId': pos.busId,
           'heading': pos.heading,
           'speedKmh': pos.speedKmh,
-          'isGhost': pos.shouldShowAsGhost,
+           'isGhost': pos.isGhostBus || pos.shouldShowAsGhost,
           'isSelected': selectedBuses.contains(pos.busId),
         },
       }).toList(),

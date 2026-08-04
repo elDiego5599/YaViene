@@ -6,22 +6,25 @@ import '../../../../config.dart';
 
 class RealtimeService implements RealtimeRepository {
   io.Socket? _socket;
+  final _subscriptions = <String>{};
   final _connectionStateController = StreamController<ConnectionStatus>.broadcast();
   final _busPositionController = StreamController<Map<String, dynamic>>.broadcast();
-  final _batchPositionController = StreamController<List<Map<String, dynamic>>>.broadcast();
-  final _busLeftController = StreamController<String>.broadcast();
+  final _batchPositionController = StreamController<Map<String, dynamic>>.broadcast();
+  final _busLeftController = StreamController<Map<String, dynamic>>.broadcast();
 
   @override
   Stream<ConnectionStatus> get connectionStateStream => _connectionStateController.stream;
   @override
   Stream<Map<String, dynamic>> get busPositionStream => _busPositionController.stream;
   @override
-  Stream<List<Map<String, dynamic>>> get batchPositionStream => _batchPositionController.stream;
+  Stream<Map<String, dynamic>> get batchPositionStream => _batchPositionController.stream;
   @override
-  Stream<String> get busLeftStream => _busLeftController.stream;
+  Stream<Map<String, dynamic>> get busLeftStream => _busLeftController.stream;
 
   @override
   void connect() {
+    if (_socket?.connected == true) return;
+    _socket?.dispose();
     const url = AppConfig.backendUrl;
     _connectionStateController.add(ConnectionStatus.reconnecting);
     _socket = io.io(url, <String, dynamic>{
@@ -35,7 +38,12 @@ class RealtimeService implements RealtimeRepository {
       'randomizationFactor': 0.3,
     });
 
-    _socket!.onConnect((_) => _connectionStateController.add(ConnectionStatus.connected));
+    _socket!.onConnect((_) {
+      _connectionStateController.add(ConnectionStatus.connected);
+      for (final routeId in _subscriptions) {
+        _socket!.emit('subscribe:route', routeId);
+      }
+    });
     _socket!.onDisconnect((_) => _connectionStateController.add(ConnectionStatus.disconnected));
     _socket!.onReconnectAttempt((_) => _connectionStateController.add(ConnectionStatus.reconnecting));
 
@@ -43,28 +51,29 @@ class RealtimeService implements RealtimeRepository {
       _busPositionController.add(data as Map<String, dynamic>);
     });
     _socket!.on('positions:batch', (data) {
-      final batch = data as Map<String, dynamic>;
-      final buses = batch['buses'] as List<dynamic>;
-      _batchPositionController.add(buses.cast<Map<String, dynamic>>());
+      final batch = Map<String, dynamic>.from(data as Map);
+      _batchPositionController.add(batch);
     });
     _socket!.on('bus:left', (data) {
-      final busId = (data as Map<String, dynamic>)['busId'] as String?;
-      if (busId != null) _busLeftController.add(busId);
+      _busLeftController.add(Map<String, dynamic>.from(data as Map));
     });
   }
 
   @override
   void subscribeToRoute(String routeId) {
+    _subscriptions.add(routeId);
     _socket?.emit('subscribe:route', routeId);
   }
 
   @override
   void unsubscribeFromRoute(String routeId) {
+    _subscriptions.remove(routeId);
     _socket?.emit('unsubscribe:route', routeId);
   }
 
   @override
   void dispose() {
+    _subscriptions.clear();
     _socket?.disconnect();
     _socket?.dispose();
     _connectionStateController.close();

@@ -11,23 +11,30 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
 
       service.subscribeToRoute(routeId);
 
-      final batchSub = service.batchPositionStream.listen((batch) {
-        positions.clear();
-        for (final json in batch) {
-          final pos = _jsonToBusPosition(json);
-          positions[pos.busId] = pos;
+       final batchSub = service.batchPositionStream.listen((batch) {
+         if (batch['routeId'] != routeId) return;
+         final buses = (batch['buses'] as List<dynamic>? ?? const [])
+             .map((item) => Map<String, dynamic>.from(item as Map))
+             .toList();
+         positions.clear();
+         for (final json in buses) {
+           final pos = _jsonToBusPosition(json);
+           positions[pos.busId] = pos;
         }
         if (positions.isNotEmpty) controller.add(positions.values.toList());
       });
 
-      final liveSub = service.busPositionStream.listen((json) {
-        final pos = _jsonToBusPosition(json);
-        positions[pos.busId] = pos;
+       final liveSub = service.busPositionStream.listen((json) {
+         final pos = _jsonToBusPosition(json);
+         if (pos.routeId != routeId) return;
+         positions[pos.busId] = pos;
         controller.add(positions.values.toList());
       });
 
-      final leftSub = service.busLeftStream.listen((busId) {
-        if (positions.remove(busId) != null) {
+       final leftSub = service.busLeftStream.listen((event) {
+         if (event['routeId'] != null && event['routeId'] != routeId) return;
+         final busId = event['busId'] as String?;
+         if (busId != null && positions.remove(busId) != null) {
           controller.add(positions.values.toList());
         }
       });

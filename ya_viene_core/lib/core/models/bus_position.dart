@@ -24,6 +24,11 @@ class BusPosition extends Equatable {
   });
 
   factory BusPosition.fromJson(Map<String, dynamic> json) {
+    final rawTimestamp = json['timestamp'];
+    final parsedTimestamp = rawTimestamp is num
+        ? DateTime.fromMillisecondsSinceEpoch(rawTimestamp.toInt())
+        : DateTime.tryParse(rawTimestamp as String? ?? '') ?? DateTime.now();
+
     return BusPosition(
       busId: json['busId'] as String? ?? '',
       routeId: json['routeId'] as String? ?? '',
@@ -31,9 +36,9 @@ class BusPosition extends Equatable {
       lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
       heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
       speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
-      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
-          DateTime.now(),
-      isGhostBus: json['isGhostBus'] as bool? ?? false,
+      timestamp: parsedTimestamp,
+      isGhostBus:
+          (json['isGhostBus'] as bool?) ?? (json['isGhost'] as bool?) ?? false,
       sequence: (json['sequence'] as num?)?.toInt(),
     );
   }
@@ -47,7 +52,7 @@ class BusPosition extends Equatable {
       'heading': heading,
       'speedKmh': speedKmh,
       'timestamp': timestamp.toIso8601String(),
-      'isGhostBus': isGhostBus,
+      'isGhost': isGhostBus,
       'sequence': sequence,
     };
   }

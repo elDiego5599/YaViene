@@ -4,8 +4,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 abstract class RealtimeRepository {
   Stream<ConnectionStatus> get connectionStateStream;
   Stream<Map<String, dynamic>> get busPositionStream;
-  Stream<List<Map<String, dynamic>>> get batchPositionStream;
-  Stream<String> get busLeftStream;
+  Stream<Map<String, dynamic>> get batchPositionStream;
+  Stream<Map<String, dynamic>> get busLeftStream;
 
   void connect();
   void subscribeToRoute(String routeId);
