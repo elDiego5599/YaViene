@@ -12,23 +12,32 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _cedulaController = TextEditingController();
   final _pinController = TextEditingController();
-  bool _isLoading = false;
+  void _login() {
+    final phoneNumber = _cedulaController.text.trim();
+    final pin = _pinController.text.trim();
+    if (phoneNumber.isEmpty || !RegExp(r'^\d{4,8}$').hasMatch(pin)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa una cédula y un PIN válido.')),
+      );
+      return;
+    }
 
-  void _login() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isLoading = false);
-
-    if (!mounted) return;
-    
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => TurnAssignmentScreen(
-          phoneNumber: _cedulaController.text,
+          phoneNumber: phoneNumber,
+          pin: pin,
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _cedulaController.dispose();
+    _pinController.dispose();
+    super.dispose();
   }
 
   @override
@@ -42,7 +51,8 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.directions_bus_rounded, size: 64, color: AppColors.primary),
+              const Icon(Icons.directions_bus_rounded,
+                  size: 64, color: AppColors.primary),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Acceso Conductores',
@@ -50,7 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
-              
               TextField(
                 controller: _cedulaController,
                 keyboardType: TextInputType.number,
@@ -60,7 +69,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              
               TextField(
                 controller: _pinController,
                 keyboardType: TextInputType.number,
@@ -71,10 +79,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              
               PrimaryButton(
                 label: 'INICIAR SESIÓN',
-                isLoading: _isLoading,
+                isLoading: false,
                 onPressed: _login,
               ),
             ],

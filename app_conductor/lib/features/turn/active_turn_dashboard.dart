@@ -27,7 +27,8 @@ class ActiveTurnDashboard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ActiveTurnDashboard> createState() => _ActiveTurnDashboardState();
+  ConsumerState<ActiveTurnDashboard> createState() =>
+      _ActiveTurnDashboardState();
 }
 
 class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
@@ -38,12 +39,12 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(gpsManagerProvider).startTracking(
-      empresaId: widget.empresaId,
-      busId: widget.busId,
-      routeId: widget.routeId,
-      phoneNumber: widget.phoneNumber,
-      jwtToken: widget.jwtToken,
-    ));
+          empresaId: widget.empresaId,
+          busId: widget.busId,
+          routeId: widget.routeId,
+          phoneNumber: widget.phoneNumber,
+          jwtToken: widget.jwtToken,
+        ));
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
@@ -57,14 +58,21 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
   }
 
   Future<void> _closeTurn() async {
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
     try {
-      final client = HttpClient();
-      final uri = Uri.parse('${AppConfig.backendUrl}/api/buses/${widget.busId}/offline');
+      final uri = Uri.parse(
+          '${AppConfig.backendUrl}/api/buses/${widget.busId}/offline');
       final request = await client.postUrl(uri);
       request.headers.contentType = ContentType.json;
+      request.headers
+          .set(HttpHeaders.authorizationHeader, 'Bearer ${widget.jwtToken}');
       request.write(jsonEncode({}));
-      await request.close();
-    } catch (_) {}
+      final response = await request.close();
+      await response.drain<void>();
+    } catch (_) {
+    } finally {
+      client.close(force: true);
+    }
 
     ref.read(gpsManagerProvider).stopTracking();
     if (!mounted) return;
@@ -106,7 +114,8 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
+                padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.card),
@@ -114,21 +123,25 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
                 ),
                 child: Column(
                   children: [
-                    Text('Tiempo Transcurrido', style: AppTextStyles.labelLarge),
+                    Text('Tiempo Transcurrido',
+                        style: AppTextStyles.labelLarge),
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       _formatDuration(duration),
-                      style: AppTextStyles.etaNumber.copyWith(color: AppColors.textPrimary),
+                      style: AppTextStyles.etaNumber
+                          .copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.directions_bus_rounded, color: AppColors.textSecondary, size: 20),
+                        const Icon(Icons.directions_bus_rounded,
+                            color: AppColors.textSecondary, size: 20),
                         const SizedBox(width: AppSpacing.xs),
                         Text(widget.busId, style: AppTextStyles.bodyLarge),
                         const SizedBox(width: AppSpacing.lg),
-                        const Icon(Icons.route_rounded, color: AppColors.textSecondary, size: 20),
+                        const Icon(Icons.route_rounded,
+                            color: AppColors.textSecondary, size: 20),
                         const SizedBox(width: AppSpacing.xs),
                         Text(widget.routeId, style: AppTextStyles.bodyLarge),
                       ],
@@ -136,18 +149,16 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
                   ],
                 ),
               ),
-              
               const SizedBox(height: AppSpacing.xl),
-              
               _StatusCard(
                 title: 'Transmisión GPS',
-                subtitle: isTracking ? 'Emitiendo en alta precisión' : 'Esperando señal...',
+                subtitle: isTracking
+                    ? 'Emitiendo en alta precisión'
+                    : 'Esperando señal...',
                 icon: Icons.radar_rounded,
                 isActive: isTracking,
               ),
-              
               const SizedBox(height: AppSpacing.md),
-              
               const _StatusCard(
                 title: 'Sincronización',
                 subtitle: 'Conectado al servidor central',
@@ -155,9 +166,7 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
                 isActive: true,
                 isSecondary: true,
               ),
-
               const Spacer(),
-              
               ElevatedButton(
                 onPressed: _closeTurn,
                 style: ElevatedButton.styleFrom(
@@ -165,7 +174,8 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
                   foregroundColor: AppColors.error,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -205,7 +215,8 @@ class _StatusCard extends StatelessWidget {
         ? (isSecondary ? AppColors.surface : AppColors.successLight)
         : AppColors.surface;
     final iconColor = isActive ? AppColors.success : AppColors.textDisabled;
-    final titleColor = isActive ? AppColors.textPrimary : AppColors.textSecondary;
+    final titleColor =
+        isActive ? AppColors.textPrimary : AppColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -219,7 +230,9 @@ class _StatusCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: isActive ? Colors.white.withValues(alpha: 0.5) : AppColors.background,
+              color: isActive
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : AppColors.background,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(icon, color: iconColor, size: 28),
@@ -229,7 +242,9 @@ class _StatusCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.labelLarge.copyWith(color: titleColor)),
+                Text(title,
+                    style:
+                        AppTextStyles.labelLarge.copyWith(color: titleColor)),
                 const SizedBox(height: 2),
                 Text(subtitle, style: AppTextStyles.label),
               ],
