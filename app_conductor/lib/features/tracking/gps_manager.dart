@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,7 +16,8 @@ enum TrackingState {
   error,
 }
 
-final trackingStateProvider = StateProvider<TrackingState>((ref) => TrackingState.stopped);
+final trackingStateProvider =
+    StateProvider<TrackingState>((ref) => TrackingState.stopped);
 
 final gpsManagerProvider = Provider<GpsManager>((ref) {
   return GpsManager(ref);
@@ -34,6 +34,7 @@ class GpsManager {
   Timer? _syncTimer;
   int _positionCount = 0;
   bool _isSyncing = false;
+  int? _nextSequence;
 
   GpsManager(this._ref);
 
@@ -61,6 +62,9 @@ class GpsManager {
       }
     }
 
+    await _offlineBuffer.init();
+    _nextSequence ??= await _offlineBuffer.nextSequence();
+
     await _mqttService.connect(
       empresaId: empresaId,
       busId: busId,
@@ -74,41 +78,64 @@ class GpsManager {
     );
 
     _ref.read(trackingStateProvider.notifier).state = TrackingState.tracking;
-    await _offlineBuffer.init();
 
-    _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position position) async {
+    _positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+            (Position position) async {
       _positionCount++;
 
       if (position.isMocked) {
-        _logger.w('FRAUDE DETECTADO: El conductor $busId está usando Fake GPS.');
+        _logger
+            .w('FRAUDE DETECTADO: El conductor $busId está usando Fake GPS.');
         stopTracking();
-        _ref.read(trackingStateProvider.notifier).state = TrackingState.fraudDetected;
+        _ref.read(trackingStateProvider.notifier).state =
+            TrackingState.fraudDetected;
         return;
       }
 
+      final sequence = _nextSequence!;
+      _nextSequence = sequence + 1;
+      final capturedAt = position.timestamp.millisecondsSinceEpoch;
       final busPosition = BusPosition(
-        busId: busId,
-        routeId: routeId,
-        lat: position.latitude,
-        lon: position.longitude,
-        heading: position.heading,
-        speedKmh: position.speed * 3.6,
-        timestamp: position.timestamp,
-        isGhostBus: false,
-      );
-
-      await _offlineBuffer.savePosition(busPosition);
-
-      try {
-        _mqttService.publishPosition(
+          busId: busId,
+          routeId: routeId,
           lat: position.latitude,
           lon: position.longitude,
           heading: position.heading,
           speedKmh: position.speed * 3.6,
-        );
-      } catch (_) {}
+          timestamp: position.timestamp,
+          isGhostBus: false,
+          sequence: sequence);
 
+      int? pendingId;
+      try {
+        pendingId =
+            await _offlineBuffer.savePosition(busPosition, inFlight: true);
+        final ack = await _mqttService.publishPosition(
+          lat: position.latitude,
+          lon: position.longitude,
+          heading: position.heading,
+          speedKmh: position.speed * 3.6,
+          capturedAt: capturedAt,
+          sequence: sequence,
+        );
+        if (ack == null) {
+          await _offlineBuffer
+              .markPending([pendingId], error: 'No ACK received');
+        } else {
+          if (!ack.accepted) {
+            _logger
+                .w('Posición $sequence rechazada por backend: ${ack.reason}');
+          }
+          await _offlineBuffer.deletePositions([pendingId]);
+        }
+      } catch (error) {
+        if (pendingId != null) {
+          await _offlineBuffer
+              .markPending([pendingId], error: error.toString());
+        }
+        _logger.w('Error guardando/publicando posición $sequence: $error');
+      }
     }, onError: (error) {
       _logger.w('Error en stream GPS: $error');
     });
@@ -134,18 +161,36 @@ class GpsManager {
       try {
         await _offlineBuffer.syncPendingPositions(
           (batch) async {
-            for (final pos in batch) {
-              _mqttService.publishPosition(
+            final resolved = <int>{};
+            for (final pending in batch) {
+              final pos = pending.position;
+              final sequence = pos.sequence;
+              if (sequence == null || sequence < 1) {
+                resolved.add(pending.id);
+                continue;
+              }
+
+              final ack = await _mqttService.publishPosition(
                 lat: pos.lat,
                 lon: pos.lon,
                 heading: pos.heading,
                 speedKmh: pos.speedKmh,
+                capturedAt: pos.timestamp.millisecondsSinceEpoch,
+                sequence: sequence,
               );
+              if (ack != null) {
+                resolved.add(pending.id);
+                if (!ack.accepted) {
+                  _logger.w(
+                      'Replay $sequence rechazado por backend: ${ack.reason}');
+                }
+              }
             }
-            return true;
+            return resolved;
           },
         );
-      } catch (_) {} finally {
+      } catch (_) {
+      } finally {
         _isSyncing = false;
       }
     });
@@ -176,7 +221,8 @@ class GpsManager {
     _positionStream?.cancel();
     _positionStream = null;
     _mqttService.disconnect();
-    if (_ref.read(trackingStateProvider.notifier).state == TrackingState.tracking) {
+    if (_ref.read(trackingStateProvider.notifier).state ==
+        TrackingState.tracking) {
       _ref.read(trackingStateProvider.notifier).state = TrackingState.stopped;
     }
   }

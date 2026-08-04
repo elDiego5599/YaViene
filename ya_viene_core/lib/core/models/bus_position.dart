@@ -1,6 +1,4 @@
-
 import 'package:equatable/equatable.dart';
-
 
 class BusPosition extends Equatable {
   final String busId;
@@ -11,6 +9,7 @@ class BusPosition extends Equatable {
   final double speedKmh;
   final DateTime timestamp;
   final bool isGhostBus;
+  final int? sequence;
 
   const BusPosition({
     required this.busId,
@@ -21,6 +20,7 @@ class BusPosition extends Equatable {
     required this.speedKmh,
     required this.timestamp,
     required this.isGhostBus,
+    this.sequence,
   });
 
   factory BusPosition.fromJson(Map<String, dynamic> json) {
@@ -31,8 +31,10 @@ class BusPosition extends Equatable {
       lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
       heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
       speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
-      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
       isGhostBus: json['isGhostBus'] as bool? ?? false,
+      sequence: (json['sequence'] as num?)?.toInt(),
     );
   }
 
@@ -46,6 +48,7 @@ class BusPosition extends Equatable {
       'speedKmh': speedKmh,
       'timestamp': timestamp.toIso8601String(),
       'isGhostBus': isGhostBus,
+      'sequence': sequence,
     };
   }
 
@@ -58,6 +61,7 @@ class BusPosition extends Equatable {
     double? speedKmh,
     DateTime? timestamp,
     bool? isGhostBus,
+    int? sequence,
   }) {
     return BusPosition(
       busId: busId ?? this.busId,
@@ -68,16 +72,24 @@ class BusPosition extends Equatable {
       speedKmh: speedKmh ?? this.speedKmh,
       timestamp: timestamp ?? this.timestamp,
       isGhostBus: isGhostBus ?? this.isGhostBus,
+      sequence: sequence ?? this.sequence,
     );
   }
 
-  int get secondsSinceUpdate =>
-      DateTime.now().difference(timestamp).inSeconds;
+  int get secondsSinceUpdate => DateTime.now().difference(timestamp).inSeconds;
 
   bool get shouldShowAsGhost => secondsSinceUpdate > 90;
 
   @override
   List<Object?> get props => [
-    busId, routeId, lat, lon, heading, speedKmh, timestamp, isGhostBus,
-  ];
+        busId,
+        routeId,
+        lat,
+        lon,
+        heading,
+        speedKmh,
+        timestamp,
+        isGhostBus,
+        sequence,
+      ];
 }
