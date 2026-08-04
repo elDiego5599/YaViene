@@ -71,5 +71,7 @@ socket desconecta
 
 La fase queda implementada porque el pasajero ya conserva y restaura sus
 suscripciones, no mezcla rutas y consume el estado ghost canonico. La siguiente
-fase debe atacar catalogos y datos mock, para que rutas, trayectorias y paradas
-provengan de una fuente de verdad backend.
+fase debe atacar rendimiento y observabilidad. Las trayectorias y paradas quedan
+fuera del alcance actual porque pueden cambiar por obras, desvios y trafico. En
+el futuro, `ida/vuelta` se podra derivar del GPS sin convertir una trayectoria
+estatica en autoridad del sistema.
