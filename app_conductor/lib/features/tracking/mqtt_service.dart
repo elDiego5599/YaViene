@@ -31,7 +31,8 @@ class MqttService {
     final uri = Uri.parse(AppConfig.backendUrl);
     _host = uri.host;
 
-    _client = MqttServerClient(_host!, 'conductor_${busId}_${Random().nextInt(9999)}');
+    final clientId = 'conductor_${busId}_${Random().nextInt(999999)}';
+    _client = MqttServerClient(_host!, clientId);
     _client!.port = AppConfig.mqttPort;
     _client!.keepAlivePeriod = 10;
     _client!.connectTimeoutPeriod = 5000;
@@ -39,7 +40,7 @@ class MqttService {
     _client!.autoReconnect = false;
 
     final connMsg = MqttConnectMessage()
-        .withClientIdentifier('conductor_${busId}_${Random().nextInt(9999)}')
+        .withClientIdentifier(clientId)
         .authenticateAs(phoneNumber, jwtToken)
         .startClean();
     _client!.connectionMessage = connMsg;
@@ -71,7 +72,12 @@ class MqttService {
     double? heading,
     double? speedKmh,
   }) {
-    if (!_connected || _client == null || _empresaId == null || _busId == null) return false;
+    if (!_connected ||
+        _client == null ||
+        _empresaId == null ||
+        _busId == null) {
+      return false;
+    }
 
     final topic = 'empresa/$_empresaId/bus/$_busId/posicion';
     final payload = jsonEncode({
@@ -97,7 +103,9 @@ class MqttService {
 
   void disconnect() {
     if (_client != null) {
-      try { _client!.disconnect(); } catch (_) {}
+      try {
+        _client!.disconnect();
+      } catch (_) {}
       _client = null;
     }
     _connected = false;
