@@ -13,5 +13,9 @@ dependencies:
   equatable: ^2.0.5
   google_fonts: ^6.1.0
 
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
 # ── Importante: El core no debe depender de MapLibre, Mapbox o MQTT directamente.
 # Es estrictamente para modelos de dominio puros y el sistema de diseño visual.
