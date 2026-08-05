@@ -46,9 +46,11 @@ class RealtimeService implements RealtimeRepository {
     });
     _socket!.onDisconnect((_) => _connectionStateController.add(ConnectionStatus.disconnected));
     _socket!.onReconnectAttempt((_) => _connectionStateController.add(ConnectionStatus.reconnecting));
+    _socket!.onConnectError((_) => _connectionStateController.add(ConnectionStatus.disconnected));
+    _socket!.on('error', (_) => _connectionStateController.add(ConnectionStatus.disconnected));
 
     _socket!.on('bus:position', (data) {
-      _busPositionController.add(data as Map<String, dynamic>);
+      _busPositionController.add(Map<String, dynamic>.from(data as Map));
     });
     _socket!.on('positions:batch', (data) {
       final batch = Map<String, dynamic>.from(data as Map);
