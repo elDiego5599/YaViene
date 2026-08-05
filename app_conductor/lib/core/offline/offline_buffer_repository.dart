@@ -200,6 +200,15 @@ class OfflineBufferRepository {
     });
   }
 
+  Future<int> pendingCount() async {
+    await init();
+    final result = await _db!.rawQuery(
+      'SELECT COUNT(*) AS count FROM $_tableName WHERE status = ?',
+      ['pending'],
+    );
+    return (result.first['count'] as num).toInt();
+  }
+
   Future<bool> syncPendingPositions(
     Future<Set<int>> Function(List<PendingPosition> batch) onSendBatch,
   ) async {

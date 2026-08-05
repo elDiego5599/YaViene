@@ -13,6 +13,10 @@ final trackingStateProvider = StateProvider<TrackingState>(
   (ref) => TrackingState.stopped,
 );
 
+final trackingStatusProvider = StateProvider<DriverTrackingStatus>(
+  (ref) => const DriverTrackingStatus(),
+);
+
 final gpsManagerProvider = Provider<GpsManager>((ref) {
   final manager = GpsManager(ref);
   ref.onDispose(manager.dispose);
@@ -23,6 +27,7 @@ class GpsManager {
   final Ref _ref;
   final FlutterBackgroundService _service = FlutterBackgroundService();
   StreamSubscription<Map<String, dynamic>?>? _stateSubscription;
+  StreamSubscription<Map<String, dynamic>?>? _statusSubscription;
 
   GpsManager(this._ref) {
     _stateSubscription = _service.on('trackingState').listen((data) {
@@ -34,6 +39,16 @@ class GpsManager {
         'error' => TrackingState.error,
         _ => TrackingState.stopped,
       };
+    });
+    _statusSubscription = _service.on('trackingStatus').listen((data) {
+      if (data == null) return;
+      _ref.read(trackingStatusProvider.notifier).state = DriverTrackingStatus(
+        gpsActive: data['gpsActive'] as bool? ?? false,
+        mqttConnected: data['mqttConnected'] as bool? ?? false,
+        ackHealthy: data['ackHealthy'] as bool? ?? false,
+        outboxPendingCount: (data['outboxPendingCount'] as num?)?.toInt() ?? 0,
+        lastError: data['lastError'] as String?,
+      );
     });
   }
 
@@ -86,5 +101,7 @@ class GpsManager {
   void dispose() {
     _stateSubscription?.cancel();
     _stateSubscription = null;
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
   }
 }

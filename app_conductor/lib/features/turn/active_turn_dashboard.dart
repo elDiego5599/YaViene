@@ -93,13 +93,24 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
   @override
   Widget build(BuildContext context) {
     final trackingState = ref.watch(trackingStateProvider);
+    final trackingStatus = ref.watch(trackingStatusProvider);
 
     if (trackingState == TrackingState.fraudDetected) {
       return const FraudBlockerScreen();
     }
 
     final duration = DateTime.now().difference(_startTime);
-    final isTracking = trackingState == TrackingState.tracking;
+    final isTracking = trackingStatus.isFullyTransmitting;
+    final gpsSubtitle = trackingStatus.isFullyTransmitting
+        ? 'Transmitiendo y confirmado'
+        : trackingStatus.mqttConnected
+            ? 'Conectado, esperando ACK'
+            : trackingStatus.gpsActive
+                ? 'GPS activo, sin conexión'
+                : 'Esperando señal GPS...';
+    final syncSubtitle = trackingStatus.outboxPendingCount == 0
+        ? 'Sin posiciones pendientes'
+        : '${trackingStatus.outboxPendingCount} posiciones pendientes';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -152,18 +163,16 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
               const SizedBox(height: AppSpacing.xl),
               _StatusCard(
                 title: 'Transmisión GPS',
-                subtitle: isTracking
-                    ? 'Emitiendo en alta precisión'
-                    : 'Esperando señal...',
+                subtitle: gpsSubtitle,
                 icon: Icons.radar_rounded,
                 isActive: isTracking,
               ),
               const SizedBox(height: AppSpacing.md),
-              const _StatusCard(
+              _StatusCard(
                 title: 'Sincronización',
-                subtitle: 'Conectado al servidor central',
+                subtitle: syncSubtitle,
                 icon: Icons.cloud_done_rounded,
-                isActive: true,
+                isActive: trackingStatus.outboxPendingCount == 0,
                 isSecondary: true,
               ),
               const Spacer(),

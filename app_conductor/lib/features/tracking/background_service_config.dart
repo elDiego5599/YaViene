@@ -52,10 +52,24 @@ void onBackgroundStart(ServiceInstance service) async {
     service.invoke('trackingState', {'state': state.name});
   }
 
+  void emitStatus(DriverTrackingStatus status) {
+    service.invoke('trackingStatus', {
+      'gpsActive': status.gpsActive,
+      'mqttConnected': status.mqttConnected,
+      'ackHealthy': status.ackHealthy,
+      'outboxPendingCount': status.outboxPendingCount,
+      'lastError': status.lastError,
+    });
+  }
+
   service.on('startTracking').listen((event) async {
     if (event == null) return;
     try {
-      await engine.start(TrackingConfig.fromJson(event), emitState);
+      await engine.start(
+        TrackingConfig.fromJson(event),
+        emitState,
+        onStatus: emitStatus,
+      );
     } catch (_) {
       emitState(TrackingEngineState.error);
     }

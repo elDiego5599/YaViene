@@ -81,10 +81,6 @@ class BusPosition extends Equatable {
     );
   }
 
-  int get secondsSinceUpdate => DateTime.now().difference(timestamp).inSeconds;
-
-  bool get shouldShowAsGhost => secondsSinceUpdate > 90;
-
   @override
   List<Object?> get props => [
         busId,

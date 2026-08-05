@@ -9,6 +9,24 @@ import 'mqtt_service.dart';
 
 enum TrackingEngineState { stopped, tracking, fraudDetected, error }
 
+class DriverTrackingStatus {
+  final bool gpsActive;
+  final bool mqttConnected;
+  final bool ackHealthy;
+  final int outboxPendingCount;
+  final String? lastError;
+
+  const DriverTrackingStatus({
+    this.gpsActive = false,
+    this.mqttConnected = false,
+    this.ackHealthy = false,
+    this.outboxPendingCount = 0,
+    this.lastError,
+  });
+
+  bool get isFullyTransmitting => gpsActive && mqttConnected && ackHealthy;
+}
+
 class TrackingConfig {
   final String empresaId;
   final String busId;
@@ -41,6 +59,8 @@ class TrackingConfig {
         'phoneNumber': phoneNumber,
         'jwtToken': jwtToken,
       };
+
+  String get key => '$empresaId|$busId|$routeId|$phoneNumber|$jwtToken';
 }
 
 class TrackingEngine {
@@ -56,20 +76,29 @@ class TrackingEngine {
   bool _isSyncing = false;
   bool _running = false;
   void Function(TrackingEngineState state)? _onState;
+  void Function(DriverTrackingStatus status)? _onStatus;
+  bool _startInProgress = false;
+  String? _activeConfigKey;
 
   Future<void> start(
     TrackingConfig config,
-    void Function(TrackingEngineState state) onState,
-  ) async {
+    void Function(TrackingEngineState state) onState, {
+    void Function(DriverTrackingStatus status)? onStatus,
+  }) async {
+    if (_startInProgress) return;
+    if (_running && _activeConfigKey == config.key) return;
+    _startInProgress = true;
     await stop(emitStopped: false);
     _onState = onState;
+    _onStatus = onStatus;
+    _activeConfigKey = config.key;
     _running = true;
 
     try {
       await _offlineBuffer.init();
       _nextSequence = await _offlineBuffer.nextSequence();
 
-      await _mqttService.connect(
+      final mqttConnected = await _mqttService.connect(
         empresaId: config.empresaId,
         busId: config.busId,
         phoneNumber: config.phoneNumber,
@@ -100,11 +129,18 @@ class TrackingEngine {
       _syncTimer = Timer.periodic(const Duration(seconds: 10), (_) {
         _syncPending();
       });
+      _emitStatus(
+        gpsActive: true,
+        mqttConnected: mqttConnected,
+      );
       _onState?.call(TrackingEngineState.tracking);
     } catch (error) {
       _logger.e('Error iniciando tracking: $error');
       _running = false;
+      _emitStatus(lastError: error.toString());
       _onState?.call(TrackingEngineState.error);
+    } finally {
+      _startInProgress = false;
     }
   }
 
@@ -119,7 +155,12 @@ class TrackingEngine {
       return;
     }
 
-    final sequence = _nextSequence!;
+    final sequence = _nextSequence;
+    if (sequence == null) {
+      _logger.e('Sequence storage is not initialized');
+      _emitStatus(lastError: 'Sequence storage is not initialized');
+      return;
+    }
     _nextSequence = sequence + 1;
     final capturedAt = position.timestamp.millisecondsSinceEpoch;
     final busPosition = BusPositionData(
@@ -148,17 +189,23 @@ class TrackingEngine {
 
       if (ack == null) {
         await _offlineBuffer.markPending([pendingId], error: 'No ACK received');
+        _emitStatus(ackHealthy: false);
       } else {
         if (!ack.accepted) {
           _logger.w('Posición $sequence rechazada: ${ack.reason}');
         }
         await _offlineBuffer.deletePositions([pendingId]);
+        _emitStatus(
+          ackHealthy: ack.accepted,
+          outboxPendingCount: await _offlineBuffer.pendingCount(),
+        );
       }
     } catch (error) {
       if (pendingId != null) {
         await _offlineBuffer.markPending([pendingId], error: error.toString());
       }
       _logger.w('Error procesando posición $sequence: $error');
+      _emitStatus(lastError: error.toString());
     }
   }
 
@@ -197,12 +244,13 @@ class TrackingEngine {
 
   Future<void> _initiateReconnect(TrackingConfig config) async {
     if (!_running || _mqttService.isConnected) return;
-    await _mqttService.connect(
+    final connected = await _mqttService.connect(
       empresaId: config.empresaId,
       busId: config.busId,
       phoneNumber: config.phoneNumber,
       jwtToken: config.jwtToken,
     );
+    _emitStatus(mqttConnected: connected, ackHealthy: false);
   }
 
   Future<void> stop({bool emitStopped = true}) async {
@@ -214,7 +262,25 @@ class TrackingEngine {
     await _positionStream?.cancel();
     _positionStream = null;
     _mqttService.disconnect();
+    _activeConfigKey = null;
+    _emitStatus();
     if (emitStopped) _onState?.call(TrackingEngineState.stopped);
+  }
+
+  void _emitStatus({
+    bool? gpsActive,
+    bool? mqttConnected,
+    bool? ackHealthy,
+    int? outboxPendingCount,
+    String? lastError,
+  }) {
+    _onStatus?.call(DriverTrackingStatus(
+      gpsActive: gpsActive ?? _running,
+      mqttConnected: mqttConnected ?? _mqttService.isConnected,
+      ackHealthy: ackHealthy ?? false,
+      outboxPendingCount: outboxPendingCount ?? 0,
+      lastError: lastError,
+    ));
   }
 }
 
