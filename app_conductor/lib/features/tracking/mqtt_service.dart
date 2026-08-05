@@ -53,6 +53,7 @@ class MqttService {
 
     final clientId = 'conductor_${busId}_${Random().nextInt(999999)}';
     _client = MqttServerClient(_host!, clientId);
+    _client!.secure = AppConfig.mqttSecure;
     _client!.port = AppConfig.mqttPort;
     _client!.keepAlivePeriod = 10;
     _client!.connectTimeoutPeriod = 5000;

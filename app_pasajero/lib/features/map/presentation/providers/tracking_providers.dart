@@ -5,9 +5,22 @@ import 'realtime_providers.dart';
 
 final busPositionsSourceProvider = StreamProvider.autoDispose
     .family<List<BusPosition>, String>((ref, routeId) {
-      final service = ref.watch(realtimeServiceProvider);
-      final controller = StreamController<List<BusPosition>>();
-      final positions = <String, BusPosition>{};
+       final service = ref.watch(realtimeServiceProvider);
+       final controller = StreamController<List<BusPosition>>();
+       final positions = <String, BusPosition>{};
+       Timer? emitTimer;
+
+       void emitSnapshot() {
+         if (!controller.isClosed) controller.add(positions.values.toList());
+       }
+
+       void scheduleLiveSnapshot() {
+         if (emitTimer != null) return;
+         emitTimer = Timer(const Duration(milliseconds: 200), () {
+           emitTimer = null;
+           emitSnapshot();
+         });
+       }
 
       service.subscribeToRoute(routeId);
 
@@ -21,30 +34,31 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
            final pos = _jsonToBusPosition(json);
            positions[pos.busId] = pos;
         }
-        if (positions.isNotEmpty) controller.add(positions.values.toList());
+         if (positions.isNotEmpty) emitSnapshot();
       });
 
        final liveSub = service.busPositionStream.listen((json) {
          final pos = _jsonToBusPosition(json);
          if (pos.routeId != routeId) return;
          positions[pos.busId] = pos;
-        controller.add(positions.values.toList());
+         scheduleLiveSnapshot();
       });
 
        final leftSub = service.busLeftStream.listen((event) {
          if (event['routeId'] != null && event['routeId'] != routeId) return;
          final busId = event['busId'] as String?;
          if (busId != null && positions.remove(busId) != null) {
-          controller.add(positions.values.toList());
-        }
+           emitSnapshot();
+         }
       });
 
       ref.onDispose(() {
         service.unsubscribeFromRoute(routeId);
-        batchSub.cancel();
-        liveSub.cancel();
-        leftSub.cancel();
-        controller.close();
+         batchSub.cancel();
+         liveSub.cancel();
+         leftSub.cancel();
+         emitTimer?.cancel();
+         controller.close();
       });
 
       return controller.stream;

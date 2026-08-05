@@ -76,9 +76,10 @@ class TrackingEngine {
         jwtToken: config.jwtToken,
       );
 
-      const locationSettings = LocationSettings(
+      final locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 0,
+        distanceFilter: 5,
+        intervalDuration: const Duration(seconds: 2),
       );
 
       _positionStream = Geolocator.getPositionStream(
