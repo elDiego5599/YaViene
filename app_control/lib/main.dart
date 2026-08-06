@@ -34,7 +34,7 @@ class YaVieneControlApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Ya Viene - Control',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

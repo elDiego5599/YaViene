@@ -30,10 +30,14 @@ class FleetListTile extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.online.withValues(alpha: 0.08) : AppColors.panelGlass,
+          color: selected
+              ? AppColors.online.withValues(alpha: 0.08)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? AppColors.online.withValues(alpha: 0.55) : AppColors.border,
+            color: selected
+                ? AppColors.online.withValues(alpha: 0.55)
+                : AppColors.border,
           ),
         ),
         child: Row(
@@ -67,19 +71,29 @@ class FleetListTile extends StatelessWidget {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         statusLabel,
-                        style: GoogleFonts.inter(fontSize: 11, color: statusColor, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           bus.routeId ?? 'Sin ruta',
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ),
                     ],
@@ -95,10 +109,7 @@ class FleetListTile extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
-              Switch(
-                value: bus.visible,
-                onChanged: onToggle,
-              ),
+              Switch(value: bus.visible, onChanged: onToggle),
           ],
         ),
       ),

@@ -16,10 +16,11 @@ class FleetBus {
   });
 
   factory FleetBus.fromJson(Map<String, dynamic> json) {
+    final routeId = json['routeId'] as String?;
     return FleetBus(
       busId: json['busId'] as String,
       companyId: json['companyId'] as String? ?? '',
-      routeId: json['routeId'] as String?,
+      routeId: routeId == null || routeId.isEmpty ? null : routeId,
       visible: json['visible'] == true,
       online: json['online'] == true,
       lat: (json['lat'] as num?)?.toDouble(),

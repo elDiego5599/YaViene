@@ -16,9 +16,11 @@ class ControlMap extends ConsumerWidget {
     final fleet = ref.watch(fleetProvider);
     final markers = fleet.fleetList
         .where((b) => b.lat != null && b.lon != null)
-        .map((b) => _buildMarker(b, fleet.selectedBusId == b.busId, () {
-              ref.read(fleetProvider.notifier).selectBus(b.busId);
-            }))
+        .map(
+          (b) => _buildMarker(b, fleet.selectedBusId == b.busId, () {
+            ref.read(fleetProvider.notifier).selectBus(b.busId);
+          }),
+        )
         .toList();
 
     return Stack(
@@ -33,7 +35,8 @@ class ControlMap extends ConsumerWidget {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+              urlTemplate:
+                  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
               subdomains: const ['a', 'b', 'c', 'd'],
               userAgentPackageName: 'co.yaviene.control',
             ),
@@ -44,7 +47,9 @@ class ControlMap extends ConsumerWidget {
           left: 18,
           bottom: 18,
           child: _Legend(
-            online: fleet.buses.values.where((b) => b.online && b.visible).length,
+            online: fleet.buses.values
+                .where((b) => b.online && b.visible)
+                .length,
             hidden: fleet.buses.values.where((b) => !b.visible).length,
             offline: fleet.buses.values.where((b) => !b.online).length,
           ),
@@ -66,7 +71,12 @@ class ControlMap extends ConsumerWidget {
       height: 62,
       child: GestureDetector(
         onTap: onTap,
-        child: _BusMarker(busId: bus.busId, color: color, hidden: hidden, selected: selected),
+        child: _BusMarker(
+          busId: bus.busId,
+          color: color,
+          hidden: hidden,
+          selected: selected,
+        ),
       ),
     );
   }
@@ -94,21 +104,24 @@ class _BusMarker extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: hidden ? AppColors.surfaceRaised : color,
+            color: hidden ? Colors.white : color,
             shape: BoxShape.circle,
             border: Border.all(
               color: selected
-                  ? Colors.white
+                  ? AppColors.navy
                   : hidden
-                      ? color
-                      : Colors.white.withValues(alpha: 0.85),
-              width: selected ? 2.5 : 1.4,
+                  ? color
+                  : Colors.white,
+              width: selected ? 2.5 : 1.6,
             ),
             boxShadow: [
               BoxShadow(
-                color: (selected ? Colors.white : color).withValues(alpha: hidden ? 0.25 : 0.5),
-                blurRadius: selected ? 16 : 9,
+                color: (selected ? AppColors.navy : color).withValues(
+                  alpha: hidden ? 0.25 : 0.35,
+                ),
+                blurRadius: selected ? 14 : 8,
                 spreadRadius: selected ? 1 : 0,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -122,16 +135,25 @@ class _BusMarker extends StatelessWidget {
           margin: const EdgeInsets.only(top: 3),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
           decoration: BoxDecoration(
-            color: selected ? Colors.white : const Color(0xE6141418),
+            color: selected ? AppColors.navy : Colors.white,
             borderRadius: BorderRadius.circular(5),
-            border: Border.all(color: selected ? Colors.white : AppColors.borderStrong),
+            border: Border.all(
+              color: selected ? AppColors.navy : AppColors.borderStrong,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 4,
+                offset: Offset(0, 1),
+              ),
+            ],
           ),
           child: Text(
             busId,
             style: GoogleFonts.inter(
               fontSize: 8.5,
               fontWeight: FontWeight.w800,
-              color: selected ? AppColors.bg : Colors.white,
+              color: selected ? Colors.white : AppColors.textPrimary,
               letterSpacing: 0.2,
             ),
           ),
@@ -157,10 +179,10 @@ class _Legend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xF0141418),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderStrong),
-        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 18, offset: Offset(0, 6))],
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,18 +218,28 @@ class _Legend extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 5)],
+              boxShadow: [
+                BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 5),
+              ],
             ),
           ),
           const SizedBox(width: 8),
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(width: 8),
           Text(
             '$count',
-            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
           ),
         ],
       ),
