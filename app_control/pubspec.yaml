@@ -47,6 +47,7 @@ dependencies:
   ya_viene_core:
     path: ../ya_viene_core
   window_manager: ^0.5.2
+  google_fonts: ^6.3.3
 
 dev_dependencies:
   flutter_test:

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 
 Future<void> main() async {
@@ -11,11 +12,11 @@ Future<void> main() async {
   const windowOptions = WindowOptions(
     size: Size(1600, 900),
     center: true,
-    fullScreen: true,
     title: 'Ya Viene · Control',
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
+    await windowManager.setFullScreen(true);
     await windowManager.focus();
   });
 
@@ -33,11 +34,7 @@ class YaVieneControlApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Ya Viene - Control',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF14274E)),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-      ),
+      theme: AppTheme.dark,
       routerConfig: router,
     );
   }

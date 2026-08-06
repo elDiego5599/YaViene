@@ -13,12 +13,19 @@ class FleetState {
     this.buses = const <String, FleetBus>{},
     this.error,
     this.updating = const <String>{},
+    this.selectedBusId,
   });
 
   final FleetConnection connection;
   final Map<String, FleetBus> buses;
   final String? error;
   final Set<String> updating;
+  final String? selectedBusId;
+
+  FleetBus? get selectedBus {
+    final id = selectedBusId;
+    return id == null ? null : buses[id];
+  }
 
   List<FleetBus> get fleetList {
     final list = buses.values.toList()
@@ -31,6 +38,7 @@ class FleetState {
     Map<String, FleetBus>? buses,
     String? error,
     Set<String>? updating,
+    String? Function()? selectedBusId,
     bool clearError = false,
   }) {
     return FleetState(
@@ -38,6 +46,7 @@ class FleetState {
       buses: buses ?? this.buses,
       error: clearError ? null : error ?? this.error,
       updating: updating ?? this.updating,
+      selectedBusId: selectedBusId != null ? selectedBusId() : this.selectedBusId,
     );
   }
 }
@@ -116,6 +125,10 @@ class FleetNotifier extends StateNotifier<FleetState> {
     } catch (_) {
       state = state.copyWith(error: 'No se pudo actualizar la flota.');
     }
+  }
+
+  void selectBus(String? busId) {
+    state = state.copyWith(selectedBusId: () => busId);
   }
 
   Future<void> toggleVisibility(String busId, bool visible) async {

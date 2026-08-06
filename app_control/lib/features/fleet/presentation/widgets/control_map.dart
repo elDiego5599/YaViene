@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../core/theme/app_theme.dart';
+import '../../domain/fleet_bus.dart';
 import '../providers/fleet_providers.dart';
 
 class ControlMap extends ConsumerWidget {
@@ -13,7 +16,9 @@ class ControlMap extends ConsumerWidget {
     final fleet = ref.watch(fleetProvider);
     final markers = fleet.fleetList
         .where((b) => b.lat != null && b.lon != null)
-        .map((b) => _buildMarker(b))
+        .map((b) => _buildMarker(b, fleet.selectedBusId == b.busId, () {
+              ref.read(fleetProvider.notifier).selectBus(b.busId);
+            }))
         .toList();
 
     return Stack(
@@ -28,7 +33,7 @@ class ControlMap extends ConsumerWidget {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+              urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
               subdomains: const ['a', 'b', 'c', 'd'],
               userAgentPackageName: 'co.yaviene.control',
             ),
@@ -36,11 +41,11 @@ class ControlMap extends ConsumerWidget {
           ],
         ),
         Positioned(
-          left: 12,
-          bottom: 12,
+          left: 18,
+          bottom: 18,
           child: _Legend(
             online: fleet.buses.values.where((b) => b.online && b.visible).length,
-            ghost: fleet.buses.values.where((b) => b.online && !b.visible).length,
+            hidden: fleet.buses.values.where((b) => !b.visible).length,
             offline: fleet.buses.values.where((b) => !b.online).length,
           ),
         ),
@@ -48,72 +53,87 @@ class ControlMap extends ConsumerWidget {
     );
   }
 
-  Marker _buildMarker(dynamic bus) {
-    final Color color;
-    final bool hidden;
-    if (!bus.visible) {
-      color = const Color(0xFF94A3B8);
-      hidden = true;
-    } else if (bus.isGhost) {
-      color = const Color(0xFF64748B);
-      hidden = false;
-    } else {
-      color = const Color(0xFF00A859);
-      hidden = false;
-    }
+  Marker _buildMarker(FleetBus bus, bool selected, VoidCallback onTap) {
+    final (color, hidden) = switch ((bus.visible, bus.online, bus.isGhost)) {
+      (false, _, _) => (AppColors.hidden, true),
+      (_, false, _) => (AppColors.offline, true),
+      (_, _, true) => (AppColors.ghost, false),
+      _ => (AppColors.online, false),
+    };
     return Marker(
-      point: LatLng(bus.lat, bus.lon),
-      width: 36,
-      height: 36,
-      child: _BusMarker(busId: bus.busId, color: color, hidden: hidden),
+      point: LatLng(bus.lat!, bus.lon!),
+      width: 62,
+      height: 62,
+      child: GestureDetector(
+        onTap: onTap,
+        child: _BusMarker(busId: bus.busId, color: color, hidden: hidden, selected: selected),
+      ),
     );
   }
 }
 
 class _BusMarker extends StatelessWidget {
-  const _BusMarker({required this.busId, required this.color, required this.hidden});
+  const _BusMarker({
+    required this.busId,
+    required this.color,
+    required this.hidden,
+    required this.selected,
+  });
 
   final String busId;
   final Color color;
   final bool hidden;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(6),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: hidden ? Colors.white : color,
+            color: hidden ? AppColors.surfaceRaised : color,
             shape: BoxShape.circle,
             border: Border.all(
-              color: hidden ? const Color(0xFF94A3B8) : Colors.white,
-              width: hidden ? 2 : 1.5,
+              color: selected
+                  ? Colors.white
+                  : hidden
+                      ? color
+                      : Colors.white.withValues(alpha: 0.85),
+              width: selected ? 2.5 : 1.4,
             ),
-            boxShadow: hidden
-                ? null
-                : const [
-                    BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                  ],
+            boxShadow: [
+              BoxShadow(
+                color: (selected ? Colors.white : color).withValues(alpha: hidden ? 0.25 : 0.5),
+                blurRadius: selected ? 16 : 9,
+                spreadRadius: selected ? 1 : 0,
+              ),
+            ],
           ),
           child: Icon(
             Icons.directions_bus,
-            size: 16,
-            color: hidden ? const Color(0xFF94A3B8) : Colors.white,
+            size: 17,
+            color: hidden ? color : const Color(0xFF0C0C0F),
           ),
         ),
         Container(
-          margin: const EdgeInsets.only(top: 2),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          margin: const EdgeInsets.only(top: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
+            color: selected ? Colors.white : const Color(0xE6141418),
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: selected ? Colors.white : AppColors.borderStrong),
           ),
           child: Text(
             busId,
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700),
+            style: GoogleFonts.inter(
+              fontSize: 8.5,
+              fontWeight: FontWeight.w800,
+              color: selected ? AppColors.bg : Colors.white,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
       ],
@@ -124,48 +144,71 @@ class _BusMarker extends StatelessWidget {
 class _Legend extends StatelessWidget {
   const _Legend({
     required this.online,
-    required this.ghost,
+    required this.hidden,
     required this.offline,
   });
 
   final int online;
-  final int ghost;
+  final int hidden;
   final int offline;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
+        color: const Color(0xF0141418),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderStrong),
+        boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 18, offset: Offset(0, 6))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _legendRow(const Color(0xFF00A859), 'Visibles en línea ($online)'),
-          _legendRow(const Color(0xFF94A3B8), 'Ocultos ($ghost)'),
-          _legendRow(const Color(0xFF64748B), 'Sin señal ($offline)'),
+          Text(
+            'LEYENDA',
+            style: GoogleFonts.inter(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.6,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _legendRow(AppColors.online, 'Visibles en línea', online),
+          _legendRow(AppColors.hidden, 'Ocultos', hidden),
+          _legendRow(AppColors.offline, 'Sin señal', offline),
         ],
       ),
     );
   }
 
-  Widget _legendRow(Color color, String label) {
+  Widget _legendRow(Color color, String label, int count) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 5)],
+            ),
           ),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count',
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+          ),
         ],
       ),
     );
