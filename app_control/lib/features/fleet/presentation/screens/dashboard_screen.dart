@@ -58,10 +58,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onlineCount: fleet.buses.values
                 .where((b) => b.online && b.visible)
                 .length,
-            onLogout: () {
-              ref.read(fleetProvider.notifier).dispose();
-              ref.read(authProvider.notifier).logout();
-              context.go('/login');
+            onLogout: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) context.go('/login');
             },
           ),
           if (fleet.error != null) _ErrorBanner(message: fleet.error!),

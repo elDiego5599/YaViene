@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import '../../../../config.dart';
@@ -54,6 +55,7 @@ class FleetSocketService {
     socket.on('error', (_) => _connectionController.add(false));
 
     socket.on('fleet:batch', (data) {
+      debugPrint('[fleet-socket] fleet:batch recibido');
       final buses = (data['buses'] as List)
           .map((b) => FleetBus.fromJson(Map<String, dynamic>.from(b as Map)))
           .toList();
@@ -65,10 +67,12 @@ class FleetSocketService {
     });
 
     socket.on('bus:hidden', (data) {
+      debugPrint('[fleet-socket] bus:hidden ${data['busId']} event=${data['eventId']}');
       _busHiddenController.add(data['busId'] as String);
     });
 
     socket.on('bus:visible', (data) {
+      debugPrint('[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}');
       final position = data['position'];
       if (position != null) {
         _busVisibleController.add(FleetBus.fromJson(Map<String, dynamic>.from(position as Map)));

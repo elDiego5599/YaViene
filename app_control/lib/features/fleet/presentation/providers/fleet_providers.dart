@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/fleet_api.dart';
@@ -133,12 +134,20 @@ class FleetNotifier extends StateNotifier<FleetState> {
 
   Future<void> toggleVisibility(String busId, bool visible) async {
     final token = _token;
-    if (token == null) return;
-    state = state.copyWith(updating: {...state.updating, busId});
+    final previous = state.buses[busId];
+    if (token == null || previous == null) return;
+    state = state.copyWith(
+      buses: {...state.buses, busId: previous.copyWith(visible: visible)},
+      updating: {...state.updating, busId},
+      clearError: true,
+    );
     try {
       await FleetApi().setVisibility(token, busId, visible);
-    } catch (_) {
+      debugPrint('[fleet] toggle $busId -> visible=$visible OK');
+    } catch (e) {
+      debugPrint('[fleet] toggle $busId FALLÓ: $e');
       state = state.copyWith(
+        buses: {...state.buses, busId: previous},
         error: visible ? 'No se pudo mostrar el bus $busId.' : 'No se pudo ocultar el bus $busId.',
       );
     } finally {
