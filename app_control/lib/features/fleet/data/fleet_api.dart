@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../config.dart';
 import '../domain/fleet_bus.dart';
+import '../domain/fleet_route.dart';
 
 class FleetApi {
   FleetApi({Dio? dio})
@@ -29,6 +30,17 @@ class FleetApi {
         .toList();
   }
 
+  Future<List<FleetRoute>> fetchRoutes(String token) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/fleet/routes',
+      options: _auth(token),
+    );
+    final routes = response.data!['routes'] as List<dynamic>;
+    return routes
+        .map((r) => FleetRoute.fromJson(Map<String, dynamic>.from(r as Map)))
+        .toList();
+  }
+
   Future<FleetBus> setVisibility(String token, String busId, bool visible) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/fleet/buses/$busId/visibility',
@@ -36,5 +48,38 @@ class FleetApi {
       options: _auth(token),
     );
     return FleetBus.fromJson(response.data!);
+  }
+
+  Future<FleetBus> createBus(String token, {required String placa, String? routeId}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/fleet/buses',
+      data: {'placa': placa, 'routeId': routeId ?? ''},
+      options: _auth(token),
+    );
+    return FleetBus.fromJson(response.data!);
+  }
+
+  Future<FleetBus> updateBus(
+    String token,
+    String busId, {
+    String? placa,
+    String? routeId,
+  }) async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/api/fleet/buses/$busId',
+      data: {
+        'placa': ?placa,
+        'routeId': ?routeId,
+      },
+      options: _auth(token),
+    );
+    return FleetBus.fromJson(response.data!);
+  }
+
+  Future<void> deleteBus(String token, String busId) async {
+    await _dio.delete<void>(
+      '/api/fleet/buses/$busId',
+      options: _auth(token),
+    );
   }
 }

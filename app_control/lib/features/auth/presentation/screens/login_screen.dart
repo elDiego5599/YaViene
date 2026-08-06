@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../../config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/auth_providers.dart';
 
@@ -17,6 +17,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -38,159 +39,241 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final auth = ref.watch(authProvider);
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  alignment: Alignment.center,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Container(
+                  padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF00A859), Color(0xFF00C465)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.online.withValues(alpha: 0.3),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: AppColors.softShadow,
                   ),
-                  child: const Icon(Icons.directions_bus, color: Color(0xFF0C0C0F), size: 28),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'YA VIENE',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 4,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  'CONTROL DE FLOTA',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 3,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                Text(
-                  'USUARIO',
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _usernameController,
-                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500),
-                  decoration: const InputDecoration(
-                    hintText: 'admin',
-                    hintStyle: TextStyle(color: AppColors.textMuted),
-                    prefixIcon: Icon(Icons.person_outline, size: 18, color: AppColors.textMuted),
-                    fillColor: AppColors.surface,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  ),
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'CONTRASEÑA',
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500),
-                  decoration: const InputDecoration(
-                    hintText: '••••••••',
-                    hintStyle: TextStyle(color: AppColors.textMuted),
-                    prefixIcon: Icon(Icons.lock_outline, size: 18, color: AppColors.textMuted),
-                    fillColor: AppColors.surface,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  ),
-                  onSubmitted: (_) => _submit(),
-                ),
-                if (auth.error != null) ...[
-                  const SizedBox(height: 16),
-                  Row(
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
                     children: [
-                      const Icon(Icons.error_outline, size: 15, color: AppColors.danger),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          auth.error!,
-                          style: GoogleFonts.inter(
-                            color: AppColors.danger,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
+                      Positioned(
+                        top: -80,
+                        left: 0,
+                        right: 0,
+                        height: 160,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                colors: [
+                                  AppColors.online.withValues(alpha: 0.12),
+                                  AppColors.online.withValues(alpha: 0),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 64,
+                              height: 64,
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceRaised,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: AppColors.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.navy.withValues(alpha: 0.08),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: SvgPicture.asset(
+                                'assets/logo/ya_viene_logo.svg',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'YA VIENE',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 4,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'CONTROL DE FLOTA',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 3,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Container(
+                            height: 1,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  AppColors.borderStrong,
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          Text(
+                            'INICIAR SESIÓN',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Ingrese sus credenciales para continuar',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 12.5,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          TextField(
+                            controller: _usernameController,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: const InputDecoration(hintText: 'Usuario'),
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 14),
+                          Stack(
+                            children: [
+                              TextField(
+                                controller: _passwordController,
+                                obscureText: _obscurePassword,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: const InputDecoration(hintText: 'Contraseña'),
+                                onSubmitted: (_) => _submit(),
+                              ),
+                              Positioned(
+                                right: 2,
+                                top: 0,
+                                bottom: 0,
+                                child: IconButton(
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                    size: 20,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  tooltip: _obscurePassword ? 'Mostrar' : 'Ocultar',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 26,
+                            child: auth.error == null
+                                ? null
+                                : Center(
+                                    child: Text(
+                                      auth.error!,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.danger,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          SizedBox(
+                            height: 52,
+                            child: FilledButton(
+                              onPressed: auth.loading ? null : _submit,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.online,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                textStyle: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 2.6,
+                                ),
+                                disabledBackgroundColor:
+                                    AppColors.online.withValues(alpha: 0.5),
+                              ),
+                              child: auth.loading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('INGRESAR'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-                const SizedBox(height: 28),
-                SizedBox(
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: auth.loading ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.textPrimary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                      textStyle: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.4,
-                      ),
-                      disabledBackgroundColor: AppColors.textPrimary.withValues(alpha: 0.6),
-                    ),
-                    child: auth.loading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
-                          )
-                        : const Text('INGRESAR'),
-                  ),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  AppConfig.backendUrl,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
+}
+
+class _DotGridPainter extends CustomPainter {
+  const _DotGridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.navy.withValues(alpha: 0.05);
+    const spacing = 36.0;
+    for (double x = spacing / 2; x < size.width; x += spacing) {
+      for (double y = spacing / 2; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1.1, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

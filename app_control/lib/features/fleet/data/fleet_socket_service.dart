@@ -17,6 +17,7 @@ class FleetSocketService {
   final _busHiddenController = StreamController<String>.broadcast();
   final _busVisibleController = StreamController<FleetBus>.broadcast();
   final _busLeftController = StreamController<String>.broadcast();
+  final _busRemovedController = StreamController<String>.broadcast();
   final _connectionController = StreamController<bool>.broadcast();
 
   Stream<List<FleetBus>> get busBatchStream => _busBatchController.stream;
@@ -24,6 +25,7 @@ class FleetSocketService {
   Stream<String> get busHiddenStream => _busHiddenController.stream;
   Stream<FleetBus> get busVisibleStream => _busVisibleController.stream;
   Stream<String> get busLeftStream => _busLeftController.stream;
+  Stream<String> get busRemovedStream => _busRemovedController.stream;
   Stream<bool> get connectionStream => _connectionController.stream;
 
   bool get isConnected => _socket?.connected == true;
@@ -84,6 +86,11 @@ class FleetSocketService {
     socket.on('bus:left', (data) {
       _busLeftController.add(data['busId'] as String);
     });
+
+    socket.on('bus:removed', (data) {
+      debugPrint('[fleet-socket] bus:removed ${data['busId']} event=${data['eventId']}');
+      _busRemovedController.add(data['busId'] as String);
+    });
   }
 
   void dispose() {
@@ -95,6 +102,7 @@ class FleetSocketService {
     _busHiddenController.close();
     _busVisibleController.close();
     _busLeftController.close();
+    _busRemovedController.close();
     _connectionController.close();
   }
 }

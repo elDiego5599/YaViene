@@ -5,6 +5,7 @@ import '../../data/fleet_api.dart';
 import '../../data/fleet_socket_service.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/fleet_bus.dart';
+import '../../domain/fleet_route.dart';
 
 enum FleetConnection { connecting, connected, disconnected }
 
@@ -12,16 +13,20 @@ class FleetState {
   const FleetState({
     this.connection = FleetConnection.connecting,
     this.buses = const <String, FleetBus>{},
+    this.routes = const <FleetRoute>[],
     this.error,
     this.updating = const <String>{},
     this.selectedBusId,
+    this.routeFilter,
   });
 
   final FleetConnection connection;
   final Map<String, FleetBus> buses;
+  final List<FleetRoute> routes;
   final String? error;
   final Set<String> updating;
   final String? selectedBusId;
+  final String? routeFilter;
 
   FleetBus? get selectedBus {
     final id = selectedBusId;
@@ -29,25 +34,45 @@ class FleetState {
   }
 
   List<FleetBus> get fleetList {
-    final list = buses.values.toList()
+    final list = buses.values.where((b) {
+      final filter = routeFilter;
+      return filter == null || b.routeId == filter;
+    }).toList()
       ..sort((a, b) => a.busId.compareTo(b.busId));
     return list;
+  }
+
+  int get totalBuses => buses.length;
+  int get onlineBuses => buses.values.where((b) => b.online).length;
+  int get hiddenBuses => buses.values.where((b) => !b.visible).length;
+  int get offlineBuses => buses.values.where((b) => !b.online).length;
+
+  String? routeName(String? routeId) {
+    if (routeId == null) return null;
+    for (final route in routes) {
+      if (route.routeId == routeId) return route.name;
+    }
+    return 'Ruta $routeId';
   }
 
   FleetState copyWith({
     FleetConnection? connection,
     Map<String, FleetBus>? buses,
+    List<FleetRoute>? routes,
     String? error,
     Set<String>? updating,
     String? Function()? selectedBusId,
+    String? Function()? routeFilter,
     bool clearError = false,
   }) {
     return FleetState(
       connection: connection ?? this.connection,
       buses: buses ?? this.buses,
+      routes: routes ?? this.routes,
       error: clearError ? null : error ?? this.error,
       updating: updating ?? this.updating,
       selectedBusId: selectedBusId != null ? selectedBusId() : this.selectedBusId,
+      routeFilter: routeFilter != null ? routeFilter() : this.routeFilter,
     );
   }
 }
@@ -111,7 +136,15 @@ class FleetNotifier extends StateNotifier<FleetState> {
         busId: previous.copyWith(online: false, clearPosition: true),
       });
     });
+    socket.busRemovedStream.listen((busId) {
+      final remaining = {...state.buses}..remove(busId);
+      state = state.copyWith(
+        buses: remaining,
+        selectedBusId: () => state.selectedBusId == busId ? null : state.selectedBusId,
+      );
+    });
     socket.connect();
+    refreshRoutes();
   }
 
   Future<void> refresh() async {
@@ -128,8 +161,23 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }
   }
 
+  Future<void> refreshRoutes() async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      final routes = await FleetApi().fetchRoutes(token);
+      state = state.copyWith(routes: routes, clearError: true);
+    } catch (_) {
+      // El catálogo es informativo; no bloquea la flota.
+    }
+  }
+
   void selectBus(String? busId) {
     state = state.copyWith(selectedBusId: () => busId);
+  }
+
+  void setRouteFilter(String? routeId) {
+    state = state.copyWith(routeFilter: () => routeId);
   }
 
   Future<void> toggleVisibility(String busId, bool visible) async {
@@ -154,6 +202,66 @@ class FleetNotifier extends StateNotifier<FleetState> {
       state = state.copyWith(
         updating: {...state.updating}..remove(busId),
       );
+    }
+  }
+
+  Future<void> addBus({required String placa, String? routeId}) async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      final bus = await FleetApi().createBus(token, placa: placa, routeId: routeId);
+      debugPrint('[fleet] bus creado ${bus.busId} placa=${bus.placa} ruta=${bus.routeId}');
+      state = state.copyWith(
+        buses: {...state.buses, bus.busId: bus},
+        clearError: true,
+      );
+      refreshRoutes();
+    } catch (e) {
+      debugPrint('[fleet] crear bus FALLÓ: $e');
+      state = state.copyWith(error: 'No se pudo crear el bus. Verifica la placa.');
+      rethrow;
+    }
+  }
+
+  Future<void> editBus(
+    String busId, {
+    String? placa,
+    String? routeId,
+  }) async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      final bus = await FleetApi().updateBus(token, busId, placa: placa, routeId: routeId);
+      debugPrint('[fleet] bus editado $busId placa=${bus.placa} ruta=${bus.routeId}');
+      state = state.copyWith(
+        buses: {...state.buses, bus.busId: bus},
+        clearError: true,
+      );
+      refreshRoutes();
+    } catch (e) {
+      debugPrint('[fleet] editar bus FALLÓ: $e');
+      state = state.copyWith(error: 'No se pudo guardar el bus.');
+      rethrow;
+    }
+  }
+
+  Future<void> removeBus(String busId) async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      await FleetApi().deleteBus(token, busId);
+      debugPrint('[fleet] bus eliminado $busId');
+      final remaining = {...state.buses}..remove(busId);
+      state = state.copyWith(
+        buses: remaining,
+        selectedBusId: () => state.selectedBusId == busId ? null : state.selectedBusId,
+        clearError: true,
+      );
+      refreshRoutes();
+    } catch (e) {
+      debugPrint('[fleet] eliminar bus FALLÓ: $e');
+      state = state.copyWith(error: 'No se pudo eliminar el bus.');
+      rethrow;
     }
   }
 

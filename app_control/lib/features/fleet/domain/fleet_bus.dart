@@ -4,6 +4,8 @@ class FleetBus {
     required this.companyId,
     required this.visible,
     required this.online,
+    this.placa = '',
+    this.driverName,
     this.routeId,
     this.lat,
     this.lon,
@@ -21,6 +23,8 @@ class FleetBus {
       busId: json['busId'] as String,
       companyId: json['companyId'] as String? ?? '',
       routeId: routeId == null || routeId.isEmpty ? null : routeId,
+      placa: json['placa'] as String? ?? '',
+      driverName: json['driverName'] as String?,
       visible: json['visible'] == true,
       online: json['online'] == true,
       lat: (json['lat'] as num?)?.toDouble(),
@@ -36,6 +40,8 @@ class FleetBus {
 
   final String busId;
   final String companyId;
+  final String placa;
+  final String? driverName;
   final String? routeId;
   final bool visible;
   final bool online;
@@ -49,6 +55,8 @@ class FleetBus {
   final bool isGhost;
 
   FleetBus copyWith({
+    String? placa,
+    String? driverName,
     String? routeId,
     bool? visible,
     bool? online,
@@ -65,6 +73,8 @@ class FleetBus {
     return FleetBus(
       busId: busId,
       companyId: companyId,
+      placa: placa ?? this.placa,
+      driverName: driverName ?? this.driverName,
       routeId: routeId ?? this.routeId,
       visible: visible ?? this.visible,
       online: online ?? this.online,

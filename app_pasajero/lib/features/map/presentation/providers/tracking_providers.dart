@@ -64,6 +64,14 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
           }
        });
 
+       final removedSub = service.busRemovedStream.listen((event) {
+          if (event['routeId'] != null && event['routeId'] != routeId) return;
+          final busId = event['busId'] as String?;
+          if (busId != null && positions.remove(busId) != null) {
+            emitSnapshot();
+          }
+       });
+
        final visibleSub = service.busVisibleStream.listen((event) {
           if (event['routeId'] != null && event['routeId'] != routeId) return;
           final eventId = event['eventId'] as String?;
@@ -83,6 +91,7 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
           liveSub.cancel();
           leftSub.cancel();
           hiddenSub.cancel();
+          removedSub.cancel();
           visibleSub.cancel();
           emitTimer?.cancel();
           controller.close();

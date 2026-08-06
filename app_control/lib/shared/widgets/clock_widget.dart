@@ -3,7 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class ClockWidget extends StatefulWidget {
-  const ClockWidget({super.key});
+  const ClockWidget({
+    super.key,
+    this.timeColor = Colors.white,
+    this.dateColor = Colors.white70,
+  });
+
+  final Color timeColor;
+  final Color dateColor;
 
   @override
   State<ClockWidget> createState() => _ClockWidgetState();
@@ -46,8 +53,8 @@ class _ClockWidgetState extends State<ClockWidget> {
       children: [
         Text(
           '${_two(_now.hour)}:${_two(_now.minute)}:${_two(_now.second)}',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: widget.timeColor,
             fontSize: 20,
             fontWeight: FontWeight.w800,
             fontFeatures: [FontFeature.tabularFigures()],
@@ -55,7 +62,7 @@ class _ClockWidgetState extends State<ClockWidget> {
         ),
         Text(
           date,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(color: widget.dateColor, fontSize: 12),
         ),
       ],
     );
