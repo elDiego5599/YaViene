@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../../shared/widgets/clock_widget.dart';
 import '../providers/fleet_providers.dart';
 import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
@@ -169,6 +170,8 @@ class _Header extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          const ClockWidget(),
+          const SizedBox(width: 20),
           TextButton.icon(
             onPressed: onLogout,
             icon: const Icon(Icons.logout, color: Colors.white, size: 18),

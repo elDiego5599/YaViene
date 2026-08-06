@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  const windowOptions = WindowOptions(
+    size: Size(1600, 900),
+    center: true,
+    fullScreen: true,
+    title: 'Ya Viene · Control',
+  );
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
   final container = ProviderContainer();
   await container.read(authProvider.notifier).restoreSession();
   runApp(UncontrolledProviderScope(container: container, child: const YaVieneControlApp()));
