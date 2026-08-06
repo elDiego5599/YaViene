@@ -11,6 +11,8 @@ class RealtimeService implements RealtimeRepository {
   final _busPositionController = StreamController<Map<String, dynamic>>.broadcast();
   final _batchPositionController = StreamController<Map<String, dynamic>>.broadcast();
   final _busLeftController = StreamController<Map<String, dynamic>>.broadcast();
+  final _busHiddenController = StreamController<Map<String, dynamic>>.broadcast();
+  final _busVisibleController = StreamController<Map<String, dynamic>>.broadcast();
 
   @override
   Stream<ConnectionStatus> get connectionStateStream => _connectionStateController.stream;
@@ -20,6 +22,10 @@ class RealtimeService implements RealtimeRepository {
   Stream<Map<String, dynamic>> get batchPositionStream => _batchPositionController.stream;
   @override
   Stream<Map<String, dynamic>> get busLeftStream => _busLeftController.stream;
+  @override
+  Stream<Map<String, dynamic>> get busHiddenStream => _busHiddenController.stream;
+  @override
+  Stream<Map<String, dynamic>> get busVisibleStream => _busVisibleController.stream;
 
   @override
   void connect() {
@@ -59,6 +65,12 @@ class RealtimeService implements RealtimeRepository {
     _socket!.on('bus:left', (data) {
       _busLeftController.add(Map<String, dynamic>.from(data as Map));
     });
+    _socket!.on('bus:hidden', (data) {
+      _busHiddenController.add(Map<String, dynamic>.from(data as Map));
+    });
+    _socket!.on('bus:visible', (data) {
+      _busVisibleController.add(Map<String, dynamic>.from(data as Map));
+    });
   }
 
   @override
@@ -82,6 +94,8 @@ class RealtimeService implements RealtimeRepository {
     _busPositionController.close();
     _batchPositionController.close();
     _busLeftController.close();
+    _busHiddenController.close();
+    _busVisibleController.close();
   }
 
   @override

@@ -6,6 +6,8 @@ abstract class RealtimeRepository {
   Stream<Map<String, dynamic>> get busPositionStream;
   Stream<Map<String, dynamic>> get batchPositionStream;
   Stream<Map<String, dynamic>> get busLeftStream;
+  Stream<Map<String, dynamic>> get busHiddenStream;
+  Stream<Map<String, dynamic>> get busVisibleStream;
 
   void connect();
   void subscribeToRoute(String routeId);

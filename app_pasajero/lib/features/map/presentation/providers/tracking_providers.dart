@@ -8,6 +8,7 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
        final service = ref.watch(realtimeServiceProvider);
        final controller = StreamController<List<BusPosition>>();
        final positions = <String, BusPosition>{};
+       final processedEventIds = <String>{};
        Timer? emitTimer;
 
        void emitSnapshot() {
@@ -45,21 +46,47 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
       });
 
        final leftSub = service.busLeftStream.listen((event) {
-         if (event['routeId'] != null && event['routeId'] != routeId) return;
-         final busId = event['busId'] as String?;
-         if (busId != null && positions.remove(busId) != null) {
-           emitSnapshot();
-         }
-      });
+          if (event['routeId'] != null && event['routeId'] != routeId) return;
+          final busId = event['busId'] as String?;
+          if (busId != null && positions.remove(busId) != null) {
+            emitSnapshot();
+          }
+       });
 
-      ref.onDispose(() {
-        service.unsubscribeFromRoute(routeId);
-         batchSub.cancel();
-         liveSub.cancel();
-         leftSub.cancel();
-         emitTimer?.cancel();
-         controller.close();
-      });
+       final hiddenSub = service.busHiddenStream.listen((event) {
+          if (event['routeId'] != null && event['routeId'] != routeId) return;
+          final eventId = event['eventId'] as String?;
+          final busId = event['busId'] as String?;
+          if (busId == null) return;
+          if (eventId != null && !processedEventIds.add(eventId)) return;
+          if (positions.remove(busId) != null) {
+            emitSnapshot();
+          }
+       });
+
+       final visibleSub = service.busVisibleStream.listen((event) {
+          if (event['routeId'] != null && event['routeId'] != routeId) return;
+          final eventId = event['eventId'] as String?;
+          final busId = event['busId'] as String?;
+          if (busId == null) return;
+          if (eventId != null && !processedEventIds.add(eventId)) return;
+          final position = event['position'];
+          if (position is Map) {
+            positions[busId] = _jsonToBusPosition(Map<String, dynamic>.from(position));
+            emitSnapshot();
+          }
+       });
+
+       ref.onDispose(() {
+         service.unsubscribeFromRoute(routeId);
+          batchSub.cancel();
+          liveSub.cancel();
+          leftSub.cancel();
+          hiddenSub.cancel();
+          visibleSub.cancel();
+          emitTimer?.cancel();
+          controller.close();
+       });
 
       return controller.stream;
     });
