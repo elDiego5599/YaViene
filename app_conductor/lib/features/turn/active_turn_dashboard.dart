@@ -119,83 +119,91 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  boxShadow: AppShadows.soft,
-                ),
-                child: Column(
-                  children: [
-                    Text('Tiempo Transcurrido',
-                        style: AppTextStyles.labelLarge),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      _formatDuration(duration),
-                      style: AppTextStyles.etaNumber
-                          .copyWith(color: AppColors.textPrimary),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      boxShadow: AppShadows.soft,
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Column(
                       children: [
-                        const Icon(Icons.directions_bus_rounded,
-                            color: AppColors.textSecondary, size: 20),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(widget.busId, style: AppTextStyles.bodyLarge),
-                        const SizedBox(width: AppSpacing.lg),
-                        const Icon(Icons.route_rounded,
-                            color: AppColors.textSecondary, size: 20),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(widget.routeId, style: AppTextStyles.bodyLarge),
+                        Text('Tiempo Transcurrido',
+                            style: AppTextStyles.labelLarge),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          _formatDuration(duration),
+                          style: AppTextStyles.etaNumber
+                              .copyWith(color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.directions_bus_rounded,
+                                color: AppColors.textSecondary, size: 20),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(widget.busId, style: AppTextStyles.bodyLarge),
+                            const SizedBox(width: AppSpacing.lg),
+                            const Icon(Icons.route_rounded,
+                                color: AppColors.textSecondary, size: 20),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(widget.routeId,
+                                style: AppTextStyles.bodyLarge),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _StatusCard(
+                    title: 'Transmisión GPS',
+                    subtitle: gpsSubtitle,
+                    icon: Icons.radar_rounded,
+                    isActive: isTracking,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _StatusCard(
+                    title: 'Sincronización',
+                    subtitle: syncSubtitle,
+                    icon: Icons.cloud_done_rounded,
+                    isActive: trackingStatus.outboxPendingCount == 0,
+                    isSecondary: true,
+                  ),
+                  const Spacer(),
+                  ElevatedButton(
+                    onPressed: _closeTurn,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.errorLight,
+                      foregroundColor: AppColors.error,
+                      elevation: 0,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.lg)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.power_settings_new_rounded, size: 24),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text('CERRAR TURNO', style: AppTextStyles.labelLarge),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.xl),
-              _StatusCard(
-                title: 'Transmisión GPS',
-                subtitle: gpsSubtitle,
-                icon: Icons.radar_rounded,
-                isActive: isTracking,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _StatusCard(
-                title: 'Sincronización',
-                subtitle: syncSubtitle,
-                icon: Icons.cloud_done_rounded,
-                isActive: trackingStatus.outboxPendingCount == 0,
-                isSecondary: true,
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: _closeTurn,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.errorLight,
-                  foregroundColor: AppColors.error,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.lg)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.power_settings_new_rounded, size: 24),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text('CERRAR TURNO', style: AppTextStyles.labelLarge),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
