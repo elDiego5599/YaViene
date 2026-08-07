@@ -107,8 +107,8 @@ class TrackingEngine {
 
       final locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-        intervalDuration: const Duration(seconds: 2),
+        distanceFilter: 2,
+        intervalDuration: const Duration(seconds: 1),
       );
 
       _positionStream = Geolocator.getPositionStream(
