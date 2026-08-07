@@ -48,7 +48,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     _publishMapInset();
 
     final destination =
-        selectedDirection == RouteSentido.ida ? 'Centro' : 'Soledad';
+        selectedDirection == RouteSentido.ida
+            ? _endpoint(selectedRoute, preferA: true)
+            : _endpoint(selectedRoute, preferA: false);
 
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -358,4 +360,12 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
       ),
     );
   }
+}
+
+String _endpoint(RouteInfo route, {required bool preferA}) {
+  final primary = preferA ? route.terminalA : route.terminalB;
+  final fallback = preferA ? route.terminalB : route.terminalA;
+  if (primary?.trim().isNotEmpty == true) return primary!.trim();
+  if (fallback?.trim().isNotEmpty == true) return fallback!.trim();
+  return preferA ? 'Inicio' : 'Fin';
 }

@@ -88,7 +88,9 @@ class RouteSelectorSheet extends ConsumerWidget {
                   children: [
                     _Segment(
                       title: 'Ida',
-                      subtitle: 'Centro → Soledad',
+                      subtitle: selectedRoute != null
+                          ? '${_idaEndpoint(selectedRoute)} → ${_vueltaEndpoint(selectedRoute)}'
+                          : 'Terminal inicial → final',
                       isSelected: selectedDirection == RouteSentido.ida,
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -97,7 +99,9 @@ class RouteSelectorSheet extends ConsumerWidget {
                     ),
                     _Segment(
                       title: 'Vuelta',
-                      subtitle: 'Soledad → Centro',
+                      subtitle: selectedRoute != null
+                          ? '${_vueltaEndpoint(selectedRoute)} → ${_idaEndpoint(selectedRoute)}'
+                          : 'Terminal final → inicial',
                       isSelected: selectedDirection == RouteSentido.vuelta,
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -297,6 +301,18 @@ class RouteSelectorSheet extends ConsumerWidget {
     );
   }
 }
+
+String _idaEndpoint(RouteInfo route) => route.terminalA?.trim().isNotEmpty == true
+    ? route.terminalA!.trim()
+    : route.terminalB?.trim().isNotEmpty == true
+        ? route.terminalB!.trim()
+        : 'Inicio';
+
+String _vueltaEndpoint(RouteInfo route) => route.terminalB?.trim().isNotEmpty == true
+    ? route.terminalB!.trim()
+    : route.terminalA?.trim().isNotEmpty == true
+        ? route.terminalA!.trim()
+        : 'Fin';
 
 class _Segment extends StatelessWidget {
   final String title;
