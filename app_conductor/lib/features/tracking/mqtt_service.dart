@@ -51,7 +51,7 @@ class MqttService {
     final uri = Uri.parse(AppConfig.backendUrl);
     _host = uri.host;
 
-    final clientId = 'conductor_${busId}_${Random().nextInt(999999)}';
+    final clientId = 'c$busId${Random().nextInt(999999)}';
     _client = MqttServerClient(_host!, clientId);
     _client!.secure = AppConfig.mqttSecure;
     _client!.port = AppConfig.mqttPort;
