@@ -44,9 +44,9 @@ class FleetState {
       if (filter != null && b.routeId != filter) return false;
       return switch (statusFilter) {
         FleetStatusFilter.all => true,
-        FleetStatusFilter.online => b.online,
+        FleetStatusFilter.online => b.online && !b.isGhost,
         FleetStatusFilter.hidden => !b.visible,
-        FleetStatusFilter.offline => !b.online,
+        FleetStatusFilter.offline => !b.online || b.isGhost,
       };
     }).toList()
       ..sort((a, b) => a.busId.compareTo(b.busId));
@@ -58,9 +58,9 @@ class FleetState {
       : buses.values.where((b) => b.routeId == routeFilter).toList();
 
   int get totalBuses => _routeScoped.length;
-  int get onlineBuses => _routeScoped.where((b) => b.online).length;
+  int get onlineBuses => _routeScoped.where((b) => b.online && !b.isGhost).length;
   int get hiddenBuses => _routeScoped.where((b) => !b.visible).length;
-  int get offlineBuses => _routeScoped.where((b) => !b.online).length;
+  int get offlineBuses => _routeScoped.where((b) => !b.online || b.isGhost).length;
 
   String? routeName(String? routeId) {
     if (routeId == null) return null;
@@ -144,7 +144,18 @@ class FleetNotifier extends StateNotifier<FleetState> {
       }
       state = state.copyWith(buses: {
         ...state.buses,
-        bus.busId: previous.copyWith(visible: true),
+        bus.busId: previous.copyWith(
+          visible: true,
+          online: bus.online,
+          lat: bus.lat,
+          lon: bus.lon,
+          heading: bus.heading,
+          speedKmh: bus.speedKmh,
+          capturedAt: bus.capturedAt,
+          receivedAt: bus.receivedAt,
+          sequence: bus.sequence,
+          isGhost: bus.isGhost,
+        ),
       });
     });
     socket.busLeftStream.listen((busId) {
@@ -221,6 +232,32 @@ class FleetNotifier extends StateNotifier<FleetState> {
                   'No se pudo crear la ruta.')
               : 'No se pudo crear la ruta.'
           : 'No se pudo crear la ruta.';
+      state = state.copyWith(error: message);
+      throw Exception(message);
+    }
+  }
+
+  Future<void> renameRoute(String routeId, {required String name}) async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      final route = await FleetApi().renameRoute(token, routeId, name: name);
+      debugPrint('[fleet] ruta renombrada ${route.routeId} -> ${route.name}');
+      state = state.copyWith(
+        routes: [
+          for (final r in state.routes) r.routeId == routeId ? route : r,
+        ],
+        clearError: true,
+      );
+      refreshRoutes();
+    } catch (e) {
+      debugPrint('[fleet] renombrar ruta FALLÓ: $e');
+      final message = e is DioException && e.response?.data is Map
+          ? e.response!.data['error'] is Map
+              ? (((e.response!.data as Map)['error'] as Map)['message']?.toString() ??
+                  'No se pudo renombrar la ruta.')
+              : 'No se pudo renombrar la ruta.'
+          : 'No se pudo renombrar la ruta.';
       state = state.copyWith(error: message);
       throw Exception(message);
     }

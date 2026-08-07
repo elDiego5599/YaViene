@@ -51,10 +51,12 @@ class ControlMap extends ConsumerWidget {
           bottom: 18,
           child: _Legend(
             online: fleet.buses.values
-                .where((b) => b.online && b.visible)
+                .where((b) => b.online && b.visible && !b.isGhost)
                 .length,
             hidden: fleet.buses.values.where((b) => !b.visible).length,
-            offline: fleet.buses.values.where((b) => !b.online).length,
+            offline: fleet.buses.values
+                .where((b) => !b.online || b.isGhost)
+                .length,
           ),
         ),
       ],

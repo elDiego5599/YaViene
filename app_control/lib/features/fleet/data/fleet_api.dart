@@ -92,6 +92,15 @@ class FleetApi {
     return FleetRoute.fromJson(response.data!);
   }
 
+  Future<FleetRoute> renameRoute(String token, String routeId, {required String name}) async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/api/fleet/routes/$routeId',
+      data: {'name': name},
+      options: _auth(token),
+    );
+    return FleetRoute.fromJson(response.data!);
+  }
+
   Future<void> deleteRoute(String token, String routeId) async {
     await _dio.delete<void>(
       '/api/fleet/routes/$routeId',

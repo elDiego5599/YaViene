@@ -61,6 +61,74 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
     }
   }
 
+  Future<void> _rename(FleetRoute route) async {
+    final controller = TextEditingController(text: route.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Renombrar ruta',
+          style: GoogleFonts.inter(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autocorrect: false,
+          autofocus: true,
+          style: GoogleFonts.inter(fontSize: 14),
+          decoration: const InputDecoration(
+            hintText: 'Nuevo nombre',
+          ),
+          onSubmitted: (value) {
+            if (value.trim().isNotEmpty) Navigator.of(dialogContext).pop(value);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isNotEmpty) Navigator.of(dialogContext).pop(value);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.online,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            child: const Text('GUARDAR'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newName == null || newName == route.name) return;
+    final routes = ref.read(fleetProvider).routes;
+    final exists = routes.any(
+      (r) => r.name.toLowerCase() == newName.toLowerCase(),
+    );
+    if (exists) {
+      setState(() => _error = 'Ya existe una ruta con ese nombre.');
+      return;
+    }
+    try {
+      await ref.read(fleetProvider.notifier).renameRoute(route.routeId, name: newName);
+    } catch (_) {}
+  }
+
   Future<void> _confirmDelete(FleetRoute route) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -279,6 +347,16 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                                     color: AppColors.navy,
                                   ),
                                 ),
+                              ),
+                              IconButton(
+                                onPressed: () => _rename(route),
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 17,
+                                  color: AppColors.textSecondary,
+                                ),
+                                tooltip: 'Renombrar ruta',
+                                visualDensity: VisualDensity.compact,
                               ),
                               IconButton(
                                 onPressed: () => _confirmDelete(route),
