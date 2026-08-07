@@ -67,76 +67,20 @@ class ControlMap extends ConsumerWidget {
     return Marker(
       point: LatLng(bus.lat!, bus.lon!),
       width: 48,
-      height: 64,
+      height: 48,
       child: GestureDetector(
         onTap: onTap,
-        child: _BusMarker(
-          busId: bus.busId,
-          active: bus.online && !bus.isGhost,
-          selected: selected,
-          heading: bus.heading,
+        child: Transform.rotate(
+          angle: bus.heading * math.pi / 180,
+          child: CustomPaint(
+            size: const Size(44, 44),
+            painter: _FlatBusPainter(
+              active: bus.online && !bus.isGhost,
+              selected: selected,
+            ),
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _BusMarker extends StatelessWidget {
-  const _BusMarker({
-    required this.busId,
-    required this.active,
-    required this.selected,
-    required this.heading,
-  });
-
-  final String busId;
-  final bool active;
-  final bool selected;
-  final double heading;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Transform.rotate(
-          angle: heading * math.pi / 180,
-          child: Transform.scale(
-            scale: selected ? 1.45 : 1.0,
-            child: CustomPaint(
-              size: const Size(44, 44),
-              painter: _FlatBusPainter(active: active, selected: selected),
-            ),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.navy : Colors.white,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected ? AppColors.navy : AppColors.borderStrong,
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14000000),
-                blurRadius: 4,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Text(
-            busId,
-            style: GoogleFonts.inter(
-              fontSize: 8.5,
-              fontWeight: FontWeight.w800,
-              color: selected ? Colors.white : AppColors.textPrimary,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
