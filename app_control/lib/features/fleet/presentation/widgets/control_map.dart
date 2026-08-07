@@ -66,8 +66,8 @@ class ControlMap extends ConsumerWidget {
   Marker _buildMarker(FleetBus bus, bool selected, VoidCallback onTap) {
     return Marker(
       point: LatLng(bus.lat!, bus.lon!),
-      width: 84,
-      height: 104,
+      width: 48,
+      height: 64,
       child: GestureDetector(
         onTap: onTap,
         child: _BusMarker(
@@ -104,7 +104,7 @@ class _BusMarker extends StatelessWidget {
           child: Transform.scale(
             scale: selected ? 1.45 : 1.0,
             child: CustomPaint(
-              size: const Size(80, 80),
+              size: const Size(44, 44),
               painter: _FlatBusPainter(active: active, selected: selected),
             ),
           ),
@@ -153,6 +153,7 @@ class _FlatBusPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final s = size.width / 80;
     final centerX = size.width / 2;
     final centerY = size.height / 2;
     final baseColor = active ? _activeBody : _ghostBody;
@@ -160,25 +161,27 @@ class _FlatBusPainter extends CustomPainter {
     if (selected) {
       final halo = Paint()
         ..color = _headlight.withValues(alpha: 0.45)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawCircle(Offset(centerX, centerY), 24, halo);
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * s);
+      canvas.drawCircle(Offset(centerX, centerY), 24 * s, halo);
     }
 
     final bodyRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(centerX, centerY), width: 32, height: 60),
+      Rect.fromCenter(
+          center: Offset(centerX, centerY), width: 32 * s, height: 60 * s),
       const Radius.circular(10),
     );
 
     canvas.drawShadow(
-      (ui.Path()..addRect(
-        Rect.fromCenter(
-          center: Offset(centerX, centerY + 2),
-          width: 32,
-          height: 60,
-        ),
-      )),
+      (ui.Path()
+        ..addRect(
+          Rect.fromCenter(
+            center: Offset(centerX, centerY + 2 * s),
+            width: 32 * s,
+            height: 60 * s,
+          ),
+        )),
       Colors.black.withValues(alpha: 0.15),
-      4.0,
+      4.0 * s,
       false,
     );
 
@@ -186,9 +189,9 @@ class _FlatBusPainter extends CustomPainter {
 
     final glassRect = RRect.fromRectAndRadius(
       Rect.fromCenter(
-        center: Offset(centerX, centerY - 18),
-        width: 24,
-        height: 10,
+        center: Offset(centerX, centerY - 18 * s),
+        width: 24 * s,
+        height: 10 * s,
       ),
       const Radius.circular(4),
     );
@@ -199,8 +202,8 @@ class _FlatBusPainter extends CustomPainter {
 
     if (active) {
       final light = Paint()..color = _headlight;
-      canvas.drawCircle(Offset(centerX - 8, centerY + 24), 3, light);
-      canvas.drawCircle(Offset(centerX + 8, centerY + 24), 3, light);
+      canvas.drawCircle(Offset(centerX - 8 * s, centerY + 24 * s), 3 * s, light);
+      canvas.drawCircle(Offset(centerX + 8 * s, centerY + 24 * s), 3 * s, light);
     }
   }
 
