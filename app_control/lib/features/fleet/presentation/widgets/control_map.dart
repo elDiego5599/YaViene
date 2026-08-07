@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +18,7 @@ class ControlMap extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fleet = ref.watch(fleetProvider);
     final markers = fleet.fleetList
-        .where((b) => b.lat != null && b.lon != null)
+        .where((b) => b.visible && b.lat != null && b.lon != null)
         .map(
           (b) => _buildMarker(b, fleet.selectedBusId == b.busId, () {
             ref.read(fleetProvider.notifier).selectBus(b.busId);
@@ -59,23 +62,17 @@ class ControlMap extends ConsumerWidget {
   }
 
   Marker _buildMarker(FleetBus bus, bool selected, VoidCallback onTap) {
-    final (color, hidden) = switch ((bus.visible, bus.online, bus.isGhost)) {
-      (false, _, _) => (AppColors.hidden, true),
-      (_, false, _) => (AppColors.offline, true),
-      (_, _, true) => (AppColors.ghost, false),
-      _ => (AppColors.online, false),
-    };
     return Marker(
       point: LatLng(bus.lat!, bus.lon!),
-      width: 62,
-      height: 62,
+      width: 84,
+      height: 104,
       child: GestureDetector(
         onTap: onTap,
         child: _BusMarker(
           busId: bus.busId,
-          color: color,
-          hidden: hidden,
+          active: bus.online && !bus.isGhost,
           selected: selected,
+          heading: bus.heading,
         ),
       ),
     );
@@ -85,58 +82,37 @@ class ControlMap extends ConsumerWidget {
 class _BusMarker extends StatelessWidget {
   const _BusMarker({
     required this.busId,
-    required this.color,
-    required this.hidden,
+    required this.active,
     required this.selected,
+    required this.heading,
   });
 
   final String busId;
-  final Color color;
-  final bool hidden;
+  final bool active;
   final bool selected;
+  final double heading;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: hidden ? Colors.white : color,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: selected
-                  ? AppColors.navy
-                  : hidden
-                  ? color
-                  : Colors.white,
-              width: selected ? 2.5 : 1.6,
+        Transform.rotate(
+          angle: heading * math.pi / 180,
+          child: Transform.scale(
+            scale: selected ? 1.45 : 1.0,
+            child: CustomPaint(
+              size: const Size(80, 80),
+              painter: _FlatBusPainter(active: active, selected: selected),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: (selected ? AppColors.navy : color).withValues(
-                  alpha: hidden ? 0.25 : 0.35,
-                ),
-                blurRadius: selected ? 14 : 8,
-                spreadRadius: selected ? 1 : 0,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.directions_bus,
-            size: 17,
-            color: hidden ? color : const Color(0xFF0C0C0F),
           ),
         ),
+        const SizedBox(height: 2),
         Container(
-          margin: const EdgeInsets.only(top: 3),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
             color: selected ? AppColors.navy : Colors.white,
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: selected ? AppColors.navy : AppColors.borderStrong,
             ),
@@ -161,6 +137,74 @@ class _BusMarker extends StatelessWidget {
       ],
     );
   }
+}
+
+class _FlatBusPainter extends CustomPainter {
+  const _FlatBusPainter({required this.active, required this.selected});
+
+  final bool active;
+  final bool selected;
+
+  static const Color _activeBody = Color(0xFF14274E);
+  static const Color _ghostBody = Color(0xFF94A3B8);
+  static const Color _headlight = Color(0xFF00A859);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final baseColor = active ? _activeBody : _ghostBody;
+
+    if (selected) {
+      final halo = Paint()
+        ..color = _headlight.withValues(alpha: 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawCircle(Offset(centerX, centerY), 24, halo);
+    }
+
+    final bodyRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(centerX, centerY), width: 32, height: 60),
+      const Radius.circular(10),
+    );
+
+    canvas.drawShadow(
+      (ui.Path()..addRect(
+        Rect.fromCenter(
+          center: Offset(centerX, centerY + 2),
+          width: 32,
+          height: 60,
+        ),
+      )),
+      Colors.black.withValues(alpha: 0.15),
+      4.0,
+      false,
+    );
+
+    canvas.drawRRect(bodyRect, Paint()..color = baseColor);
+
+    final glassRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(centerX, centerY - 18),
+        width: 24,
+        height: 10,
+      ),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(
+      glassRect,
+      Paint()..color = Colors.white.withValues(alpha: active ? 0.95 : 0.5),
+    );
+
+    if (active) {
+      final light = Paint()..color = _headlight;
+      canvas.drawCircle(Offset(centerX - 8, centerY + 24), 3, light);
+      canvas.drawCircle(Offset(centerX + 8, centerY + 24), 3, light);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FlatBusPainter oldDelegate) =>
+      oldDelegate.active != active || oldDelegate.selected != selected;
 }
 
 class _Legend extends StatelessWidget {
@@ -198,9 +242,9 @@ class _Legend extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          _legendRow(AppColors.online, 'Visibles en línea', online),
-          _legendRow(AppColors.hidden, 'Ocultos', hidden),
+          _legendRow(AppColors.online, 'En línea', online),
           _legendRow(AppColors.offline, 'Sin señal', offline),
+          _legendRow(AppColors.textMuted, 'Ocultos (no se muestran)', hidden),
         ],
       ),
     );

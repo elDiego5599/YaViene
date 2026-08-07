@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +10,8 @@ import '../../domain/fleet_route.dart';
 
 enum FleetConnection { connecting, connected, disconnected }
 
+enum FleetStatusFilter { all, online, hidden, offline }
+
 class FleetState {
   const FleetState({
     this.connection = FleetConnection.connecting,
@@ -18,6 +21,7 @@ class FleetState {
     this.updating = const <String>{},
     this.selectedBusId,
     this.routeFilter,
+    this.statusFilter = FleetStatusFilter.all,
   });
 
   final FleetConnection connection;
@@ -27,6 +31,7 @@ class FleetState {
   final Set<String> updating;
   final String? selectedBusId;
   final String? routeFilter;
+  final FleetStatusFilter statusFilter;
 
   FleetBus? get selectedBus {
     final id = selectedBusId;
@@ -36,16 +41,26 @@ class FleetState {
   List<FleetBus> get fleetList {
     final list = buses.values.where((b) {
       final filter = routeFilter;
-      return filter == null || b.routeId == filter;
+      if (filter != null && b.routeId != filter) return false;
+      return switch (statusFilter) {
+        FleetStatusFilter.all => true,
+        FleetStatusFilter.online => b.online,
+        FleetStatusFilter.hidden => !b.visible,
+        FleetStatusFilter.offline => !b.online,
+      };
     }).toList()
       ..sort((a, b) => a.busId.compareTo(b.busId));
     return list;
   }
 
-  int get totalBuses => buses.length;
-  int get onlineBuses => buses.values.where((b) => b.online).length;
-  int get hiddenBuses => buses.values.where((b) => !b.visible).length;
-  int get offlineBuses => buses.values.where((b) => !b.online).length;
+  List<FleetBus> get _routeScoped => routeFilter == null
+      ? buses.values.toList()
+      : buses.values.where((b) => b.routeId == routeFilter).toList();
+
+  int get totalBuses => _routeScoped.length;
+  int get onlineBuses => _routeScoped.where((b) => b.online).length;
+  int get hiddenBuses => _routeScoped.where((b) => !b.visible).length;
+  int get offlineBuses => _routeScoped.where((b) => !b.online).length;
 
   String? routeName(String? routeId) {
     if (routeId == null) return null;
@@ -63,6 +78,7 @@ class FleetState {
     Set<String>? updating,
     String? Function()? selectedBusId,
     String? Function()? routeFilter,
+    FleetStatusFilter? statusFilter,
     bool clearError = false,
   }) {
     return FleetState(
@@ -73,6 +89,7 @@ class FleetState {
       updating: updating ?? this.updating,
       selectedBusId: selectedBusId != null ? selectedBusId() : this.selectedBusId,
       routeFilter: routeFilter != null ? routeFilter() : this.routeFilter,
+      statusFilter: statusFilter ?? this.statusFilter,
     );
   }
 }
@@ -102,6 +119,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     });
     socket.busPositionStream.listen((bus) {
       final previous = state.buses[bus.busId];
+      debugPrint('[fleet] bus:position ${bus.busId} lat=${bus.lat} lon=${bus.lon}');
       state = state.copyWith(buses: {
         ...state.buses,
         bus.busId: bus.copyWith(
@@ -120,12 +138,13 @@ class FleetNotifier extends StateNotifier<FleetState> {
     });
     socket.busVisibleStream.listen((bus) {
       final previous = state.buses[bus.busId];
+      if (previous == null) {
+        state = state.copyWith(buses: {...state.buses, bus.busId: bus});
+        return;
+      }
       state = state.copyWith(buses: {
         ...state.buses,
-        bus.busId: bus.copyWith(
-          visible: true,
-          online: previous?.online ?? true,
-        ),
+        bus.busId: previous.copyWith(visible: true),
       });
     });
     socket.busLeftStream.listen((busId) {
@@ -180,6 +199,53 @@ class FleetNotifier extends StateNotifier<FleetState> {
     state = state.copyWith(routeFilter: () => routeId);
   }
 
+  void setStatusFilter(FleetStatusFilter filter) {
+    state = state.copyWith(statusFilter: filter);
+  }
+
+  Future<void> addRoute({required String name}) async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      final route = await FleetApi().createRoute(token, name: name);
+      debugPrint('[fleet] ruta creada ${route.routeId}');
+      state = state.copyWith(
+        routes: [...state.routes, route],
+        clearError: true,
+      );
+    } catch (e) {
+      debugPrint('[fleet] crear ruta FALLÓ: $e');
+      final message = e is DioException && e.response?.data is Map
+          ? e.response!.data['error'] is Map
+              ? (((e.response!.data as Map)['error'] as Map)['message']?.toString() ??
+                  'No se pudo crear la ruta.')
+              : 'No se pudo crear la ruta.'
+          : 'No se pudo crear la ruta.';
+      state = state.copyWith(error: message);
+      throw Exception(message);
+    }
+  }
+
+  Future<void> removeRoute(String routeId) async {
+    final token = _token;
+    if (token == null) return;
+    try {
+      await FleetApi().deleteRoute(token, routeId);
+      debugPrint('[fleet] ruta eliminada $routeId');
+      state = state.copyWith(
+        routes: state.routes.where((r) => r.routeId != routeId).toList(),
+        routeFilter: () => state.routeFilter == routeId ? null : state.routeFilter,
+        clearError: true,
+      );
+      refreshRoutes();
+      refresh();
+    } catch (e) {
+      debugPrint('[fleet] eliminar ruta FALLÓ: $e');
+      state = state.copyWith(error: 'No se pudo eliminar la ruta.');
+      rethrow;
+    }
+  }
+
   Future<void> toggleVisibility(String busId, bool visible) async {
     final token = _token;
     final previous = state.buses[busId];
@@ -205,12 +271,12 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }
   }
 
-  Future<void> addBus({required String placa, String? routeId}) async {
+  Future<void> addBus({required String placa, String? routeId, String? interno}) async {
     final token = _token;
     if (token == null) return;
     try {
-      final bus = await FleetApi().createBus(token, placa: placa, routeId: routeId);
-      debugPrint('[fleet] bus creado ${bus.busId} placa=${bus.placa} ruta=${bus.routeId}');
+      final bus = await FleetApi().createBus(token, placa: placa, routeId: routeId, interno: interno);
+      debugPrint('[fleet] bus creado ${bus.busId} placa=${bus.placa} ruta=${bus.routeId} interno=${bus.interno}');
       state = state.copyWith(
         buses: {...state.buses, bus.busId: bus},
         clearError: true,
@@ -227,12 +293,13 @@ class FleetNotifier extends StateNotifier<FleetState> {
     String busId, {
     String? placa,
     String? routeId,
+    String? interno,
   }) async {
     final token = _token;
     if (token == null) return;
     try {
-      final bus = await FleetApi().updateBus(token, busId, placa: placa, routeId: routeId);
-      debugPrint('[fleet] bus editado $busId placa=${bus.placa} ruta=${bus.routeId}');
+      final bus = await FleetApi().updateBus(token, busId, placa: placa, routeId: routeId, interno: interno);
+      debugPrint('[fleet] bus editado $busId placa=${bus.placa} ruta=${bus.routeId} interno=${bus.interno}');
       state = state.copyWith(
         buses: {...state.buses, bus.busId: bus},
         clearError: true,
@@ -261,6 +328,26 @@ class FleetNotifier extends StateNotifier<FleetState> {
     } catch (e) {
       debugPrint('[fleet] eliminar bus FALLÓ: $e');
       state = state.copyWith(error: 'No se pudo eliminar el bus.');
+      rethrow;
+    }
+  }
+
+  Future<int> removeAllBuses() async {
+    final token = _token;
+    if (token == null) return 0;
+    try {
+      final count = await FleetApi().deleteAllBuses(token);
+      debugPrint('[fleet] debug: $count buses eliminados');
+      state = state.copyWith(
+        buses: const <String, FleetBus>{},
+        selectedBusId: () => null,
+        clearError: true,
+      );
+      refreshRoutes();
+      return count;
+    } catch (e) {
+      debugPrint('[fleet] borrar todos FALLÓ: $e');
+      state = state.copyWith(error: 'No se pudieron borrar los buses.');
       rethrow;
     }
   }

@@ -50,10 +50,15 @@ class FleetApi {
     return FleetBus.fromJson(response.data!);
   }
 
-  Future<FleetBus> createBus(String token, {required String placa, String? routeId}) async {
+  Future<FleetBus> createBus(
+    String token, {
+    required String placa,
+    String? routeId,
+    String? interno,
+  }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/api/fleet/buses',
-      data: {'placa': placa, 'routeId': routeId ?? ''},
+      data: {'placa': placa, 'routeId': routeId ?? '', 'interno': interno ?? ''},
       options: _auth(token),
     );
     return FleetBus.fromJson(response.data!);
@@ -64,16 +69,34 @@ class FleetApi {
     String busId, {
     String? placa,
     String? routeId,
+    String? interno,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/api/fleet/buses/$busId',
       data: {
         'placa': ?placa,
         'routeId': ?routeId,
+        'interno': ?interno,
       },
       options: _auth(token),
     );
     return FleetBus.fromJson(response.data!);
+  }
+
+  Future<FleetRoute> createRoute(String token, {required String name}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/fleet/routes',
+      data: {'routeId': '', 'name': name},
+      options: _auth(token),
+    );
+    return FleetRoute.fromJson(response.data!);
+  }
+
+  Future<void> deleteRoute(String token, String routeId) async {
+    await _dio.delete<void>(
+      '/api/fleet/routes/$routeId',
+      options: _auth(token),
+    );
   }
 
   Future<void> deleteBus(String token, String busId) async {
@@ -81,5 +104,13 @@ class FleetApi {
       '/api/fleet/buses/$busId',
       options: _auth(token),
     );
+  }
+
+  Future<int> deleteAllBuses(String token) async {
+    final response = await _dio.delete<Map<String, dynamic>>(
+      '/api/fleet/buses',
+      options: _auth(token),
+    );
+    return (response.data?['count'] as num?)?.toInt() ?? 0;
   }
 }

@@ -14,7 +14,6 @@ class FleetListTile extends StatelessWidget {
     required this.onTap,
     required this.onToggle,
     required this.onEdit,
-    required this.onDelete,
   });
 
   final FleetBus bus;
@@ -24,19 +23,18 @@ class FleetListTile extends StatelessWidget {
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final (statusLabel, statusColor) = _status(bus);
-    return Material(
+    final card = Material(
       color: selected ? const Color(0xFFF1F6F2) : AppColors.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+          padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
@@ -61,13 +59,18 @@ class FleetListTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          bus.placa.isEmpty ? bus.busId : bus.placa,
-                          style: GoogleFonts.inter(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                            letterSpacing: 0.4,
+                        Tooltip(
+                          message: statusLabel == 'Sin señal'
+                              ? 'Sin señal: el bus no está transmitiendo'
+                              : 'En línea: el bus está transmitiendo',
+                          child: Text(
+                            bus.placa.isEmpty ? bus.busId : bus.placa,
+                            style: GoogleFonts.inter(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              letterSpacing: 0.4,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -84,21 +87,10 @@ class FleetListTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        Flexible(
-                          child: Text(
-                            bus.busId,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 11,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ),
-                        if (bus.driverName != null) ...[
-                          const SizedBox(width: 8),
+                        if (bus.driverName != null)
                           Flexible(
                             child: Text(
-                              '· ${bus.driverName}',
+                              bus.driverName!,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inter(
                                 fontSize: 11.5,
@@ -106,7 +98,6 @@ class FleetListTile extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ],
                       ],
                     ),
                   ],
@@ -141,39 +132,50 @@ class FleetListTile extends StatelessWidget {
                 tooltip: 'Editar bus',
                 visualDensity: VisualDensity.compact,
               ),
-              IconButton(
-                onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 17,
-                  color: AppColors.textMuted,
-                ),
-                tooltip: 'Eliminar bus',
-                visualDensity: VisualDensity.compact,
-              ),
               const SizedBox(width: 2),
-              updating
-                  ? const SizedBox(
-                      width: 36,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  updating
+                      ? const SizedBox(
+                          width: 36,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        )
+                      : Tooltip(
+                          message: bus.visible
+                              ? 'Los pasajeros pueden ver este bus'
+                              : 'Oculto para los pasajeros',
+                          child: Switch(
+                            value: bus.visible,
+                            onChanged: (v) => onToggle(v),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
-                      ),
-                    )
-                  : Switch(
-                      value: bus.visible,
-                      onChanged: (v) => onToggle(v),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  const SizedBox(height: 2),
+                  Text(
+                    bus.visible ? 'PERMITIDO' : 'OCULTO',
+                    style: GoogleFonts.inter(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                      color: bus.visible ? AppColors.online : AppColors.textMuted,
                     ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
     );
+    return Opacity(opacity: bus.online ? 1 : 0.7, child: card);
   }
 
   (String, Color) _status(FleetBus bus) {

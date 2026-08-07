@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +13,7 @@ import '../providers/fleet_providers.dart';
 import '../widgets/bus_dialog.dart';
 import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
+import '../widgets/route_dialog.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -23,6 +25,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _searchController = TextEditingController();
   String _query = '';
+  bool _refreshing = false;
 
   @override
   void initState() {
@@ -38,6 +41,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     super.dispose();
   }
 
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() => _refreshing = true);
+    final started = DateTime.now();
+    try {
+      await ref.read(fleetProvider.notifier).refresh();
+    } finally {
+      final rest = const Duration(milliseconds: 700) - DateTime.now().difference(started);
+      if (rest > Duration.zero) {
+        await Future<void>.delayed(rest);
+      }
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
   Future<void> _logout() async {
     await ref.read(authProvider.notifier).logout();
     if (mounted) context.go('/login');
@@ -46,11 +64,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _showBusDialog({FleetBus? bus}) {
     showDialog<void>(
       context: context,
-      builder: (_) => BusDialog(bus: bus),
+      builder: (dialogContext) => BusDialog(
+        bus: bus,
+        onDelete: bus == null
+            ? null
+            : () async {
+                try {
+                  await ref.read(fleetProvider.notifier).removeBus(bus.busId);
+                } catch (_) {}
+              },
+      ),
     );
   }
 
-  Future<void> _confirmDelete(FleetBus bus) async {
+  void _showRouteDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const RouteDialog(),
+    );
+  }
+
+  Future<void> _confirmDeleteSelected(FleetBus bus) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -64,8 +98,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
         content: Text(
-          '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} del catálogo? '
-          'Los pasajeros dejarán de verlo de inmediato.',
+          '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la flota? '
+          'Los pasajeros dejarán de verlo de inmediato. Esta acción no se puede '
+          'deshacer.',
           style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
         ),
         actions: [
@@ -99,9 +134,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
+  Future<void> _confirmWipeAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Borrar todos los buses',
+          style: GoogleFonts.inter(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          'Esta acción de debug elimina TODOS los buses de la flota de la base '
+          'de datos. No se puede deshacer. ¿Continuar?',
+          style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            child: const Text('BORRAR TODO'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await ref.read(fleetProvider.notifier).removeAllBuses();
+      } catch (_) {}
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authProvider);
     final fleet = ref.watch(fleetProvider);
 
     final buses = fleet.fleetList.where((b) {
@@ -114,95 +197,86 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }).toList();
 
     return Scaffold(
-      body: Row(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Sidebar(
-            companyName: auth.session?.companyName ?? 'Mi empresa',
+          _Header(
             connection: fleet.connection,
             onLogout: _logout,
           ),
+          _TopBar(
+            refreshing: _refreshing,
+            searchController: _searchController,
+            onSearchChanged: (v) => setState(() => _query = v),
+            onRefresh: _refresh,
+            onDebugWipe: _confirmWipeAll,
+          ),
+          if (fleet.error != null) _ErrorBanner(message: fleet.error!),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _RouteFilters(
+              fleet: fleet,
+              onSelect: (routeId) =>
+                  ref.read(fleetProvider.notifier).setRouteFilter(routeId),
+            ),
+          ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _TopBar(
-                  total: fleet.totalBuses,
-                  online: fleet.onlineBuses,
-                  searchController: _searchController,
-                  onSearchChanged: (v) => setState(() => _query = v),
-                  onRefresh: () => ref.read(fleetProvider.notifier).refresh(),
-                ),
-                if (fleet.error != null) _ErrorBanner(message: fleet.error!),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 14),
-                  child: _StatsRow(fleet: fleet),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: _RouteFilters(
-                    fleet: fleet,
-                    onSelect: (routeId) =>
-                        ref.read(fleetProvider.notifier).setRouteFilter(routeId),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: _FleetPanel(
+                      buses: buses,
+                      fleet: fleet,
+                      onAddBus: () => _showBusDialog(),
+                      onAddRoute: _showRouteDialog,
+                      onEditBus: (bus) => _showBusDialog(bus: bus),
+                      onStatusFilter: (filter) => ref
+                          .read(fleetProvider.notifier)
+                          .setStatusFilter(filter),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 3,
+                    child: Stack(
                       children: [
-                        Expanded(
-                          flex: 2,
-                          child: _FleetPanel(
-                            buses: buses,
-                            fleet: fleet,
-                            onAddBus: () => _showBusDialog(),
-                            onEditBus: (bus) => _showBusDialog(bus: bus),
-                            onDeleteBus: _confirmDelete,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 3,
-                          child: Stack(
-                            children: [
-                              const Positioned.fill(child: ControlMap()),
-                              if (fleet.selectedBus != null)
-                                Positioned(
-                                  right: 16,
-                                  bottom: 16,
-                                  child: _SelectedBusCard(
-                                    bus: fleet.selectedBus!,
-                                    routeName: fleet.routeName(
-                                      fleet.selectedBus!.routeId,
-                                    ),
-                                    updating: fleet.updating.contains(
-                                      fleet.selectedBus!.busId,
-                                    ),
-                                    onToggle: (visible) => ref
-                                        .read(fleetProvider.notifier)
-                                        .toggleVisibility(
-                                          fleet.selectedBus!.busId,
-                                          visible,
-                                        ),
-                                    onEdit: () =>
-                                        _showBusDialog(bus: fleet.selectedBus),
-                                    onDelete: () =>
-                                        _confirmDelete(fleet.selectedBus!),
-                                    onClose: () => ref
-                                        .read(fleetProvider.notifier)
-                                        .selectBus(null),
+                        const Positioned.fill(child: ControlMap()),
+                        if (fleet.selectedBus != null)
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: _SelectedBusCard(
+                              bus: fleet.selectedBus!,
+                              routeName: fleet.routeName(
+                                fleet.selectedBus!.routeId,
+                              ),
+                              updating: fleet.updating.contains(
+                                fleet.selectedBus!.busId,
+                              ),
+                              onToggle: (visible) => ref
+                                  .read(fleetProvider.notifier)
+                                  .toggleVisibility(
+                                    fleet.selectedBus!.busId,
+                                    visible,
                                   ),
-                                ),
-                            ],
+                              onEdit: () =>
+                                  _showBusDialog(bus: fleet.selectedBus),
+                              onDelete: () =>
+                                  _confirmDeleteSelected(fleet.selectedBus!),
+                              onClose: () => ref
+                                  .read(fleetProvider.notifier)
+                                  .selectBus(null),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -211,14 +285,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-class _Sidebar extends StatelessWidget {
-  const _Sidebar({
-    required this.companyName,
+class _Header extends StatelessWidget {
+  const _Header({
     required this.connection,
     required this.onLogout,
   });
 
-  final String companyName;
   final FleetConnection connection;
   final VoidCallback onLogout;
 
@@ -230,177 +302,94 @@ class _Sidebar extends StatelessWidget {
       FleetConnection.connecting => ('Conectando…', AppColors.ghost),
     };
     return Container(
-      width: 224,
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        border: Border(right: BorderSide(color: AppColors.border)),
+        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/logo/ya_viene_logo.svg',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'YA VIENE',
-                        style: GoogleFonts.inter(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2.5,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'CONTROL DE FLOTA',
-                        style: GoogleFonts.inter(
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.8,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-            child: _NavItem(
-              icon: Icons.grid_view_rounded,
-              label: 'FLOTA',
-              active: true,
-            ),
-          ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  companyName,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: onLogout,
-                  icon: const Icon(Icons.logout, size: 16),
-                  label: const Text('Salir'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: AppColors.borderStrong),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    textStyle: GoogleFonts.inter(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: active ? AppColors.navy.withValues(alpha: 0.08) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
-          Icon(icon, size: 17, color: active ? AppColors.navy : AppColors.textMuted),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.8,
-              color: active ? AppColors.navy : AppColors.textMuted,
+          Container(
+            width: 36,
+            height: 36,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: SvgPicture.asset(
+              'assets/logo/ya_viene_logo.svg',
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'YA VIENE',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.5,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                'CONTROL DE FLOTA',
+                style: GoogleFonts.inter(
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.8,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          OutlinedButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout, size: 15),
+            label: const Text('Salir'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+              side: const BorderSide(color: AppColors.borderStrong),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              textStyle: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
           ),
         ],
@@ -409,20 +398,46 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-class _TopBar extends StatelessWidget {
+class _TopBar extends StatefulWidget {
   const _TopBar({
-    required this.total,
-    required this.online,
+    required this.refreshing,
     required this.searchController,
     required this.onSearchChanged,
     required this.onRefresh,
+    required this.onDebugWipe,
   });
 
-  final int total;
-  final int online;
+  final bool refreshing;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onRefresh;
+  final VoidCallback onDebugWipe;
+
+  @override
+  State<_TopBar> createState() => _TopBarState();
+}
+
+class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
+  late final AnimationController _spin = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  @override
+  void didUpdateWidget(_TopBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshing && !_spin.isAnimating) {
+      _spin.repeat();
+    } else if (!widget.refreshing && _spin.isAnimating) {
+      _spin.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _spin.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -430,33 +445,21 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Flota',
-                style: GoogleFonts.inter(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                '$total buses · $online en ruta ahora',
-                style: GoogleFonts.inter(
-                  fontSize: 12.5,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
+          Text(
+            'Flota',
+            style: GoogleFonts.inter(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
+              color: AppColors.textPrimary,
+            ),
           ),
           const Spacer(),
           SizedBox(
             width: 260,
             child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
+              controller: widget.searchController,
+              onChanged: widget.onSearchChanged,
               style: GoogleFonts.inter(fontSize: 13.5),
               decoration: const InputDecoration(
                 hintText: 'Buscar placa, bus, ruta o conductor…',
@@ -468,12 +471,33 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           IconButton(
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh, size: 20, color: AppColors.textSecondary),
+            onPressed: widget.refreshing ? null : widget.onRefresh,
+            icon: RotationTransition(
+              turns: _spin,
+              child: const Icon(
+                Icons.refresh,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+            ),
             tooltip: 'Actualizar flota',
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.border),
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            onPressed: widget.onDebugWipe,
+            icon: const Icon(
+              Icons.delete_sweep_outlined,
+              size: 20,
+              color: AppColors.danger,
+            ),
+            tooltip: 'Debug: borrar todos los buses',
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.danger.withValues(alpha: 0.08),
+              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.25)),
             ),
           ),
           const SizedBox(width: 14),
@@ -487,142 +511,72 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.fleet});
-
-  final FleetState fleet;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _StatCard(
-          label: 'TOTAL FLOTA',
-          value: fleet.totalBuses,
-          icon: Icons.directions_bus,
-          color: AppColors.navy,
-        ),
-        const SizedBox(width: 12),
-        _StatCard(
-          label: 'EN RUTA',
-          value: fleet.onlineBuses,
-          icon: Icons.navigation,
-          color: AppColors.online,
-        ),
-        const SizedBox(width: 12),
-        _StatCard(
-          label: 'OCULTOS',
-          value: fleet.hiddenBuses,
-          icon: Icons.visibility_off,
-          color: AppColors.hidden,
-        ),
-        const SizedBox(width: 12),
-        _StatCard(
-          label: 'SIN SEÑAL',
-          value: fleet.offlineBuses,
-          icon: Icons.signal_wifi_off,
-          color: AppColors.offline,
-        ),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
+class _RouteFilters extends StatefulWidget {
+  const _RouteFilters({
+    required this.fleet,
+    required this.onSelect,
   });
-
-  final String label;
-  final int value;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Icon(icon, size: 19, color: color),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.6,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                Text(
-                  '$value',
-                  style: GoogleFonts.inter(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                    color: AppColors.textPrimary,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RouteFilters extends StatelessWidget {
-  const _RouteFilters({required this.fleet, required this.onSelect});
 
   final FleetState fleet;
   final ValueChanged<String?> onSelect;
 
   @override
+  State<_RouteFilters> createState() => _RouteFiltersState();
+}
+
+class _RouteFiltersState extends State<_RouteFilters> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 34,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _FilterChip(
-            label: 'TODAS',
-            active: fleet.routeFilter == null,
-            onTap: () => onSelect(null),
-          ),
-          ...fleet.routes.map(
-            (route) => Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: _FilterChip(
-                label: '${route.routeId} · ${route.name} (${route.total})',
-                active: fleet.routeFilter == route.routeId,
-                onTap: () => onSelect(route.routeId),
+    final fleet = widget.fleet;
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent && _controller.hasClients) {
+          final next = (_controller.offset + event.scrollDelta.dy)
+              .clamp(0.0, _controller.position.maxScrollExtent);
+          if (next != _controller.offset) {
+            _controller.jumpTo(next);
+          }
+        }
+      },
+      child: Scrollbar(
+        controller: _controller,
+        interactive: true,
+        thumbVisibility: false,
+        thickness: 4,
+        radius: const Radius.circular(999),
+        child: SizedBox(
+          height: 42,
+          child: ListView(
+            controller: _controller,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: 9),
+            children: [
+              _FilterChip(
+                label: 'TODAS',
+                active: fleet.routeFilter == null,
+                onTap: () => widget.onSelect(null),
               ),
-            ),
+              ...fleet.routes.map(
+                (route) => Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: _FilterChip(
+                    label: '${route.name} (${route.total})',
+                    active: fleet.routeFilter == route.routeId,
+                    onTap: () => widget.onSelect(route.routeId),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -675,15 +629,17 @@ class _FleetPanel extends ConsumerWidget {
     required this.buses,
     required this.fleet,
     required this.onAddBus,
+    required this.onAddRoute,
     required this.onEditBus,
-    required this.onDeleteBus,
+    required this.onStatusFilter,
   });
 
   final List<FleetBus> buses;
   final FleetState fleet;
   final VoidCallback onAddBus;
+  final VoidCallback onAddRoute;
   final ValueChanged<FleetBus> onEditBus;
-  final ValueChanged<FleetBus> onDeleteBus;
+  final ValueChanged<FleetStatusFilter> onStatusFilter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -727,6 +683,27 @@ class _FleetPanel extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: onAddRoute,
+                  icon: const Icon(Icons.add_road, size: 16),
+                  label: const Text('Agregar ruta'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(color: AppColors.borderStrong),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 FilledButton.icon(
                   onPressed: onAddBus,
                   icon: const Icon(Icons.add, size: 17),
@@ -752,13 +729,22 @@ class _FleetPanel extends ConsumerWidget {
             ),
           ),
           const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            child: _StatusTabs(
+              fleet: fleet,
+              onSelect: onStatusFilter,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: const Divider(height: 1),
+          ),
           Expanded(
             child: buses.isEmpty
                 ? Center(
                     child: Text(
-                      fleet.routeFilter != null
-                          ? 'Sin buses en esta ruta'
-                          : 'Sin buses registrados',
+                      _emptyMessage(),
                       style: GoogleFonts.inter(
                         color: AppColors.textMuted,
                         fontSize: 13,
@@ -782,12 +768,109 @@ class _FleetPanel extends ConsumerWidget {
                             .read(fleetProvider.notifier)
                             .toggleVisibility(bus.busId, visible),
                         onEdit: () => onEditBus(bus),
-                        onDelete: () => onDeleteBus(bus),
                       );
                     },
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  String _emptyMessage() {
+    if (fleet.routeFilter != null && fleet.statusFilter != FleetStatusFilter.all) {
+      return 'Sin buses para este filtro';
+    }
+    if (fleet.routeFilter != null) return 'Sin buses en esta ruta';
+    if (fleet.statusFilter != FleetStatusFilter.all) {
+      return switch (fleet.statusFilter) {
+        FleetStatusFilter.online => 'Ningún bus en línea',
+        FleetStatusFilter.hidden => 'Ningún bus oculto',
+        FleetStatusFilter.offline => 'Ningún bus sin señal',
+        FleetStatusFilter.all => 'Sin buses registrados',
+      };
+    }
+    return 'Sin buses registrados';
+  }
+}
+
+class _StatusTabs extends StatelessWidget {
+  const _StatusTabs({required this.fleet, required this.onSelect});
+
+  final FleetState fleet;
+  final ValueChanged<FleetStatusFilter> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = <(FleetStatusFilter, String, int)>[
+      (FleetStatusFilter.all, 'Todos', fleet.totalBuses),
+      (FleetStatusFilter.online, 'En Línea', fleet.onlineBuses),
+      (FleetStatusFilter.hidden, 'Ocultos', fleet.hiddenBuses),
+      (FleetStatusFilter.offline, 'Sin Señal', fleet.offlineBuses),
+    ];
+    return Row(
+      children: [
+        for (final (filter, label, count) in tabs) ...[
+          _StatusTab(
+            label: label,
+            count: count,
+            active: fleet.statusFilter == filter,
+            onTap: () => onSelect(filter),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ],
+    );
+  }
+}
+
+class _StatusTab extends StatelessWidget {
+  const _StatusTab({
+    required this.label,
+    required this.count,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: active ? AppColors.navy : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: active ? Colors.white : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '$count',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: active ? Colors.white70 : AppColors.textMuted,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -854,7 +937,7 @@ class _SelectedBusCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${bus.busId} · $statusLabel',
+                      statusLabel,
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         color: AppColors.textMuted,
@@ -933,7 +1016,7 @@ class _SelectedBusCard extends StatelessWidget {
                   size: 18,
                   color: AppColors.danger,
                 ),
-                tooltip: 'Eliminar bus',
+                tooltip: 'Eliminar bus de la flota',
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.danger.withValues(alpha: 0.08),
                   side: BorderSide(color: AppColors.danger.withValues(alpha: 0.25)),

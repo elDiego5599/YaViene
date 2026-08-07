@@ -16,7 +16,7 @@ abstract class AppColors {
   static const Color textMuted = Color(0xFF94A3B8);
 
   static const Color online = Color(0xFF00A859);
-  static const Color ghost = Color(0xFFC9A66B);
+  static const Color ghost = Color(0xFF94A3B8);
   static const Color hidden = Color(0xFFB86B5E);
   static const Color offline = Color(0xFF94A3B8);
   static const Color danger = Color(0xFFDC2626);

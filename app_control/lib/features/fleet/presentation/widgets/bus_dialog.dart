@@ -7,17 +7,11 @@ import '../../domain/fleet_bus.dart';
 import '../../domain/fleet_route.dart';
 import '../providers/fleet_providers.dart';
 
-class BusEditResult {
-  const BusEditResult({required this.placa, this.routeId});
-
-  final String placa;
-  final String? routeId;
-}
-
 class BusDialog extends ConsumerStatefulWidget {
-  const BusDialog({super.key, this.bus});
+  const BusDialog({super.key, this.bus, this.onDelete});
 
   final FleetBus? bus;
+  final VoidCallback? onDelete;
 
   @override
   ConsumerState<BusDialog> createState() => _BusDialogState();
@@ -50,6 +44,10 @@ class _BusDialogState extends ConsumerState<BusDialog> {
       setState(() => _error = 'Placa inválida. Ejemplo: ABC123');
       return;
     }
+    if (_routeId == null) {
+      setState(() => _error = 'Selecciona una ruta para el bus.');
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -78,11 +76,63 @@ class _BusDialogState extends ConsumerState<BusDialog> {
     }
   }
 
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Eliminar bus',
+          style: GoogleFonts.inter(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          '¿Eliminar ${widget.bus!.placa.isEmpty ? widget.bus!.busId : widget.bus!.placa} '
+          'de la flota? Los pasajeros dejarán de verlo de inmediato. Esta acción '
+          'no se puede deshacer.',
+          style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            child: const Text('ELIMINAR'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      Navigator.of(context).pop();
+      widget.onDelete?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final routes = ref.watch(fleetProvider).routes;
     final sortedRoutes = [...routes]
-      ..sort((a, b) => a.routeId.compareTo(b.routeId));
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    if (_routeId == null || !sortedRoutes.any((r) => r.routeId == _routeId)) {
+      _routeId = sortedRoutes.isNotEmpty ? sortedRoutes.first.routeId : null;
+    }
 
     return AlertDialog(
       backgroundColor: AppColors.surface,
@@ -155,20 +205,29 @@ class _BusDialogState extends ConsumerState<BusDialog> {
               initialValue: _routeId,
               isExpanded: true,
               decoration: const InputDecoration(),
-              items: [
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('Sin ruta asignada'),
-                ),
-                ...sortedRoutes.map(
-                  (FleetRoute route) => DropdownMenuItem<String?>(
-                    value: route.routeId,
-                    child: Text('${route.routeId} · ${route.name}'),
-                  ),
-                ),
-              ],
+              items: sortedRoutes.isEmpty
+                  ? null
+                  : [
+                      ...sortedRoutes.map(
+                        (FleetRoute route) => DropdownMenuItem<String?>(
+                          value: route.routeId,
+                          child: Text(route.name),
+                        ),
+                      ),
+                    ],
               onChanged: (value) => setState(() => _routeId = value),
             ),
+            if (sortedRoutes.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'No hay rutas. Crea una primero con "Agregar ruta".',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.danger,
+                ),
+              ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 14),
               Text(
@@ -177,6 +236,33 @@ class _BusDialogState extends ConsumerState<BusDialog> {
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.danger,
+                ),
+              ),
+            ],
+            if (_isEdit) ...[
+              const SizedBox(height: 20),
+              const Divider(height: 1),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _saving ? null : _confirmDelete,
+                  icon: const Icon(Icons.delete_outline, size: 17),
+                  label: const Text('Eliminar bus de la flota'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: BorderSide(
+                      color: AppColors.danger.withValues(alpha: 0.5),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
                 ),
               ),
             ],
