@@ -11,16 +11,33 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
 import '../providers/fleet_providers.dart';
 
-class ControlMap extends ConsumerWidget {
+class ControlMap extends ConsumerStatefulWidget {
   const ControlMap({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ControlMap> createState() => _ControlMapState();
+}
+
+class _ControlMapState extends ConsumerState<ControlMap> {
+  final MapController _mapController = MapController();
+  double _zoom = 12;
+
+  double get _markerSize => (24 + (_zoom - 11) * 6).clamp(24.0, 48.0);
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final fleet = ref.watch(fleetProvider);
+    final size = _markerSize;
     final markers = fleet.fleetList
         .where((b) => b.visible && b.lat != null && b.lon != null)
         .map(
-          (b) => _buildMarker(b, fleet.selectedBusId == b.busId, () {
+          (b) => _buildMarker(b, fleet.selectedBusId == b.busId, size, () {
             ref.read(fleetProvider.notifier).selectBus(b.busId);
           }),
         )
@@ -29,12 +46,18 @@ class ControlMap extends ConsumerWidget {
     return Stack(
       children: [
         FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
             initialCenter: const LatLng(10.9639, -74.7964),
             initialZoom: 12,
             interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
             ),
+            onPositionChanged: (camera, hasGesture) {
+              if ((camera.zoom - _zoom).abs() > 0.05) {
+                setState(() => _zoom = camera.zoom);
+              }
+            },
           ),
           children: [
             TileLayer(
@@ -63,17 +86,23 @@ class ControlMap extends ConsumerWidget {
     );
   }
 
-  Marker _buildMarker(FleetBus bus, bool selected, VoidCallback onTap) {
+  Marker _buildMarker(
+    FleetBus bus,
+    bool selected,
+    double size,
+    VoidCallback onTap,
+  ) {
     return Marker(
       point: LatLng(bus.lat!, bus.lon!),
-      width: 48,
-      height: 48,
+      width: size,
+      height: size,
       child: GestureDetector(
         onTap: onTap,
+        behavior: HitTestBehavior.opaque,
         child: Transform.rotate(
           angle: bus.heading * math.pi / 180,
           child: CustomPaint(
-            size: const Size(44, 44),
+            size: Size.square(size),
             painter: _FlatBusPainter(
               active: bus.online && !bus.isGhost,
               selected: selected,
