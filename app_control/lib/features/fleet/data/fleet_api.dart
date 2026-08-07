@@ -50,6 +50,15 @@ class FleetApi {
     return FleetBus.fromJson(response.data!);
   }
 
+  Future<int> setAllVisibility(String token, bool visible) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/fleet/buses/visibility',
+      data: {'visible': visible},
+      options: _auth(token),
+    );
+    return (response.data!['count'] as num).toInt();
+  }
+
   Future<FleetBus> createBus(
     String token, {
     required String placa,

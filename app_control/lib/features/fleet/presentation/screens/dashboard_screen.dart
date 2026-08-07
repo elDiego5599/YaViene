@@ -213,6 +213,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onSearchChanged: (v) => setState(() => _query = v),
             onRefresh: _refresh,
             onDebugWipe: _confirmWipeAll,
+            onToggleAllVisibility: () {
+              final visible = !fleet.buses.values.every((b) => b.visible);
+              ref.read(fleetProvider.notifier).setAllVisibility(visible);
+            },
+            allBusesVisible: fleet.buses.isNotEmpty &&
+                fleet.buses.values.every((b) => b.visible),
           ),
           if (fleet.error != null) _ErrorBanner(message: fleet.error!),
           Padding(
@@ -408,6 +414,8 @@ class _TopBar extends StatefulWidget {
     required this.onSearchChanged,
     required this.onRefresh,
     required this.onDebugWipe,
+    required this.onToggleAllVisibility,
+    required this.allBusesVisible,
   });
 
   final bool refreshing;
@@ -415,6 +423,8 @@ class _TopBar extends StatefulWidget {
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onRefresh;
   final VoidCallback onDebugWipe;
+  final VoidCallback onToggleAllVisibility;
+  final bool allBusesVisible;
 
   @override
   State<_TopBar> createState() => _TopBarState();
@@ -484,6 +494,22 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
               ),
             ),
             tooltip: 'Actualizar flota',
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surface,
+              side: const BorderSide(color: AppColors.border),
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            onPressed: widget.onToggleAllVisibility,
+            icon: Icon(
+              widget.allBusesVisible ? Icons.visibility_off : Icons.visibility,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
+            tooltip: widget.allBusesVisible
+                ? 'Ocultar todos los buses'
+                : 'Mostrar todos los buses',
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.border),

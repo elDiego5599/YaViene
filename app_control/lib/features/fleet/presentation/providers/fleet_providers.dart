@@ -312,6 +312,28 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }
   }
 
+  Future<void> setAllVisibility(bool visible) async {
+    final token = _token;
+    if (token == null) return;
+    final previous = state.buses;
+    state = state.copyWith(
+      buses: {
+        for (final entry in previous.entries) entry.key: entry.value.copyWith(visible: visible),
+      },
+      clearError: true,
+    );
+    try {
+      final count = await FleetApi().setAllVisibility(token, visible);
+      debugPrint('[fleet] $count buses -> visible=$visible OK');
+    } catch (e) {
+      debugPrint('[fleet] visibilidad masiva FALLÓ: $e');
+      state = state.copyWith(
+        buses: previous,
+        error: visible ? 'No se pudieron mostrar los buses.' : 'No se pudieron ocultar los buses.',
+      );
+    }
+  }
+
   Future<void> addBus({required String placa, String? routeId, String? interno}) async {
     final token = _token;
     if (token == null) return;
