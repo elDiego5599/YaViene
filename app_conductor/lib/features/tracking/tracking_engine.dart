@@ -71,7 +71,6 @@ class TrackingEngine {
   StreamSubscription<Position>? _positionStream;
   Timer? _healthTimer;
   Timer? _syncTimer;
-  int _positionCount = 0;
   int? _nextSequence;
   bool _isSyncing = false;
   bool _running = false;
@@ -119,11 +118,10 @@ class TrackingEngine {
       );
 
       _healthTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-        if (!_mqttService.isConnected || _positionCount == 0) {
-          _logger.w('HEALTH: MQTT caído o sin posiciones — reconectando');
+        if (!_mqttService.isConnected) {
+          _logger.w('HEALTH: MQTT caído — reconectando');
           _initiateReconnect(config);
         }
-        _positionCount = 0;
       });
 
       _syncTimer = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -146,7 +144,6 @@ class TrackingEngine {
 
   Future<void> _handlePosition(TrackingConfig config, Position position) async {
     if (!_running) return;
-    _positionCount++;
 
     if (position.isMocked) {
       _logger.w('FRAUDE DETECTADO: ${config.busId} usa Fake GPS');
