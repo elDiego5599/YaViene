@@ -433,16 +433,14 @@ class _TopBar extends StatefulWidget {
 class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
   late final AnimationController _spin = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
+    duration: const Duration(milliseconds: 800),
   );
 
   @override
   void didUpdateWidget(_TopBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.refreshing && !_spin.isAnimating) {
-      _spin.repeat();
-    } else if (!widget.refreshing && _spin.isAnimating) {
-      _spin.stop();
+    if (widget.refreshing && !oldWidget.refreshing) {
+      _spin.forward(from: 0);
     }
   }
 
