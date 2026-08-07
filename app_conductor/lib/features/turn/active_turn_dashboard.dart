@@ -180,7 +180,7 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
                     isActive: trackingStatus.outboxPendingCount == 0,
                     isSecondary: true,
                   ),
-                  const Spacer(),
+                  const SizedBox(height: AppSpacing.xl),
                   ElevatedButton(
                     onPressed: _closeTurn,
                     style: ElevatedButton.styleFrom(
