@@ -6,6 +6,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import 'features/tracking/background_service_config.dart';
 import 'features/turn/login_screen.dart';
+import 'features/turn/turn_assignment_screen.dart';
+import 'config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +35,9 @@ class YaVieneConductorApp extends StatelessWidget {
       title: 'Ya Viene Conductor',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: AppConfig.demoMode
+          ? const TurnAssignmentScreen()
+          : const LoginScreen(),
     );
   }
 }

@@ -190,9 +190,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final buses = fleet.fleetList.where((b) {
       if (_query.isEmpty) return true;
       final q = _query.toLowerCase();
-      return b.busId.toLowerCase().contains(q) ||
-          b.placa.toLowerCase().contains(q) ||
+      final routeName = fleet.routeName(b.routeId) ?? '';
+      return b.placa.toLowerCase().contains(q) ||
+          b.busId.replaceFirst('BUS-', '').toLowerCase().contains(q) ||
+          b.interno.toLowerCase().contains(q) ||
           (b.routeId?.toLowerCase().contains(q) ?? false) ||
+          routeName.toLowerCase().contains(q) ||
           (b.driverName?.toLowerCase().contains(q) ?? false);
     }).toList();
 
@@ -462,7 +465,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
               onChanged: widget.onSearchChanged,
               style: GoogleFonts.inter(fontSize: 13.5),
               decoration: const InputDecoration(
-                hintText: 'Buscar placa, bus, ruta o conductor…',
+                hintText: 'Buscar placa, ruta o conductor…',
                 prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
                 fillColor: AppColors.surface,
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -559,11 +562,6 @@ class _RouteFiltersState extends State<_RouteFilters> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(bottom: 9),
             children: [
-              _FilterChip(
-                label: 'TODAS',
-                active: fleet.routeFilter == null,
-                onTap: () => widget.onSelect(null),
-              ),
               ...fleet.routes.map(
                 (route) => Padding(
                   padding: const EdgeInsets.only(left: 8),
@@ -778,15 +776,12 @@ class _FleetPanel extends ConsumerWidget {
   }
 
   String _emptyMessage() {
-    if (fleet.routeFilter != null && fleet.statusFilter != FleetStatusFilter.all) {
-      return 'Sin buses para este filtro';
-    }
-    if (fleet.routeFilter != null) return 'Sin buses en esta ruta';
+    if (fleet.routeFilter == null) return 'Selecciona una ruta';
     if (fleet.statusFilter != FleetStatusFilter.all) {
       return switch (fleet.statusFilter) {
-        FleetStatusFilter.online => 'Ningún bus en línea',
-        FleetStatusFilter.hidden => 'Ningún bus oculto',
-        FleetStatusFilter.offline => 'Ningún bus sin señal',
+        FleetStatusFilter.online => 'Ningún bus en línea en esta ruta',
+        FleetStatusFilter.hidden => 'Ningún bus oculto en esta ruta',
+        FleetStatusFilter.offline => 'Ningún bus sin señal en esta ruta',
         FleetStatusFilter.all => 'Sin buses registrados',
       };
     }

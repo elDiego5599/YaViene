@@ -8,4 +8,12 @@ class AppConfig {
     'MQTT_USE_TLS',
     defaultValue: false,
   );
+  static const bool demoMode = String.fromEnvironment(
+    'DEMO_MODE',
+    defaultValue: 'true',
+  ) == 'true';
+  static const String demoCompanyId = String.fromEnvironment(
+    'DEMO_COMPANY',
+    defaultValue: 'EMP-01',
+  );
 }

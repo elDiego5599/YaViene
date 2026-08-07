@@ -196,7 +196,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
     if (token == null) return;
     try {
       final routes = await FleetApi().fetchRoutes(token);
-      state = state.copyWith(routes: routes, clearError: true);
+      state = state.copyWith(
+        routes: routes,
+        routeFilter: () => state.routeFilter ?? (routes.isNotEmpty ? routes.first.routeId : null),
+        clearError: true,
+      );
     } catch (_) {
       // El catálogo es informativo; no bloquea la flota.
     }
