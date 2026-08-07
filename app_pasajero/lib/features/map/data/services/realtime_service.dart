@@ -61,6 +61,17 @@ class RealtimeService implements RealtimeRepository {
     _socket!.on('bus:position', (data) {
       _busPositionController.add(Map<String, dynamic>.from(data as Map));
     });
+    _socket!.on('positions:update', (data) {
+      final update = Map<String, dynamic>.from(data as Map);
+      final buses = update['buses'];
+      if (buses is List) {
+        for (final bus in buses) {
+          if (bus is Map) {
+            _busPositionController.add(Map<String, dynamic>.from(bus));
+          }
+        }
+      }
+    });
     _socket!.on('positions:batch', (data) {
       final batch = Map<String, dynamic>.from(data as Map);
       _batchPositionController.add(batch);
