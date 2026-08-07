@@ -47,49 +47,62 @@ class FleetSocketService {
     });
     _socket = socket;
 
+    void emit<T>(StreamController<T> controller, T value) {
+      if (!controller.isClosed) controller.add(value);
+    }
+
     socket.onConnect((_) {
-      _connectionController.add(true);
+      emit(_connectionController, true);
       socket.emit('subscribe:fleet');
     });
-    socket.onDisconnect((_) => _connectionController.add(false));
-    socket.onConnectError((_) => _connectionController.add(false));
-    socket.onReconnectAttempt((_) => _connectionController.add(false));
-    socket.on('error', (_) => _connectionController.add(false));
+    socket.onDisconnect((_) => emit(_connectionController, false));
+    socket.onConnectError((_) => emit(_connectionController, false));
+    socket.onReconnectAttempt((_) => emit(_connectionController, false));
+    socket.on('error', (_) => emit(_connectionController, false));
 
     socket.on('fleet:batch', (data) {
       debugPrint('[fleet-socket] fleet:batch recibido');
       final buses = (data['buses'] as List)
           .map((b) => FleetBus.fromJson(Map<String, dynamic>.from(b as Map)))
           .toList();
-      _busBatchController.add(buses);
+      emit(_busBatchController, buses);
     });
 
     socket.on('bus:position', (data) {
-      _busPositionController.add(FleetBus.fromJson(Map<String, dynamic>.from(data as Map)));
+      emit(
+        _busPositionController,
+        FleetBus.fromJson(Map<String, dynamic>.from(data as Map)),
+      );
     });
 
     socket.on('bus:hidden', (data) {
       debugPrint('[fleet-socket] bus:hidden ${data['busId']} event=${data['eventId']}');
-      _busHiddenController.add(data['busId'] as String);
+      emit(_busHiddenController, data['busId'] as String);
     });
 
     socket.on('bus:visible', (data) {
       debugPrint('[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}');
       final position = data['position'];
       if (position != null) {
-        _busVisibleController.add(FleetBus.fromJson(Map<String, dynamic>.from(position as Map)));
+        emit(
+          _busVisibleController,
+          FleetBus.fromJson(Map<String, dynamic>.from(position as Map)),
+        );
       } else {
-        _busVisibleController.add(FleetBus.fromJson(Map<String, dynamic>.from(data as Map)));
+        emit(
+          _busVisibleController,
+          FleetBus.fromJson(Map<String, dynamic>.from(data as Map)),
+        );
       }
     });
 
     socket.on('bus:left', (data) {
-      _busLeftController.add(data['busId'] as String);
+      emit(_busLeftController, data['busId'] as String);
     });
 
     socket.on('bus:removed', (data) {
       debugPrint('[fleet-socket] bus:removed ${data['busId']} event=${data['eventId']}');
-      _busRemovedController.add(data['busId'] as String);
+      emit(_busRemovedController, data['busId'] as String);
     });
   }
 
