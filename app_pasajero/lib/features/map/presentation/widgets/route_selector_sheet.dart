@@ -88,9 +88,6 @@ class RouteSelectorSheet extends ConsumerWidget {
                   children: [
                     _Segment(
                       title: 'Ida',
-                      subtitle: selectedRoute != null
-                          ? '${_idaEndpoint(selectedRoute)} → ${_vueltaEndpoint(selectedRoute)}'
-                          : 'Terminal inicial → final',
                       isSelected: selectedDirection == RouteSentido.ida,
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -99,9 +96,6 @@ class RouteSelectorSheet extends ConsumerWidget {
                     ),
                     _Segment(
                       title: 'Vuelta',
-                      subtitle: selectedRoute != null
-                          ? '${_vueltaEndpoint(selectedRoute)} → ${_idaEndpoint(selectedRoute)}'
-                          : 'Terminal final → inicial',
                       isSelected: selectedDirection == RouteSentido.vuelta,
                       onTap: () {
                         HapticFeedback.selectionClick();
@@ -302,27 +296,13 @@ class RouteSelectorSheet extends ConsumerWidget {
   }
 }
 
-String _idaEndpoint(RouteInfo route) => route.terminalA?.trim().isNotEmpty == true
-    ? route.terminalA!.trim()
-    : route.terminalB?.trim().isNotEmpty == true
-        ? route.terminalB!.trim()
-        : 'Inicio';
-
-String _vueltaEndpoint(RouteInfo route) => route.terminalB?.trim().isNotEmpty == true
-    ? route.terminalB!.trim()
-    : route.terminalA?.trim().isNotEmpty == true
-        ? route.terminalA!.trim()
-        : 'Fin';
-
 class _Segment extends StatelessWidget {
   final String title;
-  final String subtitle;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _Segment({
     required this.title,
-    required this.subtitle,
     required this.isSelected,
     required this.onTap,
   });
@@ -350,26 +330,13 @@ class _Segment extends StatelessWidget {
                 : [],
           ),
           alignment: Alignment.center,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                  color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? const Color(0xFF00A859) : const Color(0xFF94A3B8),
-                ),
-              ),
-            ],
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+            ),
           ),
         ),
       ),

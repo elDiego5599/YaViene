@@ -12,6 +12,7 @@ dependencies:
   flutter_riverpod: ^2.5.1
   equatable: ^2.0.5
   google_fonts: ^6.1.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

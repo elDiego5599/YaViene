@@ -1,12 +1,36 @@
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/bus_position.dart';
 import '../models/route_info.dart';
 import '../models/company.dart';
 import 'map_providers.dart' show appLifecycleProvider;
+
+const String _backendUrl = String.fromEnvironment(
+  'BACKEND_URL',
+  defaultValue: 'http://localhost:3000',
+);
+
+Future<List<T>> _getJsonList<T>(
+  String path,
+  T Function(Map<String, dynamic>) fromJson,
+) async {
+  final response = await http
+      .get(Uri.parse('$_backendUrl$path'))
+      .timeout(const Duration(seconds: 8));
+  if (response.statusCode != 200) {
+    throw Exception('Error al cargar datos (${response.statusCode})');
+  }
+  final data = jsonDecode(response.body);
+  if (data is! List) throw const FormatException('Respuesta inesperada');
+  return data
+      .map((item) => fromJson(Map<String, dynamic>.from(item as Map)))
+      .toList();
+}
 
 
 final busPositionsProvider = StreamProvider.autoDispose
@@ -84,12 +108,7 @@ List<BusPosition> _generateDummyPositions(
 
 
 final companiesProvider = FutureProvider.autoDispose<List<Company>>((ref) async {
-  await Future.delayed(const Duration(milliseconds: 500));
-  return [
-    const Company(id: '1', name: 'Coolitoral S.A.'),
-    const Company(id: '2', name: 'Metrocaribe Ltda.'),
-    const Company(id: '3', name: 'Transcaribe S.A.S.'),
-  ];
+  return _getJsonList('/api/companies', Company.fromJson);
 });
 
 final selectedCompanyProvider =
@@ -107,36 +126,7 @@ class _SelectedCompanyNotifier extends StateNotifier<Company?> {
 
 final routesByCompanyProvider = FutureProvider.autoDispose
     .family<List<RouteInfo>, String>((ref, companyId) async {
-      await Future.delayed(const Duration(milliseconds: 300));
-      final allRoutes = {
-        '1': [
-          const RouteInfo(
-            id: 'R-101',
-            name: 'Ruta 1 - Centro/Soledad',
-            companyId: '1',
-          ),
-          const RouteInfo(
-            id: 'R-102',
-            name: 'Ruta 2 - Murillo/Terminal',
-            companyId: '1',
-          ),
-        ],
-        '2': [
-          const RouteInfo(
-            id: 'R-201',
-            name: 'Ruta 5 - Riomar/Abello',
-            companyId: '2',
-          ),
-        ],
-        '3': [
-          const RouteInfo(
-            id: 'R-301',
-            name: 'Troncal - Portal/Caribe',
-            companyId: '3',
-          ),
-        ],
-      };
-      return allRoutes[companyId] ?? [];
+      return _getJsonList('/api/companies/$companyId/routes', RouteInfo.fromJson);
     });
 
 final selectedRouteProvider =
