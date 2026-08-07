@@ -85,10 +85,11 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   behavior: HitTestBehavior.opaque,
                   onTap: _onSearchTap,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (selectedRoute != null) ...[
                             Container(
@@ -101,7 +102,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                             ),
                             const SizedBox(width: 6),
                           ],
-                          Expanded(
+                          Flexible(
                             child: Text(
                               selectedRoute?.name ?? "¿Qué bus esperas?",
                               style: const TextStyle(

@@ -19,11 +19,10 @@ class IdleStatusChip extends ConsumerWidget {
         dotColor: const Color(0xFFF59E0B),
         label: 'Reconectando...',
       ),
-      _ => (
-        dotColor: const Color(0xFF00A859),
-        label: 'Red conectada en tiempo real',
-      ),
+      _ => null,
     };
+
+    if (config == null) return const SizedBox.shrink();
 
     return SafeArea(
       top: false,

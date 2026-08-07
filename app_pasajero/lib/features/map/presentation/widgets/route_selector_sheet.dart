@@ -141,19 +141,34 @@ class RouteSelectorSheet extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              routesAsync.when(
-                data: (routes) => _PremiumSelectorTile(
+              if (selectedCompany == null)
+                _PremiumSelectorTile(
                   title: selectedRoute?.name ?? 'Selecciona una ruta',
-                  subtitle: selectedRoute != null ? 'Frecuencia continua en vivo' : 'Requiere seleccionar empresa',
+                  subtitle: selectedRoute != null ? 'Frecuencia continua en vivo' : null,
                   icon: Icons.alt_route_rounded,
                   isActive: selectedRoute != null,
-                  onTap: selectedCompany == null
-                      ? null
-                      : () => _showRouteSelector(context, ref, routes),
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Primero selecciona una empresa'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                )
+              else
+                routesAsync.when(
+                  data: (routes) => _PremiumSelectorTile(
+                    title: selectedRoute?.name ?? 'Selecciona una ruta',
+                    subtitle: selectedRoute != null ? 'Frecuencia continua en vivo' : null,
+                    icon: Icons.alt_route_rounded,
+                    isActive: selectedRoute != null,
+                    onTap: () => _showRouteSelector(context, ref, routes),
+                  ),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const SizedBox.shrink(),
                 ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
 
               const SizedBox(height: 32),
 
