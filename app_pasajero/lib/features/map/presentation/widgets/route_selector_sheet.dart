@@ -24,10 +24,11 @@ class RouteSelectorSheet extends ConsumerWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Center(
                 child: Container(
                   width: 48,
@@ -204,6 +205,7 @@ class RouteSelectorSheet extends ConsumerWidget {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -217,11 +219,12 @@ class RouteSelectorSheet extends ConsumerWidget {
       ),
       builder: (_) => SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: companies.map((c) => ListTile(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: companies.map((c) => ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               leading: Container(
                 width: 40,
@@ -252,6 +255,7 @@ class RouteSelectorSheet extends ConsumerWidget {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -265,45 +269,47 @@ class RouteSelectorSheet extends ConsumerWidget {
       ),
       builder: (_) => SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: routes.map((r) => ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F7F0),
-                  borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: routes.map((r) => ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F7F0),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.alt_route_rounded, color: Color(0xFF00A859), size: 20),
                 ),
-                child: const Icon(Icons.alt_route_rounded, color: Color(0xFF00A859), size: 20),
-              ),
-              title: Text(
-                r.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.4,
+                title: Text(
+                  r.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.4,
+                  ),
                 ),
-              ),
-              subtitle: const Text(
-                'Frecuencia cada 8 min • Tiempo real',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
+                subtitle: const Text(
+                  'Frecuencia cada 8 min • Tiempo real',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                ref.read(selectedRouteProvider.notifier).select(r);
-                Navigator.pop(context);
-              },
-            )).toList(),
+                trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  ref.read(selectedRouteProvider.notifier).select(r);
+                  Navigator.pop(context);
+                },
+              )).toList(),
+            ),
           ),
         ),
       ),

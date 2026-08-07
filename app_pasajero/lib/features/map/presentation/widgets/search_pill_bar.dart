@@ -85,10 +85,12 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   behavior: HitTestBehavior.opaque,
                   onTap: _onSearchTap,
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (selectedRoute != null) ...[
