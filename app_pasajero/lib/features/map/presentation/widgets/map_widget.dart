@@ -125,22 +125,21 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           ),
         ],
       });
-      if (state.isManual) {
-        _mapController!.setGeoJsonSource(_kUserPinSourceId, {
-          'type': 'FeatureCollection',
-          'features': [
-            {
-              'type': 'Feature',
-              'geometry': {
-                'type': 'Point',
-                'coordinates': [state.lon, state.lat]
-              },
-              'properties': const {},
+      // Pin en el centro del usuario: con GPS activo o pin manual.
+      _mapController!.setGeoJsonSource(_kUserPinSourceId, {
+        'type': 'FeatureCollection',
+        'features': [
+          {
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [state.lon, state.lat]
             },
-          ],
-        });
-        return;
-      }
+            'properties': const {},
+          },
+        ],
+      });
+      return;
     }
     _mapController!.setGeoJsonSource(_kUserPinSourceId, emptyGeoJson);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, emptyGeoJson);
