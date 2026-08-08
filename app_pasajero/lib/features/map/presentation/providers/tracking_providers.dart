@@ -181,6 +181,8 @@ class ActiveAlertsNotifier extends StateNotifier<Set<String>> {
       state = {...state, busId};
     }
   }
+
+  void clear() => state = {};
 }
 
 final activeAlertsProvider =

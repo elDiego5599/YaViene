@@ -31,13 +31,15 @@ class ActiveTurnDashboard extends ConsumerStatefulWidget {
       _ActiveTurnDashboardState();
 }
 
-class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
+class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard>
+    with WidgetsBindingObserver {
   final DateTime _startTime = DateTime.now();
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(() => ref.read(gpsManagerProvider).startTracking(
           empresaId: widget.empresaId,
           busId: widget.busId,
@@ -53,8 +55,18 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // App cerrada (swipe away en Android): sin la app ya no debe transmitir.
+    // El foreground service publicaría de forma invisible; se detiene todo.
+    if (state == AppLifecycleState.detached) {
+      ref.read(gpsManagerProvider).stopTracking();
+    }
   }
 
   Future<void> _closeTurn() async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -22,6 +23,33 @@ class MapWidget extends ConsumerStatefulWidget {
   ConsumerState<MapWidget> createState() => _MapWidgetState();
 }
 
+/// Tramo de animación de un bus entre dos fijaciones GPS.
+class _BusMotion {
+  _BusMotion({
+    required this.fromLat,
+    required this.fromLon,
+    required this.fromHeading,
+    required this.toLat,
+    required this.toLon,
+    required this.toHeading,
+    required this.start,
+  });
+
+  final double fromLat;
+  final double fromLon;
+  final double fromHeading;
+  final double toLat;
+  final double toLon;
+  final double toHeading;
+  final DateTime start;
+
+  /// Duración del tramo: con fixes cada ~1s, un tramo de 1s da movimiento
+  /// continuo y suave (sin esperas ni saltos).
+  static const Duration duration = Duration(milliseconds: 1000);
+
+  bool isFinished(DateTime now) => now.difference(start) >= duration;
+}
+
 class _MapWidgetState extends ConsumerState<MapWidget>
     with WidgetsBindingObserver {
   MapLibreMapController? _mapController;
@@ -33,6 +61,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   bool _layersReady = false;
   bool _hasFitInitialRoute = false;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+
+  /// Última posición cruda recibida por bus (para propiedades del ícono).
+  final Map<String, BusPosition> _rawBuses = {};
+
+  /// Tramo de animación en curso por bus (interpolación entre fixes).
+  final Map<String, _BusMotion> _busMotions = {};
+  Timer? _busAnimTimer;
 
   static const _kRouteSourceId = 'route-source';
   static const _kRouteLayerId = 'route-line';
@@ -72,6 +107,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
     _mapInsetSubscription?.close();
+    _busAnimTimer?.cancel();
+    _busAnimTimer = null;
     _mapController?.dispose();
     super.dispose();
   }
@@ -84,6 +121,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   void _setupBusSubscription(String routeId) {
     _movingBusSubscription?.close();
+    // Cambio de ruta: sin animación, se pinta directo (los buses son otros).
+    _rawBuses.clear();
+    _busMotions.clear();
+    _busAnimTimer?.cancel();
+    _busAnimTimer = null;
     _movingBusSubscription =
         ref.listenManual(busPositionsSourceProvider(routeId), (previous, next) {
       if (!mounted) return;
@@ -95,6 +137,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _teardownBusSubscription() {
     _movingBusSubscription?.close();
     _movingBusSubscription = null;
+    _rawBuses.clear();
+    _busMotions.clear();
+    _busAnimTimer?.cancel();
+    _busAnimTimer = null;
     if (_mapController != null && mounted) {
       const emptyGeoJson = {"type": "FeatureCollection", "features": []};
       _mapController!.setGeoJsonSource(_kBusSourceId, emptyGeoJson);
@@ -571,23 +617,110 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   void _updateBusSourceData(List<BusPosition> positions) {
     if (_mapController == null || !mounted || !_layersReady) return;
+
+    final byId = {for (final p in positions) p.busId: p};
+    final now = DateTime.now();
+
+    for (final id in _rawBuses.keys.toList()) {
+      if (!byId.containsKey(id)) {
+        _rawBuses.remove(id);
+        _busMotions.remove(id);
+      }
+    }
+
+    for (final entry in byId.entries) {
+      final id = entry.key;
+      final pos = entry.value;
+      final prev = _rawBuses[id];
+      _rawBuses[id] = pos;
+
+      final needsMotion = !pos.isGhostBus &&
+          prev != null &&
+          (prev.lat != pos.lat || prev.lon != pos.lon);
+      if (!needsMotion) {
+        _busMotions.remove(id);
+        continue;
+      }
+
+      // Tramo nuevo desde la posición actual en pantalla (si hay una
+      // animación en curso) para que no haya saltos ni retrocesos.
+      final existing = _busMotions[id];
+      final from = existing != null && !existing.isFinished(now)
+          ? _displayOf(existing, now)
+          : (prev.lat, prev.lon, prev.heading);
+      _busMotions[id] = _BusMotion(
+        fromLat: from.$1,
+        fromLon: from.$2,
+        fromHeading: from.$3,
+        toLat: pos.lat,
+        toLon: pos.lon,
+        toHeading: pos.heading,
+        start: now,
+      );
+    }
+
+    _ensureBusAnimTicker();
+    _pushBusSource();
+  }
+
+  /// Interpola linealmente lat/lon y el heading por el arco más corto.
+  (double, double, double) _displayOf(_BusMotion motion, DateTime now) {
+    final t = (now.difference(motion.start).inMilliseconds /
+            _BusMotion.duration.inMilliseconds)
+        .clamp(0.0, 1.0);
+    double lerp(double a, double b) => a + (b - a) * t;
+    var delta = (motion.toHeading - motion.fromHeading) % 360;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    final heading = (motion.fromHeading + delta * t + 360) % 360;
+    return (lerp(motion.fromLat, motion.toLat),
+        lerp(motion.fromLon, motion.toLon), heading);
+  }
+
+  /// Ticker de animación (~30 fps): solo corre mientras haya buses moviéndose.
+  void _ensureBusAnimTicker() {
+    if (_busAnimTimer != null) return;
+    _busAnimTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
+      if (!mounted || _mapController == null || !_layersReady) return;
+      final now = DateTime.now();
+      _busMotions.removeWhere((_, m) => m.isFinished(now));
+      _pushBusSource();
+      if (_busMotions.isEmpty) {
+        _busAnimTimer?.cancel();
+        _busAnimTimer = null;
+      }
+    });
+  }
+
+  void _pushBusSource() {
+    if (_mapController == null || !mounted || !_layersReady) return;
     final selectedBuses = ref.read(selectedBusesProvider);
-    _mapController!.setGeoJsonSource(_kBusSourceId, {
-      'type': 'FeatureCollection',
-      'features': positions.map((pos) => {
+    final now = DateTime.now();
+    final features = _rawBuses.entries.map((entry) {
+      final id = entry.key;
+      final pos = entry.value;
+      final motion = _busMotions[id];
+      final display = motion != null
+          ? _displayOf(motion, now)
+          : (pos.lat, pos.lon, pos.heading);
+      return {
         'type': 'Feature',
         'geometry': {
           'type': 'Point',
-          'coordinates': [pos.lon, pos.lat]
+          'coordinates': [display.$2, display.$1]
         },
         'properties': {
-          'busId': pos.busId,
-          'heading': pos.heading,
+          'busId': id,
+          'heading': display.$3,
           'speedKmh': pos.speedKmh,
           'isGhost': pos.isGhostBus,
-          'isSelected': selectedBuses.contains(pos.busId),
+          'isSelected': selectedBuses.contains(id),
         },
-      }).toList(),
+      };
+    }).toList();
+    _mapController!.setGeoJsonSource(_kBusSourceId, {
+      'type': 'FeatureCollection',
+      'features': features,
     });
   }
 

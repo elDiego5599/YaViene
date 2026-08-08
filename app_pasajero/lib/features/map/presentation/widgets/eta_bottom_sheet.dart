@@ -33,9 +33,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   Future<void> _toggleAlert(String busId) async {
     final notifier = ref.read(activeAlertsProvider.notifier);
     if (!ref.read(activeAlertsProvider).contains(busId)) {
+      final bus = _busById(busId);
+      // Bus sin señal: su posición es la última conocida; no se puede
+      // prometer un aviso de llegada mientras no transmita.
+      if (bus != null && bus.isGhostBus) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'El bus $busId está sin señal; el aviso se activa cuando vuelva a transmitir'),
+          ));
+        }
+        return;
+      }
       // El bus ya está dentro del radio de aviso: no se puede notificar su
       // llegada (llegó antes de activar el aviso).
-      if (_busAlreadyNear(_busById(busId))) {
+      if (_busAlreadyNear(bus)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
@@ -104,6 +116,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedBuses = ref.watch(selectedBusesProvider);
 
+    // Cambio de ruta (o borrarla): la selección y los avisos pertenecen a la
+    // ruta anterior; se limpian para volver al estado "Toca un bus en el mapa".
+    ref.listen<RouteInfo?>(selectedRouteProvider, (previous, next) {
+      if (previous?.id == next?.id) return;
+      ref.read(selectedBusesProvider.notifier).clear();
+      ref.read(activeAlertsProvider.notifier).clear();
+    });
+
     if (selectedRoute == null) {
       _publishMapInset(0);
       return const SizedBox.shrink();
@@ -112,11 +132,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     _publishMapInset();
 
     final destination = _endpoint(selectedRoute, preferA: true);
-    final buses = ref
-            .watch(busPositionsSourceProvider(selectedRoute.id))
-            .value ??
-        const <BusPosition>[];
+    final busesAsync = ref.watch(busPositionsSourceProvider(selectedRoute.id));
+    final buses = busesAsync.value ?? const <BusPosition>[];
     final busById = {for (final b in buses) b.busId: b};
+
+    // Bus seleccionado que ya no está en la ruta (left/hidden/removed):
+    // se quita de la selección y de los avisos. Solo cuando la ruta ya
+    // cargó (value != null): mientras está cargando no se toca nada.
+    ref.listen<AsyncValue<List<BusPosition>>>(
+        busPositionsSourceProvider(selectedRoute.id), (prev, next) {
+      final loaded = next.value;
+      if (loaded == null) return;
+      final ids = {for (final b in loaded) b.busId};
+      final selNotifier = ref.read(selectedBusesProvider.notifier);
+      final alertNotifier = ref.read(activeAlertsProvider.notifier);
+      for (final id in ref.read(selectedBusesProvider).toList()) {
+        if (ids.contains(id)) continue;
+        if (ref.read(selectedBusesProvider).contains(id)) selNotifier.toggleBus(id);
+        if (ref.read(activeAlertsProvider).contains(id)) alertNotifier.toggleAlert(id);
+      }
+    });
 
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -206,6 +241,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final staleLabel = _staleLabel(bus);
     final alreadyNear = !isActive && _busAlreadyNear(bus);
+    final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
+
+    // Defensa: el bus seleccionado ya no está en la ruta (aún no se procesó
+    // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
+    if (bus == null) return _buildEmptyState();
 
     if (staleLabel != null) {
       return Column(
@@ -230,12 +270,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
             child: _StickyAlertButton(
               isActive: isActive,
-              blocked: alreadyNear,
+              blocked: alreadyNear || ghostBlocked,
               label: isActive
                   ? "AVISARÉ CUANDO $busId VUELVA A TRANSMITIR"
-                  : alreadyNear
-                      ? "BUS $busId YA ESTÁ CERCA"
-                      : "AVISARME CUANDO $busId ESTÉ CERCA",
+                  : ghostBlocked
+                      ? "BUS $busId SIN SEÑAL"
+                      : alreadyNear
+                          ? "BUS $busId YA ESTÁ CERCA"
+                          : "AVISARME CUANDO $busId ESTÉ CERCA",
               onPressed: () => _toggleAlert(busId),
             ),
           ),
@@ -263,12 +305,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
             isActive: isActive,
-            blocked: alreadyNear,
+            blocked: alreadyNear || ghostBlocked,
             label: isActive
                 ? "AVISARÉ CUANDO $busId ESTÉ CERCA"
-                : alreadyNear
-                    ? "BUS $busId YA ESTÁ CERCA"
-                    : "AVISARME CUANDO $busId ESTÉ CERCA",
+                : ghostBlocked
+                    ? "BUS $busId SIN SEÑAL"
+                    : alreadyNear
+                        ? "BUS $busId YA ESTÁ CERCA"
+                        : "AVISARME CUANDO $busId ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ),
@@ -287,6 +331,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             final isActive = ref.watch(activeAlertsProvider).contains(busId);
             final staleLabel = _staleLabel(busById[busId]);
             final alreadyNear = !isActive && _busAlreadyNear(busById[busId]);
+            final ghostBlocked = !isActive &&
+                busById[busId] != null &&
+                busById[busId]!.isGhostBus;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -345,7 +392,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                       decoration: BoxDecoration(
                         color: isActive
                             ? const Color(0xFF00A859)
-                            : alreadyNear
+                            : alreadyNear || ghostBlocked
                                 ? const Color(0xFFE2E8F0)
                                 : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(999),
@@ -356,12 +403,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                           Icon(
                             isActive
                                 ? Icons.check_circle_rounded
-                                : alreadyNear
+                                : alreadyNear || ghostBlocked
                                     ? Icons.notifications_off_rounded
                                     : Icons.notifications_active_rounded,
                             color: isActive
                                 ? Colors.white
-                                : alreadyNear
+                                : alreadyNear || ghostBlocked
                                     ? const Color(0xFF94A3B8)
                                     : const Color(0xFF14274E),
                             size: 16,
@@ -370,15 +417,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                           Text(
                             isActive
                                 ? "Activada"
-                                : alreadyNear
-                                    ? "Ya cerca"
-                                    : "Avisarme",
+                                : ghostBlocked
+                                    ? "Sin señal"
+                                    : alreadyNear
+                                        ? "Ya cerca"
+                                        : "Avisarme",
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: isActive
                                   ? Colors.white
-                                  : alreadyNear
+                                  : alreadyNear || ghostBlocked
                                       ? const Color(0xFF94A3B8)
                                       : const Color(0xFF14274E),
                             ),
