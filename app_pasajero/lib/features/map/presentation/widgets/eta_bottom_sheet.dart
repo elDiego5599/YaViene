@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
+import '../providers/user_location_provider.dart';
+import '../utils/geo.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({super.key});
@@ -30,6 +33,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   Future<void> _toggleAlert(String busId) async {
     final notifier = ref.read(activeAlertsProvider.notifier);
     if (!ref.read(activeAlertsProvider).contains(busId)) {
+      // El bus ya está dentro del radio de aviso: no se puede notificar su
+      // llegada (llegó antes de activar el aviso).
+      if (_busAlreadyNear(_busById(busId))) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'El bus $busId ya está dentro del radio de aviso ($alertRadiusMeters m); '
+                'ya no se puede notificar su llegada.'),
+          ));
+        }
+        return;
+      }
       if (!await BusNotificationService.requestPermission()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -45,6 +60,32 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     }
     HapticFeedback.mediumImpact();
     notifier.toggleAlert(busId);
+  }
+
+  BusPosition? _busById(String busId) {
+    final route = ref.read(selectedRouteProvider);
+    if (route == null) return null;
+    final positions =
+        ref.read(busPositionsSourceProvider(route.id)).value;
+    if (positions == null) return null;
+    for (final p in positions) {
+      if (p.busId == busId) return p;
+    }
+    return null;
+  }
+
+  /// Distancia en metros del usuario al bus; null si no se puede medir.
+  double? _distanceToBus(BusPosition? bus) {
+    if (bus == null) return null;
+    final location = ref.read(userLocationProvider);
+    if (!location.hasPosition) return null;
+    return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);
+  }
+
+  /// El bus ya está dentro del radio de aviso: no se puede activar la alerta.
+  bool _busAlreadyNear(BusPosition? bus) {
+    final distance = _distanceToBus(bus);
+    return distance != null && distance <= alertRadiusMeters;
   }
 
   void _publishMapInset([double? forcedInset]) {
@@ -164,6 +205,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   Widget _buildSingleBusState(String busId, String destination, BusPosition? bus) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final staleLabel = _staleLabel(bus);
+    final alreadyNear = !isActive && _busAlreadyNear(bus);
 
     if (staleLabel != null) {
       return Column(
@@ -188,9 +230,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
             child: _StickyAlertButton(
               isActive: isActive,
+              blocked: alreadyNear,
               label: isActive
                   ? "AVISARÉ CUANDO $busId VUELVA A TRANSMITIR"
-                  : "AVISARME CUANDO $busId ESTÉ CERCA",
+                  : alreadyNear
+                      ? "BUS $busId YA ESTÁ CERCA"
+                      : "AVISARME CUANDO $busId ESTÉ CERCA",
               onPressed: () => _toggleAlert(busId),
             ),
           ),
@@ -218,9 +263,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
             isActive: isActive,
+            blocked: alreadyNear,
             label: isActive
                 ? "AVISARÉ CUANDO $busId ESTÉ CERCA"
-                : "AVISARME CUANDO $busId ESTÉ CERCA",
+                : alreadyNear
+                    ? "BUS $busId YA ESTÁ CERCA"
+                    : "AVISARME CUANDO $busId ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ),
@@ -238,6 +286,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             final eta = buses.first == busId ? "3" : "12";
             final isActive = ref.watch(activeAlertsProvider).contains(busId);
             final staleLabel = _staleLabel(busById[busId]);
+            final alreadyNear = !isActive && _busAlreadyNear(busById[busId]);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -296,7 +345,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                       decoration: BoxDecoration(
                         color: isActive
                             ? const Color(0xFF00A859)
-                            : const Color(0xFFF1F5F9),
+                            : alreadyNear
+                                ? const Color(0xFFE2E8F0)
+                                : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Row(
@@ -305,21 +356,31 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                           Icon(
                             isActive
                                 ? Icons.check_circle_rounded
-                                : Icons.notifications_active_rounded,
+                                : alreadyNear
+                                    ? Icons.notifications_off_rounded
+                                    : Icons.notifications_active_rounded,
                             color: isActive
                                 ? Colors.white
-                                : const Color(0xFF14274E),
+                                : alreadyNear
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF14274E),
                             size: 16,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            isActive ? "Activada" : "Avisarme",
+                            isActive
+                                ? "Activada"
+                                : alreadyNear
+                                    ? "Ya cerca"
+                                    : "Avisarme",
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: isActive
                                   ? Colors.white
-                                  : const Color(0xFF14274E),
+                                  : alreadyNear
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF14274E),
                             ),
                           ),
                         ],
@@ -339,11 +400,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
 class _StickyAlertButton extends StatefulWidget {
   final bool isActive;
+
+  /// Bus ya dentro del radio de aviso: el botón se pinta gris (bloqueado).
+  final bool blocked;
   final String label;
   final VoidCallback onPressed;
 
   const _StickyAlertButton({
     required this.isActive,
+    this.blocked = false,
     required this.label,
     required this.onPressed,
   });
@@ -357,8 +422,11 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor =
-        widget.isActive ? const Color(0xFF065F46) : const Color(0xFF00A859);
+    final backgroundColor = widget.blocked
+        ? const Color(0xFF94A3B8)
+        : widget.isActive
+            ? const Color(0xFF065F46)
+            : const Color(0xFF00A859);
 
     return GestureDetector(
       onTap: () {
@@ -393,13 +461,15 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
             child: Row(
-              key: ValueKey(widget.isActive),
+              key: ValueKey('${widget.isActive}-${widget.blocked}'),
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  widget.isActive
-                      ? Icons.check_circle_rounded
-                      : Icons.notifications_active_rounded,
+                  widget.blocked
+                      ? Icons.notifications_off_rounded
+                      : widget.isActive
+                          ? Icons.check_circle_rounded
+                          : Icons.notifications_active_rounded,
                   color: Colors.white,
                   size: 22,
                 ),
