@@ -8,8 +8,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show
-        NearbyBuses,
-        nearbyBusesProvider,
+        fleetBusesProvider,
         selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 
@@ -24,7 +23,7 @@ class MapWidget extends ConsumerStatefulWidget {
 class _MapWidgetState extends ConsumerState<MapWidget>
     with WidgetsBindingObserver {
   MapLibreMapController? _mapController;
-  ProviderSubscription<NearbyBuses>? _movingBusSubscription;
+  ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<UserLocationState>? _userPinSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
   RouteTrajectory? _lastTrajectory;
@@ -43,7 +42,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kBusLayerId = 'bus-layer';
   static const _kBusIconId = 'bus-icon-active';
   static const _kBusGhostIconId = 'bus-icon-ghost';
-  static const _kBusFarIconId = 'bus-icon-far';
   static const _kUserPinSourceId = 'user-pin-source';
   static const _kUserPinLayerId = 'user-pin-layer';
   static const _kUserPinIconId = 'user-pin-icon';
@@ -79,13 +77,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     ref.read(appLifecycleProvider.notifier).state = state;
   }
 
-  void _setupBusSubscription(String routeId) {
+  void _setupFleetSubscription() {
     _movingBusSubscription?.close();
     _movingBusSubscription =
-        ref.listenManual(nearbyBusesProvider(routeId), (previous, next) {
+        ref.listenManual(fleetBusesProvider, (previous, next) {
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
-      _updateBusSourceData(next);
+      next.whenData(_updateBusSourceData);
     }, fireImmediately: true);
   }
 
@@ -121,13 +119,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
   }
 
-  void _teardownBusSubscription() {
-    _movingBusSubscription?.close();
-    _movingBusSubscription = null;
-    if (_mapController != null && mounted) {
-      const emptyGeoJson = {"type": "FeatureCollection", "features": []};
-      _mapController!.setGeoJsonSource(_kBusSourceId, emptyGeoJson);
-    }
+  void _teardownRouteData() {
+    if (_mapController == null || !mounted) return;
+    const emptyGeoJson = {"type": "FeatureCollection", "features": []};
+    _mapController!.setGeoJsonSource(_kRouteSourceId, emptyGeoJson);
+    _mapController!.setGeoJsonSource(_kStopsFijaSourceId, emptyGeoJson);
+    _mapController!.setGeoJsonSource(_kStopsInformalSourceId, emptyGeoJson);
   }
 
   @override
@@ -137,9 +134,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _hasFitInitialRoute = false;
       if (widget.routeId != null) {
         _reloadMapData();
-        _setupBusSubscription(widget.routeId!);
       } else {
-        _teardownBusSubscription();
+        _teardownRouteData();
       }
     }
   }
@@ -157,9 +153,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
       _setupUserPinSubscription();
+      _setupFleetSubscription();
       if (widget.routeId != null) {
         await _reloadMapData();
-        _setupBusSubscription(widget.routeId!);
       }
     } catch (e) {
       debugPrint('MapWidget._onStyleLoadedCallback error: $e');
@@ -246,8 +242,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             'case',
             ['==', ['get', 'isGhost'], true],
             _kBusGhostIconId,
-            ['==', ['get', 'isFar'], true],
-            _kBusFarIconId,
             _kBusIconId
           ],
           iconSize: [
@@ -288,12 +282,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           const Color(0xFF14274E), isGhost: false);
       final ghostBytes = await _createFlatTransitMarker(
           const Color(0xFF94A3B8), isGhost: true);
-      final farBytes = await _createFlatTransitMarker(
-          const Color(0xFFA8B3C4), isGhost: true);
 
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
-      await _mapController!.addImage(_kBusFarIconId, farBytes);
       await _mapController!.addImage(_kUserPinIconId, await _createPinMarker());
     } catch (e) {
       debugPrint("Error generando iconos Flat: $e");
@@ -469,11 +460,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     });
   }
 
-  void _updateBusSourceData(NearbyBuses buses) {
+  void _updateBusSourceData(List<BusPosition> positions) {
     if (_mapController == null || !mounted || !_layersReady) return;
     final selectedBuses = ref.read(selectedBusesProvider);
-    Map<String, dynamic> busFeature(BusPosition pos, {required bool isFar}) {
-      return {
+    _mapController!.setGeoJsonSource(_kBusSourceId, {
+      'type': 'FeatureCollection',
+      'features': positions.map((pos) => {
         'type': 'Feature',
         'geometry': {
           'type': 'Point',
@@ -484,18 +476,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           'heading': pos.heading,
           'speedKmh': pos.speedKmh,
           'isGhost': pos.isGhostBus,
-          'isFar': isFar,
           'isSelected': selectedBuses.contains(pos.busId),
         },
-      };
-    }
-
-    _mapController!.setGeoJsonSource(_kBusSourceId, {
-      'type': 'FeatureCollection',
-      'features': [
-        ...buses.nearby.map((pos) => busFeature(pos, isFar: false)),
-        ...buses.far.map((pos) => busFeature(pos, isFar: true)),
-      ],
+      }).toList(),
     });
   }
 

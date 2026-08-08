@@ -5,25 +5,27 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 
-/// Píldora flotante que informa el estado de la ubicación del usuario:
-/// GPS activo, permiso negado (invita a tocar el mapa), pin manual puesto,
-/// o permiso bloqueado (invita a abrir Ajustes).
+/// Píldora flotante que informa el estado de la ubicación del usuario y el
+/// número de buses activos de la flota: GPS activo, permiso negado (invita a
+/// tocar el mapa), pin manual puesto, o permiso bloqueado (abre Ajustes).
 class LocationStatusChip extends ConsumerWidget {
-  const LocationStatusChip({super.key, required this.routeId});
-
-  final String? routeId;
+  const LocationStatusChip({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(userLocationProvider);
-    final showAll = ref.watch(showAllBusesProvider);
-    final nearby =
-        routeId != null ? ref.watch(nearbyBusesProvider(routeId!)) : null;
+    final fleetAsync = ref.watch(fleetBusesProvider);
     final notifier = ref.read(userLocationProvider.notifier);
-    final showAllNotifier = ref.read(showAllBusesProvider.notifier);
 
-    final bool hasNearbyFilter = nearby != null && nearby.filtered;
-    final bool emptyNearby = hasNearbyFilter && nearby.nearby.isEmpty;
+    final String? fleetCount;
+    if (!fleetAsync.hasValue) {
+      fleetCount = null;
+    } else if (fleetAsync.value!.isEmpty) {
+      fleetCount = 'Ningún bus activo ahora';
+    } else {
+      final count = fleetAsync.value!.length;
+      fleetCount = '$count bus${count == 1 ? '' : 'es'} activo${count == 1 ? '' : 's'}';
+    }
 
     final Widget? pill = switch (location.mode) {
       UserLocationMode.locating => const _Pill(
@@ -51,47 +53,20 @@ class LocationStatusChip extends ConsumerWidget {
           actionLabel: 'Usar GPS',
           onAction: () => notifier.useGps(),
         ),
-      UserLocationMode.manual when showAll && nearby != null => _Pill(
-          icon: const Icon(Icons.public,
-              size: 16, color: AppColors.primary),
-          text: 'Viendo toda la flota',
-          actionLabel: 'Cerca de ti',
-          onAction: () => showAllNotifier.set(false),
-        ),
-      UserLocationMode.manual when emptyNearby => _Pill(
-          icon: const Icon(Icons.location_on,
-              size: 16, color: AppColors.primary),
-          text: 'No hay buses cerca de tu pin',
-          actionLabel: 'Ver toda la flota',
-          onAction: () => showAllNotifier.set(true),
-        ),
       UserLocationMode.manual => _Pill(
           icon: const Icon(Icons.location_on,
               size: 16, color: AppColors.primary),
           text: 'Pin: ${_formatCoords(location.lat, location.lon)}'
-              '${hasNearbyFilter ? ' · ${nearby.nearby.length} bus${nearby.nearby.length == 1 ? '' : 'es'} cerca' : ''}',
+              '${fleetCount != null ? ' · $fleetCount' : ''}',
           actionLabel: 'Quitar',
           onAction: () => notifier.clearManualPin(),
-        ),
-      UserLocationMode.gps when showAll && nearby != null => _Pill(
-          icon: const Icon(Icons.public,
-              size: 16, color: AppColors.success),
-          text: 'Viendo toda la flota',
-          actionLabel: 'Cerca de ti',
-          onAction: () => showAllNotifier.set(false),
-        ),
-      UserLocationMode.gps when emptyNearby => _Pill(
-          icon: const Icon(Icons.my_location,
-              size: 16, color: AppColors.success),
-          text: 'No hay buses cerca de ti',
-          actionLabel: 'Ver toda la flota',
-          onAction: () => showAllNotifier.set(true),
         ),
       UserLocationMode.gps => _Pill(
           icon: const Icon(Icons.my_location,
               size: 16, color: AppColors.success),
-          text: 'Usando tu ubicación'
-              '${hasNearbyFilter ? ' · ${nearby.nearby.length} bus${nearby.nearby.length == 1 ? '' : 'es'} cerca' : ''}',
+          text: fleetCount != null
+              ? 'Usando tu ubicación · $fleetCount'
+              : 'Usando tu ubicación',
         ),
       UserLocationMode.unknown => null,
     };

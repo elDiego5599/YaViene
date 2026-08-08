@@ -1,106 +1,141 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../utils/geo.dart';
+import '../../domain/repositories/realtime_repository.dart';
 import 'realtime_providers.dart';
-import 'user_location_provider.dart';
+
+/// Arma un stream que mantiene el mapa `busId → BusPosition` escuchando los
+/// eventos del socket (batch, live, left, hidden, removed) y filtrando por
+/// las rutas indicadas. Compartido entre el provider por-ruta y el de flota.
+Stream<List<BusPosition>> _buildRoutePositionsStream(
+  RealtimeRepository service,
+  Set<String> routeIds,
+) {
+  final controller = StreamController<List<BusPosition>>();
+  final positions = <String, BusPosition>{};
+  final processedEventIds = <String>{};
+  Timer? emitTimer;
+
+  void emitSnapshot() {
+    if (!controller.isClosed) controller.add(positions.values.toList());
+  }
+
+  void scheduleLiveSnapshot() {
+    if (emitTimer != null) return;
+    emitTimer = Timer(const Duration(milliseconds: 200), () {
+      emitTimer = null;
+      emitSnapshot();
+    });
+  }
+
+  bool belongsTo(dynamic routeId) => routeIds.contains(routeId);
+
+  final batchSub = service.batchPositionStream.listen((batch) {
+    final routeId = batch['routeId'] as String?;
+    if (routeId == null || !belongsTo(routeId)) return;
+    final buses = (batch['buses'] as List<dynamic>? ?? const [])
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+    positions.clear();
+    for (final json in buses) {
+      final pos = _jsonToBusPosition(json);
+      positions[pos.busId] = pos;
+    }
+    if (positions.isNotEmpty) emitSnapshot();
+  });
+
+  final liveSub = service.busPositionStream.listen((json) {
+    final pos = _jsonToBusPosition(json);
+    if (!belongsTo(pos.routeId)) return;
+    positions[pos.busId] = pos;
+    scheduleLiveSnapshot();
+  });
+
+  final leftSub = service.busLeftStream.listen((event) {
+    if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
+    final busId = event['busId'] as String?;
+    if (busId != null && positions.remove(busId) != null) {
+      emitSnapshot();
+    }
+  });
+
+  final hiddenSub = service.busHiddenStream.listen((event) {
+    if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
+    final eventId = event['eventId'] as String?;
+    final busId = event['busId'] as String?;
+    if (busId == null) return;
+    if (eventId != null && !processedEventIds.add(eventId)) return;
+    if (positions.remove(busId) != null) {
+      emitSnapshot();
+    }
+  });
+
+  final removedSub = service.busRemovedStream.listen((event) {
+    if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
+    final busId = event['busId'] as String?;
+    if (busId != null && positions.remove(busId) != null) {
+      emitSnapshot();
+    }
+  });
+
+  final visibleSub = service.busVisibleStream.listen((event) {
+    if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
+    final eventId = event['eventId'] as String?;
+    final busId = event['busId'] as String?;
+    if (busId == null) return;
+    if (eventId != null && !processedEventIds.add(eventId)) return;
+    final position = event['position'];
+    if (position is Map) {
+      positions[busId] =
+          _jsonToBusPosition(Map<String, dynamic>.from(position));
+      emitSnapshot();
+    }
+  });
+
+  controller.onCancel = () {
+    batchSub.cancel();
+    liveSub.cancel();
+    leftSub.cancel();
+    hiddenSub.cancel();
+    removedSub.cancel();
+    visibleSub.cancel();
+    emitTimer?.cancel();
+    controller.close();
+  };
+
+  return controller.stream;
+}
 
 final busPositionsSourceProvider = StreamProvider.autoDispose
     .family<List<BusPosition>, String>((ref, routeId) {
-       final service = ref.watch(realtimeServiceProvider);
-       final controller = StreamController<List<BusPosition>>();
-       final positions = <String, BusPosition>{};
-       final processedEventIds = <String>{};
-       Timer? emitTimer;
+  final service = ref.watch(realtimeServiceProvider);
+  service.subscribeToRoute(routeId);
+  ref.onDispose(() => service.unsubscribeFromRoute(routeId));
+  return _buildRoutePositionsStream(service, {routeId});
+});
 
-       void emitSnapshot() {
-         if (!controller.isClosed) controller.add(positions.values.toList());
-       }
+/// Toda la flota de la empresa seleccionada (todas las rutas a la vez).
+/// Si no hay empresa elegida, toma la primera disponible para que la flota
+/// se vea apenas abre el mapa.
+final fleetBusesProvider = StreamProvider.autoDispose<List<BusPosition>>((ref) {
+  var company = ref.watch(selectedCompanyProvider);
+  if (company == null) {
+    final companiesAsync = ref.watch(companiesProvider);
+    final companies = companiesAsync.valueOrNull ?? const [];
+    company = companies.isNotEmpty ? companies.first : null;
+  }
+  if (company == null) return const Stream<List<BusPosition>>.empty();
 
-       void scheduleLiveSnapshot() {
-         if (emitTimer != null) return;
-         emitTimer = Timer(const Duration(milliseconds: 200), () {
-           emitTimer = null;
-           emitSnapshot();
-         });
-       }
+  final routesAsync = ref.watch(routesByCompanyProvider(company.id));
+  final routes = routesAsync.valueOrNull ?? const <RouteInfo>[];
+  if (routes.isEmpty) return const Stream<List<BusPosition>>.empty();
 
-      service.subscribeToRoute(routeId);
-
-       final batchSub = service.batchPositionStream.listen((batch) {
-         if (batch['routeId'] != routeId) return;
-         final buses = (batch['buses'] as List<dynamic>? ?? const [])
-             .map((item) => Map<String, dynamic>.from(item as Map))
-             .toList();
-         positions.clear();
-         for (final json in buses) {
-           final pos = _jsonToBusPosition(json);
-           positions[pos.busId] = pos;
-        }
-         if (positions.isNotEmpty) emitSnapshot();
-      });
-
-       final liveSub = service.busPositionStream.listen((json) {
-         final pos = _jsonToBusPosition(json);
-         if (pos.routeId != routeId) return;
-         positions[pos.busId] = pos;
-         scheduleLiveSnapshot();
-      });
-
-       final leftSub = service.busLeftStream.listen((event) {
-          if (event['routeId'] != null && event['routeId'] != routeId) return;
-          final busId = event['busId'] as String?;
-          if (busId != null && positions.remove(busId) != null) {
-            emitSnapshot();
-          }
-       });
-
-       final hiddenSub = service.busHiddenStream.listen((event) {
-          if (event['routeId'] != null && event['routeId'] != routeId) return;
-          final eventId = event['eventId'] as String?;
-          final busId = event['busId'] as String?;
-          if (busId == null) return;
-          if (eventId != null && !processedEventIds.add(eventId)) return;
-          if (positions.remove(busId) != null) {
-            emitSnapshot();
-          }
-       });
-
-       final removedSub = service.busRemovedStream.listen((event) {
-          if (event['routeId'] != null && event['routeId'] != routeId) return;
-          final busId = event['busId'] as String?;
-          if (busId != null && positions.remove(busId) != null) {
-            emitSnapshot();
-          }
-       });
-
-       final visibleSub = service.busVisibleStream.listen((event) {
-          if (event['routeId'] != null && event['routeId'] != routeId) return;
-          final eventId = event['eventId'] as String?;
-          final busId = event['busId'] as String?;
-          if (busId == null) return;
-          if (eventId != null && !processedEventIds.add(eventId)) return;
-          final position = event['position'];
-          if (position is Map) {
-            positions[busId] = _jsonToBusPosition(Map<String, dynamic>.from(position));
-            emitSnapshot();
-          }
-       });
-
-       ref.onDispose(() {
-         service.unsubscribeFromRoute(routeId);
-          batchSub.cancel();
-          liveSub.cancel();
-          leftSub.cancel();
-          hiddenSub.cancel();
-          removedSub.cancel();
-          visibleSub.cancel();
-          emitTimer?.cancel();
-          controller.close();
-       });
-
-      return controller.stream;
-    });
+  final routeIds = routes.map((r) => r.id).toSet();
+  final service = ref.watch(realtimeServiceProvider);
+  service.subscribeToAllRoutes(routeIds);
+  ref.onDispose(() => service.unsubscribeFromAllRoutes(routeIds));
+  return _buildRoutePositionsStream(service, routeIds);
+});
 
 BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
   return BusPosition(
@@ -114,78 +149,6 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
     isGhostBus: json['isGhost'] as bool? ?? false,
   );
 }
-
-class NearbyBuses {
-  const NearbyBuses({
-    required this.nearby,
-    required this.far,
-    required this.filtered,
-  });
-
-  /// Buses a menos de [nearbyRadiusMeters] del centro del usuario.
-  final List<BusPosition> nearby;
-
-  /// Buses fuera del radio (solo cuando el filtro está activo).
-  final List<BusPosition> far;
-
-  /// true si el usuario tiene posición (GPS o pin) y se aplicó el filtro.
-  final bool filtered;
-
-  int get total => nearby.length + far.length;
-}
-
-/// Radio del filtro de proximidad (3 km).
-const int nearbyRadiusMeters = 3000;
-
-/// Separa los buses por distancia al centro del usuario (GPS o pin manual).
-/// Sin posición del usuario (`lat`/`lon` null) → toda la flota sin filtrar.
-NearbyBuses filterBusesByProximity(
-  List<BusPosition> positions,
-  double? lat,
-  double? lon,
-) {
-  if (lat == null || lon == null) {
-    return NearbyBuses(nearby: positions, far: const [], filtered: false);
-  }
-  final nearby = <BusPosition>[];
-  final far = <BusPosition>[];
-  for (final pos in positions) {
-    final distance = haversineMeters(lat, lon, pos.lat, pos.lon);
-    if (distance <= nearbyRadiusMeters) {
-      nearby.add(pos);
-    } else {
-      far.add(pos);
-    }
-  }
-  return NearbyBuses(nearby: nearby, far: far, filtered: true);
-}
-
-/// Buses de una ruta separados por distancia al centro del usuario
-/// (GPS o pin manual). Sin posición del usuario → toda la flota.
-final nearbyBusesProvider =
-    Provider.autoDispose.family<NearbyBuses, String>((ref, routeId) {
-  final positions =
-      ref.watch(busPositionsSourceProvider(routeId)).value ?? const [];
-  final location = ref.watch(userLocationProvider);
-  if (ref.watch(showAllBusesProvider)) {
-    return NearbyBuses(nearby: positions, far: const [], filtered: false);
-  }
-  return filterBusesByProximity(positions, location.lat, location.lon);
-});
-
-/// Cuando está activo, `nearbyBusesProvider` deja de filtrar y muestra
-/// toda la flota (botón "Ver toda la flota" en el estado vacío).
-class ShowAllBusesNotifier extends StateNotifier<bool> {
-  ShowAllBusesNotifier() : super(false);
-
-  void toggle() => state = !state;
-  void set(bool value) => state = value;
-}
-
-final showAllBusesProvider =
-    StateNotifierProvider<ShowAllBusesNotifier, bool>((ref) {
-  return ShowAllBusesNotifier();
-});
 
 class SelectedBusesNotifier extends StateNotifier<Set<String>> {  SelectedBusesNotifier() : super({});
 
