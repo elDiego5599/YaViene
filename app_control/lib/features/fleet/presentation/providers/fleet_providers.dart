@@ -175,6 +175,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
     });
     socket.connect();
     refreshRoutes();
+    // Fallback REST: pobla la lista de buses registrados aunque el socket
+    // tarde o falle, y asegura que aparezcan los buses sin posición.
+    refresh();
   }
 
   Future<void> refresh() async {

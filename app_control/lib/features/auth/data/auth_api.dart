@@ -39,6 +39,22 @@ class AuthApi {
       }
     }
   }
+  Future<bool> validateSession(String token) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/fleet/routes',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) return false;
+      rethrow;
+    }
+  }
+
+  Future<void> logout() async {
+    // Los tokens de admin son estateless; solo se descartan en el cliente.
+  }
 }
 
 class AuthApiException implements Exception {

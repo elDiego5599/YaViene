@@ -49,6 +49,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final companyId = prefs.getString(_kCompanyId);
     final companyName = prefs.getString(_kCompanyName);
     if (token != null && companyId != null && companyName != null) {
+      // Validamos el token guardado: si el backend lo rechaza (p.ej. secretos
+      // rotados o token expirado), no entramos con una sesión muerta.
+      try {
+        final valid = await _api.validateSession(token);
+        if (!valid) {
+          await _clearStored(prefs);
+          state = const AuthState(status: AuthStatus.unauthenticated);
+          return;
+        }
+      } catch (_) {
+        // Sin red: mantenemos la sesión; el dashboard reintentará.
+      }
       state = AuthState(
         status: AuthStatus.authenticated,
         session: AuthSession(
@@ -60,6 +72,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } else {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
+  }
+
+  Future<void> _clearStored(SharedPreferences prefs) async {
+    await prefs.remove(_kToken);
+    await prefs.remove(_kCompanyId);
+    await prefs.remove(_kCompanyName);
   }
 
   Future<bool> login(String username, String password) async {
@@ -83,9 +101,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kToken);
-    await prefs.remove(_kCompanyId);
-    await prefs.remove(_kCompanyName);
+    await _clearStored(prefs);
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }

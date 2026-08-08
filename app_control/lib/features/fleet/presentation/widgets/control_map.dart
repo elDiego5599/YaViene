@@ -22,7 +22,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
   final MapController _mapController = MapController();
   double _zoom = 12;
 
-  double get _markerSize => (24 + (_zoom - 11) * 6).clamp(24.0, 48.0);
+  double get _markerSize => (16 + (_zoom - 11) * 4).clamp(16.0, 32.0);
 
   @override
   void dispose() {
