@@ -16,8 +16,14 @@ class LocationStatusChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(userLocationProvider);
-    final nearby = routeId != null ? ref.watch(nearbyBusesProvider(routeId!)) : null;
+    final showAll = ref.watch(showAllBusesProvider);
+    final nearby =
+        routeId != null ? ref.watch(nearbyBusesProvider(routeId!)) : null;
     final notifier = ref.read(userLocationProvider.notifier);
+    final showAllNotifier = ref.read(showAllBusesProvider.notifier);
+
+    final bool hasNearbyFilter = nearby != null && nearby.filtered;
+    final bool emptyNearby = hasNearbyFilter && nearby.nearby.isEmpty;
 
     final Widget? pill = switch (location.mode) {
       UserLocationMode.locating => const _Pill(
@@ -45,18 +51,47 @@ class LocationStatusChip extends ConsumerWidget {
           actionLabel: 'Usar GPS',
           onAction: () => notifier.useGps(),
         ),
+      UserLocationMode.manual when showAll && nearby != null => _Pill(
+          icon: const Icon(Icons.public,
+              size: 16, color: AppColors.primary),
+          text: 'Viendo toda la flota',
+          actionLabel: 'Cerca de ti',
+          onAction: () => showAllNotifier.set(false),
+        ),
+      UserLocationMode.manual when emptyNearby => _Pill(
+          icon: const Icon(Icons.location_on,
+              size: 16, color: AppColors.primary),
+          text: 'No hay buses cerca de tu pin',
+          actionLabel: 'Ver toda la flota',
+          onAction: () => showAllNotifier.set(true),
+        ),
       UserLocationMode.manual => _Pill(
           icon: const Icon(Icons.location_on,
               size: 16, color: AppColors.primary),
-          text: 'Pin: ${_formatCoords(location.lat, location.lon)}',
+          text: 'Pin: ${_formatCoords(location.lat, location.lon)}'
+              '${hasNearbyFilter ? ' · ${nearby.nearby.length} bus${nearby.nearby.length == 1 ? '' : 'es'} cerca' : ''}',
           actionLabel: 'Quitar',
           onAction: () => notifier.clearManualPin(),
+        ),
+      UserLocationMode.gps when showAll && nearby != null => _Pill(
+          icon: const Icon(Icons.public,
+              size: 16, color: AppColors.success),
+          text: 'Viendo toda la flota',
+          actionLabel: 'Cerca de ti',
+          onAction: () => showAllNotifier.set(false),
+        ),
+      UserLocationMode.gps when emptyNearby => _Pill(
+          icon: const Icon(Icons.my_location,
+              size: 16, color: AppColors.success),
+          text: 'No hay buses cerca de ti',
+          actionLabel: 'Ver toda la flota',
+          onAction: () => showAllNotifier.set(true),
         ),
       UserLocationMode.gps => _Pill(
           icon: const Icon(Icons.my_location,
               size: 16, color: AppColors.success),
           text: 'Usando tu ubicación'
-              '${nearby != null && nearby.filtered ? ' · ${nearby.nearby.length} bus${nearby.nearby.length == 1 ? '' : 'es'} cerca' : ''}',
+              '${hasNearbyFilter ? ' · ${nearby.nearby.length} bus${nearby.nearby.length == 1 ? '' : 'es'} cerca' : ''}',
         ),
       UserLocationMode.unknown => null,
     };

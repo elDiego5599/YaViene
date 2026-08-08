@@ -167,7 +167,24 @@ final nearbyBusesProvider =
   final positions =
       ref.watch(busPositionsSourceProvider(routeId)).value ?? const [];
   final location = ref.watch(userLocationProvider);
+  if (ref.watch(showAllBusesProvider)) {
+    return NearbyBuses(nearby: positions, far: const [], filtered: false);
+  }
   return filterBusesByProximity(positions, location.lat, location.lon);
+});
+
+/// Cuando está activo, `nearbyBusesProvider` deja de filtrar y muestra
+/// toda la flota (botón "Ver toda la flota" en el estado vacío).
+class ShowAllBusesNotifier extends StateNotifier<bool> {
+  ShowAllBusesNotifier() : super(false);
+
+  void toggle() => state = !state;
+  void set(bool value) => state = value;
+}
+
+final showAllBusesProvider =
+    StateNotifierProvider<ShowAllBusesNotifier, bool>((ref) {
+  return ShowAllBusesNotifier();
 });
 
 class SelectedBusesNotifier extends StateNotifier<Set<String>> {  SelectedBusesNotifier() : super({});
