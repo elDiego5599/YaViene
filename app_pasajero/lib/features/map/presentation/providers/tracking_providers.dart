@@ -6,7 +6,7 @@ import 'realtime_providers.dart';
 
 /// Arma un stream que mantiene el mapa `busId → BusPosition` escuchando los
 /// eventos del socket (batch, live, left, hidden, removed) y filtrando por
-/// las rutas indicadas. Compartido entre el provider por-ruta y el de flota.
+/// las rutas indicadas.
 Stream<List<BusPosition>> _buildRoutePositionsStream(
   RealtimeRepository service,
   Set<String> routeIds,
@@ -112,29 +112,6 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
   service.subscribeToRoute(routeId);
   ref.onDispose(() => service.unsubscribeFromRoute(routeId));
   return _buildRoutePositionsStream(service, {routeId});
-});
-
-/// Toda la flota de la empresa seleccionada (todas las rutas a la vez).
-/// Si no hay empresa elegida, toma la primera disponible para que la flota
-/// se vea apenas abre el mapa.
-final fleetBusesProvider = StreamProvider.autoDispose<List<BusPosition>>((ref) {
-  var company = ref.watch(selectedCompanyProvider);
-  if (company == null) {
-    final companiesAsync = ref.watch(companiesProvider);
-    final companies = companiesAsync.valueOrNull ?? const [];
-    company = companies.isNotEmpty ? companies.first : null;
-  }
-  if (company == null) return const Stream<List<BusPosition>>.empty();
-
-  final routesAsync = ref.watch(routesByCompanyProvider(company.id));
-  final routes = routesAsync.valueOrNull ?? const <RouteInfo>[];
-  if (routes.isEmpty) return const Stream<List<BusPosition>>.empty();
-
-  final routeIds = routes.map((r) => r.id).toSet();
-  final service = ref.watch(realtimeServiceProvider);
-  service.subscribeToAllRoutes(routeIds);
-  ref.onDispose(() => service.unsubscribeFromAllRoutes(routeIds));
-  return _buildRoutePositionsStream(service, routeIds);
 });
 
 BusPosition _jsonToBusPosition(Map<String, dynamic> json) {

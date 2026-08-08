@@ -8,7 +8,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show
-        fleetBusesProvider,
+        busPositionsSourceProvider,
         selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 
@@ -77,14 +77,23 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     ref.read(appLifecycleProvider.notifier).state = state;
   }
 
-  void _setupFleetSubscription() {
+  void _setupBusSubscription(String routeId) {
     _movingBusSubscription?.close();
     _movingBusSubscription =
-        ref.listenManual(fleetBusesProvider, (previous, next) {
+        ref.listenManual(busPositionsSourceProvider(routeId), (previous, next) {
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
       next.whenData(_updateBusSourceData);
     }, fireImmediately: true);
+  }
+
+  void _teardownBusSubscription() {
+    _movingBusSubscription?.close();
+    _movingBusSubscription = null;
+    if (_mapController != null && mounted) {
+      const emptyGeoJson = {"type": "FeatureCollection", "features": []};
+      _mapController!.setGeoJsonSource(_kBusSourceId, emptyGeoJson);
+    }
   }
 
   void _setupUserPinSubscription() {
@@ -134,7 +143,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _hasFitInitialRoute = false;
       if (widget.routeId != null) {
         _reloadMapData();
+        _setupBusSubscription(widget.routeId!);
       } else {
+        _teardownBusSubscription();
         _teardownRouteData();
       }
     }
@@ -153,9 +164,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
       _setupUserPinSubscription();
-      _setupFleetSubscription();
       if (widget.routeId != null) {
         await _reloadMapData();
+        _setupBusSubscription(widget.routeId!);
       }
     } catch (e) {
       debugPrint('MapWidget._onStyleLoadedCallback error: $e');

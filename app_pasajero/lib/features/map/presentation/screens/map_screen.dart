@@ -40,16 +40,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           Positioned.fill(
             child: MapWidget(routeId: selectedRoute?.id),
           ),
-          const Positioned(
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SearchPillBar(),
-                SizedBox(height: 8),
-                LocationStatusChip(),
+                const SearchPillBar(),
+                const SizedBox(height: 8),
+                LocationStatusChip(routeId: selectedRoute?.id),
               ],
             ),
           ),

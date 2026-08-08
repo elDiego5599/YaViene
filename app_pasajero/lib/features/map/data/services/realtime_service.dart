@@ -103,22 +103,6 @@ class RealtimeService implements RealtimeRepository {
   }
 
   @override
-  void subscribeToAllRoutes(Set<String> routeIds) {
-    for (final routeId in routeIds) {
-      _subscriptions.add(routeId);
-      _socket?.emit('subscribe:route', routeId);
-    }
-  }
-
-  @override
-  void unsubscribeFromAllRoutes(Set<String> routeIds) {
-    for (final routeId in routeIds) {
-      _subscriptions.remove(routeId);
-      _socket?.emit('unsubscribe:route', routeId);
-    }
-  }
-
-  @override
   void dispose() {
     _subscriptions.clear();
     _socket?.disconnect();

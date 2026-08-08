@@ -6,25 +6,32 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 
 /// Píldora flotante que informa el estado de la ubicación del usuario y el
-/// número de buses activos de la flota: GPS activo, permiso negado (invita a
-/// tocar el mapa), pin manual puesto, o permiso bloqueado (abre Ajustes).
+/// número de buses activos de la ruta seleccionada: GPS activo, permiso
+/// negado (invita a tocar el mapa), pin manual puesto, o permiso bloqueado
+/// (abre Ajustes).
 class LocationStatusChip extends ConsumerWidget {
-  const LocationStatusChip({super.key});
+  const LocationStatusChip({super.key, this.routeId});
+
+  final String? routeId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(userLocationProvider);
-    final fleetAsync = ref.watch(fleetBusesProvider);
+    final routePositionsAsync = routeId != null
+        ? ref.watch(busPositionsSourceProvider(routeId!))
+        : null;
     final notifier = ref.read(userLocationProvider.notifier);
 
-    final String? fleetCount;
-    if (!fleetAsync.hasValue) {
-      fleetCount = null;
-    } else if (fleetAsync.value!.isEmpty) {
-      fleetCount = 'Ningún bus activo ahora';
+    final String? routeCount;
+    if (routePositionsAsync == null) {
+      routeCount = null;
+    } else if (!routePositionsAsync.hasValue) {
+      routeCount = null;
+    } else if (routePositionsAsync.value!.isEmpty) {
+      routeCount = 'Ningún bus activo en esta ruta';
     } else {
-      final count = fleetAsync.value!.length;
-      fleetCount = '$count bus${count == 1 ? '' : 'es'} activo${count == 1 ? '' : 's'}';
+      final count = routePositionsAsync.value!.length;
+      routeCount = '$count bus${count == 1 ? '' : 'es'} activo${count == 1 ? '' : 's'}';
     }
 
     final Widget? pill = switch (location.mode) {
@@ -57,15 +64,15 @@ class LocationStatusChip extends ConsumerWidget {
           icon: const Icon(Icons.location_on,
               size: 16, color: AppColors.primary),
           text: 'Pin: ${_formatCoords(location.lat, location.lon)}'
-              '${fleetCount != null ? ' · $fleetCount' : ''}',
+              '${routeCount != null ? ' · $routeCount' : ''}',
           actionLabel: 'Quitar',
           onAction: () => notifier.clearManualPin(),
         ),
       UserLocationMode.gps => _Pill(
           icon: const Icon(Icons.my_location,
               size: 16, color: AppColors.success),
-          text: fleetCount != null
-              ? 'Usando tu ubicación · $fleetCount'
+          text: routeCount != null
+              ? 'Usando tu ubicación · $routeCount'
               : 'Usando tu ubicación',
         ),
       UserLocationMode.unknown => null,

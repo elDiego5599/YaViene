@@ -13,8 +13,6 @@ abstract class RealtimeRepository {
   void connect();
   void subscribeToRoute(String routeId);
   void unsubscribeFromRoute(String routeId);
-  void subscribeToAllRoutes(Set<String> routeIds);
-  void unsubscribeFromAllRoutes(Set<String> routeIds);
   void dispose();
   bool get isConnected;
 }

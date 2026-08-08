@@ -44,14 +44,6 @@ class _FakeRealtimeService implements RealtimeRepository {
       subscribedRoutes.remove(routeId);
 
   @override
-  void subscribeToAllRoutes(Set<String> routeIds) =>
-      subscribedRoutes.addAll(routeIds);
-
-  @override
-  void unsubscribeFromAllRoutes(Set<String> routeIds) =>
-      subscribedRoutes.removeAll(routeIds);
-
-  @override
   void dispose() {
     _connectionState.close();
     _busPosition.close();
@@ -92,28 +84,21 @@ void main() {
     fake = _FakeRealtimeService();
     container = ProviderContainer(overrides: [
       realtimeServiceProvider.overrideWithValue(fake),
-      companiesProvider.overrideWith(
-        (ref) async => const [Company(id: 'EMP-01', name: 'Sobusa')],
-      ),
-      routesByCompanyProvider.overrideWith((ref, companyId) async => const [
-        RouteInfo(id: 'R-101', name: 'Tcherassi', companyId: 'EMP-01'),
-        RouteInfo(id: 'R-102', name: 'Otra', companyId: 'EMP-01'),
-      ]),
     ]);
     addTearDown(container.dispose);
   });
 
-  List<BusPosition>? currentFleet(ProviderContainer c) =>
-      c.read(fleetBusesProvider).value;
+  List<BusPosition>? currentBuses(ProviderContainer c, String routeId) =>
+      c.read(busPositionsSourceProvider(routeId)).value;
 
-  test('suscribe a todas las rutas de la empresa sin empresa elegida', () async {
-    container.listen(fleetBusesProvider, (_, __) {});
+  test('suscribe a la ruta al escuchar el provider', () async {
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
     await pumpEventQueue();
-    expect(fake.subscribedRoutes, {'R-101', 'R-102'});
+    expect(fake.subscribedRoutes, {'R-101'});
   });
 
-  test('un batch de una ruta suscrita puebla la flota', () async {
-    container.listen(fleetBusesProvider, (_, __) {});
+  test('un batch de la ruta puebla la posición de todos sus buses', () async {
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
     await pumpEventQueue();
 
     fake._batch.add({
@@ -122,14 +107,14 @@ void main() {
     });
     await pumpEventQueue();
 
-    final fleet = currentFleet(container);
-    expect(fleet, isNotNull);
-    expect(fleet!.length, 2);
-    expect(fleet.map((b) => b.busId).toSet(), {'BUS-SQA101', 'BUS-X2'});
+    final buses = currentBuses(container, 'R-101');
+    expect(buses, isNotNull);
+    expect(buses!.length, 2);
+    expect(buses.map((b) => b.busId).toSet(), {'BUS-SQA101', 'BUS-X2'});
   });
 
-  test('un batch de una ruta no suscrita se ignora', () async {
-    container.listen(fleetBusesProvider, (_, __) {});
+  test('un batch de otra ruta se ignora', () async {
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
     await pumpEventQueue();
 
     fake._batch.add({
@@ -138,11 +123,11 @@ void main() {
     });
     await pumpEventQueue();
 
-    expect(currentFleet(container) ?? const [], isEmpty);
+    expect(currentBuses(container, 'R-101') ?? const [], isEmpty);
   });
 
-  test('bus:left elimina el bus de la flota', () async {
-    container.listen(fleetBusesProvider, (_, __) {});
+  test('bus:left elimina el bus de la ruta', () async {
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
     await pumpEventQueue();
 
     fake._batch.add({
@@ -152,25 +137,25 @@ void main() {
     fake._busLeft.add({'routeId': 'R-101', 'busId': 'BUS-SQA101'});
     await pumpEventQueue();
 
-    final fleet = currentFleet(container);
-    expect(fleet!.map((b) => b.busId).toSet(), {'BUS-X2'});
+    final buses = currentBuses(container, 'R-101');
+    expect(buses!.map((b) => b.busId).toSet(), {'BUS-X2'});
   });
 
   test('bus:hidden con eventId único elimina el bus', () async {
-    container.listen(fleetBusesProvider, (_, __) {});
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
     await pumpEventQueue();
 
     fake._batch.add({
-      'routeId': 'R-102',
-      'buses': [_busJson('BUS-Y1', 'R-102')],
+      'routeId': 'R-101',
+      'buses': [_busJson('BUS-Y1', 'R-101')],
     });
     fake._busHidden.add({
-      'routeId': 'R-102',
+      'routeId': 'R-101',
       'busId': 'BUS-Y1',
       'eventId': 'evt-1',
     });
     await pumpEventQueue();
 
-    expect(currentFleet(container) ?? const [], isEmpty);
+    expect(currentBuses(container, 'R-101') ?? const [], isEmpty);
   });
 }
