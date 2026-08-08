@@ -5,10 +5,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 
-/// Píldora flotante que informa el estado de la ubicación del usuario y el
-/// número de buses activos de la ruta seleccionada: GPS activo, permiso
-/// negado (invita a tocar el mapa), pin manual puesto, o permiso bloqueado
-/// (abre Ajustes).
+/// Píldora flotante de cristal que informa el estado de la ubicación y
+/// cuántos buses hay cerca del usuario en la ruta seleccionada.
 class LocationStatusChip extends ConsumerWidget {
   const LocationStatusChip({super.key, this.routeId});
 
@@ -17,130 +15,192 @@ class LocationStatusChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = ref.watch(userLocationProvider);
-    final routePositionsAsync = routeId != null
-        ? ref.watch(busPositionsSourceProvider(routeId!))
+    final nearbyCount = routeId != null && location.hasPosition
+        ? ref.watch(nearbyBusesCountProvider(routeId!))
         : null;
     final notifier = ref.read(userLocationProvider.notifier);
 
-    final String? routeCount;
-    if (routePositionsAsync == null) {
-      routeCount = null;
-    } else if (!routePositionsAsync.hasValue) {
-      routeCount = null;
-    } else if (routePositionsAsync.value!.isEmpty) {
-      routeCount = 'Ningún bus activo en esta ruta';
-    } else {
-      final count = routePositionsAsync.value!.length;
-      routeCount = '$count bus${count == 1 ? '' : 'es'} activo${count == 1 ? '' : 's'}';
-    }
-
-    final Widget? pill = switch (location.mode) {
-      UserLocationMode.locating => const _Pill(
-          icon: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.primary,
-            ),
-          ),
+    final _PillData? pill = switch (location.mode) {
+      UserLocationMode.locating => const _PillData(
+          key: 'locating',
+          icon: Icons.my_location,
           text: 'Localizando tu ubicación…',
+          tint: Color(0xFFE6F7F0),
+          iconColor: AppColors.primary,
         ),
-      UserLocationMode.permanentDenied => _Pill(
-          icon: const Icon(Icons.location_off,
-              size: 16, color: AppColors.error),
+      UserLocationMode.permanentDenied => _PillData(
+          key: 'permanentDenied',
+          icon: Icons.location_off,
           text: 'Ubicación bloqueada en los Ajustes',
           actionLabel: 'Abrir',
           onAction: () => openAppSettings(),
+          tint: const Color(0xFFFEE2E2),
+          iconColor: AppColors.error,
         ),
-      UserLocationMode.denied => _Pill(
-          icon: const Icon(Icons.location_on,
-              size: 16, color: AppColors.primary),
+      UserLocationMode.denied => _PillData(
+          key: 'denied',
+          icon: Icons.touch_app,
           text: 'Toca el mapa para indicar dónde estás',
           actionLabel: 'Usar GPS',
           onAction: () => notifier.useGps(),
+          tint: const Color(0xFFE6F7F0),
+          iconColor: AppColors.primary,
         ),
-      UserLocationMode.manual => _Pill(
-          icon: const Icon(Icons.location_on,
-              size: 16, color: AppColors.primary),
-          text: 'Pin: ${_formatCoords(location.lat, location.lon)}'
-              '${routeCount != null ? ' · $routeCount' : ''}',
-          actionLabel: 'Quitar',
-          onAction: () => notifier.clearManualPin(),
-        ),
-      UserLocationMode.gps => _Pill(
-          icon: const Icon(Icons.my_location,
-              size: 16, color: AppColors.success),
-          text: routeCount != null
-              ? 'Usando tu ubicación · $routeCount'
-              : 'Usando tu ubicación',
-        ),
+      UserLocationMode.manual => _manualPill(location, nearbyCount, notifier),
+      UserLocationMode.gps => _gpsPill(nearbyCount),
       UserLocationMode.unknown => null,
     };
 
     if (pill == null) return const SizedBox.shrink();
 
-    return pill;
+    return _Pill(data: pill);
+  }
+
+  _PillData? _manualPill(UserLocationState location, int? nearbyCount, UserLocationNotifier notifier) {
+    final coords = '${location.lat!.toStringAsFixed(4)}, ${location.lon!.toStringAsFixed(4)}';
+    if (nearbyCount == null) {
+      return _PillData(
+        key: 'manual',
+        icon: Icons.location_on,
+        text: 'Pin: $coords',
+        actionLabel: 'Quitar',
+        onAction: () => notifier.clearManualPin(),
+        tint: const Color(0xFFE6F7F0),
+        iconColor: AppColors.primary,
+      );
+    }
+    if (nearbyCount == 0) {
+      return _PillData(
+        key: 'manual-empty',
+        icon: Icons.directions_bus,
+        text: 'No hay buses cerca de tu pin',
+        actionLabel: 'Usar GPS',
+        onAction: () => notifier.useGps(),
+        tint: const Color(0xFFFEF3C7),
+        iconColor: const Color(0xFFD97706),
+      );
+    }
+    return _PillData(
+      key: 'manual-near',
+      icon: Icons.location_on,
+      text: 'Pin: $coords · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      actionLabel: 'Quitar',
+      onAction: () => notifier.clearManualPin(),
+      tint: const Color(0xFFE6F7F0),
+      iconColor: AppColors.primary,
+    );
+  }
+
+  _PillData? _gpsPill(int? nearbyCount) {
+    if (nearbyCount == null) {
+      return const _PillData(
+        key: 'gps',
+        icon: Icons.my_location,
+        text: 'Usando tu ubicación',
+        tint: Color(0xFFE6F7F0),
+        iconColor: AppColors.primary,
+      );
+    }
+    if (nearbyCount == 0) {
+      return const _PillData(
+        key: 'gps-empty',
+        icon: Icons.directions_bus,
+        text: 'No hay buses cerca de ti',
+        tint: Color(0xFFFEF3C7),
+        iconColor: Color(0xFFD97706),
+      );
+    }
+    return _PillData(
+      key: 'gps-near',
+      icon: Icons.my_location,
+      text: 'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      tint: const Color(0xFFE6F7F0),
+      iconColor: AppColors.primary,
+    );
   }
 }
 
-String _formatCoords(double? lat, double? lon) {
-  if (lat == null || lon == null) return '—';
-  return '${lat.toStringAsFixed(4)}, ${lon.toStringAsFixed(4)}';
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
+class _PillData {
+  const _PillData({
+    required this.key,
     required this.icon,
     required this.text,
+    required this.tint,
+    required this.iconColor,
     this.actionLabel,
     this.onAction,
   });
 
-  final Widget icon;
+  final String key;
+  final IconData icon;
   final String text;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final Color tint;
+  final Color iconColor;
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.data});
+
+  final _PillData data;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: onAction,
+        borderRadius: BorderRadius.circular(22),
+        onTap: data.onAction,
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 340),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          constraints: const BoxConstraints(maxWidth: 380),
+          padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(color: AppColors.divider),
-            boxShadow: AppShadows.soft,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFE9EDF2)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF14274E).withValues(alpha: 0.07),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              icon,
-              const SizedBox(width: 8),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: data.tint,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(data.icon, size: 18, color: data.iconColor),
+              ),
+              const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  text,
+                  data.text,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.label.copyWith(
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.25,
                     color: AppColors.textPrimary,
-                    fontSize: 12.5,
                   ),
                 ),
               ),
-              if (actionLabel != null) ...[
-                const SizedBox(width: 6),
+              if (data.actionLabel != null) ...[
+                const SizedBox(width: 8),
                 Text(
-                  actionLabel!,
-                  style: AppTextStyles.label.copyWith(
-                    color: AppColors.primary,
+                  data.actionLabel!,
+                  style: const TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    fontSize: 12.5,
+                    letterSpacing: -0.2,
+                    color: AppColors.primaryDeep,
                   ),
                 ),
               ],

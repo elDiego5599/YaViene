@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/domain/repositories/realtime_repository.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 
 class _FakeRealtimeService implements RealtimeRepository {
   final _connectionState = StreamController<ConnectionStatus>.broadcast();
@@ -157,5 +159,54 @@ void main() {
     await pumpEventQueue();
 
     expect(currentBuses(container, 'R-101') ?? const [], isEmpty);
+  });
+
+  group('nearbyBusesCountProvider (2 km)', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('sin posición del usuario → null', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+      expect(container.read(nearbyBusesCountProvider('R-101')), isNull);
+    });
+
+    test('cuenta solo buses a <2 km del centro', () async {
+      // Usuario en (10.9800, -74.7800). Bus A en el mismo punto (0 m),
+      // bus B a ~2.2 km (0.02 grados de latitud).
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._batch.add({
+        'routeId': 'R-101',
+        'buses': [
+          _busJson('BUS-A', 'R-101', lat: 10.98, lon: -74.78),
+          _busJson('BUS-B', 'R-101', lat: 11.0, lon: -74.78),
+        ],
+      });
+      container
+          .read(userLocationProvider.notifier)
+          .setManualPin(10.98, -74.78);
+      await pumpEventQueue();
+
+      expect(container.read(nearbyBusesCountProvider('R-101')), 1);
+    });
+
+    test('con todos los buses lejos → 0', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._batch.add({
+        'routeId': 'R-101',
+        'buses': [_busJson('BUS-B', 'R-101', lat: 11.02, lon: -74.78)],
+      });
+      container
+          .read(userLocationProvider.notifier)
+          .setManualPin(10.98, -74.78);
+      await pumpEventQueue();
+
+      expect(container.read(nearbyBusesCountProvider('R-101')), 0);
+    });
   });
 }

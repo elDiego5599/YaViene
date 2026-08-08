@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../domain/repositories/realtime_repository.dart';
+import '../utils/geo.dart';
 import 'realtime_providers.dart';
+import 'user_location_provider.dart';
 
 /// Arma un stream que mantiene el mapa `busId → BusPosition` escuchando los
 /// eventos del socket (batch, live, left, hidden, removed) y filtrando por
@@ -112,6 +114,26 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
   service.subscribeToRoute(routeId);
   ref.onDispose(() => service.unsubscribeFromRoute(routeId));
   return _buildRoutePositionsStream(service, {routeId});
+});
+
+/// Radio de proximidad para el conteo "buses cerca de ti" (2 km).
+const int nearbyRadiusMeters = 2000;
+
+/// Cantidad de buses de la ruta a menos de [nearbyRadiusMeters] del centro
+/// del usuario (GPS o pin). `null` si el usuario aún no tiene posición.
+final nearbyBusesCountProvider =
+    Provider.autoDispose.family<int?, String>((ref, routeId) {
+  final positions =
+      ref.watch(busPositionsSourceProvider(routeId)).value ?? const [];
+  final location = ref.watch(userLocationProvider);
+  if (!location.hasPosition) return null;
+  var count = 0;
+  for (final pos in positions) {
+    final distance = haversineMeters(
+        location.lat!, location.lon!, pos.lat, pos.lon);
+    if (distance <= nearbyRadiusMeters) count++;
+  }
+  return count;
 });
 
 BusPosition _jsonToBusPosition(Map<String, dynamic> json) {

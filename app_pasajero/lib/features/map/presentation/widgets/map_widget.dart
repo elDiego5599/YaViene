@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show
         busPositionsSourceProvider,
+        nearbyRadiusMeters,
         selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 
@@ -45,6 +47,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kUserPinSourceId = 'user-pin-source';
   static const _kUserPinLayerId = 'user-pin-layer';
   static const _kUserPinIconId = 'user-pin-icon';
+  static const _kUserRadiusSourceId = 'user-radius-source';
+  static const _kUserRadiusFillLayerId = 'user-radius-fill-layer';
+  static const _kUserRadiusLineLayerId = 'user-radius-line-layer';
 
   static final LatLngBounds _colombiaBounds = LatLngBounds(
     southwest: const LatLng(-4.227, -79.023),
@@ -107,25 +112,60 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   void _updateUserPinSource(UserLocationState state) {
     if (_mapController == null || !mounted) return;
-    if (state.isManual && state.hasPosition) {
-      _mapController!.setGeoJsonSource(_kUserPinSourceId, {
+    const emptyGeoJson = {"type": "FeatureCollection", "features": []};
+
+    if (state.hasPosition) {
+      _mapController!.setGeoJsonSource(_kUserRadiusSourceId, {
         'type': 'FeatureCollection',
         'features': [
-          {
-            'type': 'Feature',
-            'geometry': {
-              'type': 'Point',
-              'coordinates': [state.lon, state.lat]
-            },
-            'properties': const {},
-          },
+          _radiusCircleFeature(
+            state.lat!,
+            state.lon!,
+            nearbyRadiusMeters.toDouble(),
+          ),
         ],
       });
-    } else {
-      _mapController!
-          .setGeoJsonSource(_kUserPinSourceId,
-              const {'type': 'FeatureCollection', 'features': []});
+      if (state.isManual) {
+        _mapController!.setGeoJsonSource(_kUserPinSourceId, {
+          'type': 'FeatureCollection',
+          'features': [
+            {
+              'type': 'Feature',
+              'geometry': {
+                'type': 'Point',
+                'coordinates': [state.lon, state.lat]
+              },
+              'properties': const {},
+            },
+          ],
+        });
+        return;
+      }
     }
+    _mapController!.setGeoJsonSource(_kUserPinSourceId, emptyGeoJson);
+    _mapController!.setGeoJsonSource(_kUserRadiusSourceId, emptyGeoJson);
+  }
+
+  Map<String, dynamic> _radiusCircleFeature(
+    double lat,
+    double lon,
+    double radiusMeters,
+  ) {
+    const steps = 48;
+    final coordinates = <List<double>>[];
+    for (var i = 0; i < steps; i++) {
+      final angle = 2 * math.pi * i / steps;
+      final dLat = (radiusMeters * math.cos(angle)) / 111320;
+      final dLon = (radiusMeters * math.sin(angle)) /
+          (111320 * math.cos(lat * math.pi / 180));
+      coordinates.add([lon + dLon, lat + dLat]);
+    }
+    coordinates.add(coordinates.first);
+    return {
+      'type': 'Feature',
+      'geometry': {'type': 'Polygon', 'coordinates': [coordinates]},
+      'properties': const {},
+    };
   }
 
   void _teardownRouteData() {
@@ -221,6 +261,28 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     await _mapController!.addSource(_kUserPinSourceId,
         const GeojsonSourceProperties(data: emptyGeoJson));
+
+    await _mapController!.addSource(_kUserRadiusSourceId,
+        const GeojsonSourceProperties(data: emptyGeoJson));
+
+    await _mapController!.addFillLayer(
+      _kUserRadiusSourceId,
+      _kUserRadiusFillLayerId,
+      const FillLayerProperties(
+        fillColor: '#00A859',
+        fillOpacity: 0.05,
+      ),
+    );
+
+    await _mapController!.addLineLayer(
+      _kUserRadiusSourceId,
+      _kUserRadiusLineLayerId,
+      const LineLayerProperties(
+        lineColor: '#00A859',
+        lineWidth: 1.5,
+        lineOpacity: 0.28,
+      ),
+    );
 
     await _mapController!.addSymbolLayer(
         _kUserPinSourceId,
