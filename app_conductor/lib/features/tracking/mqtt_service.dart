@@ -49,12 +49,17 @@ class MqttService {
     _sessionId = _readSessionId(jwtToken);
 
     final uri = Uri.parse(AppConfig.backendUrl);
-    _host = uri.host;
+    // MQTT viaja por WebSocket sobre el mismo servidor que el HTTP: derivamos
+    // ws(s)://host:puerto/mqtt de BACKEND_URL. Así la misma APK funciona en
+    // local (ws) y remoto (wss con el túnel).
+    final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
+    final wsPort = uri.hasPort ? uri.port : (scheme == 'wss' ? 443 : 80);
+    _host = '$scheme://${uri.host}:$wsPort/mqtt';
 
     final clientId = 'c$busId${Random().nextInt(999999)}';
     _client = MqttServerClient(_host!, clientId);
-    _client!.secure = AppConfig.mqttSecure;
-    _client!.port = AppConfig.mqttPort;
+    _client!.useWebSocket = true;
+    _client!.port = wsPort;
     _client!.keepAlivePeriod = 10;
     _client!.connectTimeoutPeriod = 5000;
     _client!.logging(on: false);
@@ -68,7 +73,7 @@ class MqttService {
 
     _client!.onConnected = () {
       _connected = true;
-      _logger.i('MQTT conectado a $_host:${AppConfig.mqttPort}');
+      _logger.i('MQTT conectado a $_host');
     };
     _client!.onDisconnected = () {
       if (_connected) {
