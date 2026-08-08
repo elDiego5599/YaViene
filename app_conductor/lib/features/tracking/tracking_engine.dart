@@ -157,6 +157,26 @@ class TrackingEngine {
       return;
     }
 
+    await _publishPosition(
+      config,
+      lat: position.latitude,
+      lon: position.longitude,
+      heading: position.heading,
+      speedKmh: position.speed * 3.6,
+      capturedAt: position.timestamp.millisecondsSinceEpoch,
+    );
+  }
+
+  Future<void> _publishPosition(
+    TrackingConfig config, {
+    required double lat,
+    required double lon,
+    double? heading,
+    double? speedKmh,
+    required int capturedAt,
+  }) async {
+    if (!_running) return;
+
     final sequence = _nextSequence;
     if (sequence == null) {
       _logger.e('Sequence storage is not initialized');
@@ -164,12 +184,11 @@ class TrackingEngine {
       return;
     }
     _nextSequence = sequence + 1;
-    final capturedAt = position.timestamp.millisecondsSinceEpoch;
     final busPosition = BusPositionData(
-      lat: position.latitude,
-      lon: position.longitude,
-      heading: position.heading,
-      speedKmh: position.speed * 3.6,
+      lat: lat,
+      lon: lon,
+      heading: heading ?? 0,
+      speedKmh: speedKmh ?? 0,
       capturedAt: capturedAt,
       sequence: sequence,
     );
