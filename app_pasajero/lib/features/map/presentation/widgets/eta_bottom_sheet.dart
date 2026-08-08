@@ -37,7 +37,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
-    final selectedDirection = ref.watch(selectedSentidoProvider);
     final selectedBuses = ref.watch(selectedBusesProvider);
 
     if (selectedRoute == null) {
@@ -47,10 +46,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     _publishMapInset();
 
-    final destination =
-        selectedDirection == RouteSentido.ida
-            ? _endpoint(selectedRoute, preferA: true)
-            : _endpoint(selectedRoute, preferA: false);
+    final destination = _endpoint(selectedRoute, preferA: true);
 
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -158,7 +154,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
             isActive: isActive,
-            label: isActive ? "ALERTA ACTIVADA" : "AVISARME AL ESTAR CERCA",
+            label: isActive
+                ? "AVISARÉ CUANDO $busId ESTÉ CERCA"
+                : "AVISARME CUANDO $busId ESTÉ CERCA",
             onPressed: () {
               HapticFeedback.mediumImpact();
               ref.read(activeAlertsProvider.notifier).toggleAlert(busId);

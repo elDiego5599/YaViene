@@ -37,13 +37,11 @@ class LocationStatusChip extends ConsumerWidget {
           tint: const Color(0xFFFEE2E2),
           iconColor: AppColors.error,
         ),
-      UserLocationMode.denied => _PillData(
+      UserLocationMode.denied => const _PillData(
           key: 'denied',
           icon: Icons.touch_app,
           text: 'Toca el mapa para indicar dónde estás',
-          actionLabel: 'Usar GPS',
-          onAction: () => notifier.useGps(),
-          tint: const Color(0xFFE6F7F0),
+          tint: Color(0xFFE6F7F0),
           iconColor: AppColors.primary,
         ),
       UserLocationMode.manual => _manualPill(location, nearbyCount, notifier),

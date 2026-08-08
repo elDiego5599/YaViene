@@ -13,7 +13,6 @@ class RouteSelectorSheet extends ConsumerWidget {
     final routesAsync =
         ref.watch(routesByCompanyProvider(selectedCompany?.id ?? ''));
     final selectedRoute = ref.watch(selectedRouteProvider);
-    final selectedDirection = ref.watch(selectedSentidoProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -75,36 +74,6 @@ class RouteSelectorSheet extends ConsumerWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 24),
-
-              Container(
-                height: 52,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    _Segment(
-                      title: 'Ida',
-                      isSelected: selectedDirection == RouteSentido.ida,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        ref.read(selectedSentidoProvider.notifier).state = RouteSentido.ida;
-                      },
-                    ),
-                    _Segment(
-                      title: 'Vuelta',
-                      isSelected: selectedDirection == RouteSentido.vuelta,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        ref.read(selectedSentidoProvider.notifier).state = RouteSentido.vuelta;
-                      },
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: 24),
 
@@ -309,54 +278,6 @@ class RouteSelectorSheet extends ConsumerWidget {
                   Navigator.pop(context);
                 },
               )).toList(),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _Segment({
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : [],
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
             ),
           ),
         ),
