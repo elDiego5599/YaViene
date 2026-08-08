@@ -6,7 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
-import '../providers/tracking_providers.dart' show busPositionsSourceProvider, selectedBusesProvider;
+import '../providers/tracking_providers.dart'
+    show
+        NearbyBuses,
+        nearbyBusesProvider,
+        selectedBusesProvider;
+import '../providers/user_location_provider.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -19,7 +24,8 @@ class MapWidget extends ConsumerStatefulWidget {
 class _MapWidgetState extends ConsumerState<MapWidget>
     with WidgetsBindingObserver {
   MapLibreMapController? _mapController;
-  ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
+  ProviderSubscription<NearbyBuses>? _movingBusSubscription;
+  ProviderSubscription<UserLocationState>? _userPinSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
   RouteTrajectory? _lastTrajectory;
   double _currentBottomInset = 0;
@@ -37,6 +43,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kBusLayerId = 'bus-layer';
   static const _kBusIconId = 'bus-icon-active';
   static const _kBusGhostIconId = 'bus-icon-ghost';
+  static const _kBusFarIconId = 'bus-icon-far';
+  static const _kUserPinSourceId = 'user-pin-source';
+  static const _kUserPinLayerId = 'user-pin-layer';
+  static const _kUserPinIconId = 'user-pin-icon';
 
   static final LatLngBounds _colombiaBounds = LatLngBounds(
     southwest: const LatLng(-4.227, -79.023),
@@ -57,6 +67,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _movingBusSubscription?.close();
+    _userPinSubscription?.close();
     _mapInsetSubscription?.close();
     _mapController?.dispose();
     super.dispose();
@@ -71,11 +82,43 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _setupBusSubscription(String routeId) {
     _movingBusSubscription?.close();
     _movingBusSubscription =
-        ref.listenManual(busPositionsSourceProvider(routeId), (previous, next) {
+        ref.listenManual(nearbyBusesProvider(routeId), (previous, next) {
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
-      next.whenData(_updateBusSourceData);
+      _updateBusSourceData(next);
     }, fireImmediately: true);
+  }
+
+  void _setupUserPinSubscription() {
+    _userPinSubscription?.close();
+    _userPinSubscription = ref.listenManual<UserLocationState>(
+        userLocationProvider, (previous, next) {
+      if (!mounted) return;
+      if (_layersReady) _updateUserPinSource(next);
+    }, fireImmediately: true);
+  }
+
+  void _updateUserPinSource(UserLocationState state) {
+    if (_mapController == null || !mounted) return;
+    if (state.isManual && state.hasPosition) {
+      _mapController!.setGeoJsonSource(_kUserPinSourceId, {
+        'type': 'FeatureCollection',
+        'features': [
+          {
+            'type': 'Feature',
+            'geometry': {
+              'type': 'Point',
+              'coordinates': [state.lon, state.lat]
+            },
+            'properties': const {},
+          },
+        ],
+      });
+    } else {
+      _mapController!
+          .setGeoJsonSource(_kUserPinSourceId,
+              const {'type': 'FeatureCollection', 'features': []});
+    }
   }
 
   void _teardownBusSubscription() {
@@ -113,6 +156,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _layersReady = true;
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
+      _setupUserPinSubscription();
       if (widget.routeId != null) {
         await _reloadMapData();
         _setupBusSubscription(widget.routeId!);
@@ -168,6 +212,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     await _mapController!.addSource(
         _kBusSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
 
+    await _mapController!.addSource(_kUserPinSourceId,
+        const GeojsonSourceProperties(data: emptyGeoJson));
+
+    await _mapController!.addSymbolLayer(
+        _kUserPinSourceId,
+        _kUserPinLayerId,
+        const SymbolLayerProperties(
+          iconImage: _kUserPinIconId,
+          iconSize: ['interpolate', ['linear'], ['zoom'], 11, 1.0, 15, 1.6],
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+          iconAnchor: 'bottom',
+        ));
+
     await _mapController!.addCircleLayer(
         _kBusSourceId,
         'bus-selected-halo-layer',
@@ -188,6 +246,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             'case',
             ['==', ['get', 'isGhost'], true],
             _kBusGhostIconId,
+            ['==', ['get', 'isFar'], true],
+            _kBusFarIconId,
             _kBusIconId
           ],
           iconSize: [
@@ -228,12 +288,47 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           const Color(0xFF14274E), isGhost: false);
       final ghostBytes = await _createFlatTransitMarker(
           const Color(0xFF94A3B8), isGhost: true);
+      final farBytes = await _createFlatTransitMarker(
+          const Color(0xFFA8B3C4), isGhost: true);
 
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
+      await _mapController!.addImage(_kBusFarIconId, farBytes);
+      await _mapController!.addImage(_kUserPinIconId, await _createPinMarker());
     } catch (e) {
       debugPrint("Error generando iconos Flat: $e");
     }
+  }
+
+  Future<Uint8List> _createPinMarker() async {
+    const size = 80;
+    const centerX = size / 2;
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+
+    final dropPath = Path()
+      ..moveTo(centerX, size - 10)
+      ..cubicTo(centerX - 26, size - 34, 12, size - 48, 12, size - 58)
+      ..arcToPoint(const Offset(centerX - 12, 18),
+          radius: const Radius.circular(30))
+      ..arcToPoint(const Offset(size - 12, size - 58),
+          radius: const Radius.circular(30))
+      ..close();
+
+    canvas.drawShadow(dropPath, Colors.black.withValues(alpha: 0.2), 3.0, false);
+    final dropPaint = Paint()
+      ..color = const Color(0xFF00A859)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(dropPath, dropPaint);
+
+    final whitePaint = Paint()..color = Colors.white;
+    canvas.drawCircle(const Offset(centerX, size - 52), 10, whitePaint);
+    canvas.drawCircle(
+        const Offset(centerX, size - 52), 6, Paint()..color = const Color(0xFF14274E));
+
+    final img = await pictureRecorder.endRecording().toImage(size, size);
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return data!.buffer.asUint8List();
   }
 
   Future<Uint8List> _createFlatTransitMarker(Color baseColor,
@@ -374,12 +469,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     });
   }
 
-  void _updateBusSourceData(List<BusPosition> positions) {
+  void _updateBusSourceData(NearbyBuses buses) {
     if (_mapController == null || !mounted || !_layersReady) return;
     final selectedBuses = ref.read(selectedBusesProvider);
-    _mapController!.setGeoJsonSource(_kBusSourceId, {
-      'type': 'FeatureCollection',
-      'features': positions.map((pos) => {
+    Map<String, dynamic> busFeature(BusPosition pos, {required bool isFar}) {
+      return {
         'type': 'Feature',
         'geometry': {
           'type': 'Point',
@@ -389,10 +483,19 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           'busId': pos.busId,
           'heading': pos.heading,
           'speedKmh': pos.speedKmh,
-           'isGhost': pos.isGhostBus,
+          'isGhost': pos.isGhostBus,
+          'isFar': isFar,
           'isSelected': selectedBuses.contains(pos.busId),
         },
-      }).toList(),
+      };
+    }
+
+    _mapController!.setGeoJsonSource(_kBusSourceId, {
+      'type': 'FeatureCollection',
+      'features': [
+        ...buses.nearby.map((pos) => busFeature(pos, isFar: false)),
+        ...buses.far.map((pos) => busFeature(pos, isFar: true)),
+      ],
     });
   }
 
@@ -413,6 +516,16 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       ),
       compassEnabled: false,
       myLocationEnabled: false,
+      onMapClick: (point, latLng) {
+        final location = ref.read(userLocationProvider);
+        if (location.mode == UserLocationMode.gps ||
+            location.mode == UserLocationMode.locating) {
+          return;
+        }
+        ref
+            .read(userLocationProvider.notifier)
+            .setManualPin(latLng.latitude, latLng.longitude);
+      },
       rotateGesturesEnabled: true,
       scrollGesturesEnabled: true,
       tiltGesturesEnabled: false,

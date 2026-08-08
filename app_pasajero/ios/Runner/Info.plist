@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ya Viene usa tu ubicación para mostrar los buses que pasan cerca de ti.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

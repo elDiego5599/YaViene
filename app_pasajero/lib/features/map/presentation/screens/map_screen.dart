@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/realtime_providers.dart';
+import '../providers/user_location_provider.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
+import '../widgets/location_status_chip.dart';
 import '../widgets/map_widget.dart';
 import '../widgets/search_pill_bar.dart';
 
@@ -21,6 +23,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(realtimeServiceProvider).connect();
+      ref.read(userLocationProvider.notifier).initialize();
     });
   }
 
@@ -37,11 +40,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           Positioned.fill(
             child: MapWidget(routeId: selectedRoute?.id),
           ),
-          const Positioned(
+          Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: SearchPillBar(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SearchPillBar(),
+                const SizedBox(height: 8),
+                LocationStatusChip(routeId: selectedRoute?.id),
+              ],
+            ),
           ),
           if (selectedRoute == null)
             const Positioned.fill(child: IdleStatusChip()),

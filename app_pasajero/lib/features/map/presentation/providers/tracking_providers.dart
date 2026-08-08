@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../utils/geo.dart';
 import 'realtime_providers.dart';
+import 'user_location_provider.dart';
 
 final busPositionsSourceProvider = StreamProvider.autoDispose
     .family<List<BusPosition>, String>((ref, routeId) {
@@ -113,8 +115,62 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
   );
 }
 
-class SelectedBusesNotifier extends StateNotifier<Set<String>> {
-  SelectedBusesNotifier() : super({});
+class NearbyBuses {
+  const NearbyBuses({
+    required this.nearby,
+    required this.far,
+    required this.filtered,
+  });
+
+  /// Buses a menos de [nearbyRadiusMeters] del centro del usuario.
+  final List<BusPosition> nearby;
+
+  /// Buses fuera del radio (solo cuando el filtro está activo).
+  final List<BusPosition> far;
+
+  /// true si el usuario tiene posición (GPS o pin) y se aplicó el filtro.
+  final bool filtered;
+
+  int get total => nearby.length + far.length;
+}
+
+/// Radio del filtro de proximidad (3 km).
+const int nearbyRadiusMeters = 3000;
+
+/// Separa los buses por distancia al centro del usuario (GPS o pin manual).
+/// Sin posición del usuario (`lat`/`lon` null) → toda la flota sin filtrar.
+NearbyBuses filterBusesByProximity(
+  List<BusPosition> positions,
+  double? lat,
+  double? lon,
+) {
+  if (lat == null || lon == null) {
+    return NearbyBuses(nearby: positions, far: const [], filtered: false);
+  }
+  final nearby = <BusPosition>[];
+  final far = <BusPosition>[];
+  for (final pos in positions) {
+    final distance = haversineMeters(lat, lon, pos.lat, pos.lon);
+    if (distance <= nearbyRadiusMeters) {
+      nearby.add(pos);
+    } else {
+      far.add(pos);
+    }
+  }
+  return NearbyBuses(nearby: nearby, far: far, filtered: true);
+}
+
+/// Buses de una ruta separados por distancia al centro del usuario
+/// (GPS o pin manual). Sin posición del usuario → toda la flota.
+final nearbyBusesProvider =
+    Provider.autoDispose.family<NearbyBuses, String>((ref, routeId) {
+  final positions =
+      ref.watch(busPositionsSourceProvider(routeId)).value ?? const [];
+  final location = ref.watch(userLocationProvider);
+  return filterBusesByProximity(positions, location.lat, location.lon);
+});
+
+class SelectedBusesNotifier extends StateNotifier<Set<String>> {  SelectedBusesNotifier() : super({});
 
   bool toggleBus(String busId) {
     if (state.contains(busId)) {
