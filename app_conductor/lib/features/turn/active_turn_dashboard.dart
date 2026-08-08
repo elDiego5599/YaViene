@@ -101,13 +101,16 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard> {
 
     final duration = DateTime.now().difference(_startTime);
     final isTracking = trackingStatus.isFullyTransmitting;
-    final gpsSubtitle = trackingStatus.isFullyTransmitting
-        ? 'Transmitiendo y confirmado'
-        : trackingStatus.mqttConnected
-            ? 'Conectado, esperando ACK'
-            : trackingStatus.gpsActive
-                ? 'GPS activo, sin conexión'
-                : 'Esperando señal GPS...';
+    final gpsSubtitle = trackingStatus.lastError != null &&
+            !trackingStatus.isFullyTransmitting
+        ? trackingStatus.lastError!
+        : trackingStatus.isFullyTransmitting
+            ? 'Transmitiendo y confirmado'
+            : trackingStatus.mqttConnected
+                ? 'Conectado, esperando ACK'
+                : trackingStatus.gpsActive
+                    ? 'GPS activo, sin conexión'
+                    : 'Esperando señal GPS...';
     final syncSubtitle = trackingStatus.outboxPendingCount == 0
         ? 'Sin posiciones pendientes'
         : '${trackingStatus.outboxPendingCount} posiciones pendientes';

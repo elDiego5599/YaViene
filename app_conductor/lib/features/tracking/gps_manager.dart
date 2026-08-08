@@ -90,12 +90,19 @@ class GpsManager {
   Future<bool> _hasLocationAccess() async {
     if (!await Geolocator.isLocationServiceEnabled()) return false;
 
-    var status = await Permission.locationAlways.status;
-    if (status.isGranted) return true;
+    var status = await Permission.locationWhenInUse.status;
+    if (!status.isGranted) {
+      status = await Permission.locationWhenInUse.request();
+    }
+    if (!status.isGranted) return false;
 
-    await Permission.locationWhenInUse.request();
-    status = await Permission.locationAlways.request();
-    return status.isGranted;
+    // "Todo el tiempo" solo se necesita para transmitir con la app en
+    // segundo plano; con "Mientras se usa" alcanza para transmitir con la
+    // app abierta. Se pide como best-effort, sin bloquear el arranque.
+    if (!(await Permission.locationAlways.status).isGranted) {
+      await Permission.locationAlways.request();
+    }
+    return true;
   }
 
   void dispose() {

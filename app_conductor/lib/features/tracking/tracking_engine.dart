@@ -97,13 +97,8 @@ class TrackingEngine {
       await _offlineBuffer.init();
       _nextSequence = await _offlineBuffer.nextSequence();
 
-      final mqttConnected = await _mqttService.connect(
-        empresaId: config.empresaId,
-        busId: config.busId,
-        phoneNumber: config.phoneNumber,
-        jwtToken: config.jwtToken,
-      );
-
+      // GPS primero: la señal debe empezar a llegar aunque MQTT falle o
+      // tarde. El health timer reconecta MQTT por su cuenta.
       final locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 2,
@@ -116,6 +111,16 @@ class TrackingEngine {
         (position) => _handlePosition(config, position),
         onError: (error) => _logger.w('Error en stream GPS: $error'),
       );
+
+      final mqttConnected = await _mqttService.connect(
+        empresaId: config.empresaId,
+        busId: config.busId,
+        phoneNumber: config.phoneNumber,
+        jwtToken: config.jwtToken,
+      );
+      if (!mqttConnected) {
+        _logger.w('MQTT no conectó al inicio; se reintentará por health timer');
+      }
 
       _healthTimer = Timer.periodic(const Duration(seconds: 15), (_) {
         if (!_mqttService.isConnected) {

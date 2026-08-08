@@ -366,28 +366,65 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<Uint8List> _createPinMarker() async {
     const size = 80;
     const centerX = size / 2;
+    const headCY = 30.0;
+    const headR = 26.0;
+    const tipY = 76.0;
     final pictureRecorder = ui.PictureRecorder();
     final canvas = Canvas(pictureRecorder);
 
+    // Gota con cabeza semicircular perfecta y cola simétrica.
     final dropPath = Path()
-      ..moveTo(centerX, size - 10)
-      ..cubicTo(centerX - 26, size - 34, 12, size - 48, 12, size - 58)
-      ..arcToPoint(const Offset(centerX - 12, 18),
-          radius: const Radius.circular(30))
-      ..arcToPoint(const Offset(size - 12, size - 58),
-          radius: const Radius.circular(30))
-      ..close();
+      ..moveTo(centerX, tipY)
+      ..quadraticBezierTo(centerX - 30, tipY - 28, centerX - headR, headCY)
+      ..arcTo(
+        Rect.fromCircle(center: const Offset(centerX, headCY), radius: headR),
+        math.pi,
+        math.pi,
+        false,
+      )
+      ..quadraticBezierTo(centerX + 30, tipY - 28, centerX, tipY);
 
-    canvas.drawShadow(dropPath, Colors.black.withValues(alpha: 0.2), 3.0, false);
+    canvas.drawShadow(
+        dropPath, Colors.black.withValues(alpha: 0.25), 6.0, false);
+
+    // Cuerpo con gradiente (verde claro arriba → esmeralda abajo).
     final dropPaint = Paint()
-      ..color = const Color(0xFF00A859)
-      ..style = PaintingStyle.fill;
+      ..shader = ui.Gradient.linear(
+        const Offset(centerX, 4),
+        const Offset(centerX, tipY),
+        const [Color(0xFF4ADE80), Color(0xFF059669)],
+      );
     canvas.drawPath(dropPath, dropPaint);
 
-    final whitePaint = Paint()..color = Colors.white;
-    canvas.drawCircle(const Offset(centerX, size - 52), 10, whitePaint);
+    // Brillo "de cristal" en la parte superior.
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: const Offset(centerX, headCY - 16),
+        width: 24,
+        height: 9,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.20),
+    );
+
+    // Aro blanco nítido y punto central con gradiente profundo.
+    canvas.drawCircle(const Offset(centerX, headCY), 12.5,
+        Paint()..color = Colors.white);
     canvas.drawCircle(
-        const Offset(centerX, size - 52), 6, Paint()..color = const Color(0xFF14274E));
+      const Offset(centerX, headCY),
+      8.5,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          const Offset(centerX - 9, headCY - 9),
+          const Offset(centerX + 9, headCY + 9),
+          const [Color(0xFF065F46), Color(0xFF00A859)],
+        ),
+    );
+    // Reflejo dentro del punto.
+    canvas.drawCircle(
+      const Offset(centerX - 2.5, headCY - 3),
+      2.2,
+      Paint()..color = Colors.white.withValues(alpha: 0.85),
+    );
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
