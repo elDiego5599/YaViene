@@ -22,6 +22,7 @@ class FleetState {
     this.selectedBusId,
     this.routeFilter,
     this.statusFilter = FleetStatusFilter.all,
+    this.sessionExpired = false,
   });
 
   final FleetConnection connection;
@@ -32,6 +33,9 @@ class FleetState {
   final String? selectedBusId;
   final String? routeFilter;
   final FleetStatusFilter statusFilter;
+
+  /// La sesión del admin expiró o fue revocada (401 en REST o kick del socket).
+  final bool sessionExpired;
 
   FleetBus? get selectedBus {
     final id = selectedBusId;
@@ -79,6 +83,7 @@ class FleetState {
     String? Function()? selectedBusId,
     String? Function()? routeFilter,
     FleetStatusFilter? statusFilter,
+    bool? sessionExpired,
     bool clearError = false,
   }) {
     return FleetState(
@@ -90,6 +95,7 @@ class FleetState {
       selectedBusId: selectedBusId != null ? selectedBusId() : this.selectedBusId,
       routeFilter: routeFilter != null ? routeFilter() : this.routeFilter,
       statusFilter: statusFilter ?? this.statusFilter,
+      sessionExpired: sessionExpired ?? this.sessionExpired,
     );
   }
 }
@@ -102,6 +108,20 @@ class FleetNotifier extends StateNotifier<FleetState> {
 
   String? get _token => _ref.read(authProvider).session?.token;
 
+  /// Sesión expirada/revocada: marca el estado para que el dashboard avise y
+  /// cierre sesión, y detiene la reconexión del socket.
+  bool _onSessionExpired(Object e) {
+    if (e is! SessionExpiredException) return false;
+    state = state.copyWith(
+      sessionExpired: true,
+      connection: FleetConnection.disconnected,
+      error: null,
+    );
+    _socket?.dispose();
+    _socket = null;
+    return true;
+  }
+
   void start() {
     final token = _token;
     if (token == null) return;
@@ -112,6 +132,15 @@ class FleetNotifier extends StateNotifier<FleetState> {
       state = state.copyWith(
         connection: connected ? FleetConnection.connected : FleetConnection.disconnected,
       );
+    });
+    socket.sessionKickedStream.listen((_) {
+      state = state.copyWith(
+        sessionExpired: true,
+        connection: FleetConnection.disconnected,
+        error: null,
+      );
+      _socket?.dispose();
+      _socket = null;
     });
     socket.busBatchStream.listen((buses) {
       final map = <String, FleetBus>{for (final b in buses) b.busId: b};
@@ -139,14 +168,37 @@ class FleetNotifier extends StateNotifier<FleetState> {
     socket.busVisibleStream.listen((bus) {
       final previous = state.buses[bus.busId];
       if (previous == null) {
-        state = state.copyWith(buses: {...state.buses, bus.busId: bus});
+        // El evento trae la posición real del bus (sin los campos de
+        // catálogo como online/visible): si hay posición, lo insertamos
+        // visible con su posición; si no la hay, lo insertamos visible
+        // sin posición (aparecerá gris hasta que publique).
+        if (bus.lat != null && bus.lon != null) {
+          state = state.copyWith(
+            buses: {
+              ...state.buses,
+              bus.busId: bus.copyWith(visible: true, online: false),
+            },
+          );
+        } else {
+          state = state.copyWith(buses: {
+            ...state.buses,
+            bus.busId: FleetBus(
+              busId: bus.busId,
+              companyId: bus.companyId,
+              visible: true,
+              online: false,
+            ),
+          });
+        }
         return;
       }
       state = state.copyWith(buses: {
         ...state.buses,
         bus.busId: previous.copyWith(
           visible: true,
-          online: bus.online,
+          // La posición cruda del evento no trae `online` (sería false):
+          // conservamos el estado real del bus para no marcarlo como "Sin señal".
+          online: previous.online,
           lat: bus.lat,
           lon: bus.lon,
           heading: bus.heading,
@@ -189,7 +241,8 @@ class FleetNotifier extends StateNotifier<FleetState> {
         buses: {for (final b in buses) b.busId: b},
         clearError: true,
       );
-    } catch (_) {
+    } catch (e) {
+      if (_onSessionExpired(e)) return;
       state = state.copyWith(error: 'No se pudo actualizar la flota.');
     }
   }
@@ -204,13 +257,21 @@ class FleetNotifier extends StateNotifier<FleetState> {
         routeFilter: () => state.routeFilter ?? (routes.isNotEmpty ? routes.first.routeId : null),
         clearError: true,
       );
-    } catch (_) {
+    } catch (e) {
+      if (_onSessionExpired(e)) return;
       // El catálogo es informativo; no bloquea la flota.
     }
   }
 
   void selectBus(String? busId) {
     state = state.copyWith(selectedBusId: () => busId);
+  }
+
+  /// Resetea la bandera de sesión expirada una vez el dashboard la mostró.
+  void acknowledgeSessionExpired() {
+    if (state.sessionExpired) {
+      state = state.copyWith(sessionExpired: false);
+    }
   }
 
   void setRouteFilter(String? routeId) {
@@ -233,6 +294,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       );
     } catch (e) {
       debugPrint('[fleet] crear ruta FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       final message = e is DioException && e.response?.data is Map
           ? e.response!.data['error'] is Map
               ? (((e.response!.data as Map)['error'] as Map)['message']?.toString() ??
@@ -259,6 +321,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       refreshRoutes();
     } catch (e) {
       debugPrint('[fleet] renombrar ruta FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       final message = e is DioException && e.response?.data is Map
           ? e.response!.data['error'] is Map
               ? (((e.response!.data as Map)['error'] as Map)['message']?.toString() ??
@@ -285,6 +348,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       refresh();
     } catch (e) {
       debugPrint('[fleet] eliminar ruta FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       state = state.copyWith(error: 'No se pudo eliminar la ruta.');
       rethrow;
     }
@@ -304,6 +368,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       debugPrint('[fleet] toggle $busId -> visible=$visible OK');
     } catch (e) {
       debugPrint('[fleet] toggle $busId FALLÓ: $e');
+      if (_onSessionExpired(e)) return;
       state = state.copyWith(
         buses: {...state.buses, busId: previous},
         error: visible ? 'No se pudo mostrar el bus $busId.' : 'No se pudo ocultar el bus $busId.',
@@ -330,6 +395,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       debugPrint('[fleet] $count buses -> visible=$visible OK');
     } catch (e) {
       debugPrint('[fleet] visibilidad masiva FALLÓ: $e');
+      if (_onSessionExpired(e)) return;
       state = state.copyWith(
         buses: previous,
         error: visible ? 'No se pudieron mostrar los buses.' : 'No se pudieron ocultar los buses.',
@@ -350,6 +416,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       refreshRoutes();
     } catch (e) {
       debugPrint('[fleet] crear bus FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       state = state.copyWith(error: 'No se pudo crear el bus. Verifica la placa.');
       rethrow;
     }
@@ -373,6 +440,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       refreshRoutes();
     } catch (e) {
       debugPrint('[fleet] editar bus FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       state = state.copyWith(error: 'No se pudo guardar el bus.');
       rethrow;
     }
@@ -393,6 +461,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       refreshRoutes();
     } catch (e) {
       debugPrint('[fleet] eliminar bus FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       state = state.copyWith(error: 'No se pudo eliminar el bus.');
       rethrow;
     }
@@ -413,6 +482,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       return count;
     } catch (e) {
       debugPrint('[fleet] borrar todos FALLÓ: $e');
+      if (_onSessionExpired(e)) throw const SessionExpiredException();
       state = state.copyWith(error: 'No se pudieron borrar los buses.');
       rethrow;
     }

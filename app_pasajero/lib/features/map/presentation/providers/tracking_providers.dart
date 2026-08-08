@@ -129,6 +129,7 @@ final nearbyBusesCountProvider =
   if (!location.hasPosition) return null;
   var count = 0;
   for (final pos in positions) {
+    if (pos.isGhostBus) continue;
     final distance = haversineMeters(
         location.lat!, location.lon!, pos.lat, pos.lon);
     if (distance <= nearbyRadiusMeters) count++;

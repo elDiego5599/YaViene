@@ -47,6 +47,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     _publishMapInset();
 
     final destination = _endpoint(selectedRoute, preferA: true);
+    final buses = ref
+            .watch(busPositionsSourceProvider(selectedRoute.id))
+            .value ??
+        const <BusPosition>[];
+    final busById = {for (final b in buses) b.busId: b};
 
     return GestureDetector(
       onVerticalDragEnd: (details) {
@@ -99,9 +104,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                   if (selectedBuses.isEmpty)
                     _buildEmptyState()
                   else if (selectedBuses.length == 1)
-                    _buildSingleBusState(selectedBuses.first, destination)
+                    _buildSingleBusState(
+                        selectedBuses.first, destination, busById[selectedBuses.first])
                   else
-                    _buildMultiBusState(selectedBuses, destination),
+                    _buildMultiBusState(selectedBuses, destination, busById),
               ],
             ),
           ),
@@ -131,8 +137,45 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     );
   }
 
-  Widget _buildSingleBusState(String busId, String destination) {
+  Widget _buildSingleBusState(String busId, String destination, BusPosition? bus) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
+    final staleLabel = _staleLabel(bus);
+
+    if (staleLabel != null) {
+      return Column(
+        children: [
+          const SizedBox(height: 10),
+          const Icon(Icons.wifi_off_rounded, color: Color(0xFF94A3B8), size: 56),
+          const SizedBox(height: 10),
+          Text(staleLabel,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF475569),
+                  letterSpacing: -0.4)),
+          const SizedBox(height: 4),
+          Text("Bus $busId · conserva su última posición",
+              style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF94A3B8))),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            child: _StickyAlertButton(
+              isActive: isActive,
+              label: isActive
+                  ? "AVISARÉ CUANDO $busId VUELVA A TRANSMITIR"
+                  : "AVISARME CUANDO $busId ESTÉ CERCA",
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
+              },
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       children: [
@@ -167,7 +210,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     );
   }
 
-  Widget _buildMultiBusState(Set<String> buses, String destination) {
+  Widget _buildMultiBusState(
+      Set<String> buses, String destination, Map<String, BusPosition> busById) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -175,6 +219,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           ...buses.map((busId) {
             final eta = buses.first == busId ? "3" : "12";
             final isActive = ref.watch(activeAlertsProvider).contains(busId);
+            final staleLabel = _staleLabel(busById[busId]);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -214,11 +259,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                                 color: Color(0xFF0F172A),
                                 letterSpacing: -0.3)),
                         const SizedBox(height: 2),
-                        Text("Llega en $eta min",
-                            style: const TextStyle(
+                        Text(staleLabel ?? "Llega en $eta min",
+                            style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF00A859))),
+                                color: staleLabel != null
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF00A859))),
                       ],
                     ),
                   ),
@@ -358,6 +405,16 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
       ),
     );
   }
+}
+
+String? _staleLabel(BusPosition? bus) {
+  if (bus == null || !bus.isGhostBus) return null;
+  final minutes = DateTime.now().difference(bus.timestamp).inMinutes;
+  if (minutes < 1) return 'Sin señal ahora mismo';
+  if (minutes == 1) return 'Sin señal · hace 1 min';
+  if (minutes < 60) return 'Sin señal · hace $minutes min';
+  final hours = minutes ~/ 60;
+  return 'Sin señal · hace $hours h';
 }
 
 String _endpoint(RouteInfo route, {required bool preferA}) {

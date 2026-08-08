@@ -61,6 +61,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) context.go('/login');
   }
 
+  /// Sesión expirada/revocada (401 en REST o kick del socket): avisamos y
+  /// cerramos sesión, en vez de quedar reconectando en loop sin saber por qué.
+  void _watchSessionExpired() {
+    ref.listen(fleetProvider.select((s) => s.sessionExpired), (previous, expired) {
+      if (!expired || !mounted) return;
+      ref.read(fleetProvider.notifier).acknowledgeSessionExpired();
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Tu sesión expiró'),
+          content: const Text(
+            'La sesión del administrador venció o fue revocada. '
+            'Vuelve a iniciar sesión para continuar.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _logout();
+              },
+              child: const Text('Iniciar sesión'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   void _showBusDialog({FleetBus? bus}) {
     showDialog<void>(
       context: context,
@@ -185,6 +214,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _watchSessionExpired();
     final fleet = ref.watch(fleetProvider);
 
     final buses = fleet.fleetList.where((b) {
