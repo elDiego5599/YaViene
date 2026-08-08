@@ -7,11 +7,14 @@ enum UserLocationMode {
   /// Sin estado inicial todavía (no se ha inicializado).
   unknown,
 
-  /// El usuario negó el permiso de ubicación (o GPS apagado).
+  /// El usuario negó el permiso de ubicación → tocar el mapa es la opción.
   denied,
 
   /// Permiso bloqueado de forma permanente → hay que ir a Ajustes.
   permanentDenied,
+
+  /// Permiso concedido pero no se pudo obtener la posición (sin señal o GPS apagado).
+  gpsFailed,
 
   /// Pidiendo posición al GPS.
   locating,
@@ -96,7 +99,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     state = const UserLocationState(mode: UserLocationMode.locating);
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        state = const UserLocationState(mode: UserLocationMode.denied);
+        state = const UserLocationState(mode: UserLocationMode.gpsFailed);
         return;
       }
       final position = await Geolocator.getCurrentPosition(
@@ -113,7 +116,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
         updatedAt: DateTime.now(),
       );
     } catch (_) {
-      state = const UserLocationState(mode: UserLocationMode.denied);
+      state = const UserLocationState(mode: UserLocationMode.gpsFailed);
     }
   }
 
