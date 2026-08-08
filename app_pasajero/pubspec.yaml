@@ -53,6 +53,7 @@ dependencies:
   logger: ^2.4.0
   permission_handler: ^11.3.1
   geolocator: ^13.0.1
+  flutter_local_notifications: ^22.3.0
 
 dev_dependencies:
   flutter_test:

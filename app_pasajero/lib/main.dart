@@ -7,10 +7,12 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'core/router/app_router.dart';
+import 'core/services/bus_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await BusNotificationService.init();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

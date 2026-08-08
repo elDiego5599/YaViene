@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/realtime_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../widgets/eta_bottom_sheet.dart';
@@ -24,6 +25,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted) return;
       ref.read(realtimeServiceProvider).connect();
       ref.read(userLocationProvider.notifier).initialize();
+      ref.read(proximityAlertsProvider.notifier).start();
     });
   }
 

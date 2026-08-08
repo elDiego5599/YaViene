@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/services/bus_notification_service.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 
@@ -21,6 +23,28 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   void _toggleSheet() {
     setState(() => _isExpanded = !_isExpanded);
     _publishMapInset();
+  }
+
+  /// Activa/desactiva la alerta de un bus. Al activar, pide el permiso de
+  /// notificaciones en contexto; sin permiso no tiene sentido avisar.
+  Future<void> _toggleAlert(String busId) async {
+    final notifier = ref.read(activeAlertsProvider.notifier);
+    if (!ref.read(activeAlertsProvider).contains(busId)) {
+      if (!await BusNotificationService.requestPermission()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Activa las notificaciones para recibir el aviso del bus'),
+            action: SnackBarAction(
+              label: 'Ajustes',
+              onPressed: openAppSettings,
+            ),
+          ));
+        }
+        return;
+      }
+    }
+    HapticFeedback.mediumImpact();
+    notifier.toggleAlert(busId);
   }
 
   void _publishMapInset([double? forcedInset]) {
@@ -167,10 +191,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               label: isActive
                   ? "AVISARÉ CUANDO $busId VUELVA A TRANSMITIR"
                   : "AVISARME CUANDO $busId ESTÉ CERCA",
-              onPressed: () {
-                HapticFeedback.mediumImpact();
-                ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
-              },
+              onPressed: () => _toggleAlert(busId),
             ),
           ),
         ],
@@ -200,10 +221,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             label: isActive
                 ? "AVISARÉ CUANDO $busId ESTÉ CERCA"
                 : "AVISARME CUANDO $busId ESTÉ CERCA",
-            onPressed: () {
-              HapticFeedback.mediumImpact();
-              ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
-            },
+            onPressed: () => _toggleAlert(busId),
           ),
         ),
       ],
@@ -270,10 +288,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
-                    },
+                    onTap: () => _toggleAlert(busId),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(

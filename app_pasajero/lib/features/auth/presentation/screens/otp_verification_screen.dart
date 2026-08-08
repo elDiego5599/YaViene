@@ -286,15 +286,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.error_outline,
+                                const Icon(Icons.error_outline,
                                     color: Color(0xFFDC2626), size: 20),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Error de verificación',
-                                    style: TextStyle(
+                                    // Sin verificationId = fallo real (número
+                                    // inválido); con verificationId = código
+                                    // incorrecto que se puede reintentar.
+                                    authState.verificationId == null
+                                        ? 'Error de verificación'
+                                        : 'Código incorrecto',
+                                    style: const TextStyle(
                                       color: Color(0xFFDC2626),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -311,32 +316,34 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                 fontSize: 13,
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF00A859),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
+                            if (authState.verificationId == null) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00A859),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 12),
-                                ),
-                                onPressed: () {
-                                  ref.read(authProvider).reset();
-                                  context.replace('/');
-                                },
-                                child: const Text(
-                                  'Volver e intentar de nuevo',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
+                                  onPressed: () {
+                                    ref.read(authProvider).reset();
+                                    context.replace('/');
+                                  },
+                                  child: const Text(
+                                    'Volver e intentar de nuevo',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),

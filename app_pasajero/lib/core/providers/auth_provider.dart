@@ -22,17 +22,22 @@ class AuthState {
     AuthStatus? status,
     String? verificationId,
     String? phoneNumber,
-    String? errorMessage,
+    Object? errorMessage = _notProvided,
     User? user,
   }) {
     return AuthState(
       status: status ?? this.status,
       verificationId: verificationId ?? this.verificationId,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      errorMessage: errorMessage,
+      errorMessage: identical(errorMessage, _notProvided)
+          ? this.errorMessage
+          : errorMessage as String?,
       user: user ?? this.user,
     );
   }
+
+  /// Sentinel para distinguir "no tocar errorMessage" de "limpiarlo".
+  static const Object _notProvided = Object();
 }
 
 class AuthNotifier extends ChangeNotifier {
@@ -118,9 +123,8 @@ class AuthNotifier extends ChangeNotifier {
       return true;
     } catch (e) {
       _state = _state.copyWith(
-        status: AuthStatus.codeSent,
-        verificationId: _state.verificationId,
-        errorMessage: 'Código incorrecto',
+        status: AuthStatus.error,
+        errorMessage: 'Código incorrecto, inténtalo de nuevo',
       );
       notifyListeners();
       return false;
