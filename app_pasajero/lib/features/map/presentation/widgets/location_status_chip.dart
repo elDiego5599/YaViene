@@ -72,6 +72,7 @@ class LocationStatusChip extends ConsumerWidget {
         text: 'Pin: $coords',
         actionLabel: 'Quitar',
         onAction: () => notifier.clearManualPin(),
+        actionDanger: true,
         tint: const Color(0xFFE6F7F0),
         iconColor: AppColors.primary,
       );
@@ -93,6 +94,7 @@ class LocationStatusChip extends ConsumerWidget {
       text: 'Pin: $coords · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
       actionLabel: 'Quitar',
       onAction: () => notifier.clearManualPin(),
+      actionDanger: true,
       tint: const Color(0xFFE6F7F0),
       iconColor: AppColors.primary,
     );
@@ -136,6 +138,7 @@ class _PillData {
     required this.iconColor,
     this.actionLabel,
     this.onAction,
+    this.actionDanger = false,
   });
 
   final String key;
@@ -143,6 +146,9 @@ class _PillData {
   final String text;
   final String? actionLabel;
   final VoidCallback? onAction;
+
+  /// La acción es de quitar/eliminar: se pinta en rojo suave en vez de verde.
+  final bool actionDanger;
   final Color tint;
   final Color iconColor;
 }
@@ -199,15 +205,27 @@ class _Pill extends StatelessWidget {
                   ),
                 ),
               ),
-              if (data.actionLabel != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  data.actionLabel!,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                    color: AppColors.primaryDeep,
+              if (data.actionLabel != null && data.onAction != null) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: data.actionDanger
+                        ? const Color(0xFFFEE2E2)
+                        : AppColors.primary,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    data.actionLabel!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.2,
+                      color: data.actionDanger
+                          ? const Color(0xFFDC2626)
+                          : Colors.white,
+                    ),
                   ),
                 ),
               ],

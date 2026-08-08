@@ -50,8 +50,9 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   static const _kLat = 'user_loc_lat';
   static const _kLon = 'user_loc_lon';
 
-  /// Lee el pin guardado y, si el permiso ya estaba concedido, obtiene el GPS
-  /// en silencio (sin pedir permiso en el arranque).
+  /// Pide el permiso de ubicación en el arranque (primera instalación) y, si
+  /// ya estaba concedido, obtiene el GPS en silencio. Si hay un pin manual
+  /// guardado, lo usa sin pedir nada.
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     final mode = prefs.getString(_kMode);
@@ -67,6 +68,16 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       return;
     }
     if (await _hasGpsPermission()) {
+      await _locate();
+      return;
+    }
+    var status = await Permission.location.status;
+    if (status.isRestricted || status.isPermanentlyDenied) {
+      state = const UserLocationState(mode: UserLocationMode.permanentDenied);
+      return;
+    }
+    status = await Permission.location.request();
+    if (status.isGranted) {
       await _locate();
     } else {
       state = const UserLocationState(mode: UserLocationMode.denied);
