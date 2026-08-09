@@ -20,8 +20,7 @@ typedef PolylineProjection = ({double distanceMeters, double alongMeters});
 PolylineProjection projectOntoPolyline(
     GeoPoint p, List<GeoPoint> polyline) {
   if (polyline.length < 2) {
-    final along = polyline.isEmpty ? 0.0 : 0.0;
-    return (distanceMeters: along, alongMeters: along);
+    return (distanceMeters: 0.0, alongMeters: 0.0);
   }
 
   final midLat = _toRad(p.lat);
@@ -47,18 +46,19 @@ PolylineProjection projectOntoPolyline(
     final dx = bx - ax;
     final dy = by - ay;
     final lenSq = dx * dx + dy * dy;
-    final t = lenSq == 0
-        ? 0.0
-        : (((px_ - ax) * dx + (py_ - ay) * dy) / lenSq).clamp(0.0, 1.0);
-    final cx = ax + dx * t;
-    final cy = ay + dy * t;
-    final distance = sqrt((px_ - cx) * (px_ - cx) + (py_ - cy) * (py_ - cy));
-    final segLength = sqrt(lenSq);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestAlong = cumulative + segLength * t;
+    if (lenSq > 0) {
+      final t = (((px_ - ax) * dx + (py_ - ay) * dy) / lenSq).clamp(0.0, 1.0);
+      final cx = ax + dx * t;
+      final cy = ay + dy * t;
+      final distance =
+          sqrt((px_ - cx) * (px_ - cx) + (py_ - cy) * (py_ - cy));
+      final segLength = sqrt(lenSq);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestAlong = cumulative + segLength * t;
+      }
     }
-    cumulative += segLength;
+    cumulative += sqrt(lenSq);
   }
   return (distanceMeters: bestDistance, alongMeters: bestAlong);
 }

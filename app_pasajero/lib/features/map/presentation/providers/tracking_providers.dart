@@ -145,6 +145,7 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
     lon: (json['lon'] as num).toDouble(),
     heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
     speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
+    sentido: json['sentido'] as String?,
     timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
     isGhostBus: json['isGhost'] as bool? ?? false,
   );

@@ -7,6 +7,10 @@ class BusPosition extends Equatable {
   final double lon;
   final double heading;
   final double speedKmh;
+
+  /// Sentido de marcha reportado por el bus: "ida" o "venida" (null si el
+  /// dispositivo aún no lo reporta; se asume ida).
+  final String? sentido;
   final DateTime timestamp;
   final bool isGhostBus;
   final int? sequence;
@@ -20,6 +24,7 @@ class BusPosition extends Equatable {
     required this.speedKmh,
     required this.timestamp,
     required this.isGhostBus,
+    this.sentido,
     this.sequence,
   });
 
@@ -36,6 +41,7 @@ class BusPosition extends Equatable {
       lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
       heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
       speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
+      sentido: json['sentido'] as String?,
       timestamp: parsedTimestamp,
       isGhostBus:
           (json['isGhostBus'] as bool?) ?? (json['isGhost'] as bool?) ?? false,
@@ -51,6 +57,7 @@ class BusPosition extends Equatable {
       'lon': lon,
       'heading': heading,
       'speedKmh': speedKmh,
+      'sentido': sentido,
       'timestamp': timestamp.toIso8601String(),
       'isGhost': isGhostBus,
       'sequence': sequence,
@@ -64,6 +71,7 @@ class BusPosition extends Equatable {
     double? lon,
     double? heading,
     double? speedKmh,
+    String? sentido,
     DateTime? timestamp,
     bool? isGhostBus,
     int? sequence,
@@ -75,6 +83,7 @@ class BusPosition extends Equatable {
       lon: lon ?? this.lon,
       heading: heading ?? this.heading,
       speedKmh: speedKmh ?? this.speedKmh,
+      sentido: sentido ?? this.sentido,
       timestamp: timestamp ?? this.timestamp,
       isGhostBus: isGhostBus ?? this.isGhostBus,
       sequence: sequence ?? this.sequence,
@@ -89,6 +98,7 @@ class BusPosition extends Equatable {
         lon,
         heading,
         speedKmh,
+        sentido,
         timestamp,
         isGhostBus,
         sequence,

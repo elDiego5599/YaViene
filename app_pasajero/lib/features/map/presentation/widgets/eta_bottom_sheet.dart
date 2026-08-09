@@ -300,7 +300,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         const SizedBox(height: 6),
         if (showMinutesSub)
           Text(
-            "minutos aprox. para que llegue \u2022 Bus $busId",
+            "minutos aprox. para que llegue ${_directionLabel(eta)} \u2022 Bus $busId",
             style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -345,6 +345,19 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ),
       ],
     );
+  }
+
+  /// "de ida" / "de venida" para el subtítulo (vacío si no se sabe).
+  String _directionLabel(EtaEstimate? eta) {
+    if (eta == null) return '';
+    switch (eta.direction) {
+      case EtaDirection.ida:
+        return '· de ida';
+      case EtaDirection.venida:
+        return '· de venida';
+      case EtaDirection.desconocido:
+        return '';
+    }
   }
 
   /// Traduce el ETA en lo que se muestra: número grande, color, texto.
