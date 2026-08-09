@@ -10,6 +10,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show
+        activeAlertsProvider,
         busPositionsSourceProvider,
         nearbyRadiusMeters,
         selectedBusesProvider;
@@ -379,16 +380,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           .queryRenderedFeatures(point, [_kBusLayerId], null);
       if (features.isNotEmpty) {
         final busId = features.first['properties']['busId'] as String;
-        final success =
-            ref.read(selectedBusesProvider.notifier).toggleBus(busId);
-
-        if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Solo puedes seguir hasta 2 buses a la vez.",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Color(0xFF14274E),
-          ));
-        }
+        // Selección única: al cambiar de bus se desactivan los avisos del
+        // bus anterior; notificaciones y seguimiento son de un bus a la vez.
+        ref.read(activeAlertsProvider.notifier).clear();
+        ref.read(selectedBusesProvider.notifier).toggleBus(busId);
       }
     });
   }

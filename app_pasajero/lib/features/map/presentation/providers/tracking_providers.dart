@@ -152,15 +152,11 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
 
 class SelectedBusesNotifier extends StateNotifier<Set<String>> {  SelectedBusesNotifier() : super({});
 
+  /// Selección única: tocar un bus lo selecciona y deselecciona cualquier
+  /// otro; tocar el mismo bus lo deselecciona.
   bool toggleBus(String busId) {
-    if (state.contains(busId)) {
-      state = {...state}..remove(busId);
-      return true;
-    } else {
-      if (state.length >= 2) return false;
-      state = {...state, busId};
-      return true;
-    }
+    state = state.contains(busId) ? {} : {busId};
+    return true;
   }
 
   void clear() => state = {};

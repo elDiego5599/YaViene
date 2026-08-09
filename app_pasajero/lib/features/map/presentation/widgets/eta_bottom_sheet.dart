@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
+import '../providers/eta_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
@@ -131,7 +132,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     _publishMapInset();
 
-    final destination = _endpoint(selectedRoute, preferA: true);
     final busesAsync = ref.watch(busPositionsSourceProvider(selectedRoute.id));
     final buses = busesAsync.value ?? const <BusPosition>[];
     final busById = {for (final b in buses) b.busId: b};
@@ -203,11 +203,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                 if (_isExpanded)
                   if (selectedBuses.isEmpty)
                     _buildEmptyState()
-                  else if (selectedBuses.length == 1)
-                    _buildSingleBusState(
-                        selectedBuses.first, destination, busById[selectedBuses.first])
                   else
-                    _buildMultiBusState(selectedBuses, destination, busById),
+                    _buildSingleBusState(
+                        selectedBuses.first, busById[selectedBuses.first]),
               ],
             ),
           ),
@@ -229,7 +227,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               ),
               SizedBox(height: 4),
               Text(
-                "Selecciona hasta 2 buses para darle seguimiento",
+                "Selecciona un bus para darle seguimiento",
                 style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
               ),
             ],
@@ -237,7 +235,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     );
   }
 
-  Widget _buildSingleBusState(String busId, String destination, BusPosition? bus) {
+  Widget _buildSingleBusState(String busId, BusPosition? bus) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final staleLabel = _staleLabel(bus);
     final alreadyNear = !isActive && _busAlreadyNear(bus);
@@ -285,22 +283,51 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       );
     }
 
+    final eta = ref.watch(busEtaProvider(busId));
+    final (bigValue, bigColor, detailLabel, showMinutesSub) =
+        _etaDisplay(eta, busId);
+
     return Column(
       children: [
-        const Text("3",
+        const SizedBox(height: 4),
+        Text(bigValue,
             style: TextStyle(
                 fontSize: 84,
                 fontWeight: FontWeight.w200,
-                color: Color(0xFF14274E),
+                color: bigColor,
                 height: 0.9,
                 letterSpacing: -3.0)),
         const SizedBox(height: 6),
-        Text("minutos para llegar a tu parada \u2022 Bus $busId",
+        if (showMinutesSub)
+          Text(
+            "minutos aprox. para que llegue \u2022 Bus $busId",
             style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B))),
-        const SizedBox(height: 24),
+                color: Color(0xFF64748B)),
+          ),
+        if (!showMinutesSub)
+          Text(detailLabel,
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B))),
+        const SizedBox(height: 10),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 28),
+          child: Text(
+            "Estimación en tiempo real según la velocidad del bus: el tráfico "
+            "puede cambiar y el tiempo variar. Te recomendamos estar pendiente "
+            "del mapa y del bus hasta que llegue.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF94A3B8)),
+          ),
+        ),
+        const SizedBox(height: 18),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
@@ -320,130 +347,30 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     );
   }
 
-  Widget _buildMultiBusState(
-      Set<String> buses, String destination, Map<String, BusPosition> busById) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          ...buses.map((busId) {
-            final eta = buses.first == busId ? "3" : "12";
-            final isActive = ref.watch(activeAlertsProvider).contains(busId);
-            final staleLabel = _staleLabel(busById[busId]);
-            final alreadyNear = !isActive && _busAlreadyNear(busById[busId]);
-            final ghostBlocked = !isActive &&
-                busById[busId] != null &&
-                busById[busId]!.isGhostBus;
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF14274E).withValues(alpha: 0.04),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.directions_bus_rounded,
-                        color: Color(0xFF14274E), size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Bus $busId",
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                                letterSpacing: -0.3)),
-                        const SizedBox(height: 2),
-                        Text(staleLabel ?? "Llega en $eta min",
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: staleLabel != null
-                                    ? const Color(0xFF94A3B8)
-                                    : const Color(0xFF00A859))),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _toggleAlert(busId),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? const Color(0xFF00A859)
-                            : alreadyNear || ghostBlocked
-                                ? const Color(0xFFE2E8F0)
-                                : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isActive
-                                ? Icons.check_circle_rounded
-                                : alreadyNear || ghostBlocked
-                                    ? Icons.notifications_off_rounded
-                                    : Icons.notifications_active_rounded,
-                            color: isActive
-                                ? Colors.white
-                                : alreadyNear || ghostBlocked
-                                    ? const Color(0xFF94A3B8)
-                                    : const Color(0xFF14274E),
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            isActive
-                                ? "Activada"
-                                : ghostBlocked
-                                    ? "Sin señal"
-                                    : alreadyNear
-                                        ? "Ya cerca"
-                                        : "Avisarme",
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: isActive
-                                  ? Colors.white
-                                  : alreadyNear || ghostBlocked
-                                      ? const Color(0xFF94A3B8)
-                                      : const Color(0xFF14274E),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const SizedBox(height: 12),
-        ],
-      ),
-    );
+  /// Traduce el ETA en lo que se muestra: número grande, color, texto.
+  (String, Color, String, bool) _etaDisplay(
+      EtaEstimate? eta, String busId) {
+    if (eta == null) {
+      return ("—", const Color(0xFF94A3B8),
+          "Calculando llegada \u2022 Bus $busId", false);
+    }
+    switch (eta.state) {
+      case EtaState.enRuta:
+        final minutes = eta.minutes ?? 0;
+        return ("$minutes", const Color(0xFF14274E), "", true);
+      case EtaState.trancado:
+        final minutes = eta.minutes ?? 0;
+        return ("$minutes", const Color(0xFFD97706),
+            "min aprox. en tráncón: el bus avanza muy lento \u2022 Bus $busId",
+            false);
+      case EtaState.detenido:
+        return ("—", const Color(0xFFD97706),
+            "El bus está detenido (tráfico) \u2022 Bus $busId", false);
+      case EtaState.yaPaso:
+        return ("—", const Color(0xFFD97706),
+            "El bus ya pasó por aquí: espera la próxima vuelta \u2022 Bus $busId",
+            false);
+    }
   }
 }
 
@@ -549,12 +476,4 @@ String? _staleLabel(BusPosition? bus) {
   if (minutes < 60) return 'Sin señal · hace $minutes min';
   final hours = minutes ~/ 60;
   return 'Sin señal · hace $hours h';
-}
-
-String _endpoint(RouteInfo route, {required bool preferA}) {
-  final primary = preferA ? route.terminalA : route.terminalB;
-  final fallback = preferA ? route.terminalB : route.terminalA;
-  if (primary?.trim().isNotEmpty == true) return primary!.trim();
-  if (fallback?.trim().isNotEmpty == true) return fallback!.trim();
-  return preferA ? 'Inicio' : 'Fin';
 }

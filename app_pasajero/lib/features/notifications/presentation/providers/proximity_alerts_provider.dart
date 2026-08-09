@@ -20,8 +20,8 @@ typedef BusNearNotifier = Future<void> Function({
   required int distanceMeters,
 });
 
-/// Vigila los buses con alerta activa (hasta 2) y dispara una notificación
-/// local cuando alguno entra al radio de [alertRadiusMeters] de la ubicación
+/// Vigila el bus con alerta activa (selección única) y dispara una notificación
+/// local cuando entra al radio de [alertRadiusMeters] de la ubicación
 /// del usuario (GPS o pin). Cada bus notifica por separado y solo una vez por
 /// acercamiento.
 class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
