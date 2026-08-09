@@ -1,6 +1,8 @@
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,71 +16,93 @@ final appLifecycleProvider = StateProvider.autoDispose<AppLifecycleState>(
 );
 
 
+/// Datos de las rutas reales (recorridos y paradas), generados desde los
+/// KMZ de Sobusa con `convert-rutas.mjs`. Las paradas quedan vacías para la
+/// mayoría de rutas: los buses en Barranquilla no tienen paradas fijas.
+class RutaSobusa {
+  final String routeId;
+  final String name;
+  final String? terminalA;
+  final String? terminalB;
+  final double lengthKm;
+  final List<GeoPoint> waypoints;
+  final List<BusStop> paradas;
+
+  const RutaSobusa({
+    required this.routeId,
+    required this.name,
+    required this.terminalA,
+    required this.terminalB,
+    required this.lengthKm,
+    required this.waypoints,
+    required this.paradas,
+  });
+
+  factory RutaSobusa.fromJson(Map<String, dynamic> json) {
+    return RutaSobusa(
+      routeId: json['routeId'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      terminalA: json['terminalA'] as String?,
+      terminalB: json['terminalB'] as String?,
+      lengthKm: (json['lengthKm'] as num?)?.toDouble() ?? 0,
+      waypoints: (json['waypoints'] as List<dynamic>?)
+              ?.map((e) => GeoPoint.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      paradas: (json['paradas'] as List<dynamic>?)
+              ?.map((e) => BusStop.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+}
+
+/// Carga `rutas.json` (asset del app_pasajero) con los recorridos reales.
+final rutasSobusaProvider = FutureProvider.autoDispose<List<RutaSobusa>>(
+  (ref) async {
+    try {
+      final raw = await rootBundle.loadString('assets/data/rutas.json');
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final rutas = (decoded['rutas'] as List<dynamic>? ?? const [])
+          .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
+          .toList();
+      if (rutas.isEmpty) {
+        debugPrint('[rutas] rutas.json vacío o sin rutas');
+      }
+      return rutas;
+    } catch (e) {
+      debugPrint('[rutas] no se pudo cargar rutas.json: $e');
+      return const [];
+    }
+  },
+);
+
+/// Geometría del recorrido de una ruta (línea azul en el mapa).
 final routeTrajectoryProvider = FutureProvider.autoDispose
     .family<RouteTrajectory, String>((ref, routeId) async {
-  await Future.delayed(const Duration(milliseconds: 400));
-
-  return RouteTrajectory(
-    routeId: routeId,
-    routeName: 'Ruta 1 Ida — Centro/Soledad',
-    points: const [
-      GeoPoint(lat: 10.9200, lon: -74.7800),
-      GeoPoint(lat: 10.9320, lon: -74.7870),
-      GeoPoint(lat: 10.9440, lon: -74.7920),
-      GeoPoint(lat: 10.9560, lon: -74.7975),
-      GeoPoint(lat: 10.9650, lon: -74.8010),
-      GeoPoint(lat: 10.9740, lon: -74.8040),
-      GeoPoint(lat: 10.9840, lon: -74.8060),
-      GeoPoint(lat: 10.9930, lon: -74.8070),
-      GeoPoint(lat: 11.0020, lon: -74.8075),
-      GeoPoint(lat: 11.0120, lon: -74.8080),
-    ],
-  );
+  final rutas = await ref.watch(rutasSobusaProvider.future);
+  for (final ruta in rutas) {
+    if (ruta.routeId == routeId) {
+      return RouteTrajectory(
+        routeId: ruta.routeId,
+        routeName: ruta.name,
+        points: ruta.waypoints,
+      );
+    }
+  }
+  debugPrint('[rutas] ruta $routeId no encontrada en rutas.json');
+  return RouteTrajectory(routeId: routeId, routeName: '', points: const []);
 });
 
-
+/// Paradas de una ruta (vacías en la mayoría: buses sin paradas fijas).
 final busStopsProvider =
     FutureProvider.autoDispose.family<List<BusStop>, String>(
   (ref, routeId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    return const [
-      BusStop(
-        id: 'P-001',
-        name: 'Terminal Soledad',
-        tipo: BusStopType.fija,
-        lat: 10.9200,
-        lon: -74.7800,
-        orden: 1,
-      ),
-      BusStop(
-        id: 'P-005',
-        name: 'Calle 30 con Carrera 46',
-        tipo: BusStopType.fija,
-        lat: 10.9650,
-        lon: -74.8010,
-        orden: 5,
-      ),
-
-      BusStop(
-        id: 'P-003',
-        name: 'Zona Mercado La Pascuala',
-        tipo: BusStopType.informal,
-        lat: 10.9440,
-        lon: -74.7920,
-        orden: 3,
-        radioInfluenciaM: 120,
-      ),
-      BusStop(
-        id: 'P-008',
-        name: 'Zona El Prado / Hotel El Prado',
-        tipo: BusStopType.informal,
-        lat: 10.9930,
-        lon: -74.8070,
-        orden: 8,
-        radioInfluenciaM: 80,
-      ),
-    ];
+    final rutas = await ref.watch(rutasSobusaProvider.future);
+    for (final ruta in rutas) {
+      if (ruta.routeId == routeId) return ruta.paradas;
+    }
+    return const <BusStop>[];
   },
 );
 

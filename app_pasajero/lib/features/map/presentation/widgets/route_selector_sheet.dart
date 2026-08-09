@@ -63,7 +63,7 @@ class RouteSelectorSheet extends ConsumerWidget {
                         Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF00A859)),
                         SizedBox(width: 4),
                         Text(
-                          'Cada 8 min',
+                          'Tiempo real',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
@@ -114,7 +114,7 @@ class RouteSelectorSheet extends ConsumerWidget {
               if (selectedCompany == null)
                 _PremiumSelectorTile(
                   title: selectedRoute?.name ?? 'Selecciona una ruta',
-                  subtitle: selectedRoute != null ? 'Frecuencia continua en vivo' : null,
+                  subtitle: _routeSubtitle(selectedRoute),
                   icon: Icons.alt_route_rounded,
                   isActive: selectedRoute != null,
                   onTap: () {
@@ -131,7 +131,7 @@ class RouteSelectorSheet extends ConsumerWidget {
                 routesAsync.when(
                   data: (routes) => _PremiumSelectorTile(
                     title: selectedRoute?.name ?? 'Selecciona una ruta',
-                    subtitle: selectedRoute != null ? 'Frecuencia continua en vivo' : null,
+                    subtitle: _routeSubtitle(selectedRoute),
                     icon: Icons.alt_route_rounded,
                     isActive: selectedRoute != null,
                     onTap: () => _showRouteSelector(context, ref, routes),
@@ -263,9 +263,9 @@ class RouteSelectorSheet extends ConsumerWidget {
                     letterSpacing: -0.4,
                   ),
                 ),
-                subtitle: const Text(
-                  'Frecuencia cada 8 min • Tiempo real',
-                  style: TextStyle(
+                subtitle: Text(
+                  _routeSubtitle(r) ?? 'Tiempo real',
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF64748B),
@@ -286,8 +286,15 @@ class RouteSelectorSheet extends ConsumerWidget {
   }
 }
 
-class _PremiumSelectorTile extends StatelessWidget {
-  final String title;
+String? _routeSubtitle(RouteInfo? route) {
+  if (route == null) return null;
+  final a = route.terminalA ?? '';
+  final b = route.terminalB ?? '';
+  if (a.isEmpty && b.isEmpty) return null;
+  return '$a ↔ $b';
+}
+
+class _PremiumSelectorTile extends StatelessWidget {  final String title;
   final String? subtitle;
   final IconData icon;
   final bool isActive;
