@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 enum AuthStatus { unauthenticated, loading, verified, error }
 
@@ -46,6 +47,8 @@ class AuthState {
 /// contraseña y si no se crea el perfil.
 class AuthNotifier extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final GoogleSignIn _google = GoogleSignIn.instance;
+  static bool _googleInitialized = false;
   AuthState _state = const AuthState();
 
   AuthState get state => _state;
@@ -64,6 +67,13 @@ class AuthNotifier extends ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  static Future<void> _ensureGoogleInitialized() async {
+    if (!_googleInitialized) {
+      await _google.initialize();
+      _googleInitialized = true;
+    }
   }
 
   static final RegExp _emailPattern =
@@ -203,7 +213,50 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
+  Future<bool> signInWithGoogle() async {
+    _state = const AuthState(status: AuthStatus.loading);
+    notifyListeners();
+    try {
+      await _ensureGoogleInitialized();
+      final googleUser = await _google.authenticate(scopeHint: ['email']);
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleUser.authentication.idToken,
+      );
+      final result = await _auth.signInWithCredential(credential);
+      _state = AuthState(
+        status: AuthStatus.verified,
+        email: result.user?.email,
+        name: result.user?.displayName,
+      );
+      notifyListeners();
+      return true;
+    } on GoogleSignInException catch (e) {
+      // Canceló el selector de cuentas: no es un error.
+      _state = const AuthState();
+      notifyListeners();
+      debugPrint('Google sign-in cancelado: $e');
+      return false;
+    } on FirebaseAuthException catch (e) {
+      _state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: _friendlyAuthError(e),
+      );
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
+    try {
+      await _google.signOut();
+    } catch (_) {}
     await _auth.signOut();
     _state = const AuthState();
     notifyListeners();

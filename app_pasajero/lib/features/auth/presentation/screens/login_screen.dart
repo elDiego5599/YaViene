@@ -111,6 +111,23 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     }
   }
 
+  Future<void> _handleGoogle() async {
+    FocusScope.of(context).unfocus();
+    final auth = ref.read(authProvider);
+    void listener() {
+      if (auth.state.status == AuthStatus.verified && mounted) {
+        auth.removeListener(listener);
+        context.replace('/map');
+      } else if (auth.state.status == AuthStatus.error && mounted) {
+        auth.removeListener(listener);
+        _showError(auth.state.errorMessage ?? 'Error al iniciar con Google');
+      }
+    }
+
+    auth.addListener(listener);
+    auth.signInWithGoogle();
+  }
+
   void _goBack() {
     setState(() => _step = _Step.email);
     _passwordController.clear();
@@ -351,6 +368,58 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                           color: Color(0xFF64748B),
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (_step == _Step.email) ...[
+                                  const SizedBox(height: 16),
+                                  const Row(
+                                    children: [
+                                      Expanded(child: Divider()),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 12),
+                                        child: Text(
+                                          'o',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF94A3B8),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(child: Divider()),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 52,
+                                    child: OutlinedButton.icon(
+                                      onPressed: _handleGoogle,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            const Color(0xFF334155),
+                                        backgroundColor: Colors.white,
+                                        side: const BorderSide(
+                                            color: Color(0xFFE2E8F0)),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                      icon: SvgPicture.asset(
+                                        'assets/icon/google_logo.svg',
+                                        width: 20,
+                                        height: 20,
+                                      ),
+                                      label: const Text(
+                                        'Iniciar con Google',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ),
