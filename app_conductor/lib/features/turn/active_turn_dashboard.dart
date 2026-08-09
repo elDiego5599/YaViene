@@ -8,7 +8,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../tracking/gps_manager.dart';
 import '../../config.dart';
 import 'fraud_blocker_screen.dart';
-import 'login_screen.dart';
+import 'turn_assignment_screen.dart';
 
 class ActiveTurnDashboard extends ConsumerStatefulWidget {
   final String empresaId;
@@ -88,8 +88,10 @@ class _ActiveTurnDashboardState extends ConsumerState<ActiveTurnDashboard>
 
     ref.read(gpsManagerProvider).stopTracking();
     if (!mounted) return;
+    // El login de conductores está deshabilitado por ahora: cerrar turno
+    // devuelve a la asignación (en modo demo entra directo a transmitir).
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const TurnAssignmentScreen()),
       (route) => false,
     );
   }

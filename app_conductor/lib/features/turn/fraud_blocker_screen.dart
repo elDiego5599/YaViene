@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'login_screen.dart';
+import 'turn_assignment_screen.dart';
 
 class FraudBlockerScreen extends StatelessWidget {
   const FraudBlockerScreen({super.key});
@@ -51,7 +51,7 @@ class FraudBlockerScreen extends StatelessWidget {
                 label: 'SALIR',
                 onPressed: () {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    MaterialPageRoute(builder: (_) => const TurnAssignmentScreen()),
                     (route) => false,
                   );
                 },

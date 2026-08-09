@@ -6,6 +6,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/providers/auth_provider.dart';
 
+enum _Step { email, password, profile }
+
 class PremiumLoginScreen extends ConsumerStatefulWidget {
   const PremiumLoginScreen({super.key});
 
@@ -16,80 +18,103 @@ class PremiumLoginScreen extends ConsumerStatefulWidget {
 class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final ValueNotifier<bool> _isValid = ValueNotifier<bool>(false);
+  final TextEditingController _confirmController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final ValueNotifier<bool> _isValidEmail = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _obscurePassword = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> _obscureConfirm = ValueNotifier<bool>(true);
+
+  _Step _step = _Step.email;
 
   @override
   void initState() {
     super.initState();
-    _emailController.addListener(_validate);
-    _passwordController.addListener(_validate);
+    _emailController.addListener(() {
+      final valid = ref.read(authProvider).isEmailValid(_emailController.text);
+      if (valid != _isValidEmail.value) {
+        _isValidEmail.value = valid;
+        if (valid) HapticFeedback.mediumImpact();
+      }
+    });
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _isValid.dispose();
+    _confirmController.dispose();
+    _nameController.dispose();
+    _isValidEmail.dispose();
     _obscurePassword.dispose();
+    _obscureConfirm.dispose();
     super.dispose();
   }
 
-  void _validate() {
-    final valid = ref.read(authProvider).isEmailValid(_emailController.text) &&
-        _passwordController.text.length >= 6;
-    if (valid != _isValid.value) {
-      _isValid.value = valid;
-      if (valid) HapticFeedback.mediumImpact();
-    }
-  }
-
-  void _handleLogin() {
-    FocusScope.of(context).unfocus();
-    HapticFeedback.heavyImpact();
-    final auth = ref.read(authProvider);
-    void listener() {
-      if (auth.state.status == AuthStatus.verified && mounted) {
-        auth.removeListener(listener);
-        context.replace('/map');
-      } else if (auth.state.status == AuthStatus.error && mounted) {
-        auth.removeListener(listener);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(auth.state.errorMessage ?? 'Error al iniciar sesión'),
-            backgroundColor: const Color(0xFFDC2626),
-          ),
-        );
-      }
-    }
-
-    auth.addListener(listener);
-    auth.signInWithEmailAndPassword(
-      _emailController.text,
-      _passwordController.text,
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: const Color(0xFFDC2626)),
     );
   }
 
-  Future<void> _handleGoogle() async {
+  Future<void> _continueWithEmail() async {
     FocusScope.of(context).unfocus();
     final auth = ref.read(authProvider);
-    void listener() {
-      if (auth.state.status == AuthStatus.verified && mounted) {
-        auth.removeListener(listener);
-        context.replace('/map');
-      } else if (auth.state.status == AuthStatus.error && mounted) {
-        auth.removeListener(listener);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(auth.state.errorMessage ?? 'Error al iniciar con Google'),
-            backgroundColor: const Color(0xFFDC2626),
-          ),
-        );
+    final exists = await auth.checkEmail(_emailController.text);
+    if (!mounted) return;
+    if (exists == null) {
+      _showError(auth.state.errorMessage ?? 'Error al consultar el correo');
+      return;
+    }
+    if (exists) {
+      setState(() => _step = _Step.password);
+    } else {
+      setState(() => _step = _Step.profile);
+    }
+  }
+
+  Future<void> _finishAuth() async {
+    FocusScope.of(context).unfocus();
+    HapticFeedback.heavyImpact();
+    final auth = ref.read(authProvider);
+
+    if (_step == _Step.profile) {
+      if (_nameController.text.trim().length < 2) {
+        _showError('Escribe tu nombre');
+        return;
+      }
+      if (_passwordController.text.length < 6) {
+        _showError('La contraseña debe tener al menos 6 caracteres');
+        return;
+      }
+      if (_passwordController.text != _confirmController.text) {
+        _showError('Las contraseñas no coinciden');
+        return;
       }
     }
 
-    auth.addListener(listener);
-    auth.signInWithGoogle();
+    final success = _step == _Step.profile
+        ? await auth.register(
+            email: _emailController.text,
+            name: _nameController.text,
+            password: _passwordController.text,
+          )
+        : await auth.login(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+
+    if (!mounted) return;
+    if (success) {
+      context.replace('/map');
+    } else {
+      _showError(auth.state.errorMessage ?? 'No se pudo iniciar sesión');
+    }
+  }
+
+  void _goBack() {
+    setState(() => _step = _Step.email);
+    _passwordController.clear();
+    _confirmController.clear();
   }
 
   @override
@@ -126,21 +151,21 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                 ),
                                 child: SvgPicture.asset(
                                   'assets/icon/ya_viene_logo.svg',
-                                  width: 96,
-                                  height: 96,
+                                  width: 88,
+                                  height: 88,
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 18),
                               const Text(
                                 'Ya Viene',
                                 style: TextStyle(
-                                  fontSize: 38,
+                                  fontSize: 36,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
                                   letterSpacing: -1.2,
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               Text(
                                 'Tu ciudad en tiempo real.',
                                 style: TextStyle(
@@ -155,7 +180,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                         ),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -177,52 +202,108 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Inicia sesión',
+                                  'Inicia sesión o regístrate',
                                   style: TextStyle(
-                                    fontSize: 26,
+                                    fontSize: 23,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF0F172A),
                                     letterSpacing: -0.6,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-                                const Text(
-                                  'Con tu correo y una contraseña.',
-                                  style: TextStyle(
-                                    fontSize: 15,
+                                Text(
+                                  _step == _Step.email
+                                      ? 'Con tu correo y una contraseña.'
+                                      : _step == _Step.password
+                                          ? 'Ese correo ya tiene cuenta: pon tu contraseña.'
+                                          : 'El correo es nuevo: crea tu perfil.',
+                                  style: const TextStyle(
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: Color(0xFF64748B),
                                   ),
                                 ),
-                                const SizedBox(height: 24),
-                                _EmailField(
+                                const SizedBox(height: 22),
+                                _Field(
                                   controller: _emailController,
+                                  icon: Icons.alternate_email_rounded,
+                                  hint: 'Email',
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  enabled: _step == _Step.email,
                                 ),
-                                const SizedBox(height: 12),
-                                ValueListenableBuilder<bool>(
-                                  valueListenable: _obscurePassword,
-                                  builder: (context, obscure, child) {
-                                    return _PasswordField(
-                                      controller: _passwordController,
-                                      obscure: obscure,
-                                      onToggleVisibility: () =>
-                                          _obscurePassword.value = !obscure,
-                                    );
-                                  },
-                                ),
+                                if (_step == _Step.password) ...[
+                                  const SizedBox(height: 12),
+                                  ValueListenableBuilder<bool>(
+                                    valueListenable: _obscurePassword,
+                                    builder: (context, obscure, child) {
+                                      return _Field(
+                                        controller: _passwordController,
+                                        icon: Icons.lock_outline_rounded,
+                                        hint: 'Contraseña',
+                                        obscure: obscure,
+                                        textInputAction: TextInputAction.done,
+                                        onToggleVisibility: () =>
+                                            _obscurePassword.value = !obscure,
+                                      );
+                                    },
+                                  ),
+                                ],
+                                if (_step == _Step.profile) ...[
+                                  const SizedBox(height: 12),
+                                  _Field(
+                                    controller: _nameController,
+                                    icon: Icons.person_outline_rounded,
+                                    hint: 'Nombre',
+                                    textInputAction: TextInputAction.next,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ValueListenableBuilder<bool>(
+                                    valueListenable: _obscurePassword,
+                                    builder: (context, obscure, child) {
+                                      return _Field(
+                                        controller: _passwordController,
+                                        icon: Icons.lock_outline_rounded,
+                                        hint: 'Contraseña (mín. 6)',
+                                        obscure: obscure,
+                                        textInputAction: TextInputAction.next,
+                                        onToggleVisibility: () =>
+                                            _obscurePassword.value = !obscure,
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ValueListenableBuilder<bool>(
+                                    valueListenable: _obscureConfirm,
+                                    builder: (context, obscure, child) {
+                                      return _Field(
+                                        controller: _confirmController,
+                                        icon: Icons.lock_rounded,
+                                        hint: 'Repite la contraseña',
+                                        obscure: obscure,
+                                        textInputAction: TextInputAction.done,
+                                        onToggleVisibility: () =>
+                                            _obscureConfirm.value = !obscure,
+                                      );
+                                    },
+                                  ),
+                                ],
                                 const SizedBox(height: 24),
                                 ValueListenableBuilder<bool>(
-                                  valueListenable: _isValid,
-                                  builder: (context, isValid, child) {
+                                  valueListenable: _isValidEmail,
+                                  builder: (context, isValidEmail, child) {
+                                    final enabled = _step == _Step.email
+                                        ? isValidEmail
+                                        : true;
                                     return SizedBox(
                                       width: double.infinity,
                                       height: 56,
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: isValid
+                                          backgroundColor: enabled
                                               ? const Color(0xFF14274E)
                                               : const Color(0xFFE2E8F0),
-                                          foregroundColor: isValid
+                                          foregroundColor: enabled
                                               ? Colors.white
                                               : const Color(0xFF94A3B8),
                                           disabledBackgroundColor:
@@ -235,15 +316,22 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                 BorderRadius.circular(999),
                                           ),
                                         ),
-                                        onPressed:
-                                            isValid ? _handleLogin : null,
+                                        onPressed: enabled
+                                            ? _step == _Step.email
+                                                ? _continueWithEmail
+                                                : _finishAuth
+                                            : null,
                                         child: Text(
-                                          'Entrar',
+                                          _step == _Step.email
+                                              ? 'Continuar'
+                                              : _step == _Step.password
+                                                  ? 'Entrar'
+                                                  : 'Crear cuenta',
                                           style: TextStyle(
                                             fontSize: 17,
                                             fontWeight: FontWeight.w800,
                                             letterSpacing: -0.3,
-                                            color: isValid
+                                            color: enabled
                                                 ? Colors.white
                                                 : const Color(0xFF94A3B8),
                                           ),
@@ -252,57 +340,24 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                     );
                                   },
                                 ),
-                                const SizedBox(height: 16),
-                                const Row(
-                                  children: [
-                                    Expanded(child: Divider()),
-                                    Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(horizontal: 12),
-                                      child: Text(
-                                        'o',
+                                if (_step != _Step.email) ...[
+                                  const SizedBox(height: 8),
+                                  Center(
+                                    child: TextButton(
+                                      onPressed: _goBack,
+                                      child: const Text(
+                                        'Cambiar de correo',
                                         style: TextStyle(
-                                          fontSize: 13,
+                                          color: Color(0xFF64748B),
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ),
-                                    Expanded(child: Divider()),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 52,
-                                  child: OutlinedButton.icon(
-                                    onPressed: _handleGoogle,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF334155),
-                                      backgroundColor: Colors.white,
-                                      side: const BorderSide(
-                                          color: Color(0xFFE2E8F0)),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(999),
-                                      ),
-                                    ),
-                                    icon: SvgPicture.asset(
-                                      'assets/icon/google_logo.svg',
-                                      width: 20,
-                                      height: 20,
-                                    ),
-                                    label: const Text(
-                                      'Iniciar con Google',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
                                   ),
-                                ),
+                                ],
                                 if (!kReleaseMode) ...[
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 8),
                                   _DebugSkipButton(),
                                 ],
                               ],
@@ -322,65 +377,25 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 }
 
-class _EmailField extends StatelessWidget {
+class _Field extends StatelessWidget {
   final TextEditingController controller;
-
-  const _EmailField({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: TextInputType.emailAddress,
-        autocorrect: false,
-        textInputAction: TextInputAction.next,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF0F172A),
-        ),
-        decoration: InputDecoration(
-          counterText: '',
-          prefixIcon: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18),
-            child: Icon(
-              Icons.alternate_email_rounded,
-              color: Color(0xFF64748B),
-              size: 22,
-            ),
-          ),
-          hintText: 'correo@ejemplo.com',
-          hintStyle: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey.withValues(alpha: 0.6),
-          ),
-          border: InputBorder.none,
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: Color(0xFF00A859), width: 2),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PasswordField extends StatelessWidget {
-  final TextEditingController controller;
+  final IconData icon;
+  final String hint;
   final bool obscure;
-  final VoidCallback onToggleVisibility;
+  final bool enabled;
+  final TextInputType? keyboardType;
+  final TextInputAction textInputAction;
+  final VoidCallback? onToggleVisibility;
 
-  const _PasswordField({
+  const _Field({
     required this.controller,
-    required this.obscure,
-    required this.onToggleVisibility,
+    required this.icon,
+    required this.hint,
+    this.obscure = false,
+    this.enabled = true,
+    this.keyboardType,
+    this.textInputAction = TextInputAction.done,
+    this.onToggleVisibility,
   });
 
   @override
@@ -394,43 +409,45 @@ class _PasswordField extends StatelessWidget {
       child: TextField(
         controller: controller,
         obscureText: obscure,
-        textInputAction: TextInputAction.done,
+        enabled: enabled,
+        keyboardType: keyboardType,
+        autocorrect: false,
+        textInputAction: textInputAction,
         style: const TextStyle(
-          fontSize: 17,
+          fontSize: 16,
           fontWeight: FontWeight.w700,
           color: Color(0xFF0F172A),
         ),
         decoration: InputDecoration(
           counterText: '',
-          prefixIcon: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18),
-            child: Icon(
-              Icons.lock_outline_rounded,
-              color: Color(0xFF64748B),
-              size: 22,
-            ),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Icon(icon, color: const Color(0xFF64748B), size: 22),
           ),
-          hintText: 'Contraseña (mín. 6 caracteres)',
+          hintText: hint,
           hintStyle: TextStyle(
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.grey.withValues(alpha: 0.6),
           ),
-          suffixIcon: IconButton(
-            icon: Icon(
-              obscure
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              color: const Color(0xFF64748B),
-              size: 22,
-            ),
-            onPressed: onToggleVisibility,
-          ),
+          suffixIcon: onToggleVisibility != null
+              ? IconButton(
+                  icon: Icon(
+                    obscure
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: const Color(0xFF64748B),
+                    size: 22,
+                  ),
+                  onPressed: onToggleVisibility,
+                )
+              : null,
           border: InputBorder.none,
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: const BorderSide(color: Color(0xFF00A859), width: 2),
           ),
+          disabledBorder: InputBorder.none,
         ),
       ),
     );

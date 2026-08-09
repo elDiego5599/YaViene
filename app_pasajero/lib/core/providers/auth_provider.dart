@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 enum AuthStatus { unauthenticated, loading, verified, error }
 
@@ -12,22 +11,26 @@ final authProvider = ChangeNotifierProvider<AuthNotifier>((ref) {
 class AuthState {
   final AuthStatus status;
   final String? email;
+  final String? name;
   final String? errorMessage;
 
   const AuthState({
     this.status = AuthStatus.unauthenticated,
     this.email,
+    this.name,
     this.errorMessage,
   });
 
   AuthState copyWith({
     AuthStatus? status,
     String? email,
+    String? name,
     Object? errorMessage = _notProvided,
   }) {
     return AuthState(
       status: status ?? this.status,
       email: email ?? this.email,
+      name: name ?? this.name,
       errorMessage: identical(errorMessage, _notProvided)
           ? this.errorMessage
           : errorMessage as String?,
@@ -38,13 +41,11 @@ class AuthState {
   static const Object _notProvided = Object();
 }
 
-/// Autenticación real con Firebase: correo + contraseña obligatoria y
-/// "Iniciar con Google". Si el correo no tiene cuenta, se crea al momento
-/// (auto-registro con la contraseña que el usuario escribe).
+/// Autenticación con Firebase Auth (Email/Password), con el flujo tipo Zara
+/// en las pantallas: primero el correo; si la cuenta existe se pide la
+/// contraseña y si no se crea el perfil.
 class AuthNotifier extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final GoogleSignIn _google = GoogleSignIn.instance;
-  static bool _googleInitialized = false;
   AuthState _state = const AuthState();
 
   AuthState get state => _state;
@@ -52,23 +53,17 @@ class AuthNotifier extends ChangeNotifier {
   AuthNotifier() {
     _auth.authStateChanges().listen((user) {
       if (user != null && _state.status != AuthStatus.verified) {
-        _state = _state.copyWith(
+        _state = AuthState(
           status: AuthStatus.verified,
           email: user.email,
+          name: user.displayName,
         );
         notifyListeners();
-      } else if (user == null) {
+      } else if (user == null && _state.status != AuthStatus.unauthenticated) {
         _state = const AuthState();
         notifyListeners();
       }
     });
-  }
-
-  static Future<void> _ensureGoogleInitialized() async {
-    if (!_googleInitialized) {
-      await _google.initialize();
-      _googleInitialized = true;
-    }
   }
 
   static final RegExp _emailPattern =
@@ -76,42 +71,76 @@ class AuthNotifier extends ChangeNotifier {
 
   bool isEmailValid(String email) => _emailPattern.hasMatch(email.trim());
 
-  Future<bool> signInWithEmailAndPassword(
-      String email, String password) async {
+  /// Verifica si el correo ya tiene cuenta. Devuelve null en error de red.
+  Future<bool?> checkEmail(String email) async {
     final normalized = email.trim().toLowerCase();
-    if (!isEmailValid(normalized) || password.length < 6) {
-      _state = const AuthState(
-        status: AuthStatus.error,
-        errorMessage: 'Ingresa un correo válido y una contraseña de al menos 6 caracteres',
-      );
-      notifyListeners();
-      return false;
-    }
+    if (!isEmailValid(normalized)) return null;
 
-    _state = AuthState(status: AuthStatus.loading, email: normalized);
+    _state = _state.copyWith(
+      status: AuthStatus.loading,
+      email: normalized,
+      errorMessage: null,
+    );
     notifyListeners();
 
     try {
-      UserCredential result;
-      try {
-        result = await _auth.signInWithEmailAndPassword(
-          email: normalized,
-          password: password,
-        );
-      } on FirebaseAuthException catch (e) {
-        // Sin cuenta: se crea al momento con la contraseña escrita.
-        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-          result = await _auth.createUserWithEmailAndPassword(
-            email: normalized,
-            password: password,
-          );
-        } else {
-          rethrow;
-        }
+      // Deprecado por Google (protección de enumeración de emails), pero
+      // sigue funcionando en proyectos sin esa protección habilitada. Si
+      // algún día lo bloquean, el flujo pasa a "intenta entrar; si falla
+      // por credenciales desconocidas, ofrece crear la cuenta".
+      // ignore: deprecated_member_use
+      final methods = await _auth.fetchSignInMethodsForEmail(normalized);
+      final exists = methods.contains('password');
+      _state = _state.copyWith(status: AuthStatus.unauthenticated);
+      notifyListeners();
+      return exists;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        _state = _state.copyWith(status: AuthStatus.unauthenticated);
+        notifyListeners();
+        return false;
       }
+      _state = _state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: _friendlyAuthError(e),
+      );
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _state = AuthState(
+        status: AuthStatus.error,
+        email: normalized,
+        errorMessage: 'No se pudo conectar: $e',
+      );
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Crea la cuenta (el correo no existía según [checkEmail]).
+  Future<bool> register({
+    required String email,
+    required String name,
+    required String password,
+  }) async {
+    final normalized = email.trim().toLowerCase();
+    _state = _state.copyWith(
+      status: AuthStatus.loading,
+      email: normalized,
+      errorMessage: null,
+    );
+    notifyListeners();
+
+    try {
+      final result = await _auth.createUserWithEmailAndPassword(
+        email: normalized,
+        password: password,
+      );
+      await result.user?.updateProfile(displayName: name.trim());
       _state = AuthState(
         status: AuthStatus.verified,
-        email: result.user?.email ?? normalized,
+        email: result.user?.email,
+        name: name.trim(),
       );
       notifyListeners();
       return true;
@@ -134,31 +163,31 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  Future<bool> signInWithGoogle() async {
-    _state = const AuthState(status: AuthStatus.loading);
+  Future<bool> login({required String email, required String password}) async {
+    final normalized = email.trim().toLowerCase();
+    _state = _state.copyWith(
+      status: AuthStatus.loading,
+      email: normalized,
+      errorMessage: null,
+    );
     notifyListeners();
+
     try {
-      await _ensureGoogleInitialized();
-      final googleUser = await _google.authenticate(scopeHint: ['email']);
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleUser.authentication.idToken,
+      final result = await _auth.signInWithEmailAndPassword(
+        email: normalized,
+        password: password,
       );
-      final result = await _auth.signInWithCredential(credential);
       _state = AuthState(
         status: AuthStatus.verified,
         email: result.user?.email,
+        name: result.user?.displayName,
       );
       notifyListeners();
       return true;
-    } on GoogleSignInException catch (e) {
-      // Canceló el selector de cuentas o no pudo abrirlo: no es un error.
-      _state = const AuthState();
-      notifyListeners();
-      debugPrint('Google sign-in cancelado: $e');
-      return false;
     } on FirebaseAuthException catch (e) {
       _state = AuthState(
         status: AuthStatus.error,
+        email: normalized,
         errorMessage: _friendlyAuthError(e),
       );
       notifyListeners();
@@ -166,6 +195,7 @@ class AuthNotifier extends ChangeNotifier {
     } catch (e) {
       _state = AuthState(
         status: AuthStatus.error,
+        email: normalized,
         errorMessage: e.toString(),
       );
       notifyListeners();
@@ -174,9 +204,6 @@ class AuthNotifier extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    try {
-      await _google.signOut();
-    } catch (_) {}
     await _auth.signOut();
     _state = const AuthState();
     notifyListeners();
@@ -192,6 +219,8 @@ class AuthNotifier extends ChangeNotifier {
         return 'La contraseña es muy corta (mínimo 6 caracteres)';
       case 'invalid-email':
         return 'Correo electrónico inválido';
+      case 'invalid-credential':
+        return 'Correo o contraseña incorrectos';
       case 'network-request-failed':
         return 'Sin conexión a internet';
       case 'too-many-requests':
