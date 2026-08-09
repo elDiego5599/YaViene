@@ -8,9 +8,11 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 
 abstract class AppRoutes {
   static const String login = '/';
+  static const String onboarding = '/onboarding';
   static const String map = '/map';
   static const String notifications = '/notifications';
   static const String routeDetail = '/route/:routeId';
@@ -26,6 +28,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.login,
         name: 'login',
         builder: (context, state) => const PremiumLoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: AppRoutes.map,

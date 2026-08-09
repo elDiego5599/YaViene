@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/map_pattern_painter.dart';
+import '../../../onboarding/onboarding_flow.dart';
 
 enum _Step { email, password, profile }
 
@@ -29,11 +30,17 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   _Step _step = _Step.email;
 
+  /// Evita que el listener de sesión (auto-login) compita con el flujo
+  /// normal de inicio de sesión que ya navega por su cuenta.
+  bool _loginFlowInProgress = false;
+  AuthNotifier? _auth;
+  VoidCallback? _sessionListener;
+
   @override
   void initState() {
     super.initState();
     // Arranque limpio: nada de lo anterior queda (ruta, buses, avisos, pin).
-    unawaited(resetAppState(ref));
+    unawaited(_bootstrap());
     _emailController.addListener(() {
       final valid = ref.read(authProvider).isEmailValid(_emailController.text);
       if (valid != _isValidEmail.value) {
@@ -43,8 +50,28 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     });
   }
 
+  Future<void> _bootstrap() async {
+    await resetAppState(ref);
+    final auth = ref.read(authProvider);
+    // La sesión queda iniciada hasta que el usuario cierre sesión: si
+    // Firebase restaura la sesión guardada, se entra directo al mapa.
+    _auth = auth;
+    _sessionListener = () {
+      if (auth.state.status == AuthStatus.verified &&
+          !_loginFlowInProgress &&
+          mounted) {
+        unawaited(goToHome(context));
+      }
+    };
+    auth.addListener(_sessionListener!);
+    if (auth.state.status == AuthStatus.verified && mounted) {
+      unawaited(goToHome(context));
+    }
+  }
+
   @override
   void dispose() {
+    _auth?.removeListener(_sessionListener!);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -80,6 +107,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   Future<void> _finishAuth() async {
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
+    _loginFlowInProgress = true;
     final auth = ref.read(authProvider);
 
     if (_step == _Step.profile) {
@@ -110,9 +138,11 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
     if (!mounted) return;
     if (success) {
-      context.replace('/map');
+      _loginFlowInProgress = false;
+      await goToHome(context);
       return;
     }
+    _loginFlowInProgress = false;
     // El correo ya tenía cuenta (detección engañada): mejor que entrar a
     // registrar otra vez, se pasa al paso de contraseña.
     if (_step == _Step.profile &&
@@ -128,13 +158,16 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   Future<void> _handleGoogle() async {
     FocusScope.of(context).unfocus();
+    _loginFlowInProgress = true;
     final auth = ref.read(authProvider);
     void listener() {
       if (auth.state.status == AuthStatus.verified && mounted) {
         auth.removeListener(listener);
-        context.replace('/map');
+        _loginFlowInProgress = false;
+        unawaited(goToHome(context));
       } else if (auth.state.status == AuthStatus.error && mounted) {
         auth.removeListener(listener);
+        _loginFlowInProgress = false;
         _showError(auth.state.errorMessage ?? 'Error al iniciar con Google');
       }
     }
@@ -154,7 +187,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF14274E),
       body: CustomPaint(
-        painter: const _LoginMapPatternPainter(),
+        painter: const MapPatternPainter(),
         child: SafeArea(
           bottom: false,
           child: LayoutBuilder(
@@ -561,7 +594,7 @@ class _DebugSkipButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: TextButton(
-        onPressed: () => context.replace('/map'),
+        onPressed: () => goToHome(context),
         child: const Text(
           'Saltar inicio de sesión (Modo Pruebas)',
           style: TextStyle(
@@ -573,62 +606,4 @@ class _DebugSkipButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _LoginMapPatternPainter extends CustomPainter {
-  const _LoginMapPatternPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
-      ..style = PaintingStyle.fill;
-    final linePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.045)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-
-    for (double y = 28; y < size.height * 0.58; y += 34) {
-      for (double x = 18; x < size.width; x += 34) {
-        final offset = ((y / 34).round().isEven) ? 0.0 : 12.0;
-        canvas.drawCircle(Offset(x + offset, y), 1.6, dotPaint);
-      }
-    }
-
-    final routeA = Path()
-      ..moveTo(-20, size.height * 0.18)
-      ..cubicTo(
-        size.width * 0.25,
-        size.height * 0.10,
-        size.width * 0.38,
-        size.height * 0.32,
-        size.width * 0.62,
-        size.height * 0.24,
-      )
-      ..cubicTo(
-        size.width * 0.80,
-        size.height * 0.18,
-        size.width * 0.88,
-        size.height * 0.36,
-        size.width + 20,
-        size.height * 0.30,
-      );
-    canvas.drawPath(routeA, linePaint);
-
-    final routeB = Path()
-      ..moveTo(size.width * 0.12, -10)
-      ..cubicTo(
-        size.width * 0.06,
-        size.height * 0.18,
-        size.width * 0.28,
-        size.height * 0.26,
-        size.width * 0.22,
-        size.height * 0.48,
-      );
-    canvas.drawPath(routeB, linePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
