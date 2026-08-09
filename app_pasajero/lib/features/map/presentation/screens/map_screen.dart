@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/realtime_providers.dart';
-import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
@@ -181,9 +181,7 @@ class _PremiumDrawer extends ConsumerWidget {
                 iconColor: const Color(0xFFDC2626),
                 title: 'Cerrar sesión',
                 onTap: () async {
-                  ref.read(activeAlertsProvider.notifier).clear();
-                  ref.read(selectedBusesProvider.notifier).clear();
-                  ref.read(selectedRouteProvider.notifier).clear();
+                  await resetAppState(ref);
                   await ref.read(authProvider).signOut();
                   if (!context.mounted) return;
                   context.go('/');

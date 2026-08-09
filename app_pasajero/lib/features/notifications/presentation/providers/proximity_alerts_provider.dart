@@ -53,6 +53,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Fuerza una verificación (útil en tests).
   Future<void> check() => _check();
 
+  /// Limpia el registro de avisos disparados/rearmados.
+  void clear() => state = {};
+
   @override
   void dispose() {
     _timer?.cancel();

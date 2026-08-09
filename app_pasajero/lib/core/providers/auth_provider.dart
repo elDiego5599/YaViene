@@ -15,11 +15,16 @@ class AuthState {
   final String? name;
   final String? errorMessage;
 
+  /// Código de error de Firebase (p. ej. 'email-already-in-use') para que la
+  /// pantalla decida el siguiente paso sin depender del texto.
+  final String? errorCode;
+
   const AuthState({
     this.status = AuthStatus.unauthenticated,
     this.email,
     this.name,
     this.errorMessage,
+    this.errorCode,
   });
 
   AuthState copyWith({
@@ -27,6 +32,7 @@ class AuthState {
     String? email,
     String? name,
     Object? errorMessage = _notProvided,
+    Object? errorCode = _notProvided,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -35,10 +41,13 @@ class AuthState {
       errorMessage: identical(errorMessage, _notProvided)
           ? this.errorMessage
           : errorMessage as String?,
+      errorCode: identical(errorCode, _notProvided)
+          ? this.errorCode
+          : errorCode as String?,
     );
   }
 
-  /// Sentinel para distinguir "no tocar errorMessage" de "limpiarlo".
+  /// Sentinel para distinguir "no tocar" de "limpiar".
   static const Object _notProvided = Object();
 }
 
@@ -82,6 +91,15 @@ class AuthNotifier extends ChangeNotifier {
   bool isEmailValid(String email) => _emailPattern.hasMatch(email.trim());
 
   /// Verifica si el correo ya tiene cuenta. Devuelve null en error de red.
+  ///
+  /// Firebase deprecó la consulta de métodos (protección anti-enumeración) y
+  /// hoy puede devolver "no existe" para cuentas que SÍ existen: por eso, si
+  /// la consulta no da una respuesta positiva (o da vacío), se hace una
+  /// segunda prueba intentando entrar con una contraseña falsa:
+  ///   - 'wrong-password'  → la cuenta existe
+  ///   - 'invalid-credential' → puede existir (respuesta protegida): se trata
+  ///     como existente para nunca mandarte a registrarte dos veces
+  ///   - 'user-not-found' / 'invalid-login-credentials' → no existe
   Future<bool?> checkEmail(String email) async {
     final normalized = email.trim().toLowerCase();
     if (!isEmailValid(normalized)) return null;
@@ -94,25 +112,17 @@ class AuthNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Deprecado por Google (protección de enumeración de emails), pero
-      // sigue funcionando en proyectos sin esa protección habilitada. Si
-      // algún día lo bloquean, el flujo pasa a "intenta entrar; si falla
-      // por credenciales desconocidas, ofrece crear la cuenta".
       // ignore: deprecated_member_use
       final methods = await _auth.fetchSignInMethodsForEmail(normalized);
-      final exists = methods.contains('password');
-      _state = _state.copyWith(status: AuthStatus.unauthenticated);
-      notifyListeners();
-      return exists;
+      if (methods.contains('password')) return _settle(true);
+      if (methods.isNotEmpty) return _settle(false); // solo Google: sin contraseña
+      return _settle(await _probeExistence(normalized));
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        _state = _state.copyWith(status: AuthStatus.unauthenticated);
-        notifyListeners();
-        return false;
-      }
+      if (e.code == 'user-not-found') return _settle(false);
       _state = _state.copyWith(
         status: AuthStatus.error,
         errorMessage: _friendlyAuthError(e),
+        errorCode: e.code,
       );
       notifyListeners();
       return null;
@@ -125,6 +135,37 @@ class AuthNotifier extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  bool? _settle(bool exists) {
+    _state = _state.copyWith(status: AuthStatus.unauthenticated);
+    notifyListeners();
+    return exists;
+  }
+
+  Future<bool> _probeExistence(String email) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: 'probe-invalida-xyz',
+      );
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+          return true;
+        case 'invalid-credential':
+          // Protección anti-enumeración activa: no se puede distinguir.
+          // Tratarlo como existente evita el "me mandó a registrarme otra
+          // vez" aunque la cuenta sí exista.
+          return true;
+        case 'user-not-found':
+        case 'invalid-login-credentials':
+          return false;
+        default:
+          return true;
+      }
+    }
+    return true;
   }
 
   /// Crea la cuenta (el correo no existía según [checkEmail]).
@@ -159,6 +200,7 @@ class AuthNotifier extends ChangeNotifier {
         status: AuthStatus.error,
         email: normalized,
         errorMessage: _friendlyAuthError(e),
+        errorCode: e.code,
       );
       notifyListeners();
       return false;
@@ -199,6 +241,7 @@ class AuthNotifier extends ChangeNotifier {
         status: AuthStatus.error,
         email: normalized,
         errorMessage: _friendlyAuthError(e),
+        errorCode: e.code,
       );
       notifyListeners();
       return false;
@@ -240,6 +283,7 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         errorMessage: _friendlyAuthError(e),
+        errorCode: e.code,
       );
       notifyListeners();
       return false;

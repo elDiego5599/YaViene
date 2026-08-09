@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
 
 enum _Step { email, password, profile }
@@ -29,6 +32,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   @override
   void initState() {
     super.initState();
+    // Arranque limpio: nada de lo anterior queda (ruta, buses, avisos, pin).
+    unawaited(resetAppState(ref));
     _emailController.addListener(() {
       final valid = ref.read(authProvider).isEmailValid(_emailController.text);
       if (valid != _isValidEmail.value) {
@@ -106,9 +111,19 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     if (!mounted) return;
     if (success) {
       context.replace('/map');
-    } else {
-      _showError(auth.state.errorMessage ?? 'No se pudo iniciar sesión');
+      return;
     }
+    // El correo ya tenía cuenta (detección engañada): mejor que entrar a
+    // registrar otra vez, se pasa al paso de contraseña.
+    if (_step == _Step.profile &&
+        auth.state.errorCode == 'email-already-in-use') {
+      setState(() => _step = _Step.password);
+      _passwordController.clear();
+      _confirmController.clear();
+      _showError('Ese correo ya tiene cuenta: entra con tu contraseña');
+      return;
+    }
+    _showError(auth.state.errorMessage ?? 'No se pudo iniciar sesión');
   }
 
   Future<void> _handleGoogle() async {
@@ -372,6 +387,23 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                       ),
                                     ),
                                   ),
+                                  if (_step == _Step.password) ...[
+                                    const SizedBox(height: 4),
+                                    Center(
+                                      child: TextButton(
+                                        onPressed: () => setState(
+                                            () => _step = _Step.profile),
+                                        child: const Text(
+                                          '¿No tienes cuenta? Crea una con este correo',
+                                          style: TextStyle(
+                                            color: Color(0xFF00A859),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                                 if (_step == _Step.email) ...[
                                   const SizedBox(height: 16),
