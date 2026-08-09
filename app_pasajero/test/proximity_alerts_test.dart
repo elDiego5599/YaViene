@@ -103,4 +103,14 @@ void main() {
 
     expect(fired, isEmpty);
   });
+
+  test('al notificar, el bus sale de la lista de alertas activas', () async {
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+
+    await container.read(proximityAlertsProvider.notifier).check();
+
+    expect(fired, hasLength(1));
+    expect(container.read(activeAlertsProvider), isEmpty);
+  });
 }

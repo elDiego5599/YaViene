@@ -96,6 +96,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           busId: busId,
           distanceMeters: distance.round(),
         ));
+        // El aviso ya se envió: el bus sale solo de la lista de alertas
+        // activas (visible en la pantalla de Notificaciones).
+        _ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
       }
       state = {...state, ...fire}..removeAll(rearm);
     } else if (rearm.isNotEmpty) {

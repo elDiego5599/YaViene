@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/providers/auth_provider.dart';
-import 'otp_verification_screen.dart';
 
 class PremiumLoginScreen extends ConsumerStatefulWidget {
   const PremiumLoginScreen({super.key});
@@ -15,44 +14,41 @@ class PremiumLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
-  final TextEditingController _phoneController = TextEditingController();
-  final ValueNotifier<bool> _isValidPhone = ValueNotifier<bool>(false);
+  final TextEditingController _emailController = TextEditingController();
+  final ValueNotifier<bool> _isValidEmail = ValueNotifier<bool>(false);
 
   @override
   void initState() {
     super.initState();
-    _phoneController.addListener(() {
-      final text = _phoneController.text.replaceAll(RegExp(r'\D'), '');
-      if (text.length == 10 && !_isValidPhone.value) {
-        _isValidPhone.value = true;
-        HapticFeedback.mediumImpact();
-      } else if (text.length < 10 && _isValidPhone.value) {
-        _isValidPhone.value = false;
+    _emailController.addListener(() {
+      final isValid = ref.read(authProvider).isEmailValid(_emailController.text);
+      if (isValid != _isValidEmail.value) {
+        _isValidEmail.value = isValid;
+        if (isValid) HapticFeedback.mediumImpact();
       }
     });
   }
 
   @override
   void dispose() {
-    _phoneController.dispose();
-    _isValidPhone.dispose();
+    _emailController.dispose();
+    _isValidEmail.dispose();
     super.dispose();
   }
 
   void _handleLogin() {
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
-    final phone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
     final auth = ref.read(authProvider);
     void listener() {
-      if (auth.state.status == AuthStatus.codeSent && mounted) {
+      if (auth.state.status == AuthStatus.verified && mounted) {
         auth.removeListener(listener);
-        context.replace('/otp', extra: phone);
+        context.replace('/map');
       } else if (auth.state.status == AuthStatus.error && mounted) {
         auth.removeListener(listener);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(auth.state.errorMessage ?? 'Error al enviar código'),
+            content: Text(auth.state.errorMessage ?? 'Error al iniciar sesión'),
             backgroundColor: const Color(0xFFDC2626),
           ),
         );
@@ -60,7 +56,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     }
 
     auth.addListener(listener);
-    auth.verifyPhone(phone);
+    auth.signInWithEmail(_emailController.text);
   }
 
   @override
@@ -148,7 +144,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Ingresa tu número',
+                                  'Ingresa tu correo',
                                   style: TextStyle(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w800,
@@ -175,16 +171,13 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                     ),
                                   ),
                                   child: TextField(
-                                    controller: _phoneController,
-                                    keyboardType: TextInputType.phone,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
-                                    maxLength: 10,
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    autocorrect: false,
+                                    textInputAction: TextInputAction.done,
                                     style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 2,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
                                       color: Color(0xFF0F172A),
                                     ),
                                     decoration: InputDecoration(
@@ -197,32 +190,32 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
-                                            Text(
-                                              '+57',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w800,
-                                                color: Color(0xFF64748B),
-                                                letterSpacing: -0.3,
-                                              ),
+                                            Icon(
+                                              Icons.alternate_email_rounded,
+                                              color: Color(0xFF64748B),
+                                              size: 22,
                                             ),
                                           ],
                                         ),
                                       ),
                                       border: InputBorder.none,
                                       focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
                                         borderSide: const BorderSide(
                                           color: Color(0xFF00A859),
                                           width: 2,
                                         ),
                                       ),
                                     ),
+                                    onSubmitted: (_) {
+                                      if (_isValidEmail.value) _handleLogin();
+                                    },
                                   ),
                                 ),
                                 const SizedBox(height: 32),
                                 ValueListenableBuilder<bool>(
-                                  valueListenable: _isValidPhone,
+                                  valueListenable: _isValidEmail,
                                   builder: (context, isValid, child) {
                                     return SizedBox(
                                       width: double.infinity,

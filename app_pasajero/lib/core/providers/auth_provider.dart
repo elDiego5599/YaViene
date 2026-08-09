@@ -1,38 +1,37 @@
 import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum AuthStatus { unauthenticated, loading, codeSent, verified, error }
+/// Modo demo: el inicio de sesión es por correo sin verificación real.
+/// La estructura queda lista para conectar un proveedor de verificación
+/// (código por correo o magic link) sin tocar las pantallas.
+enum AuthStatus { unauthenticated, loading, verified, error }
+
+final authProvider = ChangeNotifierProvider<AuthNotifier>((ref) {
+  return AuthNotifier();
+});
 
 class AuthState {
   final AuthStatus status;
-  final String? verificationId;
-  final String? phoneNumber;
+  final String? email;
   final String? errorMessage;
-  final User? user;
 
   const AuthState({
     this.status = AuthStatus.unauthenticated,
-    this.verificationId,
-    this.phoneNumber,
+    this.email,
     this.errorMessage,
-    this.user,
   });
 
   AuthState copyWith({
     AuthStatus? status,
-    String? verificationId,
-    String? phoneNumber,
+    String? email,
     Object? errorMessage = _notProvided,
-    User? user,
   }) {
     return AuthState(
       status: status ?? this.status,
-      verificationId: verificationId ?? this.verificationId,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
+      email: email ?? this.email,
       errorMessage: identical(errorMessage, _notProvided)
           ? this.errorMessage
           : errorMessage as String?,
-      user: user ?? this.user,
     );
   }
 
@@ -41,97 +40,39 @@ class AuthState {
 }
 
 class AuthNotifier extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   AuthState _state = const AuthState();
 
   AuthState get state => _state;
 
-  AuthNotifier() {
-    _auth.authStateChanges().listen((user) {
-      if (user != null && _state.status != AuthStatus.verified) {
-        _state = _state.copyWith(status: AuthStatus.verified, user: user);
-        notifyListeners();
-      }
-    });
-  }
+  static final RegExp _emailPattern =
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
-  Future<void> verifyPhone(String phoneNumber) async {
-    final fullNumber = phoneNumber.startsWith('+') ? phoneNumber : '+57$phoneNumber';
-    _state = _state.copyWith(
-      status: AuthStatus.loading,
-      phoneNumber: fullNumber,
-      errorMessage: null,
-    );
-    notifyListeners();
+  bool isEmailValid(String email) => _emailPattern.hasMatch(email.trim());
 
-    try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: fullNumber,
-        timeout: const Duration(seconds: 60),
-        verificationCompleted: (credential) async {
-          await _auth.signInWithCredential(credential);
-        },
-        verificationFailed: (e) {
-          _state = _state.copyWith(
-            status: AuthStatus.error,
-            errorMessage: e.message ?? 'Error de verificación',
-          );
-          notifyListeners();
-        },
-        codeSent: (verificationId, resendToken) {
-          _state = _state.copyWith(
-            status: AuthStatus.codeSent,
-            verificationId: verificationId,
-          );
-          notifyListeners();
-        },
-        codeAutoRetrievalTimeout: (verificationId) {
-          if (_state.status == AuthStatus.loading) {
-            _state = _state.copyWith(
-              status: AuthStatus.error,
-              errorMessage: 'Tiempo de espera agotado',
-            );
-            notifyListeners();
-          }
-        },
-      );
-    } catch (e) {
-      _state = _state.copyWith(
+  Future<bool> signInWithEmail(String email) async {
+    final normalized = email.trim().toLowerCase();
+    if (!isEmailValid(normalized)) {
+      _state = const AuthState(
         status: AuthStatus.error,
-        errorMessage: e.toString(),
-      );
-      notifyListeners();
-    }
-  }
-
-  Future<bool> verifyCode(String smsCode) async {
-    if (_state.verificationId == null) return false;
-    _state = _state.copyWith(status: AuthStatus.loading);
-    notifyListeners();
-
-    try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: _state.verificationId!,
-        smsCode: smsCode,
-      );
-      final result = await _auth.signInWithCredential(credential);
-      _state = _state.copyWith(
-        status: AuthStatus.verified,
-        user: result.user,
-      );
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _state = _state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: 'Código incorrecto, inténtalo de nuevo',
+        errorMessage: 'Ingresa un correo electrónico válido',
       );
       notifyListeners();
       return false;
     }
+
+    _state = AuthState(status: AuthStatus.loading, email: normalized);
+    notifyListeners();
+
+    // Demo: la sesión se crea de inmediato. Cuando exista un proveedor de
+    // verificación por correo, aquí se envía el código y se pasa a un
+    // estado intermedio antes de quedar verified.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    _state = AuthState(status: AuthStatus.verified, email: normalized);
+    notifyListeners();
+    return true;
   }
 
-  void reset() {
+  Future<void> signOut() async {
     _state = const AuthState();
     notifyListeners();
   }

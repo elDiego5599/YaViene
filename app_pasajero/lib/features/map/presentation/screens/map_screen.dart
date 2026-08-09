@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/realtime_providers.dart';
+import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
@@ -69,11 +72,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 }
 
-class _PremiumDrawer extends StatelessWidget {
+class _PremiumDrawer extends ConsumerWidget {
   const _PremiumDrawer();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final email = ref.watch(authProvider).state.email;
+
     return Drawer(
       backgroundColor: const Color(0xFF14274E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -132,21 +137,14 @@ class _PremiumDrawer extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00A859)
-                                  .withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Text(
-                              'Cuenta Verificada',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF00A859),
-                              ),
+                          Text(
+                            email ?? 'Sesión iniciada',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF94A3B8),
                             ),
                           ),
                         ],
@@ -165,31 +163,32 @@ class _PremiumDrawer extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _DrawerItem(
-                icon: Icons.history_rounded,
-                bgColor: const Color(0xFFECFDF5),
-                iconColor: const Color(0xFF00A859),
-                title: 'Historial de Rutas',
-                onTap: () => Navigator.pop(context),
-              ),
-              const SizedBox(height: 16),
-              _DrawerItem(
                 icon: Icons.notifications_none_rounded,
                 bgColor: const Color(0xFFFEF3C7),
                 iconColor: const Color(0xFFD97706),
                 title: 'Notificaciones',
-                onTap: () => Navigator.pop(context),
-              ),
-              const SizedBox(height: 16),
-              _DrawerItem(
-                icon: Icons.settings_outlined,
-                bgColor: const Color(0xFFF3E8FF),
-                iconColor: const Color(0xFF9333EA),
-                title: 'Ajustes',
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/notifications');
+                },
               ),
               const Spacer(),
               Divider(color: Colors.white.withValues(alpha: 0.12)),
               const SizedBox(height: 16),
+              _DrawerItem(
+                icon: Icons.logout_rounded,
+                bgColor: const Color(0xFFFEE2E2),
+                iconColor: const Color(0xFFDC2626),
+                title: 'Cerrar sesión',
+                onTap: () async {
+                  ref.read(activeAlertsProvider.notifier).clear();
+                  ref.read(selectedBusesProvider.notifier).clear();
+                  ref.read(selectedRouteProvider.notifier).clear();
+                  await ref.read(authProvider).signOut();
+                  if (!context.mounted) return;
+                  context.go('/');
+                },
+              ),
             ],
           ),
         ),
