@@ -33,6 +33,26 @@ void main() {
     });
   });
 
+  group('EtaStabilizer.trackAlong (rutas que se doblan)', () {
+    test('descarta el salto de rama: la proyección brinca ±30 km pero el '
+        'rastreador solo avanza lo viajable', () {
+      final t = EtaStabilizer();
+      expect(t.trackAlong(rawAlongMeters: 5000, speedKmh: 40), 5000);
+      // El bus sigue en la rama de ida (raw de la rama de venida, ~30 km
+      // adelante): el rastreador no acepta el brinco.
+      final tracked = t.trackAlong(rawAlongMeters: 35000, speedKmh: 40);
+      expect(tracked, greaterThan(5000));
+      expect(tracked, lessThan(5400)); // máx 40/3.6*20 ≈ 222 m por lectura
+    });
+
+    test('sigue el avance normal sin frenar', () {
+      final t = EtaStabilizer();
+      t.trackAlong(rawAlongMeters: 5000, speedKmh: 40);
+      final tracked = t.trackAlong(rawAlongMeters: 5100, speedKmh: 40);
+      expect(tracked, 5100);
+    });
+  });
+
   group('computeEta', () {
     test('calcula minutos según la distancia restante y la velocidad', () {
       final eta = computeEta(
@@ -122,6 +142,31 @@ void main() {
       );
       expect(eta!.state, EtaState.yaPaso);
       expect(eta.minutes, isNull);
+    });
+
+    test('con la posición rastreada el ETA no brinca con la rama paralela', () {
+      // Polilínea con rama de venida paralela a la de ida (como R-106).
+      final folded = [
+        const GeoPoint(lat: 10.9000, lon: -74.8000),
+        const GeoPoint(lat: 10.9050, lon: -74.8000),
+        const GeoPoint(lat: 10.9100, lon: -74.8000),
+        const GeoPoint(lat: 10.9095, lon: -74.8000),
+        const GeoPoint(lat: 10.9050, lon: -74.8000),
+      ];
+      // El bus va por la rama de ida en 10.9060 (along ~680 m), usuario en
+      // 10.9090 (along ~1003 m): faltan ~320 m → 1 min.
+      final eta = computeEta(
+        points: folded,
+        busLat: 10.9060,
+        busLon: -74.8000,
+        userLat: 10.9090,
+        userLon: -74.8000,
+        speedKmh: 40,
+        sentido: 'ida',
+        trackedBusAlongM: 680,
+      );
+      expect(eta!.state, EtaState.enRuta);
+      expect(eta.minutes, 1);
     });
 
     test('bus de venida entre el usuario y el final del recorrido → viene', () {

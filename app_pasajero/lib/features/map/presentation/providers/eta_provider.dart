@@ -90,6 +90,10 @@ EtaEstimate? computeEta({
   required double userLon,
   required double speedKmh,
   required String? sentido,
+
+  /// Posición del bus sobre la ruta rastreada con memoria (ver
+  /// [EtaStabilizer.trackAlong]); si se omite se usa la proyección directa.
+  double? trackedBusAlongM,
 }) {
   if (points.length < 2) return null;
   final direction = _fromSentido(sentido);
@@ -97,12 +101,13 @@ EtaEstimate? computeEta({
       projectOntoPolyline(GeoPoint(lat: busLat, lon: busLon), points);
   final userProj =
       projectOntoPolyline(GeoPoint(lat: userLat, lon: userLon), points);
+  final busAlong = trackedBusAlongM ?? busProj.alongMeters;
 
   // Venida: el bus recorre el trazado en reversa; le falta lo que va desde
   // su posición hacia atrás hasta llegar al usuario.
   final remaining = direction == EtaDirection.venida
-      ? busProj.alongMeters - userProj.alongMeters
-      : userProj.alongMeters - busProj.alongMeters;
+      ? busAlong - userProj.alongMeters
+      : userProj.alongMeters - busAlong;
 
   // Histéresis: entre -150 m y 0 el bus acaba de cruzar tu punto; se sigue
   // mostrando "llegando" en vez de alternar con "ya pasó" a cada broadcast.
@@ -138,13 +143,17 @@ EtaEstimate? computeEta({
   );
 }
 
-/// Suaviza la velocidad reportada (EMA) y mantiene estable el minuto mostrado:
+/// Suaviza la velocidad reportada (EMA), rastrea la posición del bus sobre la
+/// ruta descartando saltos imposibles, y mantiene estable el minuto mostrado:
 /// solo cambia cuando difiere ≥1 min y pasaron ≥20 s desde el último cambio.
 /// Así el número es estable (estilo inDrive) aunque el bus publique jitter.
 class EtaStabilizer {
   double? _emaSpeedKmh;
   int? _shownMinutes;
   DateTime? _lastChangedAt;
+
+  /// Posición rastreada sobre la ruta, en metros (ver [trackAlong]).
+  double? _trackedAlongM;
 
   /// Promedio móvil exponencial: 0.2 de la lectura nueva, 0.8 del histórico.
   double smoothSpeed(double raw) {
@@ -153,6 +162,23 @@ class EtaStabilizer {
         ? raw
         : _emaSpeedKmh! * 0.8 + raw * 0.2;
     return _emaSpeedKmh!;
+  }
+
+  /// Rastrea la posición del bus sobre la polilínea con memoria. La proyección
+  /// "punto más cercano" salta entre la rama de ida y la de venida cuando el
+  /// recorrido se dobla sobre sí mismo (R-106: brincos de ~30 km); el
+  /// rastreador solo avanza lo que el bus alcanza a viajar en 20 s y descarta
+  /// lo demás. El ETA deja de "bajar y subir de la nada".
+  double trackAlong({required double rawAlongMeters, required double speedKmh}) {
+    if (_trackedAlongM == null || speedKmh <= 0) {
+      _trackedAlongM = rawAlongMeters;
+      return rawAlongMeters;
+    }
+    final maxDeltaM = speedKmh / 3.6 * 20;
+    final delta = rawAlongMeters - _trackedAlongM!;
+    final clamped = delta.abs() > maxDeltaM ? maxDeltaM * delta.sign : delta;
+    _trackedAlongM = _trackedAlongM! + clamped;
+    return _trackedAlongM!;
   }
 
   /// Devuelve el minuto que debe mostrarse. `null` (detenido/ya pasó) se
@@ -208,14 +234,21 @@ final busEtaProvider = Provider.autoDispose.family<EtaEstimate?, String>(
   final stabilizer = _stabilizers.putIfAbsent(key, EtaStabilizer.new);
   ref.onDispose(() => _stabilizers.remove(key));
 
+  final smoothedSpeed = stabilizer.smoothSpeed(bus.speedKmh);
+  final busProj = projectOntoPolyline(
+      GeoPoint(lat: bus.lat, lon: bus.lon), trajectory.points);
+  final trackedAlong = stabilizer.trackAlong(
+      rawAlongMeters: busProj.alongMeters, speedKmh: smoothedSpeed);
+
   final eta = computeEta(
     points: trajectory.points,
     busLat: bus.lat,
     busLon: bus.lon,
     userLat: location.lat!,
     userLon: location.lon!,
-    speedKmh: stabilizer.smoothSpeed(bus.speedKmh),
+    speedKmh: smoothedSpeed,
     sentido: bus.sentido,
+    trackedBusAlongM: trackedAlong,
   );
   if (eta == null || eta.minutes == null) return eta;
 
