@@ -256,7 +256,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final (title, subtitle) = hasPosition
         ? ("Toca un bus en el mapa", "Selecciona un bus para darle seguimiento")
         : ("Toca el mapa para indicar dónde estás",
-            "Selecciona tu parada y te diremos cuándo llegan los buses");
+            "Selecciona tu ubicación y mira los buses cerca de ti");
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
       child: Column(

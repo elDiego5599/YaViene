@@ -48,33 +48,19 @@ class UserLocationState {
 class UserLocationNotifier extends StateNotifier<UserLocationState> {
   UserLocationNotifier() : super(const UserLocationState());
 
-  static const _kMode = 'user_loc_mode';
-  static const _kLat = 'user_loc_lat';
-  static const _kLon = 'user_loc_lon';
   static const _kAsked = 'user_loc_asked';
 
   /// Stream del GPS: mantiene el pin pegado al usuario mientras se mueve.
   StreamSubscription<Position>? _gpsSub;
 
   /// Pide el permiso de ubicación en el arranque (primera instalación) y, si
-  /// ya estaba concedido, obtiene el GPS en silencio. Si hay un pin manual
-  /// guardado, lo usa sin pedir nada. Si el permiso ya se negó antes, no
-  /// vuelve a mostrar el diálogo del sistema: queda el modo "denegado" para
-  /// que el mapa le diga que toque donde está.
+  /// ya estaba concedido, obtiene el GPS en silencio. No se restaura ningún
+  /// pin guardado: cada arranque parte sin ubicación y la hoja invita a
+  /// tocar el mapa (o el GPS la resuelve). Si el permiso ya se negó antes,
+  /// no vuelve a mostrar el diálogo del sistema: queda el modo "denegado"
+  /// para que el mapa le diga que toque donde está.
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
-    final mode = prefs.getString(_kMode);
-    final lat = prefs.getDouble(_kLat);
-    final lon = prefs.getDouble(_kLon);
-    if (mode == 'manual' && lat != null && lon != null) {
-      state = UserLocationState(
-        mode: UserLocationMode.manual,
-        lat: lat,
-        lon: lon,
-        updatedAt: DateTime.now(),
-      );
-      return;
-    }
     if (await _hasGpsPermission()) {
       await _locate();
       return;
@@ -133,7 +119,6 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
           timeLimit: Duration(seconds: 15),
         ),
       );
-      await _persist('gps', position.latitude, position.longitude);
       state = UserLocationState(
         mode: UserLocationMode.gps,
         lat: position.latitude,
@@ -160,7 +145,6 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     ).listen(
       (position) {
         if (state.mode == UserLocationMode.manual) return;
-        _persist('gps', position.latitude, position.longitude);
         state = UserLocationState(
           mode: UserLocationMode.gps,
           lat: position.latitude,
@@ -181,7 +165,6 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   void setManualPin(double lat, double lon) {
     _gpsSub?.cancel();
     _gpsSub = null;
-    _persist('manual', lat, lon);
     state = UserLocationState(
       mode: UserLocationMode.manual,
       lat: lat,
@@ -192,22 +175,11 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
 
   /// Quita el pin y vuelve al GPS si hay permiso.
   Future<void> clearManualPin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kMode);
-    await prefs.remove(_kLat);
-    await prefs.remove(_kLon);
     if (await _hasGpsPermission()) {
       await _locate();
     } else {
       state = const UserLocationState(mode: UserLocationMode.denied);
     }
-  }
-
-  Future<void> _persist(String mode, double lat, double lon) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kMode, mode);
-    await prefs.setDouble(_kLat, lat);
-    await prefs.setDouble(_kLon, lon);
   }
 
   @override

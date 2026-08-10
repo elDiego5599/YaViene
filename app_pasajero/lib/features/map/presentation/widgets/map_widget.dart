@@ -80,9 +80,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kStopsInformalLayerId = 'stops-informal-layer';
   static const _kBusSourceId = 'bus-source';
   static const _kBusLayerId = 'bus-layer';
-  /// Capas consideradas "el bus" al tocar: el ícono y su halo de selección
-  /// (tocar el halo no debe colocar el pin manual sobre el bus).
-  static const _kBusHitLayers = ['bus-layer', 'bus-selected-halo-layer'];
+  /// Capas consideradas "el bus" al tocar: solo el ícono. El halo de selección
+  /// NO cuenta: es grande y como los buses van sobre la ruta, tapar pines
+  /// cerca de la línea azul era casi imposible con el halo en la detección.
+  static const _kBusHitLayers = ['bus-layer'];
   static const _kBusIconId = 'bus-icon-active';
   static const _kBusGhostIconId = 'bus-icon-ghost';
   static const _kUserPinSourceId = 'user-pin-source';
