@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -50,6 +52,9 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   static const _kLat = 'user_loc_lat';
   static const _kLon = 'user_loc_lon';
   static const _kAsked = 'user_loc_asked';
+
+  /// Stream del GPS: mantiene el pin pegado al usuario mientras se mueve.
+  StreamSubscription<Position>? _gpsSub;
 
   /// Pide el permiso de ubicación en el arranque (primera instalación) y, si
   /// ya estaba concedido, obtiene el GPS en silencio. Si hay un pin manual
@@ -135,13 +140,47 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
         lon: position.longitude,
         updatedAt: DateTime.now(),
       );
+      _startGpsStream();
     } catch (_) {
       state = const UserLocationState(mode: UserLocationMode.gpsFailed);
     }
   }
 
+  /// Sigue al usuario en movimiento: actualiza el pin con cada movimiento
+  /// relevante (filtro de 8 m; el sistema limita la frecuencia).
+  /// En segundo plano el sistema puede pausar el stream (permiso "solo al
+  /// usar la app"); al volver al frente se reanuda solo.
+  void _startGpsStream() {
+    _gpsSub?.cancel();
+    _gpsSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.medium,
+        distanceFilter: 8,
+      ),
+    ).listen(
+      (position) {
+        if (state.mode == UserLocationMode.manual) return;
+        _persist('gps', position.latitude, position.longitude);
+        state = UserLocationState(
+          mode: UserLocationMode.gps,
+          lat: position.latitude,
+          lon: position.longitude,
+          updatedAt: DateTime.now(),
+        );
+      },
+      onError: (Object _) {
+        // GPS apagado o restringido en segundo plano: el pin conserva la
+        // última posición conocida; el próximo _locate() reinicia el stream.
+        _gpsSub?.cancel();
+        _gpsSub = null;
+      },
+    );
+  }
+
   /// Pin manual: el usuario tocó el mapa.
   void setManualPin(double lat, double lon) {
+    _gpsSub?.cancel();
+    _gpsSub = null;
     _persist('manual', lat, lon);
     state = UserLocationState(
       mode: UserLocationMode.manual,
@@ -169,6 +208,13 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     await prefs.setString(_kMode, mode);
     await prefs.setDouble(_kLat, lat);
     await prefs.setDouble(_kLon, lon);
+  }
+
+  @override
+  void dispose() {
+    _gpsSub?.cancel();
+    _gpsSub = null;
+    super.dispose();
   }
 }
 

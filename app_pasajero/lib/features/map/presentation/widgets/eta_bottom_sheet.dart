@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
 import '../providers/map_view_state.dart';
@@ -95,7 +96,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     }
     HapticFeedback.mediumImpact();
+    final wasActive = ref.read(activeAlertsProvider).contains(busId);
     notifier.toggleAlert(busId);
+    if (!wasActive) await _maybeShowBackgroundHint();
+  }
+
+  /// Una sola vez: le explica al usuario que la app debe quedar en segundo
+  /// plano (no cerrada) para que el aviso llegue.
+  Future<void> _maybeShowBackgroundHint() async {
+    if (!mounted) return;
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'bg_notification_hint_shown';
+    if (prefs.getBool(key) ?? false) return;
+    await prefs.setBool(key, true);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+          'Aviso activado · deja Ya Viene abierta en segundo plano (no la '
+          'cierres de las apps recientes) para que llegue'),
+      duration: Duration(seconds: 5),
+    ));
   }
 
   BusPosition? _busById(String busId) {
