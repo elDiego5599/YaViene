@@ -29,6 +29,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   _Step _step = _Step.email;
 
+  /// Evita el doble toque en Continuar/Entrar/Crear cuenta mientras corre
+  /// la petición (dos registros seguidos rompen el flujo).
+  bool _submitting = false;
+
   /// Evita que el listener de sesión (auto-login) compita con el flujo
   /// normal de inicio de sesión que ya navega por su cuenta.
   bool _loginFlowInProgress = false;
@@ -87,9 +91,12 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _continueWithEmail() async {
+    if (_submitting) return;
+    _submitting = true;
     FocusScope.of(context).unfocus();
     final auth = ref.read(authProvider);
     final exists = await auth.checkEmail(_emailController.text);
+    _submitting = false;
     if (!mounted) return;
     if (exists == null) {
       _showError(auth.state.errorMessage ?? 'Error al consultar el correo');
@@ -103,6 +110,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _finishAuth() async {
+    if (_submitting) return;
+    _submitting = true;
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
     _loginFlowInProgress = true;
@@ -135,6 +144,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
           );
 
     if (!mounted) return;
+    _submitting = false;
     if (success) {
       _loginFlowInProgress = false;
       await goToHome(context);
@@ -355,9 +365,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                 ValueListenableBuilder<bool>(
                                   valueListenable: _isValidEmail,
                                   builder: (context, isValidEmail, child) {
-                                    final enabled = _step == _Step.email
-                                        ? isValidEmail
-                                        : true;
+                                    final enabled = !_submitting &&
+                                        (_step == _Step.email
+                                            ? isValidEmail
+                                            : true);
                                     return SizedBox(
                                       width: double.infinity,
                                       height: 56,

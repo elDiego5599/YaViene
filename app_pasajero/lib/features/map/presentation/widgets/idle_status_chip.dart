@@ -24,42 +24,35 @@ class IdleStatusChip extends ConsumerWidget {
 
     if (config == null) return const SizedBox.shrink();
 
-    return SafeArea(
-      top: false,
-      minimum: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF14274E).withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF14274E).withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              PulsingDot(color: config.dotColor, size: 9),
-              const SizedBox(width: 10),
-              Text(
-                config.label,
-                style: const TextStyle(
-                  color: Color(0xFF14274E),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ],
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PulsingDot(color: config.dotColor, size: 9),
+          const SizedBox(width: 10),
+          Text(
+            config.label,
+            style: const TextStyle(
+              color: Color(0xFF14274E),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

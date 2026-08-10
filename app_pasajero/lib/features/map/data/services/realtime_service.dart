@@ -14,6 +14,13 @@ class RealtimeService implements RealtimeRepository {
   final _busHiddenController = StreamController<Map<String, dynamic>>.broadcast();
   final _busVisibleController = StreamController<Map<String, dynamic>>.broadcast();
   final _busRemovedController = StreamController<Map<String, dynamic>>.broadcast();
+  bool _disposed = false;
+
+  /// Emite solo si el servicio sigue vivo: eventos tardíos del socket
+  /// después de un [dispose] no deben lanzar "Cannot add events".
+  void _emit<T>(StreamController<T> controller, T value) {
+    if (!_disposed && !controller.isClosed) controller.add(value);
+  }
 
   @override
   Stream<ConnectionStatus> get connectionStateStream => _connectionStateController.stream;
@@ -35,7 +42,7 @@ class RealtimeService implements RealtimeRepository {
     if (_socket?.connected == true) return;
     _socket?.dispose();
     const url = AppConfig.backendUrl;
-    _connectionStateController.add(ConnectionStatus.reconnecting);
+    _emit(_connectionStateController, ConnectionStatus.reconnecting);
     _socket = io.io(url, <String, dynamic>{
       'transports': ['websocket'],
       'path': AppConfig.wsPath,
@@ -48,7 +55,7 @@ class RealtimeService implements RealtimeRepository {
     });
 
     _socket!.onConnect((_) {
-      _connectionStateController.add(ConnectionStatus.connected);
+      _emit(_connectionStateController, ConnectionStatus.connected);
       for (final routeId in _subscriptions) {
         _socket!.emit('subscribe:route', routeId);
       }
@@ -59,7 +66,7 @@ class RealtimeService implements RealtimeRepository {
     _socket!.on('error', (_) => _connectionStateController.add(ConnectionStatus.disconnected));
 
     _socket!.on('bus:position', (data) {
-      _busPositionController.add(Map<String, dynamic>.from(data as Map));
+      _emit(_busPositionController, Map<String, dynamic>.from(data as Map));
     });
     _socket!.on('positions:update', (data) {
       final update = Map<String, dynamic>.from(data as Map);
@@ -67,26 +74,26 @@ class RealtimeService implements RealtimeRepository {
       if (buses is List) {
         for (final bus in buses) {
           if (bus is Map) {
-            _busPositionController.add(Map<String, dynamic>.from(bus));
+            _emit(_busPositionController, Map<String, dynamic>.from(bus));
           }
         }
       }
     });
     _socket!.on('positions:batch', (data) {
       final batch = Map<String, dynamic>.from(data as Map);
-      _batchPositionController.add(batch);
+      _emit(_batchPositionController, batch);
     });
     _socket!.on('bus:left', (data) {
-      _busLeftController.add(Map<String, dynamic>.from(data as Map));
+      _emit(_busLeftController, Map<String, dynamic>.from(data as Map));
     });
     _socket!.on('bus:hidden', (data) {
-      _busHiddenController.add(Map<String, dynamic>.from(data as Map));
+      _emit(_busHiddenController, Map<String, dynamic>.from(data as Map));
     });
     _socket!.on('bus:visible', (data) {
-      _busVisibleController.add(Map<String, dynamic>.from(data as Map));
+      _emit(_busVisibleController, Map<String, dynamic>.from(data as Map));
     });
     _socket!.on('bus:removed', (data) {
-      _busRemovedController.add(Map<String, dynamic>.from(data as Map));
+      _emit(_busRemovedController, Map<String, dynamic>.from(data as Map));
     });
   }
 
@@ -104,6 +111,7 @@ class RealtimeService implements RealtimeRepository {
 
   @override
   void dispose() {
+    _disposed = true;
     _subscriptions.clear();
     _socket?.disconnect();
     _socket?.dispose();

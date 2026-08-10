@@ -43,7 +43,9 @@ Stream<List<BusPosition>> _buildRoutePositionsStream(
       final pos = _jsonToBusPosition(json);
       positions[pos.busId] = pos;
     }
-    if (positions.isNotEmpty) emitSnapshot();
+    // Siempre se emite (aunque el batch venga vacío) para que el mapa
+    // borre los buses que ya no están en la ruta.
+    emitSnapshot();
   });
 
   final liveSub = service.busPositionStream.listen((json) {

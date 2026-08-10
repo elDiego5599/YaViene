@@ -19,7 +19,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _allowLocation() async {
     setState(() => _requesting = true);
-    await ref.read(userLocationProvider.notifier).initialize();
+    // useGps pide el permiso sí o sí: el usuario tocó "Permitir ubicación".
+    await ref.read(userLocationProvider.notifier).useGps();
     if (!mounted) return;
     setState(() => _requesting = false);
     await markOnboardingSeen();

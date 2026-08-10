@@ -117,11 +117,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 const SearchPillBar(),
                 const SizedBox(height: 8),
                 LocationStatusChip(routeId: selectedRoute?.id),
+                // Estado de la conexión: se muestra con o sin ruta activa.
+                const SizedBox(height: 8),
+                const IdleStatusChip(),
               ],
             ),
           ),
-          if (selectedRoute == null)
-            const Positioned.fill(child: IdleStatusChip()),
           const Positioned(
             bottom: 0,
             left: 0,

@@ -242,7 +242,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<void> _onStyleLoadedCallback() async {
-    if (!mounted) return;
+    if (!mounted || _layersReady) return;
     try {
       await _loadBusIcons();
       await _initializeMapSources();
@@ -379,7 +379,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final features = await _mapController!
           .queryRenderedFeatures(point, [_kBusLayerId], null);
       if (features.isNotEmpty) {
-        final busId = features.first['properties']['busId'] as String;
+        final busId =
+            features.first['properties']?['busId'] as String? ?? '';
+        if (busId.isEmpty) return;
         // Selección única: al cambiar de bus se desactivan los avisos del
         // bus anterior; notificaciones y seguimiento son de un bus a la vez.
         ref.read(activeAlertsProvider.notifier).clear();
@@ -469,7 +471,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
+    return data?.buffer.asUint8List() ?? Uint8List(0);
   }
 
   Future<Uint8List> _createFlatTransitMarker(Color baseColor,
@@ -516,7 +518,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
+    return data?.buffer.asUint8List() ?? Uint8List(0);
   }
 
   Future<void> _applyMapBottomInset(double bottomInset,
@@ -559,7 +561,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   void _fitRouteToVisibleViewport(RouteTrajectory trajectory,
       {required bool animated}) {
-    if (_mapController == null || trajectory.points.isEmpty || !mounted) return;
+    if (_mapController == null || trajectory.points.length < 2 || !mounted) {
+      return;
+    }
 
     double minLat = trajectory.points.first.lat;
     double maxLat = trajectory.points.first.lat;
@@ -736,12 +740,19 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       ),
       compassEnabled: false,
       myLocationEnabled: false,
-      onMapClick: (point, latLng) {
+      onMapClick: (point, latLng) async {
         final location = ref.read(userLocationProvider);
         if (location.mode == UserLocationMode.gps ||
             location.mode == UserLocationMode.locating) {
           return;
         }
+        // Si el toque fue sobre un bus (o su halo), se trata como selección
+        // y NO se mueve el pin manual.
+        try {
+          final features = await _mapController!
+              .queryRenderedFeatures(point, [_kBusLayerId], null);
+          if (features.isNotEmpty) return;
+        } catch (_) {}
         ref
             .read(userLocationProvider.notifier)
             .setManualPin(latLng.latitude, latLng.longitude);

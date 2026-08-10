@@ -10,8 +10,6 @@ class RouteSelectorSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final companiesAsync = ref.watch(companiesProvider);
     final selectedCompany = ref.watch(selectedCompanyProvider);
-    final routesAsync =
-        ref.watch(routesByCompanyProvider(selectedCompany?.id ?? ''));
     final selectedRoute = ref.watch(selectedRouteProvider);
 
     return Container(
@@ -96,7 +94,18 @@ class RouteSelectorSheet extends ConsumerWidget {
                   onTap: () => _showCompanySelector(context, ref, companies),
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Text('Error al cargar empresas'),
+                error: (_, __) => Column(
+                  children: [
+                    const Text('Error al cargar empresas'),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () =>
+                          ref.invalidate(companiesProvider),
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -128,16 +137,9 @@ class RouteSelectorSheet extends ConsumerWidget {
                   },
                 )
               else
-                routesAsync.when(
-                  data: (routes) => _PremiumSelectorTile(
-                    title: selectedRoute?.name ?? 'Selecciona una ruta',
-                    subtitle: _routeSubtitle(selectedRoute),
-                    icon: Icons.alt_route_rounded,
-                    isActive: selectedRoute != null,
-                    onTap: () => _showRouteSelector(context, ref, routes),
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const SizedBox.shrink(),
+                _RoutesTile(
+                  selectedCompanyId: selectedCompany.id,
+                  selectedRoute: selectedRoute,
                 ),
 
               const SizedBox(height: 32),
@@ -227,63 +229,6 @@ class RouteSelectorSheet extends ConsumerWidget {
     ),
     );
   }
-
-  void _showRouteSelector(BuildContext context, WidgetRef ref, List<RouteInfo> routes) {
-    HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (_) => SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: routes.map((r) => ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F7F0),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.alt_route_rounded, color: Color(0xFF00A859), size: 20),
-                ),
-                title: Text(
-                  r.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                subtitle: Text(
-                  _routeSubtitle(r) ?? 'Tiempo real',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  ref.read(selectedRouteProvider.notifier).select(r);
-                  Navigator.pop(context);
-                },
-              )).toList(),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 String? _routeSubtitle(RouteInfo? route) {
@@ -292,6 +237,103 @@ String? _routeSubtitle(RouteInfo? route) {
   final b = route.terminalB ?? '';
   if (a.isEmpty && b.isEmpty) return null;
   return '$a ↔ $b';
+}
+
+/// Tile de "RUTA": solo se consulta al servidor cuando hay empresa
+/// seleccionada (evita la petición espuria con id vacío).
+class _RoutesTile extends ConsumerWidget {
+  final String selectedCompanyId;
+  final RouteInfo? selectedRoute;
+
+  const _RoutesTile({
+    required this.selectedCompanyId,
+    required this.selectedRoute,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final routesAsync = ref.watch(routesByCompanyProvider(selectedCompanyId));
+    return routesAsync.when(
+      data: (routes) => _PremiumSelectorTile(
+        title: selectedRoute?.name ?? 'Selecciona una ruta',
+        subtitle: _routeSubtitle(selectedRoute),
+        icon: Icons.alt_route_rounded,
+        isActive: selectedRoute != null,
+        onTap: () => _showRouteSelector(context, ref, routes),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Column(
+        children: [
+          const Text('Error al cargar las rutas'),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () =>
+                ref.invalidate(routesByCompanyProvider(selectedCompanyId)),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void _showRouteSelector(
+    BuildContext context, WidgetRef ref, List<RouteInfo> routes) {
+  HapticFeedback.lightImpact();
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (_) => SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: routes.map((r) => ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F7F0),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.alt_route_rounded, color: Color(0xFF00A859), size: 20),
+              ),
+              title: Text(
+                r.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.4,
+                ),
+              ),
+              subtitle: Text(
+                _routeSubtitle(r) ?? 'Tiempo real',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                ref.read(selectedRouteProvider.notifier).select(r);
+                Navigator.pop(context);
+              },
+            )).toList(),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _PremiumSelectorTile extends StatelessWidget {  final String title;

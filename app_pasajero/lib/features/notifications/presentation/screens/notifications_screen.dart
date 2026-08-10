@@ -18,10 +18,12 @@ class NotificationsScreen extends ConsumerWidget {
     final sent = ref.watch(proximityAlertsProvider);
     final route = ref.watch(selectedRouteProvider);
     final location = ref.watch(userLocationProvider);
-    final positions =
-        ref.watch(busPositionsSourceProvider(route?.id ?? '').select(
-          (value) => value.value ?? const <BusPosition>[],
-        ));
+    // Sin ruta activa no hay buses que consultar (ni suscripción a '').
+    final positions = route == null
+        ? const <BusPosition>[]
+        : ref.watch(busPositionsSourceProvider(route.id).select(
+            (value) => value.value ?? const <BusPosition>[],
+          ));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
