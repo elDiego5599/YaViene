@@ -15,7 +15,7 @@ class MapPatternPainter extends CustomPainter {
       ..strokeWidth = 1.2
       ..strokeCap = StrokeCap.round;
 
-    for (double y = 28; y < size.height * 0.58; y += 34) {
+    for (double y = 28; y < size.height; y += 34) {
       for (double x = 18; x < size.width; x += 34) {
         final offset = ((y / 34).round().isEven) ? 0.0 : 12.0;
         canvas.drawCircle(Offset(x + offset, y), 1.6, dotPaint);
@@ -23,22 +23,22 @@ class MapPatternPainter extends CustomPainter {
     }
 
     final routeA = Path()
-      ..moveTo(-20, size.height * 0.18)
+      ..moveTo(-20, size.height * 0.16)
       ..cubicTo(
         size.width * 0.25,
-        size.height * 0.10,
+        size.height * 0.08,
         size.width * 0.38,
-        size.height * 0.32,
+        size.height * 0.30,
         size.width * 0.62,
-        size.height * 0.24,
+        size.height * 0.22,
       )
       ..cubicTo(
         size.width * 0.80,
-        size.height * 0.18,
+        size.height * 0.16,
         size.width * 0.88,
-        size.height * 0.36,
+        size.height * 0.34,
         size.width + 20,
-        size.height * 0.30,
+        size.height * 0.28,
       );
     canvas.drawPath(routeA, linePaint);
 
@@ -53,6 +53,26 @@ class MapPatternPainter extends CustomPainter {
         size.height * 0.48,
       );
     canvas.drawPath(routeB, linePaint);
+
+    final routeC = Path()
+      ..moveTo(-20, size.height * 0.74)
+      ..cubicTo(
+        size.width * 0.18,
+        size.height * 0.66,
+        size.width * 0.40,
+        size.height * 0.88,
+        size.width * 0.62,
+        size.height * 0.78,
+      )
+      ..cubicTo(
+        size.width * 0.80,
+        size.height * 0.70,
+        size.width * 0.90,
+        size.height * 0.86,
+        size.width + 20,
+        size.height * 0.80,
+      );
+    canvas.drawPath(routeC, linePaint);
   }
 
   @override
