@@ -47,7 +47,8 @@ class LocationStatusChip extends ConsumerWidget {
           tint: const Color(0xFFFEF3C7),
           iconColor: const Color(0xFFD97706),
         ),
-      UserLocationMode.manual => _manualPill(location, nearbyCount, notifier),
+      UserLocationMode.manual =>
+        _manualPill(nearbyCount, notifier),
       UserLocationMode.gps => _gpsPill(nearbyCount),
       UserLocationMode.unknown => null,
     };
@@ -57,13 +58,13 @@ class LocationStatusChip extends ConsumerWidget {
     return _Pill(data: pill);
   }
 
-  _PillData? _manualPill(UserLocationState location, int? nearbyCount, UserLocationNotifier notifier) {
-    final coords = '${location.lat!.toStringAsFixed(4)}, ${location.lon!.toStringAsFixed(4)}';
+  _PillData? _manualPill(
+      int? nearbyCount, UserLocationNotifier notifier) {
     if (nearbyCount == null) {
       return _PillData(
         key: 'manual',
         icon: Icons.location_on,
-        text: 'Pin: $coords',
+        text: 'Con tu ubicación',
         actionLabel: 'Quitar',
         onAction: () => notifier.clearManualPin(),
         actionDanger: true,
@@ -85,7 +86,8 @@ class LocationStatusChip extends ConsumerWidget {
     return _PillData(
       key: 'manual-near',
       icon: Icons.location_on,
-      text: 'Pin: $coords · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      text:
+          'Con tu ubicación: $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
       actionLabel: 'Quitar',
       onAction: () => notifier.clearManualPin(),
       actionDanger: true,
