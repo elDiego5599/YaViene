@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../services/background_keep_alive.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/realtime_providers.dart';
 import '../providers/user_location_provider.dart';
@@ -33,7 +34,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ref.read(realtimeServiceProvider).connect();
       ref.read(userLocationProvider.notifier).initialize();
       ref.read(proximityAlertsProvider.notifier).start();
+      // La app siempre funciona en segundo plano: el servicio mantiene el
+      // proceso vivo para que el socket siga conectado y los avisos lleguen.
+      BackgroundKeepAlive.start();
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   void _onLocationChanged(UserLocationState state) {

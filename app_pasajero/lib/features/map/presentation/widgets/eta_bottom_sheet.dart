@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
-import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
-import '../providers/eta_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
@@ -23,6 +21,9 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _expandedMapInset = 250;
   static const double _collapsedMapInset = 120;
+
+  /// Distancia (m) a la que el bus se considera "pasando por la parada".
+  static const double _passingRadiusMeters = 100;
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
@@ -78,18 +79,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         }
         return;
       }
-      // El bus ya está dentro del radio de aviso: no se puede notificar su
-      // llegada (llegó antes de activar el aviso).
-      if (_busAlreadyNear(bus)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'El bus $busId ya está dentro del radio de aviso ($alertRadiusMeters m); '
-                'ya no se puede notificar su llegada.'),
-          ));
-        }
-        return;
-      }
+      // El usuario puede pedir el aviso de cualquier bus; el aviso dispara
+      // cuando el bus entra al radio.
       if (!await BusNotificationService.requestPermission()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -125,12 +116,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final location = ref.read(userLocationProvider);
     if (!location.hasPosition) return null;
     return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);
-  }
-
-  /// El bus ya está dentro del radio de aviso: no se puede activar la alerta.
-  bool _busAlreadyNear(BusPosition? bus) {
-    final distance = _distanceToBus(bus);
-    return distance != null && distance <= alertRadiusMeters;
   }
 
   void _publishMapInset([double? forcedInset]) {
@@ -270,8 +255,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   Widget _buildSingleBusState(String busId, BusPosition? bus) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final staleLabel = _staleLabel(bus);
-    final alreadyNear = !isActive && _busAlreadyNear(bus);
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
+    final distance = _distanceToBus(bus);
 
     // Defensa: el bus seleccionado ya no está en la ruta (aún no se procesó
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
@@ -300,14 +285,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
             child: _StickyAlertButton(
               isActive: isActive,
-              blocked: alreadyNear || ghostBlocked,
+              blocked: ghostBlocked,
               label: isActive
                   ? "AVISARÉ CUANDO VUELVA A TRANSMITIR"
                   : ghostBlocked
                       ? "BUS SIN SEÑAL"
-                      : alreadyNear
-                          ? "BUS YA ESTÁ CERCA"
-                          : "AVISARME CUANDO ESTÉ CERCA",
+                      : "AVISARME CUANDO ESTÉ CERCA",
               onPressed: () => _toggleAlert(busId),
             ),
           ),
@@ -315,8 +298,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       );
     }
 
-    final eta = ref.watch(busEtaProvider(busId));
-    final (stateTitle, stateColor, stateDetail) = _busDisplay(eta);
+    // El bus está cruzando la parada (~100 m): no hace falta aviso.
+    final passing = distance != null && distance <= _passingRadiusMeters;
+    final (stateTitle, stateColor, stateDetail) = passing
+        ? ("VA PASANDO", const Color(0xFFD97706),
+            "Está cruzando tu parada en este momento")
+        : distance == null
+            ? ("CALCULANDO", const Color(0xFF94A3B8),
+                "Buscando la posición del bus…")
+            : (_formatDistance(distance), const Color(0xFF14274E),
+                "En camino hacia tu parada");
 
     return Column(
       children: [
@@ -348,38 +339,19 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
             isActive: isActive,
-            blocked: alreadyNear || ghostBlocked,
+            blocked: ghostBlocked || passing,
             label: isActive
                 ? "AVISARÉ CUANDO ESTÉ CERCA"
                 : ghostBlocked
                     ? "BUS SIN SEÑAL"
-                    : alreadyNear
-                        ? "BUS YA ESTÁ CERCA"
+                    : passing
+                        ? "BUS VA PASANDO"
                         : "AVISARME CUANDO ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ),
       ],
     );
-  }
-
-  /// Traduce el estado del bus en lo que se muestra: título, color y detalle.
-  (String, Color, String) _busDisplay(EtaEstimate? eta) {
-    if (eta == null) {
-      return ("CALCULANDO",
-          const Color(0xFF94A3B8), "Buscando la posición del bus…");
-    }
-    switch (eta.state) {
-      case EtaState.enRuta || EtaState.trancado:
-        return (_formatDistance(eta.remainingMeters), const Color(0xFF14274E),
-            "En camino hacia tu parada");
-      case EtaState.detenido:
-        return ("DETENIDO", const Color(0xFFD97706),
-            "El bus no se mueve en este momento");
-      case EtaState.yaPaso:
-        return ("YA PASÓ POR AQUÍ", const Color(0xFFD97706),
-            "Espera la próxima vuelta");
-    }
   }
 
   /// "A 850 m de ti" / "A 1.4 km de ti".
