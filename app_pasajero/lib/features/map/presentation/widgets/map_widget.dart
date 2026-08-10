@@ -400,17 +400,29 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// ícono sea pequeño (o quede detrás del pin del usuario); si no hay bus,
   /// devuelve false y el toque sigue su curso (p. ej. colocar el pin).
   ///
-  /// Deduplicación: el mismo toque dispara onFeatureTapped Y onMapClick; si
-  /// ya se procesó un toque con bus hace <400 ms, el segundo se ignora para
-  /// no hacer doble toggle de la selección.
-  DateTime? _lastBusTapAt;
+  /// Deduplicación: el mismo toque dispara feature#onTap Y map#onMapClick casi
+  /// en paralelo. Para no hacer doble toggle (seleccionar y deseleccionar al
+  /// instante) la primera llamada reclama el toque de forma SÍNCRONA y guarda
+  /// el future en vuelo; las llamadas gemelas dentro de 400 ms devuelven el
+  /// MISMO future (mismo resultado, un solo toggle).
+  Future<bool>? _pendingSelect;
+  DateTime? _pendingAt;
   bool _pinMoveHintShown = false;
-  Future<bool> _selectBusAtTap(math.Point<double> point) async {
-    final now = DateTime.now();
-    if (_lastBusTapAt != null &&
-        now.difference(_lastBusTapAt!) < const Duration(milliseconds: 400)) {
-      return true;
+
+  Future<bool> _selectBusAtTap(math.Point<double> point) {
+    final pending = _pendingSelect;
+    if (pending != null &&
+        DateTime.now().difference(_pendingAt!) <
+            const Duration(milliseconds: 400)) {
+      return pending;
     }
+    _pendingAt = DateTime.now();
+    final future = _doSelectBusAtTap(point);
+    _pendingSelect = future;
+    return future;
+  }
+
+  Future<bool> _doSelectBusAtTap(math.Point<double> point) async {
     // Sin ubicación (GPS negado y sin pin) no hay distancias ni avisos que
     // mostrar: el toque solo sirve para poner el pin.
     if (!ref.read(userLocationProvider).hasPosition) return false;
@@ -427,7 +439,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (features.isEmpty) return false;
       final busId = features.first['properties']?['busId'] as String? ?? '';
       if (busId.isEmpty) return false;
-      _lastBusTapAt = now;
       // Selección única: al cambiar de bus se desactivan los avisos del
       // bus anterior; notificaciones y seguimiento son de un bus a la vez.
       ref.read(activeAlertsProvider.notifier).clear();
