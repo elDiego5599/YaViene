@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,10 +62,18 @@ class AuthNotifier extends ChangeNotifier {
   static bool _googleInitialized = false;
   AuthState _state = const AuthState();
 
+  final Completer<void> _sessionResolved = Completer<void>();
+
+  /// Se completa en cuanto Firebase emite su primer estado (sesión restaurada
+  /// desde el dispositivo, o confirmado que no hay sesión). El splash espera
+  /// esto antes de decidir a qué pantalla ir.
+  Future<void> get sessionResolved => _sessionResolved.future;
+
   AuthState get state => _state;
 
   AuthNotifier() {
     _auth.authStateChanges().listen((user) {
+      if (!_sessionResolved.isCompleted) _sessionResolved.complete();
       if (user != null && _state.status != AuthStatus.verified) {
         _state = AuthState(
           status: AuthStatus.verified,

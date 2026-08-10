@@ -184,7 +184,7 @@ class _PremiumDrawer extends ConsumerWidget {
                   await resetAppState(ref);
                   await ref.read(authProvider).signOut();
                   if (!context.mounted) return;
-                  context.go('/');
+                  context.go('/login');
                 },
               ),
             ],

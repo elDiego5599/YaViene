@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../onboarding/onboarding_flow.dart';
@@ -39,7 +38,6 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Arranque limpio: nada de lo anterior queda (ruta, buses, avisos, pin).
     unawaited(_bootstrap());
     _emailController.addListener(() {
       final valid = ref.read(authProvider).isEmailValid(_emailController.text);
@@ -51,10 +49,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await resetAppState(ref);
+    // Seguridad por si la sesión se restaura tarde: si Firebase ya tiene
+    // sesión guardada, se entra directo al mapa (lo normal es que el splash
+    // ya haya decidido, pero no cuesta).
     final auth = ref.read(authProvider);
-    // La sesión queda iniciada hasta que el usuario cierre sesión: si
-    // Firebase restaura la sesión guardada, se entra directo al mapa.
     _auth = auth;
     _sessionListener = () {
       if (auth.state.status == AuthStatus.verified &&

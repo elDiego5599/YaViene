@@ -40,198 +40,176 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         painter: const MapPatternPainter(),
         child: SafeArea(
           bottom: false,
-          child: Column(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00A859)
-                                .withValues(alpha: 0.35),
-                            blurRadius: 50,
-                            spreadRadius: 10,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints:
+                      BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF00A859)
+                                          .withValues(alpha: 0.35),
+                                      blurRadius: 50,
+                                      spreadRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                                child: SvgPicture.asset(
+                                  'assets/icon/ya_viene_logo.svg',
+                                  width: 76,
+                                  height: 76,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Ya Viene',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Tu ciudad en tiempo real.',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: SvgPicture.asset(
-                        'assets/icon/ya_viene_logo.svg',
-                        width: 84,
-                        height: 84,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const Text(
-                      'Ya Viene',
-                      style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tu ciudad en tiempo real.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withValues(alpha: 0.75),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00A859).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: const Color(0xFF00A859)
-                              .withValues(alpha: 0.4),
                         ),
-                      ),
-                      child: const Text(
-                        'Activa tu ubicación',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF4ADE80),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(28, 26, 28, 30),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(36),
-                    topRight: Radius.circular(36),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x1A14274E),
-                      blurRadius: 32,
-                      offset: Offset(0, -10),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Muy bien, bienvenido a Ya Viene',
-                        style: TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Para la mejor experiencia, déjanos usar tu ubicación: así sabremos qué buses vienen hacia ti.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const _BenefitRow(
-                        icon: Icons.directions_bus_filled_rounded,
-                        title: 'Buses cerca de ti',
-                        subtitle: 'El mapa ubica los buses a tu alrededor en tiempo real.',
-                      ),
-                      const SizedBox(height: 14),
-                      const _BenefitRow(
-                        icon: Icons.timer_outlined,
-                        title: 'Esperas exactas',
-                        subtitle: 'Te decimos cuánto falta para que llegue tu bus.',
-                      ),
-                      const SizedBox(height: 14),
-                      const _BenefitRow(
-                        icon: Icons.notifications_active_outlined,
-                        title: 'Avisos a tiempo',
-                        subtitle: 'Te avisamos cuando tu ruta esté por pasar.',
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00A859),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(26, 24, 26, 26),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(32),
+                              topRight: Radius.circular(32),
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x1A14274E),
+                                blurRadius: 32,
+                                offset: Offset(0, -10),
+                              ),
+                            ],
                           ),
-                          onPressed: _requesting ? null : _allowLocation,
-                          child: _requesting
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Permitir ubicación',
+                          child: SafeArea(
+                            top: false,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Activa tu ubicación',
                                   style: TextStyle(
-                                    fontSize: 17,
+                                    fontSize: 21,
                                     fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.3,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: -0.5,
                                   ),
                                 ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: _skip,
-                          child: const Text(
-                            'Ahora no',
-                            style: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Así sabemos qué buses vienen hacia ti y te avisamos antes de que llegue el tuyo.',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF64748B),
+                                    height: 1.35,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const _BenefitRow(
+                                  icon: Icons.directions_bus_filled_rounded,
+                                  title: 'Buses cerca de ti',
+                                ),
+                                const SizedBox(height: 10),
+                                const _BenefitRow(
+                                  icon: Icons.timer_outlined,
+                                  title: 'Esperas exactas',
+                                ),
+                                const SizedBox(height: 10),
+                                const _BenefitRow(
+                                  icon: Icons.notifications_active_outlined,
+                                  title: 'Avisos antes de tu bus',
+                                ),
+                                const SizedBox(height: 20),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 54,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF00A859),
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                      ),
+                                    ),
+                                    onPressed:
+                                        _requesting ? null : _allowLocation,
+                                    child: _requesting
+                                        ? const SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Permitir ubicación',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: -0.3,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: TextButton(
+                                    onPressed: _skip,
+                                    child: const Text(
+                                      'Ahora no',
+                                      style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Center(
-                        child: Text(
-                          'Puedes activarla después desde la configuración del teléfono.',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -242,52 +220,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 class _BenefitRow extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
 
-  const _BenefitRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+  const _BenefitRow({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             color: const Color(0xFF00A859).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: const Color(0xFF00A859), size: 24),
+          child: Icon(icon, color: const Color(0xFF00A859), size: 22),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
-                  height: 1.3,
-                ),
-              ),
-            ],
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
           ),
         ),
       ],
