@@ -329,16 +329,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            child: _StickyAlertButton(
-              isActive: isActive,
-              blocked: ghostBlocked,
-              label: isActive
-                  ? "AVISARÉ CUANDO VUELVA A TRANSMITIR"
-                  : ghostBlocked
-                      ? "BUS SIN SEÑAL"
-                      : "AVISARME CUANDO ESTÉ CERCA",
-              onPressed: () => _toggleAlert(busId),
-            ),
+          child: _StickyAlertButton(
+            isActive: isActive,
+            blocked: ghostBlocked || !locationState.hasPosition,
+            label: isActive
+                ? "AVISARÉ CUANDO VUELVA A TRANSMITIR"
+                : ghostBlocked
+                    ? "BUS SIN SEÑAL"
+                    : "AVISARME CUANDO ESTÉ CERCA",
+            onPressed: () => _toggleAlert(busId),
+          ),
           ),
         ],
       );
@@ -359,11 +359,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                     ? "Buscando la posición del bus…"
                     : null;
     final (stateTitle, stateColor) = passing
-        ? ("VA PASANDO", const Color(0xFFD97706))
+        ? ("Va pasando", const Color(0xFFD97706))
         : !locationState.hasPosition
-            ? ("SIN TU UBICACIÓN", const Color(0xFF94A3B8))
+            ? ("Sin tu ubicación", const Color(0xFF94A3B8))
             : distance == null
-                ? ("CALCULANDO", const Color(0xFF94A3B8))
+                ? ("Calculando", const Color(0xFF94A3B8))
                 : (_formatDistance(distance), const Color(0xFF14274E));
 
     return Column(
@@ -398,7 +398,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
             isActive: isActive,
-            blocked: ghostBlocked || alreadyNear || passing,
+            blocked: ghostBlocked || alreadyNear || passing || !locationState.hasPosition,
             label: isActive
                 ? "AVISARÉ CUANDO ESTÉ CERCA"
                 : ghostBlocked
