@@ -23,6 +23,8 @@ class _FakeRealtimeService implements RealtimeRepository {
   Stream<ConnectionStatus> get connectionStateStream =>
       _connectionState.stream;
   @override
+  ConnectionStatus? get lastConnectionState => null;
+  @override
   Stream<Map<String, dynamic>> get busPositionStream => _busPosition.stream;
   @override
   Stream<Map<String, dynamic>> get batchPositionStream => _batch.stream;

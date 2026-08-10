@@ -119,14 +119,17 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
     if (_step == _Step.profile) {
       if (_nameController.text.trim().length < 2) {
+        _submitting = false;
         _showError('Escribe tu nombre');
         return;
       }
       if (_passwordController.text.length < 6) {
+        _submitting = false;
         _showError('La contraseña debe tener al menos 6 caracteres');
         return;
       }
       if (_passwordController.text != _confirmController.text) {
+        _submitting = false;
         _showError('Las contraseñas no coinciden');
         return;
       }
@@ -165,18 +168,32 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _handleGoogle() async {
+    if (_submitting) return;
+    _submitting = true;
     FocusScope.of(context).unfocus();
     _loginFlowInProgress = true;
     final auth = ref.read(authProvider);
     void listener() {
-      if (auth.state.status == AuthStatus.verified && mounted) {
+      if (!mounted) {
         auth.removeListener(listener);
+        return;
+      }
+      if (auth.state.status == AuthStatus.verified) {
+        auth.removeListener(listener);
+        _submitting = false;
         _loginFlowInProgress = false;
         unawaited(goToHome(context));
-      } else if (auth.state.status == AuthStatus.error && mounted) {
+      } else if (auth.state.status == AuthStatus.error) {
         auth.removeListener(listener);
+        _submitting = false;
         _loginFlowInProgress = false;
         _showError(auth.state.errorMessage ?? 'Error al iniciar con Google');
+      } else if (auth.state.status == AuthStatus.unauthenticated) {
+        // El usuario canceló el selector de cuentas: no es un error, pero el
+        // listener debe quitarse o bloquearía el auto-login para siempre.
+        auth.removeListener(listener);
+        _submitting = false;
+        _loginFlowInProgress = false;
       }
     }
 

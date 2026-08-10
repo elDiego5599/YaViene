@@ -55,19 +55,23 @@ class BusNotificationService {
     required String busId,
     required int distanceMeters,
   }) async {
-    await _plugin.show(
-      id: busId.hashCode & 0x7fffffff,
-      title: '$busId está cerca de ti',
-      body: 'Está a $distanceMeters m de tu ubicación',
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          importance: Importance.high,
-          priority: Priority.high,
+    try {
+      await _plugin.show(
+        id: busId.hashCode & 0x7fffffff,
+        title: '$busId está cerca de ti',
+        body: 'Está a $distanceMeters m de tu ubicación',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
         ),
-        iOS: DarwinNotificationDetails(),
-      ),
-    );
+      );
+    } catch (_) {
+      // El aviso falla blando: nunca debe tumbar el flujo del mapa.
+    }
   }
 }

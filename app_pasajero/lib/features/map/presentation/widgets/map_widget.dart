@@ -57,9 +57,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<UserLocationState>? _userPinSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
+  ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
+  ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
   RouteTrajectory? _lastTrajectory;
   double _currentBottomInset = 0;
   bool _layersReady = false;
+  bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
@@ -78,6 +81,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kStopsInformalLayerId = 'stops-informal-layer';
   static const _kBusSourceId = 'bus-source';
   static const _kBusLayerId = 'bus-layer';
+  /// Capas consideradas "el bus" al tocar: el ícono y su halo de selección
+  /// (tocar el halo no debe colocar el pin manual sobre el bus).
+  static const _kBusHitLayers = ['bus-layer', 'bus-selected-halo-layer'];
   static const _kBusIconId = 'bus-icon-active';
   static const _kBusGhostIconId = 'bus-icon-ghost';
   static const _kUserPinSourceId = 'user-pin-source';
@@ -108,6 +114,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
     _mapInsetSubscription?.close();
+    _trajectorySub?.close();
+    _stopsSub?.close();
     _busAnimTimer?.cancel();
     _busAnimTimer = null;
     _mapController?.dispose();
@@ -215,6 +223,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   void _teardownRouteData() {
+    _trajectorySub?.close();
+    _trajectorySub = null;
+    _stopsSub?.close();
+    _stopsSub = null;
     if (_mapController == null || !mounted) return;
     const emptyGeoJson = {"type": "FeatureCollection", "features": []};
     _mapController!.setGeoJsonSource(_kRouteSourceId, emptyGeoJson);
@@ -242,7 +254,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<void> _onStyleLoadedCallback() async {
-    if (!mounted || _layersReady) return;
+    if (!mounted || _layersReady || _styleInitInFlight) return;
+    _styleInitInFlight = true;
     try {
       await _loadBusIcons();
       await _initializeMapSources();
@@ -251,11 +264,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           animated: false);
       _setupUserPinSubscription();
       if (widget.routeId != null) {
-        await _reloadMapData();
+        _reloadMapData();
         _setupBusSubscription(widget.routeId!);
       }
     } catch (e) {
       debugPrint('MapWidget._onStyleLoadedCallback error: $e');
+    } finally {
+      _styleInitInFlight = false;
     }
   }
 
@@ -377,7 +392,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     _mapController!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) async {
       final features = await _mapController!
-          .queryRenderedFeatures(point, [_kBusLayerId], null);
+          .queryRenderedFeatures(point, _kBusHitLayers, null);
       if (features.isNotEmpty) {
         final busId =
             features.first['properties']?['busId'] as String? ?? '';
@@ -538,13 +553,22 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     } catch (_) {}
   }
 
-  Future<void> _reloadMapData() async {
+  void _reloadMapData() {
     if (_mapController == null || widget.routeId == null || !mounted) return;
-    final trajectoryAsync = ref.read(routeTrajectoryProvider(widget.routeId!));
-    final stopsAsync = ref.read(busStopsProvider(widget.routeId!));
-
-    trajectoryAsync.whenData((trajectory) => _updateRouteSource(trajectory));
-    stopsAsync.whenData((stops) => _updateStopsSources(stops));
+    // Escucha reactiva (no un read único): si la ruta se seleccionó antes de
+    // que el trajectory/paradas se cargaran, se dibuja en cuanto llegan.
+    _trajectorySub?.close();
+    _stopsSub?.close();
+    _trajectorySub = ref.listenManual(
+      routeTrajectoryProvider(widget.routeId!),
+      (_, next) => next.whenData(_updateRouteSource),
+      fireImmediately: true,
+    );
+    _stopsSub = ref.listenManual(
+      busStopsProvider(widget.routeId!),
+      (_, next) => next.whenData(_updateStopsSources),
+      fireImmediately: true,
+    );
   }
 
   void _updateRouteSource(RouteTrajectory trajectory) {
@@ -750,7 +774,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // y NO se mueve el pin manual.
         try {
           final features = await _mapController!
-              .queryRenderedFeatures(point, [_kBusLayerId], null);
+              .queryRenderedFeatures(point, _kBusHitLayers, null);
           if (features.isNotEmpty) return;
         } catch (_) {}
         ref

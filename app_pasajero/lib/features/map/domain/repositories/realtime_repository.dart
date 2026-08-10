@@ -3,6 +3,9 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 abstract class RealtimeRepository {
   Stream<ConnectionStatus> get connectionStateStream;
+  /// Último estado conocido de conexión (`null` si aún no hubo ninguno):
+  /// permite al UI restaurar el chip tras recrear el provider.
+  ConnectionStatus? get lastConnectionState;
   Stream<Map<String, dynamic>> get busPositionStream;
   Stream<Map<String, dynamic>> get batchPositionStream;
   Stream<Map<String, dynamic>> get busLeftStream;

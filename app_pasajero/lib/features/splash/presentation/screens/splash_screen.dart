@@ -32,7 +32,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final auth = ref.read(authProvider);
     // Tiempo mínimo de marca para que se vea el logo con calma.
     final minBranding = Future.delayed(const Duration(milliseconds: 900));
-    await Future.wait([auth.sessionResolved, minBranding]);
+    // Red de seguridad: Firebase siempre emite su estado al arrancar, pero
+    // si por cualquier razón no lo hiciera, no nos quedamos colgados.
+    final session =
+        auth.sessionResolved.timeout(const Duration(seconds: 6), onTimeout: () {});
+    await Future.wait([session, minBranding]);
     if (!mounted) return;
     if (auth.state.status == AuthStatus.verified) {
       await goToHome(context);

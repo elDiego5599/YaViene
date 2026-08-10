@@ -12,7 +12,13 @@ import 'core/services/bus_notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await BusNotificationService.init();
+  // El plugin de notificaciones no debe impedir que la app abra si falla la
+  // inicialización (los avisos fallan blando más adelante).
+  try {
+    await BusNotificationService.init();
+  } catch (_) {
+    debugPrint('notificaciones: init falló, los avisos quedan desactivados');
+  }
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

@@ -68,7 +68,10 @@ Stream<List<BusPosition>> _buildRoutePositionsStream(
     final eventId = event['eventId'] as String?;
     final busId = event['busId'] as String?;
     if (busId == null) return;
-    if (eventId != null && !processedEventIds.add(eventId)) return;
+    if (eventId != null) {
+      if (!processedEventIds.add(eventId)) return;
+      if (processedEventIds.length > 5000) processedEventIds.clear();
+    }
     if (positions.remove(busId) != null) {
       emitSnapshot();
     }
@@ -87,7 +90,10 @@ Stream<List<BusPosition>> _buildRoutePositionsStream(
     final eventId = event['eventId'] as String?;
     final busId = event['busId'] as String?;
     if (busId == null) return;
-    if (eventId != null && !processedEventIds.add(eventId)) return;
+    if (eventId != null) {
+      if (!processedEventIds.add(eventId)) return;
+      if (processedEventIds.length > 5000) processedEventIds.clear();
+    }
     final position = event['position'];
     if (position is Map) {
       positions[busId] =
@@ -140,11 +146,18 @@ final nearbyBusesCountProvider =
 });
 
 BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
+  final lat = (json['lat'] as num?)?.toDouble();
+  final lon = (json['lon'] as num?)?.toDouble();
+  // Un evento malformado no debe tumbar la suscripción: sin lat/lon se
+  // ignora y el bus queda donde estaba.
+  if (lat == null || lon == null) {
+    throw const FormatException('posición sin lat/lon');
+  }
   return BusPosition(
     busId: json['busId'] as String? ?? '???',
     routeId: json['routeId'] as String? ?? '',
-    lat: (json['lat'] as num).toDouble(),
-    lon: (json['lon'] as num).toDouble(),
+    lat: lat,
+    lon: lon,
     heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
     speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
     sentido: json['sentido'] as String?,

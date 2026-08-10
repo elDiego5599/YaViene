@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +25,23 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _collapsedMapInset = 120;
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresca el texto "Sin señal · hace X min" de un bus fantasma: sin
+    // posiciones nuevas la UI no se reconstruye sola.
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 
   void _toggleSheet() {
     setState(() => _isExpanded = !_isExpanded);
@@ -34,6 +53,19 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   Future<void> _toggleAlert(String busId) async {
     final notifier = ref.read(activeAlertsProvider.notifier);
     if (!ref.read(activeAlertsProvider).contains(busId)) {
+      // Sin posición (GPS negado y sin pin) el aviso nunca podría medir ni
+      // dispararse: mejor explicarlo antes de armar una alerta muerta.
+      final location = ref.read(userLocationProvider);
+      if (!location.hasPosition) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'El aviso necesita saber dónde estás: toca el mapa en tu '
+                'ubicación o activa el GPS primero'),
+          ));
+        }
+        return;
+      }
       final bus = _busById(busId);
       // Bus sin señal: su posición es la última conocida; no se puede
       // prometer un aviso de llegada mientras no transmita.

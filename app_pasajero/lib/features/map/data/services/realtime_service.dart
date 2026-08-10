@@ -15,11 +15,29 @@ class RealtimeService implements RealtimeRepository {
   final _busVisibleController = StreamController<Map<String, dynamic>>.broadcast();
   final _busRemovedController = StreamController<Map<String, dynamic>>.broadcast();
   bool _disposed = false;
+  Timer? _retryTimer;
+  ConnectionStatus? _lastConnectionState;
 
   /// Emite solo si el servicio sigue vivo: eventos tardíos del socket
   /// después de un [dispose] no deben lanzar "Cannot add events".
   void _emit<T>(StreamController<T> controller, T value) {
     if (!_disposed && !controller.isClosed) controller.add(value);
+  }
+
+  void _emitConnectionStatus(ConnectionStatus status) {
+    _lastConnectionState = status;
+    _emit(_connectionStateController, status);
+  }
+
+  /// Deserializa un payload del socket de forma defensiva: datos
+  /// malformados no deben tumbar el callback ni la suscripción.
+  Map<String, dynamic>? _asMap(Object? data) {
+    if (data is! Map) return null;
+    try {
+      return Map<String, dynamic>.from(data);
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -42,58 +60,77 @@ class RealtimeService implements RealtimeRepository {
     if (_socket?.connected == true) return;
     _socket?.dispose();
     const url = AppConfig.backendUrl;
-    _emit(_connectionStateController, ConnectionStatus.reconnecting);
+     _emitConnectionStatus(ConnectionStatus.reconnecting);
     _socket = io.io(url, <String, dynamic>{
       'transports': ['websocket'],
       'path': AppConfig.wsPath,
       'autoConnect': true,
       'reconnection': true,
-      'reconnectionAttempts': 10,
       'reconnectionDelay': 1000,
       'reconnectionDelayMax': 10000,
       'randomizationFactor': 0.3,
     });
 
+    // Reintento infinito aunque el paquete agote sus intentos: con la red
+    // inestable no debe quedarse muerto para siempre hasta reiniciar la app.
+    _retryTimer ??= Timer.periodic(const Duration(seconds: 15), (_) {
+      if (_disposed) return;
+      final socket = _socket;
+      if (socket != null && !socket.connected) {
+        socket.connect();
+      }
+    });
+
     _socket!.onConnect((_) {
-      _emit(_connectionStateController, ConnectionStatus.connected);
+       _emitConnectionStatus(ConnectionStatus.connected);
       for (final routeId in _subscriptions) {
         _socket!.emit('subscribe:route', routeId);
       }
     });
-    _socket!.onDisconnect((_) => _connectionStateController.add(ConnectionStatus.disconnected));
-    _socket!.onReconnectAttempt((_) => _connectionStateController.add(ConnectionStatus.reconnecting));
-    _socket!.onConnectError((_) => _connectionStateController.add(ConnectionStatus.disconnected));
-    _socket!.on('error', (_) => _connectionStateController.add(ConnectionStatus.disconnected));
+    _socket!.onDisconnect((_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.onReconnectAttempt((_) =>  _emitConnectionStatus(ConnectionStatus.reconnecting));
+    _socket!.onReconnectError((_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.onConnectError((_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.on('error', (_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
 
     _socket!.on('bus:position', (data) {
-      _emit(_busPositionController, Map<String, dynamic>.from(data as Map));
+      final event = _asMap(data);
+      if (event != null) _emit(_busPositionController, event);
     });
     _socket!.on('positions:update', (data) {
-      final update = Map<String, dynamic>.from(data as Map);
+      final update = _asMap(data);
+      if (update == null) return;
       final buses = update['buses'];
       if (buses is List) {
         for (final bus in buses) {
           if (bus is Map) {
-            _emit(_busPositionController, Map<String, dynamic>.from(bus));
+            final position = _asMap(bus);
+            if (position != null) {
+              _emit(_busPositionController, position);
+            }
           }
         }
       }
     });
     _socket!.on('positions:batch', (data) {
-      final batch = Map<String, dynamic>.from(data as Map);
-      _emit(_batchPositionController, batch);
+      final batch = _asMap(data);
+      if (batch != null) _emit(_batchPositionController, batch);
     });
     _socket!.on('bus:left', (data) {
-      _emit(_busLeftController, Map<String, dynamic>.from(data as Map));
+      final event = _asMap(data);
+      if (event != null) _emit(_busLeftController, event);
     });
     _socket!.on('bus:hidden', (data) {
-      _emit(_busHiddenController, Map<String, dynamic>.from(data as Map));
+      final event = _asMap(data);
+      if (event != null) _emit(_busHiddenController, event);
     });
     _socket!.on('bus:visible', (data) {
-      _emit(_busVisibleController, Map<String, dynamic>.from(data as Map));
+      final event = _asMap(data);
+      if (event != null) _emit(_busVisibleController, event);
     });
     _socket!.on('bus:removed', (data) {
-      _emit(_busRemovedController, Map<String, dynamic>.from(data as Map));
+      final event = _asMap(data);
+      if (event != null) _emit(_busRemovedController, event);
     });
   }
 
@@ -112,6 +149,8 @@ class RealtimeService implements RealtimeRepository {
   @override
   void dispose() {
     _disposed = true;
+    _retryTimer?.cancel();
+    _retryTimer = null;
     _subscriptions.clear();
     _socket?.disconnect();
     _socket?.dispose();
@@ -126,4 +165,7 @@ class RealtimeService implements RealtimeRepository {
 
   @override
   bool get isConnected => _socket?.connected ?? false;
+
+  @override
+  ConnectionStatus? get lastConnectionState => _lastConnectionState;
 }

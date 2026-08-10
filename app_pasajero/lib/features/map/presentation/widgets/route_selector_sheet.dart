@@ -193,9 +193,24 @@ class RouteSelectorSheet extends ConsumerWidget {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: companies.map((c) => ListTile(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: companies.isEmpty
+              ? const [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    child: Text(
+                      'Sin empresas disponibles',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ]
+              : companies.map((c) => ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               leading: Container(
                 width: 40,
@@ -292,9 +307,24 @@ void _showRouteSelector(
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: routes.map((r) => ListTile(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: routes.isEmpty
+              ? const [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    child: Text(
+                      'Esta empresa no tiene rutas aún',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ]
+              : routes.map((r) => ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               leading: Container(
                 width: 40,
