@@ -805,6 +805,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // Un bus cerca del toque (aunque quede debajo/encima del pin) se
         // selecciona y NO se mueve el pin manual.
         if (await _selectBusAtTap(point)) return;
+        if (!mounted) return;
         final location = ref.read(userLocationProvider);
         // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.
         // Durante la búsqueda de GPS el toque sí coloca el pin manual
@@ -816,9 +817,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // accidente al tocar el mapa); se quita con "Quitar" y se vuelve a
         // tocar donde se quiera poner.
         if (location.mode == UserLocationMode.manual) {
-          if (!_pinMoveHintShown) {
+          if (!_pinMoveHintShown && context.mounted) {
             _pinMoveHintShown = true;
-            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text(
                   'Tu pin está fijo: quítalo y vuelve a tocar para moverlo'),
