@@ -1,24 +1,25 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
+import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../onboarding_flow.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _requesting = false;
 
   Future<void> _allowLocation() async {
     setState(() => _requesting = true);
-    await Permission.location.request();
+    await ref.read(userLocationProvider.notifier).initialize();
     if (!mounted) return;
     setState(() => _requesting = false);
     await markOnboardingSeen();
@@ -197,6 +198,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                       ),
+                                    ),
+                                  ),
+                                ),
+                                Center(
+                                  child: Text(
+                                    'Sin ubicación: toca el mapa en el lugar donde estás.',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey.withValues(alpha: 0.75),
                                     ),
                                   ),
                                 ),
