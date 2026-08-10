@@ -818,12 +818,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         if (location.mode == UserLocationMode.manual) {
           if (!_pinMoveHintShown) {
             _pinMoveHintShown = true;
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text(
-                    'Tu pin está fijo: quítalo y vuelve a tocar para moverlo'),
-              ));
-            }
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text(
+                  'Tu pin está fijo: quítalo y vuelve a tocar para moverlo'),
+            ));
           }
           return;
         }
