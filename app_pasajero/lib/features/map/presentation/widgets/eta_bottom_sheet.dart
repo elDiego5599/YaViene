@@ -320,13 +320,20 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // El bus está cruzando la parada (≤500 m): no hace falta aviso.
     final alreadyNear = !isActive && _busAlreadyNear(bus);
     final passing = distance != null && distance <= _passingRadiusMeters;
-    final (stateTitle, stateColor, stateDetail) = passing
-        ? ("VA PASANDO", const Color(0xFFD97706),
-            "Está cruzando tu parada en este momento")
+    // Con el aviso activo, el detalle recuerda mantener la app abierta en
+    // segundo plano; si no, solo los estados especiales detallan.
+    final stateDetail = isActive
+        ? "No cierres la aplicación para que la notificación te llegue"
+        : passing
+            ? null
+            : distance == null
+                ? "Buscando la posición del bus…"
+                : null;
+    final (stateTitle, stateColor) = passing
+        ? ("VA PASANDO", const Color(0xFFD97706))
         : distance == null
-            ? ("CALCULANDO", const Color(0xFF94A3B8),
-                "Buscando la posición del bus…")
-            : (_formatDistance(distance), const Color(0xFF14274E), null);
+            ? ("CALCULANDO", const Color(0xFF94A3B8))
+            : (_formatDistance(distance), const Color(0xFF14274E));
 
     return Column(
       children: [
