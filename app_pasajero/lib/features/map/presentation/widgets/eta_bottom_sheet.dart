@@ -163,7 +163,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     if (selectedRoute == null) {
       _publishMapInset(0);
-      return const SizedBox.shrink();
+      // Sin ruta también se muestra la hoja: si aún no hay ubicación invita
+      // a tocar el mapa desde el primer momento.
+      return _sheetShell(toggleable: false, child: _buildEmptyState());
     }
 
     _publishMapInset();
@@ -189,16 +191,33 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     });
 
+    return _sheetShell(
+      toggleable: true,
+      child: _isExpanded
+          ? selectedBuses.isEmpty
+              ? _buildEmptyState()
+              : _buildSingleBusState(
+                  selectedBuses.first, busById[selectedBuses.first])
+          : const SizedBox.shrink(),
+    );
+  }
+
+  /// Carcasa de la hoja: asa de arrastre + contenedor blanco redondeado.
+  /// [toggleable] controla el colapso por arrastre/toque del asa (sin ruta
+  /// seleccionada la hoja no colapsa: siempre muestra su contenido).
+  Widget _sheetShell({required Widget child, required bool toggleable}) {
     return GestureDetector(
-      onVerticalDragEnd: (details) {
-        if (details.primaryVelocity != null) {
-          if (details.primaryVelocity! > 0 && _isExpanded) {
-            _toggleSheet();
-          } else if (details.primaryVelocity! < 0 && !_isExpanded) {
-            _toggleSheet();
-          }
-        }
-      },
+      onVerticalDragEnd: toggleable
+          ? (details) {
+              if (details.primaryVelocity != null) {
+                if (details.primaryVelocity! > 0 && _isExpanded) {
+                  _toggleSheet();
+                } else if (details.primaryVelocity! < 0 && !_isExpanded) {
+                  _toggleSheet();
+                }
+              }
+            }
+          : null,
       child: AnimatedSize(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutCubic,
@@ -223,7 +242,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: _toggleSheet,
+                  onTap: toggleable ? _toggleSheet : null,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 14, bottom: 18),
                     child: Container(
@@ -236,12 +255,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                     ),
                   ),
                 ),
-                if (_isExpanded)
-                  if (selectedBuses.isEmpty)
-                    _buildEmptyState()
-                  else
-                    _buildSingleBusState(
-                        selectedBuses.first, busById[selectedBuses.first]),
+                child,
               ],
             ),
           ),

@@ -391,18 +391,36 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         ));
 
     _mapController!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) async {
-      final features = await _mapController!
-          .queryRenderedFeatures(point, _kBusHitLayers, null);
-      if (features.isNotEmpty) {
-        final busId =
-            features.first['properties']?['busId'] as String? ?? '';
-        if (busId.isEmpty) return;
-        // Selección única: al cambiar de bus se desactivan los avisos del
-        // bus anterior; notificaciones y seguimiento son de un bus a la vez.
-        ref.read(activeAlertsProvider.notifier).clear();
-        ref.read(selectedBusesProvider.notifier).toggleBus(busId);
-      }
+      await _selectBusAtTap(point);
     });
+  }
+
+  /// Selecciona el bus cuyo ícono quede dentro de un rect de ±44 px alrededor
+  /// del toque. El rect hace que sea fácil tocar un bus aunque el píxel del
+  /// ícono sea pequeño (o quede detrás del pin del usuario); si no hay bus,
+  /// devuelve false y el toque sigue su curso (p. ej. colocar el pin).
+  Future<bool> _selectBusAtTap(math.Point<double> point) async {
+    try {
+      final features = await _mapController!.queryRenderedFeaturesInRect(
+        Rect.fromCenter(
+          center: Offset(point.x, point.y),
+          width: 88,
+          height: 88,
+        ),
+        _kBusHitLayers,
+        null,
+      );
+      if (features.isEmpty) return false;
+      final busId = features.first['properties']?['busId'] as String? ?? '';
+      if (busId.isEmpty) return false;
+      // Selección única: al cambiar de bus se desactivan los avisos del
+      // bus anterior; notificaciones y seguimiento son de un bus a la vez.
+      ref.read(activeAlertsProvider.notifier).clear();
+      ref.read(selectedBusesProvider.notifier).toggleBus(busId);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _loadBusIcons() async {
@@ -770,13 +788,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         if (location.mode == UserLocationMode.gps) {
           return;
         }
-        // Si el toque fue sobre un bus (o su halo), se trata como selección
-        // y NO se mueve el pin manual.
-        try {
-          final features = await _mapController!
-              .queryRenderedFeatures(point, _kBusHitLayers, null);
-          if (features.isNotEmpty) return;
-        } catch (_) {}
+        // Un bus cerca del toque (aunque quede debajo/encima del pin) se
+        // selecciona y NO se mueve el pin manual.
+        if (await _selectBusAtTap(point)) return;
         ref
             .read(userLocationProvider.notifier)
             .setManualPin(latLng.latitude, latLng.longitude);
