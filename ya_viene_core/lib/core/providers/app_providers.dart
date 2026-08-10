@@ -32,6 +32,22 @@ Future<List<T>> _getJsonList<T>(
       .toList();
 }
 
+/// Lanza los buses simulados de la demo para una ruta (best effort:
+/// si el backend no tiene el endpoint o falla, el flujo sigue igual).
+Future<void> triggerDemoBuses(String companyId, String routeId) async {
+  try {
+    await http
+        .post(
+          Uri.parse('$_backendUrl/api/demo/buses'),
+          headers: {'content-type': 'application/json'},
+          body: jsonEncode({'companyId': companyId, 'routeId': routeId}),
+        )
+        .timeout(const Duration(seconds: 5));
+  } catch (_) {
+    // Ignorado a propósito: la demo no debe romper el flujo del pasajero.
+  }
+}
+
 
 final busPositionsProvider = StreamProvider.autoDispose
     .family<List<BusPosition>, String>((ref, routeId) {
