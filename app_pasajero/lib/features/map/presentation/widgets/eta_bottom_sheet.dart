@@ -251,23 +251,35 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   }
 
   Widget _buildEmptyState() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 10, 24, 40),
-          child: Column(
-            children: [
-              Icon(Icons.touch_app_rounded, color: Color(0xFF94A3B8), size: 32),
-              SizedBox(height: 12),
-              Text(
-                "Toca un bus en el mapa",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-              ),
-              SizedBox(height: 4),
-              Text(
-                "Selecciona un bus para darle seguimiento",
-                style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-              ),
-            ],
+    final hasPosition =
+        ref.watch(userLocationProvider.select((s) => s.hasPosition));
+    final (title, subtitle) = hasPosition
+        ? ("Toca un bus en el mapa", "Selecciona un bus para darle seguimiento")
+        : ("Toca el mapa para indicar dónde estás",
+            "Selecciona tu parada y te diremos cuándo llegan los buses");
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
+      child: Column(
+        children: [
+          const Icon(Icons.touch_app_rounded,
+              color: Color(0xFF94A3B8), size: 32),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A)),
+            textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

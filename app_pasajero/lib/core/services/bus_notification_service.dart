@@ -66,6 +66,7 @@ class BusNotificationService {
             _channelName,
             importance: Importance.high,
             priority: Priority.high,
+            playSound: false,
           ),
           iOS: DarwinNotificationDetails(),
         ),

@@ -59,7 +59,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<double>? _mapInsetSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
-  RouteTrajectory? _lastTrajectory;
   double _currentBottomInset = 0;
   bool _layersReady = false;
   bool _styleInitInFlight = false;
@@ -549,10 +548,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         EdgeInsets.only(bottom: bottomInset),
         animated,
       );
-      final trajectory = _lastTrajectory;
-      if (trajectory != null) {
-        _fitRouteToVisibleViewport(trajectory, animated: animated);
-      }
     } catch (_) {}
   }
 
@@ -576,7 +571,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   void _updateRouteSource(RouteTrajectory trajectory) {
     if (_mapController == null || !mounted) return;
-    _lastTrajectory = trajectory;
     _mapController!.setGeoJsonSource(
         _kRouteSourceId, trajectory.toGeoJsonFeatureCollection());
 
@@ -769,8 +763,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       myLocationEnabled: false,
       onMapClick: (point, latLng) async {
         final location = ref.read(userLocationProvider);
-        if (location.mode == UserLocationMode.gps ||
-            location.mode == UserLocationMode.locating) {
+        // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.
+        // Durante la búsqueda de GPS el toque sí coloca el pin manual
+        // (cancela la espera de localización).
+        if (location.mode == UserLocationMode.gps) {
           return;
         }
         // Si el toque fue sobre un bus (o su halo), se trata como selección
