@@ -302,12 +302,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               isActive: isActive,
               blocked: alreadyNear || ghostBlocked,
               label: isActive
-                  ? "AVISARÉ CUANDO $busId VUELVA A TRANSMITIR"
+                  ? "AVISARÉ CUANDO VUELVA A TRANSMITIR"
                   : ghostBlocked
-                      ? "BUS $busId SIN SEÑAL"
+                      ? "BUS SIN SEÑAL"
                       : alreadyNear
-                          ? "BUS $busId YA ESTÁ CERCA"
-                          : "AVISARME CUANDO $busId ESTÉ CERCA",
+                          ? "BUS YA ESTÁ CERCA"
+                          : "AVISARME CUANDO ESTÉ CERCA",
               onPressed: () => _toggleAlert(busId),
             ),
           ),
@@ -348,9 +348,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 28),
           child: Text(
-            "Estimación en tiempo real según la velocidad del bus: el tráfico "
-            "puede cambiar y el tiempo variar. Te recomendamos estar pendiente "
-            "del mapa y del bus hasta que llegue.",
+            "Estimación según el avance del bus · puede variar",
             textAlign: TextAlign.center,
             style: TextStyle(
                 fontSize: 12,
@@ -366,12 +364,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             isActive: isActive,
             blocked: alreadyNear || ghostBlocked,
             label: isActive
-                ? "AVISARÉ CUANDO $busId ESTÉ CERCA"
+                ? "AVISARÉ CUANDO ESTÉ CERCA"
                 : ghostBlocked
-                    ? "BUS $busId SIN SEÑAL"
+                    ? "BUS SIN SEÑAL"
                     : alreadyNear
-                        ? "BUS $busId YA ESTÁ CERCA"
-                        : "AVISARME CUANDO $busId ESTÉ CERCA",
+                        ? "BUS YA ESTÁ CERCA"
+                        : "AVISARME CUANDO ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ),
@@ -406,15 +404,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       case EtaState.trancado:
         final minutes = eta.minutes ?? 0;
         return ("$minutes", const Color(0xFFD97706),
-            "min aprox. en tráncón: el bus avanza muy lento \u2022 Bus $busId",
-            false);
+            "min aprox. en tráncón \u2022 Bus $busId", false);
       case EtaState.detenido:
         return ("—", const Color(0xFFD97706),
-            "El bus está detenido (tráfico) \u2022 Bus $busId", false);
+            "El bus está detenido \u2022 Bus $busId", false);
       case EtaState.yaPaso:
         return ("—", const Color(0xFFD97706),
-            "El bus ya pasó por aquí: espera la próxima vuelta \u2022 Bus $busId",
-            false);
+            "El bus ya pasó por aquí \u2022 espera la próxima vuelta", false);
     }
   }
 }

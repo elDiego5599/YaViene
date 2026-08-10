@@ -40,6 +40,11 @@ const double _stalledSpeedFloorKmh = 5;
 /// Velocidad (km/h) por debajo de la cual se considera "tráncón".
 const double stalledThresholdKmh = 8;
 
+/// Banda de histéresis (m) alrededor del usuario: el bus solo se declara
+/// "ya pasó" cuando quedó al menos a esta distancia detrás, proyectado en la
+/// ruta. Evita que el estado parpadee cuando el bus cruza por tu punto.
+const double _passHysteresisM = 150;
+
 /// Estimación de llegada calculada sobre el recorrido real de la ruta.
 class EtaEstimate {
   final EtaState state;
@@ -99,7 +104,9 @@ EtaEstimate? computeEta({
       ? busProj.alongMeters - userProj.alongMeters
       : userProj.alongMeters - busProj.alongMeters;
 
-  if (remaining <= 0) {
+  // Histéresis: entre -150 m y 0 el bus acaba de cruzar tu punto; se sigue
+  // mostrando "llegando" en vez de alternar con "ya pasó" a cada broadcast.
+  if (remaining <= -_passHysteresisM) {
     return EtaEstimate(
       state: EtaState.yaPaso,
       direction: direction,
@@ -120,7 +127,9 @@ EtaEstimate? computeEta({
   final state = speedKmh < stalledThresholdKmh ? EtaState.trancado : EtaState.enRuta;
   final effectiveSpeed =
       speedKmh < stalledThresholdKmh ? _stalledSpeedFloorKmh : speedKmh;
-  final minutes = (remaining / 1000 / effectiveSpeed * 60).ceil();
+  final rawMinutes = (remaining / 1000 / effectiveSpeed * 60).ceil();
+  // Mínimo "1 min": evita alternar 0/1 con el jitter del bus ya encima.
+  final minutes = rawMinutes < 1 ? 1 : rawMinutes;
   return EtaEstimate(
     state: state,
     direction: direction,
@@ -128,6 +137,49 @@ EtaEstimate? computeEta({
     remainingMeters: remaining,
   );
 }
+
+/// Suaviza la velocidad reportada (EMA) y mantiene estable el minuto mostrado:
+/// solo cambia cuando difiere ≥1 min y pasaron ≥20 s desde el último cambio.
+/// Así el número es estable (estilo inDrive) aunque el bus publique jitter.
+class EtaStabilizer {
+  double? _emaSpeedKmh;
+  int? _shownMinutes;
+  DateTime? _lastChangedAt;
+
+  /// Promedio móvil exponencial: 0.2 de la lectura nueva, 0.8 del histórico.
+  double smoothSpeed(double raw) {
+    if (raw < 0) raw = 0;
+    _emaSpeedKmh = _emaSpeedKmh == null
+        ? raw
+        : _emaSpeedKmh! * 0.8 + raw * 0.2;
+    return _emaSpeedKmh!;
+  }
+
+  /// Devuelve el minuto que debe mostrarse. `null` (detenido/ya pasó) se
+  /// respeta al instante; un cambio de minuto se aplaza hasta 20 s.
+  int? stableMinutes(int? raw) {
+    if (raw == null) {
+      _shownMinutes = null;
+      _lastChangedAt = DateTime.now();
+      return null;
+    }
+    if (_shownMinutes == null || raw == _shownMinutes) {
+      _shownMinutes = raw;
+      _lastChangedAt = DateTime.now();
+      return raw;
+    }
+    if (DateTime.now().difference(_lastChangedAt!) <
+        const Duration(seconds: 20)) {
+      return _shownMinutes;
+    }
+    _shownMinutes = raw;
+    _lastChangedAt = DateTime.now();
+    return raw;
+  }
+}
+
+/// Estabilizadores por bus y ruta (se limpian al dejar de observar).
+final Map<String, EtaStabilizer> _stabilizers = {};
 
 /// ETA en vivo del bus seleccionado. `null` si falta posición del bus, del
 /// usuario o la geometría de la ruta aún no cargó.
@@ -152,13 +204,28 @@ final busEtaProvider = Provider.autoDispose.family<EtaEstimate?, String>(
   final trajectory = ref.watch(routeTrajectoryProvider(route.id)).value;
   if (trajectory == null || trajectory.points.length < 2) return null;
 
-  return computeEta(
+  final key = '${route.id}|$busId';
+  final stabilizer = _stabilizers.putIfAbsent(key, EtaStabilizer.new);
+  ref.onDispose(() => _stabilizers.remove(key));
+
+  final eta = computeEta(
     points: trajectory.points,
     busLat: bus.lat,
     busLon: bus.lon,
     userLat: location.lat!,
     userLon: location.lon!,
-    speedKmh: bus.speedKmh,
+    speedKmh: stabilizer.smoothSpeed(bus.speedKmh),
     sentido: bus.sentido,
   );
+  if (eta == null || eta.minutes == null) return eta;
+
+  final minutes = stabilizer.stableMinutes(eta.minutes);
+  return minutes == eta.minutes
+      ? eta
+      : EtaEstimate(
+          state: eta.state,
+          direction: eta.direction,
+          minutes: minutes,
+          remainingMeters: eta.remainingMeters,
+        );
 });

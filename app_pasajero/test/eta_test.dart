@@ -93,6 +93,37 @@ void main() {
       expect(eta.minutes, isNull);
     });
 
+    test('bus recién pasado (dentro de la histéresis) → no parpadea', () {
+      // El bus va 40 m adelante del usuario (proyección): antes alternaba
+      // "ya pasó"/"en ruta" a cada broadcast; con la banda de 150 m se
+      // mantiene "llegando" y estable.
+      final eta = computeEta(
+        points: _line,
+        busLat: 10.905359,
+        busLon: -74.8000,
+        userLat: 10.9050,
+        userLon: -74.8000,
+        speedKmh: 40,
+        sentido: 'ida',
+      );
+      expect(eta!.state, EtaState.enRuta);
+      expect(eta.minutes, 1);
+    });
+
+    test('bus más de 150 m detrás del usuario → yaPaso', () {
+      final eta = computeEta(
+        points: _line,
+        busLat: 10.906797,
+        busLon: -74.8000,
+        userLat: 10.9050,
+        userLon: -74.8000,
+        speedKmh: 40,
+        sentido: 'ida',
+      );
+      expect(eta!.state, EtaState.yaPaso);
+      expect(eta.minutes, isNull);
+    });
+
     test('bus de venida entre el usuario y el final del recorrido → viene', () {
       // Bus de venida: está MÁS ALLÁ del usuario en el trazado (a punto de
       // girar y regresar). Con lógica de ida diría "ya pasó", pero viene.

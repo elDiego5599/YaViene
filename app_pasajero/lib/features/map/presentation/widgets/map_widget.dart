@@ -523,12 +523,24 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         const Radius.circular(4));
     canvas.drawRRect(glassRect, glassPaint);
 
+    // Farolas blancas pequeñas en el FRENTE (arriba): el lado que avanza.
     if (!isGhost) {
-      final lightPaint = Paint()
-        ..color = const Color(0xFF00A859)
+      final headlightPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.9)
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(const Offset(centerX - 8, centerY + 24), 3, lightPaint);
-      canvas.drawCircle(const Offset(centerX + 8, centerY + 24), 3, lightPaint);
+      canvas.drawCircle(
+          const Offset(centerX - 9, centerY - 23), 2.4, headlightPaint);
+      canvas.drawCircle(
+          const Offset(centerX + 9, centerY - 23), 2.4, headlightPaint);
+    }
+
+    if (!isGhost) {
+      // Luces traseras ROJAS (abajo): el rojo = parte de atrás, sin confusión.
+      final tailPaint = Paint()
+        ..color = const Color(0xFFEF4444)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(const Offset(centerX - 8, centerY + 24), 3, tailPaint);
+      canvas.drawCircle(const Offset(centerX + 8, centerY + 24), 3, tailPaint);
     }
 
     final img = await pictureRecorder.endRecording().toImage(size, size);
