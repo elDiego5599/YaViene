@@ -112,8 +112,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text(
-          'Aviso activado · deja Ya Viene abierta en segundo plano (no la '
-          'cierres de las apps recientes) para que llegue'),
+          'Aviso activado: no cierres la aplicación para que la notificación '
+          'te llegue'),
       duration: Duration(seconds: 5),
     ));
   }
