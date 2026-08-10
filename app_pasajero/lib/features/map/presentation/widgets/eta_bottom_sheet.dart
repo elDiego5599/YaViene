@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
@@ -24,7 +24,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _collapsedMapInset = 120;
 
   /// Distancia (m) a la que el bus se considera "pasando por la parada".
-  static const double _passingRadiusMeters = 100;
+  static const double _passingRadiusMeters = 500;
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
@@ -82,6 +82,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
       // El usuario puede pedir el aviso de cualquier bus; el aviso dispara
       // cuando el bus entra al radio.
+      // El bus ya está dentro del radio de aviso: no se puede notificar su
+      // llegada (llegó antes de activar el aviso).
+      if (_busAlreadyNear(bus)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'El bus $busId ya está a menos de $alertRadiusMeters m; '
+                'no se puede activar el aviso'),
+          ));
+        }
+        return;
+      }
       if (!await BusNotificationService.requestPermission()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -96,26 +108,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     }
     HapticFeedback.mediumImpact();
-    final wasActive = ref.read(activeAlertsProvider).contains(busId);
     notifier.toggleAlert(busId);
-    if (!wasActive) await _maybeShowBackgroundHint();
-  }
-
-  /// Una sola vez: le explica al usuario que la app debe quedar en segundo
-  /// plano (no cerrada) para que el aviso llegue.
-  Future<void> _maybeShowBackgroundHint() async {
-    if (!mounted) return;
-    final prefs = await SharedPreferences.getInstance();
-    const key = 'bg_notification_hint_shown';
-    if (prefs.getBool(key) ?? false) return;
-    await prefs.setBool(key, true);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text(
-          'Aviso activado: no cierres la aplicación para que la notificación '
-          'te llegue'),
-      duration: Duration(seconds: 5),
-    ));
   }
 
   BusPosition? _busById(String busId) {
@@ -136,6 +129,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final location = ref.read(userLocationProvider);
     if (!location.hasPosition) return null;
     return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);
+  }
+
+  /// El bus ya está dentro del radio de aviso: no se puede activar la alerta.
+  bool _busAlreadyNear(BusPosition? bus) {
+    final distance = _distanceToBus(bus);
+    return distance != null && distance <= alertRadiusMeters;
   }
 
   void _publishMapInset([double? forcedInset]) {
@@ -318,7 +317,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       );
     }
 
-    // El bus está cruzando la parada (~100 m): no hace falta aviso.
+    // El bus está cruzando la parada (≤500 m): no hace falta aviso.
+    final alreadyNear = !isActive && _busAlreadyNear(bus);
     final passing = distance != null && distance <= _passingRadiusMeters;
     final (stateTitle, stateColor, stateDetail) = passing
         ? ("VA PASANDO", const Color(0xFFD97706),
@@ -326,8 +326,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         : distance == null
             ? ("CALCULANDO", const Color(0xFF94A3B8),
                 "Buscando la posición del bus…")
-            : (_formatDistance(distance), const Color(0xFF14274E),
-                "En camino hacia tu parada");
+            : (_formatDistance(distance), const Color(0xFF14274E), null);
 
     return Column(
       children: [
@@ -346,27 +345,31 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                 color: stateColor,
                 height: 1.05,
                 letterSpacing: -1.0)),
-        const SizedBox(height: 8),
-        Text(stateDetail,
-            style: const TextStyle(
-                fontSize: 14,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B)),
-            textAlign: TextAlign.center),
+        if (stateDetail != null) ...[
+          const SizedBox(height: 8),
+          Text(stateDetail,
+              style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B)),
+              textAlign: TextAlign.center),
+        ],
         const SizedBox(height: 18),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           child: _StickyAlertButton(
             isActive: isActive,
-            blocked: ghostBlocked || passing,
+            blocked: ghostBlocked || alreadyNear || passing,
             label: isActive
                 ? "AVISARÉ CUANDO ESTÉ CERCA"
                 : ghostBlocked
                     ? "BUS SIN SEÑAL"
                     : passing
                         ? "BUS VA PASANDO"
-                        : "AVISARME CUANDO ESTÉ CERCA",
+                        : alreadyNear
+                            ? "BUS YA ESTÁ CERCA"
+                            : "AVISARME CUANDO ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ),
