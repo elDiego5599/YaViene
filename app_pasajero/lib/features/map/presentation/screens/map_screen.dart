@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
@@ -23,9 +22,6 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
-  /// El aviso de "toca el mapa" solo se muestra una vez por sesión.
-  bool _locationHintShown = false;
-
   @override
   void initState() {
     super.initState();
@@ -45,67 +41,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     super.dispose();
   }
 
-  void _onLocationChanged(UserLocationState state) {
-    if (!mounted || _locationHintShown) return;
-    if (state.mode == UserLocationMode.denied ||
-        state.mode == UserLocationMode.permanentDenied) {
-      _locationHintShown = true;
-      _showLocationHint(state.mode);
-    }
-  }
-
-  Future<void> _showLocationHint(UserLocationMode mode) async {
-    final permanent = mode == UserLocationMode.permanentDenied;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Indica dónde estás'),
-        content: Text(
-          permanent
-              ? 'La ubicación está bloqueada en los Ajustes del teléfono. '
-                  'Actívala ahí para ver los buses cerca de ti, o toca el mapa '
-                  'en el lugar donde te encuentras.'
-              : 'No pudimos obtener tu ubicación. Toca el mapa en el lugar '
-                  'donde te encuentras para ver qué buses vienen hacia ti.',
-        ),
-        actions: [
-          if (permanent)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                openAppSettings();
-              },
-              child: const Text('Abrir Ajustes'),
-            )
-          else
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                ref.read(userLocationProvider.notifier).useGps();
-              },
-              child: const Text('Intentar de nuevo'),
-            ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
-
-    // Si la ubicación está negada al abrir la app, avisa una vez que toque
-    // el mapa para indicar dónde está.
-    ref.listen<UserLocationState>(userLocationProvider, (prev, next) {
-      if (prev == null || prev.mode == next.mode) return;
-      _onLocationChanged(next);
-    });
 
     return Scaffold(
       extendBodyBehindAppBar: true,

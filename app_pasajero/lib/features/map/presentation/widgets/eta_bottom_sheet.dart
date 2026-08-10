@@ -299,6 +299,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
   Widget _buildSingleBusState(String busId, BusPosition? bus) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
+    final locationState = ref.watch(userLocationProvider);
     final staleLabel = _staleLabel(bus);
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
     final distance = _distanceToBus(bus);
@@ -352,14 +353,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ? "No cierres la aplicación para que la notificación te llegue"
         : passing
             ? null
-            : distance == null
-                ? "Buscando la posición del bus…"
-                : null;
+            : !locationState.hasPosition
+                ? "Toca el mapa para indicar dónde estás"
+                : distance == null
+                    ? "Buscando la posición del bus…"
+                    : null;
     final (stateTitle, stateColor) = passing
         ? ("VA PASANDO", const Color(0xFFD97706))
-        : distance == null
-            ? ("CALCULANDO", const Color(0xFF94A3B8))
-            : (_formatDistance(distance), const Color(0xFF14274E));
+        : !locationState.hasPosition
+            ? ("SIN TU UBICACIÓN", const Color(0xFF94A3B8))
+            : distance == null
+                ? ("CALCULANDO", const Color(0xFF94A3B8))
+                : (_formatDistance(distance), const Color(0xFF14274E));
 
     return Column(
       children: [

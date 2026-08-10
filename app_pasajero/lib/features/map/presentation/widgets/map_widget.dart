@@ -399,7 +399,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// del toque. El rect hace que sea fácil tocar un bus aunque el píxel del
   /// ícono sea pequeño (o quede detrás del pin del usuario); si no hay bus,
   /// devuelve false y el toque sigue su curso (p. ej. colocar el pin).
+  ///
+  /// Deduplicación: el mismo toque dispara onFeatureTapped Y onMapClick; si
+  /// ya se procesó un toque con bus hace <400 ms, el segundo se ignora para
+  /// no hacer doble toggle de la selección.
+  DateTime? _lastBusTapAt;
   Future<bool> _selectBusAtTap(math.Point<double> point) async {
+    final now = DateTime.now();
+    if (_lastBusTapAt != null &&
+        now.difference(_lastBusTapAt!) < const Duration(milliseconds: 400)) {
+      return true;
+    }
+    // Sin ubicación (GPS negado y sin pin) no hay distancias ni avisos que
+    // mostrar: el toque solo sirve para poner el pin.
+    if (!ref.read(userLocationProvider).hasPosition) return false;
     try {
       final features = await _mapController!.queryRenderedFeaturesInRect(
         Rect.fromCenter(
@@ -413,6 +426,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (features.isEmpty) return false;
       final busId = features.first['properties']?['busId'] as String? ?? '';
       if (busId.isEmpty) return false;
+      _lastBusTapAt = now;
       // Selección única: al cambiar de bus se desactivan los avisos del
       // bus anterior; notificaciones y seguimiento son de un bus a la vez.
       ref.read(activeAlertsProvider.notifier).clear();
