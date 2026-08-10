@@ -45,6 +45,29 @@ const double stalledThresholdKmh = 8;
 /// ruta. Evita que el estado parpadee cuando el bus cruza por tu punto.
 const double _passHysteresisM = 150;
 
+/// Una vez que el bus pasa por el usuario, su ETA se oculta durante la vuelta
+/// de regreso hasta que esté a menos de esta distancia (m): "ya pasó · espera
+/// la próxima vuelta" es más honesto que "viene en 85 min" con el bus a 40 km.
+const double _returnSuppressionM = 5000;
+
+/// Oculta el ETA cuando el bus ya pasó por el usuario y su vuelta de regreso
+/// aún está lejos (a más de [thresholdM]): así el "ya pasó" es estable y el
+/// bus que viene solo muestra tiempo cuando de verdad está llegando.
+EtaEstimate? hideFarReturn(
+  EtaEstimate? eta, {
+  required bool hasPassed,
+  required double thresholdM,
+}) {
+  if (eta == null || !hasPassed || eta.minutes == null) return eta;
+  if (eta.remainingMeters <= thresholdM) return eta;
+  return EtaEstimate(
+    state: EtaState.yaPaso,
+    direction: eta.direction,
+    minutes: null,
+    remainingMeters: eta.remainingMeters,
+  );
+}
+
 /// Estimación de llegada calculada sobre el recorrido real de la ruta.
 class EtaEstimate {
   final EtaState state;
@@ -143,17 +166,23 @@ EtaEstimate? computeEta({
   );
 }
 
-/// Suaviza la velocidad reportada (EMA), rastrea la posición del bus sobre la
-/// ruta descartando saltos imposibles, y mantiene estable el minuto mostrado:
-/// solo cambia cuando difiere ≥1 min y pasaron ≥20 s desde el último cambio.
-/// Así el número es estable (estilo inDrive) aunque el bus publique jitter.
+/// Suaviza la velocidad reportada (EMA) y rastrea la posición del bus sobre la
+/// ruta descartando saltos imposibles. El estado ("ya pasó" / distancia) se
+/// mantiene estable aunque el bus publique jitter.
 class EtaStabilizer {
   double? _emaSpeedKmh;
-  int? _shownMinutes;
-  DateTime? _lastChangedAt;
 
   /// Posición rastreada sobre la ruta, en metros (ver [trackAlong]).
   double? _trackedAlongM;
+
+  /// Última vez que el bus pasó por el usuario (estado "ya pasó").
+  DateTime? _lastPassedAt;
+
+  /// El bus ya pasó por el usuario en algún momento de la sesión.
+  bool get hasPassed => _lastPassedAt != null;
+
+  /// Registra el paso del bus por el usuario.
+  void recordPass() => _lastPassedAt = DateTime.now();
 
   /// Promedio móvil exponencial: 0.2 de la lectura nueva, 0.8 del histórico.
   double smoothSpeed(double raw) {
@@ -168,7 +197,7 @@ class EtaStabilizer {
   /// "punto más cercano" salta entre la rama de ida y la de venida cuando el
   /// recorrido se dobla sobre sí mismo (R-106: brincos de ~30 km); el
   /// rastreador solo avanza lo que el bus alcanza a viajar en 20 s y descarta
-  /// lo demás. El ETA deja de "bajar y subir de la nada".
+  /// lo demás.
   double trackAlong({required double rawAlongMeters, required double speedKmh}) {
     if (_trackedAlongM == null || speedKmh <= 0) {
       _trackedAlongM = rawAlongMeters;
@@ -180,35 +209,14 @@ class EtaStabilizer {
     _trackedAlongM = _trackedAlongM! + clamped;
     return _trackedAlongM!;
   }
-
-  /// Devuelve el minuto que debe mostrarse. `null` (detenido/ya pasó) se
-  /// respeta al instante; un cambio de minuto se aplaza hasta 20 s.
-  int? stableMinutes(int? raw) {
-    if (raw == null) {
-      _shownMinutes = null;
-      _lastChangedAt = DateTime.now();
-      return null;
-    }
-    if (_shownMinutes == null || raw == _shownMinutes) {
-      _shownMinutes = raw;
-      _lastChangedAt = DateTime.now();
-      return raw;
-    }
-    if (DateTime.now().difference(_lastChangedAt!) <
-        const Duration(seconds: 20)) {
-      return _shownMinutes;
-    }
-    _shownMinutes = raw;
-    _lastChangedAt = DateTime.now();
-    return raw;
-  }
 }
 
 /// Estabilizadores por bus y ruta (se limpian al dejar de observar).
 final Map<String, EtaStabilizer> _stabilizers = {};
 
-/// ETA en vivo del bus seleccionado. `null` si falta posición del bus, del
-/// usuario o la geometría de la ruta aún no cargó.
+/// Estado del bus seleccionado para la hoja inferior: distancia restante por
+/// la ruta (en [EtaEstimate.remainingMeters]), si ya pasó o está detenido.
+/// `null` si falta posición del bus, del usuario o la geometría aún no cargó.
 final busEtaProvider = Provider.autoDispose.family<EtaEstimate?, String>(
     (ref, busId) {
   final route = ref.watch(selectedRouteProvider);
@@ -250,15 +258,11 @@ final busEtaProvider = Provider.autoDispose.family<EtaEstimate?, String>(
     sentido: bus.sentido,
     trackedBusAlongM: trackedAlong,
   );
-  if (eta == null || eta.minutes == null) return eta;
-
-  final minutes = stabilizer.stableMinutes(eta.minutes);
-  return minutes == eta.minutes
-      ? eta
-      : EtaEstimate(
-          state: eta.state,
-          direction: eta.direction,
-          minutes: minutes,
-          remainingMeters: eta.remainingMeters,
-        );
+  if (eta == null) return null;
+  if (eta.state == EtaState.yaPaso) stabilizer.recordPass();
+  // Una vez el bus pasó, su vuelta de regreso no muestra tiempo hasta que
+  // esté cerca de verdad: "ya pasó · espera la próxima vuelta" es estable.
+  return hideFarReturn(eta,
+      hasPassed: stabilizer.hasPassed,
+      thresholdM: _returnSuppressionM);
 });

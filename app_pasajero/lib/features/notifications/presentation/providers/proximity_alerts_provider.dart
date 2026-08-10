@@ -8,7 +8,7 @@ import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
 
 /// Radio en el que se dispara el aviso (m).
-const int alertRadiusMeters = 500;
+const int alertRadiusMeters = 1000;
 
 /// Distancia a la que se "rearma" el aviso de un bus para poder volver a
 /// notificar si el bus se aleja y regresa (histéresis).

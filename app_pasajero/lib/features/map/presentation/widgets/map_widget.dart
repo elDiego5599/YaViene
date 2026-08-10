@@ -534,15 +534,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           const Offset(centerX + 9, centerY - 23), 2.4, headlightPaint);
     }
 
-    if (!isGhost) {
-      // Luces traseras ROJAS (abajo): el rojo = parte de atrás, sin confusión.
-      final tailPaint = Paint()
-        ..color = const Color(0xFFEF4444)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(const Offset(centerX - 8, centerY + 24), 3, tailPaint);
-      canvas.drawCircle(const Offset(centerX + 8, centerY + 24), 3, tailPaint);
-    }
-
     final img = await pictureRecorder.endRecording().toImage(size, size);
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     return data?.buffer.asUint8List() ?? Uint8List(0);

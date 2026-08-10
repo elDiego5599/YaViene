@@ -21,7 +21,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
-  static const double _expandedMapInset = 338;
+  static const double _expandedMapInset = 250;
   static const double _collapsedMapInset = 120;
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
@@ -316,47 +316,33 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     }
 
     final eta = ref.watch(busEtaProvider(busId));
-    final (bigValue, bigColor, detailLabel, showMinutesSub) =
-        _etaDisplay(eta, busId);
+    final (stateTitle, stateColor, stateDetail) = _busDisplay(eta);
 
     return Column(
       children: [
-        const SizedBox(height: 4),
-        Text(bigValue,
-            style: TextStyle(
-                fontSize: 84,
-                fontWeight: FontWeight.w200,
-                color: bigColor,
-                height: 0.9,
-                letterSpacing: -3.0)),
+        const SizedBox(height: 8),
+        Text("Bus $busId",
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF475569),
+                letterSpacing: -0.3)),
         const SizedBox(height: 6),
-        if (showMinutesSub)
-          Text(
-            "minutos aprox. para que llegue ${_directionLabel(eta)} \u2022 Bus $busId",
+        Text(stateTitle,
+            style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: stateColor,
+                height: 1.05,
+                letterSpacing: -1.0)),
+        const SizedBox(height: 8),
+        Text(stateDetail,
             style: const TextStyle(
                 fontSize: 14,
+                height: 1.35,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF64748B)),
-          ),
-        if (!showMinutesSub)
-          Text(detailLabel,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B))),
-        const SizedBox(height: 10),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 28),
-          child: Text(
-            "Estimación según el avance del bus · puede variar",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 12,
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF94A3B8)),
-          ),
-        ),
+            textAlign: TextAlign.center),
         const SizedBox(height: 18),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
@@ -377,41 +363,29 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     );
   }
 
-  /// "de ida" / "de venida" para el subtítulo (vacío si no se sabe).
-  String _directionLabel(EtaEstimate? eta) {
-    if (eta == null) return '';
-    switch (eta.direction) {
-      case EtaDirection.ida:
-        return '· de ida';
-      case EtaDirection.venida:
-        return '· de venida';
-      case EtaDirection.desconocido:
-        return '';
+  /// Traduce el estado del bus en lo que se muestra: título, color y detalle.
+  (String, Color, String) _busDisplay(EtaEstimate? eta) {
+    if (eta == null) {
+      return ("CALCULANDO",
+          const Color(0xFF94A3B8), "Buscando la posición del bus…");
+    }
+    switch (eta.state) {
+      case EtaState.enRuta || EtaState.trancado:
+        return (_formatDistance(eta.remainingMeters), const Color(0xFF14274E),
+            "En camino hacia tu parada");
+      case EtaState.detenido:
+        return ("DETENIDO", const Color(0xFFD97706),
+            "El bus no se mueve en este momento");
+      case EtaState.yaPaso:
+        return ("YA PASÓ POR AQUÍ", const Color(0xFFD97706),
+            "Espera la próxima vuelta");
     }
   }
 
-  /// Traduce el ETA en lo que se muestra: número grande, color, texto.
-  (String, Color, String, bool) _etaDisplay(
-      EtaEstimate? eta, String busId) {
-    if (eta == null) {
-      return ("—", const Color(0xFF94A3B8),
-          "Calculando llegada \u2022 Bus $busId", false);
-    }
-    switch (eta.state) {
-      case EtaState.enRuta:
-        final minutes = eta.minutes ?? 0;
-        return ("$minutes", const Color(0xFF14274E), "", true);
-      case EtaState.trancado:
-        final minutes = eta.minutes ?? 0;
-        return ("$minutes", const Color(0xFFD97706),
-            "min aprox. en tráncón \u2022 Bus $busId", false);
-      case EtaState.detenido:
-        return ("—", const Color(0xFFD97706),
-            "El bus está detenido \u2022 Bus $busId", false);
-      case EtaState.yaPaso:
-        return ("—", const Color(0xFFD97706),
-            "El bus ya pasó por aquí \u2022 espera la próxima vuelta", false);
-    }
+  /// "A 850 m de ti" / "A 1.4 km de ti".
+  String _formatDistance(double meters) {
+    if (meters < 1000) return "A ${meters.round()} m de ti";
+    return "A ${(meters / 1000).toStringAsFixed(1)} km de ti";
   }
 }
 
