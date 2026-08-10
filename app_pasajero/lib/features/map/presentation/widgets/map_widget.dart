@@ -786,6 +786,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     return MapLibreMap(
       onMapCreated: _onMapCreated,
       onStyleLoadedCallback: _onStyleLoadedCallback,
+      // El mapa nativo silencia map#onMapClick cuando el toque cae sobre un
+      // feature (línea de ruta, paradas, pins, buses... dentro de ±10 px) y
+      // deja solo feature#onTap. Con este flag, el toque SIEMPRE dispara
+      // onMapClick: se coloca el pin en cualquier lado (la selección de bus
+      // se decide en _selectBusAtTap).
+      featureTapsTriggersMapClick: true,
       styleString:
           'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       initialCameraPosition: const CameraPosition(

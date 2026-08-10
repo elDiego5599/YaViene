@@ -161,6 +161,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       ref.read(activeAlertsProvider.notifier).clear();
     });
 
+    // Al quitar la ubicación (pin manual o GPS) la selección de bus no tiene
+    // sentido (sin ubicación no se pueden tocar buses ni medir distancias).
+    ref.listen<UserLocationState>(userLocationProvider, (previous, next) {
+      if (previous?.hasPosition == true && !next.hasPosition) {
+        ref.read(selectedBusesProvider.notifier).clear();
+        ref.read(activeAlertsProvider.notifier).clear();
+      }
+    });
+
     if (selectedRoute == null) {
       _publishMapInset(0);
       // Sin ruta también se muestra la hoja: si aún no hay ubicación invita
