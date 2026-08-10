@@ -13,6 +13,7 @@ class DriverTrackingStatus {
   final bool gpsActive;
   final bool mqttConnected;
   final bool ackHealthy;
+  final int lastSuccessfulAckMs;
   final int outboxPendingCount;
   final String? lastError;
 
@@ -20,11 +21,17 @@ class DriverTrackingStatus {
     this.gpsActive = false,
     this.mqttConnected = false,
     this.ackHealthy = false,
+    this.lastSuccessfulAckMs = 0,
     this.outboxPendingCount = 0,
     this.lastError,
   });
 
-  bool get isFullyTransmitting => gpsActive && mqttConnected && ackHealthy;
+  bool get isFullyTransmitting {
+    if (!gpsActive || !mqttConnected) return false;
+    if (ackHealthy) return true;
+    if (lastSuccessfulAckMs == 0) return false;
+    return DateTime.now().millisecondsSinceEpoch - lastSuccessfulAckMs < 60000;
+  }
 }
 
 class TrackingConfig {
@@ -74,6 +81,8 @@ class TrackingEngine {
   int? _nextSequence;
   bool _isSyncing = false;
   bool _running = false;
+  bool _gpsFailed = false;
+  int _lastSuccessfulAckMs = 0;
   void Function(TrackingEngineState state)? _onState;
   void Function(DriverTrackingStatus status)? _onStatus;
   bool _startInProgress = false;
@@ -88,6 +97,8 @@ class TrackingEngine {
     if (_running && _activeConfigKey == config.key) return;
     _startInProgress = true;
     await stop(emitStopped: false);
+    _gpsFailed = false;
+    _lastSuccessfulAckMs = DateTime.now().millisecondsSinceEpoch;
     _onState = onState;
     _onStatus = onStatus;
     _activeConfigKey = config.key;
@@ -109,7 +120,16 @@ class TrackingEngine {
         locationSettings: locationSettings,
       ).listen(
         (position) => _handlePosition(config, position),
-        onError: (error) => _logger.w('Error en stream GPS: $error'),
+        onError: (error) {
+          _logger.e('Error crítico en GPS: $error');
+          _gpsFailed = true;
+          _emitStatus(
+            gpsActive: false,
+            lastError: 'GPS: $error',
+          );
+          _onState?.call(TrackingEngineState.error);
+        },
+        cancelOnError: false,
       );
 
       final mqttConnected = await _mqttService.connect(
@@ -127,6 +147,9 @@ class TrackingEngine {
           _logger.w('HEALTH: MQTT caído — reconectando');
           _initiateReconnect(config);
         }
+        // Re-emitir status para que el corte de 60s de isFullyTransmitting
+        // se refleje en la UI aunque no haya nuevos eventos GPS.
+        _emitStatus();
       });
 
       _syncTimer = Timer.periodic(const Duration(seconds: 10), (_) {
@@ -149,6 +172,14 @@ class TrackingEngine {
 
   Future<void> _handlePosition(TrackingConfig config, Position position) async {
     if (!_running) return;
+
+    // Recuperación tras error de GPS: si llega una posición, el hardware volvió.
+    if (_gpsFailed) {
+      _gpsFailed = false;
+      _logger.i('GPS recuperado — restaurando estado de transmisión');
+      _emitStatus(gpsActive: true, lastError: null);
+      _onState?.call(TrackingEngineState.tracking);
+    }
 
     if (position.isMocked) {
       _logger.w('FRAUDE DETECTADO: ${config.busId} usa Fake GPS');
@@ -214,6 +245,8 @@ class TrackingEngine {
       } else {
         if (!ack.accepted) {
           _logger.w('Posición $sequence rechazada: ${ack.reason}');
+        } else {
+          _lastSuccessfulAckMs = DateTime.now().millisecondsSinceEpoch;
         }
         await _offlineBuffer.deletePositions([pendingId]);
         _emitStatus(
@@ -252,7 +285,12 @@ class TrackingEngine {
             capturedAt: position.timestamp.millisecondsSinceEpoch,
             sequence: sequence,
           );
-          if (ack != null) resolved.add(pending.id);
+          if (ack != null) {
+            if (!ack.accepted) {
+              _logger.w('Sync outbox: seq $sequence rechazada: ${ack.reason}');
+            }
+            resolved.add(pending.id);
+          }
         }
         return resolved;
       });
@@ -296,9 +334,10 @@ class TrackingEngine {
     String? lastError,
   }) {
     _onStatus?.call(DriverTrackingStatus(
-      gpsActive: gpsActive ?? _running,
+      gpsActive: gpsActive ?? (_running && !_gpsFailed),
       mqttConnected: mqttConnected ?? _mqttService.isConnected,
       ackHealthy: ackHealthy ?? false,
+      lastSuccessfulAckMs: _lastSuccessfulAckMs,
       outboxPendingCount: outboxPendingCount ?? 0,
       lastError: lastError,
     ));

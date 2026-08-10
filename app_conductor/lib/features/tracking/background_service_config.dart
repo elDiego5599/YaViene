@@ -57,6 +57,7 @@ void onBackgroundStart(ServiceInstance service) async {
       'gpsActive': status.gpsActive,
       'mqttConnected': status.mqttConnected,
       'ackHealthy': status.ackHealthy,
+      'lastSuccessfulAckMs': status.lastSuccessfulAckMs,
       'outboxPendingCount': status.outboxPendingCount,
       'lastError': status.lastError,
     });

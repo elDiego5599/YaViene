@@ -73,48 +73,70 @@ class FleetSocketService {
     socket.on('error', (_) => emit(_connectionController, false));
 
     socket.on('fleet:batch', (data) {
-      debugPrint('[fleet-socket] fleet:batch recibido');
-      final buses = (data['buses'] as List)
-          .map((b) => FleetBus.fromJson(Map<String, dynamic>.from(b as Map)))
-          .toList();
-      emit(_busBatchController, buses);
+      try {
+        if (data is! Map || data['buses'] is! List) return;
+        debugPrint('[fleet-socket] fleet:batch recibido');
+        final buses = (data['buses'] as List)
+            .whereType<Map>()
+            .map((b) => FleetBus.fromJson(Map<String, dynamic>.from(b)))
+            .toList();
+        emit(_busBatchController, buses);
+      } catch (e) {
+        debugPrint('[fleet-socket] Error parsing fleet:batch: $e');
+      }
     });
 
     socket.on('bus:position', (data) {
-      emit(
-        _busPositionController,
-        FleetBus.fromJson(Map<String, dynamic>.from(data as Map)),
-      );
+      try {
+        if (data is! Map) return;
+        emit(
+          _busPositionController,
+          FleetBus.fromJson(Map<String, dynamic>.from(data)),
+        );
+      } catch (e) {
+        debugPrint('[fleet-socket] Error parsing bus:position: $e');
+      }
     });
 
     socket.on('bus:hidden', (data) {
-      debugPrint('[fleet-socket] bus:hidden ${data['busId']} event=${data['eventId']}');
-      emit(_busHiddenController, data['busId'] as String);
+      if (data is Map && data['busId'] is String) {
+        debugPrint('[fleet-socket] bus:hidden ${data['busId']} event=${data['eventId']}');
+        emit(_busHiddenController, data['busId'] as String);
+      }
     });
 
     socket.on('bus:visible', (data) {
-      debugPrint('[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}');
-      final position = data['position'];
-      if (position != null) {
-        emit(
-          _busVisibleController,
-          FleetBus.fromJson(Map<String, dynamic>.from(position as Map)),
-        );
-      } else {
-        emit(
-          _busVisibleController,
-          FleetBus.fromJson(Map<String, dynamic>.from(data as Map)),
-        );
+      try {
+        if (data is! Map) return;
+        debugPrint('[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}');
+        final position = data['position'];
+        if (position is Map) {
+          emit(
+            _busVisibleController,
+            FleetBus.fromJson(Map<String, dynamic>.from(position)),
+          );
+        } else {
+          emit(
+            _busVisibleController,
+            FleetBus.fromJson(Map<String, dynamic>.from(data)),
+          );
+        }
+      } catch (e) {
+        debugPrint('[fleet-socket] Error parsing bus:visible: $e');
       }
     });
 
     socket.on('bus:left', (data) {
-      emit(_busLeftController, data['busId'] as String);
+      if (data is Map && data['busId'] is String) {
+        emit(_busLeftController, data['busId'] as String);
+      }
     });
 
     socket.on('bus:removed', (data) {
-      debugPrint('[fleet-socket] bus:removed ${data['busId']} event=${data['eventId']}');
-      emit(_busRemovedController, data['busId'] as String);
+      if (data is Map && data['busId'] is String) {
+        debugPrint('[fleet-socket] bus:removed ${data['busId']} event=${data['eventId']}');
+        emit(_busRemovedController, data['busId'] as String);
+      }
     });
   }
 

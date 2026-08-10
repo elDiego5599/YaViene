@@ -46,6 +46,7 @@ class GpsManager {
         gpsActive: data['gpsActive'] as bool? ?? false,
         mqttConnected: data['mqttConnected'] as bool? ?? false,
         ackHealthy: data['ackHealthy'] as bool? ?? false,
+        lastSuccessfulAckMs: (data['lastSuccessfulAckMs'] as num?)?.toInt() ?? 0,
         outboxPendingCount: (data['outboxPendingCount'] as num?)?.toInt() ?? 0,
         lastError: data['lastError'] as String?,
       );
