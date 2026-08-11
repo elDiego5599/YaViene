@@ -30,6 +30,9 @@ class _ControlMapState extends ConsumerState<ControlMap> {
     super.dispose();
   }
 
+  static bool _inRoute(FleetState fleet, FleetBus bus) =>
+      fleet.routeFilter == null || bus.routeId == fleet.routeFilter;
+
   @override
   Widget build(BuildContext context) {
     final fleet = ref.watch(fleetProvider);
@@ -73,12 +76,18 @@ class _ControlMapState extends ConsumerState<ControlMap> {
           left: 18,
           bottom: 18,
           child: _Legend(
+            // La leyenda describe lo que se ve en el mapa: escopado a la ruta
+            // seleccionada como las pestañas y los marcadores (antes contaba
+            // toda la empresa y los números no coincidían con nada).
             online: fleet.buses.values
-                .where((b) => b.online && b.visible && !b.isGhost)
+                .where((b) =>
+                    _inRoute(fleet, b) && b.online && b.visible && !b.isGhost)
                 .length,
-            hidden: fleet.buses.values.where((b) => !b.visible).length,
+            hidden: fleet.buses.values
+                .where((b) => _inRoute(fleet, b) && !b.visible)
+                .length,
             offline: fleet.buses.values
-                .where((b) => !b.online || b.isGhost)
+                .where((b) => _inRoute(fleet, b) && (!b.online || b.isGhost))
                 .length,
           ),
         ),

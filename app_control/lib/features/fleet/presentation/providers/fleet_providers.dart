@@ -279,6 +279,16 @@ class FleetNotifier extends StateNotifier<FleetState> {
     state = state.copyWith(selectedBusId: () => busId);
   }
 
+  /// Cierra el socket de flota y reinicia el estado (usado al cerrar sesión:
+  /// sin esto el socket seguía vivo consumiendo datos con la sesión muerta).
+  void stop() {
+    _socket?.dispose();
+    _socket = null;
+    state = const FleetState(
+      connection: FleetConnection.disconnected,
+    );
+  }
+
   /// Resetea la bandera de sesión expirada una vez el dashboard la mostró.
   void acknowledgeSessionExpired() {
     if (state.sessionExpired) {

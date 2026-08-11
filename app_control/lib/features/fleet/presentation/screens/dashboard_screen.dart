@@ -57,6 +57,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _logout() async {
+    // Apaga el socket de flota y resetea el estado antes de salir: no queda
+    // una conexión viva con la sesión ya cerrada.
+    ref.read(fleetProvider.notifier).stop();
     await ref.read(authProvider.notifier).logout();
     if (mounted) context.go('/login');
   }
