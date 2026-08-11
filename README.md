@@ -1,43 +1,75 @@
-# YaViene - Sistema de Monitoreo de Transporte Público en Tiempo Real
+# YaViene — Transporte público en tiempo real
 
-## 1. Descripción del Problema
+Sistema de monitoreo de buses en tiempo real para ciudades como Barranquilla.
+El conductor lleva la app en su celular (modelo BYOD, sin hardware extra) y el
+pasajero ve los buses en un mapa y recibe un aviso cuando el suyo se acerca a
+su parada.
 
-El sistema de transporte público colectivo en ciudades como Barranquilla carece de mecanismos eficientes de información al usuario. La ausencia de datos sobre la ubicación de las unidades genera una cadena de ineficiencias:
+## Componentes
 
-* **Incertidumbre operativa:** El usuario promedio pierde entre 30 y 90 minutos diarios esperando unidades sin conocimiento de su proximidad.
-* **Impacto en productividad:** La falta de previsibilidad afecta el cumplimiento de horarios laborales y académicos.
-* **Riesgos de seguridad:** La permanencia prolongada e innecesaria en paradas de bus incrementa la exposición a factores de riesgo ambiental y social.
+| Carpeta | Qué es |
+|---|---|
+| `YaVieneBackend` | Backend Node.js + TypeScript: recibe el GPS del conductor por MQTT, lo difunde al pasajero por WebSockets, guarda rutas y posiciones en SQLite. |
+| `app_conductor` | App Flutter del conductor: captura el GPS y lo publica por MQTT cada pocos segundos. En modo demo no pide login. |
+| `app_pasajero` | App Flutter del pasajero: mapa con los buses en vivo, pin del usuario (GPS o toque manual), detalle de proximidad y aviso a 1 km con notificación local. |
+| `app_control` | Panel de control para macOS: ve el estado de la flota y administra las empresas. |
+| `ya_viene_core` | Lógica compartida entre las apps (tipos, distancia, utilidades). |
+| `build-demo.sh` | Compila TODO para la demo con un solo comando y deja los artefactos listos. |
 
-## 2. Solución Propuesta
+## Cómo funciona
 
-YaViene propone una infraestructura digital basada en una aplicación móvil de doble propósito que utiliza el modelo BYOD (Bring Your Own Device) para capturar datos geográficos sin requerir inversión inicial en hardware por parte de las empresas transportadoras.
+1. **Conductor**: la app captura latitud, longitud, rumbo y velocidad, y las
+   publica por MQTT (el dispositivo es el sensor: sin inversión en hardware).
+2. **Backend**: recibe las posiciones, las guarda, y las difunde por WebSockets
+   a todos los pasajeros suscritos a la ruta. Si un bus deja de reportar más de
+   5 minutos, se marca como "sin señal".
+3. **Pasajero**: ve los buses moviéndose en el mapa, toca uno para ver qué tan
+   lejos está de su ubicación, y puede activar un aviso: cuando el bus esté a
+   1 km, la app le notifica (la notificación funciona con la app en segundo
+   plano). ETA (tiempo de llegada) está pendiente: por ahora se muestra
+   distancia y estado.
 
-### 2.1. Funcionalidad del Sistema
-* **Perfil Conductor:** La aplicación accede al módulo GPS del dispositivo móvil para transmitir coordenadas, velocidad y sentido de marcha mediante una conexión de bajo impacto en el plan de datos.
-* **Perfil Pasajero:** Interfaz cartográfica que muestra el desplazamiento de las unidades en tiempo real y calcula tiempos estimados de llegada (ETA) basados en la posición actual del vehículo y el tráfico circundante.
+## Stack
 
-## 3. Stack Tecnológico
+- **Mobile**: Flutter / Dart · Mapas con **MapLibre GL**.
+- **Backend**: Node.js + TypeScript · **MQTT** (broker aedes) para ingesta GPS ·
+  **WebSockets** (socket.io) para el tiempo real · **SQLite** para datos.
+- **Demo en vivo**: el simulador `YaVieneBackend/scripts/simulate-bus.mjs`
+  mueve buses sobre la geometría real de la ruta R-106 (Sobusa Barranquilla).
 
-El ecosistema técnico se fundamenta en tecnologías de alta concurrencia y procesamiento geoespacial.
+## Cómo correr la demo
 
-### 3.1. Desarrollo Mobile
-* **Framework:** Flutter Dart. Implementación de una base de código único para despliegue en Android e iOS, garantizando rendimiento nativo y manejo fluido de capas cartográficas.
-* **Motor de Mapas:** Mapbox SDK. Utilizado para la renderización de mapas vectoriales y cálculos de rutas.
+```bash
+./build-demo.sh
+```
 
-### 3.2. Arquitectura Backend
-* **Entorno de ejecución:** Node.js. Procesamiento asíncrono ideal para la gestión de múltiples conexiones simultáneas.
-* **Protocolos de Comunicación:**
-    * **MQTT:** Para la ingesta de datos GPS desde el móvil del conductor, optimizando el consumo de batería y la resiliencia ante redes móviles inestables.
-    * **WebSockets:** Para la actualización en tiempo real de las posiciones en la interfaz del pasajero.
+Eso compila el backend, arranca el túnel (ngrok/cloudflared, sin servidor),
+compila las APKs de pasajero y conductor con la URL real del túnel, y el panel
+de control para macOS. Todo queda en `~/Desktop/APKs/` y `./dist/demo/`.
 
-### 3.3. Persistencia y Gestión de Datos
-* **Base de Datos Relacional:** PostgreSQL + PostGIS. Almacenamiento de rutas, paradas y ejecución de consultas de proximidad geográfica.
-* **Caché de Alta Velocidad:** Redis. Almacenamiento en memoria de las últimas coordenadas conocidas para reducir la latencia de respuesta en las peticiones de los usuarios.
+Con el backend arriba, se disparan los buses demo desde el panel o con:
 
-### 3.4. Infraestructura
-* **Cloud Computing:** Amazon Web Services o Google Cloud Platform.
-* **Servicios:** Contenedores y orquestación para escalabilidad horizontal según la demanda del servicio.
+```bash
+curl -X POST https://<túnel>/api/demo/buses \
+  -H "Content-Type: application/json" \
+  -d '{"companyId":"sobusa","routeId":"R-106"}'
+```
 
-## 4. Estrategia de Trabajo
+El escenario demo arranca **B-042 al 80 %** del recorrido (ya pasó por la
+parada) y **B-055 al 15 %** (viene llegando), ambos a velocidad constante.
 
-El desarrollo se ejecutará bajo la modalidad de validación de concepto y viabilidad técnica utilizando los sensores de los dispositivos móviles de los conductores. Este enfoque permite la iteración rápida del software y la acumulación de datos de tráfico antes de una posible transición a hardware IoT dedicado.
+## Estado actual
+
+- [x] Backend completo: ingesta MQTT, difusión WebSocket, SQLite, fantasmas
+  ("sin señal"), modo demo.
+- [x] App conductor: captura GPS + publicación MQTT.
+- [x] App pasajero: mapa en vivo, pin por GPS o manual, selección de bus,
+  aviso a 1 km con la app en segundo plano, panel inferior con estado del bus.
+- [x] Panel de control (macOS).
+- [x] Pruebas: 20 tests en `app_pasajero`, 6 en el backend.
+
+## Pendiente
+
+- ETA (tiempo estimado de llegada).
+- Publicar las apps en tiendas (Android/iOS).
+- Lanzamiento piloto con una empresa transportadora.
