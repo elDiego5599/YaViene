@@ -108,10 +108,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
   final Ref _ref;
   FleetSocketService? _socket;
 
-  /// En la primera carga de la app (app recién abierta), el batch inicial se
-  /// fuerza a oculto: "todos aparecen ocultos por defecto, siempre".
-  bool _forceHiddenOnStart = false;
-
   String? get _token => _ref.read(authProvider).session?.token;
 
   /// Sesión expirada/revocada: marca el estado para que el dashboard avise y
@@ -131,7 +127,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
   void start() {
     final token = _token;
     if (token == null) return;
-    _hideAllOnStart();
     _socket?.dispose();
     final socket = FleetSocketService(token: token);
     _socket = socket;
@@ -150,11 +145,10 @@ class FleetNotifier extends StateNotifier<FleetState> {
       _socket = null;
     });
     socket.busBatchStream.listen((buses) {
-      final forceHidden = _forceHiddenOnStart;
-      _forceHiddenOnStart = false;
+      // Respeta el estado visible guardado en el backend: los buses que
+      // quedaron habilitados/ocultos de la última sesión se ven igual.
       final map = <String, FleetBus>{
-        for (final b in buses)
-          b.busId: forceHidden ? b.copyWith(visible: false) : b,
+        for (final b in buses) b.busId: b,
       };
       state = state.copyWith(buses: map, clearError: true);
     });
@@ -422,33 +416,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
         buses: previous,
         error: visible ? 'No se pudieron mostrar los buses.' : 'No se pudieron ocultar los buses.',
       );
-    }
-  }
-
-  /// Al abrir la app, todos los buses empiezan ocultos por defecto (siempre).
-  /// La UI se fuerza a oculto al instante y se ocultan también en el backend
-  /// (best-effort) para que los pasajeros no vean buses habilitados de antes.
-  void _hideAllOnStart() {
-    _forceHiddenOnStart = true;
-    state = state.copyWith(
-      buses: {
-        for (final entry in state.buses.entries)
-          entry.key: entry.value.copyWith(visible: false),
-      },
-      clearError: true,
-    );
-    unawaited(_hideAllOnBackend());
-  }
-
-  Future<void> _hideAllOnBackend() async {
-    final token = _token;
-    if (token == null) return;
-    try {
-      final count = await FleetApi().setAllVisibility(token, false);
-      debugPrint('[fleet] apertura: $count buses ocultos por defecto');
-    } catch (e) {
-      debugPrint('[fleet] apertura: ocultar todos FALLÓ (best-effort): $e');
-      if (_onSessionExpired(e)) return;
     }
   }
 
