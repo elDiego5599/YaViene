@@ -12,6 +12,7 @@ class FleetSocketService {
   final String token;
 
   io.Socket? _socket;
+  Timer? _retryTimer;
   final _busBatchController = StreamController<List<FleetBus>>.broadcast();
   final _busPositionController = StreamController<FleetBus>.broadcast();
   final _busHiddenController = StreamController<String>.broadcast();
@@ -43,13 +44,22 @@ class FleetSocketService {
       'path': AppConfig.wsPath,
       'autoConnect': true,
       'reconnection': true,
-      'reconnectionAttempts': 20,
       'reconnectionDelay': 1000,
       'reconnectionDelayMax': 10000,
       'randomizationFactor': 0.3,
       'auth': {'token': token},
     });
     _socket = socket;
+
+    // Reintento infinito aunque el paquete agote sus intentos (antes se
+    // quedaba en "Sin conexión" para siempre hasta reiniciar el panel).
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      final current = _socket;
+      if (current != null && !current.connected) {
+        current.connect();
+      }
+    });
 
     void emit<T>(StreamController<T> controller, T value) {
       if (!controller.isClosed) controller.add(value);
@@ -141,6 +151,8 @@ class FleetSocketService {
   }
 
   void dispose() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
