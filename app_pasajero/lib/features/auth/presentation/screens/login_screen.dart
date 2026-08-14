@@ -515,6 +515,21 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                       ),
                                     ),
                                   ),
+                                  const SizedBox(height: 12),
+                                  Center(
+                                    child: TextButton(
+                                      onPressed: () => setState(
+                                          () => _step = _Step.profile),
+                                      child: const Text(
+                                        '¿No tienes cuenta? Regístrate',
+                                        style: TextStyle(
+                                          color: Color(0xFF00A859),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ],
                                 if (!kReleaseMode) ...[
                                   const SizedBox(height: 8),
