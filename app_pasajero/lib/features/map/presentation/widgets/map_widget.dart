@@ -64,6 +64,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
   bool _placeholderShown = true;
+  Timer? _placeholderTimeout;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
   /// Última posición cruda recibida por bus (para propiedades del ícono).
@@ -107,11 +108,21 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {
       _applyMapBottomInset(next);
     });
+    // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
+    // un fallo de MapLibre), el placeholder nunca debe quedarse para
+    // siempre. Pasado el límite se funde y deja ver el mapa (o el fondo).
+    _placeholderTimeout = Timer(const Duration(seconds: 7), () {
+      if (!mounted) return;
+      if (!_layersReady && _placeholderShown) {
+        setState(() => _placeholderShown = false);
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _placeholderTimeout?.cancel();
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
     _mapInsetSubscription?.close();
@@ -814,10 +825,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // onMapClick: se coloca el pin en cualquier lado (la selección de bus
             // se decide en _selectBusAtTap).
             featureTapsTriggersMapClick: true,
-            // Estilo empaquetado como asset: el primer pintado no espera la
-            // descarga del estilo por la red (los tiles siguen viniendo de
-            // cartocdn, cacheados por el plugin).
-            styleString: 'assets/styles/positron_gl_style.json',
+            // Estilo por URL remota: el mecanismo de asset del plugin
+            // (`asset://`) no llega a cargar y deja el mapa en blanco.
+            // MapLibre cachea el estilo y los tiles; el placeholder cubre
+            // el breve primer pintado.
+            styleString:
+                'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
             initialCameraPosition: const CameraPosition(
               target: LatLng(11.0041, -74.8070),
               zoom: 11.0,
