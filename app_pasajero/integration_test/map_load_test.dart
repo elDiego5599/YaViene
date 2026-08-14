@@ -5,12 +5,14 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ya_viene_pasajero/main.dart' as app;
 
 /// Flujos reales de la pasajero contra Firebase y el backend reales (túnel),
-/// desde una instalación limpia:
-/// 1) registro con correo nuevo → onboarding → mapa;
+/// desde una instalación limpia. Cobertura anti-tontos:
+/// 1) registro con correo nuevo (botón "Regístrate") → onboarding → mapa;
 /// 2) el placeholder "Preparando tu mapa…" se funde (regresión del bug del
 ///    placeholder eterno);
-/// 3) drawer → Notificaciones → volver;
-/// 4) drawer → Cerrar sesión → pantalla de login (ejercita resetAppState).
+/// 3) selección de ruta desde el buscador (empresa Sobusa → ruta);
+/// 4) drawer → Notificaciones → volver;
+/// 5) Cerrar sesión → login;
+/// 6) volver a entrar con la cuenta ya creada (usuario que vuelve) → mapa.
 ///
 /// main() es `void main() async`: no se puede await; el arranque async
 /// sigue corriendo mientras el test espera por frames reales. Un solo
@@ -18,7 +20,7 @@ import 'package:ya_viene_pasajero/main.dart' as app;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('flujos reales: registro, mapa, notificaciones y logout',
+  testWidgets('flujos reales: registro, ruta, notificaciones, logout y login',
       (tester) async {
     app.main();
 
@@ -30,43 +32,23 @@ void main() {
       message: 'no apareció la pantalla de login',
     );
 
-    // Registro: correo nuevo → Continuar.
-    final email =
-        'qa${DateTime.now().millisecondsSinceEpoch}@yaviene.app';
-    await tester.enterText(find.byType(TextField).first, email);
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Continuar'));
-
-    // checkEmail con Firebase en modo anti-enumeración devuelve "el correo
-    // ya existe" incluso para correos nuevos (el probe falla con
-    // 'invalid-credential' y se trata como existente). El registro real se
-    // alcanza por el enlace "¿No tienes cuenta? Crea una con este correo".
-    await _waitUntil(
-      tester,
-      () =>
-          find.text('Entrar').evaluate().isNotEmpty ||
-          find.text('Crear cuenta').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 30),
-      message: 'no avanzó tras Continuar (checkEmail o UI falló)',
-    );
-    if (find.text('Entrar').evaluate().isNotEmpty) {
-      await tester.tap(find.text('¿No tienes cuenta? Crea una con este correo'));
-    }
-
-    // Paso de perfil: nombre, contraseña, confirmar. El campo Email sigue
-    // presente (deshabilitado), así que se blanquea por hint, no por índice.
+    // Registro por el botón "¿No tienes cuenta? Regístrate" (nuevo camino).
+    final email = 'qa${DateTime.now().millisecondsSinceEpoch}@yaviene.app';
+    const password = 'Demo123456';
+    await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
     await _waitUntil(
       tester,
       () => find.text('Crear cuenta').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
-      message: 'no llegó al paso de perfil',
+      message: 'el botón Regístrate no llevó al paso de crear cuenta',
     );
     await tester.enterText(
-        find.widgetWithText(TextField, 'Nombre'), 'QA Tester');
+        find.widgetWithText(TextField, 'Email'), email);
+    await tester.enterText(find.widgetWithText(TextField, 'Nombre'), 'QA Tester');
     await tester.enterText(
-        find.widgetWithText(TextField, 'Contraseña (mín. 6)'), 'Demo123456');
+        find.widgetWithText(TextField, 'Contraseña (mín. 6)'), password);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Repite la contraseña'), 'Demo123456');
+        find.widgetWithText(TextField, 'Repite la contraseña'), password);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.ensureVisible(find.text('Crear cuenta'));
     await tester.pump(const Duration(milliseconds: 300));
@@ -100,9 +82,76 @@ void main() {
       message: 'el placeholder quedó fijo; el estilo del mapa no cargó',
     );
 
-    // 3) Drawer → Notificaciones → volver.
-    await tester.tap(find.byIcon(Icons.menu_rounded));
+    // 3) Selección de ruta desde el buscador.
+    await _waitUntil(
+      tester,
+      () => find.text('¿Qué bus esperas?').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'no apareció el buscador de ruta',
+    );
+    await tester.tap(find.text('¿Qué bus esperas?'));
+    await _waitUntil(
+      tester,
+      () => find.text('Elige tu ruta').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'no abrió el selector de ruta',
+    );
+    await _waitUntil(
+      tester,
+      () => find.text('Selecciona una empresa').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'no cargaron las empresas',
+    );
+    await tester.tap(find.text('Selecciona una empresa'));
+    await _waitUntil(
+      tester,
+      () => find.text('Sobusa').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'no cargaron las empresas',
+    );
+    await tester.tap(find.text('Sobusa'));
+    await _waitUntil(
+      tester,
+      () => find.text('Selecciona una ruta').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'no apareció la tarjeta de ruta tras elegir empresa',
+    );
     await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('Selecciona una ruta'));
+    await _waitUntil(
+      tester,
+      () => find.text('B18 Tcherassi').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'no cargaron las rutas',
+    );
+    await tester.tap(find.text('B18 Tcherassi'));
+    await _waitUntil(
+      tester,
+      () => find.text('Ruta activa • Toca para cambiar').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'la ruta no quedó activa',
+    );
+    // La hoja "Elige tu ruta" permanece abierta tras elegir; se cierra al
+    // tocar fuera (barrera). La descartamos tocando la parte superior (en
+    // coordenadas lógicas del device).
+    final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+    await tester.tapAt(Offset(size.width / 2, size.height * 0.12));
+    await _waitUntil(
+      tester,
+      () => find.text('Elige tu ruta').evaluate().isEmpty,
+      timeout: const Duration(seconds: 10),
+      message: 'la hoja de ruta no se cerró',
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 4) Drawer → Notificaciones → volver.
+    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await _waitUntil(
+      tester,
+      () => find.text('Notificaciones').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 10),
+      message: 'no abrió el drawer',
+    );
     await tester.tap(find.text('Notificaciones'));
     await _waitUntil(
       tester,
@@ -118,15 +167,41 @@ void main() {
       message: 'no se volvió al mapa',
     );
 
-    // 4) Cerrar sesión → login.
+    // 5) Cerrar sesión → login.
     await tester.tap(find.byIcon(Icons.menu_rounded));
-    await tester.pump(const Duration(milliseconds: 600));
+    await _waitUntil(
+      tester,
+      () => find.text('Cerrar sesión').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 10),
+      message: 'no abrió el drawer para cerrar sesión',
+    );
     await tester.tap(find.text('Cerrar sesión'));
     await _waitUntil(
       tester,
       () => find.text('Iniciar con Google').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 20),
       message: 'no se llegó a la pantalla de login tras cerrar sesión',
+    );
+
+    // 6) Volver a entrar con la cuenta ya creada (usuario que vuelve).
+    await tester.enterText(find.byType(TextField).first, email);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Continuar'));
+    await _waitUntil(
+      tester,
+      () => find.text('Entrar').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 30),
+      message: 'la cuenta existente no llegó al paso de contraseña',
+    );
+    await tester.enterText(
+        find.widgetWithText(TextField, 'Contraseña'), password);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Entrar'));
+    await _waitUntil(
+      tester,
+      () => find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 45),
+      message: 'no se volvió al mapa tras entrar',
     );
 
     // Sin excepciones no capturadas en todo el recorrido.
@@ -148,14 +223,4 @@ Future<void> _waitUntil(
     if (cond()) return;
   }
   fail(message ?? 'tiempo de espera agotado');
-}
-
-/// Devuelve los textos visibles de la pantalla (diagnóstico).
-String _visibleTexts(WidgetTester tester) {
-  final texts = tester
-      .widgetList<Text>(find.byType(Text))
-      .map((t) => t.data ?? '')
-      .where((t) => t.isNotEmpty)
-      .toList();
-  return texts.join(' | ');
 }

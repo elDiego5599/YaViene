@@ -55,12 +55,21 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   /// Stream del GPS: mantiene el pin pegado al usuario mientras se mueve.
   StreamSubscription<Position>? _gpsSub;
 
+  /// Memoización: si `initialize()` se invoca dos veces en serie (p. ej. por
+  /// dos listeners del mapa), ambas comparten la misma corrida en vez de pedir
+  /// el permiso dos veces a la vez.
+  Future<void>? _initFuture;
+
   /// Pide el permiso de ubicación en el arranque (primera instalación) y, si
   /// ya estaba concedido, obtiene el GPS en silencio. Sin permiso, restaura
   /// el último pin manual guardado (si existe) para que el usuario reencuentre
   /// su punto de parada al instante; si no hay pin, queda el modo sin
   /// ubicación para que la hoja invite a tocar el mapa.
-  Future<void> initialize() async {
+  Future<void> initialize() {
+    return _initFuture ??= _doInitialize().whenComplete(() => _initFuture = null);
+  }
+
+  Future<void> _doInitialize() async {
     final prefs = await SharedPreferences.getInstance();
     if (await _hasGpsPermission()) {
       await _locate();
@@ -78,7 +87,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       state = const UserLocationState(mode: UserLocationMode.denied);
       return;
     }
-    status = await Permission.location.request();
+    status = await _requestLocation();
     await prefs.setBool(_kAsked, true);
     if (status.isGranted) {
       await _locate();
@@ -108,6 +117,16 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     return status.isGranted;
   }
 
+  /// Permiso pendiente en vuelo: `permission_handler` lanza PlatformException
+  /// ("A request for permissions is already running") si se piden dos veces a
+  /// la vez. Este futuro comparte una sola petición entre llamadas concurrentes.
+  Future<PermissionStatus>? _pendingRequest;
+
+  Future<PermissionStatus> _requestLocation() {
+    return _pendingRequest ??=
+        Permission.location.request().whenComplete(() => _pendingRequest = null);
+  }
+
   /// Pide permiso (si hace falta) y obtiene la posición una sola vez.
   Future<void> useGps() async {
     var status = await Permission.location.status;
@@ -116,7 +135,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       return;
     }
     if (!status.isGranted) {
-      status = await Permission.location.request();
+      status = await _requestLocation();
     }
     if (!status.isGranted) {
       state = const UserLocationState(mode: UserLocationMode.denied);

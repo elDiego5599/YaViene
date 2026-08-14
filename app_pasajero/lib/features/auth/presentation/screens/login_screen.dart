@@ -320,7 +320,12 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   hint: 'Email',
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
-                                  enabled: _step == _Step.email,
+                                  // Habilitado también en el paso de perfil:
+                                  // quien toca "¿No tienes cuenta? Regístrate"
+                                  // antes de escribir su correo no debe quedar
+                                  // atrapado sin poder ponerlo.
+                                  enabled: _step == _Step.email ||
+                                      _step == _Step.profile,
                                 ),
                                 if (_step == _Step.password) ...[
                                   const SizedBox(height: 12),
