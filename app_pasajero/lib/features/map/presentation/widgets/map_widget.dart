@@ -829,12 +829,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // onMapClick: se coloca el pin en cualquier lado (la selección de bus
             // se decide en _selectBusAtTap).
             featureTapsTriggersMapClick: true,
-            // Estilo por URL remota: el mecanismo de asset del plugin
-            // (`asset://`) no llega a cargar y deja el mapa en blanco.
-            // MapLibre cachea el estilo y los tiles; el placeholder cubre
-            // el breve primer pintado.
+            // Estilo Voyager de CARTO: mapa alegre y colorido (agua azul,
+            // parques verdes, vías cálidas) como corresponde a Barranquilla.
+            // El azul de la ruta y los buses verdes resaltan sobre él.
             styleString:
-                'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+                'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
             initialCameraPosition: const CameraPosition(
               target: LatLng(11.0041, -74.8070),
               zoom: 11.0,
