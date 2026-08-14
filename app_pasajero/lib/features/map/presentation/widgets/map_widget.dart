@@ -63,6 +63,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   bool _layersReady = false;
   bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
+  bool _placeholderShown = true;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
   /// Última posición cruda recibida por bus (para propiedades del ícono).
@@ -257,7 +258,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     if (!mounted || _layersReady || _styleInitInFlight) return;
     _styleInitInFlight = true;
     try {
-      await _loadBusIcons();
+      // Íconos de bus no fatales: si fallan (p. ej. PNG corrupto), el mapa
+      // sigue funcionando y el placeholder debe fundirse igual.
+      try {
+        await _loadBusIcons();
+      } catch (e) {
+        debugPrint('MapWidget._loadBusIcons error: $e');
+      }
       await _initializeMapSources();
       _layersReady = true;
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
@@ -795,58 +802,111 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       return const ColoredBox(color: AppColors.background);
     }
 
-    return MapLibreMap(
-      onMapCreated: _onMapCreated,
-      onStyleLoadedCallback: _onStyleLoadedCallback,
-      // El mapa nativo silencia map#onMapClick cuando el toque cae sobre un
-      // feature (línea de ruta, paradas, pins, buses... dentro de ±10 px) y
-      // deja solo feature#onTap. Con este flag, el toque SIEMPRE dispara
-      // onMapClick: se coloca el pin en cualquier lado (la selección de bus
-      // se decide en _selectBusAtTap).
-      featureTapsTriggersMapClick: true,
-      styleString:
-          'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      initialCameraPosition: const CameraPosition(
-        target: LatLng(11.0041, -74.8070),
-        zoom: 11.0,
-      ),
-      compassEnabled: false,
-      myLocationEnabled: false,
-      onMapClick: (point, latLng) async {
-        // Un bus cerca del toque (aunque quede debajo/encima del pin) se
-        // selecciona y NO se mueve el pin manual.
-        if (await _selectBusAtTap(point)) return;
-        if (!mounted) return;
-        final location = ref.read(userLocationProvider);
-        // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.
-        // Durante la búsqueda de GPS el toque sí coloca el pin manual
-        // (cancela la espera de localización).
-        if (location.mode == UserLocationMode.gps) {
-          return;
-        }
-        // Pin fijo: una vez puesto no se mueve con toques (evita moverlo por
-        // accidente al tocar el mapa); se quita con "Quitar" y se vuelve a
-        // tocar donde se quiera poner.
-        if (location.mode == UserLocationMode.manual) {
-          if (!_pinMoveHintShown && context.mounted) {
-            _pinMoveHintShown = true;
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text(
-                  'Tu pin está fijo: quítalo y vuelve a tocar para moverlo'),
-            ));
-          }
-          return;
-        }
-        ref
-            .read(userLocationProvider.notifier)
-            .setManualPin(latLng.latitude, latLng.longitude);
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: MapLibreMap(
+            onMapCreated: _onMapCreated,
+            onStyleLoadedCallback: _onStyleLoadedCallback,
+            // El mapa nativo silencia map#onMapClick cuando el toque cae sobre un
+            // feature (línea de ruta, paradas, pins, buses... dentro de ±10 px) y
+            // deja solo feature#onTap. Con este flag, el toque SIEMPRE dispara
+            // onMapClick: se coloca el pin en cualquier lado (la selección de bus
+            // se decide en _selectBusAtTap).
+            featureTapsTriggersMapClick: true,
+            // Estilo empaquetado como asset: el primer pintado no espera la
+            // descarga del estilo por la red (los tiles siguen viniendo de
+            // cartocdn, cacheados por el plugin).
+            styleString: 'assets/styles/positron_gl_style.json',
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(11.0041, -74.8070),
+              zoom: 11.0,
+            ),
+            compassEnabled: false,
+            myLocationEnabled: false,
+            onMapClick: (point, latLng) async {
+              // Un bus cerca del toque (aunque quede debajo/encima del pin) se
+              // selecciona y NO se mueve el pin manual.
+              if (await _selectBusAtTap(point)) return;
+              if (!mounted) return;
+              final location = ref.read(userLocationProvider);
+              // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.
+              // Durante la búsqueda de GPS el toque sí coloca el pin manual
+              // (cancela la espera de localización).
+              if (location.mode == UserLocationMode.gps) {
+                return;
+              }
+              // Pin fijo: una vez puesto no se mueve con toques (evita moverlo por
+              // accidente al tocar el mapa); se quita con "Quitar" y se vuelve a
+              // tocar donde se quiera poner.
+              if (location.mode == UserLocationMode.manual) {
+                if (!_pinMoveHintShown && context.mounted) {
+                  _pinMoveHintShown = true;
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text(
+                        'Tu pin está fijo: quítalo y vuelve a tocar para moverlo'),
+                  ));
+                }
+                return;
+              }
+              ref
+                  .read(userLocationProvider.notifier)
+                  .setManualPin(latLng.latitude, latLng.longitude);
+            },
+            rotateGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            tiltGesturesEnabled: false,
+            zoomGesturesEnabled: true,
+            minMaxZoomPreference: const MinMaxZoomPreference(5.0, 18.5),
+            cameraTargetBounds: CameraTargetBounds(_colombiaBounds),
+          ),
+        ),
+        _buildStylePlaceholder(),
+      ],
+    );
+  }
+
+  /// Placeholder calmado mientras el estilo y las fuentes del mapa cargan:
+  /// evita el "fondo en blanco, ¿se colgó?" en el primer pintado. Se funde
+  /// con el mapa cuando las capas están listas y se quita del árbol.
+  Widget _buildStylePlaceholder() {
+    final visible = !_layersReady && _placeholderShown;
+    return AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOut,
+      onEnd: () {
+        if (!visible && _placeholderShown) setState(() => _placeholderShown = false);
       },
-      rotateGesturesEnabled: true,
-      scrollGesturesEnabled: true,
-      tiltGesturesEnabled: false,
-      zoomGesturesEnabled: true,
-      minMaxZoomPreference: const MinMaxZoomPreference(5.0, 18.5),
-      cameraTargetBounds: CameraTargetBounds(_colombiaBounds),
+      child: _placeholderShown
+          ? const IgnorePointer(
+              child: ColoredBox(
+                color: AppColors.background,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.directions_bus_rounded,
+                        size: 44,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'Preparando tu mapa…',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

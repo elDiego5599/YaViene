@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/route_restore.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../services/background_keep_alive.dart';
@@ -25,6 +28,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
+    final container = ProviderScope.containerOf(context);
+    // Guarda la ruta elegida para reencontrarla en el próximo arranque.
+    ref.listen(selectedRouteProvider, (previous, next) {
+      if (next == null) return;
+      final company = container.read(selectedCompanyProvider);
+      if (company == null) return;
+      unawaited(persistRouteSelection(container, next.id, company.id));
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(realtimeServiceProvider).connect();
@@ -33,6 +44,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // La app siempre funciona en segundo plano: el servicio mantiene el
       // proceso vivo para que el socket siga conectado y los avisos lleguen.
       BackgroundKeepAlive.start();
+      unawaited(restoreLastRoute(container));
     });
   }
 

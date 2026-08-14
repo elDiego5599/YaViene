@@ -47,8 +47,10 @@ PANEL DE CONTROL (macOS) ─socket└──────────┬───�
 | Backend (propiedades)| 9     | ~1.700 casos generados: física, haversine, límites|
 | Backend (caos)       | 5     | Basura MQTT, payloads corruptos, reinicio en vivo,|
 |                      |       | tormenta de suscripciones, DAST-lite (SQLi/XSS)   |
-| Pasajero             | 27    | Aviso a 1 km, posiciones, máquina de estados,     |
-|                      |       | chip de conexión, batch malformado                |
+| Pasajero             | 40    | Aviso a 1 km, posiciones, máquina de estados,     |
+|                      |       | chip de conexión, batch malformado, restauración  |
+|                      |       | de ruta/pin, tick de "AVISADO ✓", persistencia    |
+|                      |       | de ubicación con permiso denegado                 |
 | Panel de control     | 3     | Socket, flota, sesión                             |
 
 ## Resiliencia (probada, no prometida)

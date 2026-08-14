@@ -15,6 +15,19 @@ import '../utils/geo.dart';
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({super.key});
 
+  /// Decide si el tick de confirmación debe aparecer (true), desaparecer
+  /// (false) o no cambiar (null) tras un toggle de alerta. Garantiza que el
+  /// "AVISADO ✓" nunca se muestre con el aviso apagado.
+  @visibleForTesting
+  static bool? alertToggleFeedback({
+    required bool wasActive,
+    required bool nowActive,
+  }) {
+    if (!wasActive && nowActive) return true;
+    if (wasActive && !nowActive) return false;
+    return null;
+  }
+
   @override
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
 }
@@ -28,6 +41,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
+  bool _armedFeedback = false;
+  Timer? _armedFeedbackTimer;
 
   @override
   void initState() {
@@ -42,6 +57,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _armedFeedbackTimer?.cancel();
     super.dispose();
   }
 
@@ -108,7 +124,27 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     }
     HapticFeedback.mediumImpact();
+    final wasActive = ref.read(activeAlertsProvider).contains(busId);
     notifier.toggleAlert(busId);
+    final feedback = EtaBottomSheet.alertToggleFeedback(
+      wasActive: wasActive,
+      nowActive: ref.read(activeAlertsProvider).contains(busId),
+    );
+    if (feedback == true) {
+      // Tick de confirmación: al ARMAR el aviso, el botón confirma
+      // visualmente durante ~1.4 s ("AVISADO ✓") antes de volver a su
+      // estado activo.
+      _armedFeedbackTimer?.cancel();
+      setState(() => _armedFeedback = true);
+      _armedFeedbackTimer = Timer(const Duration(milliseconds: 1400), () {
+        if (mounted) setState(() => _armedFeedback = false);
+      });
+    } else if (feedback == false) {
+      // Al desarmar, el tick queda sin efecto de inmediato (nunca mostrar
+      // "AVISADO ✓" con el aviso apagado).
+      _armedFeedbackTimer?.cancel();
+      if (_armedFeedback) setState(() => _armedFeedback = false);
+    }
   }
 
   BusPosition? _busById(String busId) {
@@ -341,6 +377,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           child: _StickyAlertButton(
             isActive: isActive,
             blocked: ghostBlocked || !locationState.hasPosition,
+            armedFeedback: _armedFeedback,
             label: isActive
                 ? "AVISARÉ CUANDO VUELVA A TRANSMITIR"
                 : ghostBlocked
@@ -408,6 +445,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           child: _StickyAlertButton(
             isActive: isActive,
             blocked: ghostBlocked || alreadyNear || passing || !locationState.hasPosition,
+            armedFeedback: _armedFeedback,
             label: isActive
                 ? "AVISARÉ CUANDO ESTÉ CERCA"
                 : ghostBlocked
@@ -439,11 +477,15 @@ class _StickyAlertButton extends StatefulWidget {
   final String label;
   final VoidCallback onPressed;
 
+  /// Confirmación transitoria justo después de armar el aviso ("AVISADO ✓").
+  final bool armedFeedback;
+
   const _StickyAlertButton({
     required this.isActive,
     this.blocked = false,
     required this.label,
     required this.onPressed,
+    this.armedFeedback = false,
   });
 
   @override
@@ -470,7 +512,11 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       onTapUp: (_) => setState(() => _isPressed = false),
       child: AnimatedScale(
-        scale: _isPressed ? 0.96 : 1,
+        scale: _isPressed
+            ? 0.96
+            : widget.armedFeedback
+                ? 1.04
+                : 1,
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutCubic,
         child: AnimatedContainer(
@@ -479,7 +525,9 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           width: double.infinity,
           height: 60,
           decoration: BoxDecoration(
-            color: backgroundColor,
+            color: widget.armedFeedback
+                ? const Color(0xFF065F46)
+                : backgroundColor,
             borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
@@ -494,21 +542,26 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
             child: Row(
-              key: ValueKey('${widget.isActive}-${widget.blocked}'),
+              key: ValueKey(
+                  '${widget.armedFeedback}-${widget.isActive}-${widget.blocked}'),
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  widget.blocked
-                      ? Icons.notifications_off_rounded
-                      : widget.isActive
-                          ? Icons.check_circle_rounded
-                          : Icons.notifications_active_rounded,
+                  widget.armedFeedback
+                      ? Icons.check_circle_rounded
+                      : widget.blocked
+                          ? Icons.notifications_off_rounded
+                          : widget.isActive
+                              ? Icons.check_circle_rounded
+                              : Icons.notifications_active_rounded,
                   color: Colors.white,
                   size: 22,
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  widget.label,
+                  widget.armedFeedback
+                      ? 'AVISADO ✓'
+                      : widget.label,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,

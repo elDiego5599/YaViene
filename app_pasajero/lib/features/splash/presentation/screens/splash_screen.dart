@@ -23,7 +23,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    unawaited(_start());
+    // Post-frame: resetAppState modifica providers y Riverpod lo prohíbe
+    // durante el build (initState). Diferido, el arranque queda limpio sin
+    // la excepción de debug "Tried to modify a provider while building".
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_start());
+    });
   }
 
   Future<void> _start() async {
