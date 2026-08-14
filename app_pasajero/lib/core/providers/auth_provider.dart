@@ -107,9 +107,12 @@ class AuthNotifier extends ChangeNotifier {
   /// la consulta no da una respuesta positiva (o da vacío), se hace una
   /// segunda prueba intentando entrar con una contraseña falsa:
   ///   - 'wrong-password'  → la cuenta existe
-  ///   - 'invalid-credential' → puede existir (respuesta protegida): se trata
-  ///     como existente para nunca mandarte a registrarte dos veces
   ///   - 'user-not-found' / 'invalid-login-credentials' → no existe
+  ///
+  /// 'invalid-credential' (y cualquier respuesta protegida/desconocida) se
+  /// trata como correo NUEVO para que vaya directo a registro. Si la cuenta
+  /// en realidad existía, el registro falla con 'email-already-in-use' y el
+  /// flujo salta a la pantalla de contraseña (se recupera solo).
   Future<bool?> checkEmail(String email) async {
     final normalized = email.trim().toLowerCase();
     if (!isEmailValid(normalized)) return null;
@@ -162,17 +165,18 @@ class AuthNotifier extends ChangeNotifier {
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'wrong-password':
-          return true;
-        case 'invalid-credential':
-          // Protección anti-enumeración activa: no se puede distinguir.
-          // Tratarlo como existente evita el "me mandó a registrarme otra
-          // vez" aunque la cuenta sí exista.
+          // La contraseña falsa no entró: la cuenta existe.
           return true;
         case 'user-not-found':
         case 'invalid-login-credentials':
+          // No existe: correo nuevo, directo a registro.
           return false;
         default:
-          return true;
+          // 'invalid-credential' (protección anti-enumeración) y cualquier
+          // respuesta desconocida: se trata como correo NUEVO para que vaya
+          // a registro; si la cuenta existía, el registro falla con
+          // 'email-already-in-use' y el flujo pasa a contraseña.
+          return false;
       }
     }
     return true;
