@@ -278,6 +278,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       }
       await _initializeMapSources();
       _layersReady = true;
+      // CRÍTICO: el placeholder se construye según `_layersReady`; sin un
+      // rebuild aquí se quedaría en "Preparando tu mapa…" aunque el estilo
+      // ya haya cargado.
+      if (mounted) setState(() {});
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
       _setupUserPinSubscription();
