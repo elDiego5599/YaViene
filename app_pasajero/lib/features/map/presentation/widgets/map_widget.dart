@@ -10,7 +10,6 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show
-        activeAlertsProvider,
         busPositionsSourceProvider,
         nearbyRadiusMeters,
         selectedBusesProvider;
@@ -461,9 +460,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (features.isEmpty) return false;
       final busId = features.first['properties']?['busId'] as String? ?? '';
       if (busId.isEmpty) return false;
-      // Selección única: al cambiar de bus se desactivan los avisos del
-      // bus anterior; notificaciones y seguimiento son de un bus a la vez.
-      ref.read(activeAlertsProvider.notifier).clear();
+      // La selección solo decide QUÉ bus se ve en la hoja; los avisos
+      // armados en otros buses se conservan (son independientes de lo que
+      // se esté mirando).
       ref.read(selectedBusesProvider.notifier).toggleBus(busId);
       return true;
     } catch (_) {
