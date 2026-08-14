@@ -35,13 +35,20 @@ Stream<List<BusPosition>> _buildRoutePositionsStream(
   final batchSub = service.batchPositionStream.listen((batch) {
     final routeId = batch['routeId'] as String?;
     if (routeId == null || !belongsTo(routeId)) return;
-    final buses = (batch['buses'] as List<dynamic>? ?? const [])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
+    final buses = batch['buses'];
     positions.clear();
-    for (final json in buses) {
-      final pos = _jsonToBusPosition(json);
-      positions[pos.busId] = pos;
+    if (buses is List) {
+      for (final item in buses) {
+        if (item is! Map) continue;
+        final Map<String, dynamic> json;
+        try {
+          json = Map<String, dynamic>.from(item);
+        } catch (_) {
+          continue;
+        }
+        final pos = _safeBusPosition(json);
+        if (pos != null) positions[pos.busId] = pos;
+      }
     }
     // Siempre se emite (aunque el batch venga vacío) para que el mapa
     // borre los buses que ya no están en la ruta.
@@ -49,7 +56,8 @@ Stream<List<BusPosition>> _buildRoutePositionsStream(
   });
 
   final liveSub = service.busPositionStream.listen((json) {
-    final pos = _jsonToBusPosition(json);
+    final pos = _safeBusPosition(json);
+    if (pos == null) return;
     if (!belongsTo(pos.routeId)) return;
     positions[pos.busId] = pos;
     scheduleLiveSnapshot();
@@ -96,9 +104,17 @@ Stream<List<BusPosition>> _buildRoutePositionsStream(
     }
     final position = event['position'];
     if (position is Map) {
-      positions[busId] =
-          _jsonToBusPosition(Map<String, dynamic>.from(position));
-      emitSnapshot();
+      final Map<String, dynamic> json;
+      try {
+        json = Map<String, dynamic>.from(position);
+      } catch (_) {
+        return;
+      }
+      final pos = _safeBusPosition(json);
+      if (pos != null) {
+        positions[busId] = pos;
+        emitSnapshot();
+      }
     }
   });
 
@@ -144,6 +160,18 @@ final nearbyBusesCountProvider =
   }
   return count;
 });
+
+/// Conversión defensiva: un evento malformado no debe tumbar la suscripción
+/// ni dejar el mapa sin posiciones.
+BusPosition? _safeBusPosition(Map<String, dynamic> json) {
+  try {
+    return _jsonToBusPosition(json);
+  } on FormatException {
+    return null;
+  } on TypeError {
+    return null;
+  }
+}
 
 BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
   final lat = (json['lat'] as num?)?.toDouble();
