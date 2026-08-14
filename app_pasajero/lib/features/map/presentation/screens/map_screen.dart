@@ -28,16 +28,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void initState() {
     super.initState();
-    final container = ProviderScope.containerOf(context);
     // Guarda la ruta elegida para reencontrarla en el próximo arranque.
-    ref.listen(selectedRouteProvider, (previous, next) {
+    // El container se obtiene dentro del callback (no en initState):
+    // ProviderScope.containerOf usa dependOnInheritedWidget y está prohibido
+    // antes de que el widget se monte.
+    ref.listenManual(selectedRouteProvider, (previous, next) {
       if (next == null) return;
+      final container = ProviderScope.containerOf(context);
       final company = container.read(selectedCompanyProvider);
       if (company == null) return;
       unawaited(persistRouteSelection(container, next.id, company.id));
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final container = ProviderScope.containerOf(context);
       ref.read(realtimeServiceProvider).connect();
       ref.read(userLocationProvider.notifier).initialize();
       ref.read(proximityAlertsProvider.notifier).start();

@@ -400,10 +400,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             _kBusIconId
           ],
           iconSize: [
-            'case',
-            ['==', ['get', 'isSelected'], true],
-            ['interpolate', ['linear'], ['zoom'], 11, 1.5, 15, 2.5],
-            ['interpolate', ['linear'], ['zoom'], 11, 1.0, 15, 2.0]
+            // MapLibre nativo permite UNA interpolación por zoom por
+            // expresión; el tamaño según selección se elige en el output.
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            11,
+            ['case', [['get', 'isSelected'], true], 1.5, 1.0],
+            15,
+            ['case', [['get', 'isSelected'], true], 2.5, 2.0]
           ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
