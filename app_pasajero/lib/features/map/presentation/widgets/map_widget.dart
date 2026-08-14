@@ -825,6 +825,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             compassEnabled: false,
             myLocationEnabled: false,
             onMapClick: (point, latLng) async {
+              // El mapa aún no está listo (estilo/fuentes cargando): no se
+              // pueden colocar pins ni seleccionar buses sobre un mapa que
+              // todavía no pinta. El placeholder además bloquea el toque.
+              if (!_layersReady) return;
               // Un bus cerca del toque (aunque quede debajo/encima del pin) se
               // selecciona y NO se mueve el pin manual.
               if (await _selectBusAtTap(point)) return;
@@ -879,8 +883,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         if (!visible && _placeholderShown) setState(() => _placeholderShown = false);
       },
       child: _placeholderShown
-          ? const IgnorePointer(
-              child: ColoredBox(
+          ? GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              child: const ColoredBox(
                 color: AppColors.background,
                 child: Center(
                   child: Column(
