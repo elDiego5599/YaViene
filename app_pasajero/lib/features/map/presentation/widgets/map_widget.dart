@@ -129,7 +129,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _stopsSub?.close();
     _busAnimTimer?.cancel();
     _busAnimTimer = null;
-    _mapController?.dispose();
+    // El plugin ya desecha el controller al desmontar el MapView; volver a
+    // llamar dispose() sobre uno desechado lanza una excepción.
+    if (_mapController != null && !_mapController!.isDisposed) {
+      _mapController!.dispose();
+    }
     super.dispose();
   }
 
@@ -401,14 +405,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           ],
           iconSize: [
             // MapLibre nativo permite UNA interpolación por zoom por
-            // expresión; el tamaño según selección se elige en el output.
+            // expresión; el tamaño según selección se elige en el output
+            // con un 'case' en formato plano (cond → valor, else).
             'interpolate',
             ['linear'],
             ['zoom'],
             11,
-            ['case', [['get', 'isSelected'], true], 1.5, 1.0],
+            ['case', ['==', ['get', 'isSelected'], true], 1.5, 1.0],
             15,
-            ['case', [['get', 'isSelected'], true], 2.5, 2.0]
+            ['case', ['==', ['get', 'isSelected'], true], 2.5, 2.0]
           ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
