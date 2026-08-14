@@ -37,10 +37,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.text('Continuar'));
 
-    // Un correo nuevo va directo al paso de perfil (checkEmail trata
-    // 'invalid-credential'/desconocido como correo nuevo). El enlace
-    // "¿No tienes cuenta?" solo se usa como respaldo si por algo cayera
-    // al paso de contraseña.
+    // checkEmail con Firebase en modo anti-enumeración devuelve "el correo
+    // ya existe" incluso para correos nuevos (el probe falla con
+    // 'invalid-credential' y se trata como existente). El registro real se
+    // alcanza por el enlace "¿No tienes cuenta? Crea una con este correo".
     await _waitUntil(
       tester,
       () =>
