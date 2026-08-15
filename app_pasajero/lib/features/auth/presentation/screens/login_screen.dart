@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -441,9 +440,11 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   Center(
                                     child: TextButton(
                                       onPressed: _goBack,
-                                      child: const Text(
-                                        'Cambiar de correo',
-                                        style: TextStyle(
+                                      child: Text(
+                                        _emailController.text.trim().isEmpty
+                                            ? 'Regresar'
+                                            : 'Cambiar de correo',
+                                        style: const TextStyle(
                                           color: Color(0xFF64748B),
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -536,10 +537,6 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                     ),
                                   ),
                                 ],
-                                if (!kReleaseMode) ...[
-                                  const SizedBox(height: 8),
-                                  _DebugSkipButton(),
-                                ],
                               ],
                             ),
                           ),
@@ -628,26 +625,6 @@ class _Field extends StatelessWidget {
             borderSide: const BorderSide(color: Color(0xFF00A859), width: 2),
           ),
           disabledBorder: InputBorder.none,
-        ),
-      ),
-    );
-  }
-}
-
-class _DebugSkipButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: TextButton(
-        onPressed: () => goToHome(context),
-        child: const Text(
-          'Saltar inicio de sesión (Modo Pruebas)',
-          style: TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
         ),
       ),
     );

@@ -42,6 +42,10 @@ void main() {
       timeout: const Duration(seconds: 15),
       message: 'el botón Regístrate no llevó al paso de crear cuenta',
     );
+    // Sin correo escrito aún: el botón de volver debe decir "Regresar", no
+    // "Cambiar de correo" (no hay correo que cambiar).
+    expect(find.text('Cambiar de correo'), findsNothing);
+    expect(find.text('Regresar'), findsOneWidget);
     await tester.enterText(
         find.widgetWithText(TextField, 'Email'), email);
     await tester.enterText(find.widgetWithText(TextField, 'Nombre'), 'QA Tester');
@@ -182,6 +186,9 @@ void main() {
       timeout: const Duration(seconds: 20),
       message: 'no se llegó a la pantalla de login tras cerrar sesión',
     );
+    // Anti-tontos: ya sin sesión no debe existir ningún botón para saltarse
+    // el inicio de sesión y colarse al mapa.
+    expect(find.text('Saltar inicio de sesión (Modo Pruebas)'), findsNothing);
 
     // 6) Volver a entrar con la cuenta ya creada (usuario que vuelve).
     await tester.enterText(find.byType(TextField).first, email);

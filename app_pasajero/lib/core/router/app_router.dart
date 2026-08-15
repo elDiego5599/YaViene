@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
@@ -22,9 +23,22 @@ abstract class AppRoutes {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // Rutas que requieren sesión iniciada: sin cuenta, cualquier intento de
+  // llegar aquí rebota al login. Anti-tontos: aunque un camino interno o un
+  // deep link intentara saltarse el inicio de sesión, el mapa y sus pantallas
+  // quedan inaccesibles sin un usuario verificado.
+  const protected = {AppRoutes.onboarding, AppRoutes.map, AppRoutes.notifications};
   return GoRouter(
     debugLogDiagnostics: true,
     initialLocation: AppRoutes.splash,
+    redirect: (context, state) {
+      final auth = ref.read(authProvider);
+      if (auth.state.status != AuthStatus.verified &&
+          protected.contains(state.matchedLocation)) {
+        return AppRoutes.login;
+      }
+      return null;
+    },
     routes: [
       GoRoute(
         path: AppRoutes.splash,
