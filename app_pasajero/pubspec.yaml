@@ -36,12 +36,12 @@ dependencies:
   path: ^1.9.0
 
   # ── UI ────────────────────────────────────────────────────────────────────────
-  # NOTA: SIN google_fonts. Las fuentes Inter se registran nativamente en la
-  # sección `flutter.fonts` de este archivo y se leen del bundle de la app.
+  # NOTA: SIN google_fonts. La fuente Plus Jakarta Sans se registra
+  # nativamente en la sección `flutter.fonts` de este archivo y se lee del
+  # bundle de la app (ya_viene_core la referencia por nombre 'PlusJakartaSans').
   # Esto elimina el FOUT (Flash of Unstyled Text) y la dependencia de red.
   cached_network_image: ^3.3.1
   flutter_svg: ^2.0.10+1
-  google_fonts: ^6.1.0
 
   # ── Firebase ──────────────────────────────────────────────────────────────────
   firebase_core: ^3.6.0
@@ -69,6 +69,22 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
 
   assets:
     - assets/images/

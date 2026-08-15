@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 abstract class AppColors {
   static const Color primaryDeep = Color(0xFF14274E);
@@ -66,7 +65,10 @@ abstract class AppShadows {
 }
 
 abstract class AppTextStyles {
-  static final TextStyle _base = GoogleFonts.plusJakartaSans(
+  // La fuente vive en el bundle de cada app (sección `flutter.fonts`), NO se
+  // descarga por red en runtime: sin FOUT ni dependencia de Google Fonts.
+  static const TextStyle _base = TextStyle(
+    fontFamily: 'PlusJakartaSans',
     color: AppColors.textPrimary,
     decoration: TextDecoration.none,
     letterSpacing: -0.3,
@@ -111,7 +113,8 @@ abstract class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+      // Fuente del bundle de la app (Plus Jakarta Sans), como AppTextStyles.
+      fontFamily: 'PlusJakartaSans',
 
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,

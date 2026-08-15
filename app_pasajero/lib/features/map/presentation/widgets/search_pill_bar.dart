@@ -60,20 +60,27 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                 onTapDown: (_) => setState(() => _menuPressed = true),
                 onTapUp: (_) => setState(() => _menuPressed = false),
                 onTapCancel: () => setState(() => _menuPressed = false),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _menuPressed
-                        ? const Color(0xFFF1F5F9)
-                        : Colors.transparent,
-                  ),
-                  child: const Icon(
-                    Icons.menu_rounded,
-                    color: Color(0xFF14274E),
-                    size: 22,
+                child: Semantics(
+                  button: true,
+                  label: 'Abrir menú',
+                  child: Tooltip(
+                    message: 'Menú',
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _menuPressed
+                            ? const Color(0xFFF1F5F9)
+                            : Colors.transparent,
+                      ),
+                      child: const Icon(
+                        Icons.menu_rounded,
+                        color: Color(0xFF14274E),
+                        size: 22,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -154,6 +161,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     required Color iconColor,
     required IconData icon,
     required VoidCallback onTap,
+    required String semanticLabel,
   }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -161,17 +169,24 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       onTapDown: (_) => setState(() => _actionPressed = true),
       onTapUp: (_) => setState(() => _actionPressed = false),
       onTapCancel: () => setState(() => _actionPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _actionPressed
-              ? const Color(0xFFF1F5F9)
-              : Colors.transparent,
+      child: Semantics(
+        button: true,
+        label: semanticLabel,
+        child: Tooltip(
+          message: semanticLabel,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _actionPressed
+                  ? const Color(0xFFF1F5F9)
+                  : Colors.transparent,
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
         ),
-        child: Icon(icon, color: iconColor, size: 20),
       ),
     );
   }
@@ -180,6 +195,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     return _buildActionButton(
       iconColor: const Color(0xFFDC2626),
       icon: Icons.close_rounded,
+      semanticLabel: 'Quitar ruta activa',
       onTap: () {
         HapticFeedback.mediumImpact();
         ref.read(selectedRouteProvider.notifier).clear();
@@ -191,6 +207,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     return _buildActionButton(
       iconColor: const Color(0xFF14274E),
       icon: Icons.tune_rounded,
+      semanticLabel: 'Cambiar ruta',
       onTap: () {
         HapticFeedback.lightImpact();
         showModalBottomSheet(
