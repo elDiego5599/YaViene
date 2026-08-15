@@ -10,6 +10,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 
 abstract class AppRoutes {
@@ -18,6 +19,7 @@ abstract class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String map = '/map';
   static const String notifications = '/notifications';
+  static const String profile = '/profile';
   static const String routeDetail = '/route/:routeId';
   static const String alertSettings = '/alerts';
 }
@@ -27,7 +29,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // llegar aquí rebota al login. Anti-tontos: aunque un camino interno o un
   // deep link intentara saltarse el inicio de sesión, el mapa y sus pantallas
   // quedan inaccesibles sin un usuario verificado.
-  const protected = {AppRoutes.onboarding, AppRoutes.map, AppRoutes.notifications};
+  const protected = {
+    AppRoutes.onboarding,
+    AppRoutes.map,
+    AppRoutes.notifications,
+    AppRoutes.profile,
+  };
   // Mantener el router pendiente del estado de auth: si la sesión se revoca o
   // se cierra en segundo plano, el redirect vuelve a evaluarse y expulsa al
   // usuario de las rutas protegidas sin esperar a una navegación explícita.
@@ -72,6 +79,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.notifications,
         name: 'notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        name: 'profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
     errorBuilder: (context, state) => const _NotFoundScreen(),

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -148,12 +146,25 @@ class RouteSelectorSheet extends ConsumerWidget {
 
               ElevatedButton(
                 onPressed: selectedRoute != null
-                    ? () {
+                    ? () async {
                         HapticFeedback.mediumImpact();
-                        unawaited(triggerDemoBuses(
+                        final started = await triggerDemoBuses(
                           selectedCompany?.id ?? '',
                           selectedRoute.id,
-                        ));
+                        );
+                        if (!context.mounted) return;
+                        if (!started) {
+                          // Sin confirmación del backend la hoja no se cierra
+                          // aparentando éxito: se queda para reintentar.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'No pudimos iniciar los buses demo · Reintentar'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
                         Navigator.pop(context);
                       }
                     : null,

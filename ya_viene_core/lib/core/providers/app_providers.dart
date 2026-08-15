@@ -32,19 +32,29 @@ Future<List<T>> _getJsonList<T>(
       .toList();
 }
 
-/// Lanza los buses simulados de la demo para una ruta (best effort:
-/// si el backend no tiene el endpoint o falla, el flujo sigue igual).
-Future<void> triggerDemoBuses(String companyId, String routeId) async {
+/// Lanza los buses simulados de la demo para una ruta. Devuelve `true` si el
+/// backend confirmó el arranque (HTTP 200); `false` ante error de red, timeout
+/// o respuesta no exitosa, para que la UI no aparente éxito en falso.
+/// [client] se inyecta en tests; por defecto usa el cliente global.
+Future<bool> triggerDemoBuses(
+  String companyId,
+  String routeId, {
+  http.Client? client,
+}) async {
+  final httpClient = client ?? http.Client();
   try {
-    await http
+    final response = await httpClient
         .post(
           Uri.parse('$_backendUrl/api/demo/buses'),
           headers: {'content-type': 'application/json'},
           body: jsonEncode({'companyId': companyId, 'routeId': routeId}),
         )
         .timeout(const Duration(seconds: 5));
+    return response.statusCode == 200;
   } catch (_) {
-    // Ignorado a propósito: la demo no debe romper el flujo del pasajero.
+    return false;
+  } finally {
+    if (client == null) httpClient.close();
   }
 }
 

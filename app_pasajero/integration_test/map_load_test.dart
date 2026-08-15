@@ -175,6 +175,35 @@ void main() {
       message: 'no se volvió al mapa',
     );
 
+    // 4b) Mi Perfil abre una pantalla real (BUG-08: antes solo cerraba el drawer).
+    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await _waitUntil(
+      tester,
+      () => find.text('Mi Perfil').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 10),
+      message: 'no abrió el drawer para ir a perfil',
+    );
+    await tester.tap(find.text('Mi Perfil'));
+    await _waitUntil(
+      tester,
+      () =>
+          find.text('Mi Perfil').evaluate().isNotEmpty &&
+          find.text('Cerrar sesión').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 15),
+      message: 'la pantalla de perfil no abrió',
+    );
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await _waitUntil(
+      tester,
+      () =>
+          find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty &&
+          // El ícono del menú no es tocable durante la transición de vuelta
+          // al mapa: esperar a que esté realmente en pantalla (x > 30 px).
+          tester.getCenter(find.byIcon(Icons.menu_rounded)).dx > 30,
+      timeout: const Duration(seconds: 15),
+      message: 'no se volvió al mapa tras el perfil',
+    );
+
     // 5) Cerrar sesión → login.
     await tester.tap(find.byIcon(Icons.menu_rounded));
     await _waitUntil(

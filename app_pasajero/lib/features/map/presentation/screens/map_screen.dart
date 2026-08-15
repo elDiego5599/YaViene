@@ -185,7 +185,10 @@ class _PremiumDrawer extends ConsumerWidget {
                 bgColor: const Color(0xFFEEF2FF),
                 iconColor: const Color(0xFF4F46E5),
                 title: 'Mi Perfil',
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/profile');
+                },
               ),
               const SizedBox(height: 16),
               _DrawerItem(
@@ -207,10 +210,7 @@ class _PremiumDrawer extends ConsumerWidget {
                 iconColor: const Color(0xFFDC2626),
                 title: 'Cerrar sesión',
                 onTap: () async {
-                  await resetAppState(ref);
-                  await ref.read(authProvider).signOut();
-                  if (!context.mounted) return;
-                  context.go('/login');
+                  await signOutAndGoToLogin(ref, context);
                 },
               ),
             ],
