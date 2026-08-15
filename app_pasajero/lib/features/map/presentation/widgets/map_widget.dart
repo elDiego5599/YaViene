@@ -120,6 +120,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
     // un fallo de MapLibre), el placeholder nunca debe quedarse para
     // siempre. Pasado el límite se funde y deja ver el mapa (o el fondo).
+    _scheduleStyleTimeout();
+  }
+
+  /// Programa (o reprograma) el timeout del estilo: si pasan 7 s sin que las
+  /// capas estén listas, el placeholder se funde y se ofrece "Reintentar".
+  /// Se vuelve a llamar en cada reintento: un segundo fallo debe mostrar el
+  /// banner otra vez, no quedarse en "Preparando tu mapa…" para siempre.
+  void _scheduleStyleTimeout() {
+    _placeholderTimeout?.cancel();
     _placeholderTimeout = Timer(const Duration(seconds: 7), () {
       if (!mounted) return;
       if (!_layersReady && _placeholderShown) {
@@ -144,6 +153,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _styleInitInFlight = false;
       _placeholderShown = true;
     });
+    // Nuevo intento: hay que reprogramar el timeout, o un segundo fallo se
+    // quedaría en "Preparando tu mapa…" sin banner (BUG-04).
+    _scheduleStyleTimeout();
   }
 
   @override
@@ -170,6 +182,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _lifecycleState = state;
     ref.read(appLifecycleProvider.notifier).state = state;
+    if (state == AppLifecycleState.resumed) {
+      // En background se descartaron posiciones (el listener está gateado);
+      // al volver se reaplica el último valor del provider, o el mapa se
+      // quedaría congelado hasta el próximo paquete del socket (BUG-05).
+      _reapplyLastPositions();
+    }
+  }
+
+  /// Reaplica al mapa las últimas posiciones conocidas de la ruta activa.
+  void _reapplyLastPositions() {
+    final routeId = widget.routeId;
+    if (routeId == null || !mounted || !_layersReady) return;
+    final positions = ref.read(busPositionsSourceProvider(routeId)).value;
+    if (positions != null) _updateBusSourceData(positions);
   }
 
   void _setupBusSubscription(String routeId) {

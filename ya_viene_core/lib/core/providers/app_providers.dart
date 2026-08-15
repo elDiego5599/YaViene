@@ -127,8 +127,12 @@ final companiesProvider = FutureProvider.autoDispose<List<Company>>((ref) async 
   return _getJsonList('/api/companies', Company.fromJson);
 });
 
+// La empresa seleccionada es parte del estado persistente de la sesión (no
+// es temporal de la hoja): con autoDispose, al cerrar el selector se
+// desechaba y al reabrirlo decía "Primero selecciona una empresa" aunque la
+// ruta siguiera activa. La limpieza explícita la hace resetAppState.
 final selectedCompanyProvider =
-    StateNotifierProvider.autoDispose<_SelectedCompanyNotifier, Company?>(
+    StateNotifierProvider<_SelectedCompanyNotifier, Company?>(
       (ref) => _SelectedCompanyNotifier(),
     );
 

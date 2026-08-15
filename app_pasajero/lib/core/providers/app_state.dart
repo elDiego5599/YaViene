@@ -17,6 +17,7 @@ import '../prefs_keys.dart';
 /// sesión.
 Future<void> resetAppState(WidgetRef ref) async {
   ref.read(selectedRouteProvider.notifier).clear();
+  ref.read(selectedCompanyProvider.notifier).clear();
   ref.read(selectedBusesProvider.notifier).clear();
   ref.read(activeAlertsProvider.notifier).clear();
   ref.read(proximityAlertsProvider.notifier).clear();
@@ -35,6 +36,7 @@ Future<void> resetAppState(WidgetRef ref) async {
 /// reencuentra su ruta y su pin, y `restoreLastRoute` vuelve a funcionar.
 Future<void> resetTransientState(WidgetRef ref) async {
   ref.read(selectedRouteProvider.notifier).clear();
+  ref.read(selectedCompanyProvider.notifier).clear();
   ref.read(selectedBusesProvider.notifier).clear();
   ref.read(activeAlertsProvider.notifier).clear();
   ref.read(proximityAlertsProvider.notifier).clear();
