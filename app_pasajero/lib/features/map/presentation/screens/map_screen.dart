@@ -103,7 +103,9 @@ class _PremiumDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final email = ref.watch(authProvider).state.email;
+    final auth = ref.watch(authProvider).state;
+    final email = auth.email;
+    final name = (auth.name ?? '').trim();
 
     return Drawer(
       backgroundColor: const Color(0xFF14274E),
@@ -162,17 +164,19 @@ class _PremiumDrawer extends ConsumerWidget {
                               letterSpacing: -0.4,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            email ?? 'Sesión iniciada',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF94A3B8),
-                            ),
-                          ),
+const SizedBox(height: 4),
+                      Text(
+                        name.isNotEmpty
+                            ? name
+                            : email ?? 'Sesión iniciada',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
                         ],
                       ),
                     ),
