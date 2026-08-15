@@ -39,6 +39,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// aviso siga midiendo aunque el usuario esté viendo otra ruta.
   final _alertRoutes = <String, String>{};
 
+  /// Referencia geográfica de cada aviso armado con pin manual (snapshot de
+  /// la ubicación al armarse). `null` = se mide en vivo contra la ubicación
+  /// actual (GPS activo, o todavía sin ubicación al armar).
+  final _alertRefs = <String, (double, double)?>{};
+
   /// Suscripciones de posiciones por ruta armada: solo se mantienen mientras
   /// haya avisos activos en esa ruta.
   final _routeSubs = <String, ProviderSubscription<AsyncValue<List<BusPosition>>>>{};
@@ -75,6 +80,15 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta.
   void armAlert(String busId, String routeId) {
     _alertRoutes[busId] = routeId;
+    // Ancla del aviso: si el usuario está con pin manual, el aviso se fija a
+    // ESA ubicación. Aunque luego quite el pin (sin GPS la app queda sin
+    // ubicación) o ponga otro pin, el aviso sigue midiendo desde donde se
+    // armó. Con GPS activo la referencia queda null → se mide en vivo.
+    final location = _ref.read(userLocationProvider);
+    _alertRefs[busId] =
+        location.mode == UserLocationMode.manual && location.hasPosition
+            ? (location.lat!, location.lon!)
+            : null;
     _routeSubs.putIfAbsent(routeId, () {
       return _ref.listen<AsyncValue<List<BusPosition>>>(
         busPositionsSourceProvider(routeId),
@@ -89,6 +103,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Olvida la ruta del bus; si era el último aviso de esa ruta, se cierra la
   /// suscripción (se desuscribe del socket).
   void disarmAlert(String busId) {
+    _alertRefs.remove(busId);
     final routeId = _alertRoutes.remove(busId);
     if (routeId == null) return;
     if (!_alertRoutes.containsValue(routeId)) {
@@ -101,6 +116,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   void clear() {
     state = {};
     _alertRoutes.clear();
+    _alertRefs.clear();
     for (final sub in _routeSubs.values) {
       sub.close();
     }
@@ -115,6 +131,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       sub.close();
     }
     _routeSubs.clear();
+    _alertRefs.clear();
     super.dispose();
   }
 
@@ -125,7 +142,12 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       return;
     }
     final location = _ref.read(userLocationProvider);
-    if (!location.hasPosition) return;
+    // Referencia por defecto: la ubicación actual (GPS o pin). Un aviso armado
+    // con pin manual usa SU snapshot (_alertRefs) aunque la ubicación actual
+    // haya desaparecido (pin quitado) o haya cambiado (pin nuevo): por eso ya
+    // no se sale temprano cuando no hay posición en vivo.
+    final liveRef =
+        location.hasPosition ? (location.lat!, location.lon!) : null;
 
     final rearm = <String>{};
     final fire = <String, int>{};
@@ -144,7 +166,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         }
       }
       if (pos == null || pos.isGhostBus) continue;
-      final distance = haversineMeters(location.lat!, location.lon!, pos.lat, pos.lon);
+      final ref = _alertRefs[busId] ?? liveRef;
+      if (ref == null) continue;
+      final distance = haversineMeters(ref.$1, ref.$2, pos.lat, pos.lon);
       if (state.contains(busId)) {
         if (distance > alertReArmMeters) rearm.add(busId);
       } else if (distance <= alertRadiusMeters) {

@@ -181,6 +181,60 @@ void main() {
     await posController.close();
   });
 
+  test('el aviso armado con pin manual sigue sonando si luego quitan el pin',
+      () async {
+    // Usuario con pin manual en su parada (sin permiso de GPS).
+    final notifier =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.2442,
+      lon: -75.5812,
+      updatedAt: DateTime.now(),
+    ));
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+
+    // Quitan el pin y no hay GPS: la app se queda sin ubicación (BUG: el
+    // aviso quedaba congelado, "activo" pero sin sonar nunca).
+    notifier.set(const UserLocationState(mode: UserLocationMode.denied));
+
+    await container.read(proximityAlertsProvider.notifier).check();
+
+    expect(fired, hasLength(1), reason: 'el aviso debe sonar con el ancla');
+    expect(fired.single.busId, 'A-1');
+  });
+
+  test('un pin nuevo NO mueve un aviso ya armado con otro pin', () async {
+    final notifier =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    // Pin en la parada original.
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.2442,
+      lon: -75.5812,
+      updatedAt: DateTime.now(),
+    ));
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+
+    // Pin nuevo a ~12 km: lejos del bus. El aviso debe seguir midiendo desde
+    // la parada original (donde se armó), no desde el pin nuevo.
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.35,
+      lon: -75.55,
+      updatedAt: DateTime.now(),
+    ));
+
+    await container.read(proximityAlertsProvider.notifier).check();
+
+    expect(fired, hasLength(1));
+    expect(fired.single.busId, 'A-1');
+  });
+
   test('el aviso mide en la ruta del bus aunque la pantalla muestre otra',
       () async {
     // Bus A-2 pertenece a R2, pero la ruta seleccionada es R1: el aviso debe
