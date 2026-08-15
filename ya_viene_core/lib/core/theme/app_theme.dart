@@ -4,7 +4,15 @@ abstract class AppColors {
   static const Color primaryDeep = Color(0xFF14274E);
   static const Color primary = Color(0xFF00A859);
   static const Color primaryTint = Color(0xFFE6F7F0);
-  
+
+  // ── Identidad "movilidad urbana editorial" (Fase 1) ───────────────────
+  /// Arena cálida: superficies de tarjetas y estados vacíos.
+  static const Color arena = Color(0xFFFAF6F0);
+  /// Coral suave: excepciones importantes (bus sin señal, avisos críticos).
+  static const Color coral = Color(0xFFE86A5E);
+  /// Azul eléctrico: reservado a la ruta activa del usuario y su métrica.
+  static const Color electricBlue = Color(0xFF2563EB);
+
   static const Color background = Color(0xFFF8F9FA);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF1F5F9);
