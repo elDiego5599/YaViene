@@ -157,6 +157,9 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
           timeLimit: Duration(seconds: 15),
         ),
       );
+      // Si mientras esperábamos el GPS el usuario tocó el mapa para fijar su
+      // pin manual, el GPS no debe sobrescribirlo.
+      if (state.mode == UserLocationMode.manual) return;
       state = UserLocationState(
         mode: UserLocationMode.gps,
         lat: position.latitude,

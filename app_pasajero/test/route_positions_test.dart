@@ -48,6 +48,9 @@ class _FakeRealtimeService implements RealtimeRepository {
       subscribedRoutes.remove(routeId);
 
   @override
+  void disconnect() {}
+
+  @override
   void dispose() {
     _connectionState.close();
     _busPosition.close();

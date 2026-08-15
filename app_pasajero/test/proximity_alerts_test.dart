@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
@@ -112,5 +114,119 @@ void main() {
 
     expect(fired, hasLength(1));
     expect(container.read(activeAlertsProvider), isEmpty);
+  });
+
+  test('re-arma el aviso no vuelve a disparar mientras el bus sigue cerca '
+      '(histéresis con rearm > radio)', () async {
+    // Bus a ~800 m: dentro del radio de alerta (1000 m) pero por debajo del
+    // radio de rearm (1500 m). Con la histéresis invertida este caso
+    // re-disparaba en bucle cada vez que se re-armaba.
+    final busAt800m = BusPosition(
+      busId: 'A-1',
+      routeId: 'R1',
+      lat: 6.2514,
+      lon: -75.5812,
+      heading: 0,
+      speedKmh: 20,
+      timestamp: DateTime.now(),
+      isGhostBus: false,
+    );
+    final posController = StreamController<List<BusPosition>>.broadcast();
+    final localFired = <({String busId, int distanceMeters})>[];
+    final c = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) {
+        final n = _TestUserLocation();
+        n.set(userHere);
+        return n;
+      }),
+      busPositionsSourceProvider.overrideWith(
+          (ref, routeId) => posController.stream),
+      proximityAlertsProvider.overrideWith((ref) {
+        return ProximityAlertsNotifier(
+          ref,
+          notify: ({required String busId, required int distanceMeters}) async {
+            localFired.add((busId: busId, distanceMeters: distanceMeters));
+          },
+        );
+      }),
+    ]);
+    addTearDown(c.dispose);
+    // La app mantiene viva la suscripción de la ruta activa (mapa/hoja); el
+    // test la imita para que las posiciones sigan disponibles tras disparar.
+    final keepAlive = c.listen<AsyncValue<List<BusPosition>>>(
+      busPositionsSourceProvider('R1'),
+      (_, __) {},
+    );
+    addTearDown(keepAlive.close);
+    c.read(selectedRouteProvider.notifier).select(route());
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    c.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+
+    posController.add([busAt800m]);
+    await Future<void>.delayed(Duration.zero);
+
+    final notifier = c.read(proximityAlertsProvider.notifier);
+    await notifier.check();
+    expect(localFired, hasLength(1));
+
+    // Al disparar, el bus salió de las alertas; el usuario lo re-arma con el
+    // bus todavía cerca (el re-arme vuelve a registrar la ruta, como en la
+    // hoja de la app).
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    c.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await notifier.check();
+    await notifier.check();
+
+    expect(localFired, hasLength(1), reason: 'no debe re-disparar sin rearmar');
+    await posController.close();
+  });
+
+  test('el aviso mide en la ruta del bus aunque la pantalla muestre otra',
+      () async {
+    // Bus A-2 pertenece a R2, pero la ruta seleccionada es R1: el aviso debe
+    // disparar igual (BUG-07).
+    final busB = BusPosition(
+      busId: 'A-2',
+      routeId: 'R2',
+      lat: 6.2442,
+      lon: -75.5812,
+      heading: 0,
+      speedKmh: 20,
+      timestamp: DateTime.now(),
+      isGhostBus: false,
+    );
+    final posController = StreamController<List<BusPosition>>.broadcast();
+    final localFired = <({String busId, int distanceMeters})>[];
+    final c = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) {
+        final n = _TestUserLocation();
+        n.set(userHere);
+        return n;
+      }),
+      busPositionsSourceProvider.overrideWith(
+          (ref, routeId) => posController.stream),
+      proximityAlertsProvider.overrideWith((ref) {
+        return ProximityAlertsNotifier(
+          ref,
+          notify: ({required String busId, required int distanceMeters}) async {
+            localFired.add((busId: busId, distanceMeters: distanceMeters));
+          },
+        );
+      }),
+    ]);
+    addTearDown(c.dispose);
+
+    // La pantalla muestra R1; el aviso se arma para A-2 de R2.
+    c.read(selectedRouteProvider.notifier).select(route());
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-2');
+    c.read(proximityAlertsProvider.notifier).armAlert('A-2', 'R2');
+    posController.add([busB]);
+    await Future<void>.delayed(Duration.zero);
+
+    await c.read(proximityAlertsProvider.notifier).check();
+
+    expect(localFired, hasLength(1));
+    expect(localFired.single.busId, 'A-2');
+    await posController.close();
   });
 }

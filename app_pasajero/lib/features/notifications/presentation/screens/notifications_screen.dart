@@ -68,9 +68,10 @@ class NotificationsScreen extends ConsumerWidget {
                           location.lat!, location.lon!, pos.lat, pos.lon)
                           .round()
                       : null,
-                  onDisable: () => ref
-                      .read(activeAlertsProvider.notifier)
-                      .toggleAlert(busId),
+                  onDisable: () {
+                    ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
+                    ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
+                  },
                 );
               },
             ),

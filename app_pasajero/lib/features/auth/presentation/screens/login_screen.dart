@@ -72,7 +72,9 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   @override
   void dispose() {
-    _auth?.removeListener(_sessionListener!);
+    if (_sessionListener != null) {
+      _auth?.removeListener(_sessionListener!);
+    }
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -113,7 +115,6 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     _submitting = true;
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
-    _loginFlowInProgress = true;
     final auth = ref.read(authProvider);
 
     if (_step == _Step.profile) {
@@ -133,6 +134,11 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
         return;
       }
     }
+
+    // El flag se activa solo cuando de verdad se va a autenticar: las
+    // validaciones locales que regresan antes no deben silenciar el
+    // auto-login (bug: _loginFlowInProgress quedaba true para siempre).
+    _loginFlowInProgress = true;
 
     final success = _step == _Step.profile
         ? await auth.register(

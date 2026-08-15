@@ -28,12 +28,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // deep link intentara saltarse el inicio de sesión, el mapa y sus pantallas
   // quedan inaccesibles sin un usuario verificado.
   const protected = {AppRoutes.onboarding, AppRoutes.map, AppRoutes.notifications};
+  // Mantener el router pendiente del estado de auth: si la sesión se revoca o
+  // se cierra en segundo plano, el redirect vuelve a evaluarse y expulsa al
+  // usuario de las rutas protegidas sin esperar a una navegación explícita.
+  final authNotifier = ref.read(authProvider);
   return GoRouter(
     debugLogDiagnostics: true,
     initialLocation: AppRoutes.splash,
+    refreshListenable: authNotifier,
     redirect: (context, state) {
-      final auth = ref.read(authProvider);
-      if (auth.state.status != AuthStatus.verified &&
+      // Leer el estado del notifier capturado, no `ref.read`: durante la
+      // notificación de GoRouteInformationProvider el elemento del provider
+      // aún tiene su dependencia cambiada y cualquier `ref` asertaría.
+      final auth = authNotifier.state;
+      if (auth.status != AuthStatus.verified &&
           protected.contains(state.matchedLocation)) {
         return AppRoutes.login;
       }

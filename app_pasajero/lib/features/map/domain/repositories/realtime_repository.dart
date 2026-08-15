@@ -16,6 +16,9 @@ abstract class RealtimeRepository {
   void connect();
   void subscribeToRoute(String routeId);
   void unsubscribeFromRoute(String routeId);
+  /// Cierra el socket y detiene el reintento sin destruir el servicio
+  /// (un login posterior puede reconectar con el mismo provider).
+  void disconnect();
   void dispose();
   bool get isConnected;
 }

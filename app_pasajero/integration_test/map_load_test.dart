@@ -166,7 +166,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
     await _waitUntil(
       tester,
-      () => find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty,
+      () =>
+          find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty &&
+          // El ícono del menú no es tocable durante la transición de vuelta
+          // al mapa: esperar a que esté realmente en pantalla (x > 30 px).
+          tester.getCenter(find.byIcon(Icons.menu_rounded)).dx > 30,
       timeout: const Duration(seconds: 15),
       message: 'no se volvió al mapa',
     );

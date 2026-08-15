@@ -108,7 +108,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     }
     HapticFeedback.mediumImpact();
+    final routeId = ref.read(selectedRouteProvider)?.id;
     notifier.toggleAlert(busId);
+    if (ref.read(activeAlertsProvider).contains(busId)) {
+      // Quedó armado: se registra la ruta para que el aviso mida aunque se
+      // cambie de ruta en pantalla.
+      if (routeId != null) {
+        ref.read(proximityAlertsProvider.notifier).armAlert(busId, routeId);
+      }
+    } else {
+      // Se desarmó: se libera la suscripción de su ruta.
+      ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
+    }
   }
 
   BusPosition? _busById(String busId) {
@@ -184,19 +195,19 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final busById = {for (final b in buses) b.busId: b};
 
     // Bus seleccionado que ya no está en la ruta (left/hidden/removed):
-    // se quita de la selección y de los avisos. Solo cuando la ruta ya
-    // cargó (value != null): mientras está cargando no se toca nada.
+    // se quita de la selección visual. Los AVISOS activos NO se tocan: un
+    // batch transitorio sin el bus (reconexión, silencio momentáneo) no debe
+    // destruir la alerta del usuario; solo el disparo, el usuario o el cierre
+    // de sesión la quitan.
     ref.listen<AsyncValue<List<BusPosition>>>(
         busPositionsSourceProvider(selectedRoute.id), (prev, next) {
       final loaded = next.value;
       if (loaded == null) return;
       final ids = {for (final b in loaded) b.busId};
       final selNotifier = ref.read(selectedBusesProvider.notifier);
-      final alertNotifier = ref.read(activeAlertsProvider.notifier);
       for (final id in ref.read(selectedBusesProvider).toList()) {
         if (ids.contains(id)) continue;
         if (ref.read(selectedBusesProvider).contains(id)) selNotifier.toggleBus(id);
-        if (ref.read(activeAlertsProvider).contains(id)) alertNotifier.toggleAlert(id);
       }
     });
 

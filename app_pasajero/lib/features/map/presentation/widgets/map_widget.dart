@@ -56,10 +56,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<UserLocationState>? _userPinSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
+  ProviderSubscription<Set<String>>? _busSelectionSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
   double _currentBottomInset = 0;
   bool _layersReady = false;
+  bool _styleFailed = false;
+  int _mapGeneration = 0;
   bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
   bool _placeholderShown = true;
@@ -107,14 +110,39 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {
       _applyMapBottomInset(next);
     });
+    // Selección de bus (desde la hoja): el mapa debe repintar el halo y el
+    // tamaño del ícono al instante, sin esperar el siguiente paquete GPS.
+    _busSelectionSubscription =
+        ref.listenManual<Set<String>>(selectedBusesProvider, (previous, next) {
+      if (!mounted || !_layersReady) return;
+      _pushBusSource();
+    });
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
     // un fallo de MapLibre), el placeholder nunca debe quedarse para
     // siempre. Pasado el límite se funde y deja ver el mapa (o el fondo).
     _placeholderTimeout = Timer(const Duration(seconds: 7), () {
       if (!mounted) return;
       if (!_layersReady && _placeholderShown) {
-        setState(() => _placeholderShown = false);
+        setState(() {
+          _placeholderShown = false;
+          // El estilo no llegó: sin feedback el mapa queda inerte. Se marca
+          // el fallo para ofrecer "Reintentar" en vez de una pantalla muda.
+          _styleFailed = true;
+        });
       }
+    });
+  }
+
+  /// Recrea el mapa desde cero (cambio de key) para reintentar cargar el
+  /// estilo tras un fallo de red/CDN.
+  void _retryMap() {
+    if (!mounted) return;
+    setState(() {
+      _mapGeneration++;
+      _styleFailed = false;
+      _layersReady = false;
+      _styleInitInFlight = false;
+      _placeholderShown = true;
     });
   }
 
@@ -125,6 +153,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
     _mapInsetSubscription?.close();
+    _busSelectionSubscription?.close();
     _trajectorySub?.close();
     _stopsSub?.close();
     _busAnimTimer?.cancel();
@@ -281,6 +310,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       }
       await _initializeMapSources();
       _layersReady = true;
+      // Si el estilo cargó tarde (tras el timeout), se quita el banner de error.
+      if (_styleFailed) _styleFailed = false;
       // CRÍTICO: el placeholder se construye según `_layersReady`; sin un
       // rebuild aquí se quedaría en "Preparando tu mapa…" aunque el estilo
       // ya haya cargado.
@@ -454,9 +485,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<bool> _doSelectBusAtTap(math.Point<double> point) async {
-    // Sin ubicación (GPS negado y sin pin) no hay distancias ni avisos que
-    // mostrar: el toque solo sirve para poner el pin.
-    if (!ref.read(userLocationProvider).hasPosition) return false;
     try {
       final features = await _mapController!.queryRenderedFeaturesInRect(
         Rect.fromCenter(
@@ -830,6 +858,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       children: [
         Positioned.fill(
           child: MapLibreMap(
+            key: ValueKey('map-$_mapGeneration'),
             onMapCreated: _onMapCreated,
             onStyleLoadedCallback: _onStyleLoadedCallback,
             // El mapa nativo silencia map#onMapClick cuando el toque cae sobre un
@@ -891,7 +920,50 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           ),
         ),
         _buildStylePlaceholder(),
+        _buildStyleFailedBanner(),
       ],
+    );
+  }
+
+  /// Si el estilo del mapa no llegó a cargar (red lenta, CDN bloqueado), en
+  /// vez de una pantalla inerte se ofrece reintentar.
+  Widget _buildStyleFailedBanner() {
+    if (!_styleFailed) return const SizedBox.shrink();
+    return Positioned(
+      top: 16,
+      left: 16,
+      right: 16,
+      child: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_off_rounded, color: Color(0xFFDC2626)),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'No se pudo cargar el mapa',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _retryMap,
+                child: const Text(
+                  'Reintentar',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

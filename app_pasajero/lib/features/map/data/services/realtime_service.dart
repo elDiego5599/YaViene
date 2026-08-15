@@ -140,6 +140,16 @@ class RealtimeService implements RealtimeRepository {
     _socket?.emit('subscribe:route', routeId);
   }
 
+  /// Cierra el socket y detiene el reintento, pero sin destruir el servicio:
+  /// un login posterior puede volver a [connect] con el mismo provider.
+  @override
+  void disconnect() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _subscriptions.clear();
+    _socket?.disconnect();
+  }
+
   @override
   void unsubscribeFromRoute(String routeId) {
     _subscriptions.remove(routeId);

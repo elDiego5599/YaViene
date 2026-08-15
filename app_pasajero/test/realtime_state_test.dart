@@ -68,6 +68,8 @@ class FakeRealtimeRepository implements RealtimeRepository {
   @override
   void unsubscribeFromRoute(String routeId) => unsubscribed.add(routeId);
   @override
+  void disconnect() {}
+  @override
   void dispose() {}
 }
 

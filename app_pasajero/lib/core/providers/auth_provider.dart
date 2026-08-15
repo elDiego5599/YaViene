@@ -272,9 +272,15 @@ class AuthNotifier extends ChangeNotifier {
     try {
       await _ensureGoogleInitialized();
       final googleUser = await _google.authenticate(scopeHint: ['email']);
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleUser.authentication.idToken,
-      );
+      final idToken = googleUser.authentication.idToken;
+      // Sin idToken (plataforma/dispositivo sin Play Services o configuración
+      // incompleta) el credential de Firebase no se puede construir.
+      if (idToken == null) {
+        _state = const AuthState(status: AuthStatus.error, errorMessage: 'No se pudo obtener la sesión de Google');
+        notifyListeners();
+        return false;
+      }
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
       final result = await _auth.signInWithCredential(credential);
       _state = AuthState(
         status: AuthStatus.verified,
