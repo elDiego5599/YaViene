@@ -93,6 +93,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kUserPinSourceId = 'user-pin-source';
   static const _kUserPinLayerId = 'user-pin-layer';
   static const _kUserPinIconId = 'user-pin-icon';
+  /// Id del feature GeoJSON del pin. La plataforma nativa lo reporta en los
+  /// eventos de arrastre (`feature#onDrag`) para filtrar que el gesto sea del
+  /// pin del usuario y no de otra capa.
+  static const _kUserPinFeatureId = 'user-pin-feature';
   static const _kUserRadiusSourceId = 'user-radius-source';
   static const _kUserRadiusFillLayerId = 'user-radius-fill-layer';
   static const _kUserRadiusLineLayerId = 'user-radius-line-layer';
@@ -240,34 +244,41 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     const emptyGeoJson = {"type": "FeatureCollection", "features": []};
 
     if (state.hasPosition) {
-      _mapController!.setGeoJsonSource(_kUserRadiusSourceId, {
-        'type': 'FeatureCollection',
-        'features': [
-          _radiusCircleFeature(
-            state.lat!,
-            state.lon!,
-            nearbyRadiusMeters.toDouble(),
-          ),
-        ],
-      });
-      // Pin en el centro del usuario: con GPS activo o pin manual.
-      _mapController!.setGeoJsonSource(_kUserPinSourceId, {
-        'type': 'FeatureCollection',
-        'features': [
-          {
-            'type': 'Feature',
-            'geometry': {
-              'type': 'Point',
-              'coordinates': [state.lon, state.lat]
-            },
-            'properties': const {},
-          },
-        ],
-      });
+      _renderPin(state.lat!, state.lon!);
       return;
     }
     _mapController!.setGeoJsonSource(_kUserPinSourceId, emptyGeoJson);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, emptyGeoJson);
+  }
+
+  /// Pinta el pin y su radio "cerca de ti" en [lat], [lon]. Se usa tanto para
+  /// reflejar el estado (GPS o manual) como durante el arrastre del pin, para
+  /// que siga al dedo en tiempo real sin esperar al fin del gesto.
+  void _renderPin(double lat, double lon) {
+    if (_mapController == null || !mounted) return;
+    _mapController!.setGeoJsonSource(_kUserRadiusSourceId, {
+      'type': 'FeatureCollection',
+      'features': [
+        _radiusCircleFeature(lat, lon, nearbyRadiusMeters.toDouble()),
+      ],
+    });
+    // 'draggable': true es lo que la plataforma nativa consulta para decidir
+    // si el gesto de mover el dedo sobre el pin lo ARRASTRA en vez de hacer
+    // paneo del mapa (MapLibreMapController.startDragging).
+    _mapController!.setGeoJsonSource(_kUserPinSourceId, {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'id': _kUserPinFeatureId,
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [lon, lat]
+          },
+          'properties': const {'draggable': true},
+        },
+      ],
+    });
   }
 
   Map<String, dynamic> _radiusCircleFeature(
@@ -480,6 +491,26 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     _mapController!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) async {
       await _selectBusAtTap(point);
+    });
+
+    // Arrastre del pin del usuario (UX tipo Google Maps): el gesto empieza
+    // sobre el pin (feature 'draggable') y la plataforma lo consume en vez de
+    // panear el mapa. 'drag' pinta el pin donde está el dedo en vivo y 'end'
+    // lo guarda como pin manual (cancela el GPS si estaba activo).
+    _mapController!.onFeatureDrag.add((point, origin, current, delta, id, annotation, eventType) {
+      if (id != _kUserPinFeatureId || !mounted) return;
+      switch (eventType) {
+        case DragEventType.start:
+          break;
+        case DragEventType.drag:
+          _renderPin(current.latitude, current.longitude);
+          break;
+        case DragEventType.end:
+          ref
+              .read(userLocationProvider.notifier)
+              .setManualPin(current.latitude, current.longitude);
+          break;
+      }
     });
   }
 
@@ -928,7 +959,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                   _pinMoveHintShown = true;
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text(
-                        'Tu pin está fijo: quítalo y vuelve a tocar para moverlo'),
+                        'Arrastra el pin para moverlo a donde quieras'),
                   ));
                 }
                 return;
