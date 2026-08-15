@@ -198,7 +198,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       semanticLabel: 'Quitar ruta activa',
       onTap: () {
         HapticFeedback.mediumImpact();
+        // Quitar la ruta activa deja la elección en blanco: también se limpia
+        // la empresa para que la nueva elección empiece desde cero.
         ref.read(selectedRouteProvider.notifier).clear();
+        ref.read(selectedCompanyProvider.notifier).clear();
       },
     );
   }
