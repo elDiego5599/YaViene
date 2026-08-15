@@ -28,3 +28,17 @@ Future<void> resetAppState(WidgetRef ref) async {
   await prefs.remove(PrefsKeys.savedCompanyId);
   await ref.read(userLocationProvider.notifier).clearManualPin();
 }
+
+/// Arranque en frío: limpia el estado efímero (selecciones, avisos, sockets)
+/// SIN tocar la persistencia (ruta/empresa guardadas ni el pin manual). Es la
+/// diferencia con [resetAppState] (logout): al reabrir la app el usuario
+/// reencuentra su ruta y su pin, y `restoreLastRoute` vuelve a funcionar.
+Future<void> resetTransientState(WidgetRef ref) async {
+  ref.read(selectedRouteProvider.notifier).clear();
+  ref.read(selectedBusesProvider.notifier).clear();
+  ref.read(activeAlertsProvider.notifier).clear();
+  ref.read(proximityAlertsProvider.notifier).clear();
+  ref.read(proximityAlertsProvider.notifier).stop();
+  ref.read(realtimeServiceProvider).disconnect();
+  BackgroundKeepAlive.stop();
+}

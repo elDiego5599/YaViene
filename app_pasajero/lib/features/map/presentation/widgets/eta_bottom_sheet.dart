@@ -164,20 +164,22 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedBuses = ref.watch(selectedBusesProvider);
 
-    // Cambio de ruta (o borrarla): la selección y los avisos pertenecen a la
-    // ruta anterior; se limpian para volver al estado "Toca un bus en el mapa".
+    // Cambio de ruta (o borrarla): solo la selección visual pertenece a la
+    // ruta anterior. Los AVISOS se conservan: miden en la ruta del bus armado
+    // aunque el mapa muestre otra (diseño por ruta); cancelarlos aquí sin
+    // disarmAlert los mataba en silencio y dejaba suscripciones abiertas.
     ref.listen<RouteInfo?>(selectedRouteProvider, (previous, next) {
       if (previous?.id == next?.id) return;
       ref.read(selectedBusesProvider.notifier).clear();
-      ref.read(activeAlertsProvider.notifier).clear();
     });
 
     // Al quitar la ubicación (pin manual o GPS) la selección de bus no tiene
-    // sentido (sin ubicación no se pueden tocar buses ni medir distancias).
+    // sentido (sin ubicación no se pueden tocar buses). Los avisos se
+    // conservan: sin posición no miden (se pausan) y reanudan al volver la
+    // ubicación, en vez de cancelarse silenciosamente.
     ref.listen<UserLocationState>(userLocationProvider, (previous, next) {
       if (previous?.hasPosition == true && !next.hasPosition) {
         ref.read(selectedBusesProvider.notifier).clear();
-        ref.read(activeAlertsProvider.notifier).clear();
       }
     });
 

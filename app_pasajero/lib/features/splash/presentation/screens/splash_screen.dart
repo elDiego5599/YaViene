@@ -23,7 +23,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Post-frame: resetAppState modifica providers y Riverpod lo prohíbe
+    // Post-frame: resetTransientState modifica providers y Riverpod lo prohíbe
     // durante el build (initState). Diferido, el arranque queda limpio sin
     // la excepción de debug "Tried to modify a provider while building".
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -32,8 +32,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _start() async {
-    // Arranque limpio: nada de lo anterior queda (ruta, buses, avisos, pin).
-    await resetAppState(ref);
+    // Arranque limpio pero NO destructivo: se quita estado efímero en memoria
+    // (selecciones, avisos, sockets) pero se conserva la persistencia —ruta,
+    // empresa y pin manual— para que restoreLastRoute reencuentre la ruta del
+    // usuario al reabrir. El reseteo completo (con borrado de persistencia)
+    // es solo para cerrar sesión.
+    await resetTransientState(ref);
     final auth = ref.read(authProvider);
     // Tiempo mínimo de marca para que se vea el logo con calma.
     final minBranding = Future.delayed(const Duration(milliseconds: 900));
