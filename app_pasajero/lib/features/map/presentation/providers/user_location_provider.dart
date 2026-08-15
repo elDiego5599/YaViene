@@ -73,6 +73,13 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     final prefs = await SharedPreferences.getInstance();
     if (await _hasGpsPermission()) {
       await _locate();
+      // El usuario permitió la ubicación pero el GPS no dio fijación (sin
+      // señal, GPS apagado, indoor): en vez de quedarse "sin ubicación", se
+      // recupera el último pin manual guardado, que es lo único que se
+      // conserva entre arranques.
+      if (state.mode == UserLocationMode.gpsFailed) {
+        if (await _restoreSavedPin()) return;
+      }
       return;
     }
     var status = await Permission.location.status;
@@ -142,6 +149,11 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       return;
     }
     await _locate();
+    // GPS no dio fijación: recuperar el pin guardado en vez de quedarse
+    // colgado sin ubicación (igual que en el arranque).
+    if (state.mode == UserLocationMode.gpsFailed) {
+      if (await _restoreSavedPin()) return;
+    }
   }
 
   Future<void> _locate() async {

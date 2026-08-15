@@ -33,10 +33,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _start() async {
     // Arranque limpio pero NO destructivo: se quita estado efímero en memoria
-    // (selecciones, avisos, sockets) pero se conserva la persistencia —ruta,
-    // empresa y pin manual— para que restoreLastRoute reencuentre la ruta del
-    // usuario al reabrir. El reseteo completo (con borrado de persistencia)
-    // es solo para cerrar sesión.
+    // (selecciones, avisos, sockets) y se conserva el pin manual guardado,
+    // que es lo único que sobrevive al reabrir la app (la ruta se vuelve a
+    // elegir cada sesión). El reseteo completo (con borrado del pin) es solo
+    // para cerrar sesión.
     await resetTransientState(ref);
     final auth = ref.read(authProvider);
     // Tiempo mínimo de marca para que se vea el logo con calma.

@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../services/background_keep_alive.dart';
@@ -9,7 +8,6 @@ import '../../features/map/presentation/providers/realtime_providers.dart';
 import '../../features/map/presentation/providers/tracking_providers.dart';
 import '../../features/map/presentation/providers/user_location_provider.dart';
 import '../../features/notifications/presentation/providers/proximity_alerts_provider.dart';
-import '../prefs_keys.dart';
 import 'auth_provider.dart';
 
 /// Deja la app "recién instalada": sin ruta seleccionada, sin buses
@@ -27,16 +25,13 @@ Future<void> resetAppState(WidgetRef ref) async {
   ref.read(proximityAlertsProvider.notifier).stop();
   ref.read(realtimeServiceProvider).disconnect();
   BackgroundKeepAlive.stop();
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove(PrefsKeys.savedRouteId);
-  await prefs.remove(PrefsKeys.savedCompanyId);
   await ref.read(userLocationProvider.notifier).clearManualPin();
 }
 
 /// Arranque en frío: limpia el estado efímero (selecciones, avisos, sockets)
-/// SIN tocar la persistencia (ruta/empresa guardadas ni el pin manual). Es la
-/// diferencia con [resetAppState] (logout): al reabrir la app el usuario
-/// reencuentra su ruta y su pin, y `restoreLastRoute` vuelve a funcionar.
+/// SIN tocar el pin manual guardado, que es lo único que sobrevive al
+/// reabrir la app (la ruta se vuelve a elegir cada sesión). Es la
+/// diferencia con [resetAppState] (logout).
 Future<void> resetTransientState(WidgetRef ref) async {
   ref.read(selectedRouteProvider.notifier).clear();
   ref.read(selectedCompanyProvider.notifier).clear();
