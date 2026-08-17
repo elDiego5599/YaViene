@@ -80,6 +80,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta.
   void armAlert(String busId, String routeId) {
     _alertRoutes[busId] = routeId;
+    // Re-armado limpio: si este bus ya notificó su acercamiento antes (quedó
+    // marcado en `state`), se borra esa marca para que pueda volver a sonar
+    // en un nuevo acercamiento; si no, el aviso re-armado quedaba "muerto".
+    state = {...state}..remove(busId);
     // Ancla del aviso: si el usuario está con pin manual, el aviso se fija a
     // ESA ubicación. Aunque luego quite el pin (sin GPS la app queda sin
     // ubicación) o ponga otro pin, el aviso sigue midiendo desde donde se

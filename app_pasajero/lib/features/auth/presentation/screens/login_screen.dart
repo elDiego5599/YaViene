@@ -29,8 +29,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   _Step _step = _Step.email;
 
   /// Evita el doble toque en Continuar/Entrar/Crear cuenta mientras corre
-  /// la petición (dos registros seguidos rompen el flujo).
-  bool _submitting = false;
+  /// la petición (dos registros seguidos rompen el flujo). Es un
+  /// ValueNotifier para que el botón muestre el spinner y se deshabilite en
+  /// vivo, sin congelarse con aspecto de botón muerto en redes lentas.
+  final ValueNotifier<bool> _submitting = ValueNotifier<bool>(false);
 
   /// Evita que el listener de sesión (auto-login) compita con el flujo
   /// normal de inicio de sesión que ya navega por su cuenta.
@@ -80,6 +82,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     _confirmController.dispose();
     _nameController.dispose();
     _isValidEmail.dispose();
+    _submitting.dispose();
     _obscurePassword.dispose();
     _obscureConfirm.dispose();
     super.dispose();
@@ -92,12 +95,12 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _continueWithEmail() async {
-    if (_submitting) return;
-    _submitting = true;
+    if (_submitting.value) return;
+    _submitting.value = true;
     FocusScope.of(context).unfocus();
     final auth = ref.read(authProvider);
     final exists = await auth.checkEmail(_emailController.text);
-    _submitting = false;
+    _submitting.value = false;
     if (!mounted) return;
     if (exists == null) {
       _showError(auth.state.errorMessage ?? 'Error al consultar el correo');
@@ -111,25 +114,25 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _finishAuth() async {
-    if (_submitting) return;
-    _submitting = true;
+    if (_submitting.value) return;
+    _submitting.value = true;
     FocusScope.of(context).unfocus();
     HapticFeedback.heavyImpact();
     final auth = ref.read(authProvider);
 
     if (_step == _Step.profile) {
       if (_nameController.text.trim().length < 2) {
-        _submitting = false;
+        _submitting.value = false;
         _showError('Escribe tu nombre');
         return;
       }
       if (_passwordController.text.length < 6) {
-        _submitting = false;
+        _submitting.value = false;
         _showError('La contraseña debe tener al menos 6 caracteres');
         return;
       }
       if (_passwordController.text != _confirmController.text) {
-        _submitting = false;
+        _submitting.value = false;
         _showError('Las contraseñas no coinciden');
         return;
       }
@@ -152,7 +155,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
           );
 
     if (!mounted) return;
-    _submitting = false;
+    _submitting.value = false;
     if (success) {
       _loginFlowInProgress = false;
       await goToHome(context);
@@ -173,8 +176,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   }
 
   Future<void> _handleGoogle() async {
-    if (_submitting) return;
-    _submitting = true;
+    if (_submitting.value) return;
+    _submitting.value = true;
     FocusScope.of(context).unfocus();
     _loginFlowInProgress = true;
     final auth = ref.read(authProvider);
@@ -185,19 +188,19 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
       }
       if (auth.state.status == AuthStatus.verified) {
         auth.removeListener(listener);
-        _submitting = false;
+        _submitting.value = false;
         _loginFlowInProgress = false;
         unawaited(goToHome(context));
       } else if (auth.state.status == AuthStatus.error) {
         auth.removeListener(listener);
-        _submitting = false;
+        _submitting.value = false;
         _loginFlowInProgress = false;
         _showError(auth.state.errorMessage ?? 'Error al iniciar con Google');
       } else if (auth.state.status == AuthStatus.unauthenticated) {
         // El usuario canceló el selector de cuentas: no es un error, pero el
         // listener debe quitarse o bloquearía el auto-login para siempre.
         auth.removeListener(listener);
-        _submitting = false;
+        _submitting.value = false;
         _loginFlowInProgress = false;
       }
     }
@@ -390,54 +393,76 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                 ],
                                 const SizedBox(height: 24),
                                 ValueListenableBuilder<bool>(
-                                  valueListenable: _isValidEmail,
-                                  builder: (context, isValidEmail, child) {
-                                    final enabled = !_submitting &&
-                                        (_step == _Step.email
-                                            ? isValidEmail
-                                            : true);
-                                    return SizedBox(
-                                      width: double.infinity,
-                                      height: 56,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: enabled
-                                              ? const Color(0xFF14274E)
-                                              : const Color(0xFFE2E8F0),
-                                          foregroundColor: enabled
-                                              ? Colors.white
-                                              : const Color(0xFF94A3B8),
-                                          disabledBackgroundColor:
-                                              const Color(0xFFE2E8F0),
-                                          disabledForegroundColor:
-                                              const Color(0xFF94A3B8),
-                                          elevation: 0,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(999),
+                                  valueListenable: _submitting,
+                                  builder: (context, submitting, child) {
+                                    return ValueListenableBuilder<bool>(
+                                      valueListenable: _isValidEmail,
+                                      builder: (context, isValidEmail, child) {
+                                        final canPress = !submitting &&
+                                            (_step == _Step.email
+                                                ? isValidEmail
+                                                : true);
+                                        // Navy también mientras envía: con
+                                        // spinner y sin aspecto de botón muerto.
+                                        final bright = canPress || submitting;
+                                        return SizedBox(
+                                          width: double.infinity,
+                                          height: 56,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: bright
+                                                  ? const Color(0xFF14274E)
+                                                  : const Color(0xFFE2E8F0),
+                                              foregroundColor: bright
+                                                  ? Colors.white
+                                                  : const Color(0xFF94A3B8),
+                                              disabledBackgroundColor: bright
+                                                  ? const Color(0xFF14274E)
+                                                  : const Color(0xFFE2E8F0),
+                                              disabledForegroundColor: bright
+                                                  ? Colors.white
+                                                  : const Color(0xFF94A3B8),
+                                              elevation: 0,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                              ),
+                                            ),
+                                            onPressed: canPress
+                                                ? _step == _Step.email
+                                                    ? _continueWithEmail
+                                                    : _finishAuth
+                                                : null,
+                                            child: submitting
+                                                ? const SizedBox(
+                                                    width: 22,
+                                                    height: 22,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2.5,
+                                                      color: Colors.white,
+                                                    ),
+                                                  )
+                                                : Text(
+                                                    _step == _Step.email
+                                                        ? 'Continuar'
+                                                        : _step == _Step.password
+                                                            ? 'Entrar'
+                                                            : 'Crear cuenta',
+                                                    style: TextStyle(
+                                                      fontSize: 17,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      letterSpacing: -0.3,
+                                                      color: bright
+                                                          ? Colors.white
+                                                          : const Color(
+                                                              0xFF94A3B8),
+                                                    ),
+                                                  ),
                                           ),
-                                        ),
-                                        onPressed: enabled
-                                            ? _step == _Step.email
-                                                ? _continueWithEmail
-                                                : _finishAuth
-                                            : null,
-                                        child: Text(
-                                          _step == _Step.email
-                                              ? 'Continuar'
-                                              : _step == _Step.password
-                                                  ? 'Entrar'
-                                                  : 'Crear cuenta',
-                                          style: TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: -0.3,
-                                            color: enabled
-                                                ? Colors.white
-                                                : const Color(0xFF94A3B8),
-                                          ),
-                                        ),
-                                      ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
@@ -445,7 +470,9 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   const SizedBox(height: 8),
                                   Center(
                                     child: TextButton(
-                                      onPressed: _goBack,
+                                      onPressed: _submitting.value
+                                          ? null
+                                          : _goBack,
                                       child: Text(
                                         _emailController.text.trim().isEmpty
                                             ? 'Regresar'
@@ -462,8 +489,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                     const SizedBox(height: 4),
                                     Center(
                                       child: TextButton(
-                                        onPressed: () => setState(
-                                            () => _step = _Step.profile),
+                                        onPressed: _submitting.value
+                                            ? null
+                                            : () => setState(
+                                                () => _step = _Step.profile),
                                         child: const Text(
                                           '¿No tienes cuenta? Crea una con este correo',
                                           style: TextStyle(
@@ -497,41 +526,61 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 52,
-                                    child: OutlinedButton.icon(
-                                      onPressed: _handleGoogle,
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor:
-                                            const Color(0xFF334155),
-                                        backgroundColor: Colors.white,
-                                        side: const BorderSide(
-                                            color: Color(0xFFE2E8F0)),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(999),
+                                  ValueListenableBuilder<bool>(
+                                    valueListenable: _submitting,
+                                    builder: (context, submitting, child) {
+                                      return SizedBox(
+                                        width: double.infinity,
+                                        height: 52,
+                                        child: OutlinedButton.icon(
+                                          onPressed:
+                                              submitting ? null : _handleGoogle,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor:
+                                                const Color(0xFF334155),
+                                            backgroundColor: Colors.white,
+                                            side: const BorderSide(
+                                                color: Color(0xFFE2E8F0)),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                            ),
+                                          ),
+                                          icon: submitting
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Color(0xFF334155),
+                                                  ),
+                                                )
+                                              : SvgPicture.asset(
+                                                  'assets/icon/google_logo.svg',
+                                                  width: 20,
+                                                  height: 20,
+                                                ),
+                                          label: Text(
+                                            submitting
+                                                ? 'Iniciando…'
+                                                : 'Iniciar con Google',
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      icon: SvgPicture.asset(
-                                        'assets/icon/google_logo.svg',
-                                        width: 20,
-                                        height: 20,
-                                      ),
-                                      label: const Text(
-                                        'Iniciar con Google',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                   const SizedBox(height: 12),
                                   Center(
                                     child: TextButton(
-                                      onPressed: () => setState(
-                                          () => _step = _Step.profile),
+                                      onPressed: _submitting.value
+                                          ? null
+                                          : () => setState(
+                                              () => _step = _Step.profile),
                                       child: const Text(
                                         '¿No tienes cuenta? Regístrate',
                                         style: TextStyle(

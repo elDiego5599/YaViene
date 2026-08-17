@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -136,23 +137,36 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
 
   /// Pide permiso (si hace falta) y obtiene la posición una sola vez.
   Future<void> useGps() async {
-    var status = await Permission.location.status;
-    if (status.isPermanentlyDenied || status.isRestricted) {
-      state = const UserLocationState(mode: UserLocationMode.permanentDenied);
-      return;
-    }
-    if (!status.isGranted) {
-      status = await _requestLocation();
-    }
-    if (!status.isGranted) {
-      state = const UserLocationState(mode: UserLocationMode.denied);
-      return;
-    }
-    await _locate();
-    // GPS no dio fijación: recuperar el pin guardado en vez de quedarse
-    // colgado sin ubicación (igual que en el arranque).
-    if (state.mode == UserLocationMode.gpsFailed) {
-      if (await _restoreSavedPin()) return;
+    try {
+      var status = await Permission.location.status;
+      if (status.isPermanentlyDenied || status.isRestricted) {
+        state = const UserLocationState(mode: UserLocationMode.permanentDenied);
+        return;
+      }
+      if (!status.isGranted) {
+        status = await _requestLocation();
+        // Queda registrado que ya se preguntó: si el usuario niega aquí, el
+        // mapa no debe volver a lanzar el diálogo de permiso (doble pregunta).
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(_kAsked, true);
+      }
+      if (!status.isGranted) {
+        state = const UserLocationState(mode: UserLocationMode.denied);
+        return;
+      }
+      await _locate();
+      // GPS no dio fijación: recuperar el pin guardado en vez de quedarse
+      // colgado sin ubicación (igual que en el arranque).
+      if (state.mode == UserLocationMode.gpsFailed) {
+        if (await _restoreSavedPin()) return;
+      }
+    } catch (e) {
+      // Nunca colgar un flujo (p. ej. el spinner del onboarding) por una
+      // excepción de la plataforma: se queda sin ubicación con pin si existe.
+      debugPrint('useGps error: $e');
+      if (!await _restoreSavedPin()) {
+        state = const UserLocationState(mode: UserLocationMode.denied);
+      }
     }
   }
 
@@ -234,11 +248,19 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     await prefs.setDouble(_kManualLon, lon);
   }
 
-  /// Quita el pin y vuelve al GPS si hay permiso.
-  Future<void> clearManualPin() async {
+  /// Quita el pin y vuelve al GPS si hay permiso. Con [resumeGps] en false
+  /// (cierre de sesión) no se relanza la localización: la sesión terminó y
+  /// dejar el GPS corriendo en el login filtraría ubicación sin usuario.
+  Future<void> clearManualPin({bool resumeGps = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kManualLat);
     await prefs.remove(_kManualLon);
+    if (!resumeGps) {
+      _gpsSub?.cancel();
+      _gpsSub = null;
+      state = const UserLocationState(mode: UserLocationMode.denied);
+      return;
+    }
     if (await _hasGpsPermission()) {
       await _locate();
     } else {

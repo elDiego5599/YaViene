@@ -116,8 +116,8 @@ void main() {
     expect(container.read(activeAlertsProvider), isEmpty);
   });
 
-  test('re-arma el aviso no vuelve a disparar mientras el bus sigue cerca '
-      '(histéresis con rearm > radio)', () async {
+  test('re-armar un aviso disparado limpia la marca y puede volver a sonar',
+      () async {
     // Bus a ~800 m: dentro del radio de alerta (1000 m) pero por debajo del
     // radio de rearm (1500 m). Con la histéresis invertida este caso
     // re-disparaba en bucle cada vez que se re-armaba.
@@ -171,13 +171,16 @@ void main() {
 
     // Al disparar, el bus salió de las alertas; el usuario lo re-arma con el
     // bus todavía cerca (el re-arme vuelve a registrar la ruta, como en la
-    // hoja de la app).
+    // hoja de la app). El re-arme limpia la marca de "ya notificó": un aviso
+    // re-armado nunca debe quedar muerto (BUG: quedaba en `state` y no volvía
+    // a sonar aunque el bus entrara otra vez al radio).
     c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
     c.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
     await notifier.check();
     await notifier.check();
 
-    expect(localFired, hasLength(1), reason: 'no debe re-disparar sin rearmar');
+    expect(localFired, hasLength(2),
+        reason: 'el re-arme limpia el disparo anterior: puede volver a sonar');
     await posController.close();
   });
 

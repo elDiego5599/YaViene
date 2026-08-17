@@ -183,6 +183,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     });
 
+    // Tocar un bus con la hoja colapsada debe mostrar la tarjeta del bus:
+    // la selección nueva expande la hoja automáticamente.
+    ref.listen<Set<String>>(selectedBusesProvider, (previous, next) {
+      if (previous != null &&
+          previous.isEmpty &&
+          next.isNotEmpty &&
+          !_isExpanded) {
+        setState(() => _isExpanded = true);
+      }
+    });
+
     if (selectedRoute == null) {
       _publishMapInset(0);
       // Sin ruta también se muestra la hoja: si aún no hay ubicación invita
@@ -201,10 +212,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // batch transitorio sin el bus (reconexión, silencio momentáneo) no debe
     // destruir la alerta del usuario; solo el disparo, el usuario o el cierre
     // de sesión la quitan.
+    // Un batch VACÍO tampoco limpia la selección: el primer batch tras una
+    // reconexión del socket suele llegar vacío y eso no significa que el bus
+    // desapareció de la ruta.
     ref.listen<AsyncValue<List<BusPosition>>>(
         busPositionsSourceProvider(selectedRoute.id), (prev, next) {
       final loaded = next.value;
-      if (loaded == null) return;
+      if (loaded == null || loaded.isEmpty) return;
       final ids = {for (final b in loaded) b.busId};
       final selNotifier = ref.read(selectedBusesProvider.notifier);
       for (final id in ref.read(selectedBusesProvider).toList()) {
@@ -634,13 +648,18 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
                   size: 22,
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  widget.label,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ],

@@ -69,6 +69,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Timer? _placeholderTimeout;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
+  /// El pin está siendo arrastrado: el mapa pinta el pin en la posición del
+  /// dedo y las actualizaciones del GPS no deben re-pintarlo (salto visible).
+  bool _pinDragging = false;
+
   /// Última posición cruda recibida por bus (para propiedades del ícono).
   final Map<String, BusPosition> _rawBuses = {};
 
@@ -187,6 +191,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _lifecycleState = state;
     ref.read(appLifecycleProvider.notifier).state = state;
     if (state == AppLifecycleState.resumed) {
+      // Un arrastre no sobrevive al fondo: si quedó a medias, el pin vuelve
+      // a obedecer al GPS.
+      _pinDragging = false;
       // En background se descartaron posiciones (el listener está gateado);
       // al volver se reaplica el último valor del provider, o el mapa se
       // quedaría congelado hasta el próximo paquete del socket (BUG-05).
@@ -244,6 +251,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     const emptyGeoJson = {"type": "FeatureCollection", "features": []};
 
     if (state.hasPosition) {
+      // Durante el arrastre el pin sigue al dedo: un fix del GPS en el medio
+      // del gesto no debe saltarlo de vuelta a la posición del GPS.
+      if (_pinDragging && state.mode == UserLocationMode.gps) return;
       _renderPin(state.lat!, state.lon!);
       return;
     }
@@ -331,6 +341,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<void> _onMapCreated(MapLibreMapController controller) async {
+    // La vista nativa se recreó (p. ej. al volver de segundo plano bajo
+    // presión de memoria, o con "Don't keep activities"): capas y handlers
+    // quedaron en la vista vieja; hay que volver a montarlos en el próximo
+    // onStyleLoaded en lugar de saltarlo por el guard de _layersReady.
+    if (_mapController != null && _mapController != controller) {
+      _layersReady = false;
+      _styleInitInFlight = false;
+      _hasFitInitialRoute = false;
+    }
     _mapController = controller;
   }
 
@@ -501,11 +520,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (id != _kUserPinFeatureId || !mounted) return;
       switch (eventType) {
         case DragEventType.start:
+          _pinDragging = true;
           break;
         case DragEventType.drag:
           _renderPin(current.latitude, current.longitude);
           break;
         case DragEventType.end:
+          _pinDragging = false;
           ref
               .read(userLocationProvider.notifier)
               .setManualPin(current.latitude, current.longitude);

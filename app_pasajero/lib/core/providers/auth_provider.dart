@@ -140,7 +140,7 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         email: normalized,
-        errorMessage: 'No se pudo conectar: $e',
+        errorMessage: 'No se pudo conectar: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return null;
@@ -218,7 +218,7 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         email: normalized,
-        errorMessage: e.toString(),
+        errorMessage: 'No se pudo conectar: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return false;
@@ -259,7 +259,7 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         email: normalized,
-        errorMessage: e.toString(),
+        errorMessage: 'No se pudo conectar: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return false;
@@ -304,9 +304,9 @@ class AuthNotifier extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _state = AuthState(
+      _state = const AuthState(
         status: AuthStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: 'No se pudo conectar con Google: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return false;
@@ -333,11 +333,21 @@ class AuthNotifier extends ChangeNotifier {
       case 'invalid-email':
         return 'Correo electrónico inválido';
       case 'invalid-credential':
+      case 'invalid-login-credentials':
         return 'Correo o contraseña incorrectos';
+      case 'user-not-found':
+        return 'No existe una cuenta con ese correo';
+      case 'account-exists-with-different-credential':
+        return 'Ese correo ya tiene una cuenta creada con otro método '
+            '(p. ej. Google); entra con ese método';
+      case 'operation-not-allowed':
+        return 'Este método de acceso no está habilitado todavía';
+      case 'user-disabled':
+        return 'Esta cuenta fue deshabilitada';
       case 'network-request-failed':
         return 'Sin conexión a internet';
       case 'too-many-requests':
-        return 'Demasiados intentos, espera un momento';
+        return 'Demasiados intentos, espera un momento e intenta de nuevo';
       default:
         return e.message ?? 'Error de autenticación';
     }

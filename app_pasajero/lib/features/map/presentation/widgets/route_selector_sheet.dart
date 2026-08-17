@@ -41,13 +41,17 @@ class RouteSelectorSheet extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Elige tu ruta',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -0.5,
+                  const Expanded(
+                    child: Text(
+                      'Elige tu ruta',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
                   Container(
@@ -240,6 +244,8 @@ class RouteSelectorSheet extends ConsumerWidget {
               ),
               title: Text(
                 c.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -250,8 +256,14 @@ class RouteSelectorSheet extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
               onTap: () {
                 HapticFeedback.selectionClick();
+                final alreadySelected =
+                    ref.read(selectedCompanyProvider)?.id == c.id;
                 ref.read(selectedCompanyProvider.notifier).select(c);
-                ref.read(selectedRouteProvider.notifier).clear();
+                // Cambiar de empresa invalida la ruta anterior; re-elegir la
+                // MISMA empresa conserva la ruta activa.
+                if (!alreadySelected) {
+                  ref.read(selectedRouteProvider.notifier).clear();
+                }
                 Navigator.pop(context);
               },
             )).toList(),
@@ -354,6 +366,8 @@ void _showRouteSelector(
               ),
               title: Text(
                 r.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
@@ -440,6 +454,8 @@ class _PremiumSelectorTile extends StatelessWidget {  final String title;
                 children: [
                   Text(
                     title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -451,6 +467,8 @@ class _PremiumSelectorTile extends StatelessWidget {  final String title;
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

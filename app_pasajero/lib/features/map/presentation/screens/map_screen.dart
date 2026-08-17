@@ -139,9 +139,11 @@ class _PremiumDrawer extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Pasajero',
-                            style: TextStyle(
+                          Text(
+                            name.isNotEmpty ? name : 'Pasajero',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: Colors.white,
@@ -151,7 +153,7 @@ class _PremiumDrawer extends ConsumerWidget {
 const SizedBox(height: 4),
                       Text(
                         name.isNotEmpty
-                            ? name
+                            ? (email ?? 'Sesión iniciada')
                             : email ?? 'Sesión iniciada',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

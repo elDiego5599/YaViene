@@ -25,7 +25,10 @@ Future<void> resetAppState(WidgetRef ref) async {
   ref.read(proximityAlertsProvider.notifier).stop();
   ref.read(realtimeServiceProvider).disconnect();
   BackgroundKeepAlive.stop();
-  await ref.read(userLocationProvider.notifier).clearManualPin();
+  // Sin reanudar el GPS: la sesión terminó y no debe quedar trackeando en el
+  // login (además de que esperar una fijación de hasta 15 s congelaría el
+  // botón de cerrar sesión).
+  await ref.read(userLocationProvider.notifier).clearManualPin(resumeGps: false);
 }
 
 /// Arranque en frío: limpia el estado efímero (selecciones, avisos, sockets)
@@ -47,7 +50,15 @@ Future<void> resetTransientState(WidgetRef ref) async {
 /// en Firebase y vuelve al inicio de sesión. Lo usan el drawer del mapa y la
 /// pantalla de perfil para que ambos caminos hagan exactamente lo mismo.
 Future<void> signOutAndGoToLogin(WidgetRef ref, BuildContext context) async {
-  await resetAppState(ref);
-  await ref.read(authProvider).signOut();
+  // El cierre de sesión nunca debe colgarse: cada paso con su red de
+  // seguridad para que siempre se llegue al login.
+  try {
+    await resetAppState(ref);
+  } catch (_) {}
+  try {
+    await ref.read(authProvider).signOut();
+  } catch (_) {
+    // Firebase sin conexión: la sesión local ya se limpió; se va al login.
+  }
   if (context.mounted) context.go('/login');
 }
