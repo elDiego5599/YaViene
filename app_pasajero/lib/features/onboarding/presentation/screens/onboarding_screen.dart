@@ -69,25 +69,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 ),
                                 child: SvgPicture.asset(
                                   'assets/icon/ya_viene_logo.svg',
-                                  width: 76,
-                                  height: 76,
+                                  width: 88,
+                                  height: 88,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 18),
                               const Text(
                                 'Ya Viene',
                                 style: TextStyle(
-                                  fontSize: 32,
+                                  fontSize: 36,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white,
                                   letterSpacing: -1.2,
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 4),
                               Text(
                                 'Tu ciudad en tiempo real.',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white.withValues(alpha: 0.75),
                                   letterSpacing: -0.3,
@@ -98,12 +98,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(26, 24, 26, 26),
+                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(32),
-                              topRight: Radius.circular(32),
+                              topLeft: Radius.circular(36),
+                              topRight: Radius.circular(36),
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -122,10 +122,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 const Text(
                                   'Activa tu ubicación',
                                   style: TextStyle(
-                                    fontSize: 21,
+                                    fontSize: 23,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF0F172A),
-                                    letterSpacing: -0.5,
+                                    letterSpacing: -0.6,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -156,7 +156,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 const SizedBox(height: 20),
                                 SizedBox(
                                   width: double.infinity,
-                                  height: 54,
+                                  height: 56,
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF00A859),

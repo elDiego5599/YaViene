@@ -81,10 +81,16 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
 
     return Drawer(
       backgroundColor: const Color(0xFF0B1628),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      child: SafeArea(
-        child: CustomPaint(
-          painter: const MapPatternPainter(),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(
+          right: Radius.circular(28),
+        ),
+      ),
+      // El patrón pinta TODO el drawer (incluido el área de la barra de
+      // estado y el gesto inferior): la SafeArea queda solo para el contenido.
+      child: CustomPaint(
+        painter: const MapPatternPainter(),
+        child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
             child: Column(
@@ -112,17 +118,38 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                           ),
                         ),
                       ),
-                      // Cierre explícito y editorial: la X cierra el drawer.
-                      IconButton(
-                        key: const ValueKey('drawer_close'),
-                        onPressed: () => Navigator.pop(context),
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: Color(0x59FFFFFF),
-                          size: 20,
+                      // Cierre explícito y editorial: la X roja "aparece" con la entrada
+                      // (escala con rebote) dentro de un botón circular suave.
+                      ScaleTransition(
+                        scale: Tween<double>(begin: 0.5, end: 1.0).animate(
+                          CurvedAnimation(
+                            parent: _entrance,
+                            curve: const Interval(
+                              0.0,
+                              0.4,
+                              curve: Curves.easeOutBack,
+                            ),
+                          ),
                         ),
-                        tooltip: 'Cerrar menú',
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: Color(0x26DC2626),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            key: const ValueKey('drawer_close'),
+                            onPressed: () => Navigator.pop(context),
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Color(0xFFFF6B6B),
+                              size: 20,
+                            ),
+                            tooltip: 'Cerrar menú',
+                          ),
+                        ),
                       ),
                     ],
                   ),
