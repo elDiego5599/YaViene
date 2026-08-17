@@ -20,8 +20,8 @@ Future<void> resetAppState(WidgetRef ref) async {
   ref.read(selectedRouteProvider.notifier).clear();
   ref.read(selectedCompanyProvider.notifier).clear();
   ref.read(selectedBusesProvider.notifier).clear();
-  ref.read(activeAlertsProvider.notifier).clear();
-  ref.read(proximityAlertsProvider.notifier).clear();
+  // Los avisos NO se limpian al cerrar sesión: son del usuario y se
+  // conservan (persistidos) para que al volver a entrar sigan activos.
   ref.read(proximityAlertsProvider.notifier).stop();
   ref.read(realtimeServiceProvider).disconnect();
   BackgroundKeepAlive.stop();

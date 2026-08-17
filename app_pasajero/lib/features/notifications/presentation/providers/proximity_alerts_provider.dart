@@ -6,6 +6,7 @@ import '../../../../core/services/bus_notification_service.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
+import 'alert_history_provider.dart';
 
 /// Radio en el que se dispara el aviso (m).
 const int alertRadiusMeters = 1000;
@@ -76,6 +77,20 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Fuerza una verificación (útil en tests).
   Future<void> check() => _check();
 
+  /// Re-arma los avisos activos persistidos (al reabrir la app o al volver a
+  /// iniciar sesión). Idempotente: un aviso ya armado en memoria no se
+  /// duplica. Las entradas "enviadas" no se re-arman.
+  Future<void> restore() async {
+    await _ref.read(alertHistoryProvider.notifier).load();
+    final entries = _ref.read(alertHistoryProvider);
+    for (final e in entries) {
+      if (e.sent || e.routeId.isEmpty) continue;
+      if (_alertRoutes.containsKey(e.busId)) continue;
+      _ref.read(activeAlertsProvider.notifier).toggleAlert(e.busId);
+      armAlert(e.busId, e.routeId);
+    }
+  }
+
   /// Registra la ruta del bus al armar el aviso y suscribe posiciones de esa
   /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta.
   void armAlert(String busId, String routeId) {
@@ -84,6 +99,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     // marcado en `state`), se borra esa marca para que pueda volver a sonar
     // en un nuevo acercamiento; si no, el aviso re-armado quedaba "muerto".
     state = {...state}..remove(busId);
+    // Registro en el historial: la activación queda anotada (y es la fuente
+    // de persistencia para re-armar al volver a abrir la app).
+    _ref.read(alertHistoryProvider.notifier).upsert(
+          busId,
+          routeId: routeId,
+          routeName: _ref.read(selectedRouteProvider)?.name,
+        );
     // Ancla del aviso: si el usuario está con pin manual, el aviso se fija a
     // ESA ubicación. Aunque luego quite el pin (sin GPS la app queda sin
     // ubicación) o ponga otro pin, el aviso sigue midiendo desde donde se
@@ -186,9 +208,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           busId: entry.key,
           distanceMeters: entry.value,
         ));
-        // El aviso ya se envió: el bus sale solo de la lista de alertas
-        // activas (visible en la pantalla de Notificaciones) y se libera la
-        // suscripción de su ruta.
+        // El aviso ya se envió: pasa a "enviado" en el historial, sale de la
+        // lista de alertas activas (visible en la pantalla de
+        // Notificaciones) y se libera la suscripción de su ruta.
+        _ref.read(alertHistoryProvider.notifier).markSent(entry.key);
         _ref.read(activeAlertsProvider.notifier).toggleAlert(entry.key);
         disarmAlert(entry.key);
       }

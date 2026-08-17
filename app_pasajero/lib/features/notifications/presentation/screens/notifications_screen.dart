@@ -4,18 +4,18 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
+import '../providers/alert_history_provider.dart';
 import '../providers/proximity_alerts_provider.dart';
 
-/// Buses con aviso de acercamiento activo. Cada entrada permite desactivar
-/// el aviso; cuando la notificación ya se disparó, el bus sale solo de la
-/// lista (auto-borrado en [ProximityAlertsNotifier]).
+/// Centro de avisos: los avisos activos (esperando la notificación) y el
+/// historial de los ya enviados. Permite desactivar, borrar de a uno o
+/// borrar todo; borrar un aviso activo lo desactiva.
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final alerts = ref.watch(activeAlertsProvider);
-    final sent = ref.watch(proximityAlertsProvider);
+    final history = ref.watch(alertHistoryProvider);
     final route = ref.watch(selectedRouteProvider);
     final location = ref.watch(userLocationProvider);
     // Sin ruta activa no hay buses que consultar (ni suscripción a '').
@@ -24,6 +24,13 @@ class NotificationsScreen extends ConsumerWidget {
         : ref.watch(busPositionsSourceProvider(route.id).select(
             (value) => value.value ?? const <BusPosition>[],
           ));
+
+    // Orden editorial: primero los activos (más recientes), luego los
+    // enviados (más recientes).
+    final entries = [
+      ...history.where((e) => !e.sent),
+      ...history.where((e) => e.sent),
+    ].toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -46,35 +53,310 @@ class NotificationsScreen extends ConsumerWidget {
           color: const Color(0xFF0F172A),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: entries.isEmpty
+            ? null
+            : [const _SelectAction()],
       ),
-      body: alerts.isEmpty
+      body: entries.isEmpty
           ? const _EmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              itemCount: alerts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final busId = alerts.elementAt(index);
-                final pos = positions.cast<BusPosition?>().firstWhere(
-                      (p) => p?.busId == busId,
-                      orElse: () => null,
-                    );
-                final wasSent = sent.contains(busId);
-                return _AlertTile(
-                  busId: busId,
-                  wasSent: wasSent,
-                  distanceMeters: pos != null && location.hasPosition
-                      ? haversineMeters(
-                          location.lat!, location.lon!, pos.lat, pos.lon)
-                          .round()
-                      : null,
-                  onDisable: () {
-                    ref.read(activeAlertsProvider.notifier).toggleAlert(busId);
-                    ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
-                  },
-                );
-              },
+          : _HistoryList(
+              entries: entries,
+              positions: positions,
+              location: location,
             ),
+    );
+  }
+}
+
+/// Acción "Seleccionar"/"Borrar todas" en la barra superior.
+class _SelectAction extends ConsumerWidget {
+  const _SelectAction();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selection = ref.watch(alertSelectionProvider);
+    final selecting = selection.active;
+
+    return TextButton(
+      onPressed: () {
+        if (selecting) {
+          // Borrar todo: los activos se desactivan, el historial se limpia.
+          final notifier = ref.read(proximityAlertsProvider.notifier);
+          for (final e in ref.read(alertHistoryProvider)) {
+            if (!e.sent) {
+              ref.read(activeAlertsProvider.notifier).toggleAlert(e.busId);
+              notifier.disarmAlert(e.busId);
+            }
+          }
+          ref.read(alertHistoryProvider.notifier).clearAll();
+          ref.read(alertSelectionProvider.notifier).clear();
+        } else {
+          ref.read(alertSelectionProvider.notifier).enter();
+        }
+      },
+      style: TextButton.styleFrom(
+        foregroundColor: selecting
+            ? const Color(0xFFDC2626)
+            : const Color(0xFF14274E),
+        disabledForegroundColor: const Color(0xFF94A3B8),
+      ),
+      child: Text(
+        selecting ? 'Borrar todas' : 'Seleccionar',
+        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+/// Estado del modo selección: activo o no, y el conjunto de busIds marcados.
+class _SelectionState {
+  final bool active;
+  final Set<String> selected;
+
+  const _SelectionState(this.active, this.selected);
+}
+
+class _SelectionNotifier extends StateNotifier<_SelectionState> {
+  _SelectionNotifier() : super(const _SelectionState(false, {}));
+
+  void enter() => state = const _SelectionState(true, {});
+
+  void toggle(String busId) {
+    final next = {...state.selected};
+    if (!next.add(busId)) next.remove(busId);
+    state = _SelectionState(true, next);
+  }
+
+  void clear() => state = const _SelectionState(false, {});
+}
+
+final alertSelectionProvider =
+    StateNotifierProvider<_SelectionNotifier, _SelectionState>(
+        (ref) => _SelectionNotifier());
+
+class _HistoryList extends ConsumerWidget {
+  final List<AlertHistoryEntry> entries;
+  final List<BusPosition> positions;
+  final UserLocationState location;
+
+  const _HistoryList({
+    required this.entries,
+    required this.positions,
+    required this.location,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selection = ref.watch(alertSelectionProvider);
+    final selecting = selection.active;
+    final selected = selection.selected;
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            itemCount: entries.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              final pos = positions.cast<BusPosition?>().firstWhere(
+                    (p) => p?.busId == entry.busId,
+                    orElse: () => null,
+                  );
+              final distanceMeters = !entry.sent && pos != null && location.hasPosition
+                  ? haversineMeters(
+                      location.lat!, location.lon!, pos.lat, pos.lon)
+                      .round()
+                  : null;
+              return _AlertTile(
+                entry: entry,
+                distanceMeters: distanceMeters,
+                selecting: selecting,
+                selected: selected.contains(entry.busId),
+                onToggleSelect: () => ref
+                    .read(alertSelectionProvider.notifier)
+                    .toggle(entry.busId),
+                onDisable: () {
+                  ref.read(activeAlertsProvider.notifier).toggleAlert(entry.busId);
+                  ref.read(proximityAlertsProvider.notifier).disarmAlert(entry.busId);
+                  ref.read(alertHistoryProvider.notifier).remove(entry.busId);
+                },
+              );
+            },
+          ),
+        ),
+        // Barra de acciones del modo selección.
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: selecting
+              ? Container(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        disabledBackgroundColor: const Color(0xFFE2E8F0),
+                        disabledForegroundColor: const Color(0xFF94A3B8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      onPressed: selected.isEmpty
+                          ? null
+                          : () {
+                              final notifier =
+                                  ref.read(proximityAlertsProvider.notifier);
+                              for (final busId in selected) {
+                                final matches = ref
+                                    .read(alertHistoryProvider)
+                                    .where((e) => e.busId == busId);
+                                if (matches.isNotEmpty && !matches.first.sent) {
+                                  ref.read(activeAlertsProvider.notifier)
+                                      .toggleAlert(busId);
+                                  notifier.disarmAlert(busId);
+                                }
+                                ref.read(alertHistoryProvider.notifier)
+                                    .remove(busId);
+                              }
+                              ref
+                                  .read(alertSelectionProvider.notifier)
+                                  .clear();
+                            },
+                      icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                      label: Text(
+                        selected.isEmpty
+                            ? 'Selecciona avisos'
+                            : 'Borrar ${selected.length}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
+    );
+  }
+}
+
+class _AlertTile extends StatelessWidget {
+  final AlertHistoryEntry entry;
+  final int? distanceMeters;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback onToggleSelect;
+  final VoidCallback onDisable;
+
+  const _AlertTile({
+    required this.entry,
+    required this.distanceMeters,
+    required this.selecting,
+    required this.selected,
+    required this.onToggleSelect,
+    required this.onDisable,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sent = entry.sent;
+    final subtitle = sent
+        ? 'Notificación enviada · ${_formatTime(entry.sentAt!)}'
+        : distanceMeters != null
+            ? 'Está a $distanceMeters m de tu ubicación · esperando aviso'
+            : 'Esperando señal del bus';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: selected ? const Color(0xFF14274E) : const Color(0xFFE2E8F0),
+          width: selected ? 1.5 : 1.0,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: sent ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              sent
+                  ? Icons.notifications_active_rounded
+                  : Icons.directions_bus_filled_rounded,
+              color: sent ? const Color(0xFFD97706) : const Color(0xFF00A859),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bus ${entry.busId}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.3,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          if (selecting)
+            Checkbox(
+              value: selected,
+              onChanged: (_) => onToggleSelect(),
+              activeColor: const Color(0xFF14274E),
+              visualDensity: VisualDensity.compact,
+            )
+          else if (sent)
+            const Text(
+              'Enviado',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF94A3B8),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: onDisable,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFDC2626),
+              ),
+              child: const Text(
+                'Desactivar',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -131,96 +413,12 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _AlertTile extends StatelessWidget {
-  final String busId;
-  final bool wasSent;
-  final int? distanceMeters;
-  final VoidCallback onDisable;
-
-  const _AlertTile({
-    required this.busId,
-    required this.wasSent,
-    required this.distanceMeters,
-    required this.onDisable,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = wasSent
-        ? 'El aviso ya se envió y se retiró de la lista'
-        : distanceMeters != null
-            ? 'Está a $distanceMeters m de tu ubicación · esperando aviso'
-            : 'Esperando señal del bus';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              wasSent
-                  ? Icons.notifications_active_rounded
-                  : Icons.directions_bus_filled_rounded,
-              color: wasSent
-                  ? const Color(0xFFD97706)
-                  : const Color(0xFF00A859),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Bus $busId',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.3,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          TextButton(
-            onPressed: wasSent ? null : onDisable,
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFDC2626),
-              disabledForegroundColor: const Color(0xFF94A3B8),
-            ),
-            child: Text(
-              wasSent ? 'Enviado' : 'Desactivar',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+String _formatTime(DateTime d) {
+  const months = [
+    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+  ];
+  final h = d.hour.toString().padLeft(2, '0');
+  final m = d.minute.toString().padLeft(2, '0');
+  return '${d.day} ${months[d.month - 1]} · $h:$m';
 }

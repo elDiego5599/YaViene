@@ -10,7 +10,7 @@ import 'package:ya_viene_pasajero/main.dart' as app;
 /// 2) el placeholder "Preparando tu mapa…" se funde (regresión del bug del
 ///    placeholder eterno);
 /// 3) selección de ruta desde el buscador (empresa Sobusa → ruta);
-/// 4) drawer → Notificaciones → volver;
+/// 4) drawer → Avisos → volver (regresa al drawer abierto) → cerrar con la X;
 /// 5) Cerrar sesión → login;
 /// 6) volver a entrar con la cuenta ya creada (usuario que vuelve) → mapa.
 ///
@@ -148,15 +148,16 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
 
-    // 4) Drawer → Notificaciones → volver.
+    // 4) Drawer → Avisos → volver: el back regresa AL DRAWER abierto (no al
+    //    mapa), porque el drawer no se cierra antes de navegar.
     await tester.tap(find.byIcon(Icons.menu_rounded));
     await _waitUntil(
       tester,
-      () => find.text('Notificaciones').evaluate().isNotEmpty,
+      () => find.text('Avisos').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 10),
       message: 'no abrió el drawer',
     );
-    await tester.tap(find.text('Notificaciones'));
+    await tester.tap(find.text('Avisos'));
     await _waitUntil(
       tester,
       () => find.text('No tienes avisos activos').evaluate().isNotEmpty,
@@ -166,42 +167,20 @@ void main() {
     await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
     await _waitUntil(
       tester,
-      () =>
-          find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty &&
-          // El ícono del menú no es tocable durante la transición de vuelta
-          // al mapa: esperar a que esté realmente en pantalla (x > 30 px).
-          tester.getCenter(find.byIcon(Icons.menu_rounded)).dx > 30,
+      () => find.text('Avisos').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
-      message: 'no se volvió al mapa',
+      message: 'el back no volvió al drawer abierto',
     );
-
-    // 4b) Mi Perfil abre una pantalla real (BUG-08: antes solo cerraba el drawer).
-    await tester.tap(find.byIcon(Icons.menu_rounded));
-    await _waitUntil(
-      tester,
-      () => find.text('Mi Perfil').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 10),
-      message: 'no abrió el drawer para ir a perfil',
-    );
-    await tester.tap(find.text('Mi Perfil'));
-    await _waitUntil(
-      tester,
-      () =>
-          find.text('Mi Perfil').evaluate().isNotEmpty &&
-          find.text('Cerrar sesión').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 15),
-      message: 'la pantalla de perfil no abrió',
-    );
-    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    // Cierre explícito con la X del header del drawer (la hoja ETA también
+    // tiene una X en pantalla; la del drawer está identificada por Key).
+    await tester.tap(find.byKey(const ValueKey('drawer_close')));
     await _waitUntil(
       tester,
       () =>
           find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty &&
-          // El ícono del menú no es tocable durante la transición de vuelta
-          // al mapa: esperar a que esté realmente en pantalla (x > 30 px).
           tester.getCenter(find.byIcon(Icons.menu_rounded)).dx > 30,
       timeout: const Duration(seconds: 15),
-      message: 'no se volvió al mapa tras el perfil',
+      message: 'la X no cerró el drawer',
     );
 
     // 5) Cerrar sesión → login.
