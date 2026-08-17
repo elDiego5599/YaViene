@@ -98,7 +98,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 34),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -132,13 +132,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 const Text(
                                   'Así sabemos qué buses vienen hacia ti y te avisamos antes de que llegue el tuyo.',
                                   style: TextStyle(
-                                    fontSize: 14.5,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: Color(0xFF64748B),
-                                    height: 1.38,
+                                    height: 1.4,
                                   ),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 22),
                                 const _BenefitRow(
                                   icon: Icons.directions_bus_filled_rounded,
                                   title: 'Buses cerca de ti',
@@ -153,7 +153,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   icon: Icons.notifications_active_outlined,
                                   title: 'Avisos antes de tu bus',
                                 ),
-                                const SizedBox(height: 28),
+                                const SizedBox(height: 24),
                                 SizedBox(
                                   width: double.infinity,
                                   height: 56,
@@ -181,7 +181,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         : const Text(
                                             'Permitir ubicación',
                                             style: TextStyle(
-                                              fontSize: 16,
+                                              fontSize: 17,
                                               fontWeight: FontWeight.w800,
                                               letterSpacing: -0.3,
                                             ),
@@ -234,9 +234,9 @@ class _BenefitRow extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             color: const Color(0xFF00A859).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          child: Icon(icon, color: const Color(0xFF00A859), size: 26),
+          child: Icon(icon, color: const Color(0xFF00A859), size: 24),
         ),
         const SizedBox(width: 14),
         Expanded(
