@@ -98,7 +98,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 28),
+                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
@@ -128,7 +128,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     letterSpacing: -0.6,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 const Text(
                                   'Así sabemos qué buses vienen hacia ti y te avisamos antes de que llegue el tuyo.',
                                   style: TextStyle(
@@ -138,22 +138,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     height: 1.38,
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 20),
                                 const _BenefitRow(
                                   icon: Icons.directions_bus_filled_rounded,
                                   title: 'Buses cerca de ti',
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 16),
                                 const _BenefitRow(
                                   icon: Icons.timer_outlined,
                                   title: 'Esperas exactas',
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 16),
                                 const _BenefitRow(
                                   icon: Icons.notifications_active_outlined,
                                   title: 'Avisos antes de tu bus',
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 28),
                                 SizedBox(
                                   width: double.infinity,
                                   height: 56,
@@ -230,20 +230,20 @@ class _BenefitRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 48,
-          height: 48,
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
             color: const Color(0xFF00A859).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(icon, color: const Color(0xFF00A859), size: 24),
+          child: Icon(icon, color: const Color(0xFF00A859), size: 26),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             title,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F172A),
             ),
