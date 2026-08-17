@@ -202,16 +202,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ),
                                   ),
                                 ),
-                                Center(
-                                  child: Text(
-                                    'Sin ubicación: toca el mapa en el lugar donde estás.',
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey.withValues(alpha: 0.75),
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),

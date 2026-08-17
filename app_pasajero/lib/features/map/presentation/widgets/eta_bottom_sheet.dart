@@ -417,9 +417,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       metricUnit = parts.$2;
     }
     final isNumberMetric = metricUnit != null;
-    // Progreso del bus hacia el usuario (0 lejos → 1 llegando).
-    final approachRatio =
-        distance == null ? null : 1 - (distance / alertRadiusMeters);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 6, 24, 20),
@@ -478,10 +475,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               ),
             ),
           ],
-          if (approachRatio != null) ...[
-            const SizedBox(height: 14),
-            _buildApproachLine(approachRatio, stripColor),
-          ],
           if (stateDetail != null) ...[
             const SizedBox(height: 14),
             Text(
@@ -515,52 +508,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ],
       ),
     );
-  }
-
-  /// Línea de aproximación estilo "metro premium": riel neutro, avance del
-  /// bus en el color del estado y el punto de luz al frente.
-  Widget _buildApproachLine(double ratio, Color color) {
-    final clamped = ratio.clamp(0.0, 1.0);
-    return LayoutBuilder(builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      return SizedBox(
-        height: 9,
-        child: Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            Container(
-              height: 3,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-            FractionallySizedBox(
-              widthFactor: clamped,
-              child: Container(
-                height: 3,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-            Positioned(
-              left: (width * clamped) - 4.5,
-              child: Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    });
   }
 
   /// Divide la distancia en número grande + unidad: ("850", "m de ti") o
