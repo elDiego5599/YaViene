@@ -71,10 +71,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   /// Pulso "radar" bajo el pin del usuario: la animación corre en Flutter y
   /// solo se re-proyecta la posición del pin cuando cambia la cámara.
-  late final AnimationController _haloCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1800),
-  )..repeat();
+  /// Se inicializa en initState: un `late final` perezoso se crearía por
+  /// primera vez dentro de dispose() (TickerMode lookup sobre un elemento
+  /// ya desmontado) y explotaría al desmontar el mapa.
+  late final AnimationController _haloCtrl;
 
   /// Posición en pantalla del punto del pin (punta de la gota), para pintar
   /// el pulso encima del mapa nativo. null mientras no haya posición.
@@ -128,6 +128,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   @override
   void initState() {
     super.initState();
+    _haloCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
     WidgetsBinding.instance.addObserver(this);
     _mapInsetSubscription =
         ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {

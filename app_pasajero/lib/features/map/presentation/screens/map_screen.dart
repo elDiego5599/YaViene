@@ -34,12 +34,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Rect de la píldora en pantalla; != null solo mientras el tour está vivo.
   Rect? _tourTarget;
 
+  ProviderSubscription<UserLocationState>? _locationSub;
+
   @override
   void initState() {
     super.initState();
     // El tour se dispara UNA vez la ubicación está lista (GPS o pin manual):
     // iluminar la píldora antes de eso sería un tutorial a medio flujo.
-    ref.listen<UserLocationState>(userLocationProvider, (previous, next) {
+    // listenManual: en initState no se puede usar ref.listen (exige build).
+    _locationSub = ref.listenManual<UserLocationState>(
+        userLocationProvider, (previous, next) {
       if (next.hasPosition) _maybeShowTour();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,6 +63,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   @override
   void dispose() {
+    _locationSub?.close();
     super.dispose();
   }
 
