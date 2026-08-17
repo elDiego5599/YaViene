@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ya_viene_pasajero/main.dart' as app;
 
@@ -22,6 +23,12 @@ void main() {
 
   testWidgets('flujos reales: registro, ruta, notificaciones, logout y login',
       (tester) async {
+    // El tour de primer uso (coach mark sobre la píldora) intercepta los
+    // toques: se marca como visto para que el flujo automatizado no se
+    // detenga. El tour ya se cubre en los widget tests (test/map_tour_test).
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('map_tour_seen', true);
+
     app.main();
 
     // 1) Pantalla de login (instalación limpia).

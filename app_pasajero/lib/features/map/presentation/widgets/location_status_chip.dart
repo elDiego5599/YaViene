@@ -49,7 +49,7 @@ class LocationStatusChip extends ConsumerWidget {
         ),
       UserLocationMode.manual =>
         _manualPill(nearbyCount, notifier),
-      UserLocationMode.gps => _gpsPill(nearbyCount),
+      UserLocationMode.gps => _gpsPill(location, nearbyCount, notifier),
       UserLocationMode.unknown => null,
     };
 
@@ -96,32 +96,50 @@ class LocationStatusChip extends ConsumerWidget {
     );
   }
 
-  _PillData? _gpsPill(int? nearbyCount) {
+  _PillData? _gpsPill(
+      UserLocationState location, int? nearbyCount,
+      UserLocationNotifier notifier) {
+    // "Fijar": deja el pin clavado en la posición actual del GPS (útil cuando
+    // el punto exacto de espera no es donde el GPS cree que estás). El pin se
+    // puede arrastrar y el modo manual permite "Quitar" para volver al GPS.
+    _PillData withFix(_PillData data) =>
+        location.hasPosition
+            ? _PillData(
+                key: '${data.key}-fix',
+                icon: data.icon,
+                text: data.text,
+                tint: data.tint,
+                iconColor: data.iconColor,
+                actionLabel: 'Fijar',
+                onAction: () =>
+                    notifier.setManualPin(location.lat!, location.lon!),
+              )
+            : data;
     if (nearbyCount == null) {
-      return const _PillData(
+      return withFix(const _PillData(
         key: 'gps',
         icon: Icons.my_location,
         text: 'Usando tu ubicación',
         tint: Color(0xFFE6F7F0),
         iconColor: AppColors.primary,
-      );
+      ));
     }
     if (nearbyCount == 0) {
-      return const _PillData(
+      return withFix(const _PillData(
         key: 'gps-empty',
         icon: Icons.directions_bus,
         text: 'No hay buses cerca de ti',
         tint: Color(0xFFFEF3C7),
         iconColor: Color(0xFFD97706),
-      );
+      ));
     }
-    return _PillData(
+    return withFix(_PillData(
       key: 'gps-near',
       icon: Icons.my_location,
       text: 'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
       tint: const Color(0xFFE6F7F0),
       iconColor: AppColors.primary,
-    );
+    ));
   }
 }
 

@@ -51,7 +51,7 @@ class _BusMotion {
 }
 
 class _MapWidgetState extends ConsumerState<MapWidget>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   MapLibreMapController? _mapController;
   ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<UserLocationState>? _userPinSubscription;
@@ -68,6 +68,21 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   bool _placeholderShown = true;
   Timer? _placeholderTimeout;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+
+  /// Pulso "radar" bajo el pin del usuario: la animación corre en Flutter y
+  /// solo se re-proyecta la posición del pin cuando cambia la cámara.
+  late final AnimationController _haloCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat();
+
+  /// Posición en pantalla del punto del pin (punta de la gota), para pintar
+  /// el pulso encima del mapa nativo. null mientras no haya posición.
+  Offset? _pinScreenPos;
+
+  /// La imagen del pin mide 80 px y su punta está en y=76 con ancla al centro
+  /// (40,40): el punto geográfico queda 36 px debajo del centro del icono.
+  static const double _pinTipOffset = 36.0;
 
   /// El pin está siendo arrastrado: el mapa pinta el pin en la posición del
   /// dedo y las actualizaciones del GPS no deben re-pintarlo (salto visible).
@@ -169,6 +184,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _haloCtrl.dispose();
     _placeholderTimeout?.cancel();
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
@@ -255,10 +271,34 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // del gesto no debe saltarlo de vuelta a la posición del GPS.
       if (_pinDragging && state.mode == UserLocationMode.gps) return;
       _renderPin(state.lat!, state.lon!);
+      unawaited(_refreshPinScreenPos());
       return;
     }
     _mapController!.setGeoJsonSource(_kUserPinSourceId, emptyGeoJson);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, emptyGeoJson);
+    if (_pinScreenPos != null && mounted) {
+      setState(() => _pinScreenPos = null);
+    }
+  }
+
+  /// Proyecta la posición del usuario a coordenadas de pantalla para anclar
+  /// el pulso "radar" sobre el mapa nativo. La proyección es barata: solo se
+  /// llama cuando cambia el estado de ubicación o la cámara se detiene, no en
+  /// cada frame de la animación.
+  Future<void> _refreshPinScreenPos() async {
+    if (!_layersReady || _mapController == null || !mounted) return;
+    final loc = ref.read(userLocationProvider);
+    if (!loc.hasPosition) return;
+    try {
+      final projected =
+          await _mapController!.toScreenLocation(LatLng(loc.lat!, loc.lon!));
+      if (!mounted) return;
+      setState(() => _pinScreenPos =
+          Offset(projected.x.toDouble(), projected.y.toDouble() + _pinTipOffset));
+    } catch (_) {
+      // El mapa aún no tiene cámara lista o la proyección falló: el pulso se
+      // reintentará en el próximo evento (cámara idle / cambio de ubicación).
+    }
   }
 
   /// Pinta el pin y su radio "cerca de ti" en [lat], [lon]. Se usa tanto para
@@ -523,13 +563,18 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           _pinDragging = true;
           break;
         case DragEventType.drag:
+          // El punto del gesto ES la posición del pin en pantalla: el pulso
+          // sigue al dedo sin proyecciones (la cámara no se mueve).
           _renderPin(current.latitude, current.longitude);
+          setState(() => _pinScreenPos =
+              Offset(point.x.toDouble(), point.y.toDouble() + _pinTipOffset));
           break;
         case DragEventType.end:
           _pinDragging = false;
           ref
               .read(userLocationProvider.notifier)
               .setManualPin(current.latitude, current.longitude);
+          unawaited(_refreshPinScreenPos());
           break;
       }
     });
@@ -945,6 +990,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // onMapClick: se coloca el pin en cualquier lado (la selección de bus
             // se decide en _selectBusAtTap).
             featureTapsTriggersMapClick: true,
+            // Al detenerse la cámara el pin queda en una posición de pantalla
+            // distinta: se re-proyecta para que el pulso siga clavado en la
+            // punta del pin.
+            onCameraIdle: () => unawaited(_refreshPinScreenPos()),
             // Estilo Voyager de CARTO: mapa alegre y colorido (agua azul,
             // parques verdes, vías cálidas) como corresponde a Barranquilla.
             // El azul de la ruta y los buses verdes resaltan sobre él.
@@ -997,6 +1046,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             cameraTargetBounds: CameraTargetBounds(_colombiaBounds),
           ),
         ),
+        if (_pinScreenPos != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _haloCtrl,
+                builder: (context, _) => CustomPaint(
+                  painter: _HaloPainter(
+                    center: _pinScreenPos!,
+                    phase: _haloCtrl.value,
+                  ),
+                ),
+              ),
+            ),
+          ),
         _buildStylePlaceholder(),
         _buildStyleFailedBanner(),
       ],
@@ -1090,4 +1153,37 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           : const SizedBox.shrink(),
     );
   }
+}
+
+/// Pulso "radar" bajo el pin del usuario: un círculo verde que crece y se
+/// desvanece en bucle, con un punto sólido en el centro que marca el punto
+/// exacto de espera. Todo el dibujo es Flutter puro encima del mapa nativo.
+class _HaloPainter extends CustomPainter {
+  const _HaloPainter({required this.center, required this.phase});
+
+  final Offset center;
+
+  /// 0..1 dentro del ciclo de 1.8 s del AnimationController.
+  final double phase;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = phase.clamp(0.0, 1.0);
+    final radius = 14.0 + 30.0 * t;
+    final opacity = (1.0 - t) * 0.32;
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()..color = const Color(0xFF00A859).withValues(alpha: opacity),
+    );
+    canvas.drawCircle(
+      center,
+      5,
+      Paint()..color = const Color(0xFF00A859).withValues(alpha: 0.9),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HaloPainter oldDelegate) =>
+      oldDelegate.center != center || oldDelegate.phase != phase;
 }
