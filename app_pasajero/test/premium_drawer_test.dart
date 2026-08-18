@@ -69,6 +69,7 @@ void main() {
     expect(find.text('qa@yaviene.app'), findsOneWidget);
     expect(find.text('Sin ruta activa'), findsOneWidget);
     expect(find.text('Avisos'), findsOneWidget);
+    expect(find.text('Ver guía de uso'), findsOneWidget);
     expect(find.text('Cerrar sesión'), findsOneWidget);
     // Sin EN VIVO ni versiones de relleno.
     expect(find.text('EN VIVO'), findsNothing);
@@ -90,12 +91,12 @@ void main() {
       (tester) async {
     final container = await pumpDrawer(tester);
     container.read(selectedRouteProvider.notifier).select(const RouteInfo(
-      id: 'R1',
-      name: 'B18 Tcherassi',
-      companyId: 'C1',
-      terminalA: 'Mallorquín',
-      terminalB: 'La Playa',
-    ));
+          id: 'R1',
+          name: 'B18 Tcherassi',
+          companyId: 'C1',
+          terminalA: 'Mallorquín',
+          terminalB: 'La Playa',
+        ));
     await tester.pump();
     await openDrawer(tester);
 
@@ -108,12 +109,12 @@ void main() {
       (tester) async {
     final container = await pumpDrawer(tester);
     container.read(selectedRouteProvider.notifier).select(const RouteInfo(
-      id: 'R1',
-      name: 'B18 Tcherassi',
-      companyId: 'C1',
-      terminalA: 'Mallorquín',
-      terminalB: '',
-    ));
+          id: 'R1',
+          name: 'B18 Tcherassi',
+          companyId: 'C1',
+          terminalA: 'Mallorquín',
+          terminalB: '',
+        ));
     await tester.pump();
     await openDrawer(tester);
 

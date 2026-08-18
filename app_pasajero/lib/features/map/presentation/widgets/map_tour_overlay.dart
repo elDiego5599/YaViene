@@ -150,7 +150,8 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     return Material(
       key: const ValueKey('guide_card'),
       color: Colors.white,
-      elevation: 0,
+      elevation: 16,
+      shadowColor: const Color(0x6614274E),
       borderRadius: BorderRadius.circular(24),
       clipBehavior: Clip.antiAlias,
       child: Container(
@@ -158,13 +159,6 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF14274E).withValues(alpha: 0.24),
-              blurRadius: 30,
-              offset: const Offset(0, 14),
-            ),
-          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -181,7 +175,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   ),
                   child: Icon(
                     widget.icon,
-                    color: Color(0xFF00A859),
+                    color: const Color(0xFF00A859),
                     size: 21,
                   ),
                 ),
@@ -334,6 +328,5 @@ class _SpotlightPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SpotlightPainter oldDelegate) =>
-      oldDelegate.hole != hole;
+  bool shouldRepaint(_SpotlightPainter oldDelegate) => oldDelegate.hole != hole;
 }

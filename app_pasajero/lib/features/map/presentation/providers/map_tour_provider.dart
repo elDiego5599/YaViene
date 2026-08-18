@@ -22,14 +22,26 @@ class MapGuideState {
     this.initialized = false,
     this.skipped = false,
     this.completed = false,
+    this.includesLocation = true,
   });
 
   final MapGuideStep? step;
   final bool initialized;
   final bool skipped;
   final bool completed;
+  final bool includesLocation;
 
   bool get isActive => step != null;
+}
+
+int mapGuideStepIndex(MapGuideState state, MapGuideStep step) {
+  return state.includesLocation ? step.index : step.index - 1;
+}
+
+int mapGuideStepCount(MapGuideState state) {
+  return state.includesLocation
+      ? MapGuideStep.values.length
+      : MapGuideStep.values.length - 1;
 }
 
 /// Estado persistente de la guía completa de primer uso.
@@ -44,6 +56,7 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
   static const _kVersion = 'map_guide_version';
   static const _kStep = 'map_guide_step';
   static const _kStatus = 'map_guide_status';
+  static const _kIncludesLocation = 'map_guide_includes_location';
 
   Future<void> initialize({
     required bool hasLocation,
@@ -60,6 +73,7 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
       await prefs.setInt(_kVersion, _version);
       await prefs.remove(_kStep);
       await prefs.remove(_kStatus);
+      await prefs.remove(_kIncludesLocation);
     }
 
     final status = prefs.getString(_kStatus);
@@ -68,11 +82,15 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
         initialized: true,
         skipped: status == 'skipped',
         completed: status == 'completed',
+        includesLocation: prefs.getBool(_kIncludesLocation) ?? !hasLocation,
       );
       return;
     }
 
     final storedIndex = prefs.getInt(_kStep);
+    final includesLocation = storedIndex == null
+        ? !hasLocation
+        : prefs.getBool(_kIncludesLocation) ?? !hasLocation;
     var step = storedIndex == null
         ? (hasLocation ? MapGuideStep.search : MapGuideStep.location)
         : _stepFromIndex(storedIndex);
@@ -84,7 +102,12 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
       hasActiveAlert: hasActiveAlert,
     );
     await prefs.setInt(_kStep, step.index);
-    state = MapGuideState(step: step, initialized: true);
+    await prefs.setBool(_kIncludesLocation, includesLocation);
+    state = MapGuideState(
+      step: step,
+      initialized: true,
+      includesLocation: includesLocation,
+    );
   }
 
   /// Completa únicamente el paso que está visible. Así una acción antigua o
@@ -105,6 +128,7 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
     state = MapGuideState(
       step: MapGuideStep.values[nextIndex],
       initialized: true,
+      includesLocation: state.includesLocation,
     );
   }
 
@@ -113,6 +137,17 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
     await prefs.remove(_kStep);
     await prefs.setString(_kStatus, 'skipped');
     state = const MapGuideState(initialized: true, skipped: true);
+  }
+
+  Future<void> moveTo(MapGuideStep step) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kStatus);
+    await prefs.setInt(_kStep, step.index);
+    state = MapGuideState(
+      step: step,
+      initialized: true,
+      includesLocation: state.includesLocation,
+    );
   }
 
   Future<void> restart({
@@ -124,7 +159,12 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
     await prefs.remove(_kStatus);
     final step = hasLocation ? MapGuideStep.search : MapGuideStep.location;
     await prefs.setInt(_kStep, step.index);
-    state = MapGuideState(step: step, initialized: true);
+    await prefs.setBool(_kIncludesLocation, !hasLocation);
+    state = MapGuideState(
+      step: step,
+      initialized: true,
+      includesLocation: !hasLocation,
+    );
   }
 
   MapGuideStep _stepFromIndex(int index) {
@@ -157,6 +197,5 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
   }
 }
 
-final mapGuideProvider =
-    StateNotifierProvider<MapGuideNotifier, MapGuideState>(
-        (ref) => MapGuideNotifier());
+final mapGuideProvider = StateNotifierProvider<MapGuideNotifier, MapGuideState>(
+    (ref) => MapGuideNotifier());

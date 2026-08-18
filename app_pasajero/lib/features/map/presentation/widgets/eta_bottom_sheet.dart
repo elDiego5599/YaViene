@@ -13,12 +13,20 @@ import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
-  const EtaBottomSheet({super.key, this.alertKey, this.metricKey});
+  const EtaBottomSheet({
+    super.key,
+    this.alertKey,
+    this.metricKey,
+    this.detailKey,
+    this.onGuideAlertBlocked,
+  });
 
   /// GlobalKey sobre el botón de aviso: el tour de primer uso lo mide para
   /// abrir su hueco sobre él cuando el usuario toca su primer bus.
   final GlobalKey? alertKey;
   final GlobalKey? metricKey;
+  final GlobalKey? detailKey;
+  final ValueChanged<bool>? onGuideAlertBlocked;
 
   @override
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
@@ -66,9 +74,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       if (!location.hasPosition) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                'El aviso necesita saber dónde estás: toca el mapa en tu '
-                'ubicación o activa el GPS primero'),
+            content:
+                Text('El aviso necesita saber dónde estás: toca el mapa en tu '
+                    'ubicación o activa el GPS primero'),
           ));
         }
         return;
@@ -92,9 +100,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       if (_busAlreadyNear(bus)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'El bus $busId ya está a menos de $alertRadiusMeters m; '
-                'no se puede activar el aviso'),
+            content:
+                Text('El bus $busId ya está a menos de $alertRadiusMeters m; '
+                    'no se puede activar el aviso'),
           ));
         }
         return;
@@ -102,7 +110,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       if (!await BusNotificationService.requestPermission()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Activa las notificaciones para recibir el aviso del bus'),
+            content:
+                Text('Activa las notificaciones para recibir el aviso del bus'),
             action: SnackBarAction(
               label: 'Ajustes',
               onPressed: openAppSettings,
@@ -130,8 +139,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   BusPosition? _busById(String busId) {
     final route = ref.read(selectedRouteProvider);
     if (route == null) return null;
-    final positions =
-        ref.read(busPositionsSourceProvider(route.id)).value;
+    final positions = ref.read(busPositionsSourceProvider(route.id)).value;
     if (positions == null) return null;
     for (final p in positions) {
       if (p.busId == busId) return p;
@@ -228,7 +236,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       final selNotifier = ref.read(selectedBusesProvider.notifier);
       for (final id in ref.read(selectedBusesProvider).toList()) {
         if (ids.contains(id)) continue;
-        if (ref.read(selectedBusesProvider).contains(id)) selNotifier.toggleBus(id);
+        if (ref.read(selectedBusesProvider).contains(id)) {
+          selNotifier.toggleBus(id);
+        }
       }
     });
 
@@ -264,6 +274,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         curve: Curves.easeOutCubic,
         alignment: Alignment.bottomCenter,
         child: Container(
+          key: widget.detailKey,
           width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.arena,
@@ -310,8 +321,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ref.watch(userLocationProvider.select((s) => s.hasPosition));
     final (title, subtitle) = hasPosition
         ? ("Toca un bus en el mapa", "Selecciona un bus para darle seguimiento")
-        : ("Toca el mapa para indicar dónde estás",
-            "Selecciona tu ubicación y mira los buses cerca de ti");
+        : (
+            "Toca el mapa para indicar dónde estás",
+            "Pon tu punto de espera; después podrás mover el pin si hace falta"
+          );
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
       child: Column(
@@ -373,6 +386,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
             child: _StickyAlertButton(
+              key: widget.alertKey,
+              onBlockedChanged: widget.onGuideAlertBlocked,
               isActive: isActive,
               blocked: ghostBlocked || !locationState.hasPosition,
               label: isActive
@@ -496,6 +511,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           const SizedBox(height: 18),
           _StickyAlertButton(
             key: widget.alertKey,
+            onBlockedChanged: widget.onGuideAlertBlocked,
             isActive: isActive,
             blocked: ghostBlocked ||
                 alreadyNear ||
@@ -533,6 +549,7 @@ class _StickyAlertButton extends StatefulWidget {
   final bool blocked;
   final String label;
   final VoidCallback onPressed;
+  final ValueChanged<bool>? onBlockedChanged;
 
   const _StickyAlertButton({
     super.key,
@@ -540,6 +557,7 @@ class _StickyAlertButton extends StatefulWidget {
     this.blocked = false,
     required this.label,
     required this.onPressed,
+    this.onBlockedChanged,
   });
 
   @override
@@ -548,6 +566,28 @@ class _StickyAlertButton extends StatefulWidget {
 
 class _StickyAlertButtonState extends State<_StickyAlertButton> {
   bool _isPressed = false;
+  bool? _reportedBlocked;
+
+  @override
+  void initState() {
+    super.initState();
+    _reportBlocked();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StickyAlertButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _reportBlocked();
+  }
+
+  void _reportBlocked() {
+    if (_reportedBlocked == widget.blocked) return;
+    final blocked = widget.blocked;
+    _reportedBlocked = blocked;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onBlockedChanged?.call(blocked);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

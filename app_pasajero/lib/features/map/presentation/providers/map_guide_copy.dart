@@ -21,16 +21,14 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
     case MapGuideStep.location:
       return const MapGuideCopy(
         title: 'Fija tu punto de espera',
-        message:
-            'La app necesita saber desde dónde esperas. Toca el mapa para '
+        message: 'La app necesita saber desde dónde esperas. Toca el mapa para '
             'poner un punto; también puedes usar el GPS.',
         icon: Icons.location_on_rounded,
       );
     case MapGuideStep.search:
       return const MapGuideCopy(
         title: 'Empieza aquí',
-        message:
-            'Toca la barra blanca de arriba para buscar una empresa y una '
+        message: 'Toca la barra blanca de arriba para buscar una empresa y una '
             'ruta.',
         icon: Icons.search_rounded,
       );
@@ -74,16 +72,14 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
     case MapGuideStep.alert:
       return const MapGuideCopy(
         title: 'Activa el aviso',
-        message:
-            'Pulsa este botón para recibir una notificación cuando el bus '
-            'esté cerca.',
+        message: 'Pulsa este botón para recibir una notificación cuando el bus '
+            'esté cerca. Si Android te pide permiso, elige Permitir.',
         icon: Icons.notifications_active_rounded,
       );
     case MapGuideStep.background:
       return const MapGuideCopy(
         title: 'Ya puedes seguir con lo tuyo',
-        message:
-            'Puedes cambiar de aplicación y hacer otra cosa. En Android, '
+        message: 'Puedes cambiar de aplicación y hacer otra cosa. En Android, '
             'Ya Viene seguirá pendiente del bus; no cierres la app deslizando '
             'su tarjeta ni la fuerces a detenerse.',
         icon: Icons.phone_android_rounded,

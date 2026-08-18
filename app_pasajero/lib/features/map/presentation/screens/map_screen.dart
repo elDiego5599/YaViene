@@ -36,11 +36,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _routeChoiceGuideKey = GlobalKey();
   final GlobalKey _launchBusesGuideKey = GlobalKey();
   final GlobalKey _metricGuideKey = GlobalKey();
+  final GlobalKey _detailGuideKey = GlobalKey();
   final GlobalKey _alertGuideKey = GlobalKey();
 
   Rect? _guideTarget;
   Rect? _busGuideTarget;
   MapGuideStep? _measuredGuideStep;
+  bool _alertBlocked = false;
 
   ProviderSubscription<UserLocationState>? _locationSub;
   ProviderSubscription<MapGuideState>? _guideSub;
@@ -111,9 +113,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Future<void> _initializeGuide() async {
     if (!mounted) return;
     final location = ref.read(userLocationProvider);
-    final locationSettled =
-        location.mode != UserLocationMode.unknown &&
-            location.mode != UserLocationMode.locating;
+    final locationSettled = location.mode != UserLocationMode.unknown &&
+        location.mode != UserLocationMode.locating;
     await ref.read(mapGuideProvider.notifier).initialize(
           hasLocation: location.hasPosition,
           locationSettled: locationSettled,
@@ -143,6 +144,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
+  void _onGuideAlertBlocked(bool blocked) {
+    if (!mounted || _alertBlocked == blocked) return;
+    setState(() => _alertBlocked = blocked);
+  }
+
   void _scheduleGuideMeasurement(MapGuideStep? step, [int attempt = 0]) {
     if (!mounted || !_isMapStep(step)) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -155,6 +161,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             _measuredGuideStep = step;
           });
         }
+        // AnimatedSize de la hoja ETA puede mover el objetivo durante varios
+        // frames. Lo seguimos un poco después de encontrarlo para que el
+        // hueco no quede flotando sobre la posición anterior.
+        if (attempt < 6) _scheduleGuideMeasurement(step, attempt + 1);
         return;
       }
       if (attempt < 8) _scheduleGuideMeasurement(step, attempt + 1);
@@ -187,7 +197,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case MapGuideStep.buses:
         return _busGuideTarget;
       case MapGuideStep.eta:
-        return _rectFor(_metricGuideKey);
+        return _rectFor(_metricGuideKey) ?? _rectFor(_detailGuideKey);
       case MapGuideStep.alert:
       case MapGuideStep.background:
         return _rectFor(_alertGuideKey);
@@ -218,12 +228,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.read(mapGuideProvider.notifier).complete(step);
   }
 
+  void _chooseAnotherBus() async {
+    ref.read(selectedBusesProvider.notifier).clear();
+    await ref.read(mapGuideProvider.notifier).moveTo(MapGuideStep.buses);
+  }
+
+  MapGuideCopy _copyFor(MapGuideStep step) {
+    if (step == MapGuideStep.alert && _alertBlocked) {
+      return const MapGuideCopy(
+        title: 'Elige otro bus',
+        message: 'Este bus no admite un aviso porque no tiene señal o ya está '
+            'demasiado cerca. Selecciona otro bus en el mapa.',
+        icon: Icons.swap_horiz_rounded,
+        primaryLabel: 'Elegir otro bus',
+      );
+    }
+    return mapGuideCopy(step);
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
     final guide = ref.watch(mapGuideProvider);
     final step = guide.step;
-    final copy = step == null ? null : mapGuideCopy(step);
+    final copy = step == null ? null : _copyFor(step);
     final showMapGuide = copy != null &&
         _isMapStep(step) &&
         _guideTarget != null &&
@@ -277,6 +305,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             child: EtaBottomSheet(
               alertKey: _alertGuideKey,
               metricKey: _metricGuideKey,
+              detailKey: _detailGuideKey,
+              onGuideAlertBlocked: _onGuideAlertBlocked,
             ),
           ),
           if (visibleStep != null && copy != null)
@@ -287,12 +317,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 title: copy.title,
                 message: copy.message,
                 icon: copy.icon,
-                stepIndex: visibleStep.index,
-                stepCount: MapGuideStep.values.length,
+                stepIndex: mapGuideStepIndex(guide, visibleStep),
+                stepCount: mapGuideStepCount(guide),
                 primaryLabel: copy.primaryLabel,
                 onPrimary: copy.primaryLabel == null
                     ? null
-                    : () => _completeInfoStep(visibleStep),
+                    : () => visibleStep == MapGuideStep.alert && _alertBlocked
+                        ? _chooseAnotherBus()
+                        : _completeInfoStep(visibleStep),
                 onSkip: _skipGuide,
               ),
             ),

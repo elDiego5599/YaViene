@@ -66,7 +66,8 @@ void main() {
     return container;
   }
 
-  testWidgets('hero card: métrica grande en metros (850 m de ti)', (tester) async {
+  testWidgets('hero card: métrica grande en metros (850 m de ti)',
+      (tester) async {
     await pumpHero(tester, [busAt(0.007645)]);
 
     expect(find.text('Bus A-1 · Ruta 1'), findsOneWidget);
@@ -75,7 +76,8 @@ void main() {
     expect(find.text('m de ti'), findsOneWidget);
   });
 
-  testWidgets('hero card: métrica en kilómetros (2.2 km de ti)', (tester) async {
+  testWidgets('hero card: métrica en kilómetros (2.2 km de ti)',
+      (tester) async {
     await pumpHero(tester, [busAt(0.02)]);
 
     expect(find.text('2.2'), findsOneWidget);
@@ -117,7 +119,8 @@ void main() {
     expect(find.text('Toca el mapa para indicar dónde estás'), findsOneWidget);
   });
 
-  testWidgets('hero card: con aviso activo la franja pasa a verde', (tester) async {
+  testWidgets('hero card: con aviso activo la franja pasa a verde',
+      (tester) async {
     final container = await pumpHero(tester, [busAt(0.02)]);
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');

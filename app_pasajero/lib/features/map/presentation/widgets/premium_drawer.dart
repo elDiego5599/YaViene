@@ -97,207 +97,207 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
             padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
             child: SingleChildScrollView(
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _staggered(
-                  Row(
-                    children: [
-                      SvgPicture.asset(
-                        'assets/icon/ya_viene_logo.svg',
-                        width: 30,
-                        height: 30,
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text(
-                          'Ya Viene',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFFF8FAFC),
-                            letterSpacing: -0.6,
-                          ),
-                        ),
-                      ),
-                      // Cierre explícito y editorial: la X roja "aparece" con la entrada
-                      // (escala con rebote) dentro de un botón circular suave.
-                      ScaleTransition(
-                        scale: Tween<double>(begin: 0.5, end: 1.0).animate(
-                          CurvedAnimation(
-                            parent: _entrance,
-                            curve: const Interval(
-                              0.0,
-                              0.4,
-                              curve: Curves.easeOutBack,
-                            ),
-                          ),
-                        ),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: const BoxDecoration(
-                            color: Color(0x26DC2626),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            key: const ValueKey('drawer_close'),
-                            onPressed: () => Navigator.pop(context),
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Color(0xFFFF6B6B),
-                              size: 20,
-                            ),
-                            tooltip: 'Cerrar menú',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  0.0,
-                ),
-                const SizedBox(height: 22),
-                _staggered(
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _staggered(
+                    Row(
                       children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00A859),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: Colors.white,
-                            size: 28,
+                        SvgPicture.asset(
+                          'assets/icon/ya_viene_logo.svg',
+                          width: 30,
+                          height: 30,
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Ya Viene',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFF8FAFC),
+                              letterSpacing: -0.6,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name.isNotEmpty ? 'Hola, $name' : 'Hola',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFFF8FAFC),
-                                  letterSpacing: -0.4,
-                                ),
+                        // Cierre explícito y editorial: la X roja "aparece" con la entrada
+                        // (escala con rebote) dentro de un botón circular suave.
+                        ScaleTransition(
+                          scale: Tween<double>(begin: 0.5, end: 1.0).animate(
+                            CurvedAnimation(
+                              parent: _entrance,
+                              curve: const Interval(
+                                0.0,
+                                0.4,
+                                curve: Curves.easeOutBack,
                               ),
-                              if (email != null && email.isNotEmpty) ...[
-                                const SizedBox(height: 3),
-                                Text(
-                                  email,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF94A3B8),
-                                  ),
-                                ),
-                              ],
-                            ],
+                            ),
+                          ),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              color: Color(0x26DC2626),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              key: const ValueKey('drawer_close'),
+                              onPressed: () => Navigator.pop(context),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: Color(0xFFFF6B6B),
+                                size: 20,
+                              ),
+                              tooltip: 'Cerrar menú',
+                            ),
                           ),
                         ),
                       ],
                     ),
+                    0.0,
                   ),
-                  0.08,
-                ),
-                const SizedBox(height: 26),
-                _staggered(const ActiveRouteCard(), 0.16),
-                const SizedBox(height: 30),
-                _staggered(
-                  DrawerItem(
-                    icon: Icons.notifications_none_rounded,
-                    bgColor: const Color(0xFFFEF3C7),
-                    iconColor: const Color(0xFFD97706),
-                    title: 'Avisos',
-                    trailing: activeAlerts.isEmpty
-                        ? const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Color(0x4DFFFFFF),
-                            size: 20,
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                  const SizedBox(height: 22),
+                  _staggered(
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFB8B6B),
-                              borderRadius: BorderRadius.circular(999),
+                              color: const Color(0xFF00A859),
+                              borderRadius: BorderRadius.circular(18),
                             ),
-                            child: Text(
-                              '${activeAlerts.length}',
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
+                            child: const Icon(
+                              Icons.person_rounded,
+                              color: Colors.white,
+                              size: 28,
                             ),
                           ),
-                    onTap: () {
-                      // Sin cerrar el drawer: al volver de Notificaciones se
-                      // regresa al menú abierto, no al mapa.
-                      context.push('/notifications');
-                    },
-                  ),
-                  0.24,
-                ),
-                const SizedBox(height: 12),
-                _staggered(
-                  DrawerItem(
-                    icon: Icons.help_outline_rounded,
-                    bgColor: const Color(0xFFE0F2FE),
-                    iconColor: const Color(0xFF0284C7),
-                    title: 'Ver guía de uso',
-                    onTap: () async {
-                      final location = ref.read(userLocationProvider);
-                      await ref.read(mapGuideProvider.notifier).restart(
-                            hasLocation: location.hasPosition,
-                            locationSettled:
-                                location.mode != UserLocationMode.unknown &&
-                                    location.mode != UserLocationMode.locating,
-                          );
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                  ),
-                  0.28,
-                ),
-                _staggered(
-                  Column(
-                    children: [
-                      Divider(color: Colors.white.withValues(alpha: 0.12)),
-                      const SizedBox(height: 18),
-                      DrawerItem(
-                        icon: Icons.logout_rounded,
-                        bgColor: const Color(0xFFFEE2E2),
-                        iconColor: const Color(0xFFDC2626),
-                        title: 'Cerrar sesión',
-                        onTap: () async {
-                          await signOutAndGoToLogin(ref, context);
-                        },
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name.isNotEmpty ? 'Hola, $name' : 'Hola',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFFF8FAFC),
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                if (email != null && email.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    email,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                    0.08,
                   ),
-                  0.32,
-                ),
+                  const SizedBox(height: 26),
+                  _staggered(const ActiveRouteCard(), 0.16),
+                  const SizedBox(height: 30),
+                  _staggered(
+                    DrawerItem(
+                      icon: Icons.notifications_none_rounded,
+                      bgColor: const Color(0xFFFEF3C7),
+                      iconColor: const Color(0xFFD97706),
+                      title: 'Avisos',
+                      trailing: activeAlerts.isEmpty
+                          ? const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0x4DFFFFFF),
+                              size: 20,
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFB8B6B),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${activeAlerts.length}',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                      onTap: () {
+                        // Sin cerrar el drawer: al volver de Notificaciones se
+                        // regresa al menú abierto, no al mapa.
+                        context.push('/notifications');
+                      },
+                    ),
+                    0.24,
+                  ),
+                  const SizedBox(height: 12),
+                  _staggered(
+                    DrawerItem(
+                      icon: Icons.help_outline_rounded,
+                      bgColor: const Color(0xFFE0F2FE),
+                      iconColor: const Color(0xFF0284C7),
+                      title: 'Ver guía de uso',
+                      onTap: () async {
+                        final location = ref.read(userLocationProvider);
+                        await ref.read(mapGuideProvider.notifier).restart(
+                              hasLocation: location.hasPosition,
+                              locationSettled: location.mode !=
+                                      UserLocationMode.unknown &&
+                                  location.mode != UserLocationMode.locating,
+                            );
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                    ),
+                    0.28,
+                  ),
+                  _staggered(
+                    Column(
+                      children: [
+                        Divider(color: Colors.white.withValues(alpha: 0.12)),
+                        const SizedBox(height: 18),
+                        DrawerItem(
+                          icon: Icons.logout_rounded,
+                          bgColor: const Color(0xFFFEE2E2),
+                          iconColor: const Color(0xFFDC2626),
+                          title: 'Cerrar sesión',
+                          onTap: () async {
+                            await signOutAndGoToLogin(ref, context);
+                          },
+                        ),
+                      ],
+                    ),
+                    0.32,
+                  ),
                 ],
               ),
             ),
@@ -409,7 +409,8 @@ class TerminalsLine extends StatelessWidget {
     // Fallback visual: ruta de un solo terminal, sin línea incompleta.
     if (b.isEmpty) {
       return Center(
-        child: Text(a, maxLines: 1, overflow: TextOverflow.ellipsis, style: textStyle),
+        child: Text(a,
+            maxLines: 1, overflow: TextOverflow.ellipsis, style: textStyle),
       );
     }
 

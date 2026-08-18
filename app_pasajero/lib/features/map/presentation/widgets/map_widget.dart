@@ -9,10 +9,7 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
-    show
-        busPositionsSourceProvider,
-        nearbyRadiusMeters,
-        selectedBusesProvider;
+    show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
@@ -110,6 +107,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kStopsInformalLayerId = 'stops-informal-layer';
   static const _kBusSourceId = 'bus-source';
   static const _kBusLayerId = 'bus-layer';
+
   /// Capas consideradas "el bus" al tocar: solo el ícono. El halo de selección
   /// NO cuenta: es grande y como los buses van sobre la ruta, tapar pines
   /// cerca de la línea azul era casi imposible con el halo en la detección.
@@ -119,6 +117,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kUserPinSourceId = 'user-pin-source';
   static const _kUserPinLayerId = 'user-pin-layer';
   static const _kUserPinIconId = 'user-pin-icon';
+
   /// Id del feature GeoJSON del pin. La plataforma nativa lo reporta en los
   /// eventos de arrastre (`feature#onDrag`) para filtrar que el gesto sea del
   /// pin del usuario y no de otra capa.
@@ -306,8 +305,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final projected =
           await _mapController!.toScreenLocation(LatLng(loc.lat!, loc.lon!));
       if (!mounted) return;
-      setState(() => _pinScreenPos =
-          Offset(projected.x.toDouble(), projected.y.toDouble() + _pinTipOffset));
+      setState(() => _pinScreenPos = Offset(
+          projected.x.toDouble(), projected.y.toDouble() + _pinTipOffset));
     } catch (_) {
       // El mapa aún no tiene cámara lista o la proyección falló: el pulso se
       // reintentará en el próximo evento (cámara idle / cambio de ubicación).
@@ -361,7 +360,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     coordinates.add(coordinates.first);
     return {
       'type': 'Feature',
-      'geometry': {'type': 'Polygon', 'coordinates': [coordinates]},
+      'geometry': {
+        'type': 'Polygon',
+        'coordinates': [coordinates]
+      },
       'properties': const {},
     };
   }
@@ -485,8 +487,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     await _mapController!.addSource(
         _kBusSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
 
-    await _mapController!.addSource(_kUserPinSourceId,
-        const GeojsonSourceProperties(data: emptyGeoJson));
+    await _mapController!.addSource(
+        _kUserPinSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
 
     await _mapController!.addSource(_kUserRadiusSourceId,
         const GeojsonSourceProperties(data: emptyGeoJson));
@@ -515,7 +517,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _kUserPinLayerId,
         const SymbolLayerProperties(
           iconImage: _kUserPinIconId,
-          iconSize: ['interpolate', ['linear'], ['zoom'], 11, 1.0, 15, 1.6],
+          iconSize: [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            11,
+            1.0,
+            15,
+            1.6
+          ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
           iconAnchor: 'bottom',
@@ -531,7 +541,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           circleBlur: 0.8,
           circleStrokeWidth: 0.0,
         ),
-        filter: ['==', ['get', 'isSelected'], true]);
+        filter: [
+          '==',
+          ['get', 'isSelected'],
+          true
+        ]);
 
     await _mapController!.addSymbolLayer(
         _kBusSourceId,
@@ -539,7 +553,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         const SymbolLayerProperties(
           iconImage: [
             'case',
-            ['==', ['get', 'isGhost'], true],
+            [
+              '==',
+              ['get', 'isGhost'],
+              true
+            ],
             _kBusGhostIconId,
             _kBusIconId
           ],
@@ -551,9 +569,27 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             ['linear'],
             ['zoom'],
             11,
-            ['case', ['==', ['get', 'isSelected'], true], 1.5, 1.0],
+            [
+              'case',
+              [
+                '==',
+                ['get', 'isSelected'],
+                true
+              ],
+              1.5,
+              1.0
+            ],
             15,
-            ['case', ['==', ['get', 'isSelected'], true], 2.5, 2.0]
+            [
+              'case',
+              [
+                '==',
+                ['get', 'isSelected'],
+                true
+              ],
+              2.5,
+              2.0
+            ]
           ],
           iconAllowOverlap: true,
           iconIgnorePlacement: true,
@@ -561,7 +597,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           iconRotationAlignment: 'map',
         ));
 
-    _mapController!.onFeatureTapped.add((point, coordinates, id, layerId, annotation) async {
+    _mapController!.onFeatureTapped
+        .add((point, coordinates, id, layerId, annotation) async {
       await _selectBusAtTap(point);
     });
 
@@ -569,7 +606,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // sobre el pin (feature 'draggable') y la plataforma lo consume en vez de
     // panear el mapa. 'drag' pinta el pin donde está el dedo en vivo y 'end'
     // lo guarda como pin manual (cancela el GPS si estaba activo).
-    _mapController!.onFeatureDrag.add((point, origin, current, delta, id, annotation, eventType) {
+    _mapController!.onFeatureDrag
+        .add((point, origin, current, delta, id, annotation, eventType) {
       if (id != _kUserPinFeatureId || !mounted) return;
       switch (eventType) {
         case DragEventType.start:
@@ -648,9 +686,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     if (_mapController == null) return;
     try {
       final activeBytes = await _createFlatTransitMarker(
-          const Color(0xFF14274E), isGhost: false);
-      final ghostBytes = await _createFlatTransitMarker(
-          const Color(0xFF94A3B8), isGhost: true);
+          const Color(0xFF14274E),
+          isGhost: false);
+      final ghostBytes = await _createFlatTransitMarker(const Color(0xFF94A3B8),
+          isGhost: true);
 
       await _mapController!.addImage(_kBusIconId, activeBytes);
       await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
@@ -704,8 +743,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     );
 
     // Aro blanco nítido y punto central con gradiente profundo.
-    canvas.drawCircle(const Offset(centerX, headCY), 12.5,
-        Paint()..color = Colors.white);
+    canvas.drawCircle(
+        const Offset(centerX, headCY), 12.5, Paint()..color = Colors.white);
     canvas.drawCircle(
       const Offset(centerX, headCY),
       8.5,
@@ -739,7 +778,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     final shadowPath = Path()
       ..addRRect(RRect.fromRectAndRadius(
           Rect.fromCenter(
-              center: const Offset(centerX, centerY + 2), width: 32, height: 60),
+              center: const Offset(centerX, centerY + 2),
+              width: 32,
+              height: 60),
           const Radius.circular(10)));
     canvas.drawShadow(
         shadowPath, Colors.black.withValues(alpha: 0.15), 4.0, false);
@@ -945,7 +986,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final screen = await controller.toScreenLocation(
         LatLng(position.lat, position.lon),
       );
-      if (!mounted) return;
+      if (!mounted || _guideBusPosition != position) return;
       final box = context.findRenderObject() as RenderBox?;
       if (box == null || !box.attached) return;
       final global = box.localToGlobal(
@@ -970,8 +1011,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
     final heading = (motion.fromHeading + delta * t + 360) % 360;
-    return (lerp(motion.fromLat, motion.toLat),
-        lerp(motion.fromLon, motion.toLon), heading);
+    return (
+      lerp(motion.fromLat, motion.toLat),
+      lerp(motion.fromLon, motion.toLon),
+      heading
+    );
   }
 
   /// Ticker de animación (~30 fps): solo corre mientras haya buses moviéndose.
@@ -1081,8 +1125,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 if (!_pinMoveHintShown && context.mounted) {
                   _pinMoveHintShown = true;
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text(
-                        'Arrastra el pin para moverlo a donde quieras'),
+                    content:
+                        Text('Arrastra el pin para moverlo a donde quieras'),
                   ));
                 }
                 return;
@@ -1171,7 +1215,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       duration: const Duration(milliseconds: 450),
       curve: Curves.easeOut,
       onEnd: () {
-        if (!visible && _placeholderShown) setState(() => _placeholderShown = false);
+        if (!visible && _placeholderShown) {
+          setState(() => _placeholderShown = false);
+        }
       },
       child: _placeholderShown
           ? GestureDetector(

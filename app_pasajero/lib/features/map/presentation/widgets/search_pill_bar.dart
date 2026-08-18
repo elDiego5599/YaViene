@@ -113,11 +113,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
-              child: GestureDetector(
+                child: GestureDetector(
                   key: widget.searchActionKey,
                   behavior: HitTestBehavior.opaque,
                   onTap: _onSearchTap,
@@ -173,9 +171,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 8),
-
               if (selectedRoute != null)
                 _buildCloseButton()
               else
@@ -210,9 +206,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
             height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _actionPressed
-                  ? const Color(0xFFF1F5F9)
-                  : Colors.transparent,
+              color:
+                  _actionPressed ? const Color(0xFFF1F5F9) : Colors.transparent,
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
@@ -245,17 +240,17 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
         HapticFeedback.lightImpact();
         widget.onSearchOpened?.call();
         showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => RouteSelectorSheet(
-          companyGuideKey: widget.companyGuideKey,
-          companyChoiceGuideKey: widget.companyChoiceGuideKey,
-          routeGuideKey: widget.routeGuideKey,
-          routeChoiceGuideKey: widget.routeChoiceGuideKey,
-          launchBusesGuideKey: widget.launchBusesGuideKey,
-        ),
-      );
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => RouteSelectorSheet(
+            companyGuideKey: widget.companyGuideKey,
+            companyChoiceGuideKey: widget.companyChoiceGuideKey,
+            routeGuideKey: widget.routeGuideKey,
+            routeChoiceGuideKey: widget.routeChoiceGuideKey,
+            launchBusesGuideKey: widget.launchBusesGuideKey,
+          ),
+        );
       },
     );
   }

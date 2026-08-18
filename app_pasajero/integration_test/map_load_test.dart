@@ -54,9 +54,9 @@ void main() {
     // "Cambiar de correo" (no hay correo que cambiar).
     expect(find.text('Cambiar de correo'), findsNothing);
     expect(find.text('Regresar'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextField, 'Email'), email);
     await tester.enterText(
-        find.widgetWithText(TextField, 'Email'), email);
-    await tester.enterText(find.widgetWithText(TextField, 'Nombre'), 'QA Tester');
+        find.widgetWithText(TextField, 'Nombre'), 'QA Tester');
     await tester.enterText(
         find.widgetWithText(TextField, 'Contraseña (mín. 6)'), password);
     await tester.enterText(
