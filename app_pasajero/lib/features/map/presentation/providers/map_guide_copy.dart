@@ -64,8 +64,7 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
       return const MapGuideCopy(
         title: 'Mira la distancia',
         message:
-            'Aquí verás a qué distancia está el bus de tu punto de espera. '
-            'No mostramos minutos porque no tenemos una ETA confiable.',
+            'Aquí verás a qué distancia está el bus de tu punto de espera.',
         icon: Icons.timer_outlined,
         primaryLabel: 'Continuar',
       );

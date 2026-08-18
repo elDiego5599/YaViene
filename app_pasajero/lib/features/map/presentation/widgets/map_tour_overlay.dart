@@ -256,11 +256,22 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 key: const ValueKey('guide_skip'),
                 onPressed: widget.onSkip,
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF64748B),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  minimumSize: const Size(0, 32),
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  foregroundColor: const Color(0xFF475569),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: Text(isLast ? 'Cerrar guía' : 'Saltar guía'),
+                child: Text(
+                  isLast ? 'Cerrar guía' : 'Saltar guía',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ],
