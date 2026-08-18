@@ -125,7 +125,7 @@ void main() {
 
     expect(find.text('AVISO ACTIVADO'), findsOneWidget);
     expect(
-        find.text('No cierres la aplicación para que la notificación te llegue'),
+        find.text('Puedes cambiar de aplicación; no cierres Ya Viene del todo'),
         findsOneWidget);
   });
 }

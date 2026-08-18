@@ -2,9 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/map_guide_copy.dart';
+import '../providers/map_tour_provider.dart';
+import 'map_tour_overlay.dart';
 
 class RouteSelectorSheet extends ConsumerWidget {
-  const RouteSelectorSheet({super.key});
+  const RouteSelectorSheet({
+    super.key,
+    this.companyGuideKey,
+    this.companyChoiceGuideKey,
+    this.routeGuideKey,
+    this.routeChoiceGuideKey,
+    this.launchBusesGuideKey,
+  });
+
+  final GlobalKey? companyGuideKey;
+  final GlobalKey? companyChoiceGuideKey;
+  final GlobalKey? routeGuideKey;
+  final GlobalKey? routeChoiceGuideKey;
+  final GlobalKey? launchBusesGuideKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -12,7 +28,13 @@ class RouteSelectorSheet extends ConsumerWidget {
     final selectedCompany = ref.watch(selectedCompanyProvider);
     final selectedRoute = ref.watch(selectedRouteProvider);
 
-    return Container(
+    return _RouteGuideHost(
+      companyGuideKey: companyGuideKey,
+      companyChoiceGuideKey: companyChoiceGuideKey,
+      routeGuideKey: routeGuideKey,
+      routeChoiceGuideKey: routeChoiceGuideKey,
+      launchBusesGuideKey: launchBusesGuideKey,
+      child: Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -91,6 +113,7 @@ class RouteSelectorSheet extends ConsumerWidget {
               const SizedBox(height: 12),
               companiesAsync.when(
                 data: (companies) => _PremiumSelectorTile(
+                  key: companyGuideKey,
                   title: selectedCompany?.name ?? 'Selecciona una empresa',
                   subtitle: selectedCompany != null ? 'Empresa de transporte masivo' : null,
                   icon: Icons.business_rounded,
@@ -126,6 +149,7 @@ class RouteSelectorSheet extends ConsumerWidget {
               const SizedBox(height: 12),
               if (selectedCompany == null)
                 _PremiumSelectorTile(
+                  key: routeGuideKey,
                   title: selectedRoute?.name ?? 'Selecciona una ruta',
                   subtitle: _routeSubtitle(selectedRoute),
                   icon: Icons.alt_route_rounded,
@@ -144,11 +168,14 @@ class RouteSelectorSheet extends ConsumerWidget {
                 _RoutesTile(
                   selectedCompanyId: selectedCompany.id,
                   selectedRoute: selectedRoute,
+                  routeGuideKey: routeGuideKey,
+                  routeChoiceGuideKey: routeChoiceGuideKey,
                 ),
 
               const SizedBox(height: 32),
 
               ElevatedButton(
+                key: launchBusesGuideKey,
                 onPressed: selectedRoute != null
                     ? () async {
                         HapticFeedback.mediumImpact();
@@ -169,6 +196,9 @@ class RouteSelectorSheet extends ConsumerWidget {
                           );
                           return;
                         }
+                        await ref
+                            .read(mapGuideProvider.notifier)
+                            .complete(MapGuideStep.launchBuses);
                         Navigator.pop(context);
                       }
                     : null,
@@ -198,10 +228,12 @@ class RouteSelectorSheet extends ConsumerWidget {
         ),
       ),
     ),
+      ),
     );
   }
 
-  void _showCompanySelector(BuildContext context, WidgetRef ref, List<Company> companies) {
+  void _showCompanySelector(
+      BuildContext context, WidgetRef ref, List<Company> companies) {
     HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
@@ -209,69 +241,194 @@ class RouteSelectorSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      builder: (_) => SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: companies.isEmpty
-              ? const [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                    child: Text(
-                      'Sin empresas disponibles',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                ]
-              : companies.map((c) => ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.business_rounded, color: Color(0xFF14274E), size: 20),
+      builder: (_) => _RouteGuideHost(
+        companyChoiceGuideKey: companyChoiceGuideKey,
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: companies.isEmpty
+                    ? const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 32),
+                          child: Text(
+                            'Sin empresas disponibles',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ]
+                    : companies.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final company = entry.value;
+                        return ListTile(
+                          key: index == 0 ? companyChoiceGuideKey : null,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 8),
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.business_rounded,
+                              color: Color(0xFF14274E),
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            company.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                          trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Color(0xFFCBD5E1)),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            final alreadySelected =
+                                ref.read(selectedCompanyProvider)?.id ==
+                                    company.id;
+                            ref
+                                .read(selectedCompanyProvider.notifier)
+                                .select(company);
+                            if (!alreadySelected) {
+                              ref.read(selectedRouteProvider.notifier).clear();
+                            }
+                            ref
+                                .read(mapGuideProvider.notifier)
+                                .complete(MapGuideStep.company);
+                            Navigator.pop(context);
+                          },
+                        );
+                      }).toList(),
               ),
-              title: Text(
-                c.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.4,
-                ),
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                final alreadySelected =
-                    ref.read(selectedCompanyProvider)?.id == c.id;
-                ref.read(selectedCompanyProvider.notifier).select(c);
-                // Cambiar de empresa invalida la ruta anterior; re-elegir la
-                // MISMA empresa conserva la ruta activa.
-                if (!alreadySelected) {
-                  ref.read(selectedRouteProvider.notifier).clear();
-                }
-                Navigator.pop(context);
-              },
-            )).toList(),
+            ),
           ),
         ),
       ),
-    ),
     );
+  }
+}
+
+class _RouteGuideHost extends ConsumerStatefulWidget {
+  const _RouteGuideHost({
+    required this.child,
+    this.companyGuideKey,
+    this.companyChoiceGuideKey,
+    this.routeGuideKey,
+    this.routeChoiceGuideKey,
+    this.launchBusesGuideKey,
+  });
+
+  final Widget child;
+  final GlobalKey? companyGuideKey;
+  final GlobalKey? companyChoiceGuideKey;
+  final GlobalKey? routeGuideKey;
+  final GlobalKey? routeChoiceGuideKey;
+  final GlobalKey? launchBusesGuideKey;
+
+  @override
+  ConsumerState<_RouteGuideHost> createState() => _RouteGuideHostState();
+}
+
+class _RouteGuideHostState extends ConsumerState<_RouteGuideHost> {
+  final _hostKey = GlobalKey();
+  Rect? _target;
+  MapGuideStep? _measuredStep;
+
+  @override
+  Widget build(BuildContext context) {
+    final guide = ref.watch(mapGuideProvider);
+    final step = guide.step;
+    final targetKey = _targetKey(step);
+    if (step == MapGuideStep.company ||
+        step == MapGuideStep.route ||
+        step == MapGuideStep.launchBuses) {
+      _scheduleMeasure(step, targetKey);
+    }
+
+    final copy = step == null ? null : mapGuideCopy(step);
+    final showOverlay = copy != null &&
+        _target != null &&
+        _measuredStep == step &&
+        targetKey != null;
+    final visibleStep = showOverlay && step != null ? step : null;
+
+    return Stack(
+      key: _hostKey,
+      fit: StackFit.passthrough,
+      children: [
+        widget.child,
+        if (visibleStep != null && copy != null)
+          Positioned.fill(
+            child: MapGuideOverlay(
+              target: _target!,
+              title: copy.title,
+              message: copy.message,
+              icon: copy.icon,
+              stepIndex: visibleStep.index,
+              stepCount: MapGuideStep.values.length,
+              primaryLabel: copy.primaryLabel,
+              onPrimary: copy.primaryLabel == null
+                  ? null
+                  : () => ref
+                      .read(mapGuideProvider.notifier)
+                      .complete(visibleStep),
+              onSkip: () => ref.read(mapGuideProvider.notifier).skip(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  GlobalKey? _targetKey(MapGuideStep? step) {
+    switch (step) {
+      case MapGuideStep.company:
+        return widget.companyChoiceGuideKey ?? widget.companyGuideKey;
+      case MapGuideStep.route:
+        return widget.routeChoiceGuideKey ?? widget.routeGuideKey;
+      case MapGuideStep.launchBuses:
+        return widget.launchBusesGuideKey;
+      default:
+        return null;
+    }
+  }
+
+  void _scheduleMeasure(MapGuideStep? step, GlobalKey? targetKey) {
+    if (step == null || targetKey == null || _measuredStep == step) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || ref.read(mapGuideProvider).step != step) return;
+      final hostBox = _hostKey.currentContext?.findRenderObject() as RenderBox?;
+      final targetBox = targetKey.currentContext?.findRenderObject() as RenderBox?;
+      if (hostBox == null || targetBox == null || !hostBox.attached || !targetBox.attached) {
+        return;
+      }
+      final global = targetBox.localToGlobal(Offset.zero);
+      final local = hostBox.globalToLocal(global);
+      final rect = local & targetBox.size;
+      if (rect.width <= 0 || rect.height <= 0) return;
+      setState(() {
+        _target = rect;
+        _measuredStep = step;
+      });
+    });
   }
 }
 
@@ -288,10 +445,14 @@ String? _routeSubtitle(RouteInfo? route) {
 class _RoutesTile extends ConsumerWidget {
   final String selectedCompanyId;
   final RouteInfo? selectedRoute;
+  final GlobalKey? routeGuideKey;
+  final GlobalKey? routeChoiceGuideKey;
 
   const _RoutesTile({
     required this.selectedCompanyId,
     required this.selectedRoute,
+    this.routeGuideKey,
+    this.routeChoiceGuideKey,
   });
 
   @override
@@ -299,11 +460,17 @@ class _RoutesTile extends ConsumerWidget {
     final routesAsync = ref.watch(routesByCompanyProvider(selectedCompanyId));
     return routesAsync.when(
       data: (routes) => _PremiumSelectorTile(
+        key: routeGuideKey,
         title: selectedRoute?.name ?? 'Selecciona una ruta',
         subtitle: _routeSubtitle(selectedRoute),
         icon: Icons.alt_route_rounded,
         isActive: selectedRoute != null,
-        onTap: () => _showRouteSelector(context, ref, routes),
+        onTap: () => _showRouteSelector(
+          context,
+          ref,
+          routes,
+          routeChoiceGuideKey: routeChoiceGuideKey,
+        ),
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => Column(
@@ -323,7 +490,8 @@ class _RoutesTile extends ConsumerWidget {
 }
 
 void _showRouteSelector(
-    BuildContext context, WidgetRef ref, List<RouteInfo> routes) {
+    BuildContext context, WidgetRef ref, List<RouteInfo> routes,
+    {GlobalKey? routeChoiceGuideKey}) {
   HapticFeedback.lightImpact();
   showModalBottomSheet(
     context: context,
@@ -331,12 +499,14 @@ void _showRouteSelector(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
     ),
-    builder: (_) => SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-        child: Column(
+    builder: (_) => _RouteGuideHost(
+      routeChoiceGuideKey: routeChoiceGuideKey,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           children: routes.isEmpty
               ? const [
@@ -353,8 +523,12 @@ void _showRouteSelector(
                     ),
                   ),
                 ]
-              : routes.map((r) => ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              : routes.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final r = entry.value;
+                  return ListTile(
+               key: index == 0 ? routeChoiceGuideKey : null,
+               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               leading: Container(
                 width: 40,
                 height: 40,
@@ -384,12 +558,17 @@ void _showRouteSelector(
                 ),
               ),
               trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                ref.read(selectedRouteProvider.notifier).select(r);
-                Navigator.pop(context);
-              },
-            )).toList(),
+               onTap: () {
+                 HapticFeedback.selectionClick();
+                 ref.read(selectedRouteProvider.notifier).select(r);
+                 ref
+                     .read(mapGuideProvider.notifier)
+                     .complete(MapGuideStep.route);
+                 Navigator.pop(context);
+               },
+             );
+                }).toList(),
+            ),
           ),
         ),
       ),
@@ -404,6 +583,7 @@ class _PremiumSelectorTile extends StatelessWidget {  final String title;
   final VoidCallback? onTap;
 
   const _PremiumSelectorTile({
+    super.key,
     required this.title,
     this.subtitle,
     required this.icon,

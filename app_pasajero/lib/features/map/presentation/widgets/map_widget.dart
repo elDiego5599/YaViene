@@ -17,7 +17,13 @@ import '../providers/user_location_provider.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
-  const MapWidget({super.key, this.routeId});
+  final ValueChanged<Rect?>? onGuideBusTargetChanged;
+
+  const MapWidget({
+    super.key,
+    this.routeId,
+    this.onGuideBusTargetChanged,
+  });
 
   @override
   ConsumerState<MapWidget> createState() => _MapWidgetState();
@@ -79,6 +85,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// Posición en pantalla del punto del pin (punta de la gota), para pintar
   /// el pulso encima del mapa nativo. null mientras no haya posición.
   Offset? _pinScreenPos;
+  BusPosition? _guideBusPosition;
 
   /// La imagen del pin mide 80 px y su punta está en y=76 con ancla al centro
   /// (40,40): el punto geográfico queda 36 px debajo del centro del icono.
@@ -247,6 +254,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _teardownBusSubscription() {
     _movingBusSubscription?.close();
     _movingBusSubscription = null;
+    _guideBusPosition = null;
+    widget.onGuideBusTargetChanged?.call(null);
     _rawBuses.clear();
     _busMotions.clear();
     _busAnimTimer?.cancel();
@@ -869,6 +878,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _updateBusSourceData(List<BusPosition> positions) {
     if (_mapController == null || !mounted || !_layersReady) return;
 
+    _guideBusPosition = positions.isEmpty
+        ? null
+        : positions.firstWhere(
+            (position) => !position.isGhostBus,
+            orElse: () => positions.first,
+          );
+    unawaited(_refreshGuideBusTarget());
+
     final byId = {for (final p in positions) p.busId: p};
     final now = DateTime.now();
 
@@ -912,6 +929,35 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     _ensureBusAnimTicker();
     _pushBusSource();
+  }
+
+  /// Convierte el primer bus visible en un rect global para que la guía pueda
+  /// iluminar un bus real. El mapa nativo entrega coordenadas locales; se
+  /// convierten a globales porque el spotlight vive por encima del Scaffold.
+  Future<void> _refreshGuideBusTarget() async {
+    final position = _guideBusPosition;
+    final controller = _mapController;
+    if (position == null || controller == null || !mounted || !_layersReady) {
+      widget.onGuideBusTargetChanged?.call(null);
+      return;
+    }
+    try {
+      final screen = await controller.toScreenLocation(
+        LatLng(position.lat, position.lon),
+      );
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached) return;
+      final global = box.localToGlobal(
+        Offset(screen.x.toDouble(), screen.y.toDouble()),
+      );
+      widget.onGuideBusTargetChanged?.call(
+        Rect.fromCenter(center: global, width: 76, height: 76),
+      );
+    } catch (_) {
+      // La cámara puede no estar lista durante el primer frame. El siguiente
+      // batch o el próximo onCameraIdle volverá a intentarlo.
+    }
   }
 
   /// Interpola linealmente lat/lon y el heading por el arco más corto.
@@ -997,7 +1043,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // Al detenerse la cámara el pin queda en una posición de pantalla
             // distinta: se re-proyecta para que el pulso siga clavado en la
             // punta del pin.
-            onCameraIdle: () => unawaited(_refreshPinScreenPos()),
+            onCameraIdle: () {
+              unawaited(_refreshPinScreenPos());
+              unawaited(_refreshGuideBusTarget());
+            },
             // Estilo Voyager de CARTO: mapa alegre y colorido (agua azul,
             // parques verdes, vías cálidas) como corresponde a Barranquilla.
             // El azul de la ruta y los buses verdes resaltan sobre él.

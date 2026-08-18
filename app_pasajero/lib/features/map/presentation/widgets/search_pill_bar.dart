@@ -5,11 +5,28 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'route_selector_sheet.dart';
 
 class SearchPillBar extends ConsumerStatefulWidget {
-  const SearchPillBar({super.key, this.pillKey});
+  const SearchPillBar({
+    super.key,
+    this.pillKey,
+    this.searchActionKey,
+    this.companyGuideKey,
+    this.companyChoiceGuideKey,
+    this.routeGuideKey,
+    this.routeChoiceGuideKey,
+    this.launchBusesGuideKey,
+    this.onSearchOpened,
+  });
 
   /// GlobalKey sobre la píldora blanca real: el tour de primer uso la mide
   /// para recortar su hueco exactamente sobre ella.
   final GlobalKey? pillKey;
+  final GlobalKey? searchActionKey;
+  final GlobalKey? companyGuideKey;
+  final GlobalKey? companyChoiceGuideKey;
+  final GlobalKey? routeGuideKey;
+  final GlobalKey? routeChoiceGuideKey;
+  final GlobalKey? launchBusesGuideKey;
+  final VoidCallback? onSearchOpened;
 
   @override
   ConsumerState<SearchPillBar> createState() => _SearchPillBarState();
@@ -26,11 +43,18 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   void _onSearchTap() {
     HapticFeedback.lightImpact();
+    widget.onSearchOpened?.call();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const RouteSelectorSheet(),
+      builder: (context) => RouteSelectorSheet(
+        companyGuideKey: widget.companyGuideKey,
+        companyChoiceGuideKey: widget.companyChoiceGuideKey,
+        routeGuideKey: widget.routeGuideKey,
+        routeChoiceGuideKey: widget.routeChoiceGuideKey,
+        launchBusesGuideKey: widget.launchBusesGuideKey,
+      ),
     );
   }
 
@@ -93,7 +117,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
               const SizedBox(width: 12),
 
               Expanded(
-                child: GestureDetector(
+              child: GestureDetector(
+                  key: widget.searchActionKey,
                   behavior: HitTestBehavior.opaque,
                   onTap: _onSearchTap,
                   child: Column(
@@ -218,12 +243,19 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       semanticLabel: 'Cambiar ruta',
       onTap: () {
         HapticFeedback.lightImpact();
+        widget.onSearchOpened?.call();
         showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => const RouteSelectorSheet(),
-        );
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => RouteSelectorSheet(
+          companyGuideKey: widget.companyGuideKey,
+          companyChoiceGuideKey: widget.companyChoiceGuideKey,
+          routeGuideKey: widget.routeGuideKey,
+          routeChoiceGuideKey: widget.routeChoiceGuideKey,
+          launchBusesGuideKey: widget.launchBusesGuideKey,
+        ),
+      );
       },
     );
   }

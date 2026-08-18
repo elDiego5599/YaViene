@@ -1,291 +1,339 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
-/// Coach mark de primer uso: oscurece la pantalla con el color de la marca,
-/// deja un "hueco" brillante alrededor del objetivo y muestra una burbuja
-/// tipo vidrio con la explicación.
-///
-/// Cierra con el botón o tocando cualquier parte oscura; en ambos casos se
-/// llama a [onDone] (el dueño marca el paso del tour como visto).
-class MapTourOverlay extends StatefulWidget {
-  const MapTourOverlay({
+/// Spotlight reutilizable de la guía completa. Solo [target] queda libre para
+/// recibir el gesto real del widget que está debajo; las cuatro barreras
+/// transparentes bloquean el resto sin cerrar la guía por accidente.
+class MapGuideOverlay extends StatefulWidget {
+  const MapGuideOverlay({
     super.key,
     required this.target,
     required this.title,
-    required this.subtitle,
-    this.icon = Icons.touch_app_rounded,
-    this.buttonLabel = 'Entendido',
-    this.stepIndex = 0,
-    this.stepCount = 1,
-    required this.onDone,
+    required this.message,
+    required this.icon,
+    required this.stepIndex,
+    required this.stepCount,
+    required this.onSkip,
+    this.primaryLabel,
+    this.onPrimary,
+    this.targetPadding = 10,
   });
 
-  /// Rect del objetivo en coordenadas del overlay (toda la pantalla).
   final Rect target;
   final String title;
-  final String subtitle;
+  final String message;
   final IconData icon;
-
-  /// "Siguiente" en tours de varios pasos seguidos; por defecto "Entendido".
-  final String buttonLabel;
-
-  /// Posición de este paso en el tour (para los puntos indicadores).
   final int stepIndex;
   final int stepCount;
-  final VoidCallback onDone;
+  final VoidCallback onSkip;
+  final String? primaryLabel;
+  final VoidCallback? onPrimary;
+  final double targetPadding;
 
   @override
-  State<MapTourOverlay> createState() => _MapTourOverlayState();
+  State<MapGuideOverlay> createState() => _MapGuideOverlayState();
 }
 
-class _MapTourOverlayState extends State<MapTourOverlay>
+class _MapGuideOverlayState extends State<MapGuideOverlay>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 420),
-  );
-  late final Animation<double> _scale = CurvedAnimation(
-    parent: _ctrl,
-    curve: Curves.easeOutBack,
-  );
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _fade;
 
   @override
   void initState() {
     super.initState();
-    _ctrl.forward();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _controller.forward();
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final hole = widget.target.inflate(20);
-    const bubbleH = 156.0;
-    final size = MediaQuery.of(context).size;
-    final below = hole.bottom + 30 + bubbleH <= size.height - 24;
-    final bubbleTop = below ? hole.bottom + 30 : hole.top - 30 - bubbleH;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        final bounds = Offset.zero & size;
+        final rawHole = widget.target.inflate(widget.targetPadding);
+        final hole = rawHole.intersect(bounds);
+        final placeAbove = hole.top > 245;
+        final card = _buildCard();
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Scrim con hueco: tocar cualquier parte oscura cierra el tour.
-        GestureDetector(
-          key: const ValueKey('tour_scrim'),
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onDone,
-          child: FadeTransition(
-            opacity: CurvedAnimation(
-              parent: _ctrl,
-              curve: const Interval(0, 0.6, curve: Curves.easeOut),
-            ),
-            child: CustomPaint(
-              painter: _HolePainter(hole: hole),
-            ),
-          ),
-        ),
-        // Burbuja tipo vidrio: entra con rebote.
-        Positioned(
-          key: const ValueKey('tour_bubble'),
-          left: 20,
-          right: 20,
-          top: bubbleTop,
-          child: ScaleTransition(
-            scale: _scale,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(26),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.97),
-                    borderRadius: BorderRadius.circular(26),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF14274E).withValues(alpha: 0.3),
-                        blurRadius: 40,
-                        offset: const Offset(0, 16),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [Color(0xFF00A859), Color(0xFF059669)],
-                              ),
-                            ),
-                            child: Icon(
-                              widget.icon,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              widget.title,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.3,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          widget.subtitle,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            height: 1.45,
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: FilledButton(
-                          key: const ValueKey('tour_ok'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF00A859),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          onPressed: widget.onDone,
-                          child: Text(
-                            widget.buttonLabel,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (widget.stepCount > 1) ...[
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var i = 0; i < widget.stepCount; i++)
-                              Container(
-                                width: i == widget.stepIndex ? 22 : 8,
-                                height: 8,
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 3),
-                                decoration: BoxDecoration(
-                                  color: i == widget.stepIndex
-                                      ? const Color(0xFF00A859)
-                                      : const Color(0xFFCBD5E1),
-                                  borderRadius: BorderRadius.circular(99),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            IgnorePointer(
+              child: FadeTransition(
+                opacity: _fade,
+                child: CustomPaint(
+                  key: const ValueKey('guide_scrim'),
+                  painter: _SpotlightPainter(hole: hole),
                 ),
               ),
             ),
-          ),
+            ..._buildBarriers(size, hole),
+            Positioned(
+              left: 20,
+              right: 20,
+              top: placeAbove ? null : _belowTop(hole, size),
+              bottom: placeAbove ? _aboveBottom(hole, size) : null,
+              child: ScaleTransition(scale: _scale, child: card),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  double _belowTop(Rect hole, Size size) {
+    final proposed = hole.bottom + 22;
+    return proposed.clamp(12.0, mathMax(12.0, size.height - 180));
+  }
+
+  double _aboveBottom(Rect hole, Size size) {
+    final proposed = size.height - hole.top + 22;
+    return proposed.clamp(12.0, mathMax(12.0, size.height - 180));
+  }
+
+  List<Widget> _buildBarriers(Size size, Rect hole) {
+    final barriers = <Widget>[];
+    if (hole.top > 0) {
+      barriers.add(Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        height: hole.top,
+        child: const _GuideBarrier(),
+      ));
+    }
+    if (hole.bottom < size.height) {
+      barriers.add(Positioned(
+        top: hole.bottom,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        child: const _GuideBarrier(),
+      ));
+    }
+    if (hole.left > 0 && hole.height > 0) {
+      barriers.add(Positioned(
+        top: hole.top,
+        left: 0,
+        width: hole.left,
+        height: hole.height,
+        child: const _GuideBarrier(),
+      ));
+    }
+    if (hole.right < size.width && hole.height > 0) {
+      barriers.add(Positioned(
+        top: hole.top,
+        left: hole.right,
+        right: 0,
+        height: hole.height,
+        child: const _GuideBarrier(),
+      ));
+    }
+    return barriers;
+  }
+
+  Widget _buildCard() {
+    final isLast = widget.stepIndex == widget.stepCount - 1;
+    return Material(
+      key: const ValueKey('guide_card'),
+      color: Colors.white,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(24),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF14274E).withValues(alpha: 0.24),
+              blurRadius: 30,
+              offset: const Offset(0, 14),
+            ),
+          ],
         ),
-      ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00A859).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color: Color(0xFF00A859),
+                    size: 21,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    key: const ValueKey('guide_title'),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.35,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+                Text(
+                  '${widget.stepIndex + 1}/${widget.stepCount}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              widget.message,
+              key: const ValueKey('guide_message'),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+                color: Color(0xFF475569),
+              ),
+            ),
+            if (widget.primaryLabel != null && widget.onPrimary != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  key: const ValueKey('guide_primary'),
+                  onPressed: widget.onPrimary,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF00A859),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: Text(
+                    widget.primaryLabel!,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: 14),
+              const Center(
+                child: Text(
+                  'Toca el área iluminada para continuar',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF00A859),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                key: const ValueKey('guide_skip'),
+                onPressed: widget.onSkip,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF64748B),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 32),
+                ),
+                child: Text(isLast ? 'Cerrar guía' : 'Saltar guía'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Velo de marca con transparencia y un hueco difuminado alrededor del
-/// objetivo: solo lo que se debe usar queda iluminado, el resto se cubre.
-/// El borde del hueco se desvanece (pluma) y el interior recibe una luz
-/// suave para que el objetivo "brille" (estilo coach mark premium).
-class _HolePainter extends CustomPainter {
-  const _HolePainter({required this.hole});
+double mathMax(double a, double b) => a > b ? a : b;
+
+class _GuideBarrier extends StatelessWidget {
+  const _GuideBarrier();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {},
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+/// Un solo velo guardado en una capa: el hueco queda realmente transparente
+/// y no vuelve a oscurecerse por una segunda pintura debajo.
+class _SpotlightPainter extends CustomPainter {
+  const _SpotlightPainter({required this.hole});
 
   final Rect hole;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(hole, const Radius.circular(30));
-    final scrim = const Color(0xFF14274E).withValues(alpha: 0.58);
+    final rrect = RRect.fromRectAndRadius(hole, const Radius.circular(24));
+    final scrim = const Color(0xFF14274E).withValues(alpha: 0.62);
 
-    // Velo con transparencia: el mapa sigue asomando detrás.
-    canvas.drawRect(Offset.zero & size, Paint()..color = scrim);
-
-    // Hueco: se recorta el rectángulo del objetivo (BlendMode.clear exige
-    // una capa guardada).
     canvas.saveLayer(Offset.zero & size, Paint());
     canvas.drawRect(Offset.zero & size, Paint()..color = scrim);
     canvas.drawRRect(rrect, Paint()..blendMode = BlendMode.clear);
     canvas.restore();
 
-    // Pluma: borde oscuro difuminado que funde el velo con el hueco (nada
-    // de cortes duros).
+    // Solo efectos alrededor del borde, nunca otro velo sobre el objetivo.
     canvas.drawRRect(
-      rrect,
+      rrect.inflate(2),
       Paint()
-        ..color = const Color(0xFF14274E).withValues(alpha: 0.45)
+        ..color = const Color(0xFF00A859).withValues(alpha: 0.24)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 20
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+        ..strokeWidth = 8
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
-
-    // Luz interior suave: el objetivo queda "encendido".
-    final inner = RadialGradient(
-      colors: [
-        Colors.white.withValues(alpha: 0.12),
-        Colors.white.withValues(alpha: 0.02),
-        Colors.transparent,
-      ],
-    ).createShader(rrect.outerRect);
-    canvas.drawRRect(rrect, Paint()..shader = inner);
-
-    // Resplandor verde sutil alrededor del hueco.
     canvas.drawRRect(
       rrect,
       Paint()
-        ..color = const Color(0xFF00A859).withValues(alpha: 0.2)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 7
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
-    // Anillo blanco fino que resalta el objetivo.
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.9)
+        ..color = Colors.white.withValues(alpha: 0.92)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
     );
+    final light = RadialGradient(
+      colors: [
+        Colors.white.withValues(alpha: 0.12),
+        Colors.transparent,
+      ],
+    ).createShader(hole);
+    canvas.drawRRect(rrect, Paint()..shader = light);
   }
 
   @override
-  bool shouldRepaint(_HolePainter oldDelegate) => oldDelegate.hole != hole;
+  bool shouldRepaint(_SpotlightPainter oldDelegate) =>
+      oldDelegate.hole != hole;
 }

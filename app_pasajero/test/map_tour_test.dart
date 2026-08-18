@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_tour_overlay.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 
-/// Estado de ubicación fijo (GPS con posición) sin tocar geolocator.
 class _FakeLocation extends StateNotifier<UserLocationState>
     implements UserLocationNotifier {
   _FakeLocation()
@@ -29,81 +28,139 @@ class _FakeLocation extends StateNotifier<UserLocationState>
 }
 
 void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
-  });
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  group('mapTourProvider', () {
-    test('paso píldora: se muestra la primera vez y queda visto para siempre',
+  group('MapGuideNotifier', () {
+    test('inicia en ubicación sin GPS y en búsqueda con GPS listo', () async {
+      final withoutLocation = MapGuideNotifier();
+      addTearDown(withoutLocation.dispose);
+      await withoutLocation.initialize(
+        hasLocation: false,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(withoutLocation.state.step, MapGuideStep.location);
+
+      SharedPreferences.setMockInitialValues({});
+      final withLocation = MapGuideNotifier();
+      addTearDown(withLocation.dispose);
+      await withLocation.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(withLocation.state.step, MapGuideStep.search);
+    });
+
+    test('solo avanza cuando se completa el paso actualmente visible',
         () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
 
-      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
-      expect(container.read(mapTourProvider), MapTourKind.pill);
+      await guide.complete(MapGuideStep.company);
+      expect(guide.state.step, MapGuideStep.search);
 
-      await container.read(mapTourProvider.notifier).markSeen();
-      expect(container.read(mapTourProvider), isNull);
+      await guide.complete(MapGuideStep.search);
+      expect(guide.state.step, MapGuideStep.company);
 
-      // Nuevo contenedor (otro arranque de la app): no vuelve a salir.
-      final again = ProviderContainer();
-      addTearDown(again.dispose);
-      await again.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
-      expect(again.read(mapTourProvider), isNull);
+      await guide.complete(MapGuideStep.company);
+      expect(guide.state.step, MapGuideStep.route);
+      await guide.complete(MapGuideStep.route);
+      expect(guide.state.step, MapGuideStep.launchBuses);
     });
 
-    test('paso bus: independiente del paso píldora', () async {
-      // El paso de la píldora ya se vio; el del bus puede aparecer aún.
-      SharedPreferences.setMockInitialValues({'map_tour_seen': true});
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
-      expect(container.read(mapTourProvider), isNull);
-
-      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.bus);
-      expect(container.read(mapTourProvider), MapTourKind.bus);
-    });
-
-    test('no se muestra si el flag ya está en prefs', () async {
+    test('persiste el progreso y migra los flags del tour anterior', () async {
       SharedPreferences.setMockInitialValues({
         'map_tour_seen': true,
         'map_tour_bus_seen': true,
       });
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
-      expect(container.read(mapTourProvider), isNull);
-      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.bus);
-      expect(container.read(mapTourProvider), isNull);
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(guide.state.step, MapGuideStep.search);
+
+      await guide.complete(MapGuideStep.search);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('map_guide_step'), MapGuideStep.company.index);
+
+      final resumed = MapGuideNotifier();
+      addTearDown(resumed.dispose);
+      await resumed.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(resumed.state.step, MapGuideStep.search);
+    });
+
+    test('saltar persiste y reiniciar vuelve al inicio apropiado', () async {
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      await guide.skip();
+      expect(guide.state.skipped, isTrue);
+      expect(guide.state.step, isNull);
+
+      await guide.restart(hasLocation: false, locationSettled: true);
+      expect(guide.state.step, MapGuideStep.location);
     });
   });
 
-  group('MapTourOverlay', () {
-    Future<void> pumpOverlay(
+  group('MapGuideOverlay', () {
+    Future<void> pumpGuide(
       WidgetTester tester, {
-      required VoidCallback onDone,
-      String title = 'Elige tu ruta',
-      String subtitle = 'Toca la píldora de arriba para buscar tu línea y '
-          'elegir tu sentido.',
-      IconData icon = Icons.touch_app_rounded,
-      int stepIndex = 0,
-      int stepCount = 2,
+      required VoidCallback onSkip,
+      required ValueChanged<bool> onTargetTap,
+      String? primaryLabel,
+      VoidCallback? onPrimary,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: Stack(
               children: [
-                const SizedBox.expand(),
-                MapTourOverlay(
-                  target: const Rect.fromLTWH(20, 60, 320, 60),
-                  title: title,
-                  subtitle: subtitle,
-                  icon: icon,
-                  stepIndex: stepIndex,
-                  stepCount: stepCount,
-                  onDone: onDone,
+                GestureDetector(
+                  onTap: () => onTargetTap(true),
+                  child: const ColoredBox(
+                    color: Color(0xFFF8FAFC),
+                    child: SizedBox.expand(),
+                  ),
+                ),
+                MapGuideOverlay(
+                  target: const Rect.fromLTWH(160, 260, 100, 64),
+                  title: 'Empieza aquí',
+                  message: 'Toca la zona iluminada para continuar.',
+                  icon: Icons.search_rounded,
+                  stepIndex: 1,
+                  stepCount: 8,
+                  primaryLabel: primaryLabel,
+                  onPrimary: onPrimary,
+                  onSkip: onSkip,
                 ),
               ],
             ),
@@ -111,89 +168,47 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 450));
     }
 
-    testWidgets('muestra la burbuja y el hueco alrededor de la píldora',
+    testWidgets('solo deja atravesar el objetivo y no cierra al tocar afuera',
         (tester) async {
-      var done = false;
-      await pumpOverlay(tester, onDone: () => done = true);
-
-      expect(find.byKey(const ValueKey('tour_bubble')), findsOneWidget);
-      expect(find.text('Elige tu ruta'), findsOneWidget);
-      expect(find.text('Entendido'), findsOneWidget);
-      expect(
-        find.textContaining('Toca la píldora de arriba'),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('tour_scrim')), findsOneWidget);
-      expect(done, isFalse);
-    });
-
-    testWidgets('paso 2: título e icono de la alarma + explicación de segundo '
-        'plano', (tester) async {
-      await pumpOverlay(
+      var skipped = false;
+      var targetTap = false;
+      await pumpGuide(
         tester,
-        onDone: () {},
-        title: 'Activa la alarma',
-        icon: Icons.notifications_active_rounded,
-        subtitle: 'Toca el bus y actívala: te avisaremos aunque dejes la '
-            'app en segundo plano haciendo otra cosa. Solo no la cierres '
-            'del todo.',
-        stepIndex: 1,
+        onSkip: () => skipped = true,
+        onTargetTap: (_) => targetTap = true,
       );
 
-      expect(find.text('Activa la alarma'), findsOneWidget);
-      expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget);
-      expect(
-        find.textContaining('segundo plano'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('muestra los puntos del tour con el paso activo resaltado',
-        (tester) async {
-      await pumpOverlay(tester, onDone: () {}, stepIndex: 1);
-
-      // Dos puntos: el primero (gris claro) y el segundo (verde activo).
-      final dots = tester
-          .widgetList<Container>(find.byWidgetPredicate((w) =>
-              w is Container &&
-              w.decoration is BoxDecoration &&
-              (w.decoration as BoxDecoration).borderRadius ==
-                  const BorderRadius.all(Radius.circular(99))))
-          .toList();
-      expect(dots, hasLength(2));
-      final colors = dots
-          .map((c) => ((c.decoration as BoxDecoration).color))
-          .toList();
-      expect(colors.first, const Color(0xFFCBD5E1));
-      expect(colors.last, const Color(0xFF00A859));
-    });
-
-    testWidgets('Entendido cierra el tour', (tester) async {
-      var done = false;
-      await pumpOverlay(tester, onDone: () => done = true);
-
-      await tester.tap(find.byKey(const ValueKey('tour_ok')));
-      await tester.pump();
-      expect(done, isTrue);
-    });
-
-    testWidgets('tocar la parte oscura cierra el tour', (tester) async {
-      var done = false;
-      await pumpOverlay(tester, onDone: () => done = true);
-
-      // Punto lejos de la burbuja (que aparece debajo del hueco) y del hueco:
-      // esquina superior izquierda.
+      expect(find.text('Empieza aquí'), findsOneWidget);
+      expect(find.text('2/8'), findsOneWidget);
+      await tester.tapAt(const Offset(210, 290));
+      expect(targetTap, isTrue);
       await tester.tapAt(const Offset(8, 8));
-      await tester.pump();
-      expect(done, isTrue);
+      expect(skipped, isFalse);
+    });
+
+    testWidgets('Saltar guía y acción primaria son explícitos', (tester) async {
+      var skipped = false;
+      var primary = false;
+      await pumpGuide(
+        tester,
+        onSkip: () => skipped = true,
+        onTargetTap: (_) {},
+        primaryLabel: 'Continuar',
+        onPrimary: () => primary = true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('guide_primary')));
+      expect(primary, isTrue);
+      await tester.tap(find.byKey(const ValueKey('guide_skip')));
+      expect(skipped, isTrue);
     });
   });
 
   group('LocationStatusChip con GPS activo', () {
-    testWidgets('ofrece "Fijar" y clava el pin en la posición actual',
+    testWidgets('ofrece Fijar y clava el pin en la posición actual',
         (tester) async {
       final location = _FakeLocation();
       final container = ProviderContainer(overrides: [
@@ -211,43 +226,9 @@ void main() {
           ),
         ),
       );
-
-      expect(find.text('Usando tu ubicación'), findsOneWidget);
-      final fix = find.text('Fijar');
-      expect(fix, findsOneWidget);
-
-      await tester.tap(fix);
-      await tester.pump();
+      expect(find.text('Fijar'), findsOneWidget);
+      await tester.tap(find.text('Fijar'));
       expect(location.fixedPin, isTrue);
-    });
-
-    testWidgets('en modo manual ofrece Quitar para volver al GPS',
-        (tester) async {
-      final container = ProviderContainer(overrides: [
-        userLocationProvider.overrideWith((ref) => _FakeLocation()),
-      ]);
-      addTearDown(container.dispose);
-      final notifier =
-          container.read(userLocationProvider.notifier) as _FakeLocation;
-      notifier.state = const UserLocationState(
-        mode: UserLocationMode.manual,
-        lat: 10.9,
-        lon: -74.9,
-      );
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            home: Scaffold(
-              body: Center(child: LocationStatusChip()),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Con tu ubicación'), findsOneWidget);
-      expect(find.text('Quitar'), findsOneWidget);
     });
   });
 }

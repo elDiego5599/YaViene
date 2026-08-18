@@ -13,11 +13,12 @@ import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
-  const EtaBottomSheet({super.key, this.alertKey});
+  const EtaBottomSheet({super.key, this.alertKey, this.metricKey});
 
   /// GlobalKey sobre el botón de aviso: el tour de primer uso lo mide para
   /// abrir su hueco sobre él cuando el usuario toca su primer bus.
   final GlobalKey? alertKey;
+  final GlobalKey? metricKey;
 
   @override
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
@@ -389,10 +390,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // El bus está cruzando la parada (≤500 m): no hace falta aviso.
     final alreadyNear = !isActive && _busAlreadyNear(bus);
     final passing = distance != null && distance <= _passingRadiusMeters;
-    // Con el aviso activo, el detalle recuerda mantener la app abierta en
-    // segundo plano; si no, solo los estados especiales detallan.
+    // Con el aviso activo, el detalle explica que se puede cambiar de app,
+    // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre.
     final stateDetail = isActive
-        ? "No cierres la aplicación para que la notificación te llegue"
+        ? "Puedes cambiar de aplicación; no cierres Ya Viene del todo"
         : passing
             ? null
             : !locationState.hasPosition
@@ -451,6 +452,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           // Métrica principal: número grande que respira, o el estado en palabras.
           Text(
             metricText,
+            key: widget.metricKey,
             textAlign: TextAlign.center,
             style: isNumberMetric
                 ? TextStyle(

@@ -6,7 +6,9 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
+import '../providers/map_tour_provider.dart';
 import '../providers/tracking_providers.dart';
+import '../providers/user_location_provider.dart';
 
 /// Centro personal de viaje: la ruta que el usuario sigue ahora mismo, la
 /// ubicación del aviso y el cierre de sesión. Fondo tinta con patrón de
@@ -93,7 +95,8 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _staggered(
@@ -257,7 +260,26 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                   ),
                   0.24,
                 ),
-                const Spacer(),
+                const SizedBox(height: 12),
+                _staggered(
+                  DrawerItem(
+                    icon: Icons.help_outline_rounded,
+                    bgColor: const Color(0xFFE0F2FE),
+                    iconColor: const Color(0xFF0284C7),
+                    title: 'Ver guía de uso',
+                    onTap: () async {
+                      final location = ref.read(userLocationProvider);
+                      await ref.read(mapGuideProvider.notifier).restart(
+                            hasLocation: location.hasPosition,
+                            locationSettled:
+                                location.mode != UserLocationMode.unknown &&
+                                    location.mode != UserLocationMode.locating,
+                          );
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  0.28,
+                ),
                 _staggered(
                   Column(
                     children: [
@@ -276,7 +298,8 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                   ),
                   0.32,
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
