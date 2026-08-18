@@ -34,34 +34,62 @@ void main() {
   });
 
   group('mapTourProvider', () {
-    test('se muestra la primera vez y queda visto para siempre', () async {
+    test('paso píldora: se muestra la primera vez y queda visto para siempre',
+        () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      await container.read(mapTourProvider.notifier).maybeShow();
-      expect(container.read(mapTourProvider), isTrue);
+      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
+      expect(container.read(mapTourProvider), MapTourKind.pill);
 
       await container.read(mapTourProvider.notifier).markSeen();
-      expect(container.read(mapTourProvider), isFalse);
+      expect(container.read(mapTourProvider), isNull);
 
       // Nuevo contenedor (otro arranque de la app): no vuelve a salir.
       final again = ProviderContainer();
       addTearDown(again.dispose);
-      await again.read(mapTourProvider.notifier).maybeShow();
-      expect(again.read(mapTourProvider), isFalse);
+      await again.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
+      expect(again.read(mapTourProvider), isNull);
     });
 
-    test('no se muestra si el flag ya está en prefs', () async {
+    test('paso bus: independiente del paso píldora', () async {
+      // El paso de la píldora ya se vio; el del bus puede aparecer aún.
       SharedPreferences.setMockInitialValues({'map_tour_seen': true});
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      await container.read(mapTourProvider.notifier).maybeShow();
-      expect(container.read(mapTourProvider), isFalse);
+
+      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
+      expect(container.read(mapTourProvider), isNull);
+
+      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.bus);
+      expect(container.read(mapTourProvider), MapTourKind.bus);
+    });
+
+    test('no se muestra si el flag ya está en prefs', () async {
+      SharedPreferences.setMockInitialValues({
+        'map_tour_seen': true,
+        'map_tour_bus_seen': true,
+      });
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
+      expect(container.read(mapTourProvider), isNull);
+      await container.read(mapTourProvider.notifier).maybeShow(MapTourKind.bus);
+      expect(container.read(mapTourProvider), isNull);
     });
   });
 
   group('MapTourOverlay', () {
-    Future<void> pumpOverlay(WidgetTester tester, VoidCallback onDone) async {
+    Future<void> pumpOverlay(
+      WidgetTester tester, {
+      required VoidCallback onDone,
+      String title = 'Elige tu ruta',
+      String subtitle = 'Toca la píldora de arriba para buscar tu línea y '
+          'elegir tu sentido.',
+      IconData icon = Icons.touch_app_rounded,
+      int stepIndex = 0,
+      int stepCount = 2,
+    }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -70,6 +98,11 @@ void main() {
                 const SizedBox.expand(),
                 MapTourOverlay(
                   target: const Rect.fromLTWH(20, 60, 320, 60),
+                  title: title,
+                  subtitle: subtitle,
+                  icon: icon,
+                  stepIndex: stepIndex,
+                  stepCount: stepCount,
                   onDone: onDone,
                 ),
               ],
@@ -78,13 +111,13 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 500));
     }
 
     testWidgets('muestra la burbuja y el hueco alrededor de la píldora',
         (tester) async {
       var done = false;
-      await pumpOverlay(tester, () => done = true);
+      await pumpOverlay(tester, onDone: () => done = true);
 
       expect(find.byKey(const ValueKey('tour_bubble')), findsOneWidget);
       expect(find.text('Elige tu ruta'), findsOneWidget);
@@ -97,9 +130,50 @@ void main() {
       expect(done, isFalse);
     });
 
+    testWidgets('paso 2: título e icono de la alarma + explicación de segundo '
+        'plano', (tester) async {
+      await pumpOverlay(
+        tester,
+        onDone: () {},
+        title: 'Activa la alarma',
+        icon: Icons.notifications_active_rounded,
+        subtitle: 'Toca el bus y actívala: te avisaremos aunque dejes la '
+            'app en segundo plano haciendo otra cosa. Solo no la cierres '
+            'del todo.',
+        stepIndex: 1,
+      );
+
+      expect(find.text('Activa la alarma'), findsOneWidget);
+      expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget);
+      expect(
+        find.textContaining('segundo plano'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('muestra los puntos del tour con el paso activo resaltado',
+        (tester) async {
+      await pumpOverlay(tester, onDone: () {}, stepIndex: 1);
+
+      // Dos puntos: el primero (gris claro) y el segundo (verde activo).
+      final dots = tester
+          .widgetList<Container>(find.byWidgetPredicate((w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).borderRadius ==
+                  const BorderRadius.all(Radius.circular(99))))
+          .toList();
+      expect(dots, hasLength(2));
+      final colors = dots
+          .map((c) => ((c.decoration as BoxDecoration).color))
+          .toList();
+      expect(colors.first, const Color(0xFFCBD5E1));
+      expect(colors.last, const Color(0xFF00A859));
+    });
+
     testWidgets('Entendido cierra el tour', (tester) async {
       var done = false;
-      await pumpOverlay(tester, () => done = true);
+      await pumpOverlay(tester, onDone: () => done = true);
 
       await tester.tap(find.byKey(const ValueKey('tour_ok')));
       await tester.pump();
@@ -108,7 +182,7 @@ void main() {
 
     testWidgets('tocar la parte oscura cierra el tour', (tester) async {
       var done = false;
-      await pumpOverlay(tester, () => done = true);
+      await pumpOverlay(tester, onDone: () => done = true);
 
       // Punto lejos de la burbuja (que aparece debajo del hueco) y del hueco:
       // esquina superior izquierda.

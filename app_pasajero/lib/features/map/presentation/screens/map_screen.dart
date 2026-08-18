@@ -5,6 +5,7 @@ import '../../../../services/background_keep_alive.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/realtime_providers.dart';
+import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
@@ -27,14 +28,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// cubriría la primera vez; el Scaffold avisa vía onDrawerChanged.
   final GlobalKey<PremiumDrawerState> _drawerKey = GlobalKey<PremiumDrawerState>();
 
-  /// Para medir la posición de la píldora de búsqueda y abrirle el hueco del
-  /// tour de primer uso.
+  /// Para medir la píldora de búsqueda y abrirle el hueco del tour de primer
+  /// uso (la llave vive en el contenedor blanco real, no en el SafeArea).
   final GlobalKey _pillKey = GlobalKey();
 
-  /// Rect de la píldora en pantalla; != null solo mientras el tour está vivo.
+  /// Para medir el botón de aviso en el paso 2 del tour (primer bus tocado).
+  final GlobalKey _alertKey = GlobalKey();
+
+  /// Rect del objetivo en pantalla; != null solo mientras el tour está vivo.
   Rect? _tourTarget;
 
   ProviderSubscription<UserLocationState>? _locationSub;
+  ProviderSubscription<Set<String>>? _busSelectionSub;
 
   @override
   void initState() {
@@ -44,11 +49,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // listenManual: en initState no se puede usar ref.listen (exige build).
     _locationSub = ref.listenManual<UserLocationState>(
         userLocationProvider, (previous, next) {
-      if (next.hasPosition) _maybeShowTour();
+      if (next.hasPosition) _maybeShowPillTour();
+    });
+    // Paso 2: al tocar el PRIMER bus se ilumina el botón de aviso y se explica
+    // que la app sigue avisando en segundo plano.
+    _busSelectionSub = ref.listenManual<Set<String>>(
+        selectedBusesProvider, (previous, next) {
+      if (next.isNotEmpty && (previous?.isEmpty ?? true)) {
+        _maybeShowBusTour();
+      }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (ref.read(userLocationProvider).hasPosition) _maybeShowTour();
+      if (ref.read(userLocationProvider).hasPosition) _maybeShowPillTour();
       ref.read(realtimeServiceProvider).connect();
       ref.read(userLocationProvider.notifier).initialize();
       // Re-arma los avisos activos guardados (sobreviven al cierre de la app
@@ -64,22 +77,42 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   void dispose() {
     _locationSub?.close();
+    _busSelectionSub?.close();
     super.dispose();
   }
 
-  /// Muestra el tour de primer uso si aplica. El flag se persiste en prefs:
-  /// solo se ve una vez en la vida de la instalación.
-  void _maybeShowTour() async {
+  /// Muestra el paso 1 del tour (píldora de búsqueda) si aplica. El flag se
+  /// persiste en prefs: solo se ve una vez en la vida de la instalación.
+  void _maybeShowPillTour() async {
     if (!mounted || _tourTarget != null) return;
-    await ref.read(mapTourProvider.notifier).maybeShow();
-    if (!mounted || !ref.read(mapTourProvider)) return;
-    // Medir la píldora después de que el frame la haya pintado.
+    await ref.read(mapTourProvider.notifier).maybeShow(MapTourKind.pill);
+    if (!mounted || ref.read(mapTourProvider) != MapTourKind.pill) return;
+    _measureAndShow(_pillKey);
+  }
+
+  /// Muestra el paso 2 (botón de aviso del bus) cuando se toca el primer bus.
+  void _maybeShowBusTour() async {
+    if (!mounted || _tourTarget != null) return;
+    await ref.read(mapTourProvider.notifier).maybeShow(MapTourKind.bus);
+    if (!mounted || ref.read(mapTourProvider) != MapTourKind.bus) return;
+    // La hoja ETA tarda ~400 ms en asentarse; medir el botón de aviso en
+    // cuanto termina de animar (con reintento por si el layout no pintó).
+    for (var attempt = 0; attempt < 3; attempt++) {
+      if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted || _tourTarget != null) return;
+      _measureAndShow(_alertKey);
+    }
+  }
+
+  /// Mide el widget bajo [key] en el siguiente frame y, si tiene tamaño,
+  /// abre el tour sobre él.
+  void _measureAndShow(GlobalKey key) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _tourTarget != null) return;
-      final box = _pillKey.currentContext?.findRenderObject() as RenderBox?;
-      if (box == null || !box.attached) return;
+      final box = key.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached || box.size.width <= 0) return;
       final rect = box.localToGlobal(Offset.zero) & box.size;
-      if (rect.width <= 0) return;
       setState(() => _tourTarget = rect);
     });
   }
@@ -92,6 +125,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
+    final tourKind = ref.watch(mapTourProvider);
+    final tour = _tourTarget != null && tourKind != null
+        ? _tourContent(tourKind)
+        : null;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -112,7 +149,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SearchPillBar(key: _pillKey),
+                SearchPillBar(pillKey: _pillKey),
                 const SizedBox(height: 8),
                 LocationStatusChip(routeId: selectedRoute?.id),
                 // Estado de la conexión: se muestra con o sin ruta activa.
@@ -121,22 +158,47 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ],
             ),
           ),
-          const Positioned(
+          Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: EtaBottomSheet(),
+            child: EtaBottomSheet(alertKey: _alertKey),
           ),
-          if (_tourTarget != null)
+          if (tour != null)
             Positioned.fill(
               child: MapTourOverlay(
                 target: _tourTarget!,
+                title: tour.$1,
+                subtitle: tour.$2,
+                icon: tour.$3,
+                stepIndex: tourKind == MapTourKind.pill ? 0 : 1,
+                stepCount: 2,
                 onDone: _closeTour,
               ),
             ),
         ],
       ),
     );
+  }
+
+  /// Contenido de cada paso del tour (título, subtítulo, icono).
+  (String, String, IconData) _tourContent(MapTourKind kind) {
+    switch (kind) {
+      case MapTourKind.pill:
+        return (
+          'Elige tu ruta',
+          'Toca la píldora de arriba para buscar tu línea y elegir tu '
+              'sentido.',
+          Icons.touch_app_rounded,
+        );
+      case MapTourKind.bus:
+        return (
+          'Activa la alarma',
+          'Toca el bus y actívala: te avisaremos aunque dejes la app en '
+              'segundo plano haciendo otra cosa. Solo no la cierres del todo.',
+          Icons.notifications_active_rounded,
+        );
+    }
   }
 }
 

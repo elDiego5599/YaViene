@@ -13,7 +13,11 @@ import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
-  const EtaBottomSheet({super.key});
+  const EtaBottomSheet({super.key, this.alertKey});
+
+  /// GlobalKey sobre el botón de aviso: el tour de primer uso lo mide para
+  /// abrir su hueco sobre él cuando el usuario toca su primer bus.
+  final GlobalKey? alertKey;
 
   @override
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
@@ -489,6 +493,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           ],
           const SizedBox(height: 18),
           _StickyAlertButton(
+            key: widget.alertKey,
             isActive: isActive,
             blocked: ghostBlocked ||
                 alreadyNear ||
@@ -528,6 +533,7 @@ class _StickyAlertButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const _StickyAlertButton({
+    super.key,
     required this.isActive,
     this.blocked = false,
     required this.label,

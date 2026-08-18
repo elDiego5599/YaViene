@@ -5,7 +5,11 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'route_selector_sheet.dart';
 
 class SearchPillBar extends ConsumerStatefulWidget {
-  const SearchPillBar({super.key});
+  const SearchPillBar({super.key, this.pillKey});
+
+  /// GlobalKey sobre la píldora blanca real: el tour de primer uso la mide
+  /// para recortar su hueco exactamente sobre ella.
+  final GlobalKey? pillKey;
 
   @override
   ConsumerState<SearchPillBar> createState() => _SearchPillBarState();
@@ -39,6 +43,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Container(
+          key: widget.pillKey,
           height: 60,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(

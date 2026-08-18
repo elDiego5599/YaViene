@@ -23,11 +23,13 @@ void main() {
 
   testWidgets('flujos reales: registro, ruta, notificaciones, logout y login',
       (tester) async {
-    // El tour de primer uso (coach mark sobre la píldora) intercepta los
-    // toques: se marca como visto para que el flujo automatizado no se
-    // detenga. El tour ya se cubre en los widget tests (test/map_tour_test).
+    // El tour de primer uso (coach mark sobre la píldora y sobre el botón de
+    // aviso del bus) intercepta los toques: se marca como visto para que el
+    // flujo automatizado no se detenga. El tour ya se cubre en los widget
+    // tests (test/map_tour_test.dart).
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('map_tour_seen', true);
+    await prefs.setBool('map_tour_bus_seen', true);
 
     app.main();
 
