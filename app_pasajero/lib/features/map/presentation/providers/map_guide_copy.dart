@@ -60,12 +60,12 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
             'cuánto falta.',
         icon: Icons.directions_bus_rounded,
       );
-    case MapGuideStep.eta:
+    case MapGuideStep.distance:
       return const MapGuideCopy(
-        title: 'Consulta la llegada',
+        title: 'Mira la distancia',
         message:
-            'Aquí verás los minutos aproximados y la distancia del bus a tu '
-            'punto de espera.',
+            'Aquí verás a qué distancia está el bus de tu punto de espera. '
+            'No mostramos minutos porque no tenemos una ETA confiable.',
         icon: Icons.timer_outlined,
         primaryLabel: 'Continuar',
       );

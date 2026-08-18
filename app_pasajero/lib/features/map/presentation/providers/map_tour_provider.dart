@@ -11,7 +11,7 @@ enum MapGuideStep {
   route,
   launchBuses,
   buses,
-  eta,
+  distance,
   alert,
   background,
 }
@@ -52,22 +52,66 @@ int mapGuideStepCount(MapGuideState state) {
 class MapGuideNotifier extends StateNotifier<MapGuideState> {
   MapGuideNotifier() : super(const MapGuideState());
 
+  static const _disabledForTest =
+      bool.fromEnvironment('DISABLE_MAP_GUIDE', defaultValue: false);
   static const _version = 2;
   static const _kVersion = 'map_guide_version';
   static const _kStep = 'map_guide_step';
   static const _kStatus = 'map_guide_status';
   static const _kIncludesLocation = 'map_guide_includes_location';
+  static const _kUser = 'map_guide_user';
+  static const _kEligible = 'map_guide_eligible';
+
+  String? _activeUserId;
 
   Future<void> initialize({
+    required String? userId,
+    required bool isNewUser,
     required bool hasLocation,
     required bool locationSettled,
     required bool hasRoute,
     required bool hasSelectedBus,
     required bool hasActiveAlert,
   }) async {
-    if (state.initialized || !locationSettled) return;
+    if (!locationSettled) return;
+    if (_disabledForTest) {
+      state = const MapGuideState(initialized: true, skipped: true);
+      return;
+    }
+    if (_activeUserId != userId) {
+      _activeUserId = userId;
+      state = const MapGuideState();
+    }
+    if (state.initialized) return;
+
+    if (userId == null) {
+      state = const MapGuideState(initialized: true);
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
+    final storedUser = prefs.getString(_kUser);
+    final sameUser = storedUser == userId;
+    if (!sameUser && !isNewUser) {
+      // Una cuenta que ya existía en otro dispositivo no tiene derecho a la
+      // guía automática: solo la puede pedir explícitamente desde el drawer.
+      state = const MapGuideState(initialized: true);
+      return;
+    }
+    if (!sameUser && isNewUser) {
+      await prefs.setString(_kUser, userId);
+      await prefs.setBool(_kEligible, true);
+      await prefs.remove(_kStep);
+      await prefs.remove(_kStatus);
+      await prefs.remove(_kIncludesLocation);
+    }
+    if (isNewUser) await prefs.setBool(_kEligible, true);
+    final eligible = prefs.getBool(_kEligible) ?? false;
+    if (!eligible) {
+      state = const MapGuideState(initialized: true);
+      return;
+    }
+
     final storedVersion = prefs.getInt(_kVersion);
     if (storedVersion != _version) {
       await prefs.setInt(_kVersion, _version);
@@ -151,11 +195,16 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
   }
 
   Future<void> restart({
+    required String? userId,
     required bool hasLocation,
     required bool locationSettled,
   }) async {
-    if (!locationSettled) return;
+    if (!locationSettled || userId == null) return;
+    _activeUserId = userId;
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kUser, userId);
+    await prefs.setBool(_kEligible, true);
+    await prefs.setInt(_kVersion, _version);
     await prefs.remove(_kStatus);
     final step = hasLocation ? MapGuideStep.search : MapGuideStep.location;
     await prefs.setInt(_kStep, step.index);
@@ -187,7 +236,9 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
     if (!hasRoute && step.index >= MapGuideStep.company.index) {
       return MapGuideStep.search;
     }
-    if (hasRoute && !hasSelectedBus && step.index >= MapGuideStep.eta.index) {
+    if (hasRoute &&
+        !hasSelectedBus &&
+        step.index >= MapGuideStep.distance.index) {
       return MapGuideStep.buses;
     }
     if (!hasActiveAlert && step == MapGuideStep.background) {

@@ -35,6 +35,8 @@ void main() {
       final withoutLocation = MapGuideNotifier();
       addTearDown(withoutLocation.dispose);
       await withoutLocation.initialize(
+        userId: 'user-1',
+        isNewUser: true,
         hasLocation: false,
         locationSettled: true,
         hasRoute: false,
@@ -47,6 +49,8 @@ void main() {
       final withLocation = MapGuideNotifier();
       addTearDown(withLocation.dispose);
       await withLocation.initialize(
+        userId: 'user-2',
+        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -61,6 +65,8 @@ void main() {
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
+        userId: 'user-3',
+        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -88,6 +94,8 @@ void main() {
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
+        userId: 'user-4',
+        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -103,6 +111,8 @@ void main() {
       final resumed = MapGuideNotifier();
       addTearDown(resumed.dispose);
       await resumed.initialize(
+        userId: 'user-4',
+        isNewUser: false,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -112,10 +122,28 @@ void main() {
       expect(resumed.state.step, MapGuideStep.search);
     });
 
+    test('un login existente en otro dispositivo no activa la guía', () async {
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.initialize(
+        userId: 'existing-account',
+        isNewUser: false,
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(guide.state.initialized, isTrue);
+      expect(guide.state.step, isNull);
+    });
+
     test('saltar persiste y reiniciar vuelve al inicio apropiado', () async {
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
+        userId: 'user-5',
+        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -126,7 +154,11 @@ void main() {
       expect(guide.state.skipped, isTrue);
       expect(guide.state.step, isNull);
 
-      await guide.restart(hasLocation: false, locationSettled: true);
+      await guide.restart(
+        userId: 'user-5',
+        hasLocation: false,
+        locationSettled: true,
+      );
       expect(guide.state.step, MapGuideStep.location);
     });
   });

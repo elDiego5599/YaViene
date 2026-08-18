@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -239,11 +241,18 @@ class RouteSelectorSheet extends ConsumerWidget {
   void _showCompanySelector(
       BuildContext context, WidgetRef ref, List<Company> companies) {
     HapticFeedback.lightImpact();
-    final guideSpace =
-        (MediaQuery.sizeOf(context).height * 0.30).clamp(160.0, 280.0);
+    final guideActive = ref.read(mapGuideProvider).step == MapGuideStep.company;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final guideSpace = (screenHeight * 0.28).clamp(160.0, 260.0);
+    final listHeight = math.max(
+      140.0,
+      math.min(screenHeight * 0.65,
+          screenHeight - (guideActive ? guideSpace : 24) - 24),
+    );
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
@@ -251,14 +260,15 @@ class RouteSelectorSheet extends ConsumerWidget {
         companyChoiceGuideKey: companyChoiceGuideKey,
         child: SafeArea(
           top: false,
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+          child: Padding(
+            padding:
+                EdgeInsets.fromLTRB(0, guideActive ? guideSpace : 24, 0, 24),
+            child: ConstrainedBox(
+              key: companyChoiceGuideKey,
+              constraints: BoxConstraints(maxHeight: listHeight),
+              child: ListView(
+                padding: EdgeInsets.zero,
                 children: [
-                  if (ref.read(mapGuideProvider).step == MapGuideStep.company)
-                    SizedBox(height: guideSpace),
                   if (companies.isEmpty)
                     const Padding(
                       padding:
@@ -274,11 +284,8 @@ class RouteSelectorSheet extends ConsumerWidget {
                       ),
                     )
                   else
-                    ...companies.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final company = entry.value;
+                    ...companies.map((company) {
                       return ListTile(
-                        key: index == 0 ? companyChoiceGuideKey : null,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 24, vertical: 8),
                         leading: Container(
@@ -504,11 +511,18 @@ void _showRouteSelector(
     BuildContext context, WidgetRef ref, List<RouteInfo> routes,
     {GlobalKey? routeChoiceGuideKey}) {
   HapticFeedback.lightImpact();
-  final guideSpace =
-      (MediaQuery.sizeOf(context).height * 0.30).clamp(160.0, 280.0);
+  final guideActive = ref.read(mapGuideProvider).step == MapGuideStep.route;
+  final screenHeight = MediaQuery.sizeOf(context).height;
+  final guideSpace = (screenHeight * 0.28).clamp(160.0, 260.0);
+  final listHeight = math.max(
+    140.0,
+    math.min(screenHeight * 0.65,
+        screenHeight - (guideActive ? guideSpace : 24) - 24),
+  );
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.white,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
     ),
@@ -516,14 +530,14 @@ void _showRouteSelector(
       routeChoiceGuideKey: routeChoiceGuideKey,
       child: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(0, guideActive ? guideSpace : 24, 0, 24),
+          child: ConstrainedBox(
+            key: routeChoiceGuideKey,
+            constraints: BoxConstraints(maxHeight: listHeight),
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
-                if (ref.read(mapGuideProvider).step == MapGuideStep.route)
-                  SizedBox(height: guideSpace),
                 if (routes.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -538,54 +552,51 @@ void _showRouteSelector(
                     ),
                   )
                 else
-                  ...routes.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final r = entry.value;
-                    return ListTile(
-                      key: index == 0 ? routeChoiceGuideKey : null,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 8),
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE6F7F0),
-                          borderRadius: BorderRadius.circular(12),
+                  ...routes.map((route) => ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 8),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F7F0),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.alt_route_rounded,
+                              color: Color(0xFF00A859), size: 20),
                         ),
-                        child: const Icon(Icons.alt_route_rounded,
-                            color: Color(0xFF00A859), size: 20),
-                      ),
-                      title: Text(
-                        r.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                          letterSpacing: -0.4,
+                        title: Text(
+                          route.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.4,
+                          ),
                         ),
-                      ),
-                      subtitle: Text(
-                        _routeSubtitle(r) ?? 'Tiempo real',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
+                        subtitle: Text(
+                          _routeSubtitle(route) ?? 'Tiempo real',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded,
-                          color: Color(0xFFCBD5E1)),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        ref.read(selectedRouteProvider.notifier).select(r);
-                        ref
-                            .read(mapGuideProvider.notifier)
-                            .complete(MapGuideStep.route);
-                        Navigator.pop(context);
-                      },
-                    );
-                  }),
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: Color(0xFFCBD5E1)),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          ref
+                              .read(selectedRouteProvider.notifier)
+                              .select(route);
+                          ref
+                              .read(mapGuideProvider.notifier)
+                              .complete(MapGuideStep.route);
+                          Navigator.pop(context);
+                        },
+                      )),
               ],
             ),
           ),

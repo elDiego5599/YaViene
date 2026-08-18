@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/providers/auth_provider.dart';
 import '../../../../services/background_keep_alive.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_guide_copy.dart';
@@ -115,6 +116,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final locationSettled = location.mode != UserLocationMode.unknown &&
         location.mode != UserLocationMode.locating;
     await ref.read(mapGuideProvider.notifier).initialize(
+          userId: ref.read(authProvider).state.uid,
+          isNewUser: ref.read(authProvider).state.isNewUser,
           hasLocation: location.hasPosition,
           locationSettled: locationSettled,
           hasRoute: ref.read(selectedRouteProvider) != null,
@@ -173,7 +176,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return step == MapGuideStep.location ||
         step == MapGuideStep.search ||
         step == MapGuideStep.buses ||
-        step == MapGuideStep.eta ||
+        step == MapGuideStep.distance ||
         step == MapGuideStep.alert ||
         step == MapGuideStep.background;
   }
@@ -194,7 +197,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         return _rectFor(_searchActionKey) ?? _rectFor(_pillKey);
       case MapGuideStep.buses:
         return _mapGuideArea();
-      case MapGuideStep.eta:
+      case MapGuideStep.distance:
         return _rectFor(_metricGuideKey) ?? _rectFor(_detailGuideKey);
       case MapGuideStep.alert:
       case MapGuideStep.background:

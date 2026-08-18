@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ya_viene_pasajero/main.dart' as app;
 
@@ -23,13 +22,6 @@ void main() {
 
   testWidgets('flujos reales: registro, ruta, notificaciones, logout y login',
       (tester) async {
-    // La guía completa se cubre con tests de estados y widgets. Este flujo
-    // integral se concentra en backend, Firebase, sockets y navegación, por
-    // eso arranca con la guía saltada explícitamente.
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('map_guide_version', 2);
-    await prefs.setString('map_guide_status', 'skipped');
-
     app.main();
 
     // 1) Pantalla de login (instalación limpia).

@@ -13,8 +13,10 @@ final authProvider = ChangeNotifierProvider<AuthNotifier>((ref) {
 
 class AuthState {
   final AuthStatus status;
+  final String? uid;
   final String? email;
   final String? name;
+  final bool isNewUser;
   final String? errorMessage;
 
   /// Código de error de Firebase (p. ej. 'email-already-in-use') para que la
@@ -23,23 +25,29 @@ class AuthState {
 
   const AuthState({
     this.status = AuthStatus.unauthenticated,
+    this.uid,
     this.email,
     this.name,
+    this.isNewUser = false,
     this.errorMessage,
     this.errorCode,
   });
 
   AuthState copyWith({
     AuthStatus? status,
+    String? uid,
     String? email,
     String? name,
+    bool? isNewUser,
     Object? errorMessage = _notProvided,
     Object? errorCode = _notProvided,
   }) {
     return AuthState(
       status: status ?? this.status,
+      uid: uid ?? this.uid,
       email: email ?? this.email,
       name: name ?? this.name,
+      isNewUser: isNewUser ?? this.isNewUser,
       errorMessage: identical(errorMessage, _notProvided)
           ? this.errorMessage
           : errorMessage as String?,
@@ -77,8 +85,10 @@ class AuthNotifier extends ChangeNotifier {
       if (user != null && _state.status != AuthStatus.verified) {
         _state = AuthState(
           status: AuthStatus.verified,
+          uid: user.uid,
           email: user.email,
           name: user.displayName,
+          isNewUser: false,
         );
         notifyListeners();
       } else if (user == null && _state.status != AuthStatus.unauthenticated) {
@@ -95,8 +105,7 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  static final RegExp _emailPattern =
-      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
   bool isEmailValid(String email) => _emailPattern.hasMatch(email.trim());
 
@@ -125,7 +134,9 @@ class AuthNotifier extends ChangeNotifier {
       // ignore: deprecated_member_use
       final methods = await _auth.fetchSignInMethodsForEmail(normalized);
       if (methods.contains('password')) return _settle(true);
-      if (methods.isNotEmpty) return _settle(false); // solo Google: sin contraseña
+      if (methods.isNotEmpty) {
+        return _settle(false); // solo Google: sin contraseña
+      }
       return _settle(await _probeExistence(normalized));
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') return _settle(false);
@@ -140,7 +151,8 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         email: normalized,
-        errorMessage: 'No se pudo conectar: revisa tu internet e intenta de nuevo',
+        errorMessage:
+            'No se pudo conectar: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return null;
@@ -200,8 +212,10 @@ class AuthNotifier extends ChangeNotifier {
       await result.user?.updateProfile(displayName: name.trim());
       _state = AuthState(
         status: AuthStatus.verified,
+        uid: result.user?.uid,
         email: result.user?.email,
         name: name.trim(),
+        isNewUser: true,
       );
       notifyListeners();
       return true;
@@ -218,7 +232,8 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         email: normalized,
-        errorMessage: 'No se pudo conectar: revisa tu internet e intenta de nuevo',
+        errorMessage:
+            'No se pudo conectar: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return false;
@@ -241,8 +256,10 @@ class AuthNotifier extends ChangeNotifier {
       );
       _state = AuthState(
         status: AuthStatus.verified,
+        uid: result.user?.uid,
         email: result.user?.email,
         name: result.user?.displayName,
+        isNewUser: false,
       );
       notifyListeners();
       return true;
@@ -259,7 +276,8 @@ class AuthNotifier extends ChangeNotifier {
       _state = AuthState(
         status: AuthStatus.error,
         email: normalized,
-        errorMessage: 'No se pudo conectar: revisa tu internet e intenta de nuevo',
+        errorMessage:
+            'No se pudo conectar: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return false;
@@ -276,7 +294,9 @@ class AuthNotifier extends ChangeNotifier {
       // Sin idToken (plataforma/dispositivo sin Play Services o configuración
       // incompleta) el credential de Firebase no se puede construir.
       if (idToken == null) {
-        _state = const AuthState(status: AuthStatus.error, errorMessage: 'No se pudo obtener la sesión de Google');
+        _state = const AuthState(
+            status: AuthStatus.error,
+            errorMessage: 'No se pudo obtener la sesión de Google');
         notifyListeners();
         return false;
       }
@@ -284,8 +304,10 @@ class AuthNotifier extends ChangeNotifier {
       final result = await _auth.signInWithCredential(credential);
       _state = AuthState(
         status: AuthStatus.verified,
+        uid: result.user?.uid,
         email: result.user?.email,
         name: result.user?.displayName,
+        isNewUser: result.additionalUserInfo?.isNewUser ?? false,
       );
       notifyListeners();
       return true;
@@ -306,7 +328,8 @@ class AuthNotifier extends ChangeNotifier {
     } catch (e) {
       _state = const AuthState(
         status: AuthStatus.error,
-        errorMessage: 'No se pudo conectar con Google: revisa tu internet e intenta de nuevo',
+        errorMessage:
+            'No se pudo conectar con Google: revisa tu internet e intenta de nuevo',
       );
       notifyListeners();
       return false;

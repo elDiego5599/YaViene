@@ -270,6 +270,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                       onTap: () async {
                         final location = ref.read(userLocationProvider);
                         await ref.read(mapGuideProvider.notifier).restart(
+                              userId: auth.uid,
                               hasLocation: location.hasPosition,
                               locationSettled: location.mode !=
                                       UserLocationMode.unknown &&

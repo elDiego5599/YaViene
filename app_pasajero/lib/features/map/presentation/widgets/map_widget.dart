@@ -11,6 +11,7 @@ import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
+import '../utils/bus_hit_test.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -535,7 +536,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _kBusSourceId,
         'bus-selected-halo-layer',
         const CircleLayerProperties(
-          circleRadius: 24.0,
+          circleRadius: 18.0,
           circleColor: '#00A859',
           circleOpacity: 0.45,
           circleBlur: 0.8,
@@ -576,8 +577,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 ['get', 'isSelected'],
                 true
               ],
-              1.5,
-              1.0
+              0.9,
+              0.7
             ],
             15,
             [
@@ -587,8 +588,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 ['get', 'isSelected'],
                 true
               ],
-              2.5,
-              2.0
+              1.25,
+              1.0
             ]
           ],
           iconAllowOverlap: true,
@@ -660,18 +661,48 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   Future<bool> _doSelectBusAtTap(math.Point<double> point) async {
     try {
-      final features = await _mapController!.queryRenderedFeaturesInRect(
-        Rect.fromCenter(
-          center: Offset(point.x, point.y),
-          width: 88,
-          height: 88,
-        ),
-        _kBusHitLayers,
-        null,
-      );
-      if (features.isEmpty) return false;
-      final busId = features.first['properties']?['busId'] as String? ?? '';
-      if (busId.isEmpty) return false;
+      final routeId = widget.routeId;
+      final positions = routeId == null
+          ? const <BusPosition>[]
+          : ref.read(busPositionsSourceProvider(routeId)).value ??
+              const <BusPosition>[];
+      final screenPoints = <BusScreenPoint>[];
+
+      // MapLibre puede devolver varios features dentro de un rectángulo. No
+      // basta con tomar `features.first`: cuando dos buses están cerca, el
+      // primer resultado no necesariamente es el que tocó el usuario. Se
+      // proyectan las posiciones y se escoge el centro más cercano.
+      for (final position in positions) {
+        final screen = await _mapController!.toScreenLocation(
+          LatLng(position.lat, position.lon),
+        );
+        screenPoints.add(BusScreenPoint(
+          busId: position.busId,
+          offset: Offset(screen.x.toDouble(), screen.y.toDouble()),
+        ));
+      }
+
+      const maxHitRadius = 32.0;
+      var busId = nearestBusId(Offset(point.x, point.y), screenPoints,
+          maxDistance: maxHitRadius);
+      if (busId == null) {
+        // Fallback solo cuando todavía no hay snapshot local para proyectar;
+        // mantiene el primer toque posible durante la carga sin reintroducir
+        // el rectángulo grande que causaba selecciones equivocadas.
+        if (positions.isNotEmpty) return false;
+        final features = await _mapController!.queryRenderedFeaturesInRect(
+          Rect.fromCenter(
+            center: Offset(point.x, point.y),
+            width: maxHitRadius * 2,
+            height: maxHitRadius * 2,
+          ),
+          _kBusHitLayers,
+          null,
+        );
+        if (features.isEmpty) return false;
+        busId = features.first['properties']?['busId'] as String?;
+      }
+      if (busId == null || busId.isEmpty) return false;
       // La selección solo decide QUÉ bus se ve en la hoja; los avisos
       // armados en otros buses se conservan (son independientes de lo que
       // se esté mirando).

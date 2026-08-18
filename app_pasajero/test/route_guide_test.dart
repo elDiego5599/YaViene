@@ -13,11 +13,26 @@ void main() {
     name: 'B18 Tcherassi',
     companyId: 'EMP-01',
   );
+  final companies = [
+    company,
+    for (var i = 2; i <= 8; i++) Company(id: 'EMP-0$i', name: 'Empresa $i'),
+  ];
+  final routes = [
+    route,
+    for (var i = 2; i <= 8; i++)
+      RouteInfo(
+        id: 'R-10$i',
+        name: 'Ruta $i',
+        companyId: 'EMP-08',
+      ),
+  ];
 
   testWidgets('la guía acompaña empresa, ruta y buses en vivo', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final guide = MapGuideNotifier();
     await guide.initialize(
+      userId: 'route-user',
+      isNewUser: true,
       hasLocation: true,
       locationSettled: true,
       hasRoute: false,
@@ -28,9 +43,8 @@ void main() {
 
     final container = ProviderContainer(overrides: [
       mapGuideProvider.overrideWith((ref) => guide),
-      companiesProvider.overrideWith((ref) async => const [company]),
-      routesByCompanyProvider
-          .overrideWith((ref, companyId) async => const [route]),
+      companiesProvider.overrideWith((ref) async => companies),
+      routesByCompanyProvider.overrideWith((ref, companyId) async => routes),
     ]);
     addTearDown(container.dispose);
 
@@ -67,7 +81,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sobusa'), findsOneWidget);
 
-    await tester.tap(find.text('Sobusa').last);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
+    await tester.pump();
+    expect(find.text('Empresa 8'), findsOneWidget);
+    await tester.tap(find.text('Empresa 8'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(guide.state.step, MapGuideStep.route);
@@ -77,7 +94,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('B18 Tcherassi'), findsOneWidget);
 
-    await tester.tap(find.text('B18 Tcherassi').last);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -500));
+    await tester.pump();
+    expect(find.text('Ruta 8'), findsOneWidget);
+    await tester.tap(find.text('Ruta 8'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(guide.state.step, MapGuideStep.launchBuses);
