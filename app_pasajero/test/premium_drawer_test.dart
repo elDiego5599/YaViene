@@ -120,4 +120,22 @@ void main() {
 
     expect(find.text('Mallorquín'), findsOneWidget);
   });
+
+  testWidgets('nombre de ruta largo usa ellipsis en la tarjeta activa',
+      (tester) async {
+    final container = await pumpDrawer(tester);
+    const longName =
+        'Ruta Metropolitana Especial Terminal Norte Aeropuerto Internacional';
+    container.read(selectedRouteProvider.notifier).select(const RouteInfo(
+          id: 'R-LONG',
+          name: longName,
+          companyId: 'C1',
+        ));
+    await tester.pump();
+    await openDrawer(tester);
+
+    final routeText = tester.widget<Text>(find.text(longName));
+    expect(routeText.maxLines, 1);
+    expect(routeText.overflow, TextOverflow.ellipsis);
+  });
 }

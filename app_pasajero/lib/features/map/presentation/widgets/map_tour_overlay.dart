@@ -96,12 +96,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
 
   double _belowTop(Rect hole, Size size) {
     final proposed = hole.bottom + 22;
-    return proposed.clamp(12.0, mathMax(12.0, size.height - 180));
+    return proposed.clamp(12.0, mathMax(12.0, size.height - 210));
   }
 
   double _aboveBottom(Rect hole, Size size) {
     final proposed = size.height - hole.top + 22;
-    return proposed.clamp(12.0, mathMax(12.0, size.height - 180));
+    return proposed.clamp(12.0, mathMax(12.0, size.height - 210));
   }
 
   List<Widget> _buildBarriers(Size size, Rect hole) {

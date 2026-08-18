@@ -40,7 +40,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _alertGuideKey = GlobalKey();
 
   Rect? _guideTarget;
-  Rect? _busGuideTarget;
   MapGuideStep? _measuredGuideStep;
   bool _alertBlocked = false;
 
@@ -136,9 +135,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
   }
 
-  void _onGuideBusTargetChanged(Rect? rect) {
+  void _onGuideBusTargetChanged(Rect? _) {
     if (!mounted) return;
-    _busGuideTarget = rect;
     if (ref.read(mapGuideProvider).step == MapGuideStep.buses) {
       _scheduleGuideMeasurement(MapGuideStep.buses);
     }
@@ -195,7 +193,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case MapGuideStep.search:
         return _rectFor(_searchActionKey) ?? _rectFor(_pillKey);
       case MapGuideStep.buses:
-        return _busGuideTarget;
+        return _mapGuideArea();
       case MapGuideStep.eta:
         return _rectFor(_metricGuideKey) ?? _rectFor(_detailGuideKey);
       case MapGuideStep.alert:
@@ -212,6 +210,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final box = key.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.attached || box.size.width <= 0) return null;
     return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  /// El usuario necesita poder mover el mapa y tocar cualquier bus. Se
+  /// ilumina una zona amplia del mapa, no un punto fijo que desaparece al
+  /// mover la cámara.
+  Rect? _mapGuideArea() {
+    final mapRect = _rectFor(_mapKey);
+    if (mapRect == null) return null;
+    final top = mapRect.top + 88;
+    final bottom = mapRect.bottom - 250;
+    if (bottom - top < 220) return mapRect.deflate(12);
+    return Rect.fromLTRB(mapRect.left + 8, top, mapRect.right - 8, bottom);
   }
 
   void _skipGuide() {

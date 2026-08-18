@@ -239,6 +239,8 @@ class RouteSelectorSheet extends ConsumerWidget {
   void _showCompanySelector(
       BuildContext context, WidgetRef ref, List<Company> companies) {
     HapticFeedback.lightImpact();
+    final guideSpace =
+        (MediaQuery.sizeOf(context).height * 0.30).clamp(160.0, 280.0);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -254,73 +256,76 @@ class RouteSelectorSheet extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: companies.isEmpty
-                    ? const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 32),
-                          child: Text(
-                            'Sin empresas disponibles',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF64748B),
-                            ),
+                children: [
+                  if (ref.read(mapGuideProvider).step == MapGuideStep.company)
+                    SizedBox(height: guideSpace),
+                  if (companies.isEmpty)
+                    const Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      child: Text(
+                        'Sin empresas disponibles',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    )
+                  else
+                    ...companies.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final company = entry.value;
+                      return ListTile(
+                        key: index == 0 ? companyChoiceGuideKey : null,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 8),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.business_rounded,
+                            color: Color(0xFF14274E),
+                            size: 20,
                           ),
                         ),
-                      ]
-                    : companies.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final company = entry.value;
-                        return ListTile(
-                          key: index == 0 ? companyChoiceGuideKey : null,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 8),
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.business_rounded,
-                              color: Color(0xFF14274E),
-                              size: 20,
-                            ),
+                        title: Text(
+                          company.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                            letterSpacing: -0.4,
                           ),
-                          title: Text(
-                            company.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right_rounded,
-                              color: Color(0xFFCBD5E1)),
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            final alreadySelected =
-                                ref.read(selectedCompanyProvider)?.id ==
-                                    company.id;
-                            ref
-                                .read(selectedCompanyProvider.notifier)
-                                .select(company);
-                            if (!alreadySelected) {
-                              ref.read(selectedRouteProvider.notifier).clear();
-                            }
-                            ref
-                                .read(mapGuideProvider.notifier)
-                                .complete(MapGuideStep.company);
-                            Navigator.pop(context);
-                          },
-                        );
-                      }).toList(),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded,
+                            color: Color(0xFFCBD5E1)),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          final alreadySelected =
+                              ref.read(selectedCompanyProvider)?.id ==
+                                  company.id;
+                          ref
+                              .read(selectedCompanyProvider.notifier)
+                              .select(company);
+                          if (!alreadySelected) {
+                            ref.read(selectedRouteProvider.notifier).clear();
+                          }
+                          ref
+                              .read(mapGuideProvider.notifier)
+                              .complete(MapGuideStep.company);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }),
+                ],
               ),
             ),
           ),
@@ -499,6 +504,8 @@ void _showRouteSelector(
     BuildContext context, WidgetRef ref, List<RouteInfo> routes,
     {GlobalKey? routeChoiceGuideKey}) {
   HapticFeedback.lightImpact();
+  final guideSpace =
+      (MediaQuery.sizeOf(context).height * 0.30).clamp(160.0, 280.0);
   showModalBottomSheet(
     context: context,
     backgroundColor: Colors.white,
@@ -514,70 +521,72 @@ void _showRouteSelector(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: routes.isEmpty
-                  ? const [
-                      Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                        child: Text(
-                          'Esta empresa no tiene rutas aún',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF64748B),
-                          ),
+              children: [
+                if (ref.read(mapGuideProvider).step == MapGuideStep.route)
+                  SizedBox(height: guideSpace),
+                if (routes.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    child: Text(
+                      'Esta empresa no tiene rutas aún',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  )
+                else
+                  ...routes.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final r = entry.value;
+                    return ListTile(
+                      key: index == 0 ? routeChoiceGuideKey : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 8),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE6F7F0),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.alt_route_rounded,
+                            color: Color(0xFF00A859), size: 20),
+                      ),
+                      title: Text(
+                        r.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -0.4,
                         ),
                       ),
-                    ]
-                  : routes.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final r = entry.value;
-                      return ListTile(
-                        key: index == 0 ? routeChoiceGuideKey : null,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 8),
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE6F7F0),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.alt_route_rounded,
-                              color: Color(0xFF00A859), size: 20),
+                      subtitle: Text(
+                        _routeSubtitle(r) ?? 'Tiempo real',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
                         ),
-                        title: Text(
-                          r.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        subtitle: Text(
-                          _routeSubtitle(r) ?? 'Tiempo real',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded,
-                            color: Color(0xFFCBD5E1)),
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          ref.read(selectedRouteProvider.notifier).select(r);
-                          ref
-                              .read(mapGuideProvider.notifier)
-                              .complete(MapGuideStep.route);
-                          Navigator.pop(context);
-                        },
-                      );
-                    }).toList(),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded,
+                          color: Color(0xFFCBD5E1)),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(selectedRouteProvider.notifier).select(r);
+                        ref
+                            .read(mapGuideProvider.notifier)
+                            .complete(MapGuideStep.route);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }),
+              ],
             ),
           ),
         ),
