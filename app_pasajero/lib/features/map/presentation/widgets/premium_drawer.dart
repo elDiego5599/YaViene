@@ -269,6 +269,10 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                       iconColor: const Color(0xFF0284C7),
                       title: 'Ver guía de uso',
                       onTap: () async {
+                        // La guía empieza limpia: se deselecciona el bus que
+                        // estuviera marcado (quizá con un aviso activo) para
+                        // que el flujo arranque desde cero.
+                        ref.read(selectedBusesProvider.notifier).clear();
                         final location = ref.read(userLocationProvider);
                         await ref.read(mapGuideProvider.notifier).restart(
                               userId: auth.uid,

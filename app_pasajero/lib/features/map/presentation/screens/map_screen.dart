@@ -244,7 +244,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await ref.read(mapGuideProvider.notifier).moveTo(MapGuideStep.buses);
   }
 
-  MapGuideCopy _copyFor(MapGuideStep step, bool selectedBusHasActiveAlert) {
+  MapGuideCopy _copyFor(
+    MapGuideStep step, bool selectedBusHasActiveAlert, bool alertLimitReached) {
     if (step == MapGuideStep.alert) {
       // El aviso ya está activo (armado ahora o restaurado de otra sesión):
       // la guía NO se salta el paso, muestra el estado y pide Continuar.
@@ -254,6 +255,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           message: 'Este bus ya tiene un aviso activo: te avisaremos cuando '
               'esté cerca.',
           icon: Icons.notifications_active_rounded,
+          primaryLabel: 'Continuar',
+        );
+      }
+      // Límite de 2 avisos activos: la guía no puede quedar atascada, avanza
+      // con Continuar (el usuario ya sabe armar avisos).
+      if (alertLimitReached) {
+        return const MapGuideCopy(
+          title: 'Ya tienes 2 avisos activos',
+          message: 'Desactiva uno o espera a que termine para activar otro. '
+              'Recuerda no cerrar la aplicación ni salirte de la guía.',
+          icon: Icons.notifications_off_rounded,
           primaryLabel: 'Continuar',
         );
       }
@@ -275,10 +287,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final selectedRoute = ref.watch(selectedRouteProvider);
     final guide = ref.watch(mapGuideProvider);
     final step = guide.step;
-    final selectedBusHasActiveAlert = ref
-        .watch(selectedBusesProvider)
-        .any(ref.watch(activeAlertsProvider).contains);
-    final copy = step == null ? null : _copyFor(step, selectedBusHasActiveAlert);
+    final activeAlerts = ref.watch(activeAlertsProvider);
+    final selectedBusHasActiveAlert =
+        ref.watch(selectedBusesProvider).any(activeAlerts.contains);
+    final alertLimitReached = activeAlerts.length >= 2;
+    final copy = step == null
+        ? null
+        : _copyFor(step, selectedBusHasActiveAlert, alertLimitReached);
     final showMapGuide = copy != null &&
         _isMapStep(step) &&
         _guideTarget != null &&
@@ -286,7 +301,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final visibleStep = showMapGuide && step != null ? step : null;
     final alertBlockedCopy = visibleStep == MapGuideStep.alert &&
         _alertBlocked &&
-        !selectedBusHasActiveAlert;
+        !selectedBusHasActiveAlert &&
+        !alertLimitReached;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
