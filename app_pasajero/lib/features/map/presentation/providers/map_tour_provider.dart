@@ -132,19 +132,16 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
     }
 
     final storedIndex = prefs.getInt(_kStep);
-    final includesLocation = storedIndex == null
-        ? !hasLocation
-        : prefs.getBool(_kIncludesLocation) ?? !hasLocation;
-    var step = storedIndex == null
-        ? (hasLocation ? MapGuideStep.search : MapGuideStep.location)
-        : _stepFromIndex(storedIndex);
-    step = _normalizeResumeStep(
-      step,
-      hasLocation: hasLocation,
-      hasRoute: hasRoute,
-      hasSelectedBus: hasSelectedBus,
-      hasActiveAlert: hasActiveAlert,
-    );
+    // Una guía a medias de una sesión anterior NO se reanuda sola: si el
+    // usuario activó la guía pero salió de la app y volvió, la guía no salta.
+    // La repite cuando quiera desde el drawer ("Ver guía de uso").
+    if (storedIndex != null) {
+      state = const MapGuideState(initialized: true);
+      return;
+    }
+
+    final includesLocation = !hasLocation;
+    final step = hasLocation ? MapGuideStep.search : MapGuideStep.location;
     await prefs.setInt(_kStep, step.index);
     await prefs.setBool(_kIncludesLocation, includesLocation);
     state = MapGuideState(
@@ -214,37 +211,6 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
       initialized: true,
       includesLocation: !hasLocation,
     );
-  }
-
-  MapGuideStep _stepFromIndex(int index) {
-    if (index < 0 || index >= MapGuideStep.values.length) {
-      return MapGuideStep.location;
-    }
-    return MapGuideStep.values[index];
-  }
-
-  MapGuideStep _normalizeResumeStep(
-    MapGuideStep step, {
-    required bool hasLocation,
-    required bool hasRoute,
-    required bool hasSelectedBus,
-    required bool hasActiveAlert,
-  }) {
-    if (!hasLocation && step.index > MapGuideStep.location.index) {
-      return MapGuideStep.location;
-    }
-    if (!hasRoute && step.index >= MapGuideStep.company.index) {
-      return MapGuideStep.search;
-    }
-    if (hasRoute &&
-        !hasSelectedBus &&
-        step.index >= MapGuideStep.distance.index) {
-      return MapGuideStep.buses;
-    }
-    if (!hasActiveAlert && step == MapGuideStep.background) {
-      return MapGuideStep.alert;
-    }
-    return step;
   }
 }
 

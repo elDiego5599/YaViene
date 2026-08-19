@@ -47,7 +47,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   ProviderSubscription<UserLocationState>? _locationSub;
   ProviderSubscription<MapGuideState>? _guideSub;
   ProviderSubscription<Set<String>>? _busSub;
-  ProviderSubscription<Set<String>>? _alertSub;
 
   @override
   void initState() {
@@ -81,15 +80,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         }
       },
     );
-    _alertSub = ref.listenManual<Set<String>>(
-      activeAlertsProvider,
-      (previous, next) {
-        if (next.isNotEmpty &&
-            ref.read(mapGuideProvider).step == MapGuideStep.alert) {
-          ref.read(mapGuideProvider.notifier).complete(MapGuideStep.alert);
-        }
-      },
-    );
+    // El paso de alerta NO se completa solo cuando ya hay un aviso activo:
+    // la guía lo muestra ("Aviso ya activado") y deja que el usuario avance
+    // con "Continuar" (un aviso restaurado de otra sesión no debe saltarse
+    // el paso en silencio).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _initializeGuide();
@@ -106,7 +100,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _locationSub?.close();
     _guideSub?.close();
     _busSub?.close();
-    _alertSub?.close();
     super.dispose();
   }
 
@@ -251,15 +244,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await ref.read(mapGuideProvider.notifier).moveTo(MapGuideStep.buses);
   }
 
-  MapGuideCopy _copyFor(MapGuideStep step) {
-    if (step == MapGuideStep.alert && _alertBlocked) {
-      return const MapGuideCopy(
-        title: 'Elige otro bus',
-        message: 'Este bus no admite un aviso porque no tiene señal o ya está '
-            'demasiado cerca. Selecciona otro bus en el mapa.',
-        icon: Icons.swap_horiz_rounded,
-        primaryLabel: 'Elegir otro bus',
-      );
+  MapGuideCopy _copyFor(MapGuideStep step, bool selectedBusHasActiveAlert) {
+    if (step == MapGuideStep.alert) {
+      // El aviso ya está activo (armado ahora o restaurado de otra sesión):
+      // la guía NO se salta el paso, muestra el estado y pide Continuar.
+      if (selectedBusHasActiveAlert) {
+        return const MapGuideCopy(
+          title: 'Aviso ya activado',
+          message: 'Este bus ya tiene un aviso activo: te avisaremos cuando '
+              'esté cerca.',
+          icon: Icons.notifications_active_rounded,
+          primaryLabel: 'Continuar',
+        );
+      }
+      if (_alertBlocked) {
+        return const MapGuideCopy(
+          title: 'Elige otro bus',
+          message: 'Este bus no admite un aviso porque no tiene señal o ya está '
+              'demasiado cerca. Selecciona otro bus en el mapa.',
+          icon: Icons.swap_horiz_rounded,
+          primaryLabel: 'Elegir otro bus',
+        );
+      }
     }
     return mapGuideCopy(step);
   }
@@ -269,12 +275,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final selectedRoute = ref.watch(selectedRouteProvider);
     final guide = ref.watch(mapGuideProvider);
     final step = guide.step;
-    final copy = step == null ? null : _copyFor(step);
+    final selectedBusHasActiveAlert = ref
+        .watch(selectedBusesProvider)
+        .any(ref.watch(activeAlertsProvider).contains);
+    final copy = step == null ? null : _copyFor(step, selectedBusHasActiveAlert);
     final showMapGuide = copy != null &&
         _isMapStep(step) &&
         _guideTarget != null &&
         _measuredGuideStep == step;
     final visibleStep = showMapGuide && step != null ? step : null;
+    final alertBlockedCopy = visibleStep == MapGuideStep.alert &&
+        _alertBlocked &&
+        !selectedBusHasActiveAlert;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -340,7 +352,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 primaryLabel: copy.primaryLabel,
                 onPrimary: copy.primaryLabel == null
                     ? null
-                    : () => visibleStep == MapGuideStep.alert && _alertBlocked
+                    : () => alertBlockedCopy
                         ? _chooseAnotherBus()
                         : _completeInfoStep(visibleStep),
                 onSkip: _skipGuide,

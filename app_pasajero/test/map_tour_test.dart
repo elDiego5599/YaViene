@@ -86,7 +86,7 @@ void main() {
       expect(guide.state.step, MapGuideStep.launchBuses);
     });
 
-    test('persiste el progreso y migra los flags del tour anterior', () async {
+    test('una guía a medias no se reanuda sola al volver a entrar', () async {
       SharedPreferences.setMockInitialValues({
         'map_tour_seen': true,
         'map_tour_bus_seen': true,
@@ -108,6 +108,8 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getInt('map_guide_step'), MapGuideStep.company.index);
 
+      // El usuario salió de la app con la guía a medias: al volver, la guía
+      // NO salta; la repite desde el drawer cuando quiera.
       final resumed = MapGuideNotifier();
       addTearDown(resumed.dispose);
       await resumed.initialize(
@@ -119,7 +121,8 @@ void main() {
         hasSelectedBus: false,
         hasActiveAlert: false,
       );
-      expect(resumed.state.step, MapGuideStep.search);
+      expect(resumed.state.initialized, isTrue);
+      expect(resumed.state.step, isNull);
     });
 
     test('un login existente en otro dispositivo no activa la guía', () async {
