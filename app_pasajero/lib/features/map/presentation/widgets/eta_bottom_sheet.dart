@@ -42,6 +42,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
 
+  /// Histéresis del bloqueo del aviso: una vez bloqueado (bus sin señal o
+  /// dentro del radio), permanece bloqueado hasta que el bus se aleje más de
+  /// `alertReArmMeters`. Evita que el cruce de umbrales por el movimiento del
+  /// bus haga flapear el botón (y la guía) entre bloqueado/desbloqueado.
+  bool _blockedLatched = false;
+  String? _latchedBusId;
+
   @override
   void initState() {
     super.initState();
@@ -159,6 +166,23 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   bool _busAlreadyNear(BusPosition? bus) {
     final distance = _distanceToBus(bus);
     return distance != null && distance <= alertRadiusMeters;
+  }
+
+  /// Histéresis del bloqueo: una vez bloqueado, sigue bloqueado hasta que el
+  /// bus se aleje más de `alertReArmMeters` (el movimiento del bus o el GPS
+  /// cruzando el radio no debe hacer flapear el botón ni la guía). Se reinicia
+  /// automáticamente al cambiar de bus.
+  bool _applyBlockedHysteresis(
+      String busId, bool liveBlocked, double? distance) {
+    if (_latchedBusId != busId) {
+      _latchedBusId = busId;
+      _blockedLatched = liveBlocked;
+    } else if (liveBlocked) {
+      _blockedLatched = true;
+    } else if (distance != null && distance > alertReArmMeters) {
+      _blockedLatched = false;
+    }
+    return _blockedLatched;
   }
 
   void _publishMapInset([double? forcedInset]) {
@@ -363,6 +387,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
     if (bus == null) return _buildEmptyState();
 
+    // El bus está cruzando la parada (≤500 m): no hace falta aviso.
+    final alreadyNear = !isActive && _busAlreadyNear(bus);
+    final passing = distance != null && distance <= _passingRadiusMeters;
+    final liveBlocked =
+        ghostBlocked || alreadyNear || passing || !locationState.hasPosition;
+    final blocked = _applyBlockedHysteresis(busId, liveBlocked, distance);
+
     // Sin señal: excepción importante, se marca con coral.
     if (staleLabel != null) {
       return Column(
@@ -389,7 +420,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               key: widget.alertKey,
               onBlockedChanged: widget.onGuideAlertBlocked,
               isActive: isActive,
-              blocked: ghostBlocked || !locationState.hasPosition,
+              blocked: blocked,
               label: isActive
                   ? "AVISO ACTIVADO"
                   : ghostBlocked
@@ -402,9 +433,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       );
     }
 
-    // El bus está cruzando la parada (≤500 m): no hace falta aviso.
-    final alreadyNear = !isActive && _busAlreadyNear(bus);
-    final passing = distance != null && distance <= _passingRadiusMeters;
     // Con el aviso activo, el detalle explica que se puede cambiar de app,
     // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre.
     final stateDetail = isActive
@@ -513,17 +541,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             key: widget.alertKey,
             onBlockedChanged: widget.onGuideAlertBlocked,
             isActive: isActive,
-            blocked: ghostBlocked ||
-                alreadyNear ||
-                passing ||
-                !locationState.hasPosition,
+            blocked: blocked,
             label: isActive
                 ? "AVISO ACTIVADO"
                 : ghostBlocked
                     ? "BUS SIN SEÑAL"
                     : passing
                         ? "BUS VA PASANDO"
-                        : alreadyNear
+                        : blocked
                             ? "BUS YA ESTÁ CERCA"
                             : "AVISARME CUANDO ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
@@ -599,6 +624,10 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
 
     return GestureDetector(
       onTap: () {
+        // Un botón bloqueado (por histéresis) no debe poder armar el aviso
+        // aunque el bus ya no esté dentro del radio: el estado visual y la
+        // guía dependen de ese bloqueo.
+        if (widget.blocked) return;
         HapticFeedback.mediumImpact();
         widget.onPressed();
       },

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -130,5 +132,56 @@ void main() {
     expect(
         find.text('Puedes cambiar de aplicación; no cierres Ya Viene del todo'),
         findsOneWidget);
+  });
+
+  testWidgets('el bloqueo del aviso no flapea: histéresis hasta 1500 m',
+      (tester) async {
+    final controller = StreamController<List<BusPosition>>();
+    addTearDown(controller.close);
+    final container = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+      busPositionsSourceProvider.overrideWith(
+        (ref, routeId) => controller.stream,
+      ),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(body: EtaBottomSheet()),
+        ),
+      ),
+    );
+    await tester.pump();
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: userLat,
+        lon: userLon,
+      ),
+    );
+    container.read(selectedRouteProvider.notifier).select(routeR1());
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    await tester.pump();
+
+    // 800 m: dentro del radio de aviso → bloqueado.
+    controller.add([busAt(0.007186)]);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('BUS YA ESTÁ CERCA'), findsOneWidget);
+
+    // 1100 m: ya no está dentro del radio pero sigue a menos de 1500 m →
+    // permanece bloqueado (el cruce de umbral no debe flapear el botón).
+    controller.add([busAt(0.009881)]);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('BUS YA ESTÁ CERCA'), findsOneWidget);
+
+    // 1600 m: se alejó más de 1500 m → recién ahí se desbloquea.
+    controller.add([busAt(0.014373)]);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('AVISARME CUANDO ESTÉ CERCA'), findsOneWidget);
   });
 }
