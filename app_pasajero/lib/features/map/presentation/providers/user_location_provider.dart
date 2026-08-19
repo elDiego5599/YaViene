@@ -67,7 +67,8 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   /// su punto de parada al instante; si no hay pin, queda el modo sin
   /// ubicación para que la hoja invite a tocar el mapa.
   Future<void> initialize() {
-    return _initFuture ??= _doInitialize().whenComplete(() => _initFuture = null);
+    return _initFuture ??=
+        _doInitialize().whenComplete(() => _initFuture = null);
   }
 
   Future<void> _doInitialize() async {
@@ -131,8 +132,9 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   Future<PermissionStatus>? _pendingRequest;
 
   Future<PermissionStatus> _requestLocation() {
-    return _pendingRequest ??=
-        Permission.location.request().whenComplete(() => _pendingRequest = null);
+    return _pendingRequest ??= Permission.location
+        .request()
+        .whenComplete(() => _pendingRequest = null);
   }
 
   /// Pide permiso (si hace falta) y obtiene la posición una sola vez.
@@ -167,6 +169,18 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       if (!await _restoreSavedPin()) {
         state = const UserLocationState(mode: UserLocationMode.denied);
       }
+    }
+  }
+
+  /// Reanuda una sesión GPS que quedó sin stream al volver del segundo plano.
+  /// No pide permiso ni cambia un pin manual: solo actúa si ya estábamos en
+  /// modo GPS y el permiso sigue concedido.
+  Future<void> resumeGpsIfNeeded() async {
+    if (state.mode != UserLocationMode.gps) return;
+    try {
+      if (await _hasGpsPermission()) await _locate();
+    } catch (e) {
+      debugPrint('resume GPS error: $e');
     }
   }
 

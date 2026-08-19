@@ -229,6 +229,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // Un arrastre no sobrevive al fondo: si quedó a medias, el pin vuelve
       // a obedecer al GPS.
       _pinDragging = false;
+      unawaited(ref.read(userLocationProvider.notifier).resumeGpsIfNeeded());
       // En background se descartaron posiciones (el listener está gateado);
       // al volver se reaplica el último valor del provider, o el mapa se
       // quedaría congelado hasta el próximo paquete del socket (BUG-05).

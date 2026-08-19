@@ -71,7 +71,7 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  test('notifica cuando el bus entra al radio de 500 m', () async {
+  test('notifica cuando el bus entra al radio de 1000 m', () async {
     container.read(selectedRouteProvider.notifier).select(route());
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
 

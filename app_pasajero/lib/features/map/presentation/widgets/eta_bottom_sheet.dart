@@ -72,7 +72,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   /// notificaciones en contexto; sin permiso no tiene sentido avisar.
   Future<void> _toggleAlert(String busId) async {
     final notifier = ref.read(activeAlertsProvider.notifier);
-    if (!ref.read(activeAlertsProvider).contains(busId)) {
+    final wasActive = ref.read(activeAlertsProvider).contains(busId);
+    if (!wasActive) {
       // Sin posición (GPS negado y sin pin) el aviso nunca podría medir ni
       // dispararse: mejor explicarlo antes de armar una alerta muerta.
       final location = ref.read(userLocationProvider);
@@ -112,7 +113,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         }
         return;
       }
-      // Máximo 2 avisos activos: el tercero se explica, no se arma.
+      // Comprobación temprana para dar feedback antes de pedir permiso.
       if (ref.read(activeAlertsProvider).length >= 2) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -139,16 +140,32 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     }
     HapticFeedback.mediumImpact();
     final routeId = ref.read(selectedRouteProvider)?.id;
-    notifier.toggleAlert(busId);
-    if (ref.read(activeAlertsProvider).contains(busId)) {
+    if (wasActive) {
+      notifier.deactivateAlert(busId);
+      ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
+      return;
+    }
+    // La validación anterior ocurre antes del await del permiso. Esta segunda
+    // comprobación atómica evita que dos taps concurrentes armen un tercer
+    // aviso mientras la solicitud de permiso está en vuelo.
+    if (!notifier.activateAlert(busId)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Ya tienes 2 avisos activos: desactiva uno o espera a que '
+              'termine para activar otro. Recuerda no cerrar la aplicación'),
+        ));
+      }
+      return;
+    }
+    if (routeId != null) {
       // Quedó armado: se registra la ruta para que el aviso mida aunque se
       // cambie de ruta en pantalla.
-      if (routeId != null) {
-        ref.read(proximityAlertsProvider.notifier).armAlert(busId, routeId);
-      }
+      ref.read(proximityAlertsProvider.notifier).armAlert(busId, routeId);
     } else {
-      // Se desarmó: se libera la suscripción de su ruta.
-      ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
+      // Defensa contra un estado imposible: nunca dejes un aviso activo sin
+      // ruta ni suscripción de posiciones.
+      notifier.deactivateAlert(busId);
     }
   }
 
@@ -428,7 +445,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               key: widget.alertKey,
               onBlockedChanged: widget.onGuideAlertBlocked,
               isActive: isActive,
-              blocked: blocked,
+              blocked: isActive ? false : blocked,
               label: isActive
                   ? "AVISO ACTIVADO"
                   : ghostBlocked
@@ -544,7 +561,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             key: widget.alertKey,
             onBlockedChanged: widget.onGuideAlertBlocked,
             isActive: isActive,
-            blocked: blocked,
+            blocked: isActive ? false : blocked,
             label: isActive
                 ? "AVISO ACTIVADO"
                 : ghostBlocked

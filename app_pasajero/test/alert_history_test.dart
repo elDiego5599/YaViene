@@ -128,6 +128,7 @@ void main() {
     // A-1 ya envió; se arma A-2 y se deja activo. El fixture solo trae a
     // A-1 en el stream, así que A-2 queda esperando.
     arm(first, 'A-2');
+    await drain();
 
     // Sesión 2 (la app se reinició): mismo disco, memoria nueva.
     final second = buildContainer();
@@ -153,5 +154,37 @@ void main() {
 
     expect(c.read(activeAlertsProvider), {'A-2'});
     expect(c.read(alertHistoryProvider), hasLength(1));
+  });
+
+  test('restore() rearma el monitoreo después de cerrar sesión', () async {
+    final c = buildContainer();
+    addTearDown(c.dispose);
+    arm(c, 'A-2');
+
+    // El logout conserva activeAlerts/historial, pero cierra las suscripciones
+    // de red para que no sobrevivan en la pantalla de login.
+    c.read(proximityAlertsProvider.notifier).pauseMonitoring();
+    expect(c.read(activeAlertsProvider), {'A-2'});
+
+    await c.read(proximityAlertsProvider.notifier).restore();
+
+    expect(c.read(activeAlertsProvider), {'A-2'});
+    expect(c.read(alertHistoryProvider).single.sent, isFalse);
+  });
+
+  test('los avisos no se comparten entre usuarios del mismo dispositivo',
+      () async {
+    final c = buildContainer();
+    addTearDown(c.dispose);
+    arm(c, 'A-2');
+
+    final notifier = c.read(proximityAlertsProvider.notifier);
+    await notifier.restore(userId: 'user-a');
+    expect(c.read(activeAlertsProvider), {'A-2'});
+
+    await notifier.restore(userId: 'user-b');
+
+    expect(c.read(activeAlertsProvider), isEmpty);
+    expect(c.read(alertHistoryProvider), isEmpty);
   });
 }

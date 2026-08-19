@@ -240,6 +240,54 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('guide_skip')));
       expect(skipped, isTrue);
     });
+
+    testWidgets('el paso final queda centrado y solo permite finalizar',
+        (tester) async {
+      var outsideTap = false;
+      var finalized = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                GestureDetector(
+                  onTap: () => outsideTap = true,
+                  child: const ColoredBox(
+                    color: Color(0xFFF8FAFC),
+                    child: SizedBox.expand(),
+                  ),
+                ),
+                MapGuideOverlay(
+                  target: Rect.zero,
+                  centered: true,
+                  title: 'Sigue con lo tuyo',
+                  message: 'Puedes cambiar de aplicación.',
+                  icon: Icons.phone_android_rounded,
+                  stepIndex: 8,
+                  stepCount: 9,
+                  primaryLabel: 'Finalizar guía',
+                  onPrimary: () => finalized = true,
+                  onSkip: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 450));
+
+      expect(find.text('Sigue con lo tuyo'), findsOneWidget);
+      expect(find.text('Finalizar guía'), findsOneWidget);
+      expect(find.byKey(const ValueKey('guide_skip')), findsNothing);
+      final screen = tester.getSize(find.byType(Scaffold));
+      final card = tester.getRect(find.byKey(const ValueKey('guide_card')));
+      expect((card.center.dy - screen.height / 2).abs(), lessThan(30));
+
+      await tester.tapAt(const Offset(8, 8));
+      expect(outsideTap, isFalse);
+      await tester.tap(find.byKey(const ValueKey('guide_primary')));
+      expect(finalized, isTrue);
+    });
   });
 
   group('LocationStatusChip con GPS activo', () {

@@ -56,9 +56,16 @@ class AlertHistoryEntry {
 }
 
 const _kHistoryKey = 'alert_history';
+const _kLegacyMigratedUser = 'alert_history_legacy_migrated_user';
 
 class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   AlertHistoryNotifier() : super(const []);
+
+  Future<void> _saveQueue = Future<void>.value();
+  String? _userId;
+
+  String get _storageKey =>
+      _userId == null ? _kHistoryKey : 'alert_history_user_$_userId';
 
   /// Armar un aviso crea (o renueva) su registro en estado activo.
   void upsert(String busId, {required String routeId, String? routeName}) {
@@ -104,9 +111,30 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   }
 
   /// Carga el historial guardado (al arrancar la app o volver al mapa).
-  Future<void> load() async {
+  Future<void> load({String? userId}) async {
+    if (_userId != userId) {
+      await _saveQueue;
+      _userId = userId;
+      state = const [];
+    }
+    // No leer una versión antigua del disco mientras una activación reciente
+    // todavía está terminando de persistirse.
+    await _saveQueue;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kHistoryKey);
+    var raw = prefs.getString(_storageKey);
+    // Migración única de instalaciones anteriores a la versión con historial
+    // por usuario. El dato legado se asigna al primer usuario que lo abre y
+    // luego se elimina para que nunca se reutilice con otra cuenta.
+    if (raw == null && userId != null) {
+      final migratedUser = prefs.getString(_kLegacyMigratedUser);
+      final legacy = prefs.getString(_kHistoryKey);
+      if (migratedUser == null && legacy != null) {
+        raw = legacy;
+        await prefs.setString(_storageKey, legacy);
+        await prefs.setString(_kLegacyMigratedUser, userId);
+        await prefs.remove(_kHistoryKey);
+      }
+    }
     if (raw == null || raw.isEmpty) return;
     try {
       final list = (jsonDecode(raw) as List)
@@ -119,12 +147,13 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     }
   }
 
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _kHistoryKey,
-      jsonEncode(state.map((e) => e.toJson()).toList()),
-    );
+  void _save() {
+    final encoded = jsonEncode(state.map((e) => e.toJson()).toList());
+    final key = _storageKey;
+    _saveQueue = _saveQueue.catchError((_) {}).then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, encoded);
+    });
   }
 }
 

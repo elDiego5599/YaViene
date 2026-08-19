@@ -154,8 +154,8 @@ final nearbyBusesCountProvider =
   var count = 0;
   for (final pos in positions) {
     if (pos.isGhostBus) continue;
-    final distance = haversineMeters(
-        location.lat!, location.lon!, pos.lat, pos.lon);
+    final distance =
+        haversineMeters(location.lat!, location.lon!, pos.lat, pos.lon);
     if (distance <= nearbyRadiusMeters) count++;
   }
   return count;
@@ -181,20 +181,35 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
   if (lat == null || lon == null) {
     throw const FormatException('posición sin lat/lon');
   }
+  final busId = (json['busId'] as String?)?.trim();
+  final routeId = (json['routeId'] as String?)?.trim();
+  if (busId == null || busId.isEmpty || routeId == null || routeId.isEmpty) {
+    throw const FormatException('posición sin busId/routeId');
+  }
+  if (!lat.isFinite ||
+      !lon.isFinite ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180) {
+    throw const FormatException('posición fuera de rango');
+  }
   return BusPosition(
-    busId: json['busId'] as String? ?? '???',
-    routeId: json['routeId'] as String? ?? '',
+    busId: busId,
+    routeId: routeId,
     lat: lat,
     lon: lon,
     heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
     speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
     sentido: json['sentido'] as String?,
-    timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+    timestamp:
+        DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
     isGhostBus: json['isGhost'] as bool? ?? false,
   );
 }
 
-class SelectedBusesNotifier extends StateNotifier<Set<String>> {  SelectedBusesNotifier() : super({});
+class SelectedBusesNotifier extends StateNotifier<Set<String>> {
+  SelectedBusesNotifier() : super({});
 
   /// Selección única: tocar un bus lo selecciona y deselecciona cualquier
   /// otro; tocar el mismo bus lo deselecciona.
@@ -214,9 +229,23 @@ final selectedBusesProvider =
 class ActiveAlertsNotifier extends StateNotifier<Set<String>> {
   ActiveAlertsNotifier() : super({});
 
+  /// Activa de forma idempotente. Devuelve false si se alcanzó el límite.
+  /// Mantener el límite aquí evita que dos acciones asíncronas lo superen.
+  bool activateAlert(String busId, {int maxActive = 2}) {
+    if (state.contains(busId)) return true;
+    if (state.length >= maxActive) return false;
+    state = {...state, busId};
+    return true;
+  }
+
+  void deactivateAlert(String busId) {
+    if (!state.contains(busId)) return;
+    state = {...state}..remove(busId);
+  }
+
   void toggleAlert(String busId) {
     if (state.contains(busId)) {
-      state = {...state}..remove(busId);
+      deactivateAlert(busId);
     } else {
       state = {...state, busId};
     }

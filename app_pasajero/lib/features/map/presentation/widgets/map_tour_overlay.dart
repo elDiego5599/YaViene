@@ -16,6 +16,7 @@ class MapGuideOverlay extends StatefulWidget {
     this.primaryLabel,
     this.onPrimary,
     this.targetPadding = 10,
+    this.centered = false,
   });
 
   final Rect target;
@@ -28,6 +29,10 @@ class MapGuideOverlay extends StatefulWidget {
   final String? primaryLabel;
   final VoidCallback? onPrimary;
   final double targetPadding;
+
+  /// Modo de cierre: sin área iluminada ni barreras; la carta queda centrada
+  /// y la única acción es el botón primario ("Finalizar guía").
+  final bool centered;
 
   @override
   State<MapGuideOverlay> createState() => _MapGuideOverlayState();
@@ -67,6 +72,33 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final hole = rawHole.intersect(bounds);
         final placeAbove = hole.top > 245;
         final card = _buildCard();
+
+        if (widget.centered) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              IgnorePointer(
+                child: FadeTransition(
+                  opacity: _fade,
+                  child: const CustomPaint(
+                    key: ValueKey('guide_scrim'),
+                    painter: _ScrimPainter(),
+                  ),
+                ),
+              ),
+              const Positioned.fill(child: _GuideBarrier()),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 380),
+                    child: ScaleTransition(scale: _scale, child: card),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
 
         return Stack(
           fit: StackFit.expand,
@@ -251,29 +283,30 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               ),
             ],
             const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                key: const ValueKey('guide_skip'),
-                onPressed: widget.onSkip,
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  foregroundColor: const Color(0xFF475569),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+            if (!widget.centered)
+              Center(
+                child: TextButton(
+                  key: const ValueKey('guide_skip'),
+                  onPressed: widget.onSkip,
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFF1F5F9),
+                    foregroundColor: const Color(0xFF475569),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    minimumSize: const Size(0, 36),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  minimumSize: const Size(0, 36),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  isLast ? 'Cerrar guía' : 'Saltar guía',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                  child: Text(
+                    isLast ? 'Cerrar guía' : 'Saltar guía',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -294,6 +327,22 @@ class _GuideBarrier extends StatelessWidget {
       child: const SizedBox.expand(),
     );
   }
+}
+
+/// Velo completo sin hueco, usado en el paso de cierre (centrado).
+class _ScrimPainter extends CustomPainter {
+  const _ScrimPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFF14274E).withValues(alpha: 0.62),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ScrimPainter oldDelegate) => false;
 }
 
 /// Un solo velo guardado en una capa: el hueco queda realmente transparente

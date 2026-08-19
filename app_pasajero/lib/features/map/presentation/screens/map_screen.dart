@@ -89,7 +89,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _initializeGuide();
       ref.read(realtimeServiceProvider).connect();
       ref.read(userLocationProvider.notifier).initialize();
-      ref.read(proximityAlertsProvider.notifier).restore();
+      ref.read(proximityAlertsProvider.notifier).restore(
+            userId: ref.read(authProvider).state.uid,
+          );
       ref.read(proximityAlertsProvider.notifier).start();
       BackgroundKeepAlive.start();
     });
@@ -244,8 +246,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     await ref.read(mapGuideProvider.notifier).moveTo(MapGuideStep.buses);
   }
 
-  MapGuideCopy _copyFor(
-    MapGuideStep step, bool selectedBusHasActiveAlert, bool alertLimitReached) {
+  MapGuideCopy _copyFor(MapGuideStep step, bool selectedBusHasActiveAlert,
+      bool alertLimitReached) {
     if (step == MapGuideStep.alert) {
       // El aviso ya está activo (armado ahora o restaurado de otra sesión):
       // la guía NO se salta el paso, muestra el estado y pide Continuar.
@@ -272,7 +274,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (_alertBlocked) {
         return const MapGuideCopy(
           title: 'Elige otro bus',
-          message: 'Este bus no admite un aviso porque no tiene señal o ya está '
+          message:
+              'Este bus no admite un aviso porque no tiene señal o ya está '
               'demasiado cerca. Selecciona otro bus en el mapa.',
           icon: Icons.swap_horiz_rounded,
           primaryLabel: 'Elegir otro bus',
@@ -296,9 +299,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         : _copyFor(step, selectedBusHasActiveAlert, alertLimitReached);
     final showMapGuide = copy != null &&
         _isMapStep(step) &&
-        _guideTarget != null &&
-        _measuredGuideStep == step;
+        (step == MapGuideStep.background ||
+            (_guideTarget != null && _measuredGuideStep == step));
     final visibleStep = showMapGuide && step != null ? step : null;
+    final isCenteredStep = visibleStep == MapGuideStep.background;
     final alertBlockedCopy = visibleStep == MapGuideStep.alert &&
         _alertBlocked &&
         !selectedBusHasActiveAlert &&
@@ -358,8 +362,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           if (visibleStep != null && copy != null)
             Positioned.fill(
               child: MapGuideOverlay(
-                target: _guideTarget!,
+                target: _guideTarget ?? Rect.zero,
                 targetPadding: visibleStep == MapGuideStep.location ? 0 : 10,
+                centered: isCenteredStep,
                 title: copy.title,
                 message: copy.message,
                 icon: copy.icon,

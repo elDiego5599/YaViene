@@ -26,8 +26,8 @@ class NotificationsScreen extends ConsumerWidget {
             (value) => value.value ?? const <BusPosition>[],
           ));
 
-    // Orden editorial: primero los activos (más recientes), luego los
-    // enviados (más recientes).
+    // Orden editorial: primero los activos, luego los enviados. El orden de
+    // persistencia se conserva para que la selección sea estable.
     final entries = [
       ...history.where((e) => !e.sent),
       ...history.where((e) => e.sent),
@@ -54,9 +54,7 @@ class NotificationsScreen extends ConsumerWidget {
           color: const Color(0xFF0F172A),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: entries.isEmpty
-            ? null
-            : [const _SelectAction()],
+        actions: entries.isEmpty ? null : [const _SelectAction()],
       ),
       body: entries.isEmpty
           ? const _EmptyState()
@@ -64,6 +62,7 @@ class NotificationsScreen extends ConsumerWidget {
               entries: entries,
               positions: positions,
               location: location,
+              route: route,
             ),
     );
   }
@@ -85,7 +84,7 @@ class _SelectAction extends ConsumerWidget {
           final notifier = ref.read(proximityAlertsProvider.notifier);
           for (final e in ref.read(alertHistoryProvider)) {
             if (!e.sent) {
-              ref.read(activeAlertsProvider.notifier).toggleAlert(e.busId);
+              ref.read(activeAlertsProvider.notifier).deactivateAlert(e.busId);
               notifier.disarmAlert(e.busId);
             }
           }
@@ -96,9 +95,8 @@ class _SelectAction extends ConsumerWidget {
         }
       },
       style: TextButton.styleFrom(
-        foregroundColor: selecting
-            ? const Color(0xFFDC2626)
-            : const Color(0xFF14274E),
+        foregroundColor:
+            selecting ? const Color(0xFFDC2626) : const Color(0xFF14274E),
         disabledForegroundColor: const Color(0xFF94A3B8),
       ),
       child: Text(
@@ -139,11 +137,13 @@ class _HistoryList extends ConsumerWidget {
   final List<AlertHistoryEntry> entries;
   final List<BusPosition> positions;
   final UserLocationState location;
+  final RouteInfo? route;
 
   const _HistoryList({
     required this.entries,
     required this.positions,
     required this.location,
+    required this.route,
   });
 
   @override
@@ -165,13 +165,16 @@ class _HistoryList extends ConsumerWidget {
                     (p) => p?.busId == entry.busId,
                     orElse: () => null,
                   );
-              final distanceMeters = !entry.sent && pos != null && location.hasPosition
-                  ? haversineMeters(
-                      location.lat!, location.lon!, pos.lat, pos.lon)
-                      .round()
-                  : null;
+              final distanceMeters =
+                  !entry.sent && pos != null && location.hasPosition
+                      ? haversineMeters(
+                              location.lat!, location.lon!, pos.lat, pos.lon)
+                          .round()
+                      : null;
               return _AlertTile(
                 entry: entry,
+                routeName: entry.routeName ??
+                    (route?.id == entry.routeId ? route?.name : null),
                 distanceMeters: distanceMeters,
                 selecting: selecting,
                 selected: selected.contains(entry.busId),
@@ -179,8 +182,12 @@ class _HistoryList extends ConsumerWidget {
                     .read(alertSelectionProvider.notifier)
                     .toggle(entry.busId),
                 onDisable: () {
-                  ref.read(activeAlertsProvider.notifier).toggleAlert(entry.busId);
-                  ref.read(proximityAlertsProvider.notifier).disarmAlert(entry.busId);
+                  ref
+                      .read(activeAlertsProvider.notifier)
+                      .deactivateAlert(entry.busId);
+                  ref
+                      .read(proximityAlertsProvider.notifier)
+                      .disarmAlert(entry.busId);
                   ref.read(alertHistoryProvider.notifier).remove(entry.busId);
                 },
               );
@@ -214,20 +221,15 @@ class _HistoryList extends ConsumerWidget {
                               final notifier =
                                   ref.read(proximityAlertsProvider.notifier);
                               for (final busId in selected) {
-                                final matches = ref
-                                    .read(alertHistoryProvider)
-                                    .where((e) => e.busId == busId);
-                                if (matches.isNotEmpty && !matches.first.sent) {
-                                  ref.read(activeAlertsProvider.notifier)
-                                      .toggleAlert(busId);
-                                  notifier.disarmAlert(busId);
-                                }
-                                ref.read(alertHistoryProvider.notifier)
+                                ref
+                                    .read(activeAlertsProvider.notifier)
+                                    .deactivateAlert(busId);
+                                notifier.disarmAlert(busId);
+                                ref
+                                    .read(alertHistoryProvider.notifier)
                                     .remove(busId);
                               }
-                              ref
-                                  .read(alertSelectionProvider.notifier)
-                                  .clear();
+                              ref.read(alertSelectionProvider.notifier).clear();
                             },
                       icon: const Icon(Icons.delete_outline_rounded, size: 20),
                       label: Text(
@@ -251,6 +253,7 @@ class _HistoryList extends ConsumerWidget {
 
 class _AlertTile extends StatelessWidget {
   final AlertHistoryEntry entry;
+  final String? routeName;
   final int? distanceMeters;
   final bool selecting;
   final bool selected;
@@ -259,6 +262,7 @@ class _AlertTile extends StatelessWidget {
 
   const _AlertTile({
     required this.entry,
+    required this.routeName,
     required this.distanceMeters,
     required this.selecting,
     required this.selected,
@@ -310,7 +314,7 @@ class _AlertTile extends StatelessWidget {
                 Text(
                   routePlateLabel(
                     busId: entry.busId,
-                    routeName: entry.routeName,
+                    routeName: routeName,
                     routeId: entry.routeId,
                   ),
                   style: const TextStyle(
@@ -420,8 +424,18 @@ class _EmptyState extends StatelessWidget {
 
 String _formatTime(DateTime d) {
   const months = [
-    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
   ];
   final h = d.hour.toString().padLeft(2, '0');
   final m = d.minute.toString().padLeft(2, '0');

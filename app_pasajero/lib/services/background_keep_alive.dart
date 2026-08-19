@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -21,26 +21,33 @@ class BackgroundKeepAlive {
   static Future<void> start() async {
     if (!_isAndroid) return;
     final service = FlutterBackgroundService();
-    if (!_configured) {
-      _configured = true;
-      await _ensureNotificationChannel();
-      await service.configure(
-        androidConfiguration: AndroidConfiguration(
-          onStart: _onStart,
-          autoStart: false,
-          autoStartOnBoot: false,
-          isForegroundMode: true,
-          foregroundServiceTypes: const [AndroidForegroundType.dataSync],
-          notificationChannelId: _channelId,
-          initialNotificationTitle: 'Ya Viene',
-          initialNotificationContent: 'Seguimiento de buses en segundo plano',
-          foregroundServiceNotificationId: 8887,
-        ),
-        iosConfiguration: IosConfiguration(autoStart: false),
-      );
+    try {
+      if (!_configured) {
+        await _ensureNotificationChannel();
+        await service.configure(
+          androidConfiguration: AndroidConfiguration(
+            onStart: _onStart,
+            autoStart: false,
+            autoStartOnBoot: false,
+            isForegroundMode: true,
+            foregroundServiceTypes: const [AndroidForegroundType.dataSync],
+            notificationChannelId: _channelId,
+            initialNotificationTitle: 'Ya Viene',
+            initialNotificationContent: 'Seguimiento de buses en segundo plano',
+            foregroundServiceNotificationId: 8887,
+          ),
+          iosConfiguration: IosConfiguration(autoStart: false),
+        );
+        _configured = true;
+      }
+      if (await service.isRunning()) return;
+      await service.startService();
+    } catch (error) {
+      // El mapa y las alertas locales siguen funcionando si el SO bloquea el
+      // foreground service; un siguiente intento podrá reconfigurarlo.
+      _configured = false;
+      debugPrint('seguimiento en segundo plano no disponible: $error');
     }
-    if (await service.isRunning()) return;
-    await service.startService();
   }
 
   /// Android 8+ exige que el canal exista antes de arrancar el servicio.
@@ -59,7 +66,8 @@ class BackgroundKeepAlive {
           const AndroidNotificationChannel(
             _channelId,
             'Seguimiento de buses',
-            description: 'Mantiene el seguimiento de buses activo en segundo plano',
+            description:
+                'Mantiene el seguimiento de buses activo en segundo plano',
             importance: Importance.low,
           ),
         );
@@ -68,9 +76,13 @@ class BackgroundKeepAlive {
   /// Detiene el servicio (si está corriendo).
   static Future<void> stop() async {
     if (!_isAndroid) return;
-    final service = FlutterBackgroundService();
-    if (await service.isRunning()) {
-      service.invoke('stopService');
+    try {
+      final service = FlutterBackgroundService();
+      if (await service.isRunning()) {
+        service.invoke('stopService');
+      }
+    } catch (error) {
+      debugPrint('no se pudo detener el seguimiento en segundo plano: $error');
     }
   }
 

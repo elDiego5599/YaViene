@@ -13,6 +13,7 @@ class _TestUserLocation extends UserLocationNotifier {
 
 void main() {
   late ProviderContainer container;
+  late List<BusPosition> positions;
 
   RouteInfo routeR1() => const RouteInfo(
         id: 'R1',
@@ -27,12 +28,14 @@ void main() {
       );
 
   setUp(() {
+    positions = [];
     container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       busPositionsSourceProvider.overrideWith(
-        (ref, routeId) => Stream.value(const <BusPosition>[]),
+        (ref, routeId) => Stream.value(positions),
       ),
     ]);
+    container.listen(selectedRouteProvider, (_, __) {});
     addTearDown(container.dispose);
   });
 
@@ -48,7 +51,8 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('cambiar de ruta no cancela el aviso armado (BUG-03)', (tester) async {
+  testWidgets('cambiar de ruta no cancela el aviso armado (BUG-03)',
+      (tester) async {
     await pumpSheet(tester);
     (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
       const UserLocationState(
@@ -72,7 +76,8 @@ void main() {
         reason: 'cambiar de ruta no debe cancelar el aviso');
   });
 
-  testWidgets('perder la ubicación no cancela el aviso armado (BUG-03)', (tester) async {
+  testWidgets('perder la ubicación no cancela el aviso armado (BUG-03)',
+      (tester) async {
     await pumpSheet(tester);
     (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
       const UserLocationState(
@@ -97,5 +102,38 @@ void main() {
 
     expect(container.read(activeAlertsProvider), contains('A-1'),
         reason: 'perder la ubicación no debe cancelar el aviso');
+  });
+
+  testWidgets('un aviso activo se puede desactivar aunque el bus pierda señal',
+      (tester) async {
+    positions = [
+      BusPosition(
+        busId: 'A-1',
+        routeId: 'R1',
+        lat: 6.2442,
+        lon: -75.5812,
+        heading: 0,
+        speedKmh: 0,
+        timestamp: DateTime.now().subtract(const Duration(minutes: 2)),
+        isGhostBus: true,
+      ),
+    ];
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: 6.2442,
+        lon: -75.5812,
+      ),
+    );
+    container.read(selectedRouteProvider.notifier).select(routeR1());
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    await pumpSheet(tester);
+
+    expect(find.text('AVISO ACTIVADO'), findsOneWidget);
+    await tester.tap(find.text('AVISO ACTIVADO'));
+    await tester.pump();
+
+    expect(container.read(activeAlertsProvider), isEmpty);
   });
 }

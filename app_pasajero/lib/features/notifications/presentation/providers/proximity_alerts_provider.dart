@@ -49,8 +49,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   /// Suscripciones de posiciones por ruta armada: solo se mantienen mientras
   /// haya avisos activos en esa ruta.
-  final _routeSubs = <String, ProviderSubscription<AsyncValue<List<BusPosition>>>>{};
+  final _routeSubs =
+      <String, ProviderSubscription<AsyncValue<List<BusPosition>>>>{};
   final _routePositions = <String, List<BusPosition>>{};
+  bool _monitoringPaused = false;
+  String? _monitoringUserId;
 
   static Future<void> _defaultNotify({
     required String busId,
@@ -86,20 +89,43 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Re-arma los avisos activos persistidos (al reabrir la app o al volver a
   /// iniciar sesión). Idempotente: un aviso ya armado en memoria no se
   /// duplica. Las entradas "enviadas" no se re-arman.
-  Future<void> restore() async {
-    await _ref.read(alertHistoryProvider.notifier).load();
-    final entries = _ref.read(alertHistoryProvider);
-    for (final e in entries) {
-      if (e.sent || e.routeId.isEmpty) continue;
-      if (_alertRoutes.containsKey(e.busId)) continue;
-      _ref.read(activeAlertsProvider.notifier).toggleAlert(e.busId);
-      armAlert(e.busId, e.routeId);
+  Future<void> restore({String? userId}) async {
+    if (_monitoringUserId != userId) {
+      pauseMonitoring();
+      _ref.read(activeAlertsProvider.notifier).clear();
+      _monitoringUserId = userId;
+    }
+    _monitoringPaused = true;
+    try {
+      await _ref.read(alertHistoryProvider.notifier).load(userId: userId);
+      final entries = _ref.read(alertHistoryProvider);
+      for (final e in entries) {
+        if (e.sent || e.routeId.isEmpty) continue;
+        final active = _ref.read(activeAlertsProvider.notifier);
+        final wasMonitoring = _alertRoutes[e.busId] == e.routeId &&
+            _routeSubs.containsKey(e.routeId);
+        if (!active.activateAlert(e.busId)) continue;
+        if (!wasMonitoring) {
+          _armMonitoring(e.busId, e.routeId, recordHistory: false);
+        }
+      }
+    } finally {
+      _monitoringPaused = false;
     }
   }
 
   /// Registra la ruta del bus al armar el aviso y suscribe posiciones de esa
   /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta.
   void armAlert(String busId, String routeId) {
+    _armMonitoring(busId, routeId, recordHistory: true);
+  }
+
+  void _armMonitoring(
+    String busId,
+    String routeId, {
+    required bool recordHistory,
+  }) {
+    _monitoringPaused = false;
     _alertRoutes[busId] = routeId;
     // Re-armado limpio: si este bus ya notificó su acercamiento antes (quedó
     // marcado en `state`), se borra esa marca para que pueda volver a sonar
@@ -107,11 +133,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     state = {...state}..remove(busId);
     // Registro en el historial: la activación queda anotada (y es la fuente
     // de persistencia para re-armar al volver a abrir la app).
-    _ref.read(alertHistoryProvider.notifier).upsert(
-          busId,
-          routeId: routeId,
-          routeName: _ref.read(selectedRouteProvider)?.name,
-        );
+    if (recordHistory) {
+      _ref.read(alertHistoryProvider.notifier).upsert(
+            busId,
+            routeId: routeId,
+            routeName: _ref.read(selectedRouteProvider)?.name,
+          );
+    }
     // Ancla del aviso: si el usuario está con pin manual, el aviso se fija a
     // ESA ubicación. Aunque luego quite el pin (sin GPS la app queda sin
     // ubicación) o ponga otro pin, el aviso sigue midiendo desde donde se
@@ -146,6 +174,22 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   /// Limpia el registro de avisos disparados/rearmados.
   void clear() {
+    _monitoringPaused = false;
+    _monitoringUserId = null;
+    state = {};
+    _alertRoutes.clear();
+    _alertRefs.clear();
+    for (final sub in _routeSubs.values) {
+      sub.close();
+    }
+    _routeSubs.clear();
+    _routePositions.clear();
+  }
+
+  /// Cierra el seguimiento en memoria al cerrar sesión, pero conserva los
+  /// avisos activos y su historial para que [restore] los reactive al volver.
+  void pauseMonitoring() {
+    _monitoringPaused = true;
     state = {};
     _alertRoutes.clear();
     _alertRefs.clear();
@@ -168,6 +212,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   }
 
   Future<void> _check() async {
+    if (_monitoringPaused) return;
     final alerts = _ref.read(activeAlertsProvider);
     if (alerts.isEmpty) {
       if (state.isNotEmpty) state = {};
@@ -184,7 +229,20 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     final rearm = <String>{};
     final fire = <String, int>{};
     for (final busId in alerts) {
-      final routeId = _alertRoutes[busId] ?? _ref.read(selectedRouteProvider)?.id;
+      // Preferir la ruta registrada o la del historial. El último fallback
+      // conserva compatibilidad con un aviso efímero armado por un consumidor
+      // antiguo que solo marcó activeAlerts; durante logout está bloqueado por
+      // `_monitoringPaused`, así que no puede medir otra ruta por accidente.
+      var routeId = _alertRoutes[busId];
+      if (routeId == null) {
+        for (final entry in _ref.read(alertHistoryProvider)) {
+          if (entry.busId == busId && !entry.sent && entry.routeId.isNotEmpty) {
+            routeId = entry.routeId;
+            break;
+          }
+        }
+      }
+      routeId ??= _ref.read(selectedRouteProvider)?.id;
       if (routeId == null) continue;
       final positions = _routePositions[routeId] ??
           _ref.read(busPositionsSourceProvider(routeId)).value ??
@@ -210,7 +268,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
     if (fire.isNotEmpty) {
       for (final entry in fire.entries) {
-        // Ruta y placa del bus para el texto de la notificación (ruta · placa).
+        // Nombre de ruta y placa del bus para el texto de la notificación.
         String? routeName;
         for (final e in _ref.read(alertHistoryProvider)) {
           if (e.busId == entry.key) {
@@ -228,7 +286,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         // lista de alertas activas (visible en la pantalla de
         // Notificaciones) y se libera la suscripción de su ruta.
         _ref.read(alertHistoryProvider.notifier).markSent(entry.key);
-        _ref.read(activeAlertsProvider.notifier).toggleAlert(entry.key);
+        _ref.read(activeAlertsProvider.notifier).deactivateAlert(entry.key);
         disarmAlert(entry.key);
       }
       state = {...state, ...fire.keys}..removeAll(rearm);

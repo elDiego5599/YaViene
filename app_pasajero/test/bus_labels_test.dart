@@ -5,6 +5,8 @@ void main() {
   test('la placa de un bus real sale del id BUS-<placa>', () {
     expect(busPlaca('BUS-SQA101'), 'SQA101');
     expect(busPlaca('BUS-ABC123'), 'ABC123');
+    expect(busPlaca('BUS-sqa223'), 'SQA223');
+    expect(busPlaca('  BUS-SQA223  '), 'SQA223');
   });
 
   test('formato real de placa (3 letras 3 números): sqa223 → SQA223', () {
@@ -12,8 +14,8 @@ void main() {
     // normaliza a mayúsculas y crea el id BUS-SQA223.
     expect(busPlaca('BUS-SQA223'), 'SQA223');
     expect(
-      routePlateLabel(busId: 'BUS-SQA223', routeName: 'Ruta 1'),
-      'Ruta 1 · SQA223',
+      routePlateLabel(busId: 'BUS-SQA223', routeName: 'Calle 72 - Uninorte'),
+      'Calle 72 - Uninorte - SQA223',
     );
   });
 
@@ -22,19 +24,27 @@ void main() {
     expect(busPlaca('B-055'), 'B-055');
   });
 
-  test('la etiqueta es ruta · placa (nombre de ruta preferido)', () {
+  test('la etiqueta es nombre de ruta - placa (ruta preferida)', () {
     expect(
-      routePlateLabel(busId: 'B-042', routeName: 'Ruta 1', routeId: 'R1'),
-      'Ruta 1 · B-042',
+      routePlateLabel(
+          busId: 'B-042', routeName: 'Calle 72 - Uninorte', routeId: 'R-106'),
+      'Calle 72 - Uninorte - B-042',
     );
     expect(
-      routePlateLabel(busId: 'BUS-SQA101', routeName: 'Ruta 1', routeId: 'R1'),
-      'Ruta 1 · SQA101',
+      routePlateLabel(
+          busId: 'BUS-SQA101',
+          routeName: 'Carrera 54 - Uninorte',
+          routeId: 'R-105'),
+      'Carrera 54 - Uninorte - SQA101',
     );
   });
 
   test('sin nombre de ruta cae al id de la ruta', () {
-    expect(routePlateLabel(busId: 'B-042', routeId: 'R1'), 'R1 · B-042');
+    expect(routePlateLabel(busId: 'B-042', routeId: 'R-106'), 'R-106 - B-042');
+    expect(
+      routePlateLabel(busId: 'B-042', routeName: '  ', routeId: 'R-106'),
+      'R-106 - B-042',
+    );
   });
 
   test('sin ruta se queda solo la placa', () {

@@ -77,12 +77,12 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
       );
     case MapGuideStep.background:
       return const MapGuideCopy(
-        title: 'Ya puedes seguir con lo tuyo',
+        title: 'Sigue con lo tuyo',
         message: 'Puedes cambiar de aplicación y hacer otra cosa. En Android, '
             'Ya Viene seguirá pendiente del bus; no cierres la app deslizando '
             'su tarjeta ni la fuerces a detenerse.',
         icon: Icons.phone_android_rounded,
-        primaryLabel: 'Entendido',
+        primaryLabel: 'Finalizar guía',
       );
   }
 }

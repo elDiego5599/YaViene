@@ -22,13 +22,17 @@ Future<void> resetAppState(WidgetRef ref) async {
   ref.read(selectedBusesProvider.notifier).clear();
   // Los avisos NO se limpian al cerrar sesión: son del usuario y se
   // conservan (persistidos) para que al volver a entrar sigan activos.
-  ref.read(proximityAlertsProvider.notifier).stop();
+  final proximity = ref.read(proximityAlertsProvider.notifier);
+  proximity.stop();
+  proximity.pauseMonitoring();
   ref.read(realtimeServiceProvider).disconnect();
   BackgroundKeepAlive.stop();
   // Sin reanudar el GPS: la sesión terminó y no debe quedar trackeando en el
   // login (además de que esperar una fijación de hasta 15 s congelaría el
   // botón de cerrar sesión).
-  await ref.read(userLocationProvider.notifier).clearManualPin(resumeGps: false);
+  await ref
+      .read(userLocationProvider.notifier)
+      .clearManualPin(resumeGps: false);
 }
 
 /// Arranque en frío: limpia el estado efímero (selecciones, avisos, sockets)

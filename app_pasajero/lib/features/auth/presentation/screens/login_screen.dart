@@ -90,7 +90,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: const Color(0xFFDC2626)),
+      SnackBar(
+          content: Text(message), backgroundColor: const Color(0xFFDC2626)),
     );
   }
 
@@ -100,8 +101,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     FocusScope.of(context).unfocus();
     final auth = ref.read(authProvider);
     final exists = await auth.checkEmail(_emailController.text);
-    _submitting.value = false;
     if (!mounted) return;
+    _submitting.value = false;
     if (exists == null) {
       _showError(auth.state.errorMessage ?? 'Error al consultar el correo');
       return;
@@ -446,7 +447,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                 : Text(
                                                     _step == _Step.email
                                                         ? 'Continuar'
-                                                        : _step == _Step.password
+                                                        : _step ==
+                                                                _Step.password
                                                             ? 'Entrar'
                                                             : 'Crear cuenta',
                                                     style: TextStyle(
@@ -470,9 +472,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   const SizedBox(height: 8),
                                   Center(
                                     child: TextButton(
-                                      onPressed: _submitting.value
-                                          ? null
-                                          : _goBack,
+                                      onPressed:
+                                          _submitting.value ? null : _goBack,
                                       child: Text(
                                         _emailController.text.trim().isEmpty
                                             ? 'Regresar'

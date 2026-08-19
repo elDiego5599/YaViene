@@ -8,7 +8,10 @@ double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
   final dLon = _toRad(lon2 - lon1);
   final a = pow(sin(dLat / 2), 2) +
       cos(_toRad(lat1)) * cos(_toRad(lat2)) * pow(sin(dLon / 2), 2);
-  return 2 * _earthRadiusMeters * asin(sqrt(a));
+  // El redondeo de coma flotante puede llevar `a` apenas fuera de [0, 1]
+  // para puntos coincidentes o antipodales; asin() no acepta ese valor.
+  final safeA = a.toDouble().clamp(0.0, 1.0);
+  return 2 * _earthRadiusMeters * asin(sqrt(safeA));
 }
 
 /// Proyección de un punto sobre una polilínea: distancia al recorrido y
@@ -17,8 +20,7 @@ typedef PolylineProjection = ({double distanceMeters, double alongMeters});
 
 /// Proyecta [p] sobre la polilínea [polyline] usando coordenadas locales
 /// (equirectangulares, válido a distancias de ciudad).
-PolylineProjection projectOntoPolyline(
-    GeoPoint p, List<GeoPoint> polyline) {
+PolylineProjection projectOntoPolyline(GeoPoint p, List<GeoPoint> polyline) {
   if (polyline.length < 2) {
     return (distanceMeters: 0.0, alongMeters: 0.0);
   }
@@ -50,8 +52,7 @@ PolylineProjection projectOntoPolyline(
       final t = (((px_ - ax) * dx + (py_ - ay) * dy) / lenSq).clamp(0.0, 1.0);
       final cx = ax + dx * t;
       final cy = ay + dy * t;
-      final distance =
-          sqrt((px_ - cx) * (px_ - cx) + (py_ - cy) * (py_ - cy));
+      final distance = sqrt((px_ - cx) * (px_ - cx) + (py_ - cy) * (py_ - cy));
       final segLength = sqrt(lenSq);
       if (distance < bestDistance) {
         bestDistance = distance;
