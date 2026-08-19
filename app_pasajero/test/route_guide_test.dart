@@ -47,6 +47,8 @@ void main() {
       routesByCompanyProvider.overrideWith((ref, companyId) async => routes),
     ]);
     addTearDown(container.dispose);
+    container.listen(selectedCompanyProvider, (_, __) {});
+    container.listen(selectedRouteProvider, (_, __) {});
 
     final companyGuideKey = GlobalKey();
     final companyChoiceGuideKey = GlobalKey();

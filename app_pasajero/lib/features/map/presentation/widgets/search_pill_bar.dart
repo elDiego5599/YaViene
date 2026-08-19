@@ -43,19 +43,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   void _onSearchTap() {
     HapticFeedback.lightImpact();
-    widget.onSearchOpened?.call();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => RouteSelectorSheet(
-        companyGuideKey: widget.companyGuideKey,
-        companyChoiceGuideKey: widget.companyChoiceGuideKey,
-        routeGuideKey: widget.routeGuideKey,
-        routeChoiceGuideKey: widget.routeChoiceGuideKey,
-        launchBusesGuideKey: widget.launchBusesGuideKey,
-      ),
-    );
+    _openSelector();
   }
 
   @override
@@ -231,6 +219,20 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     );
   }
 
+  void _openSelector() {
+    widget.onSearchOpened?.call();
+    RouteSelectorSheet.show(
+      context,
+      sheet: RouteSelectorSheet(
+        companyGuideKey: widget.companyGuideKey,
+        companyChoiceGuideKey: widget.companyChoiceGuideKey,
+        routeGuideKey: widget.routeGuideKey,
+        routeChoiceGuideKey: widget.routeChoiceGuideKey,
+        launchBusesGuideKey: widget.launchBusesGuideKey,
+      ),
+    );
+  }
+
   Widget _buildFilterButton() {
     return _buildActionButton(
       iconColor: const Color(0xFF14274E),
@@ -238,19 +240,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       semanticLabel: 'Cambiar ruta',
       onTap: () {
         HapticFeedback.lightImpact();
-        widget.onSearchOpened?.call();
-        showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => RouteSelectorSheet(
-            companyGuideKey: widget.companyGuideKey,
-            companyChoiceGuideKey: widget.companyChoiceGuideKey,
-            routeGuideKey: widget.routeGuideKey,
-            routeChoiceGuideKey: widget.routeChoiceGuideKey,
-            launchBusesGuideKey: widget.launchBusesGuideKey,
-          ),
-        );
+        _openSelector();
       },
     );
   }
