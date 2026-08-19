@@ -78,6 +78,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted &&
             _everGuided &&
+            !ref.read(mapGuideProvider).skipped &&
             !_isSelectionStep(ref.read(mapGuideProvider).step)) {
           Navigator.of(context).maybePop();
         }
@@ -227,11 +228,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
         children: [
           _handle(),
           const SizedBox(height: 24),
-          _headerRow(
-            title: 'Elige tu ruta',
-            badge: true,
-            onClose: () => Navigator.of(context).maybePop(),
-          ),
+          _headerRow(title: 'Elige tu ruta'),
           const SizedBox(height: 24),
           const Text(
             'EMPRESA',
@@ -521,9 +518,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
 
   Widget _headerRow({
     required String title,
-    bool badge = false,
     VoidCallback? onBack,
-    VoidCallback? onClose,
   }) {
     return Row(
       children: [
@@ -547,34 +542,6 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             ),
           ),
         ),
-        if (badge)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6F7F0),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF00A859)),
-                SizedBox(width: 4),
-                Text(
-                  'Tiempo real',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF00A859),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (onClose != null)
-          IconButton(
-            icon: const Icon(Icons.close_rounded, color: Color(0xFFDC2626)),
-            onPressed: onClose,
-            visualDensity: VisualDensity.compact,
-          ),
       ],
     );
   }
