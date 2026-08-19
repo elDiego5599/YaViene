@@ -61,6 +61,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<UserLocationState>? _userPinSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
+  ProviderSubscription<int>? _cameraRequestSubscription;
   ProviderSubscription<Set<String>>? _busSelectionSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
@@ -145,6 +146,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {
       _applyMapBottomInset(next);
     });
+    _cameraRequestSubscription =
+        ref.listenManual<int>(mapCameraRequestProvider, (previous, next) {
+      if (previous == next) return;
+      _moveToRequestedCamera();
+    });
     // Selección de bus (desde la hoja): el mapa debe repintar el halo y el
     // tamaño del ícono al instante, sin esperar el siguiente paquete GPS.
     _busSelectionSubscription =
@@ -201,6 +207,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
     _mapInsetSubscription?.close();
+    _cameraRequestSubscription?.close();
     _busSelectionSubscription?.close();
     _trajectorySub?.close();
     _stopsSub?.close();
@@ -431,6 +438,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (mounted) setState(() {});
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
+      _moveToRequestedCamera();
       _setupUserPinSubscription();
       if (widget.routeId != null) {
         _reloadMapData();
@@ -862,6 +870,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         animated,
       );
     } catch (_) {}
+  }
+
+  /// Aplica una solicitud de cámara pendiente (contador > 0) al mapa.
+  void _moveToRequestedCamera() {
+    final controller = _mapController;
+    if (controller == null || !_layersReady || !mounted) return;
+    if (ref.read(mapCameraRequestProvider) <= 0) return;
+    controller.moveCamera(CameraUpdate.newLatLngZoom(
+      MapCameraRequestNotifier.barranquilla,
+      11.5,
+    ));
   }
 
   void _reloadMapData() {

@@ -7,6 +7,7 @@ import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../providers/map_tour_provider.dart';
+import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 
@@ -276,6 +277,14 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                                       UserLocationMode.unknown &&
                                   location.mode != UserLocationMode.locating,
                             );
+                        // Sin ubicación la guía empieza pidiendo el punto de
+                        // espera: hay que mostrar la ciudad para saber dónde
+                        // tocar, aunque la cámara esté en otro lado.
+                        if (!location.hasPosition) {
+                          ref
+                              .read(mapCameraRequestProvider.notifier)
+                              .centerOnBarranquilla();
+                        }
                         if (context.mounted) Navigator.pop(context);
                       },
                     ),
