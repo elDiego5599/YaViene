@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
@@ -1174,7 +1175,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             cameraTargetBounds: CameraTargetBounds(_colombiaBounds),
           ),
         ),
-        if (_pinScreenPos != null)
+        // El radar verde del pin solo acompaña el paso de ubicación de la
+        // guía. Fuera de ese paso no debe flotar sobre el mapa (ni asomarse
+        // detrás de las hojas de empresa/ruta).
+        if (_pinScreenPos != null &&
+            ref.watch(mapGuideProvider).step == MapGuideStep.location)
           Positioned.fill(
             child: IgnorePointer(
               child: AnimatedBuilder(

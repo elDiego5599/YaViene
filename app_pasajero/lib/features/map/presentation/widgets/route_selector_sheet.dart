@@ -246,7 +246,7 @@ class RouteSelectorSheet extends ConsumerWidget {
     final guideSpace = (screenHeight * 0.28).clamp(160.0, 260.0);
     final listHeight = math.max(
       140.0,
-      math.min(screenHeight * 0.65,
+      math.min(screenHeight * 0.55,
           screenHeight - (guideActive ? guideSpace : 24) - 24),
     );
     showModalBottomSheet(
@@ -267,6 +267,8 @@ class RouteSelectorSheet extends ConsumerWidget {
               key: companyChoiceGuideKey,
               constraints: BoxConstraints(maxHeight: listHeight),
               child: ListView(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.zero,
                 children: [
                   if (companies.isEmpty)
@@ -516,7 +518,7 @@ void _showRouteSelector(
   final guideSpace = (screenHeight * 0.28).clamp(160.0, 260.0);
   final listHeight = math.max(
     140.0,
-    math.min(screenHeight * 0.65,
+    math.min(screenHeight * 0.55,
         screenHeight - (guideActive ? guideSpace : 24) - 24),
   );
   showModalBottomSheet(
@@ -536,6 +538,8 @@ void _showRouteSelector(
             key: routeChoiceGuideKey,
             constraints: BoxConstraints(maxHeight: listHeight),
             child: ListView(
+              shrinkWrap: true,
+              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.zero,
               children: [
                 if (routes.isEmpty)
