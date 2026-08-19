@@ -51,7 +51,7 @@ void main() {
       proximityAlertsProvider.overrideWith((ref) {
         return ProximityAlertsNotifier(
           ref,
-          notify: ({required String busId, required int distanceMeters}) async {
+          notify: ({required String busId, String? routeName, String? routeId, required int distanceMeters}) async {
             fired.add((busId: busId, distanceMeters: distanceMeters));
           },
         );
@@ -146,7 +146,7 @@ void main() {
       proximityAlertsProvider.overrideWith((ref) {
         return ProximityAlertsNotifier(
           ref,
-          notify: ({required String busId, required int distanceMeters}) async {
+          notify: ({required String busId, String? routeName, String? routeId, required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
           },
         );
@@ -267,7 +267,7 @@ void main() {
       proximityAlertsProvider.overrideWith((ref) {
         return ProximityAlertsNotifier(
           ref,
-          notify: ({required String busId, required int distanceMeters}) async {
+          notify: ({required String busId, String? routeName, String? routeId, required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
           },
         );

@@ -91,13 +91,13 @@ void main() {
     arm(container, 'A-1');
     await tester.pump();
 
-    expect(find.text('Bus A-1'), findsOneWidget);
+    expect(find.text('Ruta 1 · A-1'), findsOneWidget);
     expect(find.textContaining('esperando aviso'), findsOneWidget);
 
     await tester.tap(find.text('Desactivar'));
     await tester.pump();
 
-    expect(find.text('Bus A-1'), findsNothing);
+    expect(find.text('Ruta 1 · A-1'), findsNothing);
     expect(container.read(activeAlertsProvider), isEmpty);
     expect(container.read(alertHistoryProvider), isEmpty);
   });
@@ -111,7 +111,7 @@ void main() {
     await container.read(proximityAlertsProvider.notifier).check();
     await tester.pump();
 
-    expect(find.text('Bus A-1'), findsOneWidget);
+    expect(find.text('Ruta 1 · A-1'), findsOneWidget);
     expect(find.text('Enviado'), findsOneWidget);
     expect(find.textContaining('Notificación enviada'), findsOneWidget);
     expect(find.text('Desactivar'), findsNothing);
@@ -134,8 +134,8 @@ void main() {
     await tester.tap(find.text('Borrar 1'));
     await tester.pump();
 
-    expect(find.text('Bus A-1'), findsNothing);
-    expect(find.text('Bus A-2'), findsOneWidget);
+    expect(find.text('Ruta 1 · A-1'), findsNothing);
+    expect(find.text('Ruta 1 · A-2'), findsOneWidget);
     expect(container.read(activeAlertsProvider), {'A-2'});
   });
 

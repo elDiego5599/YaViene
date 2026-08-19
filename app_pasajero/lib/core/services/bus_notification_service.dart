@@ -1,9 +1,10 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../utils/bus_labels.dart';
 
 /// Notificaciones locales de proximidad de buses (sin servidor).
 ///
 /// Cada bus con alerta activa tiene su propio aviso (id estable por bus):
-/// "SQA-101 está cerca de ti · Está a 430 m de tu ubicación".
+/// "Ruta 1 · B-042 está cerca de ti · Está a 430 m de tu ubicación".
 class BusNotificationService {
   BusNotificationService._();
 
@@ -53,12 +54,15 @@ class BusNotificationService {
   /// Notificación diferenciada por bus: id = hash estable del busId.
   static Future<void> notifyBusNear({
     required String busId,
+    String? routeName,
+    String? routeId,
     required int distanceMeters,
   }) async {
     try {
       await _plugin.show(
         id: busId.hashCode & 0x7fffffff,
-        title: '$busId está cerca de ti',
+        title:
+            '${routePlateLabel(busId: busId, routeName: routeName, routeId: routeId)} está cerca de ti',
         body: 'Está a $distanceMeters m de tu ubicación',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(

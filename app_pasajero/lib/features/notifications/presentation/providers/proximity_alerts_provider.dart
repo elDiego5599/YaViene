@@ -20,6 +20,8 @@ const int alertReArmMeters = 1500;
 /// Firma del disparo de notificación (inyectable en tests).
 typedef BusNearNotifier = Future<void> Function({
   required String busId,
+  String? routeName,
+  String? routeId,
   required int distanceMeters,
 });
 
@@ -52,10 +54,14 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   static Future<void> _defaultNotify({
     required String busId,
+    String? routeName,
+    String? routeId,
     required int distanceMeters,
   }) =>
       BusNotificationService.notifyBusNear(
         busId: busId,
+        routeName: routeName,
+        routeId: routeId,
         distanceMeters: distanceMeters,
       );
 
@@ -204,8 +210,18 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
     if (fire.isNotEmpty) {
       for (final entry in fire.entries) {
+        // Ruta y placa del bus para el texto de la notificación (ruta · placa).
+        String? routeName;
+        for (final e in _ref.read(alertHistoryProvider)) {
+          if (e.busId == entry.key) {
+            routeName = e.routeName;
+            break;
+          }
+        }
         unawaited(_notify(
           busId: entry.key,
+          routeName: routeName,
+          routeId: _alertRoutes[entry.key],
           distanceMeters: entry.value,
         ));
         // El aviso ya se envió: pasa a "enviado" en el historial, sale de la
