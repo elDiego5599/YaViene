@@ -36,8 +36,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _expandedMapInset = 250;
   static const double _collapsedMapInset = 120;
 
-  /// Distancia (m) a la que el bus se considera "pasando por la parada".
-  static const double _passingRadiusMeters = 500;
   bool _isExpanded = true;
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
@@ -110,6 +108,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             content:
                 Text('El bus $busId ya está a menos de $alertRadiusMeters m; '
                     'no se puede activar el aviso'),
+          ));
+        }
+        return;
+      }
+      // Máximo 2 avisos activos: el tercero se explica, no se arma.
+      if (ref.read(activeAlertsProvider).length >= 2) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Ya tienes 2 avisos activos: desactiva uno o espera a que '
+                'termine para activar otro. Recuerda no cerrar la aplicación'),
           ));
         }
         return;
@@ -387,11 +396,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
     if (bus == null) return _buildEmptyState();
 
-    // El bus está cruzando la parada (≤500 m): no hace falta aviso.
+    // El bus ya está dentro del radio de aviso (≤1000 m): no se puede activar.
     final alreadyNear = !isActive && _busAlreadyNear(bus);
-    final passing = distance != null && distance <= _passingRadiusMeters;
     final liveBlocked =
-        ghostBlocked || alreadyNear || passing || !locationState.hasPosition;
+        ghostBlocked || alreadyNear || !locationState.hasPosition;
     final blocked = _applyBlockedHysteresis(busId, liveBlocked, distance);
 
     // Sin señal: excepción importante, se marca con coral.
@@ -437,22 +445,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre.
     final stateDetail = isActive
         ? "Puedes cambiar de aplicación; no cierres Ya Viene del todo"
-        : passing
-            ? null
-            : !locationState.hasPosition
-                ? "Toca el mapa para indicar dónde estás"
-                : distance == null
-                    ? "Buscando la posición del bus…"
-                    : null;
+        : !locationState.hasPosition
+            ? "Toca el mapa para indicar dónde estás"
+            : distance == null
+                ? "Buscando la posición del bus…"
+                : null;
 
     // Estado → color de la franja y de la métrica grande (número o palabra).
     Color stripColor;
     String metricText = '';
     String? metricUnit;
-    if (passing) {
-      stripColor = const Color(0xFFD97706);
-      metricText = "Va pasando";
-    } else if (!locationState.hasPosition) {
+    if (!locationState.hasPosition) {
       stripColor = const Color(0xFF94A3B8);
       metricText = "Sin tu ubicación";
     } else if (distance == null) {
@@ -546,11 +549,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                 ? "AVISO ACTIVADO"
                 : ghostBlocked
                     ? "BUS SIN SEÑAL"
-                    : passing
-                        ? "BUS VA PASANDO"
-                        : blocked
-                            ? "BUS YA ESTÁ CERCA"
-                            : "AVISARME CUANDO ESTÉ CERCA",
+                    : blocked
+                        ? "BUS YA ESTÁ CERCA"
+                        : "AVISARME CUANDO ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ],

@@ -25,8 +25,8 @@ void main() {
         companyId: 'C1',
       );
 
-  BusPosition busAt(double latOffset) => BusPosition(
-        busId: 'A-1',
+  BusPosition busAt(double latOffset, {String busId = 'A-1'}) => BusPosition(
+        busId: busId,
         routeId: 'R1',
         lat: userLat + latOffset,
         lon: userLon,
@@ -86,12 +86,14 @@ void main() {
     expect(find.text('km de ti'), findsOneWidget);
   });
 
-  testWidgets('hero card: bus va pasando (sin métrica, palabra de estado)',
+  testWidgets('hero card: bus a menos de 1 km muestra "ya está cerca"',
       (tester) async {
     await pumpHero(tester, [busAt(0.002)]);
 
-    expect(find.text('Va pasando'), findsOneWidget);
-    expect(find.text('BUS VA PASANDO'), findsOneWidget);
+    expect(find.text('222'), findsOneWidget);
+    expect(find.text('m de ti'), findsOneWidget);
+    expect(find.text('BUS YA ESTÁ CERCA'), findsOneWidget);
+    expect(find.text('Va pasando'), findsNothing);
   });
 
   testWidgets('hero card: sin ubicación muestra estado y no métrica',
@@ -183,5 +185,30 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('AVISARME CUANDO ESTÉ CERCA'), findsOneWidget);
+  });
+
+  testWidgets('máximo 2 avisos activos: el tercero muestra el mensaje',
+      (tester) async {
+    final container = await pumpHero(
+      tester,
+      [busAt(0.02), busAt(0.02, busId: 'B-1'), busAt(0.02, busId: 'C-1')],
+    );
+    // Dos avisos ya armados (el botón pide permiso de notificaciones, que no
+    // se puede conceder en test: se arman directo por los notifiers).
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    container.read(activeAlertsProvider.notifier).toggleAlert('B-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('B-1', 'R1');
+    await tester.pump();
+
+    // Tercer bus seleccionado: el botón debe explicar el límite, no armar.
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    container.read(selectedBusesProvider.notifier).toggleBus('C-1');
+    await tester.pump();
+    await tester.tap(find.text('AVISARME CUANDO ESTÉ CERCA'));
+    await tester.pump();
+
+    expect(find.textContaining('Ya tienes 2 avisos activos'), findsOneWidget);
+    expect(container.read(activeAlertsProvider), isNot(contains('C-1')));
   });
 }
