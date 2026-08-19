@@ -186,10 +186,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case MapGuideStep.location:
         final mapRect = _rectFor(_mapKey);
         if (mapRect == null) return null;
-        final height = (mapRect.height * 0.58).clamp(180.0, 560.0);
+        // Empieza debajo de la barra de búsqueda y el chip de ubicación: solo
+        // el área iluminada recibe el toque y el usuario no puede desviarse.
+        final top = mapRect.top + 210;
+        final height = (mapRect.height * 0.5).clamp(160.0, 520.0);
         return Rect.fromLTWH(
           mapRect.left + 16,
-          mapRect.top + 70,
+          top,
           mapRect.width - 32,
           height,
         );
@@ -217,11 +220,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// El usuario necesita poder mover el mapa y tocar cualquier bus. Se
   /// ilumina una zona amplia del mapa, no un punto fijo que desaparece al
-  /// mover la cámara.
+  /// mover la cámara. Empieza debajo de la pill y los chips para que esas
+  /// acciones (quitar el pin, abrir la búsqueda) no queden dentro del área
+  /// iluminada y el usuario no se desvíe del flujo.
   Rect? _mapGuideArea() {
     final mapRect = _rectFor(_mapKey);
     if (mapRect == null) return null;
-    final top = mapRect.top + 88;
+    final top = mapRect.top + 210;
     final bottom = mapRect.bottom - 250;
     if (bottom - top < 220) return mapRect.deflate(12);
     return Rect.fromLTRB(mapRect.left + 8, top, mapRect.right - 8, bottom);
