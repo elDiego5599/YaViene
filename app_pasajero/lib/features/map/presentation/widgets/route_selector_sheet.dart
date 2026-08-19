@@ -254,17 +254,41 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 setState(() => _view = _RouteView.companies);
               },
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => Column(
-              children: [
-                const Text('Error al cargar empresas'),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => ref.invalidate(companiesProvider),
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Reintentar'),
-                ),
-              ],
+            // La guía ilumina el tile de empresa: mientras carga (o falla) el
+            // hueco debe seguir existiendo, si no el overlay desaparece y el
+            // usuario podría tocar otro botón y salirse del flujo.
+            loading: () => _tilePlaceholder(
+              key: widget.companyGuideKey,
+              child: const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            ),
+            error: (_, __) => _tilePlaceholder(
+              key: widget.companyGuideKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Error al cargar empresas',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => ref.invalidate(companiesProvider),
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: const Text('Reintentar'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -377,17 +401,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             }),
         ],
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => Column(
-        children: [
-          const Text('Error al cargar empresas'),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => ref.invalidate(companiesProvider),
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Reintentar'),
-          ),
-        ],
+      loading: () => _listPlaceholder(
+        key: widget.companyChoiceGuideKey,
+      ),
+      error: (_, __) => _listPlaceholder(
+        key: widget.companyChoiceGuideKey,
+        message: 'Error al cargar empresas',
+        onRetry: () => ref.invalidate(companiesProvider),
       ),
     );
   }
@@ -433,19 +453,15 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 )),
         ],
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => Column(
-        children: [
-          const Text('Error al cargar las rutas'),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => ref.invalidate(
-              routesByCompanyProvider(selectedCompany.id),
-            ),
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Reintentar'),
-          ),
-        ],
+      loading: () => _listPlaceholder(
+        key: widget.routeChoiceGuideKey,
+      ),
+      error: (_, __) => _listPlaceholder(
+        key: widget.routeChoiceGuideKey,
+        message: 'Error al cargar las rutas',
+        onRetry: () => ref.invalidate(
+          routesByCompanyProvider(selectedCompany.id),
+        ),
       ),
     );
   }
@@ -513,6 +529,54 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
           borderRadius: BorderRadius.circular(999),
         ),
       ),
+    );
+  }
+
+  /// Placeholder del tile de empresa con la MISMA altura que
+  /// `_PremiumSelectorTile`: mientras cargan las empresas (o fallan) el hueco
+  /// de la guía sigue anclado a su posición real.
+  Widget _tilePlaceholder({Key? key, required Widget child}) {
+    return Container(
+      key: key,
+      height: 76,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: child,
+    );
+  }
+
+  /// Estado de carga/error de las listas secundarias. Mantiene la key del
+  /// objetivo de la guía para que el overlay nunca desaparezca mientras el
+  /// usuario espera (y no pueda salirse tocando el back u otro botón).
+  Widget _listPlaceholder({Key? key, String? message, VoidCallback? onRetry}) {
+    return Center(
+      key: key,
+      child: message == null
+          ? const CircularProgressIndicator()
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Reintentar'),
+                ),
+              ],
+            ),
     );
   }
 
