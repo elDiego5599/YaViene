@@ -117,7 +117,8 @@ void main() {
     container.read(selectedRouteProvider.notifier).select(routeR1());
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     await tester.pump();
-    await tester.pump();
+    // Deja terminar el fundido del AnimatedSwitcher de la hoja.
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Sin tu ubicación'), findsOneWidget);
     expect(find.text('Toca el mapa para indicar dónde estás'), findsOneWidget);

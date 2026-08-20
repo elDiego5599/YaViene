@@ -40,9 +40,21 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       barrierDismissible: false,
       barrierLabel: 'Selector de ruta',
       barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 220),
-      transitionBuilder: (context, animation, _, child) =>
-          FadeTransition(opacity: animation, child: child),
+      transitionDuration: const Duration(milliseconds: 260),
+      transitionBuilder: (context, animation, _, child) {
+        final curved =
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.06),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
       pageBuilder: (context, _, __) => sheet,
     );
   }
@@ -191,25 +203,48 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   Widget _buildCard(BuildContext context) {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Material(
-        color: Colors.white,
-        elevation: 16,
-        shadowColor: const Color(0x6614274E),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        clipBehavior: Clip.antiAlias,
-        child: switch (_view) {
-          _RouteView.main => _buildMainView(context),
-          _RouteView.companies => _buildListView(
-              title: 'Selecciona una empresa',
-              onBack: () => setState(() => _view = _RouteView.main),
-              builder: (_) => _buildCompanyList(context),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.bottomCenter,
+        child: Material(
+          color: Colors.white,
+          elevation: 16,
+          shadowColor: const Color(0x6614274E),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          clipBehavior: Clip.antiAlias,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final slide = Tween<Offset>(
+                begin: const Offset(0.04, 0),
+                end: Offset.zero,
+              ).animate(animation);
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(position: slide, child: child),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(_view),
+              child: switch (_view) {
+                _RouteView.main => _buildMainView(context),
+                _RouteView.companies => _buildListView(
+                    title: 'Selecciona una empresa',
+                    onBack: () => setState(() => _view = _RouteView.main),
+                    builder: (_) => _buildCompanyList(context),
+                  ),
+                _RouteView.routes => _buildListView(
+                    title: 'Selecciona una ruta',
+                    onBack: () => setState(() => _view = _RouteView.main),
+                    builder: (_) => _buildRouteList(context),
+                  ),
+              },
             ),
-          _RouteView.routes => _buildListView(
-              title: 'Selecciona una ruta',
-              onBack: () => setState(() => _view = _RouteView.main),
-              builder: (_) => _buildRouteList(context),
-            ),
-        },
+          ),
+        ),
       ),
     );
   }
@@ -672,7 +707,7 @@ String? _routeSubtitle(RouteInfo? route) {
   return '$a ↔ $b';
 }
 
-class _PremiumSelectorTile extends StatelessWidget {
+class _PremiumSelectorTile extends StatefulWidget {
   final String title;
   final String? subtitle;
   final IconData icon;
@@ -689,83 +724,99 @@ class _PremiumSelectorTile extends StatelessWidget {
   });
 
   @override
+  State<_PremiumSelectorTile> createState() => _PremiumSelectorTileState();
+}
+
+class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
+    final isActive = widget.isActive;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isActive
-                ? const Color(0xFF14274E).withValues(alpha: 0.2)
-                : const Color(0xFFE2E8F0),
-            width: isActive ? 1.5 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF14274E).withValues(alpha: 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? const Color(0xFFE6F7F0)
-                    : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: isActive
-                    ? const Color(0xFF00A859)
-                    : const Color(0xFF94A3B8),
-                size: 22,
-              ),
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.975 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isActive
+                  ? const Color(0xFF14274E).withValues(alpha: 0.2)
+                  : const Color(0xFFE2E8F0),
+              width: isActive ? 1.5 : 1.0,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                      color: isActive
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFF94A3B8),
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF14274E).withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFFE6F7F0)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: isActive
+                      ? const Color(0xFF00A859)
+                      : const Color(0xFF94A3B8),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle!,
+                      widget.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        color: isActive
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFF94A3B8),
                       ),
                     ),
+                    if (widget.subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-          ],
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+            ],
+          ),
         ),
       ),
     );

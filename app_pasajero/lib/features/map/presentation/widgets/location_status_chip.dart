@@ -47,19 +47,32 @@ class LocationStatusChip extends ConsumerWidget {
           tint: const Color(0xFFFEF3C7),
           iconColor: const Color(0xFFD97706),
         ),
-      UserLocationMode.manual =>
-        _manualPill(nearbyCount, notifier),
+      UserLocationMode.manual => _manualPill(nearbyCount, notifier),
       UserLocationMode.gps => _gpsPill(location, nearbyCount, notifier),
       UserLocationMode.unknown => null,
     };
 
     if (pill == null) return const SizedBox.shrink();
 
-    return _Pill(data: pill);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 240),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final slide = Tween<Offset>(
+          begin: const Offset(0, -0.1),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: slide, child: child),
+        );
+      },
+      child: KeyedSubtree(key: ValueKey(pill.key), child: _Pill(data: pill)),
+    );
   }
 
-  _PillData? _manualPill(
-      int? nearbyCount, UserLocationNotifier notifier) {
+  _PillData? _manualPill(int? nearbyCount, UserLocationNotifier notifier) {
     if (nearbyCount == null) {
       return _PillData(
         key: 'manual',
@@ -96,25 +109,22 @@ class LocationStatusChip extends ConsumerWidget {
     );
   }
 
-  _PillData? _gpsPill(
-      UserLocationState location, int? nearbyCount,
+  _PillData? _gpsPill(UserLocationState location, int? nearbyCount,
       UserLocationNotifier notifier) {
     // "Fijar": deja el pin clavado en la posición actual del GPS (útil cuando
     // el punto exacto de espera no es donde el GPS cree que estás). El pin se
     // puede arrastrar y el modo manual permite "Quitar" para volver al GPS.
-    _PillData withFix(_PillData data) =>
-        location.hasPosition
-            ? _PillData(
-                key: '${data.key}-fix',
-                icon: data.icon,
-                text: data.text,
-                tint: data.tint,
-                iconColor: data.iconColor,
-                actionLabel: 'Fijar',
-                onAction: () =>
-                    notifier.setManualPin(location.lat!, location.lon!),
-              )
-            : data;
+    _PillData withFix(_PillData data) => location.hasPosition
+        ? _PillData(
+            key: '${data.key}-fix',
+            icon: data.icon,
+            text: data.text,
+            tint: data.tint,
+            iconColor: data.iconColor,
+            actionLabel: 'Fijar',
+            onAction: () => notifier.setManualPin(location.lat!, location.lon!),
+          )
+        : data;
     if (nearbyCount == null) {
       return withFix(const _PillData(
         key: 'gps',
@@ -136,7 +146,8 @@ class LocationStatusChip extends ConsumerWidget {
     return withFix(_PillData(
       key: 'gps-near',
       icon: Icons.my_location,
-      text: 'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      text:
+          'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
       tint: const Color(0xFFE6F7F0),
       iconColor: AppColors.primary,
     ));

@@ -136,4 +136,69 @@ void main() {
 
     expect(container.read(activeAlertsProvider), isEmpty);
   });
+
+  testWidgets(
+      'sin ruta la hoja pide escoger empresa y ruta (estado inteligente)',
+      (tester) async {
+    await pumpSheet(tester);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: 6.2442,
+        lon: -75.5812,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Escoge empresa y ruta'), findsOneWidget);
+    expect(find.text('Toca un bus en el mapa'), findsNothing);
+  });
+
+  testWidgets('con ruta y sin buses la hoja avisa que no hay buses',
+      (tester) async {
+    await pumpSheet(tester);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: 6.2442,
+        lon: -75.5812,
+      ),
+    );
+    container.read(selectedRouteProvider.notifier).select(routeR1());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('No hay buses en el mapa'), findsOneWidget);
+    expect(find.text('Toca un bus en el mapa'), findsNothing);
+  });
+
+  testWidgets('con ruta y buses la hoja pide tocar un bus', (tester) async {
+    positions = [
+      BusPosition(
+        busId: 'A-1',
+        routeId: 'R1',
+        lat: 6.2442,
+        lon: -75.5812,
+        heading: 0,
+        speedKmh: 30,
+        timestamp: DateTime.now(),
+        isGhostBus: false,
+      ),
+    ];
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: 6.2442,
+        lon: -75.5812,
+      ),
+    );
+    container.read(selectedRouteProvider.notifier).select(routeR1());
+    await pumpSheet(tester);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(find.text('Toca un bus en el mapa'), findsOneWidget);
+    expect(find.text('No hay buses en el mapa'), findsNothing);
+  });
 }

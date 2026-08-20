@@ -171,25 +171,27 @@ class _HistoryList extends ConsumerWidget {
                               location.lat!, location.lon!, pos.lat, pos.lon)
                           .round()
                       : null;
-              return _AlertTile(
-                entry: entry,
-                routeName: entry.routeName ??
-                    (route?.id == entry.routeId ? route?.name : null),
-                distanceMeters: distanceMeters,
-                selecting: selecting,
-                selected: selected.contains(entry.busId),
-                onToggleSelect: () => ref
-                    .read(alertSelectionProvider.notifier)
-                    .toggle(entry.busId),
-                onDisable: () {
-                  ref
-                      .read(activeAlertsProvider.notifier)
-                      .deactivateAlert(entry.busId);
-                  ref
-                      .read(proximityAlertsProvider.notifier)
-                      .disarmAlert(entry.busId);
-                  ref.read(alertHistoryProvider.notifier).remove(entry.busId);
-                },
+              return _TileEntrance(
+                child: _AlertTile(
+                  entry: entry,
+                  routeName: entry.routeName ??
+                      (route?.id == entry.routeId ? route?.name : null),
+                  distanceMeters: distanceMeters,
+                  selecting: selecting,
+                  selected: selected.contains(entry.busId),
+                  onToggleSelect: () => ref
+                      .read(alertSelectionProvider.notifier)
+                      .toggle(entry.busId),
+                  onDisable: () {
+                    ref
+                        .read(activeAlertsProvider.notifier)
+                        .deactivateAlert(entry.busId);
+                    ref
+                        .read(proximityAlertsProvider.notifier)
+                        .disarmAlert(entry.busId);
+                    ref.read(alertHistoryProvider.notifier).remove(entry.busId);
+                  },
+                ),
               );
             },
           ),
@@ -247,6 +249,54 @@ class _HistoryList extends ConsumerWidget {
               : const SizedBox(width: double.infinity),
         ),
       ],
+    );
+  }
+}
+
+/// Entrada suave de cada tile del historial: aparece con un fundido y un
+/// pequeño deslizamiento hacia arriba al montarse (una sola vez, sin timers).
+class _TileEntrance extends StatefulWidget {
+  final Widget child;
+
+  const _TileEntrance({required this.child});
+
+  @override
+  State<_TileEntrance> createState() => _TileEntranceState();
+}
+
+class _TileEntranceState extends State<_TileEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _anim = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _anim,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.06),
+          end: Offset.zero,
+        ).animate(_anim),
+        child: widget.child,
+      ),
     );
   }
 }

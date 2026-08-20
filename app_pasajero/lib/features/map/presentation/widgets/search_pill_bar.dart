@@ -109,12 +109,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   onTap: _onSearchTap,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (selectedRoute != null) ...[
                             Container(
@@ -127,7 +124,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                             ),
                             const SizedBox(width: 6),
                           ],
-                          Flexible(
+                          Expanded(
                             child: Text(
                               selectedRoute?.name ?? "¿Qué bus esperas?",
                               style: const TextStyle(
@@ -145,8 +142,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       const SizedBox(height: 2),
                       Text(
                         selectedRoute != null
-                            ? "Ruta activa • Toca para cambiar"
-                            : "Toca para buscar línea o empresa",
+                            ? "Ruta activa · Toca para cambiar"
+                            : "Toca para buscar tu ruta",
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -154,6 +151,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                               ? const Color(0xFF00A859)
                               : const Color(0xFF64748B),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

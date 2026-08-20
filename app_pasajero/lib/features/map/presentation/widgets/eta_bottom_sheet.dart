@@ -259,9 +259,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     if (selectedRoute == null) {
       _publishMapInset(0);
-      // Sin ruta también se muestra la hoja: si aún no hay ubicación invita
+      // Sin ruta tampoco se muestra la hoja: si aún no hay ubicación invita
       // a tocar el mapa desde el primer momento.
-      return _sheetShell(toggleable: false, child: _buildEmptyState());
+      return _sheetShell(
+        toggleable: false,
+        child: _buildEmptyState(const []),
+      );
     }
 
     _publishMapInset();
@@ -294,12 +297,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     return _sheetShell(
       toggleable: true,
-      child: _isExpanded
-          ? selectedBuses.isEmpty
-              ? _buildEmptyState()
-              : _buildSingleBusState(
-                  selectedBuses.first, busById[selectedBuses.first])
-          : const SizedBox.shrink(),
+      child: !_isExpanded
+          ? const KeyedSubtree(
+              key: ValueKey('sheet-collapsed'),
+              child: SizedBox.shrink(),
+            )
+          : selectedBuses.isEmpty
+              ? _buildEmptyState(buses)
+              : KeyedSubtree(
+                  key: const ValueKey('sheet-bus'),
+                  child: _buildSingleBusState(
+                    selectedBuses.first,
+                    busById[selectedBuses.first],
+                    buses,
+                  ),
+                ),
     );
   }
 
@@ -357,7 +369,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                     ),
                   ),
                 ),
-                child,
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: child,
+                ),
               ],
             ),
           ),
@@ -366,42 +385,70 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(List<BusPosition> buses) {
     final hasPosition =
         ref.watch(userLocationProvider.select((s) => s.hasPosition));
-    final (title, subtitle) = hasPosition
-        ? ("Toca un bus en el mapa", "Selecciona un bus para darle seguimiento")
-        : (
-            "Toca el mapa para indicar dónde estás",
-            "Pon tu punto de espera; después podrás mover el pin si hace falta"
-          );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
-      child: Column(
-        children: [
-          const Icon(Icons.touch_app_rounded,
-              color: Color(0xFF94A3B8), size: 32),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A)),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-            textAlign: TextAlign.center,
-          ),
-        ],
+    final route = ref.watch(selectedRouteProvider);
+
+    final String stateKey;
+    final String title;
+    final String subtitle;
+    final IconData icon;
+    if (!hasPosition) {
+      stateKey = 'empty-no-position';
+      title = 'Toca el mapa para indicar dónde estás';
+      subtitle =
+          'Pon tu punto de espera; después podrás mover el pin si hace falta';
+      icon = Icons.touch_app_rounded;
+    } else if (route == null) {
+      stateKey = 'empty-no-route';
+      title = 'Escoge empresa y ruta';
+      subtitle = 'Para ver los buses, toca la barra de arriba y elige '
+          'la empresa y su ruta';
+      icon = Icons.route_rounded;
+    } else if (buses.isEmpty) {
+      stateKey = 'empty-no-buses';
+      title = 'No hay buses en el mapa';
+      subtitle =
+          'Cuando un bus de esta ruta transmita posición, aparecerá aquí';
+      icon = Icons.directions_bus_rounded;
+    } else {
+      stateKey = 'empty-pick-bus';
+      title = 'Toca un bus en el mapa';
+      subtitle = 'Selecciona un bus para darle seguimiento';
+      icon = Icons.touch_app_rounded;
+    }
+
+    return KeyedSubtree(
+      key: ValueKey(stateKey),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
+        child: Column(
+          children: [
+            Icon(icon, color: const Color(0xFF94A3B8), size: 32),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSingleBusState(String busId, BusPosition? bus) {
+  Widget _buildSingleBusState(
+      String busId, BusPosition? bus, List<BusPosition> buses) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final locationState = ref.watch(userLocationProvider);
     final staleLabel = _staleLabel(bus);
@@ -411,7 +458,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     // Defensa: el bus seleccionado ya no está en la ruta (aún no se procesó
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
-    if (bus == null) return _buildEmptyState();
+    if (bus == null) return _buildEmptyState(buses);
 
     // El bus ya está dentro del radio de aviso (≤1000 m): no se puede activar.
     final alreadyNear = !isActive && _busAlreadyNear(bus);

@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'core/router/app_router.dart';
+import 'core/router/app_transitions.dart';
 import 'core/services/bus_notification_service.dart';
 
 void main() async {
@@ -47,16 +48,21 @@ class YaVieneApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
+    const fadeSlide = PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: FadeSlidePageTransitionsBuilder(),
+        TargetPlatform.iOS: FadeSlidePageTransitionsBuilder(),
+        TargetPlatform.macOS: FadeSlidePageTransitionsBuilder(),
+      },
+    );
+
     return MaterialApp.router(
       title: 'Ya Viene',
       debugShowCheckedModeBanner: false,
-
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.lightTheme,
+      theme: AppTheme.lightTheme.copyWith(pageTransitionsTheme: fadeSlide),
+      darkTheme: AppTheme.lightTheme.copyWith(pageTransitionsTheme: fadeSlide),
       themeMode: ThemeMode.light,
-
       routerConfig: router,
-
       locale: const Locale('es', 'CO'),
     );
   }
