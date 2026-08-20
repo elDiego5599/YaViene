@@ -37,6 +37,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _routeChoiceGuideKey = GlobalKey();
   final GlobalKey _launchBusesGuideKey = GlobalKey();
   final GlobalKey _metricGuideKey = GlobalKey();
+  final GlobalKey _metricUnitGuideKey = GlobalKey();
   final GlobalKey _detailGuideKey = GlobalKey();
   final GlobalKey _alertGuideKey = GlobalKey();
 
@@ -156,14 +157,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             _guideTarget = rect;
             _measuredGuideStep = step;
           });
+          // La hoja ETA anima su altura (AnimatedSize) y contenido
+          // (AnimatedSwitcher): el objetivo se mueve durante unos frames, lo
+          // seguimos mientras cambie y nos detenemos cuando se asienta.
+          if (attempt < 40) _scheduleGuideMeasurement(step, attempt + 1);
         }
-        // AnimatedSize de la hoja ETA puede mover el objetivo durante varios
-        // frames. Lo seguimos un poco después de encontrarlo para que el
-        // hueco no quede flotando sobre la posición anterior.
-        if (attempt < 6) _scheduleGuideMeasurement(step, attempt + 1);
         return;
       }
-      if (attempt < 8) _scheduleGuideMeasurement(step, attempt + 1);
+      if (attempt < 12) _scheduleGuideMeasurement(step, attempt + 1);
     });
   }
 
@@ -183,8 +184,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         if (mapRect == null) return null;
         // Empieza debajo de la barra de búsqueda y el chip de ubicación: solo
         // el área iluminada recibe el toque y el usuario no puede desviarse.
+        // La altura deja espacio abajo para la tarjeta de la guía.
         final top = mapRect.top + 210;
-        final height = (mapRect.height * 0.5).clamp(160.0, 520.0);
+        final height = (mapRect.height * 0.5).clamp(160.0, 400.0);
         return Rect.fromLTWH(
           mapRect.left + 16,
           top,
@@ -196,7 +198,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case MapGuideStep.buses:
         return _mapGuideArea();
       case MapGuideStep.distance:
-        return _rectFor(_metricGuideKey) ?? _rectFor(_detailGuideKey);
+        final metric = _rectFor(_metricGuideKey);
+        final unit = _rectFor(_metricUnitGuideKey);
+        if (metric == null) return unit ?? _rectFor(_detailGuideKey);
+        if (unit == null) return metric;
+        // El objetivo abarca el número grande y su unidad ("km de ti").
+        return metric.expandToInclude(unit);
       case MapGuideStep.alert:
       case MapGuideStep.background:
         return _rectFor(_alertGuideKey);
@@ -222,7 +229,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final mapRect = _rectFor(_mapKey);
     if (mapRect == null) return null;
     final top = mapRect.top + 210;
-    final bottom = mapRect.bottom - 250;
+    // Deja 310 px libres abajo: la tarjeta de la guía (y la barra de
+    // navegación) no deben solapar el área iluminada.
+    final bottom = mapRect.bottom - 310;
     if (bottom - top < 220) return mapRect.deflate(12);
     final horizontalInset = (mapRect.width * 0.08).clamp(24.0, 32.0);
     return Rect.fromLTRB(
@@ -361,6 +370,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             child: EtaBottomSheet(
               alertKey: _alertGuideKey,
               metricKey: _metricGuideKey,
+              metricUnitKey: _metricUnitGuideKey,
               detailKey: _detailGuideKey,
               onGuideAlertBlocked: _onGuideAlertBlocked,
             ),

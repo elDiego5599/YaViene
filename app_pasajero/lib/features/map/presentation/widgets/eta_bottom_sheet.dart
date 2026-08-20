@@ -17,6 +17,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
     super.key,
     this.alertKey,
     this.metricKey,
+    this.metricUnitKey,
     this.detailKey,
     this.onGuideAlertBlocked,
   });
@@ -25,6 +26,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   /// abrir su hueco sobre él cuando el usuario toca su primer bus.
   final GlobalKey? alertKey;
   final GlobalKey? metricKey;
+  final GlobalKey? metricUnitKey;
   final GlobalKey? detailKey;
   final ValueChanged<bool>? onGuideAlertBlocked;
 
@@ -587,6 +589,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             const SizedBox(height: 6),
             Text(
               metricUnit,
+              key: widget.metricUnitKey,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

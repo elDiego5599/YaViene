@@ -75,6 +75,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   GlobalKey? _measuredKey;
   double? _cardHeight;
   bool _everGuided = false;
+  bool _measuring = false;
 
   @override
   Widget build(BuildContext context) {
@@ -165,29 +166,48 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     }
   }
 
-  void _scheduleMeasure(MapGuideStep step, GlobalKey targetKey,
-      [int attempt = 0]) {
-    if (_measuredStep == step && _measuredKey == targetKey) return;
+  void _scheduleMeasure(MapGuideStep step, GlobalKey targetKey) {
+    if (_measuring) return;
+    _measuring = true;
+    _measureLoop(step, targetKey, 0);
+  }
+
+  /// Mide el objetivo de la guía y LO SIGUE mientras se mueve: la carta del
+  /// selector anima con `AnimatedSwitcher` (deslizamiento lateral) y
+  /// `AnimatedSize` (altura), así que una sola medición quedaría congelada a
+  /// medio camino (objetivo "corrido" hacia la derecha). La cadena termina
+  /// cuando el rect deja de cambiar (posición estable).
+  void _measureLoop(MapGuideStep step, GlobalKey targetKey, int attempt) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measuring = false;
       if (!mounted) return;
       if (ref.read(mapGuideProvider).step != step) return;
       final hostBox = _hostKey.currentContext?.findRenderObject() as RenderBox?;
       final targetBox =
           targetKey.currentContext?.findRenderObject() as RenderBox?;
       if (targetBox == null || !targetBox.attached) {
-        if (attempt < 8) _scheduleMeasure(step, targetKey, attempt + 1);
+        if (attempt < 12) _measureLoop(step, targetKey, attempt + 1);
         return;
       }
       if (hostBox == null || !hostBox.attached) return;
       final global = targetBox.localToGlobal(Offset.zero);
       final local = hostBox.globalToLocal(global);
       final rect = local & targetBox.size;
-      if (rect.width <= 0 || rect.height <= 0) return;
-      setState(() {
-        _target = rect;
-        _measuredStep = step;
-        _measuredKey = targetKey;
-      });
+      if (rect.width <= 0 || rect.height <= 0) {
+        if (attempt < 12) _measureLoop(step, targetKey, attempt + 1);
+        return;
+      }
+      final changed =
+          _target != rect || _measuredStep != step || _measuredKey != targetKey;
+      if (changed) {
+        setState(() {
+          _target = rect;
+          _measuredStep = step;
+          _measuredKey = targetKey;
+        });
+        // Sigue midiendo mientras el objetivo se mueve (animación en curso).
+        if (attempt < 40) _measureLoop(step, targetKey, attempt + 1);
+      }
     });
   }
 

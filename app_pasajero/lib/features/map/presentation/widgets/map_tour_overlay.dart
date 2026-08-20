@@ -44,6 +44,11 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   late final Animation<double> _scale;
   late final Animation<double> _fade;
 
+  /// Altura real de la carta, medida tras el primer layout: sirve para
+  /// decidir si la carta cabe debajo del área iluminada sin solaparla.
+  double? _cardHeight;
+  final GlobalKey _cardKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -70,9 +75,9 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final bounds = Offset.zero & size;
         final rawHole = widget.target.inflate(widget.targetPadding);
         final hole = rawHole.intersect(bounds);
-        final placeAbove = hole.top > 245;
         final bottomInset = MediaQuery.of(context).viewPadding.bottom;
         final card = _buildCard();
+        _measureCard();
 
         if (widget.centered) {
           return Stack(
@@ -93,13 +98,25 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 380),
-                    child: ScaleTransition(scale: _scale, child: card),
+                    child: ScaleTransition(
+                      scale: _scale,
+                      child: KeyedSubtree(key: _cardKey, child: card),
+                    ),
                   ),
                 ),
               ),
             ],
           );
         }
+
+        // La carta se pone debajo del área iluminada solo si cabe completa
+        // (sin solapar el hueco ni quedar bajo la barra de navegación); si no
+        // hay espacio, va arriba. Antes de la primera medición se usa una
+        // estimación segura y el primer layout la ajusta.
+        final cardHeight = _cardHeight ?? 220.0;
+        final fitsBelow =
+            hole.bottom + 22 + cardHeight <= size.height - bottomInset;
+        final placeAbove = hole.top > 245 || !fitsBelow;
 
         return Stack(
           fit: StackFit.expand,
@@ -118,8 +135,13 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               left: 20,
               right: 20,
               top: placeAbove ? null : _belowTop(hole, size, bottomInset),
-              bottom: placeAbove ? _aboveBottom(hole, size, bottomInset) : null,
-              child: ScaleTransition(scale: _scale, child: card),
+              bottom: placeAbove
+                  ? _aboveBottom(hole, size, bottomInset, cardHeight)
+                  : null,
+              child: ScaleTransition(
+                scale: _scale,
+                child: KeyedSubtree(key: _cardKey, child: card),
+              ),
             ),
           ],
         );
@@ -127,16 +149,37 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     );
   }
 
-  double _belowTop(Rect hole, Size size, double bottomInset) {
-    final proposed = hole.bottom + 22;
-    final maxTop = size.height - bottomInset - 250;
-    return proposed.clamp(12.0, mathMax(12.0, maxTop));
+  /// Mide la carta una sola vez (tras el primer layout) para el cálculo de
+  /// `fitsBelow`. Antes de medir se usa una estimación segura.
+  void _measureCard([int attempt = 0]) {
+    if (_cardHeight != null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _cardHeight != null) return;
+      final box = _cardKey.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached || box.size.height <= 0) {
+        if (attempt < 10) _measureCard(attempt + 1);
+        return;
+      }
+      setState(() => _cardHeight = box.size.height);
+    });
   }
 
-  double _aboveBottom(Rect hole, Size size, double bottomInset) {
+  double _belowTop(Rect hole, Size size, double bottomInset) {
+    final proposed = hole.bottom + 22;
+    // El límite superior solo evita que la carta quede bajo la barra de
+    // navegación; `fitsBelow` ya garantiza que no suba hasta el hueco.
+    final maxTop = mathMax(12.0, size.height - bottomInset - 180);
+    return proposed.clamp(12.0, maxTop);
+  }
+
+  double _aboveBottom(
+      Rect hole, Size size, double bottomInset, double cardHeight) {
     final proposed = size.height - hole.top + 22;
     final minBottom = bottomInset + 12;
-    return proposed.clamp(minBottom, mathMax(minBottom, size.height - 210));
+    // La carta queda sobre el objetivo con 22 px de aire y nunca sube tanto
+    // que su borde superior se salga de la pantalla.
+    final maxBottom = mathMax(minBottom, size.height - cardHeight - 12);
+    return proposed.clamp(minBottom, maxBottom);
   }
 
   List<Widget> _buildBarriers(Size size, Rect hole) {

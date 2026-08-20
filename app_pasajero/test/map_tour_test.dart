@@ -224,6 +224,95 @@ void main() {
       expect(skipped, isFalse);
     });
 
+    testWidgets(
+        'la tarjeta nunca solapa el área iluminada ni la barra de navegación',
+        (tester) async {
+      // Geometría real del emulador (427×952 lógicos) con barra de
+      // navegación visible: el hueco del paso "Mira los buses" empieza bajo
+      // la pill y deja 310 px libres abajo.
+      tester.view.physicalSize = const Size(1280, 2856);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      const bottomInset = 48.0;
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData.fromView(tester.view).copyWith(
+            viewPadding: const EdgeInsets.only(bottom: bottomInset),
+          ),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Stack(
+                children: [
+                  const ColoredBox(
+                    color: Color(0xFFF8FAFC),
+                    child: SizedBox.expand(),
+                  ),
+                  MapGuideOverlay(
+                    target: const Rect.fromLTWH(32, 210, 363, 432),
+                    title: 'Mira los buses',
+                    message: 'Toca un bus para ver cuánto falta.',
+                    icon: Icons.directions_bus_rounded,
+                    stepIndex: 6,
+                    stepCount: 9,
+                    onSkip: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+
+      final hole = const Rect.fromLTWH(32, 210, 363, 432).inflate(10);
+      final card = tester.getRect(find.byKey(const ValueKey('guide_card')));
+      expect(card.overlaps(hole), isFalse,
+          reason: 'la tarjeta quedó encima del área iluminada');
+      expect(card.top, greaterThanOrEqualTo(hole.bottom),
+          reason: 'la tarjeta no quedó debajo del área iluminada');
+      expect(card.bottom, lessThanOrEqualTo(952 - bottomInset),
+          reason: 'la tarjeta quedó bajo la barra de navegación');
+      expect(card.top, greaterThanOrEqualTo(0));
+    });
+
+    testWidgets('con un hueco bajo la tarjeta va arriba sin tapar el objetivo',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                const ColoredBox(
+                  color: Color(0xFFF8FAFC),
+                  child: SizedBox.expand(),
+                ),
+                MapGuideOverlay(
+                  target: const Rect.fromLTWH(40, 700, 320, 60),
+                  title: 'Activa el aviso',
+                  message: 'Pulsa este botón para recibir una notificación.',
+                  icon: Icons.notifications_active_rounded,
+                  stepIndex: 7,
+                  stepCount: 9,
+                  onSkip: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+
+      final hole = const Rect.fromLTWH(40, 700, 320, 60).inflate(10);
+      final card = tester.getRect(find.byKey(const ValueKey('guide_card')));
+      expect(card.overlaps(hole), isFalse);
+      expect(card.bottom, lessThanOrEqualTo(hole.top));
+    });
+
     testWidgets('Saltar guía y acción primaria son explícitos', (tester) async {
       var skipped = false;
       var primary = false;
