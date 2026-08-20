@@ -241,7 +241,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // conservan: sin posición no miden (se pausan) y reanudan al volver la
     // ubicación, en vez de cancelarse silenciosamente.
     ref.listen<UserLocationState>(userLocationProvider, (previous, next) {
-      if (previous?.hasPosition == true && !next.hasPosition) {
+      final hardLoss = next.mode == UserLocationMode.denied ||
+          next.mode == UserLocationMode.permanentDenied ||
+          next.mode == UserLocationMode.gpsFailed;
+      if (previous?.hasPosition == true && !next.hasPosition && hardLoss) {
         ref.read(selectedBusesProvider.notifier).clear();
       }
     });

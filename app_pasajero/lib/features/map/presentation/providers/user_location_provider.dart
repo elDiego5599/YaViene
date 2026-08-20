@@ -176,7 +176,10 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   /// No pide permiso ni cambia un pin manual: solo actúa si ya estábamos en
   /// modo GPS y el permiso sigue concedido.
   Future<void> resumeGpsIfNeeded() async {
-    if (state.mode != UserLocationMode.gps) return;
+    // Si el stream sigue vivo no reinicializarlo al volver de un diálogo del
+    // sistema (p. ej. permiso de notificaciones): ese reset pondría el estado
+    // en `locating` y haría parecer que se perdió la ubicación.
+    if (state.mode != UserLocationMode.gps || _gpsSub != null) return;
     try {
       if (await _hasGpsPermission()) await _locate();
     } catch (e) {

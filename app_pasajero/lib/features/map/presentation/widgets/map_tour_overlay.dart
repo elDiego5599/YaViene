@@ -71,6 +71,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final rawHole = widget.target.inflate(widget.targetPadding);
         final hole = rawHole.intersect(bounds);
         final placeAbove = hole.top > 245;
+        final bottomInset = MediaQuery.of(context).viewPadding.bottom;
         final card = _buildCard();
 
         if (widget.centered) {
@@ -116,8 +117,8 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
             Positioned(
               left: 20,
               right: 20,
-              top: placeAbove ? null : _belowTop(hole, size),
-              bottom: placeAbove ? _aboveBottom(hole, size) : null,
+              top: placeAbove ? null : _belowTop(hole, size, bottomInset),
+              bottom: placeAbove ? _aboveBottom(hole, size, bottomInset) : null,
               child: ScaleTransition(scale: _scale, child: card),
             ),
           ],
@@ -126,14 +127,16 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     );
   }
 
-  double _belowTop(Rect hole, Size size) {
+  double _belowTop(Rect hole, Size size, double bottomInset) {
     final proposed = hole.bottom + 22;
-    return proposed.clamp(12.0, mathMax(12.0, size.height - 210));
+    final maxTop = size.height - bottomInset - 250;
+    return proposed.clamp(12.0, mathMax(12.0, maxTop));
   }
 
-  double _aboveBottom(Rect hole, Size size) {
+  double _aboveBottom(Rect hole, Size size, double bottomInset) {
     final proposed = size.height - hole.top + 22;
-    return proposed.clamp(12.0, mathMax(12.0, size.height - 210));
+    final minBottom = bottomInset + 12;
+    return proposed.clamp(minBottom, mathMax(minBottom, size.height - 210));
   }
 
   List<Widget> _buildBarriers(Size size, Rect hole) {

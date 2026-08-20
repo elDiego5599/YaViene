@@ -137,6 +137,39 @@ void main() {
     expect(container.read(activeAlertsProvider), isEmpty);
   });
 
+  testWidgets('volver de un permiso no deselecciona el bus durante locating',
+      (tester) async {
+    positions = [
+      BusPosition(
+        busId: 'A-1',
+        routeId: 'R1',
+        lat: 6.2442,
+        lon: -75.5812,
+        heading: 0,
+        speedKmh: 0,
+        timestamp: DateTime.now(),
+        isGhostBus: false,
+      ),
+    ];
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.gps,
+        lat: 6.2442,
+        lon: -75.5812,
+      ),
+    );
+    container.read(selectedRouteProvider.notifier).select(routeR1());
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    await pumpSheet(tester);
+
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(mode: UserLocationMode.locating),
+    );
+    await tester.pump();
+
+    expect(container.read(selectedBusesProvider), {'A-1'});
+  });
+
   testWidgets(
       'sin ruta la hoja pide escoger empresa y ruta (estado inteligente)',
       (tester) async {

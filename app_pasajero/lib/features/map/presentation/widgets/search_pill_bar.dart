@@ -142,7 +142,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       const SizedBox(height: 2),
                       Text(
                         selectedRoute != null
-                            ? "Ruta activa · Toca para cambiar"
+                            ? "Ruta activa • Toca para cambiar"
                             : "Toca para buscar tu ruta",
                         style: TextStyle(
                           fontSize: 12,

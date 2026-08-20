@@ -224,7 +224,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final top = mapRect.top + 210;
     final bottom = mapRect.bottom - 250;
     if (bottom - top < 220) return mapRect.deflate(12);
-    return Rect.fromLTRB(mapRect.left + 8, top, mapRect.right - 8, bottom);
+    final horizontalInset = (mapRect.width * 0.08).clamp(24.0, 32.0);
+    return Rect.fromLTRB(
+      mapRect.left + horizontalInset,
+      top,
+      mapRect.right - horizontalInset,
+      bottom,
+    );
   }
 
   void _skipGuide() {
