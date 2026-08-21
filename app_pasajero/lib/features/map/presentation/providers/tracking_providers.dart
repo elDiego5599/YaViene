@@ -6,6 +6,9 @@ import '../utils/geo.dart';
 import 'realtime_providers.dart';
 import 'user_location_provider.dart';
 
+export 'active_alerts_provider.dart';
+export 'selected_buses_provider.dart';
+
 /// Arma un stream que mantiene el mapa `busId → BusPosition` escuchando los
 /// eventos del socket (batch, live, left, hidden, removed) y filtrando por
 /// las rutas indicadas.
@@ -207,54 +210,3 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
     isGhostBus: json['isGhost'] as bool? ?? false,
   );
 }
-
-class SelectedBusesNotifier extends StateNotifier<Set<String>> {
-  SelectedBusesNotifier() : super({});
-
-  /// Selección única: tocar un bus lo selecciona y deselecciona cualquier
-  /// otro; tocar el mismo bus lo deselecciona.
-  bool toggleBus(String busId) {
-    state = state.contains(busId) ? {} : {busId};
-    return true;
-  }
-
-  void clear() => state = {};
-}
-
-final selectedBusesProvider =
-    StateNotifierProvider<SelectedBusesNotifier, Set<String>>((ref) {
-  return SelectedBusesNotifier();
-});
-
-class ActiveAlertsNotifier extends StateNotifier<Set<String>> {
-  ActiveAlertsNotifier() : super({});
-
-  /// Activa de forma idempotente. Devuelve false si se alcanzó el límite.
-  /// Mantener el límite aquí evita que dos acciones asíncronas lo superen.
-  bool activateAlert(String busId, {int maxActive = 2}) {
-    if (state.contains(busId)) return true;
-    if (state.length >= maxActive) return false;
-    state = {...state, busId};
-    return true;
-  }
-
-  void deactivateAlert(String busId) {
-    if (!state.contains(busId)) return;
-    state = {...state}..remove(busId);
-  }
-
-  void toggleAlert(String busId) {
-    if (state.contains(busId)) {
-      deactivateAlert(busId);
-    } else {
-      state = {...state, busId};
-    }
-  }
-
-  void clear() => state = {};
-}
-
-final activeAlertsProvider =
-    StateNotifierProvider<ActiveAlertsNotifier, Set<String>>((ref) {
-  return ActiveAlertsNotifier();
-});
