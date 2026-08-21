@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../domain/repositories/realtime_repository.dart';
+
 import '../../data/services/realtime_service.dart';
+import '../../domain/repositories/realtime_repository.dart';
 
 final realtimeServiceProvider = Provider<RealtimeRepository>((ref) {
   final service = RealtimeService();

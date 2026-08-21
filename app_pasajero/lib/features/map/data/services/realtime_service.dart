@@ -1,8 +1,10 @@
 import 'dart:async';
+
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../domain/repositories/realtime_repository.dart';
+
 import '../../../../config.dart';
+import '../../domain/repositories/realtime_repository.dart';
 
 class RealtimeService implements RealtimeRepository {
   io.Socket? _socket;

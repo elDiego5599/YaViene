@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../services/background_keep_alive.dart';
 import '../../features/map/presentation/providers/realtime_providers.dart';
 import '../../features/map/presentation/providers/tracking_providers.dart';
 import '../../features/map/presentation/providers/user_location_provider.dart';
 import '../../features/notifications/presentation/providers/proximity_alerts_provider.dart';
+import '../../services/background_keep_alive.dart';
 import 'auth_provider.dart';
 
 /// Deja la app "recién instalada": sin ruta seleccionada, sin buses

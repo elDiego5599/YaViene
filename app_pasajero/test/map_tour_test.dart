@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_tour_overlay.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 
 class _FakeLocation extends StateNotifier<UserLocationState>
     implements UserLocationNotifier {
