@@ -48,7 +48,7 @@ PolylineProjection projectOntoPolyline(GeoPoint p, List<GeoPoint> polyline) {
     final dx = bx - ax;
     final dy = by - ay;
     final lenSq = dx * dx + dy * dy;
-    if (lenSq > 0) {
+    if (lenSq > 1e-6) {
       final t = (((px_ - ax) * dx + (py_ - ay) * dy) / lenSq).clamp(0.0, 1.0);
       final cx = ax + dx * t;
       final cy = ay + dy * t;
