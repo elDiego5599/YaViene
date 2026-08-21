@@ -11,6 +11,7 @@ import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
+import 'alert_guards.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
@@ -79,49 +80,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       // Sin posición (GPS negado y sin pin) el aviso nunca podría medir ni
       // dispararse: mejor explicarlo antes de armar una alerta muerta.
       final location = ref.read(userLocationProvider);
-      if (!location.hasPosition) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text('El aviso necesita saber dónde estás: toca el mapa en tu '
-                    'ubicación o activa el GPS primero'),
-          ));
-        }
-        return;
-      }
       final bus = _busById(busId);
-      // Bus sin señal: su posición es la última conocida; no se puede
-      // prometer un aviso de llegada mientras no transmita.
-      if (bus != null && bus.isGhostBus) {
+      final error = validateAlertActivation(
+        hasPosition: location.hasPosition,
+        bus: bus,
+        busAlreadyNear: _busAlreadyNear(bus),
+        activeAlertsCount: ref.read(activeAlertsProvider).length,
+      );
+      if (error != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'El bus $busId está sin señal; el aviso se activa cuando vuelva a transmitir'),
-          ));
-        }
-        return;
-      }
-      // El usuario puede pedir el aviso de cualquier bus; el aviso dispara
-      // cuando el bus entra al radio.
-      // El bus ya está dentro del radio de aviso: no se puede notificar su
-      // llegada (llegó antes de activar el aviso).
-      if (_busAlreadyNear(bus)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-                Text('El bus $busId ya está a menos de $alertRadiusMeters m; '
-                    'no se puede activar el aviso'),
-          ));
-        }
-        return;
-      }
-      // Comprobación temprana para dar feedback antes de pedir permiso.
-      if (ref.read(activeAlertsProvider).length >= 2) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text(
-                'Ya tienes 2 avisos activos: desactiva uno o espera a que '
-                'termine para activar otro. Recuerda no cerrar la aplicación'),
+            content: Text(error),
           ));
         }
         return;
