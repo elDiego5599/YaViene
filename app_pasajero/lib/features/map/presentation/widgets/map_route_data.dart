@@ -11,12 +11,12 @@ extension _MapRouteData on _MapWidgetState {
     _stopsSub?.close();
     _trajectorySub = ref.listenManual(
       routeTrajectoryProvider(widget.routeId!),
-      (_, next) => next.whenData(this.updateRouteSource),
+      (_, next) => next.whenData(updateRouteSource),
       fireImmediately: true,
     );
     _stopsSub = ref.listenManual(
       busStopsProvider(widget.routeId!),
-      (_, next) => next.whenData(this.updateStopsSources),
+      (_, next) => next.whenData(updateStopsSources),
       fireImmediately: true,
     );
   }
@@ -27,7 +27,7 @@ extension _MapRouteData on _MapWidgetState {
         trajectory.toGeoJsonFeatureCollection());
 
     if (!_hasFitInitialRoute) {
-      this.fitRouteToVisibleViewport(trajectory, animated: true);
+      fitRouteToVisibleViewport(trajectory, animated: true);
       _hasFitInitialRoute = true;
     }
   }

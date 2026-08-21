@@ -16,6 +16,57 @@ class MapGuideCopy {
   final String? primaryLabel;
 }
 
+// Pasos que viven en el mapa (no en el selector).
+bool isMapGuideStep(MapGuideStep? step) {
+  return step == MapGuideStep.location ||
+      step == MapGuideStep.search ||
+      step == MapGuideStep.buses ||
+      step == MapGuideStep.distance ||
+      step == MapGuideStep.alert ||
+      step == MapGuideStep.background;
+}
+
+// Copia final por paso, con overrides para el paso de alerta (aviso ya
+// activo, límite de 2, o bloqueado por señal/cercanía). Antes vivía en
+// map_screen.dart; ahora está junto al resto de copias para encontrarlo.
+MapGuideCopy guideCopyFor(
+  MapGuideStep step, {
+  required bool hasActiveAlert,
+  required bool limitReached,
+  required bool isBlocked,
+}) {
+  if (step == MapGuideStep.alert) {
+    if (hasActiveAlert) {
+      return const MapGuideCopy(
+        title: 'Aviso ya activado',
+        message: 'Este bus ya tiene un aviso activo: te avisaremos cuando '
+            'esté cerca.',
+        icon: Icons.notifications_active_rounded,
+        primaryLabel: 'Continuar',
+      );
+    }
+    if (limitReached) {
+      return const MapGuideCopy(
+        title: 'Ya tienes 2 avisos activos',
+        message: 'Desactiva uno o espera a que termine para activar otro. '
+            'Recuerda no cerrar la aplicación ni salirte de la guía.',
+        icon: Icons.notifications_off_rounded,
+        primaryLabel: 'Continuar',
+      );
+    }
+    if (isBlocked) {
+      return const MapGuideCopy(
+        title: 'Elige otro bus',
+        message: 'Este bus no admite un aviso porque no tiene señal o ya está '
+            'demasiado cerca. Selecciona otro bus en el mapa.',
+        icon: Icons.swap_horiz_rounded,
+        primaryLabel: 'Elegir otro bus',
+      );
+    }
+  }
+  return mapGuideCopy(step);
+}
+
 MapGuideCopy mapGuideCopy(MapGuideStep step) {
   switch (step) {
     case MapGuideStep.location:

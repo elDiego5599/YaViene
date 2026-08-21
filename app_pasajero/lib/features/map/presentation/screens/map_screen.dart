@@ -168,14 +168,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     });
   }
 
-  bool _isMapStep(MapGuideStep? step) {
-    return step == MapGuideStep.location ||
-        step == MapGuideStep.search ||
-        step == MapGuideStep.buses ||
-        step == MapGuideStep.distance ||
-        step == MapGuideStep.alert ||
-        step == MapGuideStep.background;
-  }
+  bool _isMapStep(MapGuideStep? step) => isMapGuideStep(step);
 
   Rect? _targetFor(MapGuideStep step) {
     switch (step) {
@@ -262,43 +255,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   MapGuideCopy _copyFor(MapGuideStep step, bool selectedBusHasActiveAlert,
-      bool alertLimitReached) {
-    if (step == MapGuideStep.alert) {
-      // El aviso ya está activo (armado ahora o restaurado de otra sesión):
-      // la guía NO se salta el paso, muestra el estado y pide Continuar.
-      if (selectedBusHasActiveAlert) {
-        return const MapGuideCopy(
-          title: 'Aviso ya activado',
-          message: 'Este bus ya tiene un aviso activo: te avisaremos cuando '
-              'esté cerca.',
-          icon: Icons.notifications_active_rounded,
-          primaryLabel: 'Continuar',
-        );
-      }
-      // Límite de 2 avisos activos: la guía no puede quedar atascada, avanza
-      // con Continuar (el usuario ya sabe armar avisos).
-      if (alertLimitReached) {
-        return const MapGuideCopy(
-          title: 'Ya tienes 2 avisos activos',
-          message: 'Desactiva uno o espera a que termine para activar otro. '
-              'Recuerda no cerrar la aplicación ni salirte de la guía.',
-          icon: Icons.notifications_off_rounded,
-          primaryLabel: 'Continuar',
-        );
-      }
-      if (_alertBlocked) {
-        return const MapGuideCopy(
-          title: 'Elige otro bus',
-          message:
-              'Este bus no admite un aviso porque no tiene señal o ya está '
-              'demasiado cerca. Selecciona otro bus en el mapa.',
-          icon: Icons.swap_horiz_rounded,
-          primaryLabel: 'Elegir otro bus',
-        );
-      }
-    }
-    return mapGuideCopy(step);
-  }
+          bool alertLimitReached) =>
+      guideCopyFor(
+        step,
+        hasActiveAlert: selectedBusHasActiveAlert,
+        limitReached: alertLimitReached,
+        isBlocked: _alertBlocked,
+      );
 
   @override
   Widget build(BuildContext context) {
