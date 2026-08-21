@@ -38,7 +38,7 @@
              declaración del plugin flutter_background_service_android. -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
-            android:exported="true"
+            android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false"
             tools:replace="android:exported"/>

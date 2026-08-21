@@ -79,8 +79,10 @@ class AuthNotifier extends ChangeNotifier {
 
   AuthState get state => _state;
 
+  StreamSubscription<User?>? _authSub;
+
   AuthNotifier() {
-    _auth.authStateChanges().listen((user) {
+    _authSub = _auth.authStateChanges().listen((user) {
       if (!_sessionResolved.isCompleted) _sessionResolved.complete();
       if (user != null && _state.status != AuthStatus.verified) {
         _state = AuthState(
@@ -96,6 +98,12 @@ class AuthNotifier extends ChangeNotifier {
         notifyListeners();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   static Future<void> _ensureGoogleInitialized() async {

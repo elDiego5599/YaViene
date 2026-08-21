@@ -93,10 +93,14 @@ class BackgroundKeepAlive {
 /// proceso; un timer liviano evita que el aislado del servicio muera.
 @pragma('vm:entry-point')
 Future<void> _onStart(ServiceInstance service) async {
+  Timer? timer;
   if (service is AndroidServiceInstance) {
-    service.on('stopService').listen((_) => service.stopSelf());
+    service.on('stopService').listen((_) {
+      timer?.cancel();
+      service.stopSelf();
+    });
   }
-  Timer.periodic(const Duration(seconds: 60), (_) async {
+  timer = Timer.periodic(const Duration(seconds: 60), (_) async {
     if (service is AndroidServiceInstance) {
       await service.setForegroundNotificationInfo(
         title: 'Ya Viene',
