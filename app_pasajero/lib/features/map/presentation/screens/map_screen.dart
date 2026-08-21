@@ -10,6 +10,7 @@ import '../providers/map_tour_provider.dart';
 import '../providers/realtime_providers.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
+import '../utils/map_constants.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
 import '../widgets/location_status_chip.dart';
@@ -224,7 +225,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final top = mapRect.top + 210;
     // Deja 310 px libres abajo: la tarjeta de la guía (y la barra de
     // navegación) no deben solapar el área iluminada.
-    final bottom = mapRect.bottom - 310;
+    final bottom = mapRect.bottom - MapConstants.guideBottomInset;
     if (bottom - top < 220) return mapRect.deflate(12);
     final horizontalInset = (mapRect.width * 0.08).clamp(24.0, 32.0);
     return Rect.fromLTRB(

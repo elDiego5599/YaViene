@@ -12,6 +12,7 @@ import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
+import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
@@ -614,7 +615,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         ));
       }
 
-      const maxHitRadius = 32.0;
+      const maxHitRadius = MapConstants.busHitRadius;
       var busId = nearestBusId(Offset(point.x, point.y), screenPoints,
           maxDistance: maxHitRadius);
       if (busId == null) {
@@ -748,7 +749,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         Offset(screen.x.toDouble(), screen.y.toDouble()),
       );
       widget.onGuideBusTargetChanged?.call(
-        Rect.fromCenter(center: global, width: 76, height: 76),
+        Rect.fromCenter(
+            center: global,
+            width: MapConstants.guideBusRectSize,
+            height: MapConstants.guideBusRectSize),
       );
     } catch (_) {
       // La cámara puede no estar lista durante el primer frame. El siguiente
