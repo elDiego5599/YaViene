@@ -12,6 +12,7 @@ import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
+import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
 
 class MapWidget extends ConsumerStatefulWidget {
@@ -26,33 +27,6 @@ class MapWidget extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<MapWidget> createState() => _MapWidgetState();
-}
-
-/// Tramo de animación de un bus entre dos fijaciones GPS.
-class _BusMotion {
-  _BusMotion({
-    required this.fromLat,
-    required this.fromLon,
-    required this.fromHeading,
-    required this.toLat,
-    required this.toLon,
-    required this.toHeading,
-    required this.start,
-  });
-
-  final double fromLat;
-  final double fromLon;
-  final double fromHeading;
-  final double toLat;
-  final double toLon;
-  final double toHeading;
-  final DateTime start;
-
-  /// Duración del tramo: con fixes cada ~1s, un tramo de 1s da movimiento
-  /// continuo y suave (sin esperas ni saltos).
-  static const Duration duration = Duration(milliseconds: 1000);
-
-  bool isFinished(DateTime now) => now.difference(start) >= duration;
 }
 
 class _MapWidgetState extends ConsumerState<MapWidget>
@@ -99,7 +73,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   final Map<String, BusPosition> _rawBuses = {};
 
   /// Tramo de animación en curso por bus (interpolación entre fixes).
-  final Map<String, _BusMotion> _busMotions = {};
+  final Map<String, BusMotion> _busMotions = {};
   Timer? _busAnimTimer;
 
   static const _kRouteSourceId = 'route-source';
@@ -872,9 +846,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // animación en curso) para que no haya saltos ni retrocesos.
       final existing = _busMotions[id];
       final from = existing != null && !existing.isFinished(now)
-          ? _displayOf(existing, now)
+          ? displayOf(existing, now)
           : (prev.lat, prev.lon, prev.heading);
-      _busMotions[id] = _BusMotion(
+      _busMotions[id] = BusMotion(
         fromLat: from.$1,
         fromLon: from.$2,
         fromHeading: from.$3,
@@ -918,23 +892,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
   }
 
-  /// Interpola linealmente lat/lon y el heading por el arco más corto.
-  (double, double, double) _displayOf(_BusMotion motion, DateTime now) {
-    final t = (now.difference(motion.start).inMilliseconds /
-            _BusMotion.duration.inMilliseconds)
-        .clamp(0.0, 1.0);
-    double lerp(double a, double b) => a + (b - a) * t;
-    var delta = (motion.toHeading - motion.fromHeading) % 360;
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
-    final heading = (motion.fromHeading + delta * t + 360) % 360;
-    return (
-      lerp(motion.fromLat, motion.toLat),
-      lerp(motion.fromLon, motion.toLon),
-      heading
-    );
-  }
-
   /// Ticker de animación (~30 fps): solo corre mientras haya buses moviéndose.
   void _ensureBusAnimTicker() {
     if (_busAnimTimer != null) return;
@@ -959,7 +916,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final pos = entry.value;
       final motion = _busMotions[id];
       final display = motion != null
-          ? _displayOf(motion, now)
+          ? displayOf(motion, now)
           : (pos.lat, pos.lon, pos.heading);
       return {
         'type': 'Feature',
