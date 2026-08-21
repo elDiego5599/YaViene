@@ -1,4 +1,3 @@
-
 import 'package:equatable/equatable.dart';
 
 enum BusStopType {
@@ -31,9 +30,9 @@ class BusStop extends Equatable {
     required this.orden,
     this.radioInfluenciaM,
   }) : assert(
-         tipo == BusStopType.fija || radioInfluenciaM != null,
-         'Las paradas informales deben tener radioInfluenciaM definido.',
-       );
+          tipo == BusStopType.fija || radioInfluenciaM != null,
+          'Las paradas informales deben tener radioInfluenciaM definido.',
+        );
 
   factory BusStop.fromJson(Map<String, dynamic> json) {
     return BusStop(
@@ -100,5 +99,6 @@ class BusStop extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, lat, lon, tipo, orden, radioInfluenciaM];
+  List<Object?> get props =>
+      [id, name, lat, lon, tipo, orden, radioInfluenciaM];
 }

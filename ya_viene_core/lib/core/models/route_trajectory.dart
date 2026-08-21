@@ -1,4 +1,3 @@
-
 import 'package:equatable/equatable.dart';
 
 class GeoPoint extends Equatable {
@@ -81,9 +80,7 @@ class RouteTrajectory extends Equatable {
           'type': 'Feature',
           'geometry': {
             'type': 'LineString',
-            'coordinates': points
-                .map((p) => p.toGeoJsonCoordinate())
-                .toList(),
+            'coordinates': points.map((p) => p.toGeoJsonCoordinate()).toList(),
           },
           'properties': {
             'routeId': routeId,

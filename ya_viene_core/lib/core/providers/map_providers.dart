@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -10,11 +9,9 @@ import '../models/bus_position.dart';
 import '../models/bus_stop.dart';
 import '../models/route_trajectory.dart';
 
-
 final appLifecycleProvider = StateProvider.autoDispose<AppLifecycleState>(
   (ref) => AppLifecycleState.resumed,
 );
-
 
 /// Datos de las rutas reales (recorridos y paradas), generados desde los
 /// KMZ de Sobusa con `convert-rutas.mjs`. Las paradas quedan vacías para la
@@ -106,7 +103,6 @@ final busStopsProvider =
   },
 );
 
-
 final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) {
   const waypoints = [
     (lat: 10.9200, lon: -74.7800),
@@ -156,7 +152,8 @@ final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) {
 
   ref.listen(appLifecycleProvider, (_, state) {
     if (state == AppLifecycleState.resumed) {
-      timer ??= Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
+      timer ??=
+          Timer.periodic(const Duration(seconds: 3), (_) => tickCallback());
     } else {
       timer?.cancel();
       timer = null;

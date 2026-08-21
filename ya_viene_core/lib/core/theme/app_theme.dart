@@ -8,8 +8,10 @@ abstract class AppColors {
   // ── Identidad "movilidad urbana editorial" (Fase 1) ───────────────────
   /// Arena cálida: superficies de tarjetas y estados vacíos.
   static const Color arena = Color(0xFFFAF6F0);
+
   /// Coral suave: excepciones importantes (bus sin señal, avisos críticos).
   static const Color coral = Color(0xFFE86A5E);
+
   /// Azul eléctrico: reservado a la ruta activa del usuario y su métrica.
   static const Color electricBlue = Color(0xFF2563EB);
 
@@ -17,12 +19,12 @@ abstract class AppColors {
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF1F5F9);
   static const Color divider = Color(0xFFE5E7EB);
-  
+
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);
-  
-  static const Color busGhost = Color(0xFF94A3B8); 
+
+  static const Color busGhost = Color(0xFF94A3B8);
   static const Color error = Color(0xFFDC2626);
   static const Color errorLight = Color(0xFFFEE2E2);
   static const Color success = Color(0xFF059669);
@@ -62,7 +64,7 @@ abstract class AppShadows {
       offset: const Offset(0, 4),
     ),
   ];
-  
+
   static final List<BoxShadow> soft = [
     BoxShadow(
       color: const Color(0xFF0F172A).withValues(alpha: 0.05),
@@ -83,35 +85,57 @@ abstract class AppTextStyles {
   );
 
   static final TextStyle h1 = _base.copyWith(
-    fontSize: 28.0, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -0.6,
+    fontSize: 28.0,
+    fontWeight: FontWeight.w800,
+    height: 1.15,
+    letterSpacing: -0.6,
   );
-  
+
   static final TextStyle h2 = _base.copyWith(
-    fontSize: 22.0, fontWeight: FontWeight.w800, height: 1.2, letterSpacing: -0.4,
+    fontSize: 22.0,
+    fontWeight: FontWeight.w800,
+    height: 1.2,
+    letterSpacing: -0.4,
   );
 
   static final TextStyle h3 = _base.copyWith(
-    fontSize: 18.0, fontWeight: FontWeight.w700, height: 1.3, letterSpacing: -0.3,
+    fontSize: 18.0,
+    fontWeight: FontWeight.w700,
+    height: 1.3,
+    letterSpacing: -0.3,
   );
 
   static final TextStyle bodyLarge = _base.copyWith(
-    fontSize: 16.0, fontWeight: FontWeight.w500, height: 1.5,
+    fontSize: 16.0,
+    fontWeight: FontWeight.w500,
+    height: 1.5,
   );
 
   static final TextStyle body = _base.copyWith(
-    fontSize: 14.0, fontWeight: FontWeight.w500, height: 1.5,
+    fontSize: 14.0,
+    fontWeight: FontWeight.w500,
+    height: 1.5,
   );
 
   static final TextStyle labelLarge = _base.copyWith(
-    fontSize: 16.0, fontWeight: FontWeight.w700, height: 1.2,
+    fontSize: 16.0,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
   );
 
   static final TextStyle label = _base.copyWith(
-    fontSize: 13.0, fontWeight: FontWeight.w600, color: AppColors.textSecondary, height: 1.2,
+    fontSize: 13.0,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+    height: 1.2,
   );
-  
+
   static final TextStyle etaNumber = _base.copyWith(
-    fontSize: 84.0, fontWeight: FontWeight.w200, height: 0.9, letterSpacing: -3.0, color: AppColors.primaryDeep,
+    fontSize: 84.0,
+    fontWeight: FontWeight.w200,
+    height: 0.9,
+    letterSpacing: -3.0,
+    color: AppColors.primaryDeep,
   );
 }
 
@@ -140,7 +164,8 @@ abstract class AppTheme {
           backgroundColor: AppColors.primaryDeep,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.pill)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.pill)),
           elevation: 0,
           textStyle: AppTextStyles.labelLarge,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -164,7 +189,8 @@ abstract class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          borderSide: const BorderSide(color: AppColors.primaryDeep, width: 2.0),
+          borderSide:
+              const BorderSide(color: AppColors.primaryDeep, width: 2.0),
         ),
         labelStyle: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         hintStyle: AppTextStyles.body.copyWith(color: AppColors.textDisabled),
@@ -173,7 +199,8 @@ abstract class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.card)),
         margin: EdgeInsets.zero,
       ),
 
@@ -186,7 +213,9 @@ abstract class AppTheme {
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         modalBackgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet))),
+        shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(AppRadius.sheet))),
         elevation: 0,
       ),
     );
