@@ -80,8 +80,11 @@ final routesByCompanyProvider = FutureProvider.autoDispose
   return _getJsonList('/api/companies/$companyId/routes', RouteInfo.fromJson);
 });
 
+// La ruta es estado de sesión igual que la empresa: no debe borrarse sola
+// al cambiar de pantalla. Antes era autoDispose y se perdía si nadie la
+// miraba; ahora persiste hasta que resetAppState la limpie.
 final selectedRouteProvider =
-    StateNotifierProvider.autoDispose<_SelectedRouteNotifier, RouteInfo?>(
+    StateNotifierProvider<_SelectedRouteNotifier, RouteInfo?>(
   (ref) => _SelectedRouteNotifier(),
 );
 
