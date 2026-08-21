@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -58,7 +59,9 @@ Future<void> signOutAndGoToLogin(WidgetRef ref, BuildContext context) async {
   // seguridad para que siempre se llegue al login.
   try {
     await resetAppState(ref);
-  } catch (_) {}
+  } catch (e, st) {
+    debugPrint('resetAppState falló en logout: $e\n$st');
+  }
   try {
     await ref.read(authProvider).signOut();
   } catch (_) {

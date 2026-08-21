@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
 
@@ -90,7 +91,8 @@ class BusNotificationService {
           iOS: DarwinNotificationDetails(),
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('notifyBusNear failed for $busId: $e\n$st');
       // El aviso falla blando: nunca debe tumbar el flujo del mapa.
     }
   }
