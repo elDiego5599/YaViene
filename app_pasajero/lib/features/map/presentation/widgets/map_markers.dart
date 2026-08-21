@@ -1,3 +1,5 @@
+// Iconos del mapa: pin del usuario y buses. Antes vivían dentro de
+// map_widget.dart; ahora tienen su propio archivo para encontrarlos rápido.
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 

@@ -1,3 +1,6 @@
+// Animación suave de los buses: interpola entre dos posiciones GPS.
+// Extraído de map_widget.dart para que el movimiento tenga su propio sitio.
+
 /// Tramo de animación de un bus entre dos fijaciones GPS.
 class BusMotion {
   BusMotion({

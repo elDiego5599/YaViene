@@ -1,3 +1,4 @@
+// Barrel: un solo import para todos los providers del mapa.
 export 'active_alerts_provider.dart';
 export 'map_guide_copy.dart';
 export 'map_tour_provider.dart';

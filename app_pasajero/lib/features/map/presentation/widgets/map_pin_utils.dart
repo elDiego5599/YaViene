@@ -1,3 +1,5 @@
+// Utilidades del pin: círculo de 2 km alrededor del punto de espera.
+// Antes era un método privado de map_widget.dart.
 import 'dart:math' as math;
 
 Map<String, dynamic> radiusCircleFeature(

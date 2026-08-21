@@ -1,3 +1,5 @@
+// Placeholders del mapa: lo que se ve mientras carga el estilo.
+// Extraído de map_widget.dart para que el arranque sea más legible.
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 

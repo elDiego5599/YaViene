@@ -1,3 +1,5 @@
+// Buses seleccionados en el mapa: un solo bus a la vez.
+// Antes vivía en tracking_providers.dart; ahora tiene su propio archivo.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SelectedBusesNotifier extends StateNotifier<Set<String>> {

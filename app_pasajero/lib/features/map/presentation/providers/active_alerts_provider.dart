@@ -1,3 +1,5 @@
+// Avisos activos: hasta 2 a la vez, con límite atómico.
+// Antes vivía en tracking_providers.dart; ahora tiene su propio archivo.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ActiveAlertsNotifier extends StateNotifier<Set<String>> {
