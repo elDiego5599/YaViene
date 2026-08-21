@@ -46,8 +46,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             builder: (context, constraints) {
               return SingleChildScrollView(
                 child: ConstrainedBox(
-                  constraints:
-                      BoxConstraints(minHeight: constraints.maxHeight),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
@@ -188,7 +187,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                           ),
                                   ),
                                 ),
-SizedBox(
+                                SizedBox(
                                   width: double.infinity,
                                   child: TextButton(
                                     onPressed: _skip,

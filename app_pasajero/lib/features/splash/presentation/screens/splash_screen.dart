@@ -43,8 +43,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final minBranding = Future.delayed(const Duration(milliseconds: 900));
     // Red de seguridad: Firebase siempre emite su estado al arrancar, pero
     // si por cualquier razón no lo hiciera, no nos quedamos colgados.
-    final session =
-        auth.sessionResolved.timeout(const Duration(seconds: 6), onTimeout: () {});
+    final session = auth.sessionResolved
+        .timeout(const Duration(seconds: 6), onTimeout: () {});
     await Future.wait([session, minBranding]);
     if (!mounted) return;
     if (auth.state.status == AuthStatus.verified) {

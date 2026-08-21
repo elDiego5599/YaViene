@@ -1,4 +1,3 @@
-
 library;
 
 export 'selection_chip.dart';

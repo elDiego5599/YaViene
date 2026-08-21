@@ -9,7 +9,8 @@ final realtimeServiceProvider = Provider<RealtimeRepository>((ref) {
   return service;
 });
 
-final connectionStateProvider = StreamProvider.autoDispose<ConnectionStatus>((ref) {
+final connectionStateProvider =
+    StreamProvider.autoDispose<ConnectionStatus>((ref) {
   final repo = ref.watch(realtimeServiceProvider);
   return _connectionStateWithInitial(repo);
 });
@@ -17,7 +18,8 @@ final connectionStateProvider = StreamProvider.autoDispose<ConnectionStatus>((re
 /// Re-emite el último estado conocido al arrancar: el stream del servicio es
 /// broadcast y tras un logout→login el provider se recrea y quedaría en
 /// blanco hasta el siguiente evento del socket.
-Stream<ConnectionStatus> _connectionStateWithInitial(RealtimeRepository repo) async* {
+Stream<ConnectionStatus> _connectionStateWithInitial(
+    RealtimeRepository repo) async* {
   final last = repo.lastConnectionState;
   if (last != null) yield last;
   yield* repo.connectionStateStream;

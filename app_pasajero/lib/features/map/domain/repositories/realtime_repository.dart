@@ -3,6 +3,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 abstract class RealtimeRepository {
   Stream<ConnectionStatus> get connectionStateStream;
+
   /// Último estado conocido de conexión (`null` si aún no hubo ninguno):
   /// permite al UI restaurar el chip tras recrear el provider.
   ConnectionStatus? get lastConnectionState;
@@ -16,6 +17,7 @@ abstract class RealtimeRepository {
   void connect();
   void subscribeToRoute(String routeId);
   void unsubscribeFromRoute(String routeId);
+
   /// Cierra el socket y detiene el reintento sin destruir el servicio
   /// (un login posterior puede reconectar con el mismo provider).
   void disconnect();

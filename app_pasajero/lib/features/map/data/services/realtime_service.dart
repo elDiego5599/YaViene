@@ -7,13 +7,19 @@ import '../../../../config.dart';
 class RealtimeService implements RealtimeRepository {
   io.Socket? _socket;
   final _subscriptions = <String>{};
-  final _connectionStateController = StreamController<ConnectionStatus>.broadcast();
-  final _busPositionController = StreamController<Map<String, dynamic>>.broadcast();
-  final _batchPositionController = StreamController<Map<String, dynamic>>.broadcast();
+  final _connectionStateController =
+      StreamController<ConnectionStatus>.broadcast();
+  final _busPositionController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _batchPositionController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _busLeftController = StreamController<Map<String, dynamic>>.broadcast();
-  final _busHiddenController = StreamController<Map<String, dynamic>>.broadcast();
-  final _busVisibleController = StreamController<Map<String, dynamic>>.broadcast();
-  final _busRemovedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _busHiddenController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _busVisibleController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _busRemovedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   bool _disposed = false;
   Timer? _retryTimer;
   ConnectionStatus? _lastConnectionState;
@@ -41,26 +47,32 @@ class RealtimeService implements RealtimeRepository {
   }
 
   @override
-  Stream<ConnectionStatus> get connectionStateStream => _connectionStateController.stream;
+  Stream<ConnectionStatus> get connectionStateStream =>
+      _connectionStateController.stream;
   @override
-  Stream<Map<String, dynamic>> get busPositionStream => _busPositionController.stream;
+  Stream<Map<String, dynamic>> get busPositionStream =>
+      _busPositionController.stream;
   @override
-  Stream<Map<String, dynamic>> get batchPositionStream => _batchPositionController.stream;
+  Stream<Map<String, dynamic>> get batchPositionStream =>
+      _batchPositionController.stream;
   @override
   Stream<Map<String, dynamic>> get busLeftStream => _busLeftController.stream;
   @override
-  Stream<Map<String, dynamic>> get busHiddenStream => _busHiddenController.stream;
+  Stream<Map<String, dynamic>> get busHiddenStream =>
+      _busHiddenController.stream;
   @override
-  Stream<Map<String, dynamic>> get busVisibleStream => _busVisibleController.stream;
+  Stream<Map<String, dynamic>> get busVisibleStream =>
+      _busVisibleController.stream;
   @override
-  Stream<Map<String, dynamic>> get busRemovedStream => _busRemovedController.stream;
+  Stream<Map<String, dynamic>> get busRemovedStream =>
+      _busRemovedController.stream;
 
   @override
   void connect() {
     if (_socket?.connected == true) return;
     _socket?.dispose();
     const url = AppConfig.backendUrl;
-     _emitConnectionStatus(ConnectionStatus.reconnecting);
+    _emitConnectionStatus(ConnectionStatus.reconnecting);
     _socket = io.io(url, <String, dynamic>{
       'transports': ['websocket'],
       'path': AppConfig.wsPath,
@@ -82,16 +94,21 @@ class RealtimeService implements RealtimeRepository {
     });
 
     _socket!.onConnect((_) {
-       _emitConnectionStatus(ConnectionStatus.connected);
+      _emitConnectionStatus(ConnectionStatus.connected);
       for (final routeId in _subscriptions) {
         _socket!.emit('subscribe:route', routeId);
       }
     });
-    _socket!.onDisconnect((_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
-    _socket!.onReconnectAttempt((_) =>  _emitConnectionStatus(ConnectionStatus.reconnecting));
-    _socket!.onReconnectError((_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
-    _socket!.onConnectError((_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
-    _socket!.on('error', (_) =>  _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.onDisconnect(
+        (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.onReconnectAttempt(
+        (_) => _emitConnectionStatus(ConnectionStatus.reconnecting));
+    _socket!.onReconnectError(
+        (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.onConnectError(
+        (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.on(
+        'error', (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
 
     _socket!.on('bus:position', (data) {
       final event = _asMap(data);

@@ -12,13 +12,13 @@ class IdleStatusChip extends ConsumerWidget {
 
     final config = switch (connectionState.valueOrNull) {
       ConnectionStatus.disconnected => (
-        dotColor: const Color(0xFFDC2626),
-        label: 'Sin conexión al servidor',
-      ),
+          dotColor: const Color(0xFFDC2626),
+          label: 'Sin conexión al servidor',
+        ),
       ConnectionStatus.reconnecting => (
-        dotColor: const Color(0xFFF59E0B),
-        label: 'Reconectando...',
-      ),
+          dotColor: const Color(0xFFF59E0B),
+          label: 'Reconectando...',
+        ),
       _ => null,
     };
 
