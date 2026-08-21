@@ -23,7 +23,7 @@ class ActiveAlertsNotifier extends StateNotifier<Set<String>> {
     if (state.contains(busId)) {
       deactivateAlert(busId);
     } else {
-      state = {...state, busId};
+      activateAlert(busId);
     }
   }
 
