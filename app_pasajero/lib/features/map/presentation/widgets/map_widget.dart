@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
+import 'map_markers.dart' show loadBusIcons;
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -723,142 +723,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
   }
 
-  Future<void> _loadBusIcons() async {
-    if (_mapController == null) return;
-    try {
-      final activeBytes = await _createFlatTransitMarker(
-          const Color(0xFF14274E),
-          isGhost: false);
-      final ghostBytes = await _createFlatTransitMarker(const Color(0xFF94A3B8),
-          isGhost: true);
-
-      await _mapController!.addImage(_kBusIconId, activeBytes);
-      await _mapController!.addImage(_kBusGhostIconId, ghostBytes);
-      await _mapController!.addImage(_kUserPinIconId, await _createPinMarker());
-    } catch (e) {
-      debugPrint("Error generando iconos Flat: $e");
-    }
-  }
-
-  Future<Uint8List> _createPinMarker() async {
-    const size = 80;
-    const centerX = size / 2;
-    const headCY = 30.0;
-    const headR = 26.0;
-    const tipY = 76.0;
-    final pictureRecorder = ui.PictureRecorder();
-    final canvas = Canvas(pictureRecorder);
-
-    // Gota con cabeza semicircular perfecta y cola simétrica.
-    final dropPath = Path()
-      ..moveTo(centerX, tipY)
-      ..quadraticBezierTo(centerX - 30, tipY - 28, centerX - headR, headCY)
-      ..arcTo(
-        Rect.fromCircle(center: const Offset(centerX, headCY), radius: headR),
-        math.pi,
-        math.pi,
-        false,
-      )
-      ..quadraticBezierTo(centerX + 30, tipY - 28, centerX, tipY);
-
-    canvas.drawShadow(
-        dropPath, Colors.black.withValues(alpha: 0.25), 6.0, false);
-
-    // Cuerpo con gradiente (verde claro arriba → esmeralda abajo).
-    final dropPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        const Offset(centerX, 4),
-        const Offset(centerX, tipY),
-        const [Color(0xFF4ADE80), Color(0xFF059669)],
-      );
-    canvas.drawPath(dropPath, dropPaint);
-
-    // Brillo "de cristal" en la parte superior.
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: const Offset(centerX, headCY - 16),
-        width: 24,
-        height: 9,
-      ),
-      Paint()..color = Colors.white.withValues(alpha: 0.20),
-    );
-
-    // Aro blanco nítido y punto central con gradiente profundo.
-    canvas.drawCircle(
-        const Offset(centerX, headCY), 12.5, Paint()..color = Colors.white);
-    canvas.drawCircle(
-      const Offset(centerX, headCY),
-      8.5,
-      Paint()
-        ..shader = ui.Gradient.linear(
-          const Offset(centerX - 9, headCY - 9),
-          const Offset(centerX + 9, headCY + 9),
-          const [Color(0xFF065F46), Color(0xFF00A859)],
-        ),
-    );
-    // Reflejo dentro del punto.
-    canvas.drawCircle(
-      const Offset(centerX - 2.5, headCY - 3),
-      2.2,
-      Paint()..color = Colors.white.withValues(alpha: 0.85),
-    );
-
-    final img = await pictureRecorder.endRecording().toImage(size, size);
-    final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return data?.buffer.asUint8List() ?? Uint8List(0);
-  }
-
-  Future<Uint8List> _createFlatTransitMarker(Color baseColor,
-      {required bool isGhost}) async {
-    const size = 80;
-    const centerX = size / 2;
-    const centerY = size / 2;
-    final pictureRecorder = ui.PictureRecorder();
-    final canvas = Canvas(pictureRecorder);
-
-    final shadowPath = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Rect.fromCenter(
-              center: const Offset(centerX, centerY + 2),
-              width: 32,
-              height: 60),
-          const Radius.circular(10)));
-    canvas.drawShadow(
-        shadowPath, Colors.black.withValues(alpha: 0.15), 4.0, false);
-
-    final bodyPaint = Paint()
-      ..color = baseColor
-      ..style = PaintingStyle.fill;
-    final bodyRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-            center: const Offset(centerX, centerY), width: 32, height: 60),
-        const Radius.circular(10));
-    canvas.drawRRect(bodyRect, bodyPaint);
-
-    final glassPaint = Paint()
-      ..color = Colors.white.withValues(alpha: isGhost ? 0.5 : 0.95)
-      ..style = PaintingStyle.fill;
-    final glassRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-            center: const Offset(centerX, centerY - 18), width: 24, height: 10),
-        const Radius.circular(4));
-    canvas.drawRRect(glassRect, glassPaint);
-
-    // Farolas blancas pequeñas en el FRENTE (arriba): el lado que avanza.
-    if (!isGhost) {
-      final headlightPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.9)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(
-          const Offset(centerX - 9, centerY - 23), 2.4, headlightPaint);
-      canvas.drawCircle(
-          const Offset(centerX + 9, centerY - 23), 2.4, headlightPaint);
-    }
-
-    final img = await pictureRecorder.endRecording().toImage(size, size);
-    final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return data?.buffer.asUint8List() ?? Uint8List(0);
-  }
+  Future<void> _loadBusIcons() => loadBusIcons(_mapController);
 
   Future<void> _applyMapBottomInset(double bottomInset,
       {bool animated = true}) async {
