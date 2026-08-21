@@ -8,7 +8,6 @@ export 'map_bus_animator.dart';
 export 'map_markers.dart';
 export 'map_pin_utils.dart';
 export 'map_placeholders.dart';
-export 'map_route_data.dart';
 export 'map_tour_overlay.dart';
 export 'map_widget.dart';
 export 'premium_drawer.dart';
