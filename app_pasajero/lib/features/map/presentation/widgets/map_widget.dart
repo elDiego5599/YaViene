@@ -12,8 +12,10 @@ import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
+import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
+import 'map_pin_utils.dart' show radiusCircleFeature;
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -305,7 +307,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, {
       'type': 'FeatureCollection',
       'features': [
-        _radiusCircleFeature(lat, lon, nearbyRadiusMeters.toDouble()),
+        radiusCircleFeature(lat, lon, nearbyRadiusMeters.toDouble()),
       ],
     });
     // 'draggable': true es lo que la plataforma nativa consulta para decidir
@@ -325,31 +327,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         },
       ],
     });
-  }
-
-  Map<String, dynamic> _radiusCircleFeature(
-    double lat,
-    double lon,
-    double radiusMeters,
-  ) {
-    const steps = 48;
-    final coordinates = <List<double>>[];
-    for (var i = 0; i < steps; i++) {
-      final angle = 2 * math.pi * i / steps;
-      final dLat = (radiusMeters * math.cos(angle)) / 111320;
-      final dLon = (radiusMeters * math.sin(angle)) /
-          (111320 * math.cos(lat * math.pi / 180));
-      coordinates.add([lon + dLon, lat + dLat]);
-    }
-    coordinates.add(coordinates.first);
-    return {
-      'type': 'Feature',
-      'geometry': {
-        'type': 'Polygon',
-        'coordinates': [coordinates]
-      },
-      'properties': const {},
-    };
   }
 
   void _teardownRouteData() {
@@ -1027,7 +1004,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               child: AnimatedBuilder(
                 animation: _haloCtrl,
                 builder: (context, _) => CustomPaint(
-                  painter: _HaloPainter(
+                  painter: HaloPainter(
                     center: _pinScreenPos!,
                     phase: _haloCtrl.value,
                   ),
@@ -1130,37 +1107,4 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           : const SizedBox.shrink(),
     );
   }
-}
-
-/// Pulso "radar" bajo el pin del usuario: un círculo verde que crece y se
-/// desvanece en bucle, con un punto sólido en el centro que marca el punto
-/// exacto de espera. Todo el dibujo es Flutter puro encima del mapa nativo.
-class _HaloPainter extends CustomPainter {
-  const _HaloPainter({required this.center, required this.phase});
-
-  final Offset center;
-
-  /// 0..1 dentro del ciclo de 1.8 s del AnimationController.
-  final double phase;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final t = phase.clamp(0.0, 1.0);
-    final radius = 14.0 + 30.0 * t;
-    final opacity = (1.0 - t) * 0.32;
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()..color = const Color(0xFF00A859).withValues(alpha: opacity),
-    );
-    canvas.drawCircle(
-      center,
-      5,
-      Paint()..color = const Color(0xFF00A859).withValues(alpha: 0.9),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_HaloPainter oldDelegate) =>
-      oldDelegate.center != center || oldDelegate.phase != phase;
 }
