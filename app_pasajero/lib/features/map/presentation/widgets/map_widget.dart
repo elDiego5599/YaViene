@@ -298,7 +298,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (!mounted) return;
       setState(() => _pinScreenPos = Offset(
           projected.x.toDouble(), projected.y.toDouble() + _pinTipOffset));
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('_refreshPinScreenPos failed: $e\n$st');
       // El mapa aún no tiene cámara lista o la proyección falló: el pulso se
       // reintentará en el próximo evento (cámara idle / cambio de ubicación).
     }
@@ -641,7 +642,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // se esté mirando).
       ref.read(selectedBusesProvider.notifier).toggleBus(busId);
       return true;
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('_doSelectBusAtTap failed: $e\n$st');
       return false;
     }
   }
@@ -658,7 +660,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         EdgeInsets.only(bottom: bottomInset),
         animated,
       );
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('updateContentInsets failed: $e\n$st');
+    }
   }
 
   /// Aplica una solicitud de cámara pendiente (contador > 0) al mapa.
@@ -754,7 +758,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             width: MapConstants.guideBusRectSize,
             height: MapConstants.guideBusRectSize),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('_refreshGuideBusTarget failed: $e\n$st');
       // La cámara puede no estar lista durante el primer frame. El siguiente
       // batch o el próximo onCameraIdle volverá a intentarlo.
     }

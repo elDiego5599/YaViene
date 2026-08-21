@@ -347,7 +347,9 @@ class AuthNotifier extends ChangeNotifier {
   Future<void> signOut() async {
     try {
       await _google.signOut();
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('signOut Google failed: $e\n$st');
+    }
     await _auth.signOut();
     _state = const AuthState();
     notifyListeners();
