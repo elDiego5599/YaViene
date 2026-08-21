@@ -13,6 +13,7 @@ import '../providers/tracking_providers.dart'
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
 import 'halo_painter.dart';
+import 'tap_debouncer.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
 import 'map_pin_utils.dart' show radiusCircleFeature;
@@ -594,32 +595,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     });
   }
 
-  /// Selecciona el bus cuyo ícono quede dentro de un rect de ±44 px alrededor
-  /// del toque. El rect hace que sea fácil tocar un bus aunque el píxel del
-  /// ícono sea pequeño (o quede detrás del pin del usuario); si no hay bus,
-  /// devuelve false y el toque sigue su curso (p. ej. colocar el pin).
-  ///
-  /// Deduplicación: el mismo toque dispara feature#onTap Y map#onMapClick casi
-  /// en paralelo. Para no hacer doble toggle (seleccionar y deseleccionar al
-  /// instante) la primera llamada reclama el toque de forma SÍNCRONA y guarda
-  /// el future en vuelo; las llamadas gemelas dentro de 400 ms devuelven el
-  /// MISMO future (mismo resultado, un solo toggle).
-  Future<bool>? _pendingSelect;
-  DateTime? _pendingAt;
+  final _tapDebouncer = TapDebouncer();
   bool _pinMoveHintShown = false;
 
-  Future<bool> _selectBusAtTap(math.Point<double> point) {
-    final pending = _pendingSelect;
-    if (pending != null &&
-        DateTime.now().difference(_pendingAt!) <
-            const Duration(milliseconds: 400)) {
-      return pending;
-    }
-    _pendingAt = DateTime.now();
-    final future = _doSelectBusAtTap(point);
-    _pendingSelect = future;
-    return future;
-  }
+  Future<bool> _selectBusAtTap(math.Point<double> point) =>
+      _tapDebouncer.run(point, _doSelectBusAtTap);
 
   Future<bool> _doSelectBusAtTap(math.Point<double> point) async {
     try {
