@@ -16,6 +16,7 @@ import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
 import 'map_pin_utils.dart' show radiusCircleFeature;
+import 'map_placeholders.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -1012,99 +1013,18 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               ),
             ),
           ),
-        _buildStylePlaceholder(),
-        _buildStyleFailedBanner(),
-      ],
-    );
-  }
-
-  /// Si el estilo del mapa no llegó a cargar (red lenta, CDN bloqueado), en
-  /// vez de una pantalla inerte se ofrece reintentar.
-  Widget _buildStyleFailedBanner() {
-    if (!_styleFailed) return const SizedBox.shrink();
-    return Positioned(
-      top: 16,
-      left: 16,
-      right: 16,
-      child: Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              const Icon(Icons.cloud_off_rounded, color: Color(0xFFDC2626)),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'No se pudo cargar el mapa',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: _retryMap,
-                child: const Text(
-                  'Reintentar',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
+        MapStylePlaceholder(
+          layersReady: _layersReady,
+          placeholderShown: _placeholderShown,
+          onFadeEnd: () {
+            if (mounted) setState(() => _placeholderShown = false);
+          },
         ),
-      ),
-    );
-  }
-
-  /// Placeholder calmado mientras el estilo y las fuentes del mapa cargan:
-  /// evita el "fondo en blanco, ¿se colgó?" en el primer pintado. Se funde
-  /// con el mapa cuando las capas están listas y se quita del árbol.
-  Widget _buildStylePlaceholder() {
-    final visible = !_layersReady && _placeholderShown;
-    return AnimatedOpacity(
-      opacity: visible ? 1 : 0,
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOut,
-      onEnd: () {
-        if (!visible && _placeholderShown) {
-          setState(() => _placeholderShown = false);
-        }
-      },
-      child: _placeholderShown
-          ? GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              child: const ColoredBox(
-                color: AppColors.background,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.directions_bus_rounded,
-                        size: 44,
-                        color: Color(0xFF94A3B8),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Preparando tu mapa…',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          : const SizedBox.shrink(),
+        MapStyleFailedBanner(
+          styleFailed: _styleFailed,
+          onRetry: _retryMap,
+        ),
+      ],
     );
   }
 }
