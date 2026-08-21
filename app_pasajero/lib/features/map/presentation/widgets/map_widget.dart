@@ -760,10 +760,16 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _ensureBusAnimTicker() {
     if (_busAnimTimer != null) return;
     _busAnimTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
-      if (!mounted || _mapController == null || !_layersReady) return;
+      if (!mounted) {
+        _busAnimTimer?.cancel();
+        _busAnimTimer = null;
+        return;
+      }
       final now = DateTime.now();
       _busMotions.removeWhere((_, m) => m.isFinished(now));
-      _pushBusSource();
+      if (_mapController != null && _layersReady) {
+        _pushBusSource();
+      }
       if (_busMotions.isEmpty) {
         _busAnimTimer?.cancel();
         _busAnimTimer = null;
