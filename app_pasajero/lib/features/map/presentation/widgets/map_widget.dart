@@ -13,11 +13,13 @@ import '../providers/tracking_providers.dart'
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
 import 'halo_painter.dart';
-import 'tap_debouncer.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
 import 'map_pin_utils.dart' show radiusCircleFeature;
 import 'map_placeholders.dart';
+import 'tap_debouncer.dart';
+
+part 'map_route_data.dart';
 
 class MapWidget extends ConsumerStatefulWidget {
   final String? routeId;
@@ -331,29 +333,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     });
   }
 
-  void _teardownRouteData() {
-    _trajectorySub?.close();
-    _trajectorySub = null;
-    _stopsSub?.close();
-    _stopsSub = null;
-    if (_mapController == null || !mounted) return;
-    const emptyGeoJson = {"type": "FeatureCollection", "features": []};
-    _mapController!.setGeoJsonSource(_kRouteSourceId, emptyGeoJson);
-    _mapController!.setGeoJsonSource(_kStopsFijaSourceId, emptyGeoJson);
-    _mapController!.setGeoJsonSource(_kStopsInformalSourceId, emptyGeoJson);
-  }
-
   @override
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId && _layersReady) {
       _hasFitInitialRoute = false;
       if (widget.routeId != null) {
-        _reloadMapData();
+        reloadMapData();
         _setupBusSubscription(widget.routeId!);
       } else {
         _teardownBusSubscription();
-        _teardownRouteData();
+        teardownRouteData();
       }
     }
   }
@@ -395,7 +385,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _moveToRequestedCamera();
       _setupUserPinSubscription();
       if (widget.routeId != null) {
-        _reloadMapData();
+        reloadMapData();
         _setupBusSubscription(widget.routeId!);
       }
     } catch (e) {
@@ -679,90 +669,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       MapCameraRequestNotifier.barranquilla,
       11.5,
     ));
-  }
-
-  void _reloadMapData() {
-    if (_mapController == null || widget.routeId == null || !mounted) return;
-    // Escucha reactiva (no un read único): si la ruta se seleccionó antes de
-    // que el trajectory/paradas se cargaran, se dibuja en cuanto llegan.
-    _trajectorySub?.close();
-    _stopsSub?.close();
-    _trajectorySub = ref.listenManual(
-      routeTrajectoryProvider(widget.routeId!),
-      (_, next) => next.whenData(_updateRouteSource),
-      fireImmediately: true,
-    );
-    _stopsSub = ref.listenManual(
-      busStopsProvider(widget.routeId!),
-      (_, next) => next.whenData(_updateStopsSources),
-      fireImmediately: true,
-    );
-  }
-
-  void _updateRouteSource(RouteTrajectory trajectory) {
-    if (_mapController == null || !mounted) return;
-    _mapController!.setGeoJsonSource(
-        _kRouteSourceId, trajectory.toGeoJsonFeatureCollection());
-
-    if (!_hasFitInitialRoute) {
-      _fitRouteToVisibleViewport(trajectory, animated: true);
-      _hasFitInitialRoute = true;
-    }
-  }
-
-  void _fitRouteToVisibleViewport(RouteTrajectory trajectory,
-      {required bool animated}) {
-    if (_mapController == null || trajectory.points.length < 2 || !mounted) {
-      return;
-    }
-
-    double minLat = trajectory.points.first.lat;
-    double maxLat = trajectory.points.first.lat;
-    double minLon = trajectory.points.first.lon;
-    double maxLon = trajectory.points.first.lon;
-
-    for (final point in trajectory.points) {
-      if (point.lat < minLat) minLat = point.lat;
-      if (point.lat > maxLat) maxLat = point.lat;
-      if (point.lon < minLon) minLon = point.lon;
-      if (point.lon > maxLon) maxLon = point.lon;
-    }
-
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLon),
-      northeast: LatLng(maxLat, maxLon),
-    );
-    final update = CameraUpdate.newLatLngBounds(
-      bounds,
-      left: 40,
-      top: 148,
-      right: 40,
-      bottom: _currentBottomInset + 32,
-    );
-
-    if (animated) {
-      _mapController!.animateCamera(
-        update,
-        duration: const Duration(milliseconds: 800),
-      );
-    } else {
-      _mapController!.moveCamera(update);
-    }
-  }
-
-  void _updateStopsSources(List<BusStop> stops) {
-    if (_mapController == null || !mounted) return;
-    final fijaStops = stops.where((s) => s.tipo == BusStopType.fija).toList();
-    final informalStops =
-        stops.where((s) => s.tipo == BusStopType.informal).toList();
-    _mapController!.setGeoJsonSource(_kStopsFijaSourceId, {
-      'type': 'FeatureCollection',
-      'features': fijaStops.map((s) => s.toGeoJsonFeature()).toList(),
-    });
-    _mapController!.setGeoJsonSource(_kStopsInformalSourceId, {
-      'type': 'FeatureCollection',
-      'features': informalStops.map((s) => s.toGeoJsonFeature()).toList(),
-    });
   }
 
   void _updateBusSourceData(List<BusPosition> positions) {
