@@ -34,4 +34,5 @@ jobs:
         working-directory: app_pasajero
         run: |
           flutter pub get
-          flutter analyze lib
+          flutter analyze lib test
+          flutter test
