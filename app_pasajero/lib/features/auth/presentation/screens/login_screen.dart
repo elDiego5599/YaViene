@@ -711,7 +711,7 @@ class _Field extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.divider),
       ),
       child: TextField(
@@ -754,9 +754,12 @@ class _Field extends StatelessWidget {
                 )
               : null,
           border: InputBorder.none,
+          // F16: mismo color de foco que el InputDecorationTheme global
+          // (primaryDeep) — antes usaba primary, sin motivo para divergir.
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderSide:
+                const BorderSide(color: AppColors.primaryDeep, width: 2),
           ),
           disabledBorder: InputBorder.none,
           errorText: errorText,
@@ -766,11 +769,11 @@ class _Field extends StatelessWidget {
             color: AppColors.error,
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             borderSide: const BorderSide(color: AppColors.error, width: 1.5),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
         ),
