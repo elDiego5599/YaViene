@@ -422,6 +422,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
 
   Widget _buildCompanyList(BuildContext context) {
     final companiesAsync = ref.watch(companiesProvider);
+    final selectedCompany = ref.watch(selectedCompanyProvider);
     return companiesAsync.when(
       data: (companies) => ListView(
         key: widget.companyChoiceGuideKey,
@@ -452,6 +453,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 badgeInitials: _companyInitials(company.name),
                 title: company.name,
                 subtitle: null,
+                selected: selectedCompany?.id == company.id,
                 onTap: () {
                   HapticFeedback.selectionClick();
                   final alreadySelected =
@@ -483,6 +485,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   Widget _buildRouteList(BuildContext context) {
     final selectedCompany = ref.watch(selectedCompanyProvider);
     if (selectedCompany == null) return const SizedBox.shrink();
+    final selectedRoute = ref.watch(selectedRouteProvider);
     final routesAsync = ref.watch(routesByCompanyProvider(selectedCompany.id));
     return routesAsync.when(
       data: (routes) => ListView(
@@ -510,6 +513,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                   iconBackground: AppColors.primaryTint,
                   title: route.name,
                   subtitle: _routeSubtitle(route) ?? 'Tiempo real',
+                  selected: selectedRoute?.id == route.id,
                   onTap: () {
                     HapticFeedback.selectionClick();
                     ref.read(selectedRouteProvider.notifier).select(route);
@@ -696,11 +700,19 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     String? subtitle,
     required VoidCallback onTap,
     String? badgeInitials,
+    bool selected = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          // F13: la fila ya elegida se marca al volver a la lista, en vez de
+          // que todas se vean igual de "sin elegir".
+          side: selected
+              ? const BorderSide(color: AppColors.primaryDeep, width: 1.5)
+              : BorderSide.none,
+        ),
         tileColor: const Color(0xFFF8FAFC),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
@@ -747,8 +759,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                   color: AppColors.textSecondary,
                 ),
               ),
-        trailing:
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+        trailing: selected
+            ? const Icon(Icons.check_circle_rounded,
+                color: AppColors.primaryDeep)
+            : const Icon(Icons.chevron_right_rounded,
+                color: Color(0xFFCBD5E1)),
         onTap: onTap,
       ),
     );
