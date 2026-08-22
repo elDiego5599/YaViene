@@ -26,7 +26,7 @@ class FleetApi {
       return await request();
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw SessionExpiredException();
+        throw const SessionExpiredException();
       }
       rethrow;
     }

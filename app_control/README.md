@@ -1,17 +1,32 @@
-# ya_viene_control
+# Ya Viene · Panel de Control de Flota
 
-A new Flutter project.
+Aplicación de escritorio (macOS / Windows / Linux) para administradores de empresas de transporte. Permite monitorear la flota de buses en tiempo real sobre el mapa, gestionar el catálogo de rutas y buses, y controlar la visibilidad pública de cada unidad hacia los pasajeros.
 
-## Getting Started
+## Ejecución Local
 
-This project is a starting point for a Flutter application.
+```bash
+# Ejecutar en macOS (desarrollo local con backend en localhost:3000)
+flutter run -d macos
 
-A few resources to get you started if this is your first Flutter project:
+# Ejecutar apuntando al backend de demo / producción
+flutter run -d macos --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.dev
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Credenciales por Defecto (Demo)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+* **Usuario**: `admin`
+* **Contraseña**: `admin123`
+
+## Arquitectura y Documentación
+
+Para ver el diseño técnico, flujo de datos por WebSockets/REST y arquitectura del panel de control, consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Verificación
+
+```bash
+# Análisis estático
+flutter analyze lib test
+
+# Pruebas unitarias y de widgets
+flutter test
+```

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -8,17 +10,19 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await windowManager.ensureInitialized();
-  const windowOptions = WindowOptions(
-    size: Size(1600, 900),
-    center: true,
-    title: 'Ya Viene · Control',
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.setFullScreen(true);
-    await windowManager.focus();
-  });
+  if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(
+      size: Size(1600, 900),
+      center: true,
+      title: 'Ya Viene · Control',
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.setFullScreen(true);
+      await windowManager.focus();
+    });
+  }
 
   final container = ProviderContainer();
   await container.read(authProvider.notifier).restoreSession();

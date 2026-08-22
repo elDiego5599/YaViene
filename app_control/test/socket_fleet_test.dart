@@ -1,13 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 import 'package:ya_viene_control/features/fleet/data/fleet_socket_service.dart';
 
 void main() {
   test('FleetSocketService conecta con token admin y recibe fleet:batch', () async {
     const backend = String.fromEnvironment('BACKEND_URL', defaultValue: 'http://localhost:3000');
-    final key = const String.fromEnvironment('ADMIN_API_KEY', defaultValue: '');
+    const key = String.fromEnvironment('ADMIN_API_KEY', defaultValue: '');
     final login = await http.post(
       Uri.parse('$backend/api/admin/login'),
       headers: {'Content-Type': 'application/json'},

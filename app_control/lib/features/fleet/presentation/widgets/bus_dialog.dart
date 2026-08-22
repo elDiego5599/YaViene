@@ -30,6 +30,14 @@ class _BusDialogState extends ConsumerState<BusDialog> {
     super.initState();
     _placaController = TextEditingController(text: widget.bus?.placa ?? '');
     _routeId = widget.bus?.routeId;
+    final routes = ref.read(fleetProvider).routes;
+    if (_routeId == null || !routes.any((r) => r.routeId == _routeId)) {
+      if (routes.isNotEmpty) {
+        final sorted = [...routes]
+          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        _routeId = sorted.first.routeId;
+      }
+    }
   }
 
   @override
@@ -44,7 +52,11 @@ class _BusDialogState extends ConsumerState<BusDialog> {
       setState(() => _error = 'Placa inválida. Ejemplo: ABC123');
       return;
     }
-    if (_routeId == null) {
+    final routes = ref.read(fleetProvider).routes;
+    final effectiveRouteId = routes.any((r) => r.routeId == _routeId)
+        ? _routeId
+        : (routes.isNotEmpty ? routes.first.routeId : null);
+    if (effectiveRouteId == null) {
       setState(() => _error = 'Selecciona una ruta para el bus.');
       return;
     }
@@ -57,12 +69,12 @@ class _BusDialogState extends ConsumerState<BusDialog> {
         await ref.read(fleetProvider.notifier).editBus(
               widget.bus!.busId,
               placa: placa,
-              routeId: _routeId,
+              routeId: effectiveRouteId,
             );
       } else {
         await ref.read(fleetProvider.notifier).addBus(
               placa: placa,
-              routeId: _routeId,
+              routeId: effectiveRouteId,
             );
       }
       if (mounted) Navigator.of(context).pop();
@@ -130,9 +142,9 @@ class _BusDialogState extends ConsumerState<BusDialog> {
     final routes = ref.watch(fleetProvider).routes;
     final sortedRoutes = [...routes]
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    if (_routeId == null || !sortedRoutes.any((r) => r.routeId == _routeId)) {
-      _routeId = sortedRoutes.isNotEmpty ? sortedRoutes.first.routeId : null;
-    }
+    final selectedRouteId = sortedRoutes.any((r) => r.routeId == _routeId)
+        ? _routeId
+        : (sortedRoutes.isNotEmpty ? sortedRoutes.first.routeId : null);
 
     return AlertDialog(
       backgroundColor: AppColors.surface,
@@ -202,7 +214,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String?>(
-              initialValue: _routeId,
+              initialValue: selectedRouteId,
               isExpanded: true,
               decoration: const InputDecoration(),
               items: sortedRoutes.isEmpty

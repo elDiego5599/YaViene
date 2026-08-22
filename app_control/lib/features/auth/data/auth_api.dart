@@ -31,9 +31,9 @@ class AuthApi {
       final message = e.response?.data?['error']?['message'] as String?;
       switch (e.response?.statusCode) {
         case 429:
-          throw AuthApiException('Demasiados intentos. Espera un momento.');
+          throw const AuthApiException('Demasiados intentos. Espera un momento.');
         case 401:
-          throw AuthApiException('Usuario o contraseña incorrectos.');
+          throw const AuthApiException('Usuario o contraseña incorrectos.');
         default:
           throw AuthApiException(message ?? 'No se pudo conectar con el servidor.');
       }

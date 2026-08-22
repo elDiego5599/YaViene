@@ -4,9 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/fleet_api.dart';
 import '../../data/fleet_socket_service.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/fleet_bus.dart';
 import '../../domain/fleet_route.dart';
 
@@ -106,7 +106,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   FleetNotifier(this._ref) : super(const FleetState());
 
   final Ref _ref;
+  final _api = FleetApi();
   FleetSocketService? _socket;
+  final List<StreamSubscription> _subs = [];
 
   String? get _token => _ref.read(authProvider).session?.token;
 
@@ -119,6 +121,10 @@ class FleetNotifier extends StateNotifier<FleetState> {
       connection: FleetConnection.disconnected,
       error: null,
     );
+    for (final s in _subs) {
+      s.cancel();
+    }
+    _subs.clear();
     _socket?.dispose();
     _socket = null;
     return true;
@@ -127,32 +133,40 @@ class FleetNotifier extends StateNotifier<FleetState> {
   void start() {
     final token = _token;
     if (token == null) return;
+    for (final s in _subs) {
+      s.cancel();
+    }
+    _subs.clear();
     _socket?.dispose();
     final socket = FleetSocketService(token: token);
     _socket = socket;
-    socket.connectionStream.listen((connected) {
+    _subs.add(socket.connectionStream.listen((connected) {
       state = state.copyWith(
         connection: connected ? FleetConnection.connected : FleetConnection.disconnected,
       );
-    });
-    socket.sessionKickedStream.listen((_) {
+    }));
+    _subs.add(socket.sessionKickedStream.listen((_) {
       state = state.copyWith(
         sessionExpired: true,
         connection: FleetConnection.disconnected,
         error: null,
       );
+      for (final s in _subs) {
+        s.cancel();
+      }
+      _subs.clear();
       _socket?.dispose();
       _socket = null;
-    });
-    socket.busBatchStream.listen((buses) {
+    }));
+    _subs.add(socket.busBatchStream.listen((buses) {
       // Respeta el estado visible guardado en el backend: los buses que
       // quedaron habilitados/ocultos de la última sesión se ven igual.
       final map = <String, FleetBus>{
         for (final b in buses) b.busId: b,
       };
       state = state.copyWith(buses: map, clearError: true);
-    });
-    socket.busPositionStream.listen((bus) {
+    }));
+    _subs.add(socket.busPositionStream.listen((bus) {
       final previous = state.buses[bus.busId];
       debugPrint('[fleet] bus:position ${bus.busId} lat=${bus.lat} lon=${bus.lon}');
       state = state.copyWith(buses: {
@@ -162,16 +176,16 @@ class FleetNotifier extends StateNotifier<FleetState> {
           visible: previous?.visible ?? bus.visible,
         ),
       });
-    });
-    socket.busHiddenStream.listen((busId) {
+    }));
+    _subs.add(socket.busHiddenStream.listen((busId) {
       final previous = state.buses[busId];
       if (previous == null) return;
       state = state.copyWith(buses: {
         ...state.buses,
         busId: previous.copyWith(visible: false),
       });
-    });
-    socket.busVisibleStream.listen((bus) {
+    }));
+    _subs.add(socket.busVisibleStream.listen((bus) {
       final previous = state.buses[bus.busId];
       if (previous == null) {
         // El evento trae la posición real del bus (sin los campos de
@@ -215,22 +229,22 @@ class FleetNotifier extends StateNotifier<FleetState> {
           isGhost: bus.isGhost,
         ),
       });
-    });
-    socket.busLeftStream.listen((busId) {
+    }));
+    _subs.add(socket.busLeftStream.listen((busId) {
       final previous = state.buses[busId];
       if (previous == null) return;
       state = state.copyWith(buses: {
         ...state.buses,
         busId: previous.copyWith(online: false, clearPosition: true),
       });
-    });
-    socket.busRemovedStream.listen((busId) {
+    }));
+    _subs.add(socket.busRemovedStream.listen((busId) {
       final remaining = {...state.buses}..remove(busId);
       state = state.copyWith(
         buses: remaining,
         selectedBusId: () => state.selectedBusId == busId ? null : state.selectedBusId,
       );
-    });
+    }));
     socket.connect();
     refreshRoutes();
     // Fallback REST: pobla la lista de buses registrados aunque el socket
@@ -242,7 +256,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      final buses = await FleetApi().fetchPositions(token);
+      final buses = await _api.fetchPositions(token);
       state = state.copyWith(
         buses: {for (final b in buses) b.busId: b},
         clearError: true,
@@ -257,7 +271,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      final routes = await FleetApi().fetchRoutes(token);
+      final routes = await _api.fetchRoutes(token);
       state = state.copyWith(
         routes: routes,
         routeFilter: () => state.routeFilter ?? (routes.isNotEmpty ? routes.first.routeId : null),
@@ -276,6 +290,10 @@ class FleetNotifier extends StateNotifier<FleetState> {
   /// Cierra el socket de flota y reinicia el estado (usado al cerrar sesión:
   /// sin esto el socket seguía vivo consumiendo datos con la sesión muerta).
   void stop() {
+    for (final s in _subs) {
+      s.cancel();
+    }
+    _subs.clear();
     _socket?.dispose();
     _socket = null;
     state = const FleetState(
@@ -302,7 +320,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      final route = await FleetApi().createRoute(token, name: name);
+      final route = await _api.createRoute(token, name: name);
       debugPrint('[fleet] ruta creada ${route.routeId}');
       state = state.copyWith(
         routes: [...state.routes, route],
@@ -326,7 +344,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      final route = await FleetApi().renameRoute(token, routeId, name: name);
+      final route = await _api.renameRoute(token, routeId, name: name);
       debugPrint('[fleet] ruta renombrada ${route.routeId} -> ${route.name}');
       state = state.copyWith(
         routes: [
@@ -353,7 +371,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      await FleetApi().deleteRoute(token, routeId);
+      await _api.deleteRoute(token, routeId);
       debugPrint('[fleet] ruta eliminada $routeId');
       state = state.copyWith(
         routes: state.routes.where((r) => r.routeId != routeId).toList(),
@@ -380,7 +398,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       clearError: true,
     );
     try {
-      await FleetApi().setVisibility(token, busId, visible);
+      await _api.setVisibility(token, busId, visible);
       debugPrint('[fleet] toggle $busId -> visible=$visible OK');
     } catch (e) {
       debugPrint('[fleet] toggle $busId FALLÓ: $e');
@@ -407,7 +425,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       clearError: true,
     );
     try {
-      final count = await FleetApi().setAllVisibility(token, visible);
+      final count = await _api.setAllVisibility(token, visible);
       debugPrint('[fleet] $count buses -> visible=$visible OK');
     } catch (e) {
       debugPrint('[fleet] visibilidad masiva FALLÓ: $e');
@@ -423,7 +441,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      final bus = await FleetApi().createBus(token, placa: placa, routeId: routeId, interno: interno);
+      final bus = await _api.createBus(token, placa: placa, routeId: routeId, interno: interno);
       debugPrint('[fleet] bus creado ${bus.busId} placa=${bus.placa} ruta=${bus.routeId} interno=${bus.interno}');
       state = state.copyWith(
         buses: {...state.buses, bus.busId: bus},
@@ -447,7 +465,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      final bus = await FleetApi().updateBus(token, busId, placa: placa, routeId: routeId, interno: interno);
+      final bus = await _api.updateBus(token, busId, placa: placa, routeId: routeId, interno: interno);
       debugPrint('[fleet] bus editado $busId placa=${bus.placa} ruta=${bus.routeId} interno=${bus.interno}');
       state = state.copyWith(
         buses: {...state.buses, bus.busId: bus},
@@ -466,7 +484,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return;
     try {
-      await FleetApi().deleteBus(token, busId);
+      await _api.deleteBus(token, busId);
       debugPrint('[fleet] bus eliminado $busId');
       final remaining = {...state.buses}..remove(busId);
       state = state.copyWith(
@@ -487,7 +505,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final token = _token;
     if (token == null) return 0;
     try {
-      final count = await FleetApi().deleteAllBuses(token);
+      final count = await _api.deleteAllBuses(token);
       debugPrint('[fleet] debug: $count buses eliminados');
       state = state.copyWith(
         buses: const <String, FleetBus>{},
@@ -506,6 +524,10 @@ class FleetNotifier extends StateNotifier<FleetState> {
 
   @override
   void dispose() {
+    for (final s in _subs) {
+      s.cancel();
+    }
+    _subs.clear();
     _socket?.dispose();
     super.dispose();
   }

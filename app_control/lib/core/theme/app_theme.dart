@@ -8,8 +8,8 @@ abstract class AppColors {
   static const Color border = Color(0xFFE6E8EB);
   static const Color borderStrong = Color(0xFFD8DBE0);
 
-  static const Color navy = Color(0xFF14274E);
-  static const Color navyRaised = Color(0xFF1E345F);
+  static const Color navy = Color(0xFF0B1628);
+  static const Color navyRaised = Color(0xFF14274E);
 
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../providers/auth_providers.dart';
@@ -38,7 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.navy,
       body: Stack(
         children: [
           const Positioned.fill(child: CustomPaint(painter: _DotGridPainter())),
@@ -68,8 +68,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: BoxDecoration(
                               gradient: RadialGradient(
                                 colors: [
-                                  AppColors.online.withValues(alpha: 0.12),
-                                  AppColors.online.withValues(alpha: 0),
+                                  AppColors.navy.withValues(alpha: 0.08),
+                                  AppColors.navy.withValues(alpha: 0),
                                 ],
                               ),
                             ),
@@ -265,7 +265,7 @@ class _DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.navy.withValues(alpha: 0.05);
+      ..color = Colors.white.withValues(alpha: 0.06);
     const spacing = 36.0;
     for (double x = spacing / 2; x < size.width; x += spacing) {
       for (double y = spacing / 2; y < size.height; y += spacing) {

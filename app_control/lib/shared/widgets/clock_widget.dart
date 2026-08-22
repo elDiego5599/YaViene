@@ -57,7 +57,7 @@ class _ClockWidgetState extends State<ClockWidget> {
             color: widget.timeColor,
             fontSize: 20,
             fontWeight: FontWeight.w800,
-            fontFeatures: [FontFeature.tabularFigures()],
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
         Text(

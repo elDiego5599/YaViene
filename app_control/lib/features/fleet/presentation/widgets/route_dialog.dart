@@ -47,7 +47,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
       _nameController.clear();
       if (mounted) {
         setState(() => _saving = false);
-        FocusScope.of(context).requestFocus(FocusNode());
+        FocusScope.of(context).unfocus();
       }
     } catch (e) {
       if (mounted) {
@@ -126,7 +126,11 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
     }
     try {
       await ref.read(fleetProvider.notifier).renameRoute(route.routeId, name: newName);
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'No se pudo renombrar la ruta.');
+      }
+    }
   }
 
   Future<void> _confirmDelete(FleetRoute route) async {
@@ -174,7 +178,11 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
     if (confirmed == true) {
       try {
         await ref.read(fleetProvider.notifier).removeRoute(route.routeId);
-      } catch (_) {}
+      } catch (_) {
+        if (mounted) {
+          setState(() => _error = 'No se pudo eliminar la ruta.');
+        }
+      }
     }
   }
 

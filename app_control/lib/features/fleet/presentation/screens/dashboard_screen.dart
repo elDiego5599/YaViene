@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/widgets/clock_widget.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/fleet_bus.dart';
 import '../providers/fleet_providers.dart';
 import '../widgets/bus_dialog.dart';
@@ -26,10 +26,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _searchController = TextEditingController();
   String _query = '';
   bool _refreshing = false;
+  ProviderSubscription<bool>? _sessionExpiredSub;
 
   @override
   void initState() {
     super.initState();
+    _sessionExpiredSub = ref.listenManual(
+      fleetProvider.select((s) => s.sessionExpired),
+      (previous, expired) {
+        if (!expired || !mounted) return;
+        ref.read(fleetProvider.notifier).acknowledgeSessionExpired();
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Tu sesión expiró'),
+            content: const Text(
+              'La sesión del administrador venció o fue revocada. '
+              'Vuelve a iniciar sesión para continuar.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  await _logout();
+                },
+                child: const Text('Iniciar sesión'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(fleetProvider.notifier).start();
     });
@@ -37,6 +65,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   void dispose() {
+    _sessionExpiredSub?.close();
     _searchController.dispose();
     super.dispose();
   }
@@ -64,35 +93,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) context.go('/login');
   }
 
-  /// Sesión expirada/revocada (401 en REST o kick del socket): avisamos y
-  /// cerramos sesión, en vez de quedar reconectando en loop sin saber por qué.
-  void _watchSessionExpired() {
-    ref.listen(fleetProvider.select((s) => s.sessionExpired), (previous, expired) {
-      if (!expired || !mounted) return;
-      ref.read(fleetProvider.notifier).acknowledgeSessionExpired();
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Tu sesión expiró'),
-          content: const Text(
-            'La sesión del administrador venció o fue revocada. '
-            'Vuelve a iniciar sesión para continuar.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await _logout();
-              },
-              child: const Text('Iniciar sesión'),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
   void _showBusDialog({FleetBus? bus}) {
     showDialog<void>(
       context: context,
@@ -101,9 +101,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         onDelete: bus == null
             ? null
             : () async {
+                final messenger = ScaffoldMessenger.of(context);
                 try {
                   await ref.read(fleetProvider.notifier).removeBus(bus.busId);
-                } catch (_) {}
+                } catch (_) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('No se pudo eliminar el bus.'),
+                      backgroundColor: AppColors.danger,
+                    ),
+                  );
+                }
               },
       ),
     );
@@ -162,7 +170,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (confirmed == true) {
       try {
         await ref.read(fleetProvider.notifier).removeBus(bus.busId);
-      } catch (_) {}
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo eliminar el bus.'),
+              backgroundColor: AppColors.danger,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -211,13 +228,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (confirmed == true) {
       try {
         await ref.read(fleetProvider.notifier).removeAllBuses();
-      } catch (_) {}
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudieron borrar los buses.'),
+              backgroundColor: AppColors.danger,
+            ),
+          );
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    _watchSessionExpired();
     final fleet = ref.watch(fleetProvider);
 
     final buses = fleet.fleetList.where((b) {
@@ -791,9 +816,9 @@ class _FleetPanel extends ConsumerWidget {
               onSelect: onStatusFilter,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: const Divider(height: 1),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Divider(height: 1),
           ),
           Expanded(
             child: buses.isEmpty
