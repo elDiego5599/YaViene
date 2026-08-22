@@ -17,6 +17,7 @@ class MapGuideOverlay extends StatefulWidget {
     required this.onSkip,
     this.primaryLabel,
     this.onPrimary,
+    this.onBack,
     this.targetPadding = 10,
     this.centered = false,
   });
@@ -30,6 +31,10 @@ class MapGuideOverlay extends StatefulWidget {
   final VoidCallback onSkip;
   final String? primaryLabel;
   final VoidCallback? onPrimary;
+
+  /// F14: null en el primer paso (nada a lo que volver); en el resto,
+  /// retrocede un paso de la guía.
+  final VoidCallback? onBack;
   final double targetPadding;
 
   /// Modo de cierre: sin área iluminada ni barreras; la carta queda centrada
@@ -41,10 +46,15 @@ class MapGuideOverlay extends StatefulWidget {
 }
 
 class _MapGuideOverlayState extends State<MapGuideOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _scale;
   late final Animation<double> _fade;
+
+  /// F14: pulso breve en el borde del hueco cuando un tap cae fuera — antes
+  /// la barrera lo absorbía en silencio, sin ninguna señal de "ahí no es".
+  late final AnimationController _missTapController;
+  late final Animation<double> _missTapPulse;
 
   /// Altura real de la carta, medida tras el primer layout: sirve para
   /// decidir si la carta cabe debajo del área iluminada sin solaparla.
@@ -61,11 +71,25 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
     _controller.forward();
+
+    _missTapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _missTapPulse = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 65),
+    ]).animate(
+      CurvedAnimation(parent: _missTapController, curve: Curves.easeOut),
+    );
   }
+
+  void _onMissTap() => _missTapController.forward(from: 0);
 
   @override
   void dispose() {
     _controller.dispose();
+    _missTapController.dispose();
     super.dispose();
   }
 
@@ -94,7 +118,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   ),
                 ),
               ),
-              const Positioned.fill(child: _GuideBarrier()),
+              Positioned.fill(child: _GuideBarrier(onInvalidTap: () {})),
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -132,7 +156,33 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 ),
               ),
             ),
-            ..._buildBarriers(size, hole),
+            // F14: el borde del hueco pulsa en coral cuando un tap cae fuera
+            // — antes no había ninguna señal de que ese toque no contaba.
+            Positioned.fromRect(
+              rect: hole.inflate(4),
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _missTapPulse,
+                  builder: (context, _) {
+                    if (_missTapPulse.value == 0) {
+                      return const SizedBox.shrink();
+                    }
+                    return Opacity(
+                      opacity: _missTapPulse.value,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(28),
+                          border: const Border.fromBorderSide(
+                            BorderSide(color: AppColors.coral, width: 3),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            ..._buildBarriers(size, hole, onInvalidTap: _onMissTap),
             Positioned(
               left: 20,
               right: 20,
@@ -184,7 +234,8 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     return proposed.clamp(minBottom, maxBottom);
   }
 
-  List<Widget> _buildBarriers(Size size, Rect hole) {
+  List<Widget> _buildBarriers(Size size, Rect hole,
+      {required VoidCallback onInvalidTap}) {
     final barriers = <Widget>[];
     if (hole.top > 0) {
       barriers.add(Positioned(
@@ -192,7 +243,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         left: 0,
         right: 0,
         height: hole.top,
-        child: const _GuideBarrier(),
+        child: _GuideBarrier(onInvalidTap: onInvalidTap),
       ));
     }
     if (hole.bottom < size.height) {
@@ -201,7 +252,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         left: 0,
         right: 0,
         bottom: 0,
-        child: const _GuideBarrier(),
+        child: _GuideBarrier(onInvalidTap: onInvalidTap),
       ));
     }
     if (hole.left > 0 && hole.height > 0) {
@@ -210,7 +261,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         left: 0,
         width: hole.left,
         height: hole.height,
-        child: const _GuideBarrier(),
+        child: _GuideBarrier(onInvalidTap: onInvalidTap),
       ));
     }
     if (hole.right < size.width && hole.height > 0) {
@@ -219,7 +270,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         left: hole.right,
         right: 0,
         height: hole.height,
-        child: const _GuideBarrier(),
+        child: _GuideBarrier(onInvalidTap: onInvalidTap),
       ));
     }
     return barriers;
@@ -351,29 +402,52 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               ),
             ],
             const SizedBox(height: 8),
+            // F14: "Atrás" solo aparece si hay un paso previo al que volver.
             if (!widget.centered)
-              Center(
-                child: TextButton(
-                  key: const ValueKey('guide_skip'),
-                  onPressed: widget.onSkip,
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.surfaceMuted,
-                    foregroundColor: const Color(0xFF475569),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              Row(
+                mainAxisAlignment: widget.onBack == null
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.spaceBetween,
+                children: [
+                  if (widget.onBack != null)
+                    TextButton.icon(
+                      key: const ValueKey('guide_back'),
+                      onPressed: widget.onBack,
+                      icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                      label: const Text('Atrás'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF475569),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: const Size(0, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        textStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
-                    minimumSize: const Size(0, 36),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    isLast ? 'Cerrar guía' : 'Saltar guía',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                  TextButton(
+                    key: const ValueKey('guide_skip'),
+                    onPressed: widget.onSkip,
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppColors.surfaceMuted,
+                      foregroundColor: const Color(0xFF475569),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 22),
+                      minimumSize: const Size(0, 36),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      isLast ? 'Cerrar guía' : 'Saltar guía',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
           ],
           ),
@@ -386,13 +460,15 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
 double mathMax(double a, double b) => a > b ? a : b;
 
 class _GuideBarrier extends StatelessWidget {
-  const _GuideBarrier();
+  const _GuideBarrier({required this.onInvalidTap});
+
+  final VoidCallback onInvalidTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {},
+      onTap: onInvalidTap,
       child: const SizedBox.expand(),
     );
   }
