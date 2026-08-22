@@ -35,13 +35,13 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState());
+  AuthNotifier({AuthApi? api}) : _api = api ?? AuthApi(), super(const AuthState());
 
   static const _kToken = 'auth_token';
   static const _kCompanyId = 'auth_company_id';
   static const _kCompanyName = 'auth_company_name';
 
-  final _api = AuthApi();
+  final AuthApi _api;
 
   Future<void> restoreSession() async {
     final prefs = await SharedPreferences.getInstance();

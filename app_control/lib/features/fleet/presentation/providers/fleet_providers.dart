@@ -103,10 +103,10 @@ class FleetState {
 }
 
 class FleetNotifier extends StateNotifier<FleetState> {
-  FleetNotifier(this._ref) : super(const FleetState());
+  FleetNotifier(this._ref, {FleetApi? api}) : _api = api ?? FleetApi(), super(const FleetState());
 
   final Ref _ref;
-  final _api = FleetApi();
+  final FleetApi _api;
   FleetSocketService? _socket;
   final List<StreamSubscription> _subs = [];
 
