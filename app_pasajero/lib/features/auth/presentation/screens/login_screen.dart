@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../onboarding/onboarding_flow.dart';
@@ -33,6 +34,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   /// ValueNotifier para que el botón muestre el spinner y se deshabilite en
   /// vivo, sin congelarse con aspecto de botón muerto en redes lentas.
   final ValueNotifier<bool> _submitting = ValueNotifier<bool>(false);
+
+  /// Envío del correo de restablecimiento: estado propio para no encender el
+  /// spinner del botón principal (Entrar) por una acción distinta.
+  final ValueNotifier<bool> _sendingReset = ValueNotifier<bool>(false);
 
   /// Evita que el listener de sesión (auto-login) compita con el flujo
   /// normal de inicio de sesión que ya navega por su cuenta.
@@ -83,6 +88,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     _nameController.dispose();
     _isValidEmail.dispose();
     _submitting.dispose();
+    _sendingReset.dispose();
     _obscurePassword.dispose();
     _obscureConfirm.dispose();
     super.dispose();
@@ -91,7 +97,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text(message), backgroundColor: const Color(0xFFDC2626)),
+          content: Text(message), backgroundColor: AppColors.error),
     );
   }
 
@@ -176,6 +182,27 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     _showError(auth.state.errorMessage ?? 'No se pudo iniciar sesión');
   }
 
+  Future<void> _sendPasswordReset() async {
+    if (_sendingReset.value) return;
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+    _sendingReset.value = true;
+    final auth = ref.read(authProvider);
+    final error = await auth.sendPasswordReset(email);
+    if (!mounted) return;
+    _sendingReset.value = false;
+    if (error != null) {
+      _showError(error);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Te enviamos un enlace a $email para restablecerla'),
+        backgroundColor: AppColors.primaryDeep,
+      ),
+    );
+  }
+
   Future<void> _handleGoogle() async {
     if (_submitting.value) return;
     _submitting.value = true;
@@ -219,7 +246,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF14274E),
+      backgroundColor: AppColors.ink,
       body: CustomPaint(
         painter: const MapPatternPainter(),
         child: SafeArea(
@@ -241,7 +268,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF00A859)
+                                      color: AppColors.primary
                                           .withValues(alpha: 0.35),
                                       blurRadius: 50,
                                       spreadRadius: 10,
@@ -305,7 +332,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   style: TextStyle(
                                     fontSize: 23,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
+                                    color: AppColors.textPrimary,
                                     letterSpacing: -0.6,
                                   ),
                                 ),
@@ -319,7 +346,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF64748B),
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: 22),
@@ -351,6 +378,36 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                             _obscurePassword.value = !obscure,
                                       );
                                     },
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: ValueListenableBuilder<bool>(
+                                      valueListenable: _sendingReset,
+                                      builder: (context, sending, child) {
+                                        return TextButton(
+                                          onPressed: sending
+                                              ? null
+                                              : _sendPasswordReset,
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            minimumSize: const Size(0, 32),
+                                            tapTargetSize: MaterialTapTargetSize
+                                                .shrinkWrap,
+                                          ),
+                                          child: Text(
+                                            sending
+                                                ? 'Enviando…'
+                                                : '¿Olvidaste tu contraseña?',
+                                            style: const TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ],
                                 if (_step == _Step.profile) ...[
@@ -412,17 +469,17 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                           child: ElevatedButton(
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: bright
-                                                  ? const Color(0xFF14274E)
-                                                  : const Color(0xFFE2E8F0),
+                                                  ? AppColors.primaryDeep
+                                                  : AppColors.divider,
                                               foregroundColor: bright
                                                   ? Colors.white
-                                                  : const Color(0xFF94A3B8),
+                                                  : AppColors.textDisabled,
                                               disabledBackgroundColor: bright
-                                                  ? const Color(0xFF14274E)
-                                                  : const Color(0xFFE2E8F0),
+                                                  ? AppColors.primaryDeep
+                                                  : AppColors.divider,
                                               disabledForegroundColor: bright
                                                   ? Colors.white
-                                                  : const Color(0xFF94A3B8),
+                                                  : AppColors.textDisabled,
                                               elevation: 0,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
@@ -479,7 +536,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                             ? 'Regresar'
                                             : 'Cambiar de correo',
                                         style: const TextStyle(
-                                          color: Color(0xFF64748B),
+                                          color: AppColors.textSecondary,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -497,7 +554,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                         child: const Text(
                                           '¿No tienes cuenta? Crea una con este correo',
                                           style: TextStyle(
-                                            color: Color(0xFF00A859),
+                                            color: AppColors.primary,
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
                                           ),
@@ -519,7 +576,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
-                                            color: Color(0xFF94A3B8),
+                                            color: AppColors.textDisabled,
                                           ),
                                         ),
                                       ),
@@ -541,7 +598,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                 const Color(0xFF334155),
                                             backgroundColor: Colors.white,
                                             side: const BorderSide(
-                                                color: Color(0xFFE2E8F0)),
+                                                color: AppColors.divider),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(999),
@@ -585,7 +642,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                       child: const Text(
                                         '¿No tienes cuenta? Regístrate',
                                         style: TextStyle(
-                                          color: Color(0xFF00A859),
+                                          color: AppColors.primary,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -635,9 +692,9 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.divider),
       ),
       child: TextField(
         controller: controller,
@@ -649,13 +706,13 @@ class _Field extends StatelessWidget {
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: Color(0xFF0F172A),
+          color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
           counterText: '',
           prefixIcon: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Icon(icon, color: const Color(0xFF64748B), size: 22),
+            child: Icon(icon, color: AppColors.textSecondary, size: 22),
           ),
           hintText: hint,
           hintStyle: TextStyle(
@@ -669,7 +726,7 @@ class _Field extends StatelessWidget {
                     obscure
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
-                    color: const Color(0xFF64748B),
+                    color: AppColors.textSecondary,
                     size: 22,
                   ),
                   onPressed: onToggleVisibility,
@@ -678,7 +735,7 @@ class _Field extends StatelessWidget {
           border: InputBorder.none,
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(color: Color(0xFF00A859), width: 2),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           disabledBorder: InputBorder.none,
         ),

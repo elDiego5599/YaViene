@@ -24,28 +24,36 @@ class LocationStatusChip extends ConsumerWidget {
       UserLocationMode.locating => const _PillData(
           key: 'locating',
           icon: Icons.my_location,
-          text: 'Localizando tu ubicación…',
-          tint: Color(0xFFE6F7F0),
           iconColor: AppColors.primary,
+          text: 'Localizando tu ubicación…',
+          tint: AppColors.primaryTint,
         ),
       UserLocationMode.permanentDenied => _PillData(
           key: 'permanentDenied',
           icon: Icons.location_off,
+          iconColor: AppColors.error,
           text: 'Ubicación bloqueada en los Ajustes',
           actionLabel: 'Abrir',
           onAction: () => openAppSettings(),
-          tint: const Color(0xFFFEE2E2),
-          iconColor: AppColors.error,
+          tint: AppColors.errorLight,
         ),
-      UserLocationMode.denied => null,
+      UserLocationMode.denied => _PillData(
+          key: 'denied',
+          icon: Icons.location_disabled,
+          iconColor: AppColors.coral,
+          text: 'Sin ubicación: toca el mapa o reintenta',
+          actionLabel: 'Reintentar',
+          onAction: () => notifier.useGps(),
+          tint: AppColors.coralLight,
+        ),
       UserLocationMode.gpsFailed => _PillData(
           key: 'gpsFailed',
           icon: Icons.gps_off,
+          iconColor: AppColors.coral,
           text: 'No pudimos obtener tu ubicación',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
-          tint: const Color(0xFFFEF3C7),
-          iconColor: const Color(0xFFD97706),
+          tint: AppColors.coralLight,
         ),
       UserLocationMode.manual => _manualPill(nearbyCount, notifier),
       UserLocationMode.gps => _gpsPill(location, nearbyCount, notifier),
@@ -77,35 +85,35 @@ class LocationStatusChip extends ConsumerWidget {
       return _PillData(
         key: 'manual',
         icon: Icons.location_on,
+        iconColor: AppColors.primary,
         text: 'Con tu ubicación',
         actionLabel: 'Quitar',
         onAction: () => notifier.clearManualPin(),
         actionDanger: true,
-        tint: const Color(0xFFE6F7F0),
-        iconColor: AppColors.primary,
+        tint: AppColors.primaryTint,
       );
     }
     if (nearbyCount == 0) {
       return _PillData(
         key: 'manual-empty',
         icon: Icons.directions_bus,
+        iconColor: AppColors.warning,
         text: 'No hay buses cerca de tu pin',
         actionLabel: 'Usar GPS',
         onAction: () => notifier.useGps(),
-        tint: const Color(0xFFFEF3C7),
-        iconColor: const Color(0xFFD97706),
+        tint: AppColors.warningLight,
       );
     }
     return _PillData(
       key: 'manual-near',
       icon: Icons.location_on,
+      iconColor: AppColors.primary,
       text:
           'Con tu ubicación: $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
       actionLabel: 'Quitar',
       onAction: () => notifier.clearManualPin(),
       actionDanger: true,
-      tint: const Color(0xFFE6F7F0),
-      iconColor: AppColors.primary,
+      tint: AppColors.primaryTint,
     );
   }
 
@@ -118,9 +126,9 @@ class LocationStatusChip extends ConsumerWidget {
         ? _PillData(
             key: '${data.key}-fix',
             icon: data.icon,
+            iconColor: data.iconColor,
             text: data.text,
             tint: data.tint,
-            iconColor: data.iconColor,
             actionLabel: 'Fijar',
             onAction: () => notifier.setManualPin(location.lat!, location.lon!),
           )
@@ -129,27 +137,27 @@ class LocationStatusChip extends ConsumerWidget {
       return withFix(const _PillData(
         key: 'gps',
         icon: Icons.my_location,
-        text: 'Usando tu ubicación',
-        tint: Color(0xFFE6F7F0),
         iconColor: AppColors.primary,
+        text: 'Usando tu ubicación',
+        tint: AppColors.primaryTint,
       ));
     }
     if (nearbyCount == 0) {
       return withFix(const _PillData(
         key: 'gps-empty',
         icon: Icons.directions_bus,
+        iconColor: AppColors.warning,
         text: 'No hay buses cerca de ti',
-        tint: Color(0xFFFEF3C7),
-        iconColor: Color(0xFFD97706),
+        tint: AppColors.warningLight,
       ));
     }
     return withFix(_PillData(
       key: 'gps-near',
       icon: Icons.my_location,
+      iconColor: AppColors.primary,
       text:
           'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
-      tint: const Color(0xFFE6F7F0),
-      iconColor: AppColors.primary,
+      tint: AppColors.primaryTint,
     ));
   }
 }
@@ -158,9 +166,9 @@ class _PillData {
   const _PillData({
     required this.key,
     required this.icon,
+    required this.iconColor,
     required this.text,
     required this.tint,
-    required this.iconColor,
     this.actionLabel,
     this.onAction,
     this.actionDanger = false,
@@ -168,6 +176,7 @@ class _PillData {
 
   final String key;
   final IconData icon;
+  final Color iconColor;
   final String text;
   final String? actionLabel;
   final VoidCallback? onAction;
@@ -175,7 +184,6 @@ class _PillData {
   /// La acción es de quitar/eliminar: se pinta en rojo suave en vez de verde.
   final bool actionDanger;
   final Color tint;
-  final Color iconColor;
 }
 
 class _Pill extends StatelessWidget {
@@ -196,10 +204,10 @@ class _Pill extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFE9EDF2)),
+            border: Border.all(color: AppColors.divider),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF14274E).withValues(alpha: 0.07),
+                color: AppColors.primaryDeep.withValues(alpha: 0.07),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -237,7 +245,7 @@ class _Pill extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: data.actionDanger
-                        ? const Color(0xFFFEE2E2)
+                        ? AppColors.errorLight
                         : AppColors.primary,
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -248,7 +256,7 @@ class _Pill extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.2,
                       color: data.actionDanger
-                          ? const Color(0xFFDC2626)
+                          ? AppColors.error
                           : Colors.white,
                     ),
                   ),

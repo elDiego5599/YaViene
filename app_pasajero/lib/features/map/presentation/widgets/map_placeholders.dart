@@ -38,7 +38,7 @@ class MapStylePlaceholder extends StatelessWidget {
                       Icon(
                         Icons.directions_bus_rounded,
                         size: 44,
-                        color: Color(0xFF94A3B8),
+                        color: AppColors.textDisabled,
                       ),
                       SizedBox(height: 12),
                       Text(
@@ -77,15 +77,17 @@ class MapStyleFailedBanner extends StatelessWidget {
       top: 16,
       left: 16,
       right: 16,
-      child: Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: AppShadows.floating,
+        ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(Icons.cloud_off_rounded, color: Color(0xFFDC2626)),
+              const Icon(Icons.cloud_off_rounded, color: AppColors.coral),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
@@ -93,7 +95,7 @@ class MapStyleFailedBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),

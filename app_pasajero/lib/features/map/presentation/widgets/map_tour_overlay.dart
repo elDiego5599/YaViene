@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/widgets/map_pattern_painter.dart';
 
 /// Spotlight reutilizable de la guía completa. Solo [target] queda libre para
 /// recibir el gesto real del widget que está debajo; las cuatro barreras
@@ -236,9 +238,11 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: AppColors.divider),
         ),
-        child: Column(
+        child: CustomPaint(
+          painter: const MapPatternPainter(color: AppColors.primaryDeep),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -248,12 +252,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00A859).withValues(alpha: 0.12),
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     widget.icon,
-                    color: const Color(0xFF00A859),
+                    color: AppColors.primary,
                     size: 21,
                   ),
                 ),
@@ -266,17 +270,35 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.35,
-                      color: Color(0xFF0F172A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
-                Text(
-                  '${widget.stepIndex + 1}/${widget.stepCount}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF94A3B8),
-                  ),
+                // Mismo contraste tipográfico que el ETA gigante: el número
+                // que importa (el paso actual) en peso ultraligero y grande,
+                // el resto en una etiqueta diminuta al lado.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '${widget.stepIndex + 1}',
+                      style: const TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w200,
+                        letterSpacing: -0.8,
+                        color: AppColors.primaryDeep,
+                      ),
+                    ),
+                    Text(
+                      '/${widget.stepCount}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDisabled,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -300,7 +322,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   key: const ValueKey('guide_primary'),
                   onPressed: widget.onPrimary,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF00A859),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -323,7 +345,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF00A859),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -335,7 +357,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   key: const ValueKey('guide_skip'),
                   onPressed: widget.onSkip,
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFF1F5F9),
+                    backgroundColor: AppColors.surfaceMuted,
                     foregroundColor: const Color(0xFF475569),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -354,6 +376,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 ),
               ),
           ],
+          ),
         ),
       ),
     );
@@ -383,7 +406,7 @@ class _ScrimPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = const Color(0xFF14274E).withValues(alpha: 0.62),
+      Paint()..color = AppColors.primaryDeep.withValues(alpha: 0.62),
     );
   }
 
@@ -401,7 +424,7 @@ class _SpotlightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(hole, const Radius.circular(24));
-    final scrim = const Color(0xFF14274E).withValues(alpha: 0.62);
+    final scrim = AppColors.primaryDeep.withValues(alpha: 0.62);
 
     canvas.saveLayer(Offset.zero & size, Paint());
     canvas.drawRect(Offset.zero & size, Paint()..color = scrim);
@@ -412,7 +435,7 @@ class _SpotlightPainter extends CustomPainter {
     canvas.drawRRect(
       rrect.inflate(2),
       Paint()
-        ..color = const Color(0xFF00A859).withValues(alpha: 0.24)
+        ..color = AppColors.primary.withValues(alpha: 0.24)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),

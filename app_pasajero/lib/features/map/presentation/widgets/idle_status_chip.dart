@@ -12,7 +12,7 @@ class IdleStatusChip extends ConsumerWidget {
 
     final config = switch (connectionState.valueOrNull) {
       ConnectionStatus.disconnected => (
-          dotColor: const Color(0xFFDC2626),
+          dotColor: AppColors.error,
           label: 'Sin conexión al servidor',
         ),
       ConnectionStatus.reconnecting => (
@@ -29,10 +29,10 @@ class IdleStatusChip extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.divider),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF14274E).withValues(alpha: 0.08),
+            color: AppColors.primaryDeep.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -46,7 +46,7 @@ class IdleStatusChip extends ConsumerWidget {
           Text(
             config.label,
             style: const TextStyle(
-              color: Color(0xFF14274E),
+              color: AppColors.primaryDeep,
               fontSize: 13,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.2,

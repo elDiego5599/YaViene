@@ -63,7 +63,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
             borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF14274E).withValues(alpha: 0.08),
+                color: AppColors.primaryDeep.withValues(alpha: 0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               )
@@ -89,12 +89,12 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: _menuPressed
-                            ? const Color(0xFFF1F5F9)
+                            ? AppColors.surfaceMuted
                             : Colors.transparent,
                       ),
                       child: const Icon(
                         Icons.menu_rounded,
-                        color: Color(0xFF14274E),
+                        color: AppColors.primaryDeep,
                         size: 22,
                       ),
                     ),
@@ -122,7 +122,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                 width: 8,
                                 height: 8,
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFF00A859),
+                                  color: AppColors.primary,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -134,7 +134,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
+                                  color: AppColors.textPrimary,
                                   letterSpacing: -0.4,
                                 ),
                                 maxLines: 1,
@@ -156,8 +156,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: selectedRoute != null
-                                      ? const Color(0xFF00A859)
-                                      : const Color(0xFF64748B),
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -206,7 +206,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color:
-                  _actionPressed ? const Color(0xFFF1F5F9) : Colors.transparent,
+                  _actionPressed ? AppColors.surfaceMuted : Colors.transparent,
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
@@ -217,7 +217,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   Widget _buildCloseButton() {
     return _buildActionButton(
-      iconColor: const Color(0xFFDC2626),
+      iconColor: AppColors.error,
       icon: Icons.close_rounded,
       semanticLabel: 'Quitar ruta activa',
       onTap: () {
@@ -246,7 +246,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   Widget _buildFilterButton() {
     return _buildActionButton(
-      iconColor: const Color(0xFF14274E),
+      iconColor: AppColors.primaryDeep,
       icon: Icons.tune_rounded,
       semanticLabel: 'Cambiar ruta',
       onTap: () {

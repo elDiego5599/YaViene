@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// Patrón de fondo tipo mapa (puntos y rutas) usado en login y onboarding.
+/// Patrón de fondo tipo mapa (puntos y rutas). Blanco sobre tinta en
+/// splash/onboarding/drawer; en superficies claras (p. ej. un estado vacío
+/// dentro de una tarjeta blanca) pásale un [color] oscuro — el mismo patrón,
+/// solo que casi no debería notarse: es textura, no protagonista.
 class MapPatternPainter extends CustomPainter {
-  const MapPatternPainter();
+  const MapPatternPainter({this.color = Colors.white});
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final dotPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
+      ..color = color.withValues(alpha: 0.06)
       ..style = PaintingStyle.fill;
     final linePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.045)
+      ..color = color.withValues(alpha: 0.045)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
       ..strokeCap = StrokeCap.round;
@@ -76,5 +81,6 @@ class MapPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant MapPatternPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

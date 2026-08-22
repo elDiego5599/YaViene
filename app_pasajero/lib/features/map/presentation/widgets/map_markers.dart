@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 const kBusIconId = 'bus-icon-active';
 const kBusGhostIconId = 'bus-icon-ghost';
@@ -15,11 +16,11 @@ Future<void> loadBusIcons(MapLibreMapController? controller) async {
   if (controller == null) return;
   try {
     final activeBytes = await createFlatTransitMarker(
-      const Color(0xFF14274E),
+      AppColors.primary,
       isGhost: false,
     );
     final ghostBytes = await createFlatTransitMarker(
-      const Color(0xFF94A3B8),
+      AppColors.textDisabled,
       isGhost: true,
     );
     await controller.addImage(kBusIconId, activeBytes);
@@ -86,7 +87,7 @@ Future<Uint8List> createPinMarker() async {
       ..shader = ui.Gradient.linear(
         const Offset(centerX - 9, headCY - 9),
         const Offset(centerX + 9, headCY + 9),
-        const [Color(0xFF065F46), Color(0xFF00A859)],
+        const [Color(0xFF065F46), AppColors.primary],
       ),
   );
   canvas.drawCircle(
@@ -104,70 +105,67 @@ Future<Uint8List> createFlatTransitMarker(
   Color baseColor, {
   required bool isGhost,
 }) async {
-  const size = 80;
-  const centerX = size / 2;
-  const centerY = size / 2;
+  // Silueta alargada tipo inDrive/Uber: una cápsula de un solo color, sin
+  // ventanas ni llantas — el detalle se pierde a los ~28px reales en el
+  // mapa, así que la forma y el color son todo lo que tiene que comunicar.
+  // Se hornea una sola vez por ícono y se reusa como sprite nativo de
+  // MapLibre para cada bus en pantalla.
+  const size = 96;
+  const center = size / 2.0;
+  const w = 32.0;
+  const h = 60.0;
+
   final pictureRecorder = ui.PictureRecorder();
   final canvas = Canvas(pictureRecorder);
 
-  final shadowPath = Path()
-    ..addRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: const Offset(centerX, centerY + 2),
-          width: 32,
-          height: 60,
-        ),
-        const Radius.circular(10),
-      ),
-    );
-  canvas.drawShadow(
-    shadowPath,
-    Colors.black.withValues(alpha: 0.15),
-    4.0,
-    false,
+  final capsule = RRect.fromRectAndRadius(
+    const Rect.fromLTWH(center - w / 2, center - h / 2, w, h),
+    const Radius.circular(w / 2),
   );
-
-  final bodyPaint = Paint()
-    ..color = baseColor
-    ..style = PaintingStyle.fill;
-  final bodyRect = RRect.fromRectAndRadius(
-    Rect.fromCenter(
-      center: const Offset(centerX, centerY),
-      width: 32,
-      height: 60,
-    ),
-    const Radius.circular(10),
-  );
-  canvas.drawRRect(bodyRect, bodyPaint);
-
-  final glassPaint = Paint()
-    ..color = Colors.white.withValues(alpha: isGhost ? 0.5 : 0.95)
-    ..style = PaintingStyle.fill;
-  final glassRect = RRect.fromRectAndRadius(
-    Rect.fromCenter(
-      center: const Offset(centerX, centerY - 18),
-      width: 24,
-      height: 10,
-    ),
-    const Radius.circular(4),
-  );
-  canvas.drawRRect(glassRect, glassPaint);
 
   if (!isGhost) {
-    final headlightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.9)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-      const Offset(centerX - 9, centerY - 23),
-      2.4,
-      headlightPaint,
+    canvas.drawShadow(
+      Path()..addRRect(capsule.shift(const Offset(0, 3))),
+      baseColor.withValues(alpha: 0.45),
+      7.0,
+      false,
     );
-    canvas.drawCircle(
-      const Offset(centerX + 9, centerY - 23),
-      2.4,
-      headlightPaint,
+  }
+
+  // Degradado sutil (más claro arriba) para que no se vea una silueta plana.
+  final top = isGhost ? baseColor : Color.lerp(baseColor, Colors.white, 0.3)!;
+  canvas.drawRRect(
+    capsule,
+    Paint()
+      ..shader = ui.Gradient.linear(
+        const Offset(center, center - h / 2),
+        const Offset(center, center + h / 2),
+        [top, baseColor],
+      ),
+  );
+
+  // Anillo blanco: separa el ícono de cualquier fondo de mapa.
+  canvas.drawRRect(
+    capsule,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.6
+      ..color = Colors.white.withValues(alpha: isGhost ? 0.5 : 0.92),
+  );
+
+  if (!isGhost) {
+    // Insinúa un parabrisas: un óvalo tenue cerca del extremo, nada más.
+    canvas.save();
+    canvas.clipRRect(capsule);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: const Offset(center, center - h * 0.26),
+        width: w * 0.72,
+        height: h * 0.26,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.3),
     );
+    canvas.restore();
   }
 
   final img = await pictureRecorder.endRecording().toImage(size, size);

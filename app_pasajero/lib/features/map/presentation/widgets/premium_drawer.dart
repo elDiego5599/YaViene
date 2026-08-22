@@ -54,6 +54,10 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
     if (mounted) _entrance.forward(from: 0);
   }
 
+  /// F9: cerrar sesión ahora sí muestra spinner y bloquea el doble-tap, como
+  /// cualquier otro botón asíncrono de la app.
+  bool _signingOut = false;
+
   Widget _staggered(Widget child, double start) {
     final animation = CurvedAnimation(
       parent: _entrance,
@@ -83,7 +87,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
     final activeAlerts = ref.watch(activeAlertsProvider);
 
     return Drawer(
-      backgroundColor: const Color(0xFF0B1628),
+      backgroundColor: AppColors.ink,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.horizontal(
           right: Radius.circular(28),
@@ -176,7 +180,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00A859),
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: const Icon(
@@ -210,7 +214,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                                     style: const TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF94A3B8),
+                                      color: AppColors.textDisabled,
                                     ),
                                   ),
                                 ],
@@ -228,8 +232,8 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                   _staggered(
                     DrawerItem(
                       icon: Icons.notifications_none_rounded,
-                      bgColor: const Color(0xFFFEF3C7),
-                      iconColor: const Color(0xFFD97706),
+                      bgColor: AppColors.warningLight,
+                      iconColor: AppColors.warning,
                       title: 'Avisos',
                       trailing: activeAlerts.isEmpty
                           ? const Icon(
@@ -269,10 +273,42 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                       iconColor: const Color(0xFF0284C7),
                       title: 'Ver guía de uso',
                       onTap: () async {
-                        // La guía empieza limpia: se deselecciona el bus que
-                        // estuviera marcado (quizá con un aviso activo) para
-                        // que el flujo arranque desde cero.
+                        // F8: reiniciar la guía borra la ruta/bus activos sin
+                        // avisar. Si hay algo que perder, se confirma antes.
+                        final hasSelection =
+                            ref.read(selectedRouteProvider) != null ||
+                                ref.read(selectedBusesProvider).isNotEmpty;
+                        if (hasSelection) {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('¿Reiniciar la guía?'),
+                              content: const Text(
+                                'Vas a perder la ruta y el bus que tienes '
+                                'seleccionados ahora mismo.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, true),
+                                  child: const Text('Reiniciar guía'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed != true || !context.mounted) return;
+                        }
+                        // La guía empieza limpia: se deselecciona el bus y se
+                        // quita la ruta activa para que el flujo arranque
+                        // desde cero (si la ruta queda, sus buses siguen
+                        // tocables durante el paso de ubicación).
                         ref.read(selectedBusesProvider.notifier).clear();
+                        ref.read(selectedRouteProvider.notifier).clear();
                         final location = ref.read(userLocationProvider);
                         await ref.read(mapGuideProvider.notifier).restart(
                               userId: auth.uid,
@@ -301,11 +337,17 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                         const SizedBox(height: 18),
                         DrawerItem(
                           icon: Icons.logout_rounded,
-                          bgColor: const Color(0xFFFEE2E2),
-                          iconColor: const Color(0xFFDC2626),
-                          title: 'Cerrar sesión',
+                          bgColor: AppColors.errorLight,
+                          iconColor: AppColors.error,
+                          title: _signingOut
+                              ? 'Cerrando sesión…'
+                              : 'Cerrar sesión',
+                          loading: _signingOut,
                           onTap: () async {
+                            if (_signingOut) return;
+                            setState(() => _signingOut = true);
                             await signOutAndGoToLogin(ref, context);
+                            if (mounted) setState(() => _signingOut = false);
                           },
                         ),
                       ],
@@ -359,7 +401,7 @@ class ActiveRouteCard extends ConsumerWidget {
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
-              color: Color(0xFF94A3B8),
+              color: AppColors.textDisabled,
             ),
           ),
           const SizedBox(height: 12),
@@ -395,7 +437,7 @@ class ActiveRouteCard extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF94A3B8),
+                color: AppColors.textDisabled,
               ),
             ),
           ],
@@ -418,7 +460,7 @@ class TerminalsLine extends StatelessWidget {
     const textStyle = TextStyle(
       fontSize: 12.5,
       fontWeight: FontWeight.w600,
-      color: Color(0xFF94A3B8),
+      color: AppColors.textDisabled,
     );
     // Fallback visual: ruta de un solo terminal, sin línea incompleta.
     if (b.isEmpty) {
@@ -449,7 +491,7 @@ class TerminalsLine extends StatelessWidget {
               width: 4,
               height: 4,
               decoration: const BoxDecoration(
-                color: Color(0xFF00A859),
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -462,7 +504,7 @@ class TerminalsLine extends StatelessWidget {
               width: 4,
               height: 4,
               decoration: const BoxDecoration(
-                color: Color(0xFF00A859),
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -482,13 +524,17 @@ class TerminalsLine extends StatelessWidget {
   }
 }
 
-class DrawerItem extends StatelessWidget {
+class DrawerItem extends StatefulWidget {
   final IconData icon;
   final Color bgColor;
   final Color iconColor;
   final String title;
   final Widget? trailing;
   final VoidCallback onTap;
+
+  /// F9: reemplaza el ícono por un spinner y bloquea el tap — mismo patrón
+  /// que ya usan los botones asíncronos del login.
+  final bool loading;
 
   const DrawerItem({
     super.key,
@@ -498,47 +544,76 @@ class DrawerItem extends StatelessWidget {
     required this.title,
     this.trailing,
     required this.onTap,
+    this.loading = false,
   });
+
+  @override
+  State<DrawerItem> createState() => _DrawerItemState();
+}
+
+class _DrawerItemState extends State<DrawerItem> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.loading ? null : widget.onTap,
+      onTapDown:
+          widget.loading ? null : (_) => setState(() => _pressed = true),
+      onTapUp: widget.loading ? null : (_) => setState(() => _pressed = false),
+      onTapCancel:
+          widget.loading ? null : () => setState(() => _pressed = false),
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
+      child: AnimatedScale(
+        scale: _pressed ? 0.975 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: _pressed ? 0.09 : 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: -0.3,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: widget.bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: widget.loading
+                    ? Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: widget.iconColor,
+                          ),
+                        ),
+                      )
+                    : Icon(widget.icon, color: widget.iconColor, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.3,
+                  ),
                 ),
               ),
-            ),
-            if (trailing != null) trailing!,
-          ],
+              if (widget.trailing != null) widget.trailing!,
+            ],
+          ),
         ),
       ),
     );

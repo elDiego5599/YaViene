@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
@@ -317,41 +319,46 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF14274E).withValues(alpha: 0.08),
+                color: AppColors.primaryDeep.withValues(alpha: 0.08),
                 blurRadius: 32,
                 offset: const Offset(0, -8),
               )
             ],
           ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: toggleable ? _toggleSheet : null,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 14, bottom: 18),
-                    child: Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(999),
+          // El patrón de calles del drawer, tenue detrás de toda la hoja: la
+          // misma identidad visual en cualquier tarjeta, no solo en el menú.
+          child: CustomPaint(
+            painter: const MapPatternPainter(color: AppColors.primaryDeep),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: toggleable ? _toggleSheet : null,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 14, bottom: 18),
+                      child: Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: AppColors.divider,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
-                  child: child,
-                ),
-              ],
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
+                    child: child,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -399,20 +406,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
         child: Column(
           children: [
-            Icon(icon, color: const Color(0xFF94A3B8), size: 32),
+            Icon(icon, color: AppColors.textDisabled, size: 32),
             const SizedBox(height: 12),
             Text(
               title,
               style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A)),
+                  color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              style: const TextStyle(
+                  fontSize: 14, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -429,6 +437,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
     final distance = _distanceToBus(bus);
     final route = ref.watch(selectedRouteProvider);
+    // F6: misma "ruta - placa" que ya usa Notificaciones, en vez de "Bus $id"
+    // crudo — el mismo bus no debe tener dos nombres distintos en la app.
+    final busLabel = routePlateLabel(
+      busId: busId,
+      routeName: route?.name,
+      routeId: route?.id,
+    );
 
     // Defensa: el bus seleccionado ya no está en la ruta (aún no se procesó
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
@@ -454,11 +469,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                   color: Color(0xFF475569),
                   letterSpacing: -0.4)),
           const SizedBox(height: 4),
-          Text("Bus $busId · conserva su última posición",
+          Text(
+              "$busLabel · conserva su última posición",
               style: const TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF94A3B8))),
+                  color: AppColors.textDisabled)),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
@@ -494,13 +510,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     String metricText = '';
     String? metricUnit;
     if (!locationState.hasPosition) {
-      stripColor = const Color(0xFF94A3B8);
+      stripColor = AppColors.textDisabled;
       metricText = "Sin tu ubicación";
     } else if (distance == null) {
-      stripColor = const Color(0xFF94A3B8);
+      stripColor = AppColors.textDisabled;
       metricText = "Calculando";
     } else {
-      stripColor = isActive ? AppColors.primary : AppColors.electricBlue;
+      // V1: el número hero carga la urgencia en su propio color, en vez de
+      // quedarse siempre en el mismo azul — lejos, acercándose o ya casi.
+      stripColor = _urgencyColor(distance);
       final parts = _metricParts(distance);
       metricText = parts.$1;
       metricUnit = parts.$2;
@@ -521,14 +539,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             ),
           ),
           const SizedBox(height: 18),
-          // Identidad de ruta: bus + línea, en tipo editorial pequeño.
+          // Identidad de ruta: misma "ruta - placa" que ya usa Notificaciones.
           Text(
-            "Bus $busId · ${route?.name ?? ''}",
+            busLabel,
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF64748B),
+              color: AppColors.textSecondary,
               letterSpacing: 0.4,
             ),
           ),
@@ -562,7 +580,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B),
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -574,7 +592,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                   fontSize: 14,
                   height: 1.35,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF64748B)),
+                  color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -604,6 +622,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     if (meters < 1000) return (meters.round().toString(), "m de ti");
     final km = (meters / 1000).toStringAsFixed(1);
     return (km, "km de ti");
+  }
+
+  /// V1: verde lejos, ámbar acercándose, coral ya casi — el mismo semáforo
+  /// que ya usa `alertRadiusMeters` para "el bus ya está cerca".
+  Color _urgencyColor(double meters) {
+    if (meters < 300) return AppColors.coral;
+    if (meters < alertRadiusMeters) return AppColors.warning;
+    return AppColors.primary;
   }
 }
 
@@ -657,10 +683,10 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
   @override
   Widget build(BuildContext context) {
     final backgroundColor = widget.blocked
-        ? const Color(0xFF94A3B8)
+        ? AppColors.textDisabled
         : widget.isActive
             ? const Color(0xFF065F46)
-            : const Color(0xFF00A859);
+            : AppColors.primary;
 
     return GestureDetector(
       onTap: () {

@@ -83,6 +83,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   final Map<String, BusMotion> _busMotions = {};
   Timer? _busAnimTimer;
 
+  /// "Respiración" del halo del bus seleccionado: nativo (capa de círculo),
+  /// no un widget Flutter, porque así sigue al bus moviéndose sin proyectar
+  /// pantalla en cada frame. Solo corre mientras haya algo seleccionado —
+  /// una llamada al puente cada ~900 ms, no por frame.
+  Timer? _haloPulseTimer;
+  bool _haloPulseOut = false;
+
   static const _kRouteSourceId = 'route-source';
   static const _kRouteLayerId = 'route-line';
   static const _kStopsFijaSourceId = 'stops-fija-source';
@@ -91,6 +98,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kStopsInformalLayerId = 'stops-informal-layer';
   static const _kBusSourceId = 'bus-source';
   static const _kBusLayerId = 'bus-layer';
+  static const _kBusHaloLayerId = 'bus-selected-halo-layer';
 
   /// Capas consideradas "el bus" al tocar: solo el ícono. El halo de selección
   /// NO cuenta: es grande y como los buses van sobre la ruta, tapar pines
@@ -138,6 +146,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         ref.listenManual<Set<String>>(selectedBusesProvider, (previous, next) {
       if (!mounted || !_layersReady) return;
       _pushBusSource();
+      _syncHaloPulse(next);
     });
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
     // un fallo de MapLibre), el placeholder nunca debe quedarse para
@@ -194,6 +203,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _stopsSub?.close();
     _busAnimTimer?.cancel();
     _busAnimTimer = null;
+    _haloPulseTimer?.cancel();
+    _haloPulseTimer = null;
     // El plugin ya desecha el controller al desmontar el MapView; volver a
     // llamar dispose() sobre uno desechado lanza una excepción.
     if (_mapController != null && !_mapController!.isDisposed) {
@@ -250,6 +261,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _busMotions.clear();
     _busAnimTimer?.cancel();
     _busAnimTimer = null;
+    _stopHaloPulse();
     if (_mapController != null && mounted) {
       const emptyGeoJson = {"type": "FeatureCollection", "features": []};
       _mapController!.setGeoJsonSource(_kBusSourceId, emptyGeoJson);
@@ -390,6 +402,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         reloadMapData();
         _setupBusSubscription(widget.routeId!);
       }
+      // Si ya había un bus seleccionado antes de que el estilo terminara de
+      // cargar (p. ej. al recrear la vista nativa), el halo no debe esperar
+      // al próximo cambio de selección para empezar a pulsar.
+      _syncHaloPulse(ref.read(selectedBusesProvider));
     } catch (e) {
       debugPrint('MapWidget._onStyleLoadedCallback error: $e');
     } finally {
@@ -489,13 +505,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     await _mapController!.addCircleLayer(
         _kBusSourceId,
-        'bus-selected-halo-layer',
+        _kBusHaloLayerId,
+        // Dorado neón, no el verde del bus: así el halo se lee como "esto
+        // está seleccionado", no como una sombra del propio ícono.
         const CircleLayerProperties(
-          circleRadius: 18.0,
-          circleColor: '#00A859',
-          circleOpacity: 0.45,
-          circleBlur: 0.8,
-          circleStrokeWidth: 0.0,
+          circleRadius: 20.0,
+          circleColor: '#FFC72C',
+          circleOpacity: 0.55,
+          circleBlur: 0.75,
+          circleStrokeWidth: 2.0,
+          circleStrokeColor: '#FFF3C4',
+          circleStrokeOpacity: 0.9,
         ),
         filter: [
           '==',
@@ -818,6 +838,56 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     });
   }
 
+  /// Arranca o para la "respiración" del halo según haya algo seleccionado.
+  void _syncHaloPulse(Set<String> selectedBuses) {
+    if (selectedBuses.isEmpty) {
+      _stopHaloPulse();
+    } else {
+      _startHaloPulse();
+    }
+  }
+
+  /// Anima el halo nativo del bus seleccionado alternando entre un anillo
+  /// dorado apretado y brillante y un resplandor más ancho y difuso — el
+  /// vaivén que da la sensación de "brillar". Es una capa de MapLibre, no un
+  /// widget: se mueve con el bus gratis. Solo una llamada al puente por medio
+  /// ciclo (~900 ms), no por frame — el suavizado intermedio lo hace la
+  /// transición por defecto del estilo.
+  void _startHaloPulse() {
+    if (_haloPulseTimer != null) return;
+    _haloPulseOut = false;
+    _haloPulseTimer =
+        Timer.periodic(const Duration(milliseconds: 900), (_) {
+      if (_mapController == null || !mounted || !_layersReady) return;
+      _haloPulseOut = !_haloPulseOut;
+      _mapController!.setLayerProperties(
+        _kBusHaloLayerId,
+        CircleLayerProperties(
+          circleRadius: _haloPulseOut ? 27.0 : 16.0,
+          circleOpacity: _haloPulseOut ? 0.22 : 0.68,
+          circleBlur: _haloPulseOut ? 0.95 : 0.5,
+          circleStrokeOpacity: _haloPulseOut ? 0.3 : 1.0,
+        ),
+      );
+    });
+  }
+
+  void _stopHaloPulse() {
+    _haloPulseTimer?.cancel();
+    _haloPulseTimer = null;
+    if (_mapController != null && mounted && _layersReady) {
+      _mapController!.setLayerProperties(
+        _kBusHaloLayerId,
+        const CircleLayerProperties(
+          circleRadius: 20.0,
+          circleOpacity: 0.55,
+          circleBlur: 0.75,
+          circleStrokeOpacity: 0.9,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
@@ -860,9 +930,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               // pueden colocar pins ni seleccionar buses sobre un mapa que
               // todavía no pinta. El placeholder además bloquea el toque.
               if (!_layersReady) return;
+              // Durante el paso "location" de la guía, el único gesto
+              // permitido es fijar el pin: un bus bajo el toque no debe
+              // robárselo y desviar el flujo.
+              final guideBlocksBusTap =
+                  ref.read(mapGuideProvider).step == MapGuideStep.location;
               // Un bus cerca del toque (aunque quede debajo/encima del pin) se
               // selecciona y NO se mueve el pin manual.
-              if (await _selectBusAtTap(point)) return;
+              if (!guideBlocksBusTap && await _selectBusAtTap(point)) return;
               if (!mounted) return;
               final location = ref.read(userLocationProvider);
               // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.

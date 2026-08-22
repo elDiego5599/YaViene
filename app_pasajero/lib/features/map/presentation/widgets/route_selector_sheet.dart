@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/widgets/map_pattern_painter.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
 import 'map_tour_overlay.dart';
@@ -236,35 +237,40 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             shadowColor: const Color(0x6614274E),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             clipBehavior: Clip.antiAlias,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                final slide = Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(position: slide, child: child),
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey(_view),
-                child: switch (_view) {
-                  _RouteView.main => _buildMainView(context),
-                  _RouteView.companies => _buildListView(
-                      title: 'Selecciona una empresa',
-                      onBack: () => setState(() => _view = _RouteView.main),
-                      builder: (_) => _buildCompanyList(context),
-                    ),
-                  _RouteView.routes => _buildListView(
-                      title: 'Selecciona una ruta',
-                      onBack: () => setState(() => _view = _RouteView.main),
-                      builder: (_) => _buildRouteList(context),
-                    ),
+            // Mismo patrón de calles del drawer, tenue: identidad propia en
+            // la tarjeta que más tiempo mira el usuario.
+            child: CustomPaint(
+              painter: const MapPatternPainter(color: AppColors.primaryDeep),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final slide = Tween<Offset>(
+                    begin: const Offset(0.04, 0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: slide, child: child),
+                  );
                 },
+                child: KeyedSubtree(
+                  key: ValueKey(_view),
+                  child: switch (_view) {
+                    _RouteView.main => _buildMainView(context),
+                    _RouteView.companies => _buildListView(
+                        title: 'Selecciona una empresa',
+                        onBack: () => setState(() => _view = _RouteView.main),
+                        builder: (_) => _buildCompanyList(context),
+                      ),
+                    _RouteView.routes => _buildListView(
+                        title: 'Selecciona una ruta',
+                        onBack: () => setState(() => _view = _RouteView.main),
+                        builder: (_) => _buildRouteList(context),
+                      ),
+                  },
+                ),
               ),
             ),
           ),
@@ -294,7 +300,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF64748B),
+              color: AppColors.textSecondary,
               letterSpacing: 1.0,
             ),
           ),
@@ -334,7 +340,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF64748B),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   TextButton.icon(
@@ -356,7 +362,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF64748B),
+              color: AppColors.textSecondary,
               letterSpacing: 1.0,
             ),
           ),
@@ -431,7 +437,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  color: AppColors.textSecondary,
                 ),
               ),
             )
@@ -439,8 +445,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             ...companies.map((company) {
               return _compactTile(
                 icon: Icons.business_rounded,
-                iconColor: const Color(0xFF00A859),
-                iconBackground: const Color(0xFFE6F7F0),
+                iconColor: AppColors.primary,
+                iconBackground: AppColors.primaryTint,
                 title: company.name,
                 subtitle: null,
                 onTap: () {
@@ -490,15 +496,15 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF64748B),
+                  color: AppColors.textSecondary,
                 ),
               ),
             )
           else
             ...routes.map((route) => _compactTile(
                   icon: Icons.alt_route_rounded,
-                  iconColor: const Color(0xFF00A859),
-                  iconBackground: const Color(0xFFE6F7F0),
+                  iconColor: AppColors.primary,
+                  iconBackground: AppColors.primaryTint,
                   title: route.name,
                   subtitle: _routeSubtitle(route) ?? 'Tiempo real',
                   onTap: () {
@@ -541,10 +547,20 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
               if (!started) {
                 Navigator.of(context).maybePop();
                 messenger.showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text('No pudimos iniciar los buses demo · Reintentar'),
+                  SnackBar(
+                    content: const Text('No pudimos iniciar los buses demo'),
                     behavior: SnackBarBehavior.floating,
+                    action: SnackBarAction(
+                      label: 'Reintentar',
+                      // La hoja ya se cerró (pop arriba): el reintento no
+                      // depende de su context/ref, solo del messenger ya
+                      // capturado sobre el Scaffold del mapa.
+                      onPressed: () => _retryLaunchBuses(
+                        messenger,
+                        company?.id ?? '',
+                        route.id,
+                      ),
+                    ),
                   ),
                 );
                 return;
@@ -556,10 +572,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             }
           : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF14274E),
-        disabledBackgroundColor: const Color(0xFFE2E8F0),
+        backgroundColor: AppColors.primaryDeep,
+        disabledBackgroundColor: AppColors.divider,
         foregroundColor: Colors.white,
-        disabledForegroundColor: const Color(0xFF94A3B8),
+        disabledForegroundColor: AppColors.textDisabled,
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         elevation: 0,
@@ -572,7 +588,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
           fontSize: 16,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.3,
-          color: route != null ? Colors.white : const Color(0xFF94A3B8),
+          color: route != null ? Colors.white : AppColors.textDisabled,
         ),
       ),
     );
@@ -584,7 +600,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: const Color(0xFFE2E8F0),
+          color: AppColors.divider,
           borderRadius: BorderRadius.circular(999),
         ),
       ),
@@ -602,7 +618,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.divider),
       ),
       child: child,
     );
@@ -625,7 +641,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -648,7 +664,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
         if (onBack != null)
           IconButton(
             icon:
-                const Icon(Icons.arrow_back_rounded, color: Color(0xFF14274E)),
+                const Icon(Icons.arrow_back_rounded, color: AppColors.primaryDeep),
             onPressed: onBack,
             visualDensity: VisualDensity.compact,
           ),
@@ -660,7 +676,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
+              color: AppColors.textPrimary,
               letterSpacing: -0.5,
             ),
           ),
@@ -699,7 +715,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+            color: AppColors.textPrimary,
             letterSpacing: -0.3,
           ),
         ),
@@ -712,7 +728,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
+                  color: AppColors.textSecondary,
                 ),
               ),
         trailing:
@@ -729,6 +745,36 @@ String? _routeSubtitle(RouteInfo? route) {
   final b = route.terminalB ?? '';
   if (a.isEmpty && b.isEmpty) return null;
   return '$a ↔ $b';
+}
+
+/// F5: reintento real de "Ver buses en vivo" cuando falla. Vive fuera del
+/// State porque la hoja que lo disparó ya se cerró para cuando el usuario
+/// toca la acción del SnackBar.
+Future<void> _retryLaunchBuses(
+  ScaffoldMessengerState messenger,
+  String companyId,
+  String routeId,
+) async {
+  final started = await triggerDemoBuses(companyId, routeId);
+  if (started) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Buses en camino'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return;
+  }
+  messenger.showSnackBar(
+    SnackBar(
+      content: const Text('No pudimos iniciar los buses demo'),
+      behavior: SnackBarBehavior.floating,
+      action: SnackBarAction(
+        label: 'Reintentar',
+        onPressed: () => _retryLaunchBuses(messenger, companyId, routeId),
+      ),
+    ),
+  );
 }
 
 class _PremiumSelectorTile extends StatefulWidget {
@@ -773,13 +819,13 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isActive
-                  ? const Color(0xFF14274E).withValues(alpha: 0.2)
-                  : const Color(0xFFE2E8F0),
+                  ? AppColors.primaryDeep.withValues(alpha: 0.2)
+                  : AppColors.divider,
               width: isActive ? 1.5 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF14274E).withValues(alpha: 0.04),
+                color: AppColors.primaryDeep.withValues(alpha: 0.04),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               )
@@ -792,15 +838,15 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
                 height: 44,
                 decoration: BoxDecoration(
                   color: isActive
-                      ? const Color(0xFFE6F7F0)
-                      : const Color(0xFFF1F5F9),
+                      ? AppColors.primaryTint
+                      : AppColors.surfaceMuted,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   widget.icon,
                   color: isActive
-                      ? const Color(0xFF00A859)
-                      : const Color(0xFF94A3B8),
+                      ? AppColors.primary
+                      : AppColors.textDisabled,
                   size: 22,
                 ),
               ),
@@ -818,8 +864,8 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.4,
                         color: isActive
-                            ? const Color(0xFF0F172A)
-                            : const Color(0xFF94A3B8),
+                            ? AppColors.textPrimary
+                            : AppColors.textDisabled,
                       ),
                     ),
                     if (widget.subtitle != null) ...[
@@ -831,7 +877,7 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF64748B),
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../onboarding_flow.dart';
@@ -37,7 +38,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF14274E),
+      backgroundColor: AppColors.ink,
       body: CustomPaint(
         painter: const MapPatternPainter(),
         child: SafeArea(
@@ -59,7 +60,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF00A859)
+                                      color: AppColors.primary
                                           .withValues(alpha: 0.35),
                                       blurRadius: 50,
                                       spreadRadius: 10,
@@ -123,7 +124,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   style: TextStyle(
                                     fontSize: 23,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
+                                    color: AppColors.textPrimary,
                                     letterSpacing: -0.6,
                                   ),
                                 ),
@@ -133,7 +134,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF64748B),
+                                    color: AppColors.textSecondary,
                                     height: 1.4,
                                   ),
                                 ),
@@ -158,7 +159,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   height: 56,
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF00A859),
+                                      backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
@@ -194,7 +195,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     child: const Text(
                                       'Ahora no',
                                       style: TextStyle(
-                                        color: Color(0xFF64748B),
+                                        color: AppColors.textSecondary,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -232,10 +233,10 @@ class _BenefitRow extends StatelessWidget {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: const Color(0xFF00A859).withValues(alpha: 0.12),
+            color: AppColors.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: Icon(icon, color: const Color(0xFF00A859), size: 24),
+          child: Icon(icon, color: AppColors.primary, size: 24),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -244,7 +245,7 @@ class _BenefitRow extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
+              color: AppColors.textPrimary,
             ),
           ),
         ),

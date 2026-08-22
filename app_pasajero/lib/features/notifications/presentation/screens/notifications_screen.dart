@@ -45,13 +45,13 @@ class NotificationsScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
+            color: AppColors.textPrimary,
             letterSpacing: -0.3,
           ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          color: const Color(0xFF0F172A),
+          color: AppColors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: entries.isEmpty ? null : [const _SelectAction()],
@@ -96,8 +96,8 @@ class _SelectAction extends ConsumerWidget {
       },
       style: TextButton.styleFrom(
         foregroundColor:
-            selecting ? const Color(0xFFDC2626) : const Color(0xFF14274E),
-        disabledForegroundColor: const Color(0xFF94A3B8),
+            selecting ? AppColors.error : AppColors.primaryDeep,
+        disabledForegroundColor: AppColors.textDisabled,
       ),
       child: Text(
         selecting ? 'Borrar todas' : 'Seleccionar',
@@ -208,11 +208,11 @@ class _HistoryList extends ConsumerWidget {
                     height: 54,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFDC2626),
+                        backgroundColor: AppColors.error,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        disabledBackgroundColor: const Color(0xFFE2E8F0),
-                        disabledForegroundColor: const Color(0xFF94A3B8),
+                        disabledBackgroundColor: AppColors.divider,
+                        disabledForegroundColor: AppColors.textDisabled,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
                         ),
@@ -335,7 +335,7 @@ class _AlertTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: selected ? const Color(0xFF14274E) : const Color(0xFFE2E8F0),
+          color: selected ? AppColors.primaryDeep : AppColors.divider,
           width: selected ? 1.5 : 1.0,
         ),
       ),
@@ -345,14 +345,14 @@ class _AlertTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: sent ? const Color(0xFFFEF3C7) : const Color(0xFFECFDF5),
+              color: sent ? AppColors.warningLight : const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               sent
                   ? Icons.notifications_active_rounded
                   : Icons.directions_bus_filled_rounded,
-              color: sent ? const Color(0xFFD97706) : const Color(0xFF00A859),
+              color: sent ? AppColors.warning : AppColors.primary,
               size: 24,
             ),
           ),
@@ -370,7 +370,7 @@ class _AlertTile extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.textPrimary,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -380,7 +380,7 @@ class _AlertTile extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     height: 1.3,
-                    color: Color(0xFF64748B),
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -391,7 +391,7 @@ class _AlertTile extends StatelessWidget {
             Checkbox(
               value: selected,
               onChanged: (_) => onToggleSelect(),
-              activeColor: const Color(0xFF14274E),
+              activeColor: AppColors.primaryDeep,
               visualDensity: VisualDensity.compact,
             )
           else if (sent)
@@ -400,14 +400,14 @@ class _AlertTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF94A3B8),
+                color: AppColors.textDisabled,
               ),
             )
           else
             TextButton(
               onPressed: onDisable,
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFDC2626),
+                foregroundColor: AppColors.error,
               ),
               child: const Text(
                 'Desactivar',
@@ -440,7 +440,7 @@ class _EmptyState extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.notifications_none_rounded,
-                color: Color(0xFF00A859),
+                color: AppColors.primary,
                 size: 36,
               ),
             ),
@@ -450,7 +450,7 @@ class _EmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
+                color: AppColors.textPrimary,
                 letterSpacing: -0.3,
               ),
             ),
@@ -462,7 +462,7 @@ class _EmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 height: 1.4,
-                color: Color(0xFF64748B),
+                color: AppColors.textSecondary,
               ),
             ),
           ],

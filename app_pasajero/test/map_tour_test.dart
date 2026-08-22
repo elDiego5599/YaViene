@@ -217,7 +217,8 @@ void main() {
       );
 
       expect(find.text('Empieza aquí'), findsOneWidget);
-      expect(find.text('2/8'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('/8'), findsOneWidget);
       await tester.tapAt(const Offset(210, 290));
       expect(targetTap, isTrue);
       await tester.tapAt(const Offset(8, 8));

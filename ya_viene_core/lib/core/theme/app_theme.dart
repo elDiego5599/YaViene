@@ -11,9 +11,13 @@ abstract class AppColors {
 
   /// Coral suave: excepciones importantes (bus sin señal, avisos críticos).
   static const Color coral = Color(0xFFE86A5E);
+  static const Color coralLight = Color(0xFFFBE7E4);
 
   /// Azul eléctrico: reservado a la ruta activa del usuario y su métrica.
   static const Color electricBlue = Color(0xFF2563EB);
+
+  /// Tinta profunda: fondos "hero" de splash, login, onboarding y el drawer.
+  static const Color ink = Color(0xFF0B1628);
 
   static const Color background = Color(0xFFF8F9FA);
   static const Color surface = Color(0xFFFFFFFF);
@@ -29,6 +33,12 @@ abstract class AppColors {
   static const Color errorLight = Color(0xFFFEE2E2);
   static const Color success = Color(0xFF059669);
   static const Color successLight = Color(0xFFD1FAE5);
+
+  /// Ámbar: advertencia recuperable, no crítica (GPS sin fix, sin buses
+  /// cerca por ahora). Distinto de [coral]: eso es para excepciones ya
+  /// confirmadas (bus sin señal), esto es "reintenta o espera".
+  static const Color warning = Color(0xFFD97706);
+  static const Color warningLight = Color(0xFFFEF3C7);
 }
 
 abstract class AppSpacing {
@@ -144,12 +154,18 @@ abstract class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.background,
+      // V5: arena es el fondo general de la app; background queda solo para
+      // superficies que de verdad necesitan un gris neutro (p. ej. el mapa).
+      scaffoldBackgroundColor: AppColors.arena,
       // Fuente del bundle de la app (Plus Jakarta Sans), como AppTextStyles.
       fontFamily: 'PlusJakartaSans',
+      // Firma de movimiento: cualquier InkWell/ListTile suelto que no defina
+      // su propio splash hereda este verde tenue en vez del gris de fábrica.
+      splashColor: AppColors.primary.withValues(alpha: 0.10),
+      highlightColor: AppColors.primary.withValues(alpha: 0.05),
 
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.arena,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,

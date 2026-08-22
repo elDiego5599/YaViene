@@ -72,7 +72,8 @@ void main() {
       (tester) async {
     await pumpHero(tester, [busAt(0.007645)]);
 
-    expect(find.text('Bus A-1 · Ruta 1'), findsOneWidget);
+    // F6: mismo formato "ruta - placa" que ya usa Notificaciones.
+    expect(find.text('Ruta 1 - A-1'), findsOneWidget);
     expect(find.text('850'), findsOneWidget,
         reason: 'el número es la métrica principal del hero');
     expect(find.text('m de ti'), findsOneWidget);

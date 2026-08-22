@@ -344,6 +344,20 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
+  /// Envía el correo de restablecimiento de contraseña. Devuelve `null` si se
+  /// envió, o un mensaje de error si falló. No toca el estado general de
+  /// auth: es una acción aparte, no un intento de inicio de sesión.
+  Future<String?> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _friendlyAuthError(e);
+    } catch (e) {
+      return 'No se pudo conectar: revisa tu internet e intenta de nuevo';
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await _google.signOut();

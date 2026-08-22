@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 /// Pulso "radar" bajo el pin del usuario: un círculo verde que crece y se
 /// desvanece en bucle, con un punto sólido en el centro que marca el punto
@@ -19,12 +20,12 @@ class HaloPainter extends CustomPainter {
     canvas.drawCircle(
       center,
       radius,
-      Paint()..color = const Color(0xFF00A859).withValues(alpha: opacity),
+      Paint()..color = AppColors.primary.withValues(alpha: opacity),
     );
     canvas.drawCircle(
       center,
       5,
-      Paint()..color = const Color(0xFF00A859).withValues(alpha: 0.9),
+      Paint()..color = AppColors.primary.withValues(alpha: 0.9),
     );
   }
 
