@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/ink_hero.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../onboarding/onboarding_flow.dart';
 
@@ -57,61 +57,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: AppColors.ink,
       body: CustomPaint(
-        painter: const MapPatternPainter(),
+        painter: MapPatternPainter(),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 50,
-                      spreadRadius: 10,
-                    ),
-                  ],
-                ),
-                child: SvgPicture.asset(
-                  'assets/icon/ya_viene_logo.svg',
-                  width: 84,
-                  height: 84,
-                ),
+          child: InkHero(
+            logoSize: 84,
+            titleFontSize: 34,
+            taglineFontSize: 15,
+            spacingAfterLogo: 20,
+            trailing: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Color.fromRGBO(255, 255, 255, 0.6),
               ),
-              const SizedBox(height: 20),
-              const Text(
-                'Ya Viene',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -1.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Tu ciudad en tiempo real.',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.75),
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

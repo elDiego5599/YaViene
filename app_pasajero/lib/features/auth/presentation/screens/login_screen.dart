@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/ink_hero.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../onboarding/onboarding_flow.dart';
 
@@ -259,51 +260,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                   child: IntrinsicHeight(
                     child: Column(
                       children: [
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.35),
-                                      blurRadius: 50,
-                                      spreadRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                child: SvgPicture.asset(
-                                  'assets/icon/ya_viene_logo.svg',
-                                  width: 88,
-                                  height: 88,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              const Text(
-                                'Ya Viene',
-                                style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Tu ciudad en tiempo real.',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white.withValues(alpha: 0.75),
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        const Expanded(child: Center(child: InkHero())),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
