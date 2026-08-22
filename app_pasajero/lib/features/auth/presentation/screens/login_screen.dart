@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/ink_hero.dart';
@@ -45,6 +46,10 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
   bool _loginFlowInProgress = false;
   AuthNotifier? _auth;
   VoidCallback? _sessionListener;
+
+  /// F15: evita repetir el aviso de "no pudimos confirmar tu sesión" en
+  /// cada rebuild — se muestra una sola vez, al llegar desde el splash.
+  bool _timeoutNoticeHandled = false;
 
   @override
   void initState() {
@@ -246,6 +251,20 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // F15: si el splash llegó aquí porque no pudo confirmar la sesión a
+    // tiempo (no porque de verdad no hubiera ninguna), se avisa una vez —
+    // antes se veía idéntico a "no tienes sesión guardada".
+    if (!_timeoutNoticeHandled) {
+      _timeoutNoticeHandled = true;
+      if (GoRouterState.of(context).uri.queryParameters['reason'] ==
+          'timeout') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showError('No pudimos confirmar tu sesión: revisa tu conexión');
+          }
+        });
+      }
+    }
     return Scaffold(
       backgroundColor: AppColors.ink,
       body: CustomPaint(
