@@ -179,6 +179,15 @@ abstract class AppTheme {
         iconTheme: const IconThemeData(color: AppColors.primaryDeep, size: 24),
       ),
 
+      // F11: sin esto, un TextButton sin minimumSize propio cae en los 40dp
+      // de fábrica de Material — por debajo del tap target accesible de 44dp.
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 44),
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+      ),
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryDeep,
