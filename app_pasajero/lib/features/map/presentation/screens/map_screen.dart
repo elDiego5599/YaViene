@@ -7,6 +7,7 @@ import '../../../../services/background_keep_alive.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
+import '../providers/map_view_state.dart';
 import '../providers/realtime_providers.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
@@ -267,6 +268,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
+    // F7: mientras el mapa se está preparando, la píldora de ubicación y la
+    // de conexión no deben amontonarse sobre el "Preparando tu mapa…" — un
+    // solo estado de carga en vez de tres independientes.
+    final mapPreparing = ref.watch(mapPreparingProvider);
     final guide = ref.watch(mapGuideProvider);
     final step = guide.step;
     final activeAlerts = ref.watch(activeAlertsProvider);
@@ -320,10 +325,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   launchBusesGuideKey: _launchBusesGuideKey,
                   onSearchOpened: _onSearchOpened,
                 ),
-                const SizedBox(height: 8),
-                LocationStatusChip(routeId: selectedRoute?.id),
-                const SizedBox(height: 8),
-                const IdleStatusChip(),
+                if (!mapPreparing) ...[
+                  const SizedBox(height: 8),
+                  LocationStatusChip(routeId: selectedRoute?.id),
+                  const SizedBox(height: 8),
+                  const IdleStatusChip(),
+                ],
               ],
             ),
           ),

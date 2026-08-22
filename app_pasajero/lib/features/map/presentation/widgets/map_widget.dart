@@ -184,6 +184,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _styleInitInFlight = false;
       _placeholderShown = true;
     });
+    ref.read(mapPreparingProvider.notifier).state = true;
     // Nuevo intento: hay que reprogramar el timeout, o un segundo fallo se
     // quedaría en "Preparando tu mapa…" sin banner (BUG-04).
     _scheduleStyleTimeout();
@@ -994,6 +995,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           placeholderShown: _placeholderShown,
           onFadeEnd: () {
             if (mounted) setState(() => _placeholderShown = false);
+            ref.read(mapPreparingProvider.notifier).state = false;
           },
         ),
         MapStyleFailedBanner(
