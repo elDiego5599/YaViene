@@ -11,21 +11,29 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-    await windowManager.ensureInitialized();
-    const windowOptions = WindowOptions(
-      size: Size(1600, 900),
-      center: true,
-      title: 'Ya Viene · Control',
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.setFullScreen(true);
-      await windowManager.focus();
-    });
+    try {
+      await windowManager.ensureInitialized();
+      const windowOptions = WindowOptions(
+        size: Size(1600, 900),
+        center: true,
+        title: 'Ya Viene · Control',
+      );
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.show();
+        await windowManager.setFullScreen(true);
+        await windowManager.focus();
+      });
+    } catch (e) {
+      debugPrint('windowManager init falló: $e');
+    }
   }
 
   final container = ProviderContainer();
-  await container.read(authProvider.notifier).restoreSession();
+  try {
+    await container.read(authProvider.notifier).restoreSession();
+  } catch (e) {
+    debugPrint('restoreSession falló en el arranque: $e');
+  }
   runApp(UncontrolledProviderScope(container: container, child: const YaVieneControlApp()));
 }
 
