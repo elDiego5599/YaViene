@@ -230,6 +230,8 @@ class _Pill extends StatelessWidget {
                 child: Text(
                   data.text,
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  softWrap: true,
                   style: const TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
