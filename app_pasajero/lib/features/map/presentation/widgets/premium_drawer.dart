@@ -333,6 +333,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                   _staggered(
                     Column(
                       children: [
+                        const SizedBox(height: 12),
                         Divider(color: Colors.white.withValues(alpha: 0.12)),
                         const SizedBox(height: 18),
                         DrawerItem(
