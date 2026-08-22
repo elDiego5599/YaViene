@@ -37,11 +37,17 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
 }
 
+/// V3: 3 alturas de anclaje en vez de "abierta o cerrada" — como Uber. Un
+/// arrastre mueve un escalón (colapsada↔peek↔expandida); tocar el asa salta
+/// directo entre los dos extremos.
+enum _SheetSnap { collapsed, peek, expanded }
+
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _expandedMapInset = 250;
+  static const double _peekMapInset = 170;
   static const double _collapsedMapInset = 120;
 
-  bool _isExpanded = true;
+  _SheetSnap _snap = _SheetSnap.expanded;
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
 
@@ -68,8 +74,22 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     super.dispose();
   }
 
+  /// Toca el asa: salta directo entre los dos extremos (sin pasar por peek),
+  /// el mismo gesto rápido de "abrir/cerrar" de siempre.
   void _toggleSheet() {
-    setState(() => _isExpanded = !_isExpanded);
+    setState(() => _snap = _snap == _SheetSnap.collapsed
+        ? _SheetSnap.expanded
+        : _SheetSnap.collapsed);
+    _publishMapInset();
+  }
+
+  /// Arrastra la hoja: un escalón hacia arriba o hacia abajo entre las 3
+  /// alturas, en vez de saltar directo al extremo opuesto.
+  void _stepSnap(int direction) {
+    const order = _SheetSnap.values;
+    final next = (_snap.index + direction).clamp(0, order.length - 1);
+    if (next == _snap.index) return;
+    setState(() => _snap = order[next]);
     _publishMapInset();
   }
 
@@ -185,8 +205,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   }
 
   void _publishMapInset([double? forcedInset]) {
-    final inset =
-        forcedInset ?? (_isExpanded ? _expandedMapInset : _collapsedMapInset);
+    final defaultInset = switch (_snap) {
+      _SheetSnap.expanded => _expandedMapInset,
+      _SheetSnap.peek => _peekMapInset,
+      _SheetSnap.collapsed => _collapsedMapInset,
+    };
+    final inset = forcedInset ?? defaultInset;
     if (_lastPublishedInset == inset) return;
     _lastPublishedInset = inset;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -228,8 +252,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       if (previous != null &&
           previous.isEmpty &&
           next.isNotEmpty &&
-          !_isExpanded) {
-        setState(() => _isExpanded = true);
+          _snap == _SheetSnap.collapsed) {
+        setState(() => _snap = _SheetSnap.expanded);
       }
     });
 
@@ -273,7 +297,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     return _sheetShell(
       toggleable: true,
-      child: !_isExpanded
+      child: _snap == _SheetSnap.collapsed
           ? const KeyedSubtree(
               key: ValueKey('sheet-collapsed'),
               child: SizedBox.shrink(),
@@ -281,11 +305,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           : selectedBuses.isEmpty
               ? _buildEmptyState(buses)
               : KeyedSubtree(
-                  key: const ValueKey('sheet-bus'),
+                  key: ValueKey('sheet-bus-${_snap.name}'),
                   child: _buildSingleBusState(
                     selectedBuses.first,
                     busById[selectedBuses.first],
                     buses,
+                    peek: _snap == _SheetSnap.peek,
                   ),
                 ),
     );
@@ -296,14 +321,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   /// seleccionada la hoja no colapsa: siempre muestra su contenido).
   Widget _sheetShell({required Widget child, required bool toggleable}) {
     return GestureDetector(
+      // V3: el arrastre avanza un escalón entre las 3 alturas (Uber), no
+      // salta directo al extremo opuesto.
       onVerticalDragEnd: toggleable
           ? (details) {
-              if (details.primaryVelocity != null) {
-                if (details.primaryVelocity! > 0 && _isExpanded) {
-                  _toggleSheet();
-                } else if (details.primaryVelocity! < 0 && !_isExpanded) {
-                  _toggleSheet();
-                }
+              final velocity = details.primaryVelocity;
+              if (velocity == null) return;
+              if (velocity > 0) {
+                _stepSnap(-1);
+              } else if (velocity < 0) {
+                _stepSnap(1);
               }
             }
           : null,
@@ -430,7 +457,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   }
 
   Widget _buildSingleBusState(
-      String busId, BusPosition? bus, List<BusPosition> buses) {
+      String busId, BusPosition? bus, List<BusPosition> buses,
+      {bool peek = false}) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final locationState = ref.watch(userLocationProvider);
     final staleLabel = _staleLabel(bus);
@@ -526,7 +554,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final isNumberMetric = metricUnit != null;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 6, 24, 20),
+      // V3: en peek la hoja muestra solo el número y el botón — menos
+      // relleno vertical porque ya no lleva identidad ni detalle.
+      padding: EdgeInsets.fromLTRB(24, peek ? 2 : 6, 24, peek ? 14 : 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -539,18 +569,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             ),
           ),
           const SizedBox(height: 18),
-          // Identidad de ruta: misma "ruta - placa" que ya usa Notificaciones.
-          Text(
-            busLabel,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.4,
+          if (!peek) ...[
+            // Identidad de ruta: misma "ruta - placa" que ya usa
+            // Notificaciones.
+            Text(
+              busLabel,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.4,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
           // Métrica principal: número grande que respira, o el estado en palabras.
           Text(
             metricText,
@@ -584,7 +617,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               ),
             ),
           ],
-          if (stateDetail != null) ...[
+          if (!peek && stateDetail != null) ...[
             const SizedBox(height: 14),
             Text(
               stateDetail,
