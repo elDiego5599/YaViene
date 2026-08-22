@@ -1,0 +1,105 @@
+/* ============ ANIMATIONS & ACCESSIBILITY ============ */
+
+/* Reveal on scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s var(--ease-out-cubic), transform 0.7s var(--ease-out-cubic);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Pulse Beacon */
+.pulse-beacon {
+  position: relative;
+}
+
+.pulse-beacon::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: 0.6;
+  animation: beaconPulse 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes beaconPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Levitación de las tarjetas del hero. La rotación va en una variable para
+   que cada tarjeta conserve su inclinación mientras sube y baja. */
+.levita {
+  --inclina: 0deg;
+  animation: levitar 6s ease-in-out infinite;
+}
+
+.levita--lenta {
+  animation-duration: 7.4s;
+  animation-delay: -2.2s;
+}
+
+@keyframes levitar {
+  0%, 100% {
+    transform: translateY(-7px) rotate(var(--inclina));
+  }
+  50% {
+    transform: translateY(7px) rotate(var(--inclina));
+  }
+}
+
+/* Latido bajo el pin del mapa, el mismo faro de ubicación de la app. */
+@keyframes pinRadarPing {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4.2);
+    opacity: 0;
+  }
+}
+
+/* Reduced motion accessibility query */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .phone-shell {
+    transition: none !important;
+    transform: none !important;
+  }
+  .pulse-beacon::after {
+    animation: none !important;
+  }
+  .map-pin-ping {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .levita {
+    animation: none !important;
+    transform: rotate(var(--inclina)) !important;
+  }
+  html {
+    scroll-behavior: auto !important;
+  }
+}
