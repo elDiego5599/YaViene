@@ -36,3 +36,10 @@ jobs:
           flutter pub get
           flutter analyze lib test
           flutter test
+
+      - name: Analyze and test control
+        working-directory: app_control
+        run: |
+          flutter pub get
+          flutter analyze lib test
+          flutter test
