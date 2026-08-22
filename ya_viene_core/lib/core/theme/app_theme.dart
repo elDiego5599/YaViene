@@ -32,6 +32,13 @@ abstract class AppColors {
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);
 
+  /// Rojo del bus en vivo sobre el mapa. Comparte el valor de [coral] —
+  /// es el rojo cálido de la marca — pero vive aparte a propósito: [coral]
+  /// significa "excepción" (bus sin señal, aviso crítico) y esto significa
+  /// "bus activo y reportando". Si algún día se separan de color, se cambia
+  /// aquí sin tocar la semántica de las excepciones.
+  static const Color busActive = Color(0xFFE86A5E);
+
   static const Color busGhost = Color(0xFF94A3B8);
   static const Color error = Color(0xFFDC2626);
   static const Color errorLight = Color(0xFFFEE2E2);

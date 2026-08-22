@@ -16,7 +16,7 @@ Future<void> loadBusIcons(MapLibreMapController? controller) async {
   if (controller == null) return;
   try {
     final activeBytes = await createFlatTransitMarker(
-      AppColors.primary,
+      AppColors.busActive,
       isGhost: false,
     );
     final ghostBytes = await createFlatTransitMarker(

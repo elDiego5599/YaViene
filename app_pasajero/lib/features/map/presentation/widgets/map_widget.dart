@@ -507,7 +507,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     await _mapController!.addCircleLayer(
         _kBusSourceId,
         _kBusHaloLayerId,
-        // Dorado neón, no el verde del bus: así el halo se lee como "esto
+        // Dorado neón, no el rojo del bus: así el halo se lee como "esto
         // está seleccionado", no como una sombra del propio ícono.
         const CircleLayerProperties(
           circleRadius: 20.0,
@@ -922,7 +922,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             },
             // Estilo Voyager de CARTO: mapa alegre y colorido (agua azul,
             // parques verdes, vías cálidas) como corresponde a Barranquilla.
-            // El azul de la ruta y los buses verdes resaltan sobre él.
+            // El azul de la ruta y los buses rojos resaltan sobre él.
             styleString:
                 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
             initialCameraPosition: const CameraPosition(
