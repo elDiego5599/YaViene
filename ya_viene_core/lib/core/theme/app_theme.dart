@@ -5,6 +5,10 @@ abstract class AppColors {
   static const Color primary = Color(0xFF00A859);
   static const Color primaryTint = Color(0xFFE6F7F0);
 
+  /// F4: variante de [primary] con contraste AA (4.5:1) en texto chico o
+  /// texto blanco sobre fondo verde — [primary] solo, ~3.1:1, no alcanza.
+  static const Color primaryAccessible = Color(0xFF047857);
+
   // ── Identidad "movilidad urbana editorial" (Fase 1) ───────────────────
   /// Arena cálida: superficies de tarjetas y estados vacíos.
   static const Color arena = Color(0xFFFAF6F0);

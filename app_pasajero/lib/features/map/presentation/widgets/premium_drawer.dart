@@ -567,7 +567,9 @@ class _DrawerItemState extends State<DrawerItem> {
       child: AnimatedScale(
         scale: _pressed ? 0.975 : 1,
         duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
+        // V6: el drawer solo tiene 3 ítems — entran en el cupo de "3-4
+        // botones de verdad importantes" que sí llevan rebote.
+        curve: Curves.easeOutBack,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(

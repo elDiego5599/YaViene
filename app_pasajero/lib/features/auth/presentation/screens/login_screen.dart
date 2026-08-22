@@ -350,18 +350,34 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 22),
-                                _Field(
-                                  controller: _emailController,
-                                  icon: Icons.alternate_email_rounded,
-                                  hint: 'Email',
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  // Habilitado también en el paso de perfil:
-                                  // quien toca "¿No tienes cuenta? Regístrate"
-                                  // antes de escribir su correo no debe quedar
-                                  // atrapado sin poder ponerlo.
-                                  enabled: _step == _Step.email ||
-                                      _step == _Step.profile,
+                                ValueListenableBuilder<TextEditingValue>(
+                                  valueListenable: _emailController,
+                                  builder: (context, emailValue, child) {
+                                    // F17: solo se marca inválido en el paso
+                                    // de email y con algo ya escrito — no al
+                                    // llegar vacío a la pantalla.
+                                    final showError = _step == _Step.email &&
+                                        emailValue.text.isNotEmpty &&
+                                        !ref
+                                            .read(authProvider)
+                                            .isEmailValid(emailValue.text);
+                                    return _Field(
+                                      controller: _emailController,
+                                      icon: Icons.alternate_email_rounded,
+                                      hint: 'Email',
+                                      keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.next,
+                                      // Habilitado también en el paso de
+                                      // perfil: quien toca "¿No tienes
+                                      // cuenta? Regístrate" antes de escribir
+                                      // su correo no debe quedar atrapado sin
+                                      // poder ponerlo.
+                                      enabled: _step == _Step.email ||
+                                          _step == _Step.profile,
+                                      errorText:
+                                          showError ? 'Correo inválido' : null,
+                                    );
+                                  },
                                 ),
                                 if (_step == _Step.password) ...[
                                   const SizedBox(height: 12),
@@ -676,6 +692,7 @@ class _Field extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction textInputAction;
   final VoidCallback? onToggleVisibility;
+  final String? errorText;
 
   const _Field({
     required this.controller,
@@ -686,6 +703,7 @@ class _Field extends StatelessWidget {
     this.keyboardType,
     this.textInputAction = TextInputAction.done,
     this.onToggleVisibility,
+    this.errorText,
   });
 
   @override
@@ -729,6 +747,9 @@ class _Field extends StatelessWidget {
                     color: AppColors.textSecondary,
                     size: 22,
                   ),
+                  // F3a: el ícono de ojo no tenía ninguna etiqueta accesible.
+                  tooltip:
+                      obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
                   onPressed: onToggleVisibility,
                 )
               : null,
@@ -738,6 +759,20 @@ class _Field extends StatelessWidget {
             borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           disabledBorder: InputBorder.none,
+          errorText: errorText,
+          errorStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.error,
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: const BorderSide(color: AppColors.error, width: 2),
+          ),
         ),
       ),
     );

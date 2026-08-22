@@ -703,7 +703,9 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
       child: AnimatedScale(
         scale: _isPressed ? 0.96 : 1,
         duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOutCubic,
+        // V6: el rebote se reserva para el CTA principal de la app — el
+        // resto de los botones se queda con easeOutCubic.
+        curve: Curves.easeOutBack,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,

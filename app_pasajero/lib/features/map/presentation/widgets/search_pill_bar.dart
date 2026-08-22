@@ -155,8 +155,11 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
+                                  // F4: primaryAccessible sí llega a 4.5:1
+                                  // sobre blanco a este tamaño; primary
+                                  // a secas se queda en ~3.1:1.
                                   color: selectedRoute != null
-                                      ? AppColors.primary
+                                      ? AppColors.primaryAccessible
                                       : AppColors.textSecondary,
                                 ),
                                 maxLines: 1,

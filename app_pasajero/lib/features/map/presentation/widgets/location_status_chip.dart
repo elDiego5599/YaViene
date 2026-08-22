@@ -246,7 +246,9 @@ class _Pill extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: data.actionDanger
                         ? AppColors.errorLight
-                        : AppColors.primary,
+                        // F4: primaryAccessible da 4.5:1 con texto blanco;
+                        // primary a secas se queda en ~3.1:1.
+                        : AppColors.primaryAccessible,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
