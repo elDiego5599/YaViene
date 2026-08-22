@@ -40,7 +40,8 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       context: context,
       barrierDismissible: false,
       barrierLabel: 'Selector de ruta',
-      barrierColor: Colors.transparent,
+      // El framework anima este barrier con fade, nunca con slide.
+      barrierColor: const Color(0x66000000),
       transitionDuration: const Duration(milliseconds: 260),
       transitionBuilder: (context, animation, _, child) {
         final curved =
@@ -110,9 +111,6 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       fit: StackFit.expand,
       children: [
         if (!guided) ...[
-          Positioned.fill(
-            child: Container(color: const Color(0x66000000)),
-          ),
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
