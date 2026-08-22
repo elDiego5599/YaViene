@@ -584,20 +584,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             ),
             const SizedBox(height: 10),
           ],
-          // Métrica principal: número grande que respira, o el estado en palabras.
+          // Métrica principal: número grande que respira, o el estado en
+          // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
+          // TextStyle base) en vez de un literal duplicado.
           Text(
             metricText,
             key: widget.metricKey,
             textAlign: TextAlign.center,
             style: isNumberMetric
-                ? TextStyle(
+                ? AppTextStyles.etaNumber.copyWith(
                     fontSize: 64,
-                    fontWeight: FontWeight.w200,
                     color: stripColor,
                     height: 1.0,
                     letterSpacing: -2.0,
                   )
-                : TextStyle(
+                : AppTextStyles.etaNumber.copyWith(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
                     color: stripColor,
