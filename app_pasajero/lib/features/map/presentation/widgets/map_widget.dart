@@ -609,7 +609,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   final _tapDebouncer = TapDebouncer();
-  bool _pinMoveHintShown = false;
 
   Future<bool> _selectBusAtTap(math.Point<double> point) =>
       _tapDebouncer.run(point, _doSelectBusAtTap);
@@ -895,6 +894,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       return const ColoredBox(color: AppColors.background);
     }
 
+    // F18: antes solo se avisaba una vez con un SnackBar que "arrastra el
+    // pin para moverlo". Ahora hay un badge junto al propio pin mientras es
+    // manual: se ve cada vez, no solo la primera.
+    final pinIsManual = ref.watch(userLocationProvider).mode ==
+        UserLocationMode.manual;
+
     return Stack(
       children: [
         Positioned.fill(
@@ -947,17 +952,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               if (location.mode == UserLocationMode.gps) {
                 return;
               }
-              // Pin fijo: una vez puesto no se mueve con toques (evita moverlo por
-              // accidente al tocar el mapa); se quita con "Quitar" y se vuelve a
-              // tocar donde se quiera poner.
+              // Pin fijo: una vez puesto no se mueve con toques (evita
+              // moverlo por accidente al tocar el mapa); se arrastra directo
+              // (el badge junto al pin lo indica todo el tiempo, F18) o se
+              // quita con "Quitar".
               if (location.mode == UserLocationMode.manual) {
-                if (!_pinMoveHintShown && context.mounted) {
-                  _pinMoveHintShown = true;
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content:
-                        Text('Arrastra el pin para moverlo a donde quieras'),
-                  ));
-                }
                 return;
               }
               ref
@@ -986,6 +985,36 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                     center: _pinScreenPos!,
                     phase: _haloCtrl.value,
                   ),
+                ),
+              ),
+            ),
+          ),
+        // F18: badge persistente de "se puede arrastrar" sobre el pin fijo,
+        // en vez de un SnackBar que solo se ve la primera vez.
+        if (pinIsManual && !_pinDragging && _pinScreenPos != null)
+          Positioned(
+            left: _pinScreenPos!.dx - 15,
+            top: _pinScreenPos!.dy - _pinTipOffset - 46,
+            child: IgnorePointer(
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.94),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.divider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryDeep.withValues(alpha: 0.16),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.open_with_rounded,
+                  size: 16,
+                  color: AppColors.primaryDeep,
                 ),
               ),
             ),
