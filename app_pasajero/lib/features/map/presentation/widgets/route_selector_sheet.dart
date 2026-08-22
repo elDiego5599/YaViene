@@ -445,8 +445,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             ...companies.map((company) {
               return _compactTile(
                 icon: Icons.business_rounded,
-                iconColor: AppColors.primary,
-                iconBackground: AppColors.primaryTint,
+                iconColor: Colors.white,
+                iconBackground: _companyColor(company.id),
+                // V2: insignia de iniciales con color determinístico — se
+                // reconoce la fila antes de leer el nombre, como en Bolt.
+                badgeInitials: _companyInitials(company.name),
                 title: company.name,
                 subtitle: null,
                 onTap: () {
@@ -692,6 +695,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     required String title,
     String? subtitle,
     required VoidCallback onTap,
+    String? badgeInitials,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -706,7 +710,19 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             color: iconBackground,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: iconColor, size: 20),
+          child: badgeInitials != null
+              ? Center(
+                  child: Text(
+                    badgeInitials,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                )
+              : Icon(icon, color: iconColor, size: 20),
         ),
         title: Text(
           title,
@@ -745,6 +761,41 @@ String? _routeSubtitle(RouteInfo? route) {
   final b = route.terminalB ?? '';
   if (a.isEmpty && b.isEmpty) return null;
   return '$a ↔ $b';
+}
+
+/// V2: paleta fija tomada de los tokens de marca — el color no se genera al
+/// azar, solo se elige de forma determinística según el id de la empresa.
+const _companyPalette = [
+  AppColors.electricBlue,
+  AppColors.coral,
+  AppColors.warning,
+  AppColors.primaryDeep,
+  AppColors.primary,
+  AppColors.primaryAccessible,
+];
+
+Color _companyColor(String companyId) {
+  final hash = companyId.codeUnits.fold<int>(0, (sum, c) => sum + c);
+  return _companyPalette[hash % _companyPalette.length];
+}
+
+const _companyInitialsStopWords = {'de', 'del', 'la', 'el', 'los', 'las', 'y'};
+
+/// "Transporte del Norte" → "TN": la primera palabra y la siguiente que no
+/// sea un conector, igual que el demo de la propuesta.
+String _companyInitials(String name) {
+  final words =
+      name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.isEmpty) return '?';
+  final significant = words
+      .where((w) => !_companyInitialsStopWords.contains(w.toLowerCase()))
+      .toList();
+  if (significant.isEmpty) return words.first[0].toUpperCase();
+  if (significant.length == 1) {
+    final w = significant.first;
+    return (w.length >= 2 ? w.substring(0, 2) : w).toUpperCase();
+  }
+  return (significant[0][0] + significant[1][0]).toUpperCase();
 }
 
 /// F5: reintento real de "Ver buses en vivo" cuando falla. Vive fuera del
