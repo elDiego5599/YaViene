@@ -1,0 +1,4 @@
+storePassword=CAMBIAME_CON_LA_PASSWORD_REAL
+keyPassword=CAMBIAME_CON_LA_PASSWORD_REAL
+keyAlias=upload
+storeFile=upload-keystore.jks

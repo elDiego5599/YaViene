@@ -73,7 +73,7 @@ class RealtimeService implements RealtimeRepository {
   void connect() {
     if (_socket?.connected == true) return;
     _socket?.dispose();
-    const url = AppConfig.backendUrl;
+    final url = AppConfig.backendUrl;
     _emitConnectionStatus(ConnectionStatus.reconnecting);
     _socket = io.io(url, <String, dynamic>{
       'transports': ['websocket'],

@@ -5,15 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../../../core/services/bus_notification_service.dart';
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
+import '../providers/alert_toggle_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
-import 'alert_guards.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
@@ -93,84 +92,30 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     _publishMapInset();
   }
 
-  /// Activa/desactiva la alerta de un bus. Al activar, pide el permiso de
-  /// notificaciones en contexto; sin permiso no tiene sentido avisar.
+  /// Activa/desactiva la alerta de un bus. La regla de negocio vive en
+  /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico y
+  /// snackbar.
   Future<void> _toggleAlert(String busId) async {
-    final notifier = ref.read(activeAlertsProvider.notifier);
-    final wasActive = ref.read(activeAlertsProvider).contains(busId);
-    if (!wasActive) {
-      // Sin posición (GPS negado y sin pin) el aviso nunca podría medir ni
-      // dispararse: mejor explicarlo antes de armar una alerta muerta.
-      final location = ref.read(userLocationProvider);
-      final bus = _busById(busId);
-      final error = validateAlertActivation(
-        hasPosition: location.hasPosition,
-        bus: bus,
-        busAlreadyNear: _busAlreadyNear(bus),
-        activeAlertsCount: ref.read(activeAlertsProvider).length,
-      );
-      if (error != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(error),
-          ));
-        }
-        return;
-      }
-      if (!await BusNotificationService.requestPermission()) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text('Activa las notificaciones para recibir el aviso del bus'),
-            action: SnackBarAction(
-              label: 'Ajustes',
-              onPressed: openAppSettings,
-            ),
-          ));
-        }
-        return;
-      }
-    }
-    HapticFeedback.mediumImpact();
-    final routeId = ref.read(selectedRouteProvider)?.id;
-    if (wasActive) {
-      notifier.deactivateAlert(busId);
-      ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
+    final result = await ref.read(alertToggleProvider).toggle(busId);
+    if (!mounted) return;
+    if (result.needsHaptic) HapticFeedback.mediumImpact();
+    final message = result.message;
+    if (message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(message),
+      ));
       return;
     }
-    // La validación anterior ocurre antes del await del permiso. Esta segunda
-    // comprobación atómica evita que dos taps concurrentes armen un tercer
-    // aviso mientras la solicitud de permiso está en vuelo.
-    if (!notifier.activateAlert(busId)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Ya tienes 2 avisos activos: desactiva uno o espera a que '
-              'termine para activar otro. Recuerda no cerrar la aplicación'),
-        ));
-      }
-      return;
+    if (result.outcome == AlertToggleOutcome.permissionDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content:
+            Text('Activa las notificaciones para recibir el aviso del bus'),
+        action: SnackBarAction(
+          label: 'Ajustes',
+          onPressed: openAppSettings,
+        ),
+      ));
     }
-    if (routeId != null) {
-      // Quedó armado: se registra la ruta para que el aviso mida aunque se
-      // cambie de ruta en pantalla.
-      ref.read(proximityAlertsProvider.notifier).armAlert(busId, routeId);
-    } else {
-      // Defensa contra un estado imposible: nunca dejes un aviso activo sin
-      // ruta ni suscripción de posiciones.
-      notifier.deactivateAlert(busId);
-    }
-  }
-
-  BusPosition? _busById(String busId) {
-    final route = ref.read(selectedRouteProvider);
-    if (route == null) return null;
-    final positions = ref.read(busPositionsSourceProvider(route.id)).value;
-    if (positions == null) return null;
-    for (final p in positions) {
-      if (p.busId == busId) return p;
-    }
-    return null;
   }
 
   /// Distancia en metros del usuario al bus; null si no se puede medir.

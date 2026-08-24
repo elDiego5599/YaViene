@@ -1,0 +1,243 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
+
+class _TestUserLocation extends UserLocationNotifier {
+  void set(UserLocationState state) => this.state = state;
+}
+
+ProviderContainer _container({
+  required List<BusPosition> buses,
+  required bool permissionGranted,
+  NotificationPermissionRequester? requester,
+}) {
+  final c = ProviderContainer(overrides: [
+    userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+    busPositionsSourceProvider.overrideWith(
+      (ref, routeId) => Stream.value(buses),
+    ),
+    proximityAlertsProvider.overrideWith((ref) {
+      return ProximityAlertsNotifier(
+        ref,
+        notify: ({required String busId, String? routeName,
+              String? routeId, required int distanceMeters}) async {}
+      );
+    }),
+    alertToggleProvider.overrideWith((ref) => AlertToggleController(
+          ref,
+          requestPermission:
+              requester ?? (() async => permissionGranted),
+        )),
+  ]);
+  addTearDown(c.dispose);
+  return c;
+}
+
+void main() {
+  final userHere = UserLocationState(
+    mode: UserLocationMode.gps,
+    lat: 6.2442,
+    lon: -75.5812,
+    updatedAt: DateTime.now(),
+  );
+
+  // A ~1.9 km del usuario: fuera del radio (1000 m) y fuera del re-arm
+  // (1500 m), candidato válido.
+  final busLejos = BusPosition(
+    busId: 'A-1',
+    routeId: 'R1',
+    lat: 6.2600,
+    lon: -75.5812,
+    heading: 0,
+    speedKmh: 20,
+    timestamp: DateTime.now(),
+    isGhostBus: false,
+  );
+
+  final busCerca = BusPosition(
+    busId: 'C-1',
+    routeId: 'R1',
+    lat: 6.2442,
+    lon: -75.5812,
+    heading: 0,
+    speedKmh: 20,
+    timestamp: DateTime.now(),
+    isGhostBus: false,
+  );
+
+  final busFantasma = BusPosition(
+    busId: 'G-1',
+    routeId: 'R1',
+    lat: 6.2600,
+    lon: -75.5812,
+    heading: 0,
+    speedKmh: 0,
+    timestamp: DateTime.now().subtract(const Duration(minutes: 10)),
+    isGhostBus: true,
+  );
+
+  RouteInfo route() => const RouteInfo(
+        id: 'R1',
+        name: 'Ruta 1',
+        companyId: 'C1',
+      );
+
+  test('activa el aviso cuando todo está en orden y lo arma', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busLejos], permissionGranted: true);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+    // El StreamProvider emite en microtasks: se drena antes de tocar para
+    // que el guard vea la posición real del bus.
+    // listen (no read): autoDispose descarta el provider con un Timer(0) si
+    // nadie lo escucha, y el controller re-crearía el stream sin datos.
+    final sub = container.listen(busPositionsSourceProvider('R1'), (_, __) {});
+    addTearDown(sub.close);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+
+    expect(result.outcome, AlertToggleOutcome.activated);
+    expect(container.read(activeAlertsProvider), contains('A-1'));
+    // El estado de proximityAlerts son los buses que YA DISPARARON: un aviso
+    // recién armado no ha disparado, así que sigue vacío (lo observable del
+    // armado es que activeAlerts lo contiene y que no lanzó excepción).
+    expect(container.read(proximityAlertsProvider), isEmpty);
+  });
+
+  test('sin ubicación lo rechaza explicando qué falta', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busLejos], permissionGranted: true);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(UserLocationState(
+      mode: UserLocationMode.denied,
+      updatedAt: DateTime.now(),
+    ));
+    container.read(selectedRouteProvider.notifier).select(route());
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+
+    expect(result.outcome, AlertToggleOutcome.rejected);
+    expect(result.message, contains('dónde estás'));
+    expect(container.read(activeAlertsProvider), isEmpty);
+  });
+
+  test('un bus fantasma (sin señal) no se puede armar', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busFantasma], permissionGranted: true);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+    // listen (no read): autoDispose descarta el provider con un Timer(0) si
+    // nadie lo escucha, y el controller re-crearía el stream sin datos.
+    final sub = container.listen(busPositionsSourceProvider('R1'), (_, __) {});
+    addTearDown(sub.close);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final result = await container.read(alertToggleProvider).toggle('G-1');
+
+    expect(result.outcome, AlertToggleOutcome.rejected);
+    expect(result.message, contains('sin señal'));
+    expect(container.read(activeAlertsProvider), isEmpty);
+  });
+
+  test('un bus ya dentro del radio no acepta aviso', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busCerca], permissionGranted: true);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+    // listen (no read): autoDispose descarta el provider con un Timer(0) si
+    // nadie lo escucha, y el controller re-crearía el stream sin datos.
+    final sub = container.listen(busPositionsSourceProvider('R1'), (_, __) {});
+    addTearDown(sub.close);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final result = await container.read(alertToggleProvider).toggle('C-1');
+
+    expect(result.outcome, AlertToggleOutcome.rejected);
+    expect(result.message, contains('ya está a menos de'));
+    expect(container.read(activeAlertsProvider), isEmpty);
+  });
+
+  test('sin permiso de notificaciones no se arma nada', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busLejos], permissionGranted: false);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+
+    expect(result.outcome, AlertToggleOutcome.permissionDenied);
+    expect(container.read(activeAlertsProvider), isEmpty);
+    expect(container.read(proximityAlertsProvider), isEmpty);
+  });
+
+  test('desactivar un aviso activo lo desarma completo', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busLejos], permissionGranted: true);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+
+    await container.read(alertToggleProvider).toggle('A-1');
+    expect(container.read(activeAlertsProvider), contains('A-1'));
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+    expect(result.outcome, AlertToggleOutcome.deactivated);
+    expect(container.read(activeAlertsProvider), isEmpty);
+    expect(container.read(proximityAlertsProvider), isEmpty);
+  });
+
+  test('la carrera de dos taps no supera el límite: limitReached', () async {
+    SharedPreferences.setMockInitialValues({});
+    // El requester simula la carrera: mientras el permiso "viaja", el tap
+    // concurrente ocupa el cupo. La comprobación atómica debe defenderlo.
+    ProviderContainer? race;
+    final container = _container(
+      buses: [busLejos],
+      permissionGranted: true,
+      requester: () async {
+        final alerts = race!.read(activeAlertsProvider.notifier);
+        alerts.activateAlert('X-1');
+        alerts.activateAlert('X-2');
+        return true;
+      },
+    );
+    race = container;
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+
+    expect(result.outcome, AlertToggleOutcome.limitReached);
+    expect(result.message, contains('2 avisos activos'));
+    expect(container.read(activeAlertsProvider), isNot(contains('A-1')));
+  });
+
+  test('aviso activado sin ruta se deshace solo (estado imposible)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(buses: [busLejos], permissionGranted: true);
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    // Sin ruta seleccionada: el caso imposible.
+    container.read(selectedRouteProvider.notifier).clear();
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+
+    expect(result.outcome, AlertToggleOutcome.noRoute);
+    // En ningún caso queda un aviso huérfano.
+    expect(container.read(activeAlertsProvider), isEmpty);
+  });
+}

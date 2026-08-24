@@ -16,7 +16,6 @@ dependencies:
 
   # ── State Management ─────────────────────────────────────────────────────────
   flutter_riverpod: ^2.5.1
-  riverpod_annotation: ^2.3.5
 
   # ── Navigation ───────────────────────────────────────────────────────────────
   go_router: ^14.2.0
@@ -28,19 +27,15 @@ dependencies:
   # NOTA: El pasajero SOLO consume via WebSocket (lectura). NO hay MQTT.
   # Zero Trust: el broker MQTT solo acepta PUBLISH de conductores autenticados.
   socket_io_client: ^2.0.3+1
-  dio: ^5.4.3+1
 
   # ── Local Storage ─────────────────────────────────────────────────────────────
   shared_preferences: ^2.3.1
-  sqflite: ^2.3.3+1
-  path: ^1.9.0
 
   # ── UI ────────────────────────────────────────────────────────────────────────
   # NOTA: SIN google_fonts. La fuente Plus Jakarta Sans se registra
   # nativamente en la sección `flutter.fonts` de este archivo y se lee del
   # bundle de la app (ya_viene_core la referencia por nombre 'PlusJakartaSans').
   # Esto elimina el FOUT (Flash of Unstyled Text) y la dependencia de red.
-  cached_network_image: ^3.3.1
   flutter_svg: ^2.0.10+1
 
   # ── Firebase ──────────────────────────────────────────────────────────────────
@@ -48,7 +43,6 @@ dependencies:
   # ── Utilities ─────────────────────────────────────────────────────────────────
   equatable: ^2.0.5
   intl: ^0.19.0
-  logger: ^2.4.0
   permission_handler: ^11.3.1
   geolocator: ^13.0.1
   flutter_local_notifications: ^22.3.0
@@ -62,10 +56,6 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  build_runner: ^2.4.11
-  riverpod_generator: ^2.4.3
-  custom_lint: ^0.7.6
-  riverpod_lint: ^2.3.13
 
 flutter:
   uses-material-design: true
