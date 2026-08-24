@@ -230,7 +230,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
           curve: Curves.easeOutCubic,
           alignment: Alignment.bottomCenter,
           child: Material(
-            color: Colors.white,
+            // Misma superficie que la hoja de distancia (AppColors.arena):
+            // las dos tarjetas se ven una detrás de otra en el mismo flujo y
+            // el salto de blanco a arena las hacía parecer de apps distintas.
+            color: AppColors.arena,
             elevation: 16,
             shadowColor: const Color(0x6614274E),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
