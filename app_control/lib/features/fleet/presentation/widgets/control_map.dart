@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -123,69 +122,93 @@ class _ControlMapState extends ConsumerState<ControlMap> {
   }
 }
 
+/*
+  El mismo bus que ve el pasajero. Antes el panel dibujaba uno propio —un
+  rectángulo azul marino con dos farolas verdes— y el operador no podía
+  relacionar lo que tenía en pantalla con lo que le describía por teléfono
+  alguien parado en el paradero. Ahora es la misma cápsula, los mismos dos
+  colores y la misma lectura: coral reporta, gris no.
+
+  La diferencia con la app es de medio: allá el ícono se hornea una vez a
+  PNG y MapLibre lo reusa como sprite; aquí se pinta en cada cuadro con
+  CustomPaint, porque flutter_map trabaja con widgets y el tamaño cambia con
+  el zoom. La geometría es la misma proporción 32:60 de la cápsula del
+  pasajero, escalada al alto del marcador.
+*/
 class _FlatBusPainter extends CustomPainter {
   const _FlatBusPainter({required this.active, required this.selected});
 
   final bool active;
   final bool selected;
 
-  static const Color _activeBody = Color(0xFF14274E);
-  static const Color _ghostBody = Color(0xFF94A3B8);
-  static const Color _headlight = Color(0xFF00A859);
-
   @override
   void paint(Canvas canvas, Size size) {
-    final s = size.width / 80;
-    final centerX = size.width / 2;
-    final centerY = size.height / 2;
-    final baseColor = active ? _activeBody : _ghostBody;
+    final center = Offset(size.width / 2, size.height / 2);
+    final h = size.height * 0.75;
+    final w = h * 32 / 60;
+    final baseColor = active ? AppColors.busActive : AppColors.busGhost;
 
     if (selected) {
-      final halo = Paint()
-        ..color = _headlight.withValues(alpha: 0.45)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * s);
-      canvas.drawCircle(Offset(centerX, centerY), 24 * s, halo);
+      // Halo azul eléctrico: en la app ese color está reservado a la ruta
+      // que le importa al usuario. Aquí lo que le importa al operador es el
+      // bus que tiene abierto en la ficha, y es el único azul del mapa.
+      canvas.drawCircle(
+        center,
+        h * 0.62,
+        Paint()
+          ..color = AppColors.selection.withValues(alpha: 0.45)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.16),
+      );
     }
 
-    final bodyRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-          center: Offset(centerX, centerY), width: 32 * s, height: 60 * s),
-      const Radius.circular(10),
-    );
-
-    canvas.drawShadow(
-      (ui.Path()
-        ..addRect(
-          Rect.fromCenter(
-            center: Offset(centerX, centerY + 2 * s),
-            width: 32 * s,
-            height: 60 * s,
-          ),
-        )),
-      Colors.black.withValues(alpha: 0.15),
-      4.0 * s,
-      false,
-    );
-
-    canvas.drawRRect(bodyRect, Paint()..color = baseColor);
-
-    final glassRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(centerX, centerY - 18 * s),
-        width: 24 * s,
-        height: 10 * s,
-      ),
-      const Radius.circular(4),
-    );
-    canvas.drawRRect(
-      glassRect,
-      Paint()..color = Colors.white.withValues(alpha: active ? 0.95 : 0.5),
+    final capsule = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: center, width: w, height: h),
+      Radius.circular(w / 2),
     );
 
     if (active) {
-      final light = Paint()..color = _headlight;
-      canvas.drawCircle(Offset(centerX - 8 * s, centerY + 24 * s), 3 * s, light);
-      canvas.drawCircle(Offset(centerX + 8 * s, centerY + 24 * s), 3 * s, light);
+      canvas.drawShadow(
+        ui.Path()..addRRect(capsule.shift(Offset(0, h * 0.05))),
+        baseColor.withValues(alpha: 0.45),
+        h * 0.12,
+        false,
+      );
+    }
+
+    // Degradado sutil (más claro arriba) para que no se vea una silueta plana.
+    final top = active ? Color.lerp(baseColor, Colors.white, 0.3)! : baseColor;
+    canvas.drawRRect(
+      capsule,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          Offset(center.dx, center.dy - h / 2),
+          Offset(center.dx, center.dy + h / 2),
+          [top, baseColor],
+        ),
+    );
+
+    // Anillo blanco: separa el ícono de cualquier fondo de mapa.
+    canvas.drawRRect(
+      capsule,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = (w * 0.08).clamp(1.2, 2.6)
+        ..color = Colors.white.withValues(alpha: active ? 0.92 : 0.5),
+    );
+
+    if (active) {
+      // Insinúa un parabrisas: un óvalo tenue cerca del extremo, nada más.
+      canvas.save();
+      canvas.clipRRect(capsule);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(center.dx, center.dy - h * 0.26),
+          width: w * 0.72,
+          height: h * 0.26,
+        ),
+        Paint()..color = Colors.white.withValues(alpha: 0.3),
+      );
+      canvas.restore();
     }
   }
 
@@ -221,7 +244,7 @@ class _Legend extends StatelessWidget {
         children: [
           Text(
             'LEYENDA',
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.6,
@@ -229,9 +252,11 @@ class _Legend extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          _legendRow(AppColors.online, 'En línea', online),
-          _legendRow(AppColors.offline, 'Sin señal', offline),
-          _legendRow(AppColors.textMuted, 'Ocultos (no se muestran)', hidden),
+          // Los puntos son los colores del marcador, no los del estado en
+          // la lista: esta caja explica lo que hay dibujado sobre el mapa.
+          _legendRow(AppColors.busActive, 'En línea', online),
+          _legendRow(AppColors.busGhost, 'Sin señal', offline),
+          _legendRow(AppColors.hidden, 'Ocultos (no se muestran)', hidden),
         ],
       ),
     );
@@ -257,7 +282,7 @@ class _Legend extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 12,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
@@ -266,7 +291,7 @@ class _Legend extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '$count',
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 12,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,

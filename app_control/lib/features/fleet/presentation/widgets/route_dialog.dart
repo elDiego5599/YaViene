@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_route.dart';
@@ -67,10 +66,10 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: Text(
           'Renombrar ruta',
-          style: GoogleFonts.inter(
+          style: AppType.ui(
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -79,7 +78,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
           controller: controller,
           autocorrect: false,
           autofocus: true,
-          style: GoogleFonts.inter(fontSize: 14),
+          style: AppType.ui(fontSize: 14),
           decoration: const InputDecoration(
             hintText: 'Nuevo nombre',
           ),
@@ -101,9 +100,9 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
               backgroundColor: AppColors.online,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: AppType.ui(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -138,10 +137,10 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: Text(
           'Eliminar ruta',
-          style: GoogleFonts.inter(
+          style: AppType.ui(
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -149,7 +148,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
         content: Text(
           '¿Eliminar "${route.name}" del catálogo? Los buses que tengan esta '
           'ruta asignada pasarán a la primera ruta restante.',
-          style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
+          style: AppType.ui(fontSize: 13.5, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -162,9 +161,9 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: AppType.ui(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -194,7 +193,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
 
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
       title: Row(
         children: [
           Container(
@@ -202,14 +201,14 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
             height: 34,
             decoration: BoxDecoration(
               color: AppColors.navy.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: const Icon(Icons.route_outlined, size: 18, color: AppColors.navy),
           ),
           const SizedBox(width: 12),
           Text(
             'Rutas',
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 17,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -225,7 +224,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
           children: [
             Text(
               'NUEVA RUTA',
-              style: GoogleFonts.inter(
+              style: AppType.ui(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
@@ -239,7 +238,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                   child: TextField(
                     controller: _nameController,
                     autocorrect: false,
-                    style: GoogleFonts.inter(fontSize: 14),
+                    style: AppType.ui(fontSize: 14),
                     decoration: const InputDecoration(
                       hintText: 'Ej. Vivero Paraíso',
                     ),
@@ -253,9 +252,9 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                     backgroundColor: AppColors.online,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    textStyle: GoogleFonts.inter(
+                    textStyle: AppType.ui(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1,
@@ -282,7 +281,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
               const SizedBox(height: 10),
               Text(
                 _error!,
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.danger,
@@ -294,7 +293,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
             const SizedBox(height: 12),
             Text(
               'CATÁLOGO (${sortedRoutes.length})',
-              style: GoogleFonts.inter(
+              style: AppType.ui(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
@@ -310,7 +309,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                       child: Center(
                         child: Text(
                           'Sin rutas. Crea la primera arriba.',
-                          style: GoogleFonts.inter(
+                          style: AppType.ui(
                             fontSize: 12.5,
                             color: AppColors.textMuted,
                           ),
@@ -331,7 +330,7 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                                 child: Text(
                                   route.name,
                                   overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
+                                  style: AppType.ui(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary,
@@ -345,11 +344,11 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.navy.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(999),
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
                                 ),
                                 child: Text(
                                   '${route.total}',
-                                  style: GoogleFonts.inter(
+                                  style: AppType.ui(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.navy,

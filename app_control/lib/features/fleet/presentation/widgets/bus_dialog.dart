@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
@@ -93,10 +92,10 @@ class _BusDialogState extends ConsumerState<BusDialog> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: Text(
           'Eliminar bus',
-          style: GoogleFonts.inter(
+          style: AppType.ui(
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -105,7 +104,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
           '¿Eliminar ${widget.bus!.placa.isEmpty ? widget.bus!.busId : widget.bus!.placa} '
           'de la flota? Los pasajeros dejarán de verlo de inmediato. Esta acción '
           'no se puede deshacer.',
-          style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
+          style: AppType.ui(fontSize: 13.5, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -118,9 +117,9 @@ class _BusDialogState extends ConsumerState<BusDialog> {
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: AppType.ui(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -148,7 +147,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
 
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
       title: Row(
         children: [
           Container(
@@ -156,7 +155,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
             height: 34,
             decoration: BoxDecoration(
               color: AppColors.navy.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
               _isEdit ? Icons.edit_outlined : Icons.directions_bus,
@@ -167,7 +166,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
           const SizedBox(width: 12),
           Text(
             _isEdit ? 'Editar bus' : 'Nuevo bus',
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 17,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -183,7 +182,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
           children: [
             Text(
               'PLACA',
-              style: GoogleFonts.inter(
+              style: AppType.ui(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
@@ -194,7 +193,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
             TextField(
               controller: _placaController,
               textCapitalization: TextCapitalization.characters,
-              style: GoogleFonts.jetBrainsMono(
+              style: AppType.mono(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5,
@@ -205,7 +204,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
             const SizedBox(height: 18),
             Text(
               'RUTA',
-              style: GoogleFonts.inter(
+              style: AppType.ui(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
@@ -233,7 +232,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
               const SizedBox(height: 8),
               Text(
                 'No hay rutas. Crea una primero con "Agregar ruta".',
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppColors.danger,
@@ -244,7 +243,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
               const SizedBox(height: 14),
               Text(
                 _error!,
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.danger,
@@ -267,9 +266,9 @@ class _BusDialogState extends ConsumerState<BusDialog> {
                       color: AppColors.danger.withValues(alpha: 0.5),
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    textStyle: GoogleFonts.inter(
+                    textStyle: AppType.ui(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.6,
@@ -292,9 +291,9 @@ class _BusDialogState extends ConsumerState<BusDialog> {
             backgroundColor: AppColors.online,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            textStyle: GoogleFonts.inter(
+            textStyle: AppType.ui(
               fontSize: 12.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.2,

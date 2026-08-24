@@ -31,6 +31,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # El sistema de diseño vive aquí, compartido con la app del pasajero. El
+  # panel se había quedado atrás —otra tipografía, otros colores, otro bus
+  # en el mapa— y parecía de otro producto. Sólo lo importa app_theme.dart,
+  # con prefijo, porque los dos paquetes tienen una clase `AppColors`.
+  ya_viene_core:
+    path: ../ya_viene_core
+
   flutter_riverpod: ^2.6.1
   go_router: ^17.4.0
   flutter_map: ^8.3.1
@@ -39,7 +46,6 @@ dependencies:
   socket_io_client: ^3.1.6
   shared_preferences: ^2.5.5
   window_manager: ^0.5.2
-  google_fonts: ^6.3.3
   flutter_svg: ^2.0.10
 
 dev_dependencies:
@@ -67,6 +73,26 @@ flutter:
 
   assets:
     - assets/logo/
+
+  # La misma familia que la app del pasajero, y por el mismo motivo: va en
+  # el bundle, no se descarga por red en el arranque. El panel de control
+  # abre en oficinas con conexiones malas y no puede quedarse sin tipografía
+  # —que es lo que pasaba con google_fonts cuando la red no responde.
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

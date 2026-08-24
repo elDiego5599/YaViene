@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
@@ -28,17 +27,27 @@ class FleetListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (statusLabel, statusColor) = _status(bus);
     final card = Material(
-      color: selected ? const Color(0xFFF1F6F2) : AppColors.surface,
-      borderRadius: BorderRadius.circular(14),
+      // Seleccionado = el mismo azul del halo en el mapa. Antes era un verde
+      // tenue suelto, que además chocaba con el verde de "en línea": una fila
+      // en línea y sin seleccionar se veía casi igual que una seleccionada.
+      color: selected
+          ? Color.alphaBlend(
+              AppColors.selection.withValues(alpha: 0.07),
+              AppColors.surface,
+            )
+          : AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Container(
           padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
-              color: selected ? AppColors.online.withValues(alpha: 0.5) : AppColors.border,
+              color: selected
+                  ? AppColors.selection.withValues(alpha: 0.45)
+                  : AppColors.border,
             ),
           ),
           child: Row(
@@ -48,7 +57,7 @@ class FleetListTile extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(Icons.directions_bus, size: 20, color: statusColor),
               ),
@@ -65,7 +74,7 @@ class FleetListTile extends StatelessWidget {
                               : 'En línea: el bus está transmitiendo',
                           child: Text(
                             bus.placa.isEmpty ? bus.busId : bus.placa,
-                            style: GoogleFonts.inter(
+                            style: AppType.ui(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
@@ -92,7 +101,7 @@ class FleetListTile extends StatelessWidget {
                             child: Text(
                               bus.driverName!,
                               overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
+                              style: AppType.ui(
                                 fontSize: 11.5,
                                 color: AppColors.textSecondary,
                               ),
@@ -108,11 +117,11 @@ class FleetListTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.navy.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Text(
                     routeName!,
-                    style: GoogleFonts.inter(
+                    style: AppType.ui(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.navy,
@@ -161,7 +170,7 @@ class FleetListTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     bus.visible ? 'PERMITIDO' : 'OCULTO',
-                    style: GoogleFonts.inter(
+                    style: AppType.ui(
                       fontSize: 8,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,

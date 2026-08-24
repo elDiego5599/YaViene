@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../providers/auth_providers.dart';
@@ -50,8 +49,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(24),
+                    color: AppColors.sheet,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
                     border: Border.all(color: AppColors.border),
                     boxShadow: AppColors.softShadow,
                   ),
@@ -86,8 +85,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 64,
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceRaised,
-                                borderRadius: BorderRadius.circular(18),
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(AppRadius.lg),
                                 border: Border.all(color: AppColors.border),
                                 boxShadow: [
                                   BoxShadow(
@@ -107,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Text(
                             'YA VIENE',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: AppType.ui(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 4,
@@ -117,7 +116,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Text(
                             'CONTROL DE FLOTA',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: AppType.ui(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 3,
@@ -141,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Text(
                             'INICIAR SESIÓN',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: AppType.ui(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -151,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Text(
                             'Ingrese sus credenciales para continuar',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
+                            style: AppType.ui(
                               fontSize: 12.5,
                               color: AppColors.textMuted,
                             ),
@@ -159,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 28),
                           TextField(
                             controller: _usernameController,
-                            style: GoogleFonts.inter(
+                            style: AppType.ui(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -172,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               TextField(
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
-                                style: GoogleFonts.inter(
+                                style: AppType.ui(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -207,7 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 : Center(
                                     child: Text(
                                       auth.error!,
-                                      style: GoogleFonts.inter(
+                                      style: AppType.ui(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.danger,
@@ -223,9 +222,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 backgroundColor: AppColors.online,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
                                 ),
-                                textStyle: GoogleFonts.inter(
+                                textStyle: AppType.ui(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 2.6,

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/clock_widget.dart';
@@ -129,10 +128,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: Text(
           'Eliminar bus',
-          style: GoogleFonts.inter(
+          style: AppType.ui(
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -141,7 +140,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la flota? '
           'Los pasajeros dejarán de verlo de inmediato. Esta acción no se puede '
           'deshacer.',
-          style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
+          style: AppType.ui(fontSize: 13.5, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -154,9 +153,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: AppType.ui(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -188,10 +187,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
         title: Text(
           'Borrar todos los buses',
-          style: GoogleFonts.inter(
+          style: AppType.ui(
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -199,7 +198,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         content: Text(
           'Esta acción de debug elimina TODOS los buses de la flota de la base '
           'de datos. No se puede deshacer. ¿Continuar?',
-          style: GoogleFonts.inter(fontSize: 13.5, height: 1.5),
+          style: AppType.ui(fontSize: 13.5, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -212,9 +211,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: AppType.ui(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
@@ -382,7 +381,7 @@ class _Header extends StatelessWidget {
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: AppColors.surfaceRaised,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(color: AppColors.border),
             ),
             child: SvgPicture.asset(
@@ -396,7 +395,7 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 'YA VIENE',
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2.5,
@@ -405,7 +404,7 @@ class _Header extends StatelessWidget {
               ),
               Text(
                 'CONTROL DE FLOTA',
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 8.5,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.8,
@@ -419,7 +418,7 @@ class _Header extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -432,7 +431,7 @@ class _Header extends StatelessWidget {
                 const SizedBox(width: 7),
                 Text(
                   label,
-                  style: GoogleFonts.inter(
+                  style: AppType.ui(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     color: color,
@@ -450,9 +449,9 @@ class _Header extends StatelessWidget {
               foregroundColor: AppColors.textSecondary,
               side: const BorderSide(color: AppColors.borderStrong),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              textStyle: GoogleFonts.inter(
+              textStyle: AppType.ui(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -516,7 +515,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
         children: [
           Text(
             'Flota',
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 26,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.6,
@@ -529,7 +528,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
             child: TextField(
               controller: widget.searchController,
               onChanged: widget.onSearchChanged,
-              style: GoogleFonts.inter(fontSize: 13.5),
+              style: AppType.ui(fontSize: 13.5),
               decoration: const InputDecoration(
                 hintText: 'Buscar placa, ruta o conductor…',
                 prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
@@ -636,7 +635,7 @@ class _RouteFiltersState extends State<_RouteFilters> {
         interactive: true,
         thumbVisibility: false,
         thickness: 4,
-        radius: const Radius.circular(999),
+        radius: const Radius.circular(AppRadius.pill),
         child: SizedBox(
           height: 42,
           child: ListView(
@@ -677,22 +676,22 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: active ? AppColors.navy : AppColors.surface,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
               color: active ? AppColors.navy : AppColors.borderStrong,
             ),
           ),
           child: Text(
             label,
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               color: active ? Colors.white : AppColors.textSecondary,
@@ -726,7 +725,7 @@ class _FleetPanel extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
@@ -739,7 +738,7 @@ class _FleetPanel extends ConsumerWidget {
               children: [
                 Text(
                   'BUSES',
-                  style: GoogleFonts.inter(
+                  style: AppType.ui(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2,
@@ -751,11 +750,11 @@ class _FleetPanel extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.navy.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Text(
                     '${buses.length}',
-                    style: GoogleFonts.inter(
+                    style: AppType.ui(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w800,
                       color: AppColors.navy,
@@ -771,9 +770,9 @@ class _FleetPanel extends ConsumerWidget {
                     foregroundColor: AppColors.textSecondary,
                     side: const BorderSide(color: AppColors.borderStrong),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    textStyle: GoogleFonts.inter(
+                    textStyle: AppType.ui(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -792,9 +791,9 @@ class _FleetPanel extends ConsumerWidget {
                     backgroundColor: AppColors.online,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    textStyle: GoogleFonts.inter(
+                    textStyle: AppType.ui(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
@@ -825,7 +824,7 @@ class _FleetPanel extends ConsumerWidget {
                 ? Center(
                     child: Text(
                       _emptyMessage(),
-                      style: GoogleFonts.inter(
+                      style: AppType.ui(
                         color: AppColors.textMuted,
                         fontSize: 13,
                       ),
@@ -918,10 +917,10 @@ class _StatusTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: active ? AppColors.navy : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
@@ -929,7 +928,7 @@ class _StatusTab extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: active ? Colors.white : AppColors.textSecondary,
@@ -938,7 +937,7 @@ class _StatusTab extends StatelessWidget {
               const SizedBox(width: 5),
               Text(
                 '$count',
-                style: GoogleFonts.inter(
+                style: AppType.ui(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   color: active ? Colors.white70 : AppColors.textMuted,
@@ -980,7 +979,7 @@ class _SelectedBusCard extends StatelessWidget {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.softShadow,
       ),
@@ -995,7 +994,7 @@ class _SelectedBusCard extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(Icons.directions_bus, color: statusColor, size: 19),
               ),
@@ -1006,7 +1005,7 @@ class _SelectedBusCard extends StatelessWidget {
                   children: [
                     Text(
                       bus.placa.isEmpty ? bus.busId : bus.placa,
-                      style: GoogleFonts.inter(
+                      style: AppType.ui(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.4,
@@ -1015,7 +1014,7 @@ class _SelectedBusCard extends StatelessWidget {
                     ),
                     Text(
                       statusLabel,
-                      style: GoogleFonts.jetBrainsMono(
+                      style: AppType.mono(
                         fontSize: 10.5,
                         color: AppColors.textMuted,
                       ),
@@ -1064,9 +1063,9 @@ class _SelectedBusCard extends StatelessWidget {
                         bus.visible ? AppColors.hidden : AppColors.online,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    textStyle: GoogleFonts.inter(
+                    textStyle: AppType.ui(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1,
@@ -1115,7 +1114,7 @@ class _SelectedBusCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1124,7 +1123,7 @@ class _SelectedBusCard extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: GoogleFonts.inter(
+            style: AppType.ui(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               color: color,
@@ -1159,7 +1158,7 @@ class _ErrorBanner extends ConsumerWidget {
           Expanded(
             child: Text(
               message,
-              style: GoogleFonts.inter(
+              style: AppType.ui(
                 color: AppColors.danger,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
