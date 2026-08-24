@@ -283,8 +283,13 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
+                          // La hoja de entrada comparte superficie con las
+                          // otras dos del producto —el selector de ruta y la
+                          // de distancia—: arena, no blanco. Con el blanco
+                          // puesto, las tres pantallas seguidas parecían de
+                          // dos aplicaciones distintas.
                           decoration: const BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.arena,
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(36),
                               topRight: Radius.circular(36),

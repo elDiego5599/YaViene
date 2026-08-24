@@ -55,8 +55,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.fromLTRB(28, 28, 28, 34),
+                          // Misma superficie que la hoja del login y que
+                          // las del mapa: arena. Las dos pantallas van
+                          // seguidas y el salto de blanco a arena se veía.
                           decoration: const BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.arena,
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(36),
                               topRight: Radius.circular(36),
