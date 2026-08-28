@@ -12,10 +12,17 @@ flutter run -d macos
 flutter run -d macos --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.dev
 ```
 
-## Credenciales por Defecto (Demo)
+## Cuentas de Empresa
 
-* **Usuario**: `admin`
-* **Contraseña**: `admin123`
+Cada empresa de transporte tiene su propia cuenta de admin — no hay una
+credencial compartida. Para crear o rotar la cuenta de una empresa:
+
+```bash
+node scripts/crear-admin-empresa.mjs <companyId> <username> <password> [nombreEmpresa]
+```
+
+(el script vive en `YaVieneBackend/scripts/`, junto al resto de los scripts
+de mantenimiento).
 
 ## Arquitectura y Documentación
 
