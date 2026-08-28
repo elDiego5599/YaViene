@@ -37,7 +37,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
     final fleet = ref.watch(fleetProvider);
     final size = _markerSize;
     final markers = fleet.fleetList
-        .where((b) => b.visible && b.lat != null && b.lon != null)
+        .where((b) => b.lat != null && b.lon != null)
         .map(
           (b) => _buildMarker(b, fleet.selectedBusId == b.busId, size, () {
             ref.read(fleetProvider.notifier).selectBus(b.busId);
@@ -112,7 +112,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
           child: CustomPaint(
             size: Size.square(size),
             painter: _FlatBusPainter(
-              active: bus.online && !bus.isGhost,
+              active: bus.online && !bus.isGhost && bus.visible,
               selected: selected,
             ),
           ),
@@ -256,7 +256,7 @@ class _Legend extends StatelessWidget {
           // la lista: esta caja explica lo que hay dibujado sobre el mapa.
           _legendRow(AppColors.busActive, 'En línea', online),
           _legendRow(AppColors.busGhost, 'Sin señal', offline),
-          _legendRow(AppColors.hidden, 'Ocultos (no se muestran)', hidden),
+          _legendRow(AppColors.hidden, 'Ocultos', hidden),
         ],
       ),
     );

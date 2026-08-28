@@ -3,13 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
 
-// Replica el filtro de ControlMap._buildMarkers (control_map.dart:40-41):
-// solo entran al mapa los buses visibles con posición conocida.
+// Replica el filtro de ControlMap._buildMarkers (control_map.dart:39-40):
+// entran al mapa todos los buses con posición conocida, ocultos incluidos
+// —el operador necesita verlos para poder volver a mostrarlos; se pintan
+// en gris (ver _buildMarker: active considera bus.visible).
 Iterable<FleetBus> _markerCandidates(FleetState fleet) =>
-    fleet.fleetList.where((b) => b.visible && b.lat != null && b.lon != null);
+    fleet.fleetList.where((b) => b.lat != null && b.lon != null);
 
 void main() {
-  test('solo los buses visibles y con lat/lon llegan al mapa', () {
+  test('los buses con lat/lon llegan al mapa, visibles u ocultos; sin posición no', () {
     const withPosition = FleetBus(
       busId: 'B-1', companyId: 'c-1', visible: true, online: true, lat: 10.9, lon: -74.8,
     );
@@ -26,7 +28,7 @@ void main() {
 
     final markers = _markerCandidates(state);
 
-    expect(markers.map((b) => b.busId), ['B-1']);
+    expect(markers.map((b) => b.busId).toSet(), {'B-1', 'B-3'});
   });
 
   test('un bus que pierde la posición (bus:left) desaparece del mapa aunque siga visible', () {

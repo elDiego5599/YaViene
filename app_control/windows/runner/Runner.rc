@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "co.yaviene" "\0"
-            VALUE "FileDescription", "ya_viene_control" "\0"
+            VALUE "FileDescription", "Ya Viene Control" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "ya_viene_control" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 co.yaviene. All rights reserved." "\0"
             VALUE "OriginalFilename", "ya_viene_control.exe" "\0"
-            VALUE "ProductName", "ya_viene_control" "\0"
+            VALUE "ProductName", "Ya Viene Control" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

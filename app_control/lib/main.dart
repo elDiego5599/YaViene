@@ -16,11 +16,11 @@ Future<void> main() async {
       const windowOptions = WindowOptions(
         size: Size(1600, 900),
         center: true,
-        title: 'Ya Viene · Control',
+        title: 'Ya Viene Control',
       );
       windowManager.waitUntilReadyToShow(windowOptions, () async {
         await windowManager.show();
-        await windowManager.setFullScreen(true);
+        await windowManager.maximize();
         await windowManager.focus();
       });
     } catch (e) {
@@ -44,7 +44,7 @@ class YaVieneControlApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
-      title: 'Ya Viene - Control',
+      title: 'Ya Viene Control',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,

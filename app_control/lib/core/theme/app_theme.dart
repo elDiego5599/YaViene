@@ -46,9 +46,9 @@ abstract class AppColors {
   /// Lleva más de 90 s sin mandar posición pero la sesión sigue viva.
   static const Color ghost = core.AppColors.busGhost;
 
-  /// El color de la acción de ocultar un bus: coral, que en el sistema es
-  /// «excepción» —esto lo es, un bus que existe y que se decide no enseñar.
-  static const Color hidden = core.AppColors.coral;
+  /// Un bus oculto se trata igual que uno sin señal: mismo gris, no una
+  /// alarma. Sigue siendo un bus real que el operador puede volver a mostrar.
+  static const Color hidden = core.AppColors.busGhost;
 
   static const Color offline = core.AppColors.busGhost;
   static const Color danger = core.AppColors.error;
