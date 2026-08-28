@@ -47,7 +47,7 @@ class _BusDialogState extends ConsumerState<BusDialog> {
 
   Future<void> _save() async {
     final placa = _placaController.text.trim();
-    if (!RegExp(r'^[A-Z0-9]{4,10}$').hasMatch(placa.toUpperCase())) {
+    if (!RegExp(r'^[A-Z]{3}[0-9]{3}$').hasMatch(placa.toUpperCase())) {
       setState(() => _error = 'Placa inválida. Ejemplo: ABC123');
       return;
     }
