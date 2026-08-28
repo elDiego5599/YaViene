@@ -182,64 +182,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  Future<void> _confirmWipeAll() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-        title: Text(
-          'Borrar todos los buses',
-          style: AppType.ui(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          'Esta acción de debug elimina TODOS los buses de la flota de la base '
-          'de datos. No se puede deshacer. ¿Continuar?',
-          style: AppType.ui(fontSize: 13.5, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              textStyle: AppType.ui(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
-            ),
-            child: const Text('BORRAR TODO'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      try {
-        await ref.read(fleetProvider.notifier).removeAllBuses();
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudieron borrar los buses.'),
-              backgroundColor: AppColors.danger,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final fleet = ref.watch(fleetProvider);
@@ -269,7 +211,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             searchController: _searchController,
             onSearchChanged: (v) => setState(() => _query = v),
             onRefresh: _refresh,
-            onDebugWipe: _confirmWipeAll,
             onToggleAllVisibility: () {
               final visible = !fleet.buses.values.every((b) => b.visible);
               ref.read(fleetProvider.notifier).setAllVisibility(visible);
@@ -470,7 +411,6 @@ class _TopBar extends StatefulWidget {
     required this.searchController,
     required this.onSearchChanged,
     required this.onRefresh,
-    required this.onDebugWipe,
     required this.onToggleAllVisibility,
     required this.allBusesVisible,
   });
@@ -479,7 +419,6 @@ class _TopBar extends StatefulWidget {
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onRefresh;
-  final VoidCallback onDebugWipe;
   final VoidCallback onToggleAllVisibility;
   final bool allBusesVisible;
 
@@ -568,20 +507,6 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
             style: IconButton.styleFrom(
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.border),
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            onPressed: widget.onDebugWipe,
-            icon: const Icon(
-              Icons.delete_sweep_outlined,
-              size: 20,
-              color: AppColors.danger,
-            ),
-            tooltip: 'Debug: borrar todos los buses',
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.danger.withValues(alpha: 0.08),
-              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.25)),
             ),
           ),
           const SizedBox(width: 14),

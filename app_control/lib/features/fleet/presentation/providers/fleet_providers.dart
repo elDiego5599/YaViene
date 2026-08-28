@@ -501,27 +501,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }
   }
 
-  Future<int> removeAllBuses() async {
-    final token = _token;
-    if (token == null) return 0;
-    try {
-      final count = await _api.deleteAllBuses(token);
-      debugPrint('[fleet] debug: $count buses eliminados');
-      state = state.copyWith(
-        buses: const <String, FleetBus>{},
-        selectedBusId: () => null,
-        clearError: true,
-      );
-      refreshRoutes();
-      return count;
-    } catch (e) {
-      debugPrint('[fleet] borrar todos FALLÓ: $e');
-      if (_onSessionExpired(e)) throw const SessionExpiredException();
-      state = state.copyWith(error: 'No se pudieron borrar los buses.');
-      rethrow;
-    }
-  }
-
   @override
   void dispose() {
     for (final s in _subs) {

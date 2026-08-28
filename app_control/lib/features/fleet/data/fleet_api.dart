@@ -137,13 +137,6 @@ class FleetApi {
     ));
   }
 
-  Future<int> deleteAllBuses(String token) async {
-    final response = await _guard(() => _dio.delete<Map<String, dynamic>>(
-      '/api/fleet/buses',
-      options: _auth(token),
-    ));
-    return (response.data?['count'] as num?)?.toInt() ?? 0;
-  }
 }
 
 /// La sesión del admin expiró o fue revocada (token inválido, 401).
