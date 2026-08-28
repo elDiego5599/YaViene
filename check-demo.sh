@@ -13,7 +13,9 @@
 # ═══════════════════════════════════════════════════════════
 set -uo pipefail
 
-URL="${URL:-https://occupy-shed-squatter.ngrok-free.dev}"
+# El backend ya no vive detrás de un túnel que cambia de nombre en cada
+# arranque: está desplegado en Fly con una URL fija.
+URL="${URL:-https://ya-viene-backend.fly.dev}"
 for arg in "$@"; do
   case "$arg" in
     --url=*) URL="${arg#--url=}" ;;
