@@ -26,11 +26,11 @@ snapshot_env() {
   : > "$ENV_FILE"
   chmod 600 "$ENV_FILE"
   ps eww -p "$pid" 2>/dev/null | tr ' ' '\n' | \
-    grep -E '^(JWT_SECRET|ADMIN_API_KEY|DEMO_MODE|YA_VIENE|HTTP_|MQTT_|NODE_ENV)=' >> "$ENV_FILE"
+    grep -E '^(JWT_SECRET|ADMIN_API_KEY|YA_VIENE|HTTP_|MQTT_|NODE_ENV)=' >> "$ENV_FILE"
   if [ ! -s "$ENV_FILE" ]; then
     echo "  (sin env del proceso: usando local.env)"
     if [ -f "$BACKEND_DIR/local.env" ]; then
-      grep -E '^(JWT_SECRET|ADMIN_API_KEY|DEMO_MODE)=' "$BACKEND_DIR/local.env" >> "$ENV_FILE"
+      grep -E '^(JWT_SECRET|ADMIN_API_KEY)=' "$BACKEND_DIR/local.env" >> "$ENV_FILE"
     fi
   fi
   echo "  env capturado: $(wc -l < "$ENV_FILE") variables"

@@ -1,16 +1,15 @@
 # YaViene — Transporte público en tiempo real
 
 Sistema de monitoreo de buses en tiempo real para ciudades como Barranquilla.
-El conductor lleva la app en su celular (modelo BYOD, sin hardware extra) y el
-pasajero ve los buses en un mapa y recibe un aviso cuando el suyo se acerca a
-su parada.
+El GPS va instalado en el bus y publica su posición; el pasajero ve los buses
+en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
 
 ## Componentes
 
 | Carpeta | Qué es |
 |---|---|
-| `YaVieneBackend` | Backend Node.js + TypeScript: recibe el GPS del conductor por MQTT, lo difunde al pasajero por WebSockets, guarda rutas y posiciones en SQLite. |
-| `app_conductor` | App Flutter del conductor: captura el GPS y lo publica por MQTT cada pocos segundos. En modo demo no pide login. |
+| `YaVieneBackend` | Backend Node.js + TypeScript: recibe el GPS del bus por MQTT, lo difunde al pasajero por WebSockets, guarda rutas y posiciones en SQLite. |
+| `app_conductor` | App Flutter interna, solo para demostración: hace de emisor GPS de prueba cuando no hay un equipo instalado. No es parte del producto. |
 | `app_pasajero` | App Flutter del pasajero: mapa con los buses en vivo, pin del usuario (GPS o toque manual), detalle de proximidad y aviso a 1 km con notificación local. |
 | `app_control` | Panel de control para macOS: ve el estado de la flota y administra las empresas. |
 | `ya_viene_core` | Lógica compartida entre las apps (tipos, distancia, utilidades). |
@@ -18,8 +17,8 @@ su parada.
 
 ## Cómo funciona
 
-1. **Conductor**: la app captura latitud, longitud, rumbo y velocidad, y las
-   publica por MQTT (el dispositivo es el sensor: sin inversión en hardware).
+1. **Bus**: el GPS instalado en el vehículo captura latitud, longitud, rumbo y
+   velocidad, y las publica por MQTT.
 2. **Backend**: recibe las posiciones, las guarda, y las difunde por WebSockets
    a todos los pasajeros suscritos a la ruta. Si un bus deja de reportar más de
    5 minutos, se marca como "sin señal".
@@ -47,21 +46,22 @@ Eso compila el backend, arranca el túnel (ngrok/cloudflared, sin servidor),
 compila las APKs de pasajero y conductor con la URL real del túnel, y el panel
 de control para macOS. Todo queda en `~/Desktop/APKs/` y `./dist/demo/`.
 
-Con el backend arriba, se disparan los buses demo desde el panel o con:
+Los buses simulados se arrancan **en la misma máquina que el backend** (el
+broker MQTT solo escucha en loopback, a propósito):
 
 ```bash
-curl -X POST https://<túnel>/api/demo/buses \
-  -H "Content-Type: application/json" \
-  -d '{"companyId":"sobusa","routeId":"R-106"}'
+cd YaVieneBackend && bash scripts/demo-buses.sh
 ```
 
 El escenario demo arranca **B-042 al 80 %** del recorrido (ya pasó por la
 parada) y **B-055 al 15 %** (viene llegando), ambos a velocidad constante.
+Se quedan corriendo hasta que los pares con Ctrl+C. Si el backend está
+desplegado en Fly, es el mismo comando dentro de `fly ssh console`.
 
 ## Estado actual
 
 - [x] Backend completo: ingesta MQTT, difusión WebSocket, SQLite, fantasmas
-  ("sin señal"), modo demo.
+  ("sin señal").
 - [x] App conductor: captura GPS + publicación MQTT.
 - [x] App pasajero: mapa en vivo, pin por GPS o manual, selección de bus,
   aviso a 1 km con la app en segundo plano, panel inferior con estado del bus.

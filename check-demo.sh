@@ -81,7 +81,7 @@ else
     ok "Buses publicando: $BUSES"
   else
     bad "Solo se ven $COUNT bus(es): $BUSES (se esperan B-042 y B-055)."
-    bad "  ¿Corrió 'Ver buses en vivo' en el pasajero (o POST /api/demo/buses)?"
+    bad "  ¿Corrió 'scripts/demo-buses.sh' en la máquina del backend?"
   fi
 fi
 

@@ -543,36 +543,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       BuildContext context, Company? company, RouteInfo? route) {
     return ElevatedButton(
       key: widget.launchBusesGuideKey,
+      // El botón abre el mapa, no enciende nada: los buses ya están en la
+      // calle publicando su posición, existan o no pasajeros mirándolos.
+      // Antes llamaba a /api/demo/buses para lanzar simuladores desde el
+      // teléfono, que era un atajo de la demo, no el producto.
       onPressed: route != null
           ? () async {
               HapticFeedback.mediumImpact();
-              final messenger = ScaffoldMessenger.of(context);
-              final started = await triggerDemoBuses(
-                company?.id ?? '',
-                route.id,
-              );
-              if (!context.mounted) return;
-              if (!started) {
-                Navigator.of(context).maybePop();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: const Text('No pudimos iniciar los buses demo'),
-                    behavior: SnackBarBehavior.floating,
-                    action: SnackBarAction(
-                      label: 'Reintentar',
-                      // La hoja ya se cerró (pop arriba): el reintento no
-                      // depende de su context/ref, solo del messenger ya
-                      // capturado sobre el Scaffold del mapa.
-                      onPressed: () => _retryLaunchBuses(
-                        messenger,
-                        company?.id ?? '',
-                        route.id,
-                      ),
-                    ),
-                  ),
-                );
-                return;
-              }
               await ref
                   .read(mapGuideProvider.notifier)
                   .complete(MapGuideStep.launchBuses);
@@ -812,36 +789,6 @@ String _companyInitials(String name) {
     return (w.length >= 2 ? w.substring(0, 2) : w).toUpperCase();
   }
   return (significant[0][0] + significant[1][0]).toUpperCase();
-}
-
-/// F5: reintento real de "Ver buses en vivo" cuando falla. Vive fuera del
-/// State porque la hoja que lo disparó ya se cerró para cuando el usuario
-/// toca la acción del SnackBar.
-Future<void> _retryLaunchBuses(
-  ScaffoldMessengerState messenger,
-  String companyId,
-  String routeId,
-) async {
-  final started = await triggerDemoBuses(companyId, routeId);
-  if (started) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Buses en camino'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    return;
-  }
-  messenger.showSnackBar(
-    SnackBar(
-      content: const Text('No pudimos iniciar los buses demo'),
-      behavior: SnackBarBehavior.floating,
-      action: SnackBarAction(
-        label: 'Reintentar',
-        onPressed: () => _retryLaunchBuses(messenger, companyId, routeId),
-      ),
-    ),
-  );
 }
 
 class _PremiumSelectorTile extends StatefulWidget {
