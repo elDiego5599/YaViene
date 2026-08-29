@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -186,5 +187,57 @@ void main() {
 
     expect(c.read(activeAlertsProvider), isEmpty);
     expect(c.read(alertHistoryProvider), isEmpty);
+  });
+
+  group('purga del historial', () {
+    Map<String, dynamic> entrada(String busId, {required int diasAtras}) {
+      final cuando = DateTime.now().subtract(Duration(days: diasAtras));
+      return {
+        'busId': busId,
+        'routeId': 'R1',
+        'routeName': 'Ruta 1',
+        'createdAt': cuando.toIso8601String(),
+        'sentAt': cuando.toIso8601String(),
+      };
+    }
+
+    Future<List<AlertHistoryEntry>> cargar(List<Map<String, dynamic>> guardado,
+        {String? userId}) async {
+      SharedPreferences.setMockInitialValues({
+        userId == null ? 'alert_history' : 'alert_history_user_$userId':
+            jsonEncode(guardado),
+      });
+      final notifier = AlertHistoryNotifier();
+      await notifier.load(userId: userId);
+      return notifier.state;
+    }
+
+    test('las entradas enviadas hace más de 30 días se caen', () async {
+      final historial = await cargar([
+        entrada('A-1', diasAtras: 45),
+        entrada('A-2', diasAtras: 29),
+      ]);
+      expect(historial.map((e) => e.busId), ['A-2']);
+    });
+
+    test('se guardan como mucho 50, las más recientes', () async {
+      final historial = await cargar([
+        for (var i = 0; i < 70; i++) entrada('B-$i', diasAtras: i % 20),
+      ]);
+      expect(historial.length, 50);
+      // La más vieja conservada no puede ser más vieja que la más nueva
+      // descartada: se ordena por fecha de envío, no por posición.
+      expect(historial.every((e) => e.sentAt != null), isTrue);
+    });
+
+    test('un aviso activo nunca se purga, aunque sea viejo', () async {
+      final viejoActivo = entrada('A-9', diasAtras: 120)..['sentAt'] = null;
+      final historial = await cargar([
+        viejoActivo,
+        for (var i = 0; i < 70; i++) entrada('B-$i', diasAtras: 1),
+      ]);
+      expect(historial.length, 50);
+      expect(historial.map((e) => e.busId), contains('A-9'));
+    });
   });
 }

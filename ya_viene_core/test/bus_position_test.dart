@@ -21,4 +21,27 @@ void main() {
     expect(position.sequence, 7);
     expect(position.toJson()['isGhost'], isTrue);
   });
+
+  test('BusPosition rechaza el JSON sin identidad o sin coordenada', () {
+    const base = {
+      'busId': 'B-042',
+      'routeId': 'R-101',
+      'lat': 10.99,
+      'lon': -74.80,
+    };
+    for (final falta in ['busId', 'routeId', 'lat', 'lon']) {
+      final json = Map<String, dynamic>.from(base)..remove(falta);
+      // Rellenar con ceros ponía el bus en (0, 0), en el golfo de Guinea.
+      expect(() => BusPosition.fromJson(json), throwsFormatException,
+          reason: 'sin $falta debería lanzar');
+    }
+    expect(
+      () => BusPosition.fromJson({...base, 'lat': 91.0}),
+      throwsFormatException,
+    );
+    expect(
+      () => BusPosition.fromJson({...base, 'busId': '  '}),
+      throwsFormatException,
+    );
+  });
 }

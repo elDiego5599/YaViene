@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
+// Solo el provider de la URL: el resto del paquete choca con el tema local.
+import 'package:ya_viene_core/core/providers/app_providers.dart'
+    show backendUrlProvider;
+
+import 'config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
@@ -28,7 +33,9 @@ Future<void> main() async {
     }
   }
 
-  final container = ProviderContainer();
+  final container = ProviderContainer(
+    overrides: [backendUrlProvider.overrideWithValue(AppConfig.backendUrl)],
+  );
   try {
     await container.read(authProvider.notifier).restoreSession();
   } catch (e) {

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import 'config.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_transitions.dart';
 import 'core/services/bus_notification_service.dart';
@@ -41,8 +42,11 @@ void main() async {
   );
 
   runApp(
-    const ProviderScope(
-      child: YaVieneApp(),
+    ProviderScope(
+      // El paquete compartido no adivina la URL: se la da la app, que es
+      // quien tiene el `--dart-define` y quien sabe explicar que falta.
+      overrides: [backendUrlProvider.overrideWithValue(AppConfig.backendUrl)],
+      child: const YaVieneApp(),
     ),
   );
 }
@@ -78,7 +82,13 @@ class _FirebaseInitFailedApp extends StatelessWidget {
                   onPressed: () async {
                     try {
                       await Firebase.initializeApp();
-                      runApp(const ProviderScope(child: YaVieneApp()));
+                      runApp(ProviderScope(
+                        overrides: [
+                          backendUrlProvider
+                              .overrideWithValue(AppConfig.backendUrl),
+                        ],
+                        child: const YaVieneApp(),
+                      ));
                     } catch (e, st) {
                       debugPrint('Reintento Firebase falló: $e\n$st');
                     }

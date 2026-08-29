@@ -58,6 +58,31 @@ class AlertHistoryEntry {
 const _kHistoryKey = 'alert_history';
 const _kLegacyMigratedUser = 'alert_history_legacy_migrated_user';
 
+/// El historial crecía sin techo: una entrada por cada bus al que se le haya
+/// armado un aviso alguna vez, guardadas enteras en SharedPreferences y
+/// releídas en cada arranque. Con una flota real eso son cientos de entradas
+/// que nadie va a mirar. Se conservan las 50 más recientes de los últimos 30
+/// días; los avisos todavía activos nunca se purgan, porque este archivo es
+/// además su única persistencia y borrarlos los desarmaría en silencio.
+const int _maxEntradas = 50;
+const Duration _vidaDelHistorial = Duration(days: 30);
+
+List<AlertHistoryEntry> _purgar(List<AlertHistoryEntry> entradas) {
+  final limite = DateTime.now().subtract(_vidaDelHistorial);
+  final activas = entradas.where((e) => !e.sent).toList();
+  final enviadas = entradas
+      .where((e) => e.sent && e.sentAt!.isAfter(limite))
+      .toList()
+    ..sort((a, b) => b.sentAt!.compareTo(a.sentAt!));
+
+  final cupo = _maxEntradas - activas.length;
+  final conservadas = cupo <= 0 ? <AlertHistoryEntry>[] : enviadas.take(cupo);
+  // Se devuelve en el orden original para no reordenar la lista que ve el
+  // usuario solo por haber purgado.
+  final vivas = {...activas, ...conservadas};
+  return entradas.where(vivas.contains).toList();
+}
+
 class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   AlertHistoryNotifier() : super(const []);
 
@@ -140,7 +165,11 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       final list = (jsonDecode(raw) as List)
           .map((e) => AlertHistoryEntry.fromJson(e as Map<String, dynamic>))
           .toList();
-      state = list;
+      final purgado = _purgar(list);
+      state = purgado;
+      // Una instalación vieja puede traer el historial ya crecido: se
+      // reescribe podado para que no vuelva a leerse entero mañana.
+      if (purgado.length != list.length) _save();
     } catch (_) {
       // Historial corrupto: se descarta; la próxima acción lo reescribe.
       state = const [];
@@ -148,6 +177,8 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   }
 
   void _save() {
+    final purgado = _purgar(state);
+    if (purgado.length != state.length) state = purgado;
     final encoded = jsonEncode(state.map((e) => e.toJson()).toList());
     final key = _storageKey;
     _saveQueue = _saveQueue.catchError((_) {}).then((_) async {

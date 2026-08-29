@@ -28,17 +28,40 @@ class BusPosition extends Equatable {
     this.sequence,
   });
 
+  /// Lanza [FormatException] si al JSON le falta identidad o coordenada.
+  /// Antes rellenaba con ceros y un mensaje sin `lat` producía un bus en
+  /// (0, 0) —golfo de Guinea— que el mapa pintaba tan campante. Quien lea de
+  /// la red debe envolver esto: `safeBusPosition` en el pasajero ya lo hace.
   factory BusPosition.fromJson(Map<String, dynamic> json) {
     final rawTimestamp = json['timestamp'];
     final parsedTimestamp = rawTimestamp is num
         ? DateTime.fromMillisecondsSinceEpoch(rawTimestamp.toInt())
         : DateTime.tryParse(rawTimestamp as String? ?? '') ?? DateTime.now();
 
+    final busId = (json['busId'] as String?)?.trim();
+    final routeId = (json['routeId'] as String?)?.trim();
+    if (busId == null || busId.isEmpty || routeId == null || routeId.isEmpty) {
+      throw const FormatException('posición sin busId/routeId');
+    }
+    final lat = (json['lat'] as num?)?.toDouble();
+    final lon = (json['lon'] as num?)?.toDouble();
+    if (lat == null || lon == null) {
+      throw const FormatException('posición sin lat/lon');
+    }
+    if (!lat.isFinite ||
+        !lon.isFinite ||
+        lat < -90 ||
+        lat > 90 ||
+        lon < -180 ||
+        lon > 180) {
+      throw const FormatException('posición fuera de rango');
+    }
+
     return BusPosition(
-      busId: json['busId'] as String? ?? '',
-      routeId: json['routeId'] as String? ?? '',
-      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
-      lon: (json['lon'] as num?)?.toDouble() ?? 0.0,
+      busId: busId,
+      routeId: routeId,
+      lat: lat,
+      lon: lon,
       heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
       speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
       sentido: json['sentido'] as String?,
