@@ -56,12 +56,20 @@ abstract class AppColors {
   /// El bus que el operador tiene abierto en la ficha. En la app este azul
   /// está reservado a la ruta que le importa al usuario; aquí a lo que le
   /// importa al operador. Es el único azul del mapa, así que el halo se ve
-  /// venir sin competir con el coral ni con el gris.
+  /// venir sin competir con el verde ni con el gris.
   static const Color selection = core.AppColors.electricBlue;
 
-  /// El bus sobre el mapa, exactamente el del pasajero: coral si reporta,
-  /// gris si no. El operador tiene que ver el mismo icono que ve el usuario.
-  static const Color busActive = core.AppColors.busActive;
+  /// El bus sobre el mapa: verde si reporta, gris si no. Misma forma que el
+  /// del pasajero, distinto color, y a propósito. Dos razones:
+  ///
+  /// 1. El mapa de OpenStreetMap pinta las arterias en salmón, y el coral del
+  ///    pasajero —que allá va sobre un mapa vectorial de calles blancas— se
+  ///    perdía encima de ellas. Sobre teselas de OSM el verde no compite con
+  ///    nada: el agua es azul, los parques verde pálido y las vías cálidas.
+  /// 2. El panel ya decía "En línea" en verde en la lista de flota y en el
+  ///    tablero ([online]); solo el mapa lo decía en coral. Ahora los tres
+  ///    sitios usan el mismo color para la misma palabra.
+  static const Color busActive = core.AppColors.primary;
   static const Color busGhost = core.AppColors.busGhost;
 
   static List<BoxShadow> get softShadow => core.AppShadows.soft;

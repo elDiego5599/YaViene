@@ -21,7 +21,12 @@ class _ControlMapState extends ConsumerState<ControlMap> {
   final MapController _mapController = MapController();
   double _zoom = 12;
 
-  double get _markerSize => (16 + (_zoom - 11) * 4).clamp(16.0, 32.0);
+  // El marcador crece con el zoom, pero arranca más grande que antes (16 pt):
+  // a zoom 12, que es como abre el panel, un bus medía 20 pt de lado y la
+  // cápsula dentro apenas 15 — un grano de arroz sobre la ciudad entera.
+  // El tope sube a 44 para que al acercarse se lea de quién es el bus sin
+  // que el icono tape la manzana.
+  double get _markerSize => (26 + (_zoom - 11) * 5).clamp(26.0, 44.0);
 
   @override
   void dispose() {
@@ -146,8 +151,10 @@ class _ControlMapState extends ConsumerState<ControlMap> {
   El mismo bus que ve el pasajero. Antes el panel dibujaba uno propio —un
   rectángulo azul marino con dos farolas verdes— y el operador no podía
   relacionar lo que tenía en pantalla con lo que le describía por teléfono
-  alguien parado en el paradero. Ahora es la misma cápsula, los mismos dos
-  colores y la misma lectura: coral reporta, gris no.
+  alguien parado en el paradero. Ahora es la misma cápsula y la misma
+  lectura: en color reporta, gris no. El color activo sí cambia respecto al
+  pasajero —verde en vez de coral— porque el fondo es otro; el porqué está
+  en `AppColors.busActive`.
 
   La diferencia con la app es de medio: allá el ícono se hornea una vez a
   PNG y MapLibre lo reusa como sprite; aquí se pinta en cada cuadro con
