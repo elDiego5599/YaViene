@@ -13,9 +13,10 @@
 # ═══════════════════════════════════════════════════════════
 set -uo pipefail
 
-# El backend ya no vive detrás de un túnel que cambia de nombre en cada
-# arranque: está desplegado en Fly con una URL fija.
-URL="${URL:-https://ya-viene-backend.fly.dev}"
+# El backend corre en el portátil y sale por un túnel de ngrok con dominio
+# reservado: el nombre no cambia entre reinicios. Misma URL por defecto que
+# build-demo.sh, para que los dos hablen del mismo sitio.
+URL="${URL:-https://occupy-shed-squatter.ngrok-free.dev}"
 for arg in "$@"; do
   case "$arg" in
     --url=*) URL="${arg#--url=}" ;;

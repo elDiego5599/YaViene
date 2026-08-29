@@ -82,6 +82,13 @@ class AuthNotifier extends ChangeNotifier {
   StreamSubscription<User?>? _authSub;
 
   AuthNotifier() {
+    // Los correos que manda Firebase (restablecer contraseña, verificar) se
+    // arman en su servidor, no aquí: el idioma lo decide esta línea. Sin ella
+    // salen en inglés —"Follow this link to reset your password"— aunque toda
+    // la app esté en español. Se fija a 'es' y no al idioma del teléfono
+    // porque el usuario de la demo es colombiano; si el teléfono estuviera en
+    // inglés, `useDeviceLanguage()` mandaría el correo en inglés.
+    _auth.setLanguageCode('es');
     _authSub = _auth.authStateChanges().listen((user) {
       if (!_sessionResolved.isCompleted) _sessionResolved.complete();
       if (user != null && _state.status != AuthStatus.verified) {

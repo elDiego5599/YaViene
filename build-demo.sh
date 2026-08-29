@@ -22,7 +22,12 @@ set -uo pipefail
 # grabada en el binario. Por eso la URL se decide aquí y no en la app, y por
 # eso cambiarla obliga a volver a correr este script y a reinstalar. Misma
 # URL por defecto que check-demo.sh, para que los dos hablen del mismo sitio.
-BACKEND_URL="${BACKEND_URL:-https://ya-viene-backend.fly.dev}"
+#
+# El túnel de ngrok con dominio reservado: no cambia entre reinicios, así que
+# sirve como constante de compilación igual que serviría un dominio propio.
+# Fly queda para cuando den el visto bueno; hasta entonces el backend corre en
+# el portátil y sale por aquí (--backend-url=... para apuntar a otro sitio).
+BACKEND_URL="${BACKEND_URL:-https://occupy-shed-squatter.ngrok-free.dev}"
 HACER_PASAJERO=1
 HACER_PANEL=1
 INSTALAR=1
