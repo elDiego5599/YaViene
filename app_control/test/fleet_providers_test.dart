@@ -84,6 +84,43 @@ void main() {
     expect(notifier.state.routeFilter, 'R-1');
   });
 
+  // El panel abría siempre en la primera ruta del catálogo, que es la del
+  // número más bajo y casi nunca la que tiene buses andando: se veía una
+  // ruta vacía y parecía que la empresa no tuviera flota.
+  test('refreshRoutes() abre en la ruta con buses reportando, no en la primera', () async {
+    const vacia = FleetRoute(routeId: 'R-101', name: 'B18 Tcherassi', total: 1, online: 0);
+    const conBuses = FleetRoute(routeId: 'R-106', name: 'C16 Calle 72', total: 2, online: 2);
+    final container = _containerWith(_FakeFleetApi(routes: [vacia, conBuses]));
+    final notifier = container.read(fleetProvider.notifier);
+
+    await notifier.refreshRoutes();
+
+    expect(notifier.state.routeFilter, 'R-106');
+  });
+
+  test('refreshRoutes() sin ninguna ruta reportando abre en la primera', () async {
+    const primera = FleetRoute(routeId: 'R-101', name: 'B18 Tcherassi', total: 1, online: 0);
+    const segunda = FleetRoute(routeId: 'R-106', name: 'C16 Calle 72', total: 2, online: 0);
+    final container = _containerWith(_FakeFleetApi(routes: [primera, segunda]));
+    final notifier = container.read(fleetProvider.notifier);
+
+    await notifier.refreshRoutes();
+
+    expect(notifier.state.routeFilter, 'R-101');
+  });
+
+  test('refreshRoutes() no pisa la ruta que el operador ya eligió', () async {
+    const vacia = FleetRoute(routeId: 'R-101', name: 'B18 Tcherassi', total: 1, online: 0);
+    const conBuses = FleetRoute(routeId: 'R-106', name: 'C16 Calle 72', total: 2, online: 2);
+    final container = _containerWith(_FakeFleetApi(routes: [vacia, conBuses]));
+    final notifier = container.read(fleetProvider.notifier);
+    notifier.state = notifier.state.copyWith(routeFilter: () => 'R-101');
+
+    await notifier.refreshRoutes();
+
+    expect(notifier.state.routeFilter, 'R-101');
+  });
+
   test('stop() cierra la flota y resetea el estado a desconectado', () async {
     final container = _containerWith(_FakeFleetApi());
     final notifier = container.read(fleetProvider.notifier);

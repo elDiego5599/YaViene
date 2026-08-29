@@ -274,13 +274,26 @@ class FleetNotifier extends StateNotifier<FleetState> {
       final routes = await _api.fetchRoutes(token);
       state = state.copyWith(
         routes: routes,
-        routeFilter: () => state.routeFilter ?? (routes.isNotEmpty ? routes.first.routeId : null),
+        routeFilter: () => state.routeFilter ?? _rutaDeArranque(routes),
         clearError: true,
       );
     } catch (e) {
       if (_onSessionExpired(e)) return;
       // El catálogo es informativo; no bloquea la flota.
     }
+  }
+
+  /// Con qué ruta se abre el panel. Era la primera del catálogo, que en la
+  /// práctica es la del número más bajo y casi nunca la que tiene buses
+  /// andando: el panel arrancaba en una ruta vacía y parecía que la empresa
+  /// no tuviera flota. Se abre en la que más buses estén reportando; si
+  /// ninguna reporta, en la primera, como antes. Solo decide el arranque:
+  /// en cuanto el operador toca una pestaña, manda su elección.
+  static String? _rutaDeArranque(List<FleetRoute> routes) {
+    if (routes.isEmpty) return null;
+    final conBuses = routes.where((r) => r.online > 0).toList()
+      ..sort((a, b) => b.online.compareTo(a.online));
+    return conBuses.isEmpty ? routes.first.routeId : conBuses.first.routeId;
   }
 
   void selectBus(String? busId) {

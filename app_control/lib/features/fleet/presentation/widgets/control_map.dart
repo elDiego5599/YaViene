@@ -62,10 +62,20 @@ class _ControlMapState extends ConsumerState<ControlMap> {
             },
           ),
           children: [
+            // El mismo mapa que ve el pasajero: Voyager de CARTO —agua azul,
+            // parques verdes, vías cálidas—. El panel traía Positron
+            // ("light_all"), que es el gris apagado, y los dos productos
+            // parecían de empresas distintas puestos uno al lado del otro.
+            // Allá el estilo es vectorial (voyager-gl-style, MapLibre) y aquí
+            // teselas rasterizadas del mismo estilo, porque flutter_map no
+            // pinta vectores; los colores son los mismos.
             TileLayer(
               urlTemplate:
-                  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
               subdomains: const ['a', 'b', 'c', 'd'],
+              // En pantallas densas pide la tesela @2x: el panel se usa en
+              // monitores de oficina, donde el mapa a 1x se ve borroso.
+              retinaMode: RetinaMode.isHighDensity(context),
               userAgentPackageName: 'co.yaviene.control',
             ),
             MarkerLayer(markers: markers),

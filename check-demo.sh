@@ -83,7 +83,8 @@ else
     ok "Buses publicando: $BUSES"
   else
     bad "Solo se ven $COUNT bus(es): $BUSES (se esperan B-042 y B-055)."
-    bad "  ¿Corrió 'scripts/demo-buses.sh' en la máquina del backend?"
+    bad "  Arráncalos en la máquina del backend, que sobrevivan a la terminal:"
+    bad "    cd YaVieneBackend && bash scripts/demo-buses.sh --fondo"
   fi
 fi
 

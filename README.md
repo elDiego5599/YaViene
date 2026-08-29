@@ -58,13 +58,20 @@ Los buses simulados se arrancan **en la misma máquina que el backend** (el
 broker MQTT solo escucha en loopback, a propósito):
 
 ```bash
-cd YaVieneBackend && bash scripts/demo-buses.sh
+cd YaVieneBackend && bash scripts/demo-buses.sh --fondo
 ```
 
 El escenario demo arranca **B-042 al 80 %** del recorrido (ya pasó por la
 parada) y **B-055 al 15 %** (viene llegando), ambos a velocidad constante.
-Se quedan corriendo hasta que los pares con Ctrl+C. Si el backend está
-desplegado en Fly, es el mismo comando dentro de `fly ssh console`.
+Si el backend está desplegado en Fly, es el mismo comando dentro de
+`fly ssh console`.
+
+Con `--fondo` quedan vigilados: sobreviven al cierre de la terminal y, si un
+simulador se cae, se vuelve a levantar en 5 s. Importa porque un bus que deja
+de publicar **no desaparece del mapa**: se queda quieto y a los cinco minutos
+sale «sin señal» en las dos apps, sin ningún aviso de que el problema es que
+el proceso se murió. `--estado` dice si están corriendo y `--detener` los
+para. Sin `--fondo` corren en primer plano y se paran con Ctrl+C.
 
 ## Estado actual
 
@@ -74,7 +81,7 @@ desplegado en Fly, es el mismo comando dentro de `fly ssh console`.
 - [x] App pasajero: mapa en vivo, pin por GPS o manual, selección de bus,
   aviso a 1 km con la app en segundo plano, panel inferior con estado del bus.
 - [x] Panel de control (macOS y Windows).
-- [x] Pruebas: 116 en `app_pasajero`, 23 en `app_control`, 3 en `ya_viene_core`,
+- [x] Pruebas: 116 en `app_pasajero`, 29 en `app_control`, 3 en `ya_viene_core`,
   28 en el backend.
 
 ## Pendiente
