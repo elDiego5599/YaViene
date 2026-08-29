@@ -866,6 +866,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _haloPulseTimer =
         Timer.periodic(const Duration(milliseconds: 900), (_) {
       if (_mapController == null || !mounted || !_layersReady) return;
+      // En segundo plano nadie ve el latido, pero el temporizador sigue vivo y
+      // cada vuelta cruza el puente hacia el mapa nativo. Es justo el caso de
+      // la demo: bus seleccionado, aviso armado y la app atrás esperando.
+      if (_lifecycleState != AppLifecycleState.resumed) return;
       _haloPulseOut = !_haloPulseOut;
       _mapController!.setLayerProperties(
         _kBusHaloLayerId,
