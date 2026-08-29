@@ -54,9 +54,26 @@ android {
         }
     }
 
+    // Firebase valida el SHA-1 del certificado que firma el APK contra los que
+    // tenga registrados el proyecto. Hoy solo está el de debug
+    // (88:9F:80:E4:…:85:E2), así que un release firmado con upload-keystore.jks
+    // (14:78:C5:8B:…:C6:E0) hace fallar el ingreso con Google — ApiException 10,
+    // que la app enseña como un error genérico.
+    //
+    // Lo definitivo es registrar el SHA-1 de release en la consola de Firebase.
+    // Mientras tanto, esta variable construye el release con la llave de debug
+    // para poder probar el ingreso con Google en una APK de release:
+    //
+    //   YA_VIENE_FIRMA_DEBUG=true flutter build apk --release
+    //
+    // Es variable de entorno y no propiedad de Gradle porque `flutter build`
+    // no reenvía los `-P` de la línea de órdenes al build de Android.
+    // Una APK así NO es publicable: sirve para probar, no para entregar.
+    val firmarConLlaveDeDebug = System.getenv("YA_VIENE_FIRMA_DEBUG") == "true"
+
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
+            signingConfig = if (keystorePropertiesFile.exists() && !firmarConLlaveDeDebug) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

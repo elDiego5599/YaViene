@@ -320,10 +320,24 @@ class AuthNotifier extends ChangeNotifier {
       notifyListeners();
       return true;
     } on GoogleSignInException catch (e) {
-      // Canceló el selector de cuentas: no es un error.
-      _state = const AuthState();
+      // Cerrar el selector de cuentas no es un error y se vuelve al estado
+      // inicial sin decir nada. Todo lo demás SÍ lo es, y antes caía en esta
+      // misma rama: la app se quedaba muda y el botón parecía no hacer nada.
+      // El fallo que escondía era clientConfigurationError — en Android
+      // significa que el SHA-1 del certificado que firma la APK no está
+      // registrado en el proyecto de Firebase.
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        _state = const AuthState();
+        notifyListeners();
+        return false;
+      }
+      debugPrint('Google sign-in falló (${e.code.name}): ${e.description}');
+      _state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: _googleSignInError(e.code),
+        errorCode: e.code.name,
+      );
       notifyListeners();
-      debugPrint('Google sign-in cancelado: $e');
       return false;
     } on FirebaseAuthException catch (e) {
       _state = AuthState(
@@ -367,6 +381,30 @@ class AuthNotifier extends ChangeNotifier {
     await _auth.signOut();
     _state = const AuthState();
     notifyListeners();
+  }
+
+  /// Texto para los fallos de Google que no son una cancelación. Los de
+  /// configuración se cuentan como "no disponible" y no como "error de red":
+  /// no dependen del usuario y reintentar no cambia nada, así que lo útil es
+  /// mandarlo al ingreso por correo en vez de dejarlo insistiendo.
+  String _googleSignInError(GoogleSignInExceptionCode code) {
+    switch (code) {
+      case GoogleSignInExceptionCode.clientConfigurationError:
+      case GoogleSignInExceptionCode.providerConfigurationError:
+        return 'El ingreso con Google no está disponible en esta versión de '
+            'la app. Entra con tu correo y contraseña.';
+      case GoogleSignInExceptionCode.uiUnavailable:
+        return 'No se pudo abrir el selector de cuentas de Google. '
+            'Intenta de nuevo.';
+      case GoogleSignInExceptionCode.userMismatch:
+        return 'Esa cuenta de Google no coincide con la sesión actual. '
+            'Cierra sesión e intenta de nuevo.';
+      case GoogleSignInExceptionCode.canceled:
+      case GoogleSignInExceptionCode.interrupted:
+      case GoogleSignInExceptionCode.unknownError:
+        return 'No se pudo entrar con Google. Intenta de nuevo o usa tu '
+            'correo y contraseña.';
+    }
   }
 
   String _friendlyAuthError(FirebaseAuthException e) {

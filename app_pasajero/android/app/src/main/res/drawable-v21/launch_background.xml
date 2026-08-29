@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Copia de drawable/launch_background.xml: este calificador (v21) tapa al
+     genérico en todos los dispositivos, porque minSdk es 24. Si tocas uno,
+     toca el otro. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_background" />
+    <item
+        android:gravity="center"
+        android:width="128dp"
+        android:height="128dp"
+        android:drawable="@drawable/ic_splash_logo" />
 </layer-list>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El logo completo (disco verde incluido), en vector, para la pantalla de
+  arranque de Android 24–30. Es el mismo dibujo que `assets/icon/ya_viene_logo.svg`
+  usa el splash de Flutter, así que el salto entre la pantalla nativa y la de
+  Flutter deja de notarse: mismo logo, mismo fondo (#0B1628 = AppColors.ink).
+
+  Android 12+ no usa esto: ahí manda `windowSplashScreenAnimatedIcon`, que
+  apunta a `ic_launcher_foreground` sobre un disco verde del sistema.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Disco de marca -->
+    <path
+        android:pathData="M0,256 A256,256 0 1 1 512,256 A256,256 0 1 1 0,256 Z"
+        android:fillColor="#00A859" />
+
+    <!-- Ondas de conectividad -->
+    <path
+        android:pathData="M120,130 A200,200 0 0 1 392,130"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="32"
+        android:strokeAlpha="0.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M176,190 A130,130 0 0 1 336,190"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="32"
+        android:strokeLineCap="round" />
+
+    <!-- Chasis -->
+    <path
+        android:pathData="M172,240 H340 A36,36 0 0 1 376,276 V384 A36,36 0 0 1 340,420 H172 A36,36 0 0 1 136,384 V276 A36,36 0 0 1 172,240 Z"
+        android:fillColor="#14274E" />
+
+    <!-- Parabrisas -->
+    <path
+        android:pathData="M182,270 H330 A16,16 0 0 1 346,286 V326 A16,16 0 0 1 330,342 H182 A16,16 0 0 1 166,326 V286 A16,16 0 0 1 182,270 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Reflejo del vidrio -->
+    <path
+        android:pathData="M290,270 H320 V342 H290 Z"
+        android:fillColor="#14274E"
+        android:fillAlpha="0.1" />
+
+    <!-- Faros -->
+    <path
+        android:pathData="M164,375 A16,16 0 1 1 196,375 A16,16 0 1 1 164,375 Z"
+        android:fillColor="#FFC107" />
+    <path
+        android:pathData="M316,375 A16,16 0 1 1 348,375 A16,16 0 1 1 316,375 Z"
+        android:fillColor="#FFC107" />
+
+    <!-- Llantas -->
+    <path
+        android:pathData="M168,410 H184 A8,8 0 0 1 192,418 V426 A8,8 0 0 1 184,434 H168 A8,8 0 0 1 160,426 V418 A8,8 0 0 1 168,410 Z"
+        android:fillColor="#0A1428" />
+    <path
+        android:pathData="M328,410 H344 A8,8 0 0 1 352,418 V426 A8,8 0 0 1 344,434 H328 A8,8 0 0 1 320,426 V418 A8,8 0 0 1 328,410 Z"
+        android:fillColor="#0A1428" />
+</vector>

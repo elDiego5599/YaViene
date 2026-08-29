@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Mismo arranque que values-v31, repetido para modo oscuro. Hace falta
+      porque el calificador `night` pesa más que el de versión: sin este
+      archivo, un Android 12+ en modo oscuro caía en values-night/styles.xml,
+      que no fija el icono de arranque, y volvía a salir el icono borroso.
+      Si tocas values-v31/styles.xml, toca este también.
+    -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Primer plano del icono adaptable, y también el icono que Android 12+ dibuja
+  en la pantalla de arranque.
+
+  Antes esto eran PNG de 48–192 px: son las medidas del icono *heredado*, no
+  las del adaptable, cuyo lienzo son 108 dp (108–432 px). Android ampliaba el
+  bitmap 2,25× para llenar el lienzo, y la pantalla de arranque lo agranda
+  todavía más — de ahí que el arranque se viera pixelado. En vector no hay
+  ampliación posible: es nítido en cualquier densidad y en cualquier tamaño.
+
+  El dibujo original está trazado sobre un lienzo de 512, dentro de un disco de
+  radio 256. El grupo hace coincidir el centro de ese disco con el del lienzo
+  (54,54) y lo encoge hasta que la parte más saliente —las puntas de la onda
+  grande— quede a 33 de radio, con la máscara del lanzador a 36: la zona segura
+  del icono adaptable es un círculo, no un cuadrado, así que con la escala que
+  llenaba los 72 dp de ancho las puntas de la onda y las llantas se salían y
+  quedaban cortadas.
+
+  El fondo NO va aquí: lo pone `ic_launcher_background` en el icono adaptable
+  y `windowSplashScreenIconBackgroundColor` en la pantalla de arranque.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.1633"
+        android:scaleY="0.1633"
+        android:translateX="12.2"
+        android:translateY="12.2">
+
+        <!-- Ondas de conectividad -->
+        <path
+            android:pathData="M120,130 A200,200 0 0 1 392,130"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="32"
+            android:strokeAlpha="0.5"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M176,190 A130,130 0 0 1 336,190"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="32"
+            android:strokeLineCap="round" />
+
+        <!-- Chasis -->
+        <path
+            android:pathData="M172,240 H340 A36,36 0 0 1 376,276 V384 A36,36 0 0 1 340,420 H172 A36,36 0 0 1 136,384 V276 A36,36 0 0 1 172,240 Z"
+            android:fillColor="#14274E" />
+
+        <!-- Parabrisas -->
+        <path
+            android:pathData="M182,270 H330 A16,16 0 0 1 346,286 V326 A16,16 0 0 1 330,342 H182 A16,16 0 0 1 166,326 V286 A16,16 0 0 1 182,270 Z"
+            android:fillColor="#FFFFFF" />
+
+        <!-- Reflejo del vidrio -->
+        <path
+            android:pathData="M290,270 H320 V342 H290 Z"
+            android:fillColor="#14274E"
+            android:fillAlpha="0.1" />
+
+        <!-- Faros -->
+        <path
+            android:pathData="M164,375 A16,16 0 1 1 196,375 A16,16 0 1 1 164,375 Z"
+            android:fillColor="#FFC107" />
+        <path
+            android:pathData="M316,375 A16,16 0 1 1 348,375 A16,16 0 1 1 316,375 Z"
+            android:fillColor="#FFC107" />
+
+        <!-- Llantas -->
+        <path
+            android:pathData="M168,410 H184 A8,8 0 0 1 192,418 V426 A8,8 0 0 1 184,434 H168 A8,8 0 0 1 160,426 V418 A8,8 0 0 1 168,410 Z"
+            android:fillColor="#0A1428" />
+        <path
+            android:pathData="M328,410 H344 A8,8 0 0 1 352,418 V426 A8,8 0 0 1 344,434 H328 A8,8 0 0 1 320,426 V418 A8,8 0 0 1 328,410 Z"
+            android:fillColor="#0A1428" />
+    </group>
+</vector>

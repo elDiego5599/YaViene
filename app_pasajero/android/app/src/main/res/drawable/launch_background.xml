@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!--
+  Pantalla de arranque en Android 24–30 (en 31+ manda values-v31/styles.xml).
+  Antes era un color plano: la app abría en un rectángulo azul vacío y de
+  golpe aparecía el splash de Flutter con el logo. Ahora arranca ya con el
+  logo en el mismo sitio y sobre el mismo fondo, así que el relevo entre la
+  pantalla nativa y la de Flutter no se ve.
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_background" />
+    <item
+        android:gravity="center"
+        android:width="128dp"
+        android:height="128dp"
+        android:drawable="@drawable/ic_splash_logo" />
 </layer-list>
