@@ -201,10 +201,20 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
       _showError(error);
       return;
     }
+    // A propósito condicional. Firebase, con la protección anti-enumeración
+    // encendida, responde "listo" también cuando ese correo no tiene cuenta
+    // con contraseña (nunca se registró, o entró con Google, que no tiene
+    // contraseña que restablecer). Prometer "te lo enviamos" deja al usuario
+    // esperando un correo que nunca se mandó; y cuando sí se manda, sale de
+    // @firebaseapp.com y cae en spam más veces de las que uno quisiera.
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Te enviamos un enlace a $email para restablecerla'),
+        content: Text(
+          'Si $email tiene cuenta con contraseña, el enlace llega en unos '
+          'minutos. Revisa spam y correo no deseado.',
+        ),
         backgroundColor: AppColors.primaryDeep,
+        duration: const Duration(seconds: 6),
       ),
     );
   }
