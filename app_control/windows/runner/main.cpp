@@ -27,7 +27,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"ya_viene_control", origin, size)) {
+  // Es lo que se lee en la barra de título y en la barra de tareas. Venía con
+  // el nombre del paquete de Flutter; el nombre del producto es el mismo que
+  // ya declara Runner.rc en ProductName.
+  if (!window.Create(L"Ya Viene Control", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

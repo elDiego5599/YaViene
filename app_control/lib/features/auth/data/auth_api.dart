@@ -28,16 +28,34 @@ class AuthApi {
         companyName: company['name'] as String,
       );
     } on DioException catch (e) {
-      final message = e.response?.data?['error']?['message'] as String?;
       switch (e.response?.statusCode) {
         case 429:
           throw const AuthApiException('Demasiados intentos. Espera un momento.');
         case 401:
           throw const AuthApiException('Usuario o contraseña incorrectos.');
         default:
-          throw AuthApiException(message ?? 'No se pudo conectar con el servidor.');
+          throw AuthApiException(_mensajeDeFallo(e));
       }
     }
+  }
+
+  /// Un fallo sin respuesta es que no se llegó al servidor; uno con respuesta
+  /// es que el servidor contestó algo que no esperábamos. Decir siempre "no se
+  /// pudo conectar" manda a revisar la red cuando el problema está en la otra
+  /// punta, y esconde el mensaje que el propio backend haya devuelto.
+  String _mensajeDeFallo(DioException e) {
+    final respuesta = e.response;
+    if (respuesta == null) {
+      return 'No se pudo conectar con el servidor.';
+    }
+    final datos = respuesta.data;
+    if (datos is Map) {
+      final error = datos['error'];
+      if (error is Map && error['message'] is String) {
+        return error['message'] as String;
+      }
+    }
+    return 'El servidor respondió algo inesperado (${respuesta.statusCode}).';
   }
   Future<bool> validateSession(String token) async {
     try {

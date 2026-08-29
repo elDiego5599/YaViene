@@ -116,14 +116,32 @@ fi
 # ── 3. Panel de control (macOS) ───────────────────────────────
 echo ""
 if [ "$HACER_PANEL" = "1" ]; then
-  echo "▶ [3/3] Panel de control (macOS, release)..."
-  if [ "$(uname)" != "Darwin" ]; then
-    aviso "No es macOS: el panel se compila en Windows con 'flutter build windows'"
-  elif (cd "$RAIZ/app_control" && flutter build macos --release \
-          --dart-define=BACKEND_URL="$BACKEND_URL" >/dev/null 2>&1); then
+  # El panel se usa normalmente en Windows; macOS es la máquina de desarrollo.
+  # Se compila para el sistema donde se corra el script.
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) SISTEMA=windows ;;
+    Darwin)               SISTEMA=macos ;;
+    *)                    SISTEMA=desconocido ;;
+  esac
+  echo "▶ [3/3] Panel de control ($SISTEMA, release)..."
+
+  if [ "$SISTEMA" = "desconocido" ]; then
+    aviso "$(uname -s) no es un sistema donde se use el panel; se salta"
+  elif ! (cd "$RAIZ/app_control" && flutter build "$SISTEMA" --release \
+            --dart-define=BACKEND_URL="$BACKEND_URL" >/dev/null 2>&1); then
+    bad "Falló la compilación del panel. Repite sin silenciar para ver el error:"
+    bad "  cd app_control && flutter build $SISTEMA --release --dart-define=BACKEND_URL=$BACKEND_URL"
+  elif [ "$SISTEMA" = "windows" ]; then
+    # En Windows no hay nada que instalar: el ejecutable y sus DLL viven
+    # juntos en la carpeta del bundle y se abre desde ahí (o se copia entera
+    # a donde se quiera). Sacar el .exe solo, sin sus DLL, no arranca.
+    ORIGEN="$RAIZ/app_control/build/windows/x64/runner/Release"
+    ok "Panel compilado en $ORIGEN"
+    ok "Se abre con: '$ORIGEN/ya_viene_control.exe'"
+    aviso "Para llevarlo a otra máquina hay que copiar la carpeta entera, no solo el .exe"
+  else
     ORIGEN="$RAIZ/app_control/build/macos/Build/Products/Release/Ya Viene Control.app"
     ok "Panel compilado"
-
     if [ "$INSTALAR" = "1" ]; then
       # Si está abierto, copiar encima deja la copia a medias.
       pkill -f "Ya Viene Control.app/Contents/MacOS" >/dev/null 2>&1
@@ -139,9 +157,6 @@ if [ "$HACER_PANEL" = "1" ]; then
     else
       ok "Sin instalar: queda en $ORIGEN"
     fi
-  else
-    bad "Falló la compilación del panel. Repite sin silenciar para ver el error:"
-    bad "  cd app_control && flutter build macos --release --dart-define=BACKEND_URL=$BACKEND_URL"
   fi
 else
   echo "▶ [3/3] Panel de control — saltado"

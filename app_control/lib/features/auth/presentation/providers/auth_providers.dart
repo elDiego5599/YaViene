@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -48,9 +49,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final FlutterSecureStorage _storage;
 
   Future<void> restoreSession() async {
-    final token = await _storage.read(key: _kToken);
-    final companyId = await _storage.read(key: _kCompanyId);
-    final companyName = await _storage.read(key: _kCompanyName);
+    String? token;
+    String? companyId;
+    String? companyName;
+    try {
+      token = await _storage.read(key: _kToken);
+      companyId = await _storage.read(key: _kCompanyId);
+      companyName = await _storage.read(key: _kCompanyName);
+    } catch (e) {
+      // Si el almacén del sistema no se deja leer, no hay sesión que
+      // restaurar: se pide la clave y ya. Sin este catch la excepción subía
+      // sin dueño y la ventana se quedaba en el estado inicial para siempre.
+      debugPrint('No se pudo leer la sesión guardada: $e');
+    }
     if (token != null && companyId != null && companyName != null) {
       // Validamos el token guardado: si el backend lo rechaza (p.ej. secretos
       // rotados o token expirado), no entramos con una sesión muerta.
@@ -78,27 +89,54 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _clearStored() async {
-    await _storage.delete(key: _kToken);
-    await _storage.delete(key: _kCompanyId);
-    await _storage.delete(key: _kCompanyName);
+    try {
+      await _storage.delete(key: _kToken);
+      await _storage.delete(key: _kCompanyId);
+      await _storage.delete(key: _kCompanyName);
+    } catch (e) {
+      debugPrint('No se pudo borrar la sesión guardada: $e');
+    }
   }
 
   Future<bool> login(String username, String password) async {
     state = state.copyWith(loading: true, error: null);
+
+    final AuthSession session;
     try {
-      final session = await _api.login(username, password);
-      await _storage.write(key: _kToken, value: session.token);
-      await _storage.write(key: _kCompanyId, value: session.companyId);
-      await _storage.write(key: _kCompanyName, value: session.companyName);
-      state = AuthState(status: AuthStatus.authenticated, session: session);
-      return true;
+      session = await _api.login(username, password);
     } on AuthApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return false;
-    } catch (_) {
-      state = state.copyWith(loading: false, error: 'No se pudo conectar con el servidor.');
+    } catch (e) {
+      debugPrint('Fallo inesperado al pedir el ingreso: $e');
+      state = state.copyWith(
+        loading: false,
+        error: 'No se pudo conectar con el servidor.',
+      );
       return false;
     }
+
+    // Guardar la sesión es una comodidad para el próximo arranque, no un
+    // requisito para entrar. El almacén cifrado lo pone el sistema
+    // (Credenciales de Windows, Llavero en macOS) y puede negarse por
+    // permisos o por política de la máquina.
+    //
+    // Antes estas tres escrituras estaban dentro del mismo try que la
+    // llamada de red, y su `catch` decía "No se pudo conectar con el
+    // servidor": el panel rechazaba el ingreso con un mensaje que culpaba a
+    // la red aunque el servidor hubiera contestado 200. Ahora, si el almacén
+    // falla, se entra igual y lo único que se pierde es no tener que volver
+    // a escribir la clave en el próximo arranque.
+    try {
+      await _storage.write(key: _kToken, value: session.token);
+      await _storage.write(key: _kCompanyId, value: session.companyId);
+      await _storage.write(key: _kCompanyName, value: session.companyName);
+    } catch (e) {
+      debugPrint('Se entró, pero no se pudo guardar la sesión: $e');
+    }
+
+    state = AuthState(status: AuthStatus.authenticated, session: session);
+    return true;
   }
 
   Future<void> logout() async {

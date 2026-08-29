@@ -32,6 +32,12 @@ class _FakeSecureStorage extends FlutterSecureStorage {
 
   final Map<String, String> _values;
 
+  /// Cuando el almacén del sistema se niega. En Windows es el almacén de
+  /// Credenciales y en macOS el Llavero: los dos pueden fallar por permisos o
+  /// por política de la máquina, y hasta ahora ninguna prueba lo cubría porque
+  /// este doble siempre respondía que sí.
+  bool falla = false;
+
   @override
   Future<String?> read({
     required String key,
@@ -41,8 +47,10 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     WebOptions? webOptions,
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async =>
-      _values[key];
+  }) async {
+    if (falla) throw Exception('almacén del sistema no disponible');
+    return _values[key];
+  }
 
   @override
   Future<void> write({
@@ -55,6 +63,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    if (falla) throw Exception('almacén del sistema no disponible');
     if (value == null) {
       _values.remove(key);
     } else {
@@ -72,6 +81,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    if (falla) throw Exception('almacén del sistema no disponible');
     _values.remove(key);
   }
 }
@@ -158,5 +168,39 @@ void main() {
 
     expect(notifier.state.status, AuthStatus.unauthenticated);
     expect(notifier.state.session, null);
+  });
+
+  // El fallo que llegó a manos del usuario: el servidor contestaba 200 y el
+  // panel lo rechazaba con "No se pudo conectar con el servidor", porque las
+  // escrituras al almacén del sistema iban dentro del mismo try que la red.
+  test('si el almacén del sistema falla, se entra igual y sin error', () async {
+    final storage = _FakeSecureStorage()..falla = true;
+    final notifier = AuthNotifier(api: _FakeAuthApi(loginResult: session), storage: storage);
+
+    final ok = await notifier.login('admin', 'clave-buena');
+
+    expect(ok, true);
+    expect(notifier.state.status, AuthStatus.authenticated);
+    expect(notifier.state.session?.token, 't-1');
+    expect(notifier.state.error, null);
+  });
+
+  test('si el almacén del sistema falla, restoreSession deja no autenticado', () async {
+    final storage = _FakeSecureStorage({'auth_token': 't-1'})..falla = true;
+    final notifier = AuthNotifier(api: _FakeAuthApi(), storage: storage);
+
+    await notifier.restoreSession();
+
+    expect(notifier.state.status, AuthStatus.unauthenticated);
+    expect(notifier.state.session, null);
+  });
+
+  test('logout no se atasca si el almacén del sistema falla', () async {
+    final storage = _FakeSecureStorage({'auth_token': 't-1'})..falla = true;
+    final notifier = AuthNotifier(api: _FakeAuthApi(), storage: storage);
+
+    await notifier.logout();
+
+    expect(notifier.state.status, AuthStatus.unauthenticated);
   });
 }
