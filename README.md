@@ -61,10 +61,14 @@ broker MQTT solo escucha en loopback, a propósito):
 cd YaVieneBackend && bash scripts/demo-buses.sh --fondo
 ```
 
-El escenario demo arranca **B-042 al 80 %** del recorrido (ya pasó por la
-parada) y **B-055 al 15 %** (viene llegando), ambos a velocidad constante.
-Si el backend está desplegado en Fly, es el mismo comando dentro de
-`fly ssh console`.
+Pone **dos buses en cada una de las seis rutas**, en extremos opuestos del
+recorrido, para que cualquier ruta que se abra —en el panel o en el
+pasajero— tenga buses moviéndose sin ir a arrancar nada. En R-106, la de la
+demo, van más rápido: **B-042 al 80 %** del recorrido (ya pasó por la
+parada) y **B-055 al 15 %** (viene llegando). Si el backend está desplegado
+en Fly, es el mismo comando dentro de `fly ssh console`.
+`RUTAS_DEMO="R-106"` recorta la lista si la máquina se ahoga con doce
+simuladores.
 
 Con `--fondo` quedan vigilados: sobreviven al cierre de la terminal y, si un
 simulador se cae, se vuelve a levantar en 5 s. Importa porque un bus que deja

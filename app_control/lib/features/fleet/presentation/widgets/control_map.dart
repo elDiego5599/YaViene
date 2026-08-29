@@ -62,24 +62,34 @@ class _ControlMapState extends ConsumerState<ControlMap> {
             },
           ),
           children: [
-            // El mismo mapa que ve el pasajero: Voyager de CARTO —agua azul,
-            // parques verdes, vías cálidas—. El panel traía Positron
-            // ("light_all"), que es el gris apagado, y los dos productos
-            // parecían de empresas distintas puestos uno al lado del otro.
-            // Allá el estilo es vectorial (voyager-gl-style, MapLibre) y aquí
-            // teselas rasterizadas del mismo estilo, porque flutter_map no
-            // pinta vectores; los colores son los mismos.
+            // Mapa de OpenStreetMap: agua azul, parques verdes, vías cálidas,
+            // la misma familia de colores que ve el pasajero, en vez del gris
+            // apagado con el que el panel parecía otro producto.
+            //
+            // El pasajero usa el estilo Voyager de CARTO, y sería lo ideal
+            // aquí también, pero CARTO ya solo entrega sus teselas
+            // rasterizadas —las únicas que flutter_map sabe pintar— con una
+            // marca de agua "API KEY REQUIRED" atravesada encima. Allá no se
+            // nota porque el mapa es vectorial y esas teselas siguen limpias.
+            // Para igualar el estilo exacto en escritorio haría falta pintar
+            // vectores, y el único paquete que lo hace todavía está en beta:
+            // no es algo que se meta a días de una presentación.
             TileLayer(
-              urlTemplate:
-                  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-              subdomains: const ['a', 'b', 'c', 'd'],
-              // En pantallas densas pide la tesela @2x: el panel se usa en
-              // monitores de oficina, donde el mapa a 1x se ve borroso.
-              retinaMode: RetinaMode.isHighDensity(context),
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              // OSM no sirve teselas @2x y devuelve 404 si se le piden: sin
+              // esto el mapa sale en blanco en cualquier pantalla densa.
+              retinaMode: false,
               userAgentPackageName: 'co.yaviene.control',
             ),
             MarkerLayer(markers: markers),
           ],
+        ),
+        // OpenStreetMap pide el crédito a la vista. Va discreto, en la
+        // esquina contraria a la leyenda.
+        const Positioned(
+          right: 8,
+          bottom: 4,
+          child: _Attribution(),
         ),
         Positioned(
           left: 18,
@@ -225,6 +235,28 @@ class _FlatBusPainter extends CustomPainter {
   @override
   bool shouldRepaint(_FlatBusPainter oldDelegate) =>
       oldDelegate.active != active || oldDelegate.selected != selected;
+}
+
+class _Attribution extends StatelessWidget {
+  const _Attribution();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '© OpenStreetMap',
+        style: AppType.ui(
+          fontSize: 10,
+          color: AppColors.textMuted,
+        ),
+      ),
+    );
+  }
 }
 
 class _Legend extends StatelessWidget {
