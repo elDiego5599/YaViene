@@ -10,8 +10,10 @@ import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/map_view_state.dart';
+import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
+import '../providers/visible_buses_provider.dart';
 import '../utils/geo.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
@@ -214,7 +216,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     _publishMapInset();
 
-    final busesAsync = ref.watch(busPositionsSourceProvider(selectedRoute.id));
+    // La hoja habla de los buses que el usuario está viendo: la misma lista
+    // recortada al radio que pinta el mapa. Los avisos siguen midiendo contra
+    // la ruta entera; eso vive en proximity_alerts_provider.
+    final busesAsync = ref.watch(visibleBusesProvider(selectedRoute.id));
     final buses = busesAsync.value ?? const <BusPosition>[];
     final busById = {for (final b in buses) b.busId: b};
 
@@ -226,8 +231,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // Un batch VACÍO tampoco limpia la selección: el primer batch tras una
     // reconexión del socket suele llegar vacío y eso no significa que el bus
     // desapareció de la ruta.
+    // El bus seleccionado nunca sale de la lista recortada (va en
+    // `alwaysVisible`), así que alejarse del radio no lo deselecciona: solo
+    // desaparecer de la ruta lo hace, que es lo que este listener busca.
     ref.listen<AsyncValue<List<BusPosition>>>(
-        busPositionsSourceProvider(selectedRoute.id), (prev, next) {
+        visibleBusesProvider(selectedRoute.id), (prev, next) {
       final loaded = next.value;
       if (loaded == null || loaded.isEmpty) return;
       final ids = {for (final b in loaded) b.busId};
@@ -343,6 +351,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ref.watch(userLocationProvider.select((s) => s.hasPosition));
     final route = ref.watch(selectedRouteProvider);
 
+    // Buses de la ruta que quedaron fuera del radio: sin esto, un mapa vacío
+    // se lee como "esta ruta no tiene servicio", que casi nunca es lo que
+    // pasa. Con esto se lee como "hay buses, pero no por aquí".
+    final outOfRange = route == null
+        ? 0
+        : ref.watch(busesOutOfRangeCountProvider(route.id));
+    final routeTooFar =
+        route == null ? false : ref.watch(routeTooFarFromUserProvider(route.id));
+
     final String stateKey;
     final String title;
     final String subtitle;
@@ -359,6 +376,27 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       subtitle = 'Para ver los buses, toca la barra de arriba y elige '
           'la empresa y su ruta';
       icon = Icons.route_rounded;
+    } else if (buses.isEmpty && routeTooFar) {
+      // El caso más confuso de todos: el mapa está vacío no porque no haya
+      // buses, sino porque la ruta entera pasa lejos. Decirlo evita que el
+      // usuario espere sentado un bus que no viene por aquí.
+      stateKey = 'empty-route-far';
+      title = 'Esta ruta no pasa cerca de ti';
+      subtitle = 'Su recorrido queda a más de '
+          '${(alertMaxRouteDistanceMeters / 1000).round()} km de tu punto. '
+          'Mueve tu punto de espera o elige otra ruta';
+      icon = Icons.wrong_location_rounded;
+    } else if (buses.isEmpty && outOfRange > 0) {
+      stateKey = 'empty-buses-far';
+      title = 'Ningún bus cerca de ti';
+      subtitle = outOfRange == 1
+          ? 'Hay 1 bus en esta ruta, pero va a más de '
+              '${visibleRadiusMeters ~/ 1000} km de tu punto. Aparecerá al '
+              'acercarse'
+          : 'Hay $outOfRange buses en esta ruta, pero todos van a más de '
+              '${visibleRadiusMeters ~/ 1000} km de tu punto. Aparecerán al '
+              'acercarse';
+      icon = Icons.travel_explore_rounded;
     } else if (buses.isEmpty) {
       stateKey = 'empty-no-buses';
       title = 'No hay buses en el mapa';
@@ -426,7 +464,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final alreadyNear = !isActive && _busAlreadyNear(bus);
     final liveBlocked =
         ghostBlocked || alreadyNear || !locationState.hasPosition;
-    final blocked = _applyBlockedHysteresis(busId, liveBlocked, distance);
+    // La ruta no pasa cerca: el aviso no sonaría nunca. Va FUERA de la
+    // histéresis a propósito. La histéresis existe para que el bus moviéndose
+    // alrededor del kilómetro no haga parpadear el botón; esto no se mueve
+    // —depende del recorrido y del pin, no del bus— y meterlo dentro dejaría
+    // el botón trabado en bloqueado después de mover el pin hasta la ruta.
+    final routeTooFar = !isActive &&
+        (route == null
+            ? false
+            : ref.watch(routeTooFarFromUserProvider(route.id)));
+    final blocked =
+        _applyBlockedHysteresis(busId, liveBlocked, distance) || routeTooFar;
 
     // Sin señal: excepción importante, se marca con coral.
     if (staleLabel != null) {
@@ -474,9 +522,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ? "Puedes cambiar de aplicación; no cierres Ya Viene del todo"
         : !locationState.hasPosition
             ? "Toca el mapa para indicar dónde estás"
-            : distance == null
-                ? "Buscando la posición del bus…"
-                : null;
+            : routeTooFar
+                ? "El recorrido de esta ruta no pasa cerca de tu punto: el "
+                    "aviso no sonaría. Mueve tu punto o elige otra ruta"
+                : distance == null
+                    ? "Buscando la posición del bus…"
+                    : null;
 
     // Estado → color de la franja y de la métrica grande (número o palabra).
     Color stripColor;
@@ -585,9 +636,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                 ? "AVISO ACTIVADO"
                 : ghostBlocked
                     ? "BUS SIN SEÑAL"
-                    : blocked
-                        ? "BUS YA ESTÁ CERCA"
-                        : "AVISARME CUANDO ESTÉ CERCA",
+                    : routeTooFar
+                        ? "ESTA RUTA NO PASA CERCA"
+                        : blocked
+                            ? "BUS YA ESTÁ CERCA"
+                            : "AVISARME CUANDO ESTÉ CERCA",
             onPressed: () => _toggleAlert(busId),
           ),
         ],

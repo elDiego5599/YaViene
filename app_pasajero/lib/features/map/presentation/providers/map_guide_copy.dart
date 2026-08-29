@@ -27,13 +27,15 @@ bool isMapGuideStep(MapGuideStep? step) {
 }
 
 // Copia final por paso, con overrides para el paso de alerta (aviso ya
-// activo, límite de 2, o bloqueado por señal/cercanía). Antes vivía en
-// map_screen.dart; ahora está junto al resto de copias para encontrarlo.
+// activo, límite de 2, ruta que no pasa cerca, o bloqueado por señal/
+// cercanía). Antes vivía en map_screen.dart; ahora está junto al resto de
+// copias para encontrarlo.
 MapGuideCopy guideCopyFor(
   MapGuideStep step, {
   required bool hasActiveAlert,
   required bool limitReached,
   required bool isBlocked,
+  bool routeTooFar = false,
 }) {
   if (step == MapGuideStep.alert) {
     if (hasActiveAlert) {
@@ -51,6 +53,19 @@ MapGuideCopy guideCopyFor(
         message: 'Desactiva uno o espera a que termine para activar otro. '
             'Recuerda no cerrar la aplicación ni salirte de la guía.',
         icon: Icons.notifications_off_rounded,
+        primaryLabel: 'Continuar',
+      );
+    }
+    // Va antes que [isBlocked]: cuando la ruta no pasa cerca, cambiar de bus
+    // no arregla nada —ninguno de esa ruta va a acercarse— y mandar al
+    // usuario a "elegir otro bus" lo dejaría dando vueltas en la guía.
+    if (routeTooFar) {
+      return const MapGuideCopy(
+        title: 'Esta ruta no pasa cerca de ti',
+        message: 'Ningún bus de esta ruta se acercará a tu punto de espera, '
+            'así que el aviso no sonaría. Mueve tu punto o elige otra ruta '
+            'cuando termines la guía.',
+        icon: Icons.wrong_location_rounded,
         primaryLabel: 'Continuar',
       );
     }

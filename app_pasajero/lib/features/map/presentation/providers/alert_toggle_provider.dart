@@ -5,6 +5,7 @@ import '../../../../core/services/bus_notification_service.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../utils/geo.dart';
 import '../widgets/alert_guards.dart' as guards;
+import 'route_reach_provider.dart';
 import 'tracking_providers.dart';
 import 'user_location_provider.dart';
 
@@ -78,6 +79,7 @@ class AlertToggleController {
         bus: bus,
         busAlreadyNear: _busAlreadyNear(bus),
         activeAlertsCount: _ref.read(activeAlertsProvider).length,
+        routeDistanceMeters: _routeDistanceToUser(),
       );
       if (message != null) {
         return AlertToggleResult(AlertToggleOutcome.rejected, message: message);
@@ -138,6 +140,16 @@ class AlertToggleController {
     return distance != null && distance <= alertRadiusMeters;
   }
 
+  /// Lo más que se acerca el recorrido de la ruta abierta al punto del
+  /// usuario, o null si no se sabe (sin ruta, sin ubicación, sin geometría).
+  double? _routeDistanceToUser() {
+    final route = _ref.read(selectedRouteProvider);
+    if (route == null) return null;
+    return _ref.read(routeDistanceToUserProvider(route.id));
+  }
+
+  /// El texto del límite no depende de la ruta ni de la ubicación: se pide
+  /// con las demás reglas ya en verde para quedarse solo con la del límite.
   String _limitMessage() => guards.validateAlertActivation(
         hasPosition: true,
         bus: null,

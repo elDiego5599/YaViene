@@ -9,6 +9,7 @@ import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/realtime_providers.dart';
+import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/map_constants.dart';
@@ -267,12 +268,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   MapGuideCopy _copyFor(MapGuideStep step, bool selectedBusHasActiveAlert,
-          bool alertLimitReached) =>
+          bool alertLimitReached, bool routeTooFar) =>
       guideCopyFor(
         step,
         hasActiveAlert: selectedBusHasActiveAlert,
         limitReached: alertLimitReached,
         isBlocked: _alertBlocked,
+        routeTooFar: routeTooFar,
       );
 
   @override
@@ -288,19 +290,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final selectedBusHasActiveAlert =
         ref.watch(selectedBusesProvider).any(activeAlerts.contains);
     final alertLimitReached = activeAlerts.length >= 2;
+    // La guía tiene que saber POR QUÉ está bloqueado el botón del aviso: si es
+    // porque la ruta no pasa cerca, mandar a "elegir otro bus" es un callejón
+    // sin salida (ningún bus de esa ruta se va a acercar).
+    final routeTooFar = selectedRoute == null
+        ? false
+        : ref.watch(routeTooFarFromUserProvider(selectedRoute.id));
     final copy = step == null
         ? null
-        : _copyFor(step, selectedBusHasActiveAlert, alertLimitReached);
+        : _copyFor(
+            step, selectedBusHasActiveAlert, alertLimitReached, routeTooFar);
     final showMapGuide = copy != null &&
         _isMapStep(step) &&
         (step == MapGuideStep.background ||
             (_guideTarget != null && _measuredGuideStep == step));
     final visibleStep = showMapGuide && step != null ? step : null;
     final isCenteredStep = visibleStep == MapGuideStep.background;
+    // Solo este caso convierte el botón principal de la guía en "elegir otro
+    // bus". Con la ruta lejos la copia es otra y su botón sigue siendo
+    // "Continuar": cambiar de bus no destrabaría nada.
     final alertBlockedCopy = visibleStep == MapGuideStep.alert &&
         _alertBlocked &&
         !selectedBusHasActiveAlert &&
-        !alertLimitReached;
+        !alertLimitReached &&
+        !routeTooFar;
 
     return Scaffold(
       extendBodyBehindAppBar: true,

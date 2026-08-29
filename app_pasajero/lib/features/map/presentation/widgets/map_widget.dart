@@ -9,8 +9,9 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart'
-    show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
+    show nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
+import '../providers/visible_buses_provider.dart' show visibleBusesProvider;
 import '../utils/bus_hit_test.dart';
 import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
@@ -234,7 +235,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _reapplyLastPositions() {
     final routeId = widget.routeId;
     if (routeId == null || !mounted || !_layersReady) return;
-    final positions = ref.read(busPositionsSourceProvider(routeId)).value;
+    final positions = ref.read(visibleBusesProvider(routeId)).value;
     if (positions != null) _updateBusSourceData(positions);
   }
 
@@ -245,8 +246,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _busMotions.clear();
     _busAnimTimer?.cancel();
     _busAnimTimer = null;
+    // Se escucha la lista YA RECORTADA al radio del punto de espera, no la
+    // fuente entera: así el mapa se repinta también cuando el usuario mueve
+    // su pin (entran y salen buses del radio sin esperar al próximo paquete
+    // del socket), y no solo cuando llegan posiciones nuevas.
     _movingBusSubscription =
-        ref.listenManual(busPositionsSourceProvider(routeId), (previous, next) {
+        ref.listenManual(visibleBusesProvider(routeId), (previous, next) {
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
       next.whenData(_updateBusSourceData);
@@ -616,9 +621,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<bool> _doSelectBusAtTap(math.Point<double> point) async {
     try {
       final routeId = widget.routeId;
+      // Los mismos buses que están dibujados: si uno está fuera del radio no
+      // se pinta, y tocar donde estaría no puede seleccionarlo.
       final positions = routeId == null
           ? const <BusPosition>[]
-          : ref.read(busPositionsSourceProvider(routeId)).value ??
+          : ref.read(visibleBusesProvider(routeId)).value ??
               const <BusPosition>[];
       final screenPoints = <BusScreenPoint>[];
 
