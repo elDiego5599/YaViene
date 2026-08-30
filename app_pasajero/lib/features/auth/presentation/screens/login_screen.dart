@@ -9,7 +9,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/ink_hero.dart';
-import '../../../../core/widgets/map_pattern_painter.dart';
+import '../../../../core/widgets/live_route_backdrop.dart';
 import '../../../onboarding/onboarding_flow.dart';
 
 enum _Step { email, password, profile }
@@ -277,8 +277,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
     }
     return Scaffold(
       backgroundColor: AppColors.ink,
-      body: CustomPaint(
-        painter: const MapPatternPainter(),
+      body: LiveRouteBackdrop(
         child: SafeArea(
           bottom: false,
           child: LayoutBuilder(
@@ -301,29 +300,45 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                           entra(
                             Container(
                               width: double.infinity,
-                              padding:
-                                  const EdgeInsets.fromLTRB(28, 28, 28, 30),
+                              // El relleno de abajo lo pone el SafeArea:
+                              // sumados dejaban 64 px muertos bajo el último
+                              // control en los iPhone con indicador.
+                              padding: const EdgeInsets.fromLTRB(28, 30, 28, 0),
                               // La hoja de entrada comparte superficie con las
                               // otras dos del producto —el selector de ruta y la
                               // de distancia—: arena, no blanco. Con el blanco
                               // puesto, las tres pantallas seguidas parecían de
                               // dos aplicaciones distintas.
                               decoration: const BoxDecoration(
-                                color: AppColors.arena,
+                                // El pliegue por donde la hoja se separa de
+                                // la noche recoge la luz: blanco cálido que
+                                // cae a arena en el primer quinto. Con el
+                                // relleno plano, ese borde era una línea
+                                // muerta y la hoja parecía pegada encima.
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0xFFFFFDF8),
+                                    AppColors.arena,
+                                  ],
+                                  stops: [0.0, 0.20],
+                                ),
                                 borderRadius: BorderRadius.only(
                                   topLeft: Radius.circular(36),
                                   topRight: Radius.circular(36),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Color(0x1A14274E),
-                                    blurRadius: 32,
-                                    offset: Offset(0, -10),
+                                    color: Color(0x3305080F),
+                                    blurRadius: 44,
+                                    offset: Offset(0, -16),
                                   ),
                                 ],
                               ),
                               child: SafeArea(
                                 top: false,
+                                minimum: const EdgeInsets.only(bottom: 16),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,7 +759,10 @@ class _Field extends StatelessWidget {
       // —el gris del Container y el azul de 2 px del campo— y el campo se
       // veía con doble contorno justo en el momento de escribir en él.
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        // Blanco, no surfaceMuted. La hoja es arena —un crema cálido— y
+        // surfaceMuted es un gris azulado: campo frío sobre fondo cálido,
+        // los dos neutros se peleaban y el campo se veía sucio.
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: TextField(
@@ -763,6 +781,12 @@ class _Field extends StatelessWidget {
         ),
         decoration: InputDecoration(
           counterText: '',
+          // Un campo de entrada de 48 se toca justo; a 58 se toca sin
+          // pensarlo y la hoja respira. Es el alto de los campos de iOS.
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 18,
+          ),
           prefixIcon: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Icon(icon, color: AppColors.textSecondary, size: 22),

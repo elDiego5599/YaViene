@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/ink_hero.dart';
-import '../../../../core/widgets/map_pattern_painter.dart';
+import '../../../../core/widgets/live_route_backdrop.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../onboarding_flow.dart';
 
@@ -40,8 +40,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.ink,
-      body: CustomPaint(
-        painter: const MapPatternPainter(),
+      body: LiveRouteBackdrop(
+        // La pantalla pide la ubicación: el fondo la enseña. El punto azul
+        // es dónde espera el usuario y el bus se le va acercando.
+        showUser: true,
         child: SafeArea(
           bottom: false,
           child: LayoutBuilder(
@@ -64,27 +66,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           entra(
                             Container(
                               width: double.infinity,
-                              padding:
-                                  const EdgeInsets.fromLTRB(28, 28, 28, 34),
+                              // Sin relleno inferior propio: el que hay va
+                              // en el SafeArea de abajo. Los dos sumaban 68
+                              // px de nada debajo de "Ahora no" —el bloque
+                              // vacío más grande de la pantalla— y dejaban
+                              // el contenido apelmazado arriba.
+                              padding: const EdgeInsets.fromLTRB(28, 30, 28, 0),
                               // Misma superficie que la hoja del login y que
                               // las del mapa: arena. Las dos pantallas van
                               // seguidas y el salto de blanco a arena se veía.
                               decoration: const BoxDecoration(
-                                color: AppColors.arena,
+                                // El pliegue por donde la hoja se separa de
+                                // la noche recoge la luz: blanco cálido que
+                                // cae a arena en el primer quinto. Con el
+                                // relleno plano, ese borde era una línea
+                                // muerta y la hoja parecía pegada encima.
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0xFFFFFDF8),
+                                    AppColors.arena,
+                                  ],
+                                  stops: [0.0, 0.20],
+                                ),
                                 borderRadius: BorderRadius.only(
                                   topLeft: Radius.circular(36),
                                   topRight: Radius.circular(36),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Color(0x1A14274E),
-                                    blurRadius: 32,
-                                    offset: Offset(0, -10),
+                                    color: Color(0x3305080F),
+                                    blurRadius: 44,
+                                    offset: Offset(0, -16),
                                   ),
                                 ],
                               ),
                               child: SafeArea(
                                 top: false,
+                                // En pantallas sin indicador de inicio el
+                                // inset es 0 y el último control quedaría
+                                // pegado al filo.
+                                minimum: const EdgeInsets.only(bottom: 16),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +133,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         height: 1.4,
                                       ),
                                     ),
-                                    const SizedBox(height: 22),
+                                    const SizedBox(height: 28),
                                     // Los tres beneficios se revelan uno detrás
                                     // de otro, y solo con fundido: la hoja ya
                                     // sube entera, y dos movimientos encajados
@@ -126,7 +149,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.34,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 18),
+                                    const SizedBox(height: 22),
                                     entra(
                                       const _BenefitRow(
                                         icon: Icons.timer_outlined,
@@ -137,7 +160,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.42,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 18),
+                                    const SizedBox(height: 22),
                                     entra(
                                       const _BenefitRow(
                                         icon:
@@ -149,7 +172,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.5,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 24),
+                                    const SizedBox(height: 30),
                                     SizedBox(
                                       width: double.infinity,
                                       height: 56,
@@ -185,6 +208,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                               ),
                                       ),
                                     ),
+                                    const SizedBox(height: 4),
                                     SizedBox(
                                       width: double.infinity,
                                       child: TextButton(
