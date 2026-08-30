@@ -39,19 +39,27 @@ class _PulsingDotState extends State<PulsingDot>
       opacity: Tween<double>(begin: 0.2, end: 1.0).animate(
         CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
       ),
-      child: Container(
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          color: widget.color,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: widget.color.withValues(alpha: 0.5),
-              blurRadius: 8,
-              spreadRadius: 2,
-            ),
-          ],
+      // El punto lleva una sombra difuminada, y difuminar es de lo más caro
+      // que se puede pedir por píxel. Sin frontera, `FadeTransition` tiene
+      // que volver a rasterizar ese desenfoque en cada cuadro del ciclo de
+      // dos segundos, para siempre, mientras el chip esté a la vista. Con
+      // ella el punto se rasteriza una sola vez en su propia capa y lo único
+      // que cambia por cuadro es el alfa de la capa.
+      child: RepaintBoundary(
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            color: widget.color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.5),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
         ),
       ),
     );

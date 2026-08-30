@@ -1074,12 +1074,22 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             ref.watch(mapGuideProvider).step == MapGuideStep.location)
           Positioned.fill(
             child: IgnorePointer(
-              child: AnimatedBuilder(
-                animation: _haloCtrl,
-                builder: (context, _) => CustomPaint(
-                  painter: HaloPainter(
-                    center: _pinScreenPos!,
-                    phase: _haloCtrl.value,
+              // El radar ocupa la pantalla entera y se repinta en cada cuadro
+              // del ciclo de 1,8 s. Sin frontera, ese repintado sube hasta la
+              // primera que haya por encima —aquí, fuera del Stack— y arrastra
+              // con él a todo lo demás que cuelgue de ella: la vista nativa
+              // del mapa, las hojas, los chips. Con la frontera el radar tiene
+              // su propia capa y se repinta solo él, que es lo único que
+              // cambia. Dos círculos: la capa de más sale mucho más barata que
+              // repintar el árbol entero treinta y tres veces por segundo.
+              child: RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _haloCtrl,
+                  builder: (context, _) => CustomPaint(
+                    painter: HaloPainter(
+                      center: _pinScreenPos!,
+                      phase: _haloCtrl.value,
+                    ),
                   ),
                 ),
               ),
