@@ -43,10 +43,12 @@ class InkHero extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
+          // El fondo ya trae su propio halo verde detrás de la marca; este
+          // solo tiene que despegar el logo de él. Con spread 10 al 35 %
+          // se sumaban en un disco verde con borde visible.
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.35),
-            blurRadius: 50,
-            spreadRadius: 10,
+            color: AppColors.primary.withValues(alpha: 0.22),
+            blurRadius: 46,
           ),
         ],
       ),
