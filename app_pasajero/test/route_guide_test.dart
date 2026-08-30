@@ -101,7 +101,7 @@ void main() {
     expect(guide.state.step, MapGuideStep.company);
     expect(find.text('Elige una empresa'), findsOneWidget);
 
-    await tester.tap(find.text('Selecciona una empresa'));
+    await tester.tap(find.text('Empresa'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Sobusa'), findsOneWidget);
@@ -114,7 +114,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(guide.state.step, MapGuideStep.route);
 
-    await tester.tap(find.text('Selecciona una ruta'));
+    await tester.tap(find.text('Ruta'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('B18 Tcherassi'), findsOneWidget);
@@ -145,7 +145,7 @@ void main() {
     // El usuario se queda donde estaba: el selector sigue visible en su vista
     // principal, sin el overlay de la guía.
     expect(find.byKey(const ValueKey('guide_skip')), findsNothing);
-    expect(find.text('Selecciona una empresa'), findsOneWidget);
+    expect(find.text('Empresa'), findsOneWidget);
     expect(find.text('Elige tu ruta'), findsOneWidget);
   });
 
@@ -154,7 +154,7 @@ void main() {
     await setup(tester);
     await pumpSheet(tester);
 
-    await tester.tap(find.text('Selecciona una empresa'));
+    await tester.tap(find.text('Empresa'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));
@@ -163,7 +163,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.tap(find.text('Selecciona una ruta'));
+    await tester.tap(find.text('Ruta'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));

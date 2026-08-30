@@ -70,14 +70,14 @@ void main() {
 
     expect(find.text('Elige primero la empresa'), findsNothing);
 
-    await tester.tap(find.text('Selecciona una ruta'));
+    await tester.tap(find.text('Ruta'));
     await tester.pump();
 
     // Está en el árbol del diálogo, no en un SnackBar del Scaffold de abajo.
     expect(find.text('Elige primero la empresa'), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
     // Y no navegó a la lista de rutas.
-    expect(find.text('Selecciona una ruta'), findsOneWidget);
+    expect(find.text('Ruta'), findsOneWidget);
 
     // Se retira solo.
     await tester.pump(const Duration(milliseconds: 2700));
@@ -89,11 +89,11 @@ void main() {
     await setup(tester);
     await pumpSheet(tester);
 
-    await tester.tap(find.text('Selecciona una ruta'));
+    await tester.tap(find.text('Ruta'));
     await tester.pump();
     expect(find.text('Elige primero la empresa'), findsOneWidget);
 
-    await tester.tap(find.text('Selecciona una empresa'));
+    await tester.tap(find.text('Empresa'));
     await tester.pumpAndSettle();
     expect(find.text('Elige primero la empresa'), findsNothing);
   });

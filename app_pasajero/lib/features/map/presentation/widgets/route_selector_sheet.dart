@@ -246,7 +246,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   Widget _buildCard(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
+      padding: EdgeInsets.zero,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: AnimatedSize(
@@ -268,35 +268,44 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
               side: BorderSide(color: AppColors.hairline),
             ),
             clipBehavior: Clip.antiAlias,
-            child: AnimatedSwitcher(
-              duration: AppMotion.normal,
-              switchInCurve: AppMotion.curvaEntrada,
-              switchOutCurve: AppMotion.curvaSalida,
-              transitionBuilder: (child, animation) {
-                final slide = Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(position: slide, child: child),
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey(_view),
-                child: switch (_view) {
-                  _RouteView.main => _buildMainView(context),
-                  _RouteView.companies => _buildListView(
-                      title: 'Selecciona una empresa',
-                      onBack: () => setState(() => _view = _RouteView.main),
-                      builder: (_) => _buildCompanyList(context),
-                    ),
-                  _RouteView.routes => _buildListView(
-                      title: 'Selecciona una ruta',
-                      onBack: () => setState(() => _view = _RouteView.main),
-                      builder: (_) => _buildRouteList(context),
-                    ),
+            // El inset del indicador de inicio va DENTRO de la hoja, no
+            // debajo. Antes empujaba la tarjeta entera hacia arriba y
+            // quedaba flotando: dos esquinas inferiores rectas cortadas a
+            // media pantalla con el mapa oscurecido asomando debajo. Una
+            // hoja se apoya en el borde de la pantalla; lo que se aparta
+            // del indicador es su contenido.
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: AnimatedSwitcher(
+                duration: AppMotion.normal,
+                switchInCurve: AppMotion.curvaEntrada,
+                switchOutCurve: AppMotion.curvaSalida,
+                transitionBuilder: (child, animation) {
+                  final slide = Tween<Offset>(
+                    begin: const Offset(0.04, 0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: slide, child: child),
+                  );
                 },
+                child: KeyedSubtree(
+                  key: ValueKey(_view),
+                  child: switch (_view) {
+                    _RouteView.main => _buildMainView(context),
+                    _RouteView.companies => _buildListView(
+                        title: 'Selecciona una empresa',
+                        onBack: () => setState(() => _view = _RouteView.main),
+                        builder: (_) => _buildCompanyList(context),
+                      ),
+                    _RouteView.routes => _buildListView(
+                        title: 'Selecciona una ruta',
+                        onBack: () => setState(() => _view = _RouteView.main),
+                        builder: (_) => _buildRouteList(context),
+                      ),
+                  },
+                ),
               ),
             ),
           ),
@@ -320,98 +329,106 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
           _handle(),
           const SizedBox(height: 24),
           _headerRow(title: 'Elige tu ruta'),
-          const SizedBox(height: 24),
+          const SizedBox(height: 6),
           const Text(
-            'EMPRESA',
+            'Dos pasos y ves los buses moviéndose en el mapa.',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
               color: AppColors.textSecondary,
-              letterSpacing: 1.0,
+              height: 1.3,
             ),
           ),
-          const SizedBox(height: 12),
-          companiesAsync.when(
-            data: (companies) => _PremiumSelectorTile(
-              key: widget.companyGuideKey,
-              title: selectedCompany?.name ?? 'Selecciona una empresa',
-              subtitle: selectedCompany != null
-                  ? 'Empresa de transporte masivo'
-                  : null,
-              icon: Icons.business_rounded,
-              isActive: selectedCompany != null,
+          const SizedBox(height: 22),
+          // Los dos pasos van colgados de una misma línea, con su nodo
+          // cada uno. La línea no es adorno: dice lo único que había que
+          // explicar de esta pantalla —que la ruta depende de la empresa—
+          // y lo dice antes de que alguien toque nada. Antes eran dos
+          // rótulos en versalitas ("EMPRESA", "RUTA") sobre dos tarjetas
+          // idénticas, y el orden solo se descubría chocándose con él.
+          _step(
+            done: selectedCompany != null,
+            current: selectedCompany == null,
+            lineUp: false,
+            lineDown: true,
+            child: companiesAsync.when(
+              data: (companies) => _PremiumSelectorTile(
+                key: widget.companyGuideKey,
+                title: selectedCompany?.name ?? 'Empresa',
+                subtitle: selectedCompany != null
+                    ? 'Empresa de transporte masivo'
+                    : 'Con cuál viajas',
+                icon: Icons.business_rounded,
+                isActive: selectedCompany != null,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _clearRouteHint();
+                  setState(() => _view = _RouteView.companies);
+                },
+              ),
+              // La guía ilumina el tile de empresa: mientras carga (o falla)
+              // el hueco debe seguir existiendo, si no el overlay desaparece
+              // y el usuario podría tocar otro botón y salirse del flujo.
+              loading: () => _tilePlaceholder(
+                key: widget.companyGuideKey,
+                child: const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+              error: (_, __) => _tilePlaceholder(
+                key: widget.companyGuideKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Error al cargar empresas',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => ref.invalidate(companiesProvider),
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Reintentar'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _step(
+            done: selectedRoute != null,
+            current: selectedCompany != null && selectedRoute == null,
+            lineUp: true,
+            lineDown: false,
+            child: _PremiumSelectorTile(
+              key: widget.routeGuideKey,
+              title: selectedRoute?.name ?? 'Ruta',
+              subtitle: _routeSubtitle(selectedRoute) ??
+                  (selectedRoute != null ? null : 'Cuál esperas'),
+              icon: Icons.alt_route_rounded,
+              isActive: selectedRoute != null,
+              hint: _routeHint,
               onTap: () {
+                if (selectedCompany == null) {
+                  _showRouteHint('Elige primero la empresa');
+                  return;
+                }
                 HapticFeedback.lightImpact();
                 _clearRouteHint();
-                setState(() => _view = _RouteView.companies);
+                setState(() => _view = _RouteView.routes);
               },
             ),
-            // La guía ilumina el tile de empresa: mientras carga (o falla) el
-            // hueco debe seguir existiendo, si no el overlay desaparece y el
-            // usuario podría tocar otro botón y salirse del flujo.
-            loading: () => _tilePlaceholder(
-              key: widget.companyGuideKey,
-              child: const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              ),
-            ),
-            error: (_, __) => _tilePlaceholder(
-              key: widget.companyGuideKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Error al cargar empresas',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => ref.invalidate(companiesProvider),
-                    icon: const Icon(Icons.refresh_rounded, size: 16),
-                    label: const Text('Reintentar'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'RUTA',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textSecondary,
-              letterSpacing: 1.0,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _PremiumSelectorTile(
-            key: widget.routeGuideKey,
-            title: selectedRoute?.name ?? 'Selecciona una ruta',
-            subtitle: _routeSubtitle(selectedRoute),
-            icon: Icons.alt_route_rounded,
-            isActive: selectedRoute != null,
-            hint: _routeHint,
-            onTap: () {
-              if (selectedCompany == null) {
-                _showRouteHint('Elige primero la empresa');
-                return;
-              }
-              HapticFeedback.lightImpact();
-              _clearRouteHint();
-              setState(() => _view = _RouteView.routes);
-            },
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 26),
           _launchButton(context, selectedCompany, selectedRoute),
         ],
       ),
@@ -562,42 +579,105 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     );
   }
 
+  /// El botón que siempre lleva al siguiente paso.
+  ///
+  /// Era un bloque gris muerto con la frase "Selecciona una ruta para
+  /// continuar" escrita encima: instrucciones sobre un botón que no se
+  /// puede pulsar. Ahora hace lo que dice y dice lo que hace —lleva al
+  /// paso que falte— y cuando ya no falta ninguno, se enciende en verde
+  /// con el punto de "en vivo".
   Widget _launchButton(
       BuildContext context, Company? company, RouteInfo? route) {
-    return ElevatedButton(
-      key: widget.launchBusesGuideKey,
+    final String label;
+    final VoidCallback action;
+    if (company == null) {
+      label = 'Elegir empresa';
+      action = () {
+        HapticFeedback.lightImpact();
+        _clearRouteHint();
+        setState(() => _view = _RouteView.companies);
+      };
+    } else if (route == null) {
+      label = 'Elegir ruta';
+      action = () {
+        HapticFeedback.lightImpact();
+        _clearRouteHint();
+        setState(() => _view = _RouteView.routes);
+      };
+    } else {
+      label = 'Ver buses en vivo';
       // El botón abre el mapa, no enciende nada: los buses ya están en la
       // calle publicando su posición, existan o no pasajeros mirándolos.
-      // Antes llamaba a /api/demo/buses para lanzar simuladores desde el
-      // teléfono, que era un atajo de la demo, no el producto.
-      onPressed: route != null
-          ? () async {
-              HapticFeedback.mediumImpact();
-              await ref
-                  .read(mapGuideProvider.notifier)
-                  .complete(MapGuideStep.launchBuses);
-              if (context.mounted) Navigator.of(context).maybePop();
-            }
-          : null,
+      action = () async {
+        HapticFeedback.mediumImpact();
+        await ref
+            .read(mapGuideProvider.notifier)
+            .complete(MapGuideStep.launchBuses);
+        if (context.mounted) Navigator.of(context).maybePop();
+      };
+    }
+    final listo = route != null;
+
+    return ElevatedButton(
+      key: widget.launchBusesGuideKey,
+      onPressed: action,
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primaryDeep,
-        disabledBackgroundColor: AppColors.divider,
+        backgroundColor: listo ? AppColors.primary : AppColors.primaryDeep,
         foregroundColor: Colors.white,
-        disabledForegroundColor: AppColors.textDisabled,
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         elevation: 0,
       ),
-      child: Text(
-        route != null
-            ? 'Ver buses en vivo'
-            : 'Selecciona una ruta para continuar',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.3,
-          color: route != null ? Colors.white : AppColors.textDisabled,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (listo) ...[
+            const _LivePulse(),
+            const SizedBox(width: 10),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _step({
+    required bool done,
+    required bool current,
+    required bool lineUp,
+    required bool lineDown,
+    required Widget child,
+  }) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StepRail(
+            done: done,
+            current: current,
+            lineUp: lineUp,
+            lineDown: lineDown,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: child,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -711,10 +791,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
           // F13: la fila ya elegida se marca al volver a la lista, en vez de
           // que todas se vean igual de "sin elegir".
           side: selected
-              ? const BorderSide(color: AppColors.primaryDeep, width: 1.5)
-              : BorderSide.none,
+              ? const BorderSide(color: AppColors.primary, width: 1.5)
+              : const BorderSide(color: AppColors.hairline),
         ),
-        tileColor: const Color(0xFFF8FAFC),
+        tileColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
           width: 40,
@@ -761,9 +841,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 ),
               ),
         trailing: selected
-            ? const Icon(Icons.check_circle_rounded,
-                color: AppColors.primaryDeep)
-            : const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
+            ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+            : const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textDisabled),
         onTap: onTap,
       ),
     );
@@ -977,6 +1057,143 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile>
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// El riel de la izquierda: nodo del paso y la línea que lo ata al otro.
+class _StepRail extends StatelessWidget {
+  const _StepRail({
+    required this.done,
+    required this.current,
+    required this.lineUp,
+    required this.lineDown,
+  });
+
+  final bool done;
+  final bool current;
+  final bool lineUp;
+  final bool lineDown;
+
+  static const double _ancho = 22;
+
+  @override
+  Widget build(BuildContext context) {
+    // La línea se pinta verde solo hasta donde el usuario ya llegó: el
+    // tramo de abajo se enciende cuando la empresa está elegida.
+    final colorLinea = done ? AppColors.primary : AppColors.divider;
+    return SizedBox(
+      width: _ancho,
+      child: Column(
+        children: [
+          Expanded(child: _tramo(lineUp, colorLinea)),
+          AnimatedContainer(
+            duration: AppMotion.rapido,
+            curve: AppMotion.curvaEntrada,
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: done ? AppColors.primary : AppColors.arena,
+              border: Border.all(
+                color: done
+                    ? AppColors.primary
+                    : current
+                        ? AppColors.primary
+                        : AppColors.divider,
+                width: 2,
+              ),
+            ),
+            child: done
+                ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                : current
+                    ? Center(
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      )
+                    : null,
+          ),
+          Expanded(child: _tramo(lineDown, colorLinea)),
+        ],
+      ),
+    );
+  }
+
+  Widget _tramo(bool visible, Color color) {
+    if (!visible) return const SizedBox.expand();
+    return Center(
+      child: SizedBox(
+        width: 2,
+        height: double.infinity,
+        child: ColoredBox(color: color),
+      ),
+    );
+  }
+}
+
+/// El punto que late en el botón cuando ya hay ruta: dice "esto es en
+/// vivo" sin escribirlo. Una sola circunferencia de 8 px, y quieta si el
+/// sistema pide menos movimiento.
+class _LivePulse extends StatefulWidget {
+  const _LivePulse();
+
+  @override
+  State<_LivePulse> createState() => _LivePulseState();
+}
+
+class _LivePulseState extends State<_LivePulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const punto = SizedBox(
+      width: 8,
+      height: 8,
+      child: DecoratedBox(
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+      ),
+    );
+    if (AppMotion.reducido(context)) {
+      return const SizedBox(width: 18, height: 18, child: Center(child: punto));
+    }
+    return RepaintBoundary(
+      child: SizedBox(
+        width: 18,
+        height: 18,
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, child) {
+            final t = Curves.easeOut.transform(_c.value);
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Opacity(
+                  opacity: (1 - t) * 0.6,
+                  child: Transform.scale(scale: 0.5 + t * 1.6, child: child),
+                ),
+                child!,
+              ],
+            );
+          },
+          child: punto,
         ),
       ),
     );
