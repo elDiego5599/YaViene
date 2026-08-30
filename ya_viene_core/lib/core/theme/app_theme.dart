@@ -33,6 +33,14 @@ abstract class AppColors {
   /// raya sucia, y este desaparece salvo justo donde tiene que estar.
   static const Color hairline = Color(0x1414274E);
 
+  /// Texto sobre [ink]. Blanco puro sobre azul muy oscuro vibra; este
+  /// gris casi blanco se apoya sin zumbar.
+  static const Color textOnInk = Color(0xFFF8FAFC);
+
+  /// El rojo destructivo sobre [ink]: [error] (#DC2626) se hunde en el
+  /// fondo oscuro y deja de leerse como aviso.
+  static const Color errorOnInk = Color(0xFFFF6B6B);
+
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);

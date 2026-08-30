@@ -98,6 +98,40 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
   /// cualquier otro botón asíncrono de la app.
   bool _signingOut = false;
 
+  /// Un solo bloque para las acciones, con filos finos entre filas.
+  ///
+  /// Antes cada fila era su propia tarjeta: fondo blanco al 5 %, borde al
+  /// 8 %, esquinas de 16 — y encima, dos tarjetas más con alfas casi
+  /// idénticas (0,08/0,12 y 0,05/0,10). Cinco superficies que no se
+  /// distinguen entre sí no hacen jerarquía, hacen ruido. Agrupadas, la
+  /// lista se lee de un golpe y las dos tarjetas de arriba vuelven a
+  /// destacar.
+  Widget _grupo(List<Widget> filas) {
+    final hijos = <Widget>[];
+    for (var i = 0; i < filas.length; i++) {
+      if (i > 0) {
+        hijos.add(Divider(
+          height: 1,
+          thickness: 1,
+          // Sangrado hasta donde empieza el texto, como en iOS: el filo
+          // separa las filas sin cortar la columna de iconos.
+          indent: 52,
+          color: Colors.white.withValues(alpha: 0.07),
+        ));
+      }
+      hijos.add(filas[i]);
+    }
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(children: hijos),
+    );
+  }
+
   Widget _staggered(Widget child, double start) {
     final animation = _escalon(start);
     return FadeTransition(
@@ -118,6 +152,11 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
     final email = auth.email;
     final name = (auth.name ?? '').trim();
     final activeAlerts = ref.watch(activeAlertsProvider);
+    final inicial = name.isNotEmpty
+        ? name.characters.first.toUpperCase()
+        : (email != null && email.isNotEmpty
+            ? email.characters.first.toUpperCase()
+            : null);
 
     return Drawer(
       backgroundColor: AppColors.ink,
@@ -154,29 +193,30 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                             style: TextStyle(
                               fontSize: 21,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFF8FAFC),
+                              color: AppColors.textOnInk,
                               letterSpacing: -0.6,
                             ),
                           ),
                         ),
-                        // Cierre explícito y editorial: la X roja "aparece" con la entrada
-                        // (escala con rebote) dentro de un botón circular suave.
+                        // Cerrar un menú no es destruir nada: la X deja de
+                        // ser roja. Conserva el rebote de la entrada.
                         ScaleTransition(
                           scale: _escalaCierre,
                           child: Container(
                             width: 36,
                             height: 36,
-                            decoration: const BoxDecoration(
-                              color: Color(0x26DC2626),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
                               key: const ValueKey('drawer_close'),
                               onPressed: () => Navigator.pop(context),
                               padding: EdgeInsets.zero,
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.close_rounded,
-                                color: Color(0xFFFF6B6B),
+                                color:
+                                    AppColors.textOnInk.withValues(alpha: 0.75),
                                 size: 20,
                               ),
                               tooltip: 'Cerrar menú',
@@ -200,18 +240,32 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                       ),
                       child: Row(
                         children: [
+                          // El único bloque de color macizo del panel. Con
+                          // todo lo demás en monocromo, el verde por fin
+                          // significa algo en vez de ser un tono más.
                           Container(
                             width: 52,
                             height: 52,
-                            decoration: BoxDecoration(
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(18),
+                              shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
+                            child: inicial == null
+                                ? const Icon(
+                                    Icons.person_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  )
+                                : Text(
+                                    inicial,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -225,7 +279,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFFF8FAFC),
+                                    color: AppColors.textOnInk,
                                     letterSpacing: -0.4,
                                   ),
                                 ),
@@ -254,129 +308,120 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                   _staggered(const ActiveRouteCard(), 0.16),
                   const SizedBox(height: 30),
                   _staggered(
-                    DrawerItem(
-                      icon: Icons.notifications_none_rounded,
-                      bgColor: AppColors.warningLight,
-                      iconColor: AppColors.warning,
-                      title: 'Avisos',
-                      trailing: activeAlerts.isEmpty
-                          ? const Icon(
-                              Icons.chevron_right_rounded,
-                              color: Color(0x4DFFFFFF),
-                              size: 20,
-                            )
-                          : Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFB8B6B),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                '${activeAlerts.length}',
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                    _grupo([
+                      DrawerItem(
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Avisos',
+                        trailing: activeAlerts.isEmpty
+                            ? Icon(
+                                Icons.chevron_right_rounded,
+                                color:
+                                    AppColors.textOnInk.withValues(alpha: 0.3),
+                                size: 20,
+                              )
+                            : Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${activeAlerts.length}',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                            ),
-                      onTap: () {
-                        // Sin cerrar el drawer: al volver de Notificaciones se
-                        // regresa al menú abierto, no al mapa.
-                        context.push('/notifications');
-                      },
-                    ),
+                        onTap: () {
+                          // Sin cerrar el drawer: al volver de Notificaciones se
+                          // regresa al menú abierto, no al mapa.
+                          context.push('/notifications');
+                        },
+                      ),
+                      DrawerItem(
+                        icon: Icons.help_outline_rounded,
+                        title: 'Ver guía de uso',
+                        onTap: () async {
+                          // F8: reiniciar la guía borra la ruta/bus activos sin
+                          // avisar. Si hay algo que perder, se confirma antes.
+                          final hasSelection =
+                              ref.read(selectedRouteProvider) != null ||
+                                  ref.read(selectedBusesProvider).isNotEmpty;
+                          if (hasSelection) {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: const Text('¿Reiniciar la guía?'),
+                                content: const Text(
+                                  'Vas a perder la ruta y el bus que tienes '
+                                  'seleccionados ahora mismo.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, true),
+                                    child: const Text('Reiniciar guía'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed != true || !context.mounted) return;
+                          }
+                          // La guía empieza limpia: se deselecciona el bus y se
+                          // quita la ruta activa para que el flujo arranque
+                          // desde cero (si la ruta queda, sus buses siguen
+                          // tocables durante el paso de ubicación).
+                          ref.read(selectedBusesProvider.notifier).clear();
+                          ref.read(selectedRouteProvider.notifier).clear();
+                          final location = ref.read(userLocationProvider);
+                          await ref.read(mapGuideProvider.notifier).restart(
+                                userId: auth.uid,
+                                hasLocation: location.hasPosition,
+                                locationSettled: location.mode !=
+                                        UserLocationMode.unknown &&
+                                    location.mode != UserLocationMode.locating,
+                              );
+                          // Sin ubicación la guía empieza pidiendo el punto de
+                          // espera: hay que mostrar la ciudad para saber dónde
+                          // tocar, aunque la cámara esté en otro lado.
+                          if (!location.hasPosition) {
+                            ref
+                                .read(mapCameraRequestProvider.notifier)
+                                .centerOnBarranquilla();
+                          }
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                      ),
+                    ]),
                     0.24,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
+                  // Sección propia, como en Ajustes de iOS: lo destructivo
+                  // no comparte bloque con lo que no lo es.
                   _staggered(
-                    DrawerItem(
-                      icon: Icons.help_outline_rounded,
-                      bgColor: const Color(0xFFE0F2FE),
-                      iconColor: const Color(0xFF0284C7),
-                      title: 'Ver guía de uso',
-                      onTap: () async {
-                        // F8: reiniciar la guía borra la ruta/bus activos sin
-                        // avisar. Si hay algo que perder, se confirma antes.
-                        final hasSelection =
-                            ref.read(selectedRouteProvider) != null ||
-                                ref.read(selectedBusesProvider).isNotEmpty;
-                        if (hasSelection) {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (dialogContext) => AlertDialog(
-                              title: const Text('¿Reiniciar la guía?'),
-                              content: const Text(
-                                'Vas a perder la ruta y el bus que tienes '
-                                'seleccionados ahora mismo.',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(dialogContext, false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(dialogContext, true),
-                                  child: const Text('Reiniciar guía'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirmed != true || !context.mounted) return;
-                        }
-                        // La guía empieza limpia: se deselecciona el bus y se
-                        // quita la ruta activa para que el flujo arranque
-                        // desde cero (si la ruta queda, sus buses siguen
-                        // tocables durante el paso de ubicación).
-                        ref.read(selectedBusesProvider.notifier).clear();
-                        ref.read(selectedRouteProvider.notifier).clear();
-                        final location = ref.read(userLocationProvider);
-                        await ref.read(mapGuideProvider.notifier).restart(
-                              userId: auth.uid,
-                              hasLocation: location.hasPosition,
-                              locationSettled: location.mode !=
-                                      UserLocationMode.unknown &&
-                                  location.mode != UserLocationMode.locating,
-                            );
-                        // Sin ubicación la guía empieza pidiendo el punto de
-                        // espera: hay que mostrar la ciudad para saber dónde
-                        // tocar, aunque la cámara esté en otro lado.
-                        if (!location.hasPosition) {
-                          ref
-                              .read(mapCameraRequestProvider.notifier)
-                              .centerOnBarranquilla();
-                        }
-                        if (context.mounted) Navigator.pop(context);
-                      },
-                    ),
-                    0.28,
-                  ),
-                  _staggered(
-                    Column(
-                      children: [
-                        const SizedBox(height: 12),
-                        Divider(color: Colors.white.withValues(alpha: 0.12)),
-                        const SizedBox(height: 18),
-                        DrawerItem(
-                          icon: Icons.logout_rounded,
-                          bgColor: AppColors.errorLight,
-                          iconColor: AppColors.error,
-                          title: _signingOut
-                              ? 'Cerrando sesión…'
-                              : 'Cerrar sesión',
-                          loading: _signingOut,
-                          onTap: () async {
-                            if (_signingOut) return;
-                            setState(() => _signingOut = true);
-                            await signOutAndGoToLogin(ref, context);
-                            if (mounted) setState(() => _signingOut = false);
-                          },
-                        ),
-                      ],
-                    ),
+                    _grupo([
+                      DrawerItem(
+                        icon: Icons.logout_rounded,
+                        title:
+                            _signingOut ? 'Cerrando sesión…' : 'Cerrar sesión',
+                        danger: true,
+                        loading: _signingOut,
+                        onTap: () async {
+                          if (_signingOut) return;
+                          setState(() => _signingOut = true);
+                          await signOutAndGoToLogin(ref, context);
+                          if (mounted) setState(() => _signingOut = false);
+                        },
+                      ),
+                    ]),
                     0.32,
                   ),
                 ],
@@ -408,12 +453,12 @@ class ActiveRouteCard extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: hasRoute
-            ? const Color(0x1A00A859)
+            ? AppColors.primary.withValues(alpha: 0.10)
             : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: hasRoute
-              ? const Color(0x3300A859)
+              ? AppColors.primary.withValues(alpha: 0.20)
               : Colors.white.withValues(alpha: 0.1),
         ),
       ),
@@ -438,7 +483,7 @@ class ActiveRouteCard extends ConsumerWidget {
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFFF8FAFC),
+                color: AppColors.textOnInk,
                 letterSpacing: -0.5,
               ),
             ),
@@ -452,7 +497,7 @@ class ActiveRouteCard extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFF8FAFC),
+                color: AppColors.textOnInk,
                 letterSpacing: -0.3,
               ),
             ),
@@ -523,7 +568,7 @@ class TerminalsLine extends StatelessWidget {
             Container(
               width: 22,
               height: 2,
-              color: const Color(0x6600A859),
+              color: AppColors.primary.withValues(alpha: 0.4),
             ),
             Container(
               width: 4,
@@ -549,13 +594,24 @@ class TerminalsLine extends StatelessWidget {
   }
 }
 
+/// Una fila del menú. Vive dentro de un grupo, así que no trae superficie
+/// propia: el fondo, el radio y el borde los pone el grupo.
+///
+/// Ya no recibe colores. Antes el constructor exigía `bgColor` e
+/// `iconColor`, y esa exigencia era la que volvía estructural el arcoíris:
+/// tres filas, tres parejas de color inventadas fila por fila (ámbar,
+/// celeste, rojo) sin que ninguna significara nada. Un menú no es un
+/// semáforo. Los iconos son del mismo gris claro y el único color que
+/// queda es el verde de la marca en el contador de avisos y el rojo de
+/// [danger], que sí significan algo.
 class DrawerItem extends StatefulWidget {
   final IconData icon;
-  final Color bgColor;
-  final Color iconColor;
   final String title;
   final Widget? trailing;
   final VoidCallback onTap;
+
+  /// Acción destructiva: tiñe icono y texto. Solo "Cerrar sesión".
+  final bool danger;
 
   /// F9: reemplaza el ícono por un spinner y bloquea el tap — mismo patrón
   /// que ya usan los botones asíncronos del login.
@@ -564,11 +620,10 @@ class DrawerItem extends StatefulWidget {
   const DrawerItem({
     super.key,
     required this.icon,
-    required this.bgColor,
-    required this.iconColor,
     required this.title,
-    this.trailing,
     required this.onTap,
+    this.trailing,
+    this.danger = false,
     this.loading = false,
   });
 
@@ -581,6 +636,10 @@ class _DrawerItemState extends State<DrawerItem> {
 
   @override
   Widget build(BuildContext context) {
+    // Dentro de un grupo, encoger una fila la despega de sus vecinas y del
+    // filo que las separa. La respuesta al toque es el fondo, que es
+    // además como responde una lista en iOS.
+    final tinte = widget.danger ? AppColors.errorOnInk : AppColors.textOnInk;
     return GestureDetector(
       onTap: widget.loading ? null : widget.onTap,
       onTapDown: widget.loading ? null : (_) => setState(() => _pressed = true),
@@ -588,58 +647,44 @@ class _DrawerItemState extends State<DrawerItem> {
       onTapCancel:
           widget.loading ? null : () => setState(() => _pressed = false),
       behavior: HitTestBehavior.opaque,
-      child: AnimatedScale(
-        scale: _pressed ? 0.975 : 1,
+      child: AnimatedContainer(
         duration: AppMotion.instante,
-        // V6: el drawer solo tiene 3 ítems — entran en el cupo de "3-4
-        // botones de verdad importantes" que sí llevan rebote.
-        curve: Curves.easeOutBack,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: _pressed ? 0.09 : 0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+        curve: AppMotion.curvaSalida,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        color: Colors.white.withValues(alpha: _pressed ? 0.07 : 0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 22,
+              height: 22,
+              child: widget.loading
+                  ? Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: tinte.withValues(alpha: 0.7),
+                      ),
+                    )
+                  : Icon(
+                      widget.icon,
+                      color: tinte.withValues(alpha: widget.danger ? 1 : 0.75),
+                      size: 22,
+                    ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: widget.bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: widget.loading
-                    ? Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.2,
-                            color: widget.iconColor,
-                          ),
-                        ),
-                      )
-                    : Icon(widget.icon, color: widget.iconColor, size: 22),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
-                  ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                widget.title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: tinte,
+                  letterSpacing: -0.3,
                 ),
               ),
-              if (widget.trailing != null) widget.trailing!,
-            ],
-          ),
+            ),
+            if (widget.trailing != null) widget.trailing!,
+          ],
         ),
       ),
     );
