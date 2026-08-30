@@ -18,7 +18,18 @@ class BusNotificationService {
   static Future<void> init() async {
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(),
+      // En iOS, DarwinInitializationSettings pide los permisos al
+      // inicializar salvo que se le diga que no, así que el cuadro de
+      // "Ya Viene quiere enviarte notificaciones" salía nada más abrir la
+      // app —encima del arranque, antes de que nadie hubiera visto para
+      // qué sirven—. Justo lo que la guía de Apple dice no hacer, y lo
+      // contrario de lo que promete `requestPermission` más abajo. Se
+      // piden ahí, cuando el usuario activa su primer aviso.
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      ),
     );
     await _plugin.initialize(settings: settings);
     final android = _plugin.resolvePlatformSpecificImplementation<
