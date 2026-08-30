@@ -34,14 +34,20 @@ class NotificationsScreen extends ConsumerWidget {
     ].toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      // Era un gris azulado suelto (#F8FAFC). Las tarjetas son blancas y
+      // el resto de superficies claras de la app son arena; un gris frío
+      // entre ellas se lee como una pantalla de otra app.
+      backgroundColor: AppColors.arena,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.arena,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        // El menú la llama "Avisos", el estado vacío dice "avisos" y el
+        // botón del mapa dice "Avísame". Esta era la única pantalla que
+        // usaba otra palabra para la misma cosa.
         title: const Text(
-          'Notificaciones',
+          'Avisos',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -405,7 +411,7 @@ class _AlertTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: sent ? AppColors.warningLight : const Color(0xFFECFDF5),
+              color: sent ? AppColors.warningLight : AppColors.primaryTint,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -464,10 +470,12 @@ class _AlertTile extends StatelessWidget {
               ),
             )
           else
+            // Rojo de error para algo que se deshace en un toque desde el
+            // mapa. El rojo queda para "Borrar todas", que sí borra.
             TextButton(
               onPressed: onDisable,
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
+                foregroundColor: AppColors.primaryDeep,
               ),
               child: const Text(
                 'Desactivar',
@@ -495,7 +503,7 @@ class _EmptyState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
+                color: AppColors.primaryTint,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: const Icon(
