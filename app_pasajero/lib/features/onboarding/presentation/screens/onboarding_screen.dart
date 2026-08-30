@@ -100,7 +100,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ),
                                     const SizedBox(height: 6),
                                     const Text(
-                                      'Así sabemos qué buses vienen hacia ti y te avisamos antes de que llegue el tuyo.',
+                                      'Así sabemos qué buses vienen hacia ti '
+                                      'y te avisamos antes de que llegue '
+                                      'el tuyo.',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
@@ -117,26 +119,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       const _BenefitRow(
                                         icon:
                                             Icons.directions_bus_filled_rounded,
-                                        title: 'Buses cerca de ti',
+                                        title: 'Buses en vivo',
+                                        detail: 'Ves dónde va el tuyo, no '
+                                            'dónde debería ir',
                                       ),
                                       start: 0.34,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 18),
                                     entra(
                                       const _BenefitRow(
                                         icon: Icons.timer_outlined,
-                                        title: 'Esperas exactas',
+                                        title: 'Cuánto falta',
+                                        detail: 'Calculado con la posición '
+                                            'real del bus',
                                       ),
                                       start: 0.42,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 18),
                                     entra(
                                       const _BenefitRow(
                                         icon:
                                             Icons.notifications_active_outlined,
-                                        title: 'Avisos antes de tu bus',
+                                        title: 'Aviso antes de que llegue',
+                                        detail: 'Suena cuando se acerca a tu '
+                                            'punto de espera',
                                       ),
                                       start: 0.5,
                                       begin: Offset.zero,
@@ -211,34 +219,61 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
+/// Una razón para dar el permiso: glifo, promesa y su letra chica.
+///
+/// Antes era un cuadrado verde de 56 con el icono dentro y tres palabras
+/// al lado. Tres cuadrados apilados pesaban más que lo que decían —y lo
+/// que decían no bastaba: "Esperas exactas" promete una exactitud que
+/// nadie puede dar. Ahora el glifo va suelto, como en las pantallas de
+/// permiso de iOS, y cada fila explica en una línea qué gana el usuario
+/// y de dónde sale el dato.
 class _BenefitRow extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String detail;
 
-  const _BenefitRow({required this.icon, required this.title});
+  const _BenefitRow({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 24),
+        // Ancho fijo para que los tres títulos arranquen en la misma
+        // columna aunque los glifos midan distinto.
+        SizedBox(
+          width: 30,
+          child: Icon(icon, color: AppColors.primary, size: 26),
         ),
         const SizedBox(width: 14),
         Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  height: 1.3,
+                ),
+              ),
+            ],
           ),
         ),
       ],

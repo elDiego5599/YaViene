@@ -551,8 +551,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                           letterSpacing: -0.3,
                                                           color: bright
                                                               ? Colors.white
-                                                              : const Color(
-                                                                  0xFF94A3B8),
+                                                              : AppColors
+                                                                  .textDisabled,
                                                         ),
                                                       ),
                                               ),
@@ -589,9 +589,11 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                 : () => setState(() =>
                                                     _step = _Step.profile),
                                             child: const Text(
-                                              '¿No tienes cuenta? Crea una con este correo',
+                                              '¿No tienes cuenta? '
+                                              'Crea una con este correo',
                                               style: TextStyle(
-                                                color: AppColors.primary,
+                                                color:
+                                                    AppColors.primaryAccessible,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700,
                                               ),
@@ -633,7 +635,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                   : _handleGoogle,
                                               style: OutlinedButton.styleFrom(
                                                 foregroundColor:
-                                                    const Color(0xFF334155),
+                                                    AppColors.textPrimary,
                                                 backgroundColor: Colors.white,
                                                 side: const BorderSide(
                                                     color: AppColors.divider),
@@ -650,8 +652,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                                       child:
                                                           CircularProgressIndicator(
                                                         strokeWidth: 2,
-                                                        color:
-                                                            Color(0xFF334155),
+                                                        color: AppColors
+                                                            .textPrimary,
                                                       ),
                                                     )
                                                   : SvgPicture.asset(
@@ -682,7 +684,8 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                                           child: const Text(
                                             '¿No tienes cuenta? Regístrate',
                                             style: TextStyle(
-                                              color: AppColors.primary,
+                                              color:
+                                                  AppColors.primaryAccessible,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -736,10 +739,13 @@ class _Field extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      // El borde de reposo vive en `enabledBorder`, no aquí. Cuando el
+      // Container lo pintaba, al enfocar quedaban dos anillos concéntricos
+      // —el gris del Container y el azul de 2 px del campo— y el campo se
+      // veía con doble contorno justo en el momento de escribir en él.
       decoration: BoxDecoration(
         color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.divider),
       ),
       child: TextField(
         controller: controller,
@@ -748,9 +754,11 @@ class _Field extends StatelessWidget {
         keyboardType: keyboardType,
         autocorrect: false,
         textInputAction: textInputAction,
+        // Lo que uno escribe no va en negrita: w700 hacía que un correo
+        // corriente pareciera un titular.
         style: const TextStyle(
           fontSize: 16,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
           color: AppColors.textPrimary,
         ),
         decoration: InputDecoration(
@@ -760,10 +768,14 @@ class _Field extends StatelessWidget {
             child: Icon(icon, color: AppColors.textSecondary, size: 22),
           ),
           hintText: hint,
-          hintStyle: TextStyle(
-            fontSize: 14,
+          // Era `Colors.grey` al 60 %: sobre surfaceMuted daba ~1,5:1, o
+          // sea ilegible. Y a 14 el texto saltaba de tamaño al empezar a
+          // escribir; el marcador de posición mide lo que va a medir lo
+          // que se escriba.
+          hintStyle: const TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Colors.grey.withValues(alpha: 0.6),
+            color: AppColors.textDisabled,
           ),
           suffixIcon: onToggleVisibility != null
               ? IconButton(
@@ -781,6 +793,10 @@ class _Field extends StatelessWidget {
                 )
               : null,
           border: InputBorder.none,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
           // F16: mismo color de foco que el InputDecorationTheme global
           // (primaryDeep) — antes usaba primary, sin motivo para divergir.
           focusedBorder: OutlineInputBorder(
