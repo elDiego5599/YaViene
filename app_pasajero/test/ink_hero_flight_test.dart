@@ -34,8 +34,7 @@ GoRouter _router() => GoRouter(
     );
 
 void main() {
-  testWidgets('el logo vuela entre pantallas en vez de saltar',
-      (tester) async {
+  testWidgets('el logo vuela entre pantallas en vez de saltar', (tester) async {
     await tester.pumpWidget(MaterialApp.router(routerConfig: _router()));
     await tester.pumpAndSettle();
 

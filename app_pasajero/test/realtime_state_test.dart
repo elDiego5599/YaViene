@@ -172,7 +172,8 @@ void main() {
       'buses': [positionJson('C-3', 6.30, -75.60, routeId: 'R2')],
     });
     await flush();
-    expect(positions.read().value?.length, 2, reason: 'batch de otra ruta se ignora');
+    expect(positions.read().value?.length, 2,
+        reason: 'batch de otra ruta se ignora');
 
     fake.emitBatch({'routeId': 'R1', 'buses': <Object>[]});
     await flush();
@@ -180,7 +181,9 @@ void main() {
         reason: 'batch vacío borra los buses que ya no están en la ruta');
   });
 
-  test('el batch no filtra su basura: los buses malformados se ignoran sin tumbar la suscripción', () async {
+  test(
+      'el batch no filtra su basura: los buses malformados se ignoran sin tumbar la suscripción',
+      () async {
     final fake = FakeRealtimeRepository();
     final container = containerWith(fake);
     final positions = container.listen<AsyncValue<List<BusPosition>>>(
@@ -192,7 +195,8 @@ void main() {
     fake.emitBatch({'routeId': 'R1', 'buses': 'esto no es una lista'});
     await flush();
     expect(positions.read().hasValue, true,
-        reason: 'batch con forma inválida debe ignorarse, no romper el provider');
+        reason:
+            'batch con forma inválida debe ignorarse, no romper el provider');
 
     fake.emitBatch({
       'routeId': 'R1',
@@ -208,7 +212,9 @@ void main() {
     expect(positions.read().value?.first.busId, 'A-1');
   });
 
-  test('ráfaga de posiciones en vivo produce una sola actualización (debounce 200ms)', () async {
+  test(
+      'ráfaga de posiciones en vivo produce una sola actualización (debounce 200ms)',
+      () async {
     final fake = FakeRealtimeRepository();
     final container = containerWith(fake);
     var emissions = 0;
@@ -222,7 +228,8 @@ void main() {
       fake.emitBusPosition(positionJson('A-1', 6.24 + i * 0.001, -75.58));
     }
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    expect(emissions, 1, reason: '10 eventos vivos deben colapsar en 1 snapshot');
+    expect(emissions, 1,
+        reason: '10 eventos vivos deben colapsar en 1 snapshot');
     expect(positions.read().value?.first.lat, closeTo(6.249, 0.0001),
         reason: 'la última posición es la que queda');
   });
@@ -238,7 +245,10 @@ void main() {
 
     fake.emitBatch({
       'routeId': 'R1',
-      'buses': [positionJson('A-1', 6.24, -75.58), positionJson('B-2', 6.25, -75.59)],
+      'buses': [
+        positionJson('A-1', 6.24, -75.58),
+        positionJson('B-2', 6.25, -75.59)
+      ],
     });
     await flush();
     expect(positions.read().value?.length, 2);
@@ -248,7 +258,9 @@ void main() {
     expect(positions.read().value?.map((p) => p.busId).toList(), ['B-2']);
   });
 
-  testWidgets('el chip de estado sigue la conexión: desconectado, reconectando y en línea', (tester) async {
+  testWidgets(
+      'el chip de estado sigue la conexión: desconectado, reconectando y en línea',
+      (tester) async {
     final fake = FakeRealtimeRepository();
     await tester.pumpWidget(
       ProviderScope(

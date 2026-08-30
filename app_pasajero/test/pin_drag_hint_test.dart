@@ -24,7 +24,8 @@ class _ManualLocation extends UserLocationNotifier {
 }
 
 void main() {
-  Future<void> pumpChip(WidgetTester tester, ProviderContainer container) async {
+  Future<void> pumpChip(
+      WidgetTester tester, ProviderContainer container) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,

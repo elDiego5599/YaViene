@@ -45,9 +45,21 @@ void main() {
         start: start,
       );
       expect(m.isFinished(start), isFalse);
-      expect(m.isFinished(start.add(const Duration(milliseconds: 999)),), isFalse);
-      expect(m.isFinished(start.add(const Duration(milliseconds: 1000)),), isTrue);
-      expect(m.isFinished(start.add(const Duration(seconds: 2)),), isTrue);
+      expect(
+          m.isFinished(
+            start.add(const Duration(milliseconds: 999)),
+          ),
+          isFalse);
+      expect(
+          m.isFinished(
+            start.add(const Duration(milliseconds: 1000)),
+          ),
+          isTrue);
+      expect(
+          m.isFinished(
+            start.add(const Duration(seconds: 2)),
+          ),
+          isTrue);
     });
 
     test('displayOf interpola lineal y heading por arco corto', () {
@@ -129,7 +141,8 @@ void main() {
       expect(find.text('Preparando tu mapa…'), findsOneWidget);
     });
 
-    testWidgets('MapStylePlaceholder invisible no muestra texto', (tester) async {
+    testWidgets('MapStylePlaceholder invisible no muestra texto',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

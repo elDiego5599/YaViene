@@ -33,8 +33,7 @@ void main() {
     });
     // permiso denegado: la app entra por la rama de restauración del pin
     // (sin tocar geolocator).
-    const channel =
-        MethodChannel('flutter.baseflow.com/permissions/methods');
+    const channel = MethodChannel('flutter.baseflow.com/permissions/methods');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'checkPermissionStatus') return 0; // denied
@@ -57,8 +56,7 @@ void main() {
   test('initialize sin permiso y sin pin guardado queda en modo denegado',
       () async {
     SharedPreferences.setMockInitialValues({'user_loc_asked': true});
-    const channel =
-        MethodChannel('flutter.baseflow.com/permissions/methods');
+    const channel = MethodChannel('flutter.baseflow.com/permissions/methods');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'checkPermissionStatus') return 0; // denied
@@ -82,8 +80,7 @@ void main() {
       _kManualLat: 10.9512,
       _kManualLon: -74.79145,
     });
-    const channel =
-        MethodChannel('flutter.baseflow.com/permissions/methods');
+    const channel = MethodChannel('flutter.baseflow.com/permissions/methods');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'checkPermissionStatus') return 0; // denied

@@ -7,7 +7,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('rutas.json contiene las 6 rutas reales de Sobusa con geometría', () async {
+  test('rutas.json contiene las 6 rutas reales de Sobusa con geometría',
+      () async {
     final raw = await rootBundle.loadString('assets/data/rutas.json');
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     final rutas = (decoded['rutas'] as List<dynamic>)
@@ -16,7 +17,8 @@ void main() {
 
     expect(rutas.length, 6);
     final ids = rutas.map((r) => r.routeId).toSet();
-    expect(ids, containsAll(['R-101', 'R-102', 'R-103', 'R-104', 'R-105', 'R-106']));
+    expect(ids,
+        containsAll(['R-101', 'R-102', 'R-103', 'R-104', 'R-105', 'R-106']));
 
     for (final ruta in rutas) {
       expect(ruta.name, isNotEmpty, reason: '${ruta.routeId} sin nombre');
@@ -38,7 +40,8 @@ void main() {
         .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
         .toList();
     for (final ruta in rutas) {
-      expect(ruta.paradas, isEmpty, reason: '${ruta.routeId} no debería tener paradas');
+      expect(ruta.paradas, isEmpty,
+          reason: '${ruta.routeId} no debería tener paradas');
     }
   });
 }

@@ -51,7 +51,11 @@ void main() {
       proximityAlertsProvider.overrideWith((ref) {
         return ProximityAlertsNotifier(
           ref,
-          notify: ({required String busId, String? routeName, String? routeId, required int distanceMeters}) async {
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) async {
             fired.add((busId: busId, distanceMeters: distanceMeters));
           },
         );
@@ -141,12 +145,16 @@ void main() {
         n.set(userHere);
         return n;
       }),
-      busPositionsSourceProvider.overrideWith(
-          (ref, routeId) => posController.stream),
+      busPositionsSourceProvider
+          .overrideWith((ref, routeId) => posController.stream),
       proximityAlertsProvider.overrideWith((ref) {
         return ProximityAlertsNotifier(
           ref,
-          notify: ({required String busId, String? routeName, String? routeId, required int distanceMeters}) async {
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
           },
         );
@@ -262,12 +270,16 @@ void main() {
         n.set(userHere);
         return n;
       }),
-      busPositionsSourceProvider.overrideWith(
-          (ref, routeId) => posController.stream),
+      busPositionsSourceProvider
+          .overrideWith((ref, routeId) => posController.stream),
       proximityAlertsProvider.overrideWith((ref) {
         return ProximityAlertsNotifier(
           ref,
-          notify: ({required String busId, String? routeName, String? routeId, required int distanceMeters}) async {
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
           },
         );

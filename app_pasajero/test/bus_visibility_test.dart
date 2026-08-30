@@ -106,8 +106,8 @@ void main() {
     ProviderContainer containerWithLocation({bool located = true}) {
       final container = ProviderContainer(overrides: [
         userLocationProvider.overrideWith((ref) => _TestUserLocation()),
-        busPositionsSourceProvider.overrideWith((ref, routeId) =>
-            positions.stream),
+        busPositionsSourceProvider
+            .overrideWith((ref, routeId) => positions.stream),
       ]);
       addTearDown(container.dispose);
       if (located) {
@@ -152,7 +152,8 @@ void main() {
       expect(visibleIds(container), ['A-1']);
 
       await emit([_busAtKm(5.8)]);
-      expect(visibleIds(container), isEmpty, reason: 'pasó el margen de salida');
+      expect(visibleIds(container), isEmpty,
+          reason: 'pasó el margen de salida');
 
       // Y no vuelve hasta cruzar los 5 km otra vez, no los 5,5.
       await emit([_busAtKm(5.2)]);

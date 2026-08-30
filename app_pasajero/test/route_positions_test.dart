@@ -21,8 +21,7 @@ class _FakeRealtimeService implements RealtimeRepository {
   final subscribedRoutes = <String>{};
 
   @override
-  Stream<ConnectionStatus> get connectionStateStream =>
-      _connectionState.stream;
+  Stream<ConnectionStatus> get connectionStateStream => _connectionState.stream;
   @override
   ConnectionStatus? get lastConnectionState => null;
   @override
@@ -45,8 +44,7 @@ class _FakeRealtimeService implements RealtimeRepository {
   void subscribeToRoute(String routeId) => subscribedRoutes.add(routeId);
 
   @override
-  void unsubscribeFromRoute(String routeId) =>
-      subscribedRoutes.remove(routeId);
+  void unsubscribeFromRoute(String routeId) => subscribedRoutes.remove(routeId);
 
   @override
   void disconnect() {}
@@ -191,9 +189,7 @@ void main() {
           _busJson('BUS-B', 'R-101', lat: 11.0, lon: -74.78),
         ],
       });
-      container
-          .read(userLocationProvider.notifier)
-          .setManualPin(10.98, -74.78);
+      container.read(userLocationProvider.notifier).setManualPin(10.98, -74.78);
       await pumpEventQueue();
 
       expect(container.read(nearbyBusesCountProvider('R-101')), 1);
@@ -207,9 +203,7 @@ void main() {
         'routeId': 'R-101',
         'buses': [_busJson('BUS-B', 'R-101', lat: 11.02, lon: -74.78)],
       });
-      container
-          .read(userLocationProvider.notifier)
-          .setManualPin(10.98, -74.78);
+      container.read(userLocationProvider.notifier).setManualPin(10.98, -74.78);
       await pumpEventQueue();
 
       expect(container.read(nearbyBusesCountProvider('R-101')), 0);
