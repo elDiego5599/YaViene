@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/pin_hint_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 
-/// Píldora flotante de cristal que informa el estado de la ubicación y
-/// cuántos buses hay cerca del usuario en la ruta seleccionada.
+/// Píldora flotante que informa el estado de la ubicación y cuántos buses
+/// hay cerca del usuario en la ruta seleccionada.
+///
+/// En modo manual lleva además la única explicación de que el pin se
+/// arrastra, hasta que el usuario lo arrastra por primera vez. Antes esa
+/// frase solo existía en el estado vacío de la hoja de distancia, o sea
+/// aparecía antes de que el pin existiera y desaparecía justo cuando se
+/// volvía cierta.
 class LocationStatusChip extends ConsumerWidget {
   const LocationStatusChip({super.key, this.routeId});
 
@@ -19,6 +26,8 @@ class LocationStatusChip extends ConsumerWidget {
         ? ref.watch(nearbyBusesCountProvider(routeId!))
         : null;
     final notifier = ref.read(userLocationProvider.notifier);
+    final pinHint =
+        ref.watch(pinDragLearnedProvider) ? null : 'Arrástralo para moverlo';
 
     final _PillData? pill = switch (location.mode) {
       UserLocationMode.locating => const _PillData(
@@ -55,7 +64,7 @@ class LocationStatusChip extends ConsumerWidget {
           onAction: () => notifier.useGps(),
           tint: AppColors.coralLight,
         ),
-      UserLocationMode.manual => _manualPill(nearbyCount, notifier),
+      UserLocationMode.manual => _manualPill(nearbyCount, notifier, pinHint),
       UserLocationMode.gps => _gpsPill(location, nearbyCount, notifier),
       UserLocationMode.unknown => null,
     };
@@ -80,13 +89,21 @@ class LocationStatusChip extends ConsumerWidget {
     );
   }
 
-  _PillData? _manualPill(int? nearbyCount, UserLocationNotifier notifier) {
+  _PillData? _manualPill(
+    int? nearbyCount,
+    UserLocationNotifier notifier,
+    String? pinHint,
+  ) {
+    // La pista entra y sale de la píldora, así que forma parte de su
+    // identidad: sin esto el AnimatedSwitcher no cruzaría el cambio.
+    final sufijo = pinHint == null ? '' : '-hint';
     if (nearbyCount == null) {
       return _PillData(
-        key: 'manual',
+        key: 'manual$sufijo',
         icon: Icons.location_on,
         iconColor: AppColors.primary,
-        text: 'Con tu ubicación',
+        text: 'Tu punto de espera',
+        sub: pinHint,
         actionLabel: 'Quitar',
         onAction: () => notifier.clearManualPin(),
         actionDanger: true,
@@ -95,21 +112,23 @@ class LocationStatusChip extends ConsumerWidget {
     }
     if (nearbyCount == 0) {
       return _PillData(
-        key: 'manual-empty',
+        key: 'manual-empty$sufijo',
         icon: Icons.directions_bus,
         iconColor: AppColors.warning,
-        text: 'No hay buses cerca de tu pin',
+        text: 'No hay buses cerca de tu punto',
+        sub: pinHint,
         actionLabel: 'Usar GPS',
         onAction: () => notifier.useGps(),
         tint: AppColors.warningLight,
       );
     }
     return _PillData(
-      key: 'manual-near',
+      key: 'manual-near$sufijo',
       icon: Icons.location_on,
       iconColor: AppColors.primary,
-      text:
-          'Con tu ubicación: $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      text: '$nearbyCount bus${nearbyCount == 1 ? '' : 'es'} '
+          'cerca de tu punto',
+      sub: pinHint,
       actionLabel: 'Quitar',
       onAction: () => notifier.clearManualPin(),
       actionDanger: true,
@@ -169,6 +188,7 @@ class _PillData {
     required this.iconColor,
     required this.text,
     required this.tint,
+    this.sub,
     this.actionLabel,
     this.onAction,
     this.actionDanger = false,
@@ -178,6 +198,9 @@ class _PillData {
   final IconData icon;
   final Color iconColor;
   final String text;
+
+  /// Segunda línea, más pequeña y en gris: enseña, no informa.
+  final String? sub;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -201,15 +224,18 @@ class _Pill extends StatelessWidget {
         child: Container(
           constraints: const BoxConstraints(maxWidth: 380),
           padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
+          // Sombra corta y filo fino: una sombra larga sobre el mapa hace
+          // que la píldora flote como una nube; una corta la deja apoyada,
+          // que es lo que es.
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(color: AppColors.hairline),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryDeep.withValues(alpha: 0.07),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                color: AppColors.primaryDeep.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -227,17 +253,35 @@ class _Pill extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Flexible(
-                child: Text(
-                  data.text,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                  softWrap: true,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.25,
-                    color: AppColors.textPrimary,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.text,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      softWrap: true,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.25,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (data.sub != null)
+                      Text(
+                        data.sub!,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.15,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (data.actionLabel != null && data.onAction != null) ...[

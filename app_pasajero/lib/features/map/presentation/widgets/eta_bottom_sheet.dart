@@ -369,8 +369,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     if (!hasPosition) {
       stateKey = 'empty-no-position';
       title = 'Toca el mapa para indicar dónde estás';
-      subtitle =
-          'Pon tu punto de espera; después podrás mover el pin si hace falta';
+      // Lo de arrastrar el pin ya no se dice aquí: esta frase solo se ve
+      // mientras NO hay pin, o sea desaparecía justo cuando se volvía
+      // cierta. Vive en la píldora de estado, junto al pin.
+      subtitle = 'Ahí ponemos tu punto de espera y medimos desde él';
       icon = Icons.touch_app_rounded;
     } else if (route == null) {
       stateKey = 'empty-no-route';
