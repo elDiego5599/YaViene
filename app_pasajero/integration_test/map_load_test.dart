@@ -100,13 +100,11 @@ void main() {
       timeout: const Duration(seconds: 15),
       message: 'no abrió el selector de ruta',
     );
-    await _waitUntil(
-      tester,
-      () => find.text('Selecciona una empresa').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 15),
-      message: 'no cargaron las empresas',
-    );
-    await tester.tap(find.text('Selecciona una empresa'));
+    // Paso 1: el tile de empresa abre su lista. Antes esta prueba tocaba
+    // "Selecciona una empresa" estando todavía en la vista principal: era
+    // copy del botón muerto que la hoja tenía antes del rediseño, y hoy
+    // ese texto solo existe dentro de la lista.
+    await tester.tap(find.text('Empresa'));
     await _waitUntil(
       tester,
       () => find.text('Sobusa').evaluate().isNotEmpty,
@@ -116,12 +114,12 @@ void main() {
     await tester.tap(find.text('Sobusa'));
     await _waitUntil(
       tester,
-      () => find.text('Selecciona una ruta').evaluate().isNotEmpty,
+      () => find.text('Ruta').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
       message: 'no apareció la tarjeta de ruta tras elegir empresa',
     );
     await tester.pump(const Duration(milliseconds: 600));
-    await tester.tap(find.text('Selecciona una ruta'));
+    await tester.tap(find.text('Ruta'));
     await _waitUntil(
       tester,
       () => find.text('B18 Tcherassi').evaluate().isNotEmpty,

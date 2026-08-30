@@ -59,13 +59,27 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
   ConsumerState<RouteSelectorSheet> createState() => _RouteSelectorSheetState();
 }
 
+/// Alto fijo de los dos tiles del paso 1 y 2, y de su placeholder.
+///
+/// Fijo a propósito: el tile activo dibuja su filo a 1.5 px y el inactivo a
+/// 1.0, y en Flutter el borde de un `BoxDecoration` ocupa layout. Dejando
+/// que el alto saliera del contenido, elegir empresa hacía crecer la
+/// tarjeta 1 px por tile, y el placeholder de carga medía 2 px menos que el
+/// tile real —que es justo lo que se medía para fijar el alto de las listas.
+const double _kTileHeight = 78;
+
 class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
-  static const double _fallbackCardHeight = 440;
+  static const double _fallbackCardHeight = 480;
 
   final GlobalKey _hostKey = GlobalKey();
   final GlobalKey _mainCardKey = GlobalKey();
 
   _RouteView _view = _RouteView.main;
+
+  /// Sentido del último cambio de vista: hacia dentro (elegir) o de vuelta.
+  /// La tarjeta ya no cambia de alto entre vistas, así que lo único que
+  /// puede contar de dónde viene el contenido es por qué lado entra.
+  bool _haciaDentro = true;
   Rect? _target;
   MapGuideStep? _measuredStep;
   GlobalKey? _measuredKey;
@@ -94,6 +108,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     setState(() => _routeHint = message);
     _routeHintTimer = Timer(const Duration(milliseconds: 2600), () {
       if (mounted) setState(() => _routeHint = null);
+    });
+  }
+
+  void _irA(_RouteView vista) {
+    setState(() {
+      _haciaDentro = vista != _RouteView.main;
+      _view = vista;
     });
   }
 
@@ -277,12 +298,21 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             child: Padding(
               padding: EdgeInsets.only(bottom: bottomInset),
               child: AnimatedSwitcher(
-                duration: AppMotion.normal,
+                duration: AppMotion.duracion(context, AppMotion.normal),
                 switchInCurve: AppMotion.curvaEntrada,
                 switchOutCurve: AppMotion.curvaSalida,
+                // Empuje lateral, como una pila de navegación: lo que entra
+                // llega del lado hacia el que vamos y lo que sale se va por
+                // el contrario. Antes las dos vistas venían del mismo lado
+                // con un desplazamiento de 0.04 —imperceptible—, así que
+                // entrar y volver se veían idénticos: solo un parpadeo.
                 transitionBuilder: (child, animation) {
+                  final entra = (child.key as ValueKey?)?.value == _view;
+                  final lado = _haciaDentro ? 1.0 : -1.0;
+                  final desde = (entra ? lado : -lado) *
+                      (AppMotion.reducido(context) ? 0.0 : 0.18);
                   final slide = Tween<Offset>(
-                    begin: const Offset(0.04, 0),
+                    begin: Offset(desde, 0),
                     end: Offset.zero,
                   ).animate(animation);
                   return FadeTransition(
@@ -295,13 +325,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                   child: switch (_view) {
                     _RouteView.main => _buildMainView(context),
                     _RouteView.companies => _buildListView(
-                        title: 'Selecciona una empresa',
-                        onBack: () => setState(() => _view = _RouteView.main),
+                        title: 'Elige empresa',
+                        onBack: () => _irA(_RouteView.main),
                         builder: (_) => _buildCompanyList(context),
                       ),
                     _RouteView.routes => _buildListView(
-                        title: 'Selecciona una ruta',
-                        onBack: () => setState(() => _view = _RouteView.main),
+                        title: 'Elige ruta',
+                        onBack: () => _irA(_RouteView.main),
                         builder: (_) => _buildRouteList(context),
                       ),
                   },
@@ -320,9 +350,15 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     final companiesAsync = ref.watch(companiesProvider);
 
     return Padding(
+      // La medida va en el Padding, no en la Column: las listas de empresa
+      // y de ruta se dibujan como `SizedBox(height: _cardHeight)` con su
+      // propio relleno dentro, así que midiendo solo el contenido salían
+      // 40 px más bajas (16 arriba + 24 abajo) y la tarjeta se encogía al
+      // entrar a elegir y volvía a crecer al salir. Entre las tres vistas
+      // solo debe cambiar el contenido.
+      key: _mainCardKey,
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       child: Column(
-        key: _mainCardKey,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -363,7 +399,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 onTap: () {
                   HapticFeedback.lightImpact();
                   _clearRouteHint();
-                  setState(() => _view = _RouteView.companies);
+                  _irA(_RouteView.companies);
                 },
               ),
               // La guía ilumina el tile de empresa: mientras carga (o falla)
@@ -424,7 +460,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                 }
                 HapticFeedback.lightImpact();
                 _clearRouteHint();
-                setState(() => _view = _RouteView.routes);
+                _irA(_RouteView.routes);
               },
             ),
           ),
@@ -454,10 +490,52 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             const SizedBox(height: 16),
             _headerRow(title: title, onBack: onBack),
             const SizedBox(height: 12),
-            Expanded(child: builder(context)),
+            // Las filas no se cortan a filo vivo contra el título ni contra
+            // el borde de la hoja: se desvanecen. Antes una fila a medio
+            // salir quedaba partida por la mitad justo debajo del título y
+            // parecía que se metía por detrás de él.
+            Expanded(child: _listaConDesvanecido(builder(context))),
           ],
         ),
       ),
+    );
+  }
+
+  /// Recorta la lista a su caja y le funde 16 px arriba y abajo.
+  ///
+  /// El `Material` transparente no es decorativo: es lo que arregla el bug
+  /// de las filas que se veían subir por detrás del título. `ListTile`
+  /// pinta su fondo con `Ink`, y un `Ink` no se dibuja donde está, sino en
+  /// la capa de tinta del `Material` más cercano. El más cercano era la
+  /// hoja entera, o sea por fuera del `ListView` y de cualquier recorte
+  /// intermedio: las filas que salían del viewport seguían pintando su
+  /// rectángulo blanco encima de la cabecera. Con un `Material` propio
+  /// dentro del recorte, la tinta vive donde debe.
+  Widget _listaConDesvanecido(Widget lista) {
+    final conTinta = Material(type: MaterialType.transparency, child: lista);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final alto = constraints.maxHeight;
+        if (!alto.isFinite || alto <= 48) return ClipRect(child: conTinta);
+        final fundido = (16 / alto).clamp(0.0, 0.2);
+        return ClipRect(
+          child: ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (rect) => LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: const [
+                Colors.transparent,
+                Colors.black,
+                Colors.black,
+                Colors.transparent,
+              ],
+              stops: [0.0, fundido, 1 - fundido, 1.0],
+            ).createShader(rect),
+            child: conTinta,
+          ),
+        );
+      },
     );
   }
 
@@ -506,7 +584,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                   ref
                       .read(mapGuideProvider.notifier)
                       .complete(MapGuideStep.company);
-                  setState(() => _view = _RouteView.main);
+                  _irA(_RouteView.main);
                 },
               );
             }),
@@ -561,7 +639,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                     ref
                         .read(mapGuideProvider.notifier)
                         .complete(MapGuideStep.route);
-                    setState(() => _view = _RouteView.main);
+                    _irA(_RouteView.main);
                   },
                 )),
         ],
@@ -584,8 +662,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   /// Era un bloque gris muerto con la frase "Selecciona una ruta para
   /// continuar" escrita encima: instrucciones sobre un botón que no se
   /// puede pulsar. Ahora hace lo que dice y dice lo que hace —lleva al
-  /// paso que falte— y cuando ya no falta ninguno, se enciende en verde
-  /// con el punto de "en vivo".
+  /// paso que falte— y cuando ya no falta ninguno, se enciende en verde.
   Widget _launchButton(
       BuildContext context, Company? company, RouteInfo? route) {
     final String label;
@@ -595,14 +672,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       action = () {
         HapticFeedback.lightImpact();
         _clearRouteHint();
-        setState(() => _view = _RouteView.companies);
+        _irA(_RouteView.companies);
       };
     } else if (route == null) {
       label = 'Elegir ruta';
       action = () {
         HapticFeedback.lightImpact();
         _clearRouteHint();
-        setState(() => _view = _RouteView.routes);
+        _irA(_RouteView.routes);
       };
     } else {
       label = 'Ver buses en vivo';
@@ -631,10 +708,6 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (listo) ...[
-            const _LivePulse(),
-            const SizedBox(width: 10),
-          ],
           Flexible(
             child: Text(
               label,
@@ -701,7 +774,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   Widget _tilePlaceholder({Key? key, required Widget child}) {
     return Container(
       key: key,
-      height: 76,
+      height: _kTileHeight,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -979,7 +1052,8 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile>
           child: AnimatedContainer(
             duration: AppMotion.rapido,
             curve: AppMotion.curvaEntrada,
-            padding: const EdgeInsets.all(16),
+            height: _kTileHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             // Sin sombra: la tarjeta ya flota sobre arena y una sombra
             // azulada al 4 % sobre un beige cálido no se lee como
             // profundidad, se lee como una banda gris. Separa el filo.
@@ -1014,6 +1088,7 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile>
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -1134,67 +1209,6 @@ class _StepRail extends StatelessWidget {
         width: 2,
         height: double.infinity,
         child: ColoredBox(color: color),
-      ),
-    );
-  }
-}
-
-/// El punto que late en el botón cuando ya hay ruta: dice "esto es en
-/// vivo" sin escribirlo. Una sola circunferencia de 8 px, y quieta si el
-/// sistema pide menos movimiento.
-class _LivePulse extends StatefulWidget {
-  const _LivePulse();
-
-  @override
-  State<_LivePulse> createState() => _LivePulseState();
-}
-
-class _LivePulseState extends State<_LivePulse>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const punto = SizedBox(
-      width: 8,
-      height: 8,
-      child: DecoratedBox(
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-      ),
-    );
-    if (AppMotion.reducido(context)) {
-      return const SizedBox(width: 18, height: 18, child: Center(child: punto));
-    }
-    return RepaintBoundary(
-      child: SizedBox(
-        width: 18,
-        height: 18,
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (context, child) {
-            final t = Curves.easeOut.transform(_c.value);
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                Opacity(
-                  opacity: (1 - t) * 0.6,
-                  child: Transform.scale(scale: 0.5 + t * 1.6, child: child),
-                ),
-                child!,
-              ],
-            );
-          },
-          child: punto,
-        ),
       ),
     );
   }
