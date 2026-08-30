@@ -28,6 +28,11 @@ abstract class AppColors {
   static const Color surfaceMuted = Color(0xFFF1F5F9);
   static const Color divider = Color(0xFFE5E7EB);
 
+  /// El filo que separa dos superficies claras. Más tenue que [divider] y
+  /// tibio, no gris azulado: sobre [arena] un gris frío se ve como una
+  /// raya sucia, y este desaparece salvo justo donde tiene que estar.
+  static const Color hairline = Color(0x1414274E);
+
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);

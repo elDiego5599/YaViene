@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
-import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/map_view_state.dart';
@@ -295,51 +294,50 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         child: Container(
           key: widget.detailKey,
           width: double.infinity,
+          // Un filo de un pixel separa la hoja del mapa mejor que una
+          // sombra ancha: la sombra sobre un mapa lleno de color se lee
+          // como suciedad, el filo se lee como borde.
           decoration: BoxDecoration(
             color: AppColors.arena,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(color: AppColors.hairline),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryDeep.withValues(alpha: 0.08),
-                blurRadius: 32,
-                offset: const Offset(0, -8),
+                color: AppColors.primaryDeep.withValues(alpha: 0.06),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
               )
             ],
           ),
-          // El patrón de calles del drawer, tenue detrás de toda la hoja: la
-          // misma identidad visual en cualquier tarjeta, no solo en el menú.
-          child: CustomPaint(
-            painter: const MapPatternPainter(color: AppColors.primaryDeep),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: toggleable ? _toggleSheet : null,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 14, bottom: 18),
-                      child: Container(
-                        width: 44,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: AppColors.divider,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: toggleable ? _toggleSheet : null,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 14, bottom: 18),
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppColors.divider,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                   ),
-                  AnimatedSwitcher(
-                    duration: AppMotion.normal,
-                    switchInCurve: AppMotion.curvaEntrada,
-                    switchOutCurve: AppMotion.curvaSalida,
-                    transitionBuilder: (child, animation) =>
-                        FadeTransition(opacity: animation, child: child),
-                    child: child,
-                  ),
-                ],
-              ),
+                ),
+                AnimatedSwitcher(
+                  duration: AppMotion.normal,
+                  switchInCurve: AppMotion.curvaEntrada,
+                  switchOutCurve: AppMotion.curvaSalida,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: child,
+                ),
+              ],
             ),
           ),
         ),

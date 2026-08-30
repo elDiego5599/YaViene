@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/router/app_transitions.dart';
-import '../../../../core/widgets/map_pattern_painter.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
 import 'map_tour_overlay.dart';
@@ -226,44 +225,45 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             // las dos tarjetas se ven una detrás de otra en el mismo flujo y
             // el salto de blanco a arena las hacía parecer de apps distintas.
             color: AppColors.arena,
-            elevation: 16,
-            shadowColor: const Color(0x6614274E),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            // Sobre el velo oscuro del diálogo una sombra ancha no se ve;
+            // lo que define la tarjeta es el filo. Mismo tratamiento que la
+            // hoja de distancia, que se ve justo después.
+            elevation: 8,
+            shadowColor: const Color(0x3314274E),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              side: BorderSide(color: AppColors.hairline),
+            ),
             clipBehavior: Clip.antiAlias,
-            // Mismo patrón de calles del drawer, tenue: identidad propia en
-            // la tarjeta que más tiempo mira el usuario.
-            child: CustomPaint(
-              painter: const MapPatternPainter(color: AppColors.primaryDeep),
-              child: AnimatedSwitcher(
-                duration: AppMotion.normal,
-                switchInCurve: AppMotion.curvaEntrada,
-                switchOutCurve: AppMotion.curvaSalida,
-                transitionBuilder: (child, animation) {
-                  final slide = Tween<Offset>(
-                    begin: const Offset(0.04, 0),
-                    end: Offset.zero,
-                  ).animate(animation);
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(position: slide, child: child),
-                  );
+            child: AnimatedSwitcher(
+              duration: AppMotion.normal,
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaSalida,
+              transitionBuilder: (child, animation) {
+                final slide = Tween<Offset>(
+                  begin: const Offset(0.04, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(position: slide, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(_view),
+                child: switch (_view) {
+                  _RouteView.main => _buildMainView(context),
+                  _RouteView.companies => _buildListView(
+                      title: 'Selecciona una empresa',
+                      onBack: () => setState(() => _view = _RouteView.main),
+                      builder: (_) => _buildCompanyList(context),
+                    ),
+                  _RouteView.routes => _buildListView(
+                      title: 'Selecciona una ruta',
+                      onBack: () => setState(() => _view = _RouteView.main),
+                      builder: (_) => _buildRouteList(context),
+                    ),
                 },
-                child: KeyedSubtree(
-                  key: ValueKey(_view),
-                  child: switch (_view) {
-                    _RouteView.main => _buildMainView(context),
-                    _RouteView.companies => _buildListView(
-                        title: 'Selecciona una empresa',
-                        onBack: () => setState(() => _view = _RouteView.main),
-                        builder: (_) => _buildCompanyList(context),
-                      ),
-                    _RouteView.routes => _buildListView(
-                        title: 'Selecciona una ruta',
-                        onBack: () => setState(() => _view = _RouteView.main),
-                        builder: (_) => _buildRouteList(context),
-                      ),
-                  },
-                ),
               ),
             ),
           ),
