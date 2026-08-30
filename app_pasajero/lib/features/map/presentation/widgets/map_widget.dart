@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
@@ -38,7 +39,7 @@ class MapWidget extends ConsumerStatefulWidget {
 }
 
 class _MapWidgetState extends ConsumerState<MapWidget>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   MapLibreMapController? _mapController;
   ProviderSubscription<AsyncValue<List<BusPosition>>>? _movingBusSubscription;
   ProviderSubscription<UserLocationState>? _userPinSubscription;
@@ -82,7 +83,33 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   /// Tramo de animación en curso por bus (interpolación entre fixes).
   final Map<String, BusMotion> _busMotions = {};
-  Timer? _busAnimTimer;
+
+  /// El reloj que mueve los buses. Es un `Ticker` y no un `Timer.periodic`
+  /// por dos razones que se notan en el teléfono:
+  ///
+  /// Un temporizador de 33 ms corre contra el reloj de pared, que no tiene
+  /// nada que ver con el refresco de la pantalla. A 60 Hz hay un cuadro cada
+  /// 16,7 ms, así que el temporizador caía unas veces justo antes del cuadro
+  /// y otras justo después: el bus avanzaba a tirones aunque la cuenta fuera
+  /// perfecta. En pantallas de 90 y 120 Hz el desfase es peor. El `Ticker`
+  /// se dispara *con* el cuadro, así que el reparto es siempre parejo.
+  ///
+  /// Y un `Timer` no sabe que la app se fue al fondo: seguía empujando buses
+  /// por el puente nativo con la pantalla apagada. El `Ticker` se calla solo
+  /// cuando no se están pintando cuadros, y vuelve al volver.
+  Ticker? _busAnimTicker;
+
+  /// Cuándo se empujó el último lote, medido con el reloj del propio `Ticker`.
+  /// null = todavía no se ha empujado nada en esta tanda.
+  Duration? _ultimoEmpujeBuses;
+
+  /// Presupuesto de empujes: uno cada 32 ms como mucho, el mismo ritmo que
+  /// tenía el temporizador. No se sube a un empuje por cuadro porque cada uno
+  /// cruza el puente nativo con todos los buses, y a la velocidad a la que se
+  /// mueve un bus en el mapa 30 veces por segundo ya es movimiento continuo.
+  /// Con este número el reparto cae en cuadros exactos: uno de cada dos a
+  /// 60 Hz, uno de cada tres a 90, uno de cada cuatro a 120.
+  static const Duration _kEmpujeBusesMinimo = Duration(milliseconds: 32);
 
   /// "Respiración" del halo del bus seleccionado: nativo (capa de círculo),
   /// no un widget Flutter, porque así sigue al bus moviéndose sin proyectar
@@ -203,8 +230,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _busSelectionSubscription?.close();
     _trajectorySub?.close();
     _stopsSub?.close();
-    _busAnimTimer?.cancel();
-    _busAnimTimer = null;
+    // Hay que desecharlo, no solo pararlo: `TickerProviderStateMixin` afirma
+    // en su propio dispose que no le queda ningún ticker vivo.
+    _busAnimTicker?.dispose();
+    _busAnimTicker = null;
     _haloPulseTimer?.cancel();
     _haloPulseTimer = null;
     // El plugin ya desecha el controller al desmontar el MapView; volver a
@@ -244,8 +273,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // Cambio de ruta: sin animación, se pinta directo (los buses son otros).
     _rawBuses.clear();
     _busMotions.clear();
-    _busAnimTimer?.cancel();
-    _busAnimTimer = null;
+    _stopBusAnimTicker();
     // Se escucha la lista YA RECORTADA al radio del punto de espera, no la
     // fuente entera: así el mapa se repinta también cuando el usuario mueve
     // su pin (entran y salen buses del radio sin esperar al próximo paquete
@@ -265,8 +293,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     widget.onGuideBusTargetChanged?.call(null);
     _rawBuses.clear();
     _busMotions.clear();
-    _busAnimTimer?.cancel();
-    _busAnimTimer = null;
+    _stopBusAnimTicker();
     _stopHaloPulse();
     if (_mapController != null && mounted) {
       const emptyGeoJson = {"type": "FeatureCollection", "features": []};
@@ -792,25 +819,39 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
   }
 
-  /// Ticker de animación (~30 fps): solo corre mientras haya buses moviéndose.
+  /// Arranca el reloj de los buses si no está corriendo. Solo corre mientras
+  /// haya algún bus a medio tramo: en cuanto se vacían, se para solo.
   void _ensureBusAnimTicker() {
-    if (_busAnimTimer != null) return;
-    _busAnimTimer = Timer.periodic(const Duration(milliseconds: 33), (_) {
-      if (!mounted) {
-        _busAnimTimer?.cancel();
-        _busAnimTimer = null;
-        return;
-      }
-      final now = DateTime.now();
-      _busMotions.removeWhere((_, m) => m.isFinished(now));
-      if (_mapController != null && _layersReady) {
-        _pushBusSource();
-      }
-      if (_busMotions.isEmpty) {
-        _busAnimTimer?.cancel();
-        _busAnimTimer = null;
-      }
-    });
+    final ticker = _busAnimTicker ??= createTicker(_onBusFrame);
+    if (!ticker.isActive) {
+      // `start()` pone el cronómetro del ticker otra vez en cero, así que el
+      // sello del último empuje tiene que irse con él o el primer cuadro de
+      // la tanda nueva se compararía contra un tiempo de la tanda anterior.
+      _ultimoEmpujeBuses = null;
+      ticker.start();
+    }
+  }
+
+  void _stopBusAnimTicker() {
+    if (_busAnimTicker?.isActive ?? false) _busAnimTicker!.stop();
+  }
+
+  /// Un cuadro de animación de los buses.
+  void _onBusFrame(Duration elapsed) {
+    if (!mounted) {
+      _stopBusAnimTicker();
+      return;
+    }
+    final ultimo = _ultimoEmpujeBuses;
+    if (ultimo != null && elapsed - ultimo < _kEmpujeBusesMinimo) return;
+    _ultimoEmpujeBuses = elapsed;
+
+    final now = DateTime.now();
+    _busMotions.removeWhere((_, m) => m.isFinished(now));
+    if (_mapController != null && _layersReady) {
+      _pushBusSource();
+    }
+    if (_busMotions.isEmpty) _stopBusAnimTicker();
   }
 
   void _pushBusSource() {
