@@ -81,6 +81,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// Última posición cruda recibida por bus (para propiedades del ícono).
   final Map<String, BusPosition> _rawBuses = {};
 
+  /// El feature GeoJSON ya armado de cada bus, guardado entre cuadros.
+  ///
+  /// La fuente del mapa se reemplaza entera en cada empuje —MapLibre no
+  /// acepta actualizar un solo punto—, así que el lote siempre lleva todos
+  /// los buses. Pero solo los que están a medio tramo cambian de un cuadro
+  /// al siguiente: los quietos, y los fantasmas, volvían a armar el mismo
+  /// árbol de mapas treinta veces por segundo para que saliera idéntico.
+  /// Aquí se arma una vez y se reutiliza el mismo objeto.
+  ///
+  /// Nada lo muta después de guardarlo; para cambiarlo se borra la entrada.
+  /// Se invalida en los cuatro sitios donde un bus puede cambiar de aspecto:
+  /// llega un paquete suyo, se acaba su tramo, cambia la selección, o se va.
+  final Map<String, Map<String, Object?>> _busFeatures = {};
+
   /// Tramo de animación en curso por bus (interpolación entre fixes).
   final Map<String, BusMotion> _busMotions = {};
 
@@ -173,6 +187,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _busSelectionSubscription =
         ref.listenManual<Set<String>>(selectedBusesProvider, (previous, next) {
       if (!mounted || !_layersReady) return;
+      // La selección cambia el tamaño del ícono y enciende el halo, así que
+      // ningún feature guardado sirve ya. Pasa al tocar, no por cuadro.
+      _busFeatures.clear();
       _pushBusSource();
       _syncHaloPulse(next);
     });
@@ -273,6 +290,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // Cambio de ruta: sin animación, se pinta directo (los buses son otros).
     _rawBuses.clear();
     _busMotions.clear();
+    _busFeatures.clear();
     _stopBusAnimTicker();
     // Se escucha la lista YA RECORTADA al radio del punto de espera, no la
     // fuente entera: así el mapa se repinta también cuando el usuario mueve
@@ -293,6 +311,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     widget.onGuideBusTargetChanged?.call(null);
     _rawBuses.clear();
     _busMotions.clear();
+    _busFeatures.clear();
     _stopBusAnimTicker();
     _stopHaloPulse();
     if (_mapController != null && mounted) {
@@ -748,6 +767,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (!byId.containsKey(id)) {
         _rawBuses.remove(id);
         _busMotions.remove(id);
+        _busFeatures.remove(id);
       }
     }
 
@@ -756,6 +776,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final pos = entry.value;
       final prev = _rawBuses[id];
       _rawBuses[id] = pos;
+      // Llegó paquete suyo: aunque no se haya movido un metro pueden haber
+      // cambiado la velocidad o el estado de fantasma, que también se pintan.
+      _busFeatures.remove(id);
 
       final needsMotion = !pos.isGhostBus &&
           prev != null &&
@@ -847,7 +870,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _ultimoEmpujeBuses = elapsed;
 
     final now = DateTime.now();
-    _busMotions.removeWhere((_, m) => m.isFinished(now));
+    // Al acabarse un tramo hay que tirar el feature guardado además del
+    // tramo. Si no, el bus se queda clavado en el último punto interpolado
+    // —que va un paso corto de su destino— y ahí se queda hasta el siguiente
+    // paquete, porque sin tramo vivo el empuje reutilizaría ese mismo mapa.
+    _busMotions.removeWhere((id, m) {
+      final terminado = m.isFinished(now);
+      if (terminado) _busFeatures.remove(id);
+      return terminado;
+    });
     if (_mapController != null && _layersReady) {
       _pushBusSource();
     }
@@ -858,14 +889,22 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     if (_mapController == null || !mounted || !_layersReady) return;
     final selectedBuses = ref.read(selectedBusesProvider);
     final now = DateTime.now();
-    final features = _rawBuses.entries.map((entry) {
+    final features = <Map<String, Object?>>[];
+    for (final entry in _rawBuses.entries) {
       final id = entry.key;
       final pos = entry.value;
       final motion = _busMotions[id];
+      // Sin tramo vivo el bus está donde estaba: sirve el mismo feature del
+      // cuadro anterior. Cualquier cosa que lo cambie ya borró la entrada.
+      final guardado = _busFeatures[id];
+      if (motion == null && guardado != null) {
+        features.add(guardado);
+        continue;
+      }
       final display = motion != null
           ? displayOf(motion, now)
           : (pos.lat, pos.lon, pos.heading);
-      return {
+      final feature = <String, Object?>{
         'type': 'Feature',
         'geometry': {
           'type': 'Point',
@@ -879,7 +918,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           'isSelected': selectedBuses.contains(id),
         },
       };
-    }).toList();
+      // Solo se guarda el de un bus quieto: el de uno en marcha vale para
+      // este cuadro y nada más, y dejarlo puesto sería justo el feature
+      // caducado que el borrado de arriba está evitando.
+      if (motion == null) _busFeatures[id] = feature;
+      features.add(feature);
+    }
     _mapController!.setGeoJsonSource(_kBusSourceId, {
       'type': 'FeatureCollection',
       'features': features,
