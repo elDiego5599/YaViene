@@ -95,8 +95,7 @@ class _SelectAction extends ConsumerWidget {
         }
       },
       style: TextButton.styleFrom(
-        foregroundColor:
-            selecting ? AppColors.error : AppColors.primaryDeep,
+        foregroundColor: selecting ? AppColors.error : AppColors.primaryDeep,
         disabledForegroundColor: AppColors.textDisabled,
       ),
       child: Text(
@@ -133,7 +132,7 @@ final alertSelectionProvider =
     StateNotifierProvider<_SelectionNotifier, _SelectionState>(
         (ref) => _SelectionNotifier());
 
-class _HistoryList extends ConsumerWidget {
+class _HistoryList extends ConsumerStatefulWidget {
   final List<AlertHistoryEntry> entries;
   final List<BusPosition> positions;
   final UserLocationState location;
@@ -147,7 +146,24 @@ class _HistoryList extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HistoryList> createState() => _HistoryListState();
+}
+
+class _HistoryListState extends ConsumerState<_HistoryList> {
+  /// Los avisos que ya entraron alguna vez, por id de bus.
+  ///
+  /// `ListView` desmonta lo que sale de la pantalla y lo vuelve a construir
+  /// al volver: sin esta memoria, cada aviso reentraba con su fundido cada
+  /// vez que se desplazaba de vuelta a la vista, y la lista parecía estar
+  /// cargando otra vez algo que ya estaba ahí.
+  final Set<String> _yaEntraron = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = widget.entries;
+    final positions = widget.positions;
+    final location = widget.location;
+    final route = widget.route;
     final selection = ref.watch(alertSelectionProvider);
     final selecting = selection.active;
     final selected = selection.selected;
@@ -172,6 +188,12 @@ class _HistoryList extends ConsumerWidget {
                           .round()
                       : null;
               return _TileEntrance(
+                key: ValueKey(entry.busId),
+                busId: entry.busId,
+                yaEntraron: _yaEntraron,
+                // El desfase se topa a los seis primeros: más allá, la
+                // espera del último se notaría más que el efecto.
+                orden: index.clamp(0, 5),
                 child: _AlertTile(
                   entry: entry,
                   routeName: entry.routeName ??
@@ -258,7 +280,21 @@ class _HistoryList extends ConsumerWidget {
 class _TileEntrance extends StatefulWidget {
   final Widget child;
 
-  const _TileEntrance({required this.child});
+  /// Puesto en la lista, para escalonar la entrada.
+  final int orden;
+
+  final String busId;
+
+  /// Compartido con la lista: quién ya entró y no debe volver a hacerlo.
+  final Set<String> yaEntraron;
+
+  const _TileEntrance({
+    super.key,
+    required this.child,
+    required this.orden,
+    required this.busId,
+    required this.yaEntraron,
+  });
 
   @override
   State<_TileEntrance> createState() => _TileEntranceState();
@@ -272,15 +308,33 @@ class _TileEntranceState extends State<_TileEntrance>
   /// general no tiene `dispose()`, y esta hay que desecharla.
   late final CurvedAnimation _anim;
 
+  static const Duration _entrada = Duration(milliseconds: 320);
+  static const Duration _paso = Duration(milliseconds: 55);
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 320),
+    // La espera del turno va dentro del propio controlador, como un
+    // `Interval`, y no como un temporizador aparte: un temporizador que
+    // dispara después de desmontar el widget es un fallo clásico, y aquí
+    // desmontar pasa constantemente al desplazar la lista.
+    final espera = _paso * widget.orden;
+    final total = espera + _entrada;
+    _controller = AnimationController(vsync: this, duration: total);
+    _anim = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        espera.inMilliseconds / total.inMilliseconds,
+        1,
+        curve: Curves.easeOutCubic,
+      ),
     );
-    _anim = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-    _controller.forward();
+    if (widget.yaEntraron.add(widget.busId)) {
+      _controller.forward();
+    } else {
+      // Ya entró antes: se muestra puesto, sin repetir la entrada.
+      _controller.value = 1;
+    }
   }
 
   @override
