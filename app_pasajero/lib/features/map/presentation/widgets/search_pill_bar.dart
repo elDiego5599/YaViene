@@ -35,6 +35,7 @@ class SearchPillBar extends ConsumerStatefulWidget {
 class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   bool _menuPressed = false;
   bool _actionPressed = false;
+  bool _searchPressed = false;
 
   void _onMenuTap() {
     HapticFeedback.lightImpact();
@@ -61,6 +62,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(999),
+            // La píldora flota sobre un mapa de colores impredecibles: el
+            // filo la recorta contra un parque verde o una avenida clara,
+            // donde solo la sombra la dejaba difusa.
+            border: Border.all(color: AppColors.hairline),
             boxShadow: [
               BoxShadow(
                 color: AppColors.primaryDeep.withValues(alpha: 0.08),
@@ -107,68 +112,87 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   key: widget.searchActionKey,
                   behavior: HitTestBehavior.opaque,
                   onTap: _onSearchTap,
+                  onTapDown: (_) => setState(() => _searchPressed = true),
+                  onTapUp: (_) => setState(() => _searchPressed = false),
+                  onTapCancel: () => setState(() => _searchPressed = false),
                   // El bloque de texto queda centrado en la píldora: cada fila
                   // usa MainAxisAlignment.center y Flexible para poder
                   // elidir nombres de ruta largos sin desbordar.
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                  child: Semantics(
+                    button: true,
+                    label: selectedRoute != null
+                        ? 'Ruta activa: ${selectedRoute.name}. Toca para '
+                            'cambiar'
+                        : '¿Qué bus esperas? Toca para buscar tu ruta',
+                    excludeSemantics: true,
+                    // Los dos botones de los lados se apagan al tocarlos y
+                    // esta zona —que es la mitad de la píldora— no acusaba
+                    // recibo de nada. Un texto sin fondo propio responde
+                    // atenuándose, como en iOS.
+                    child: AnimatedOpacity(
+                      opacity: _searchPressed ? 0.5 : 1,
+                      duration: AppMotion.instante,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (selectedRoute != null) ...[
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (selectedRoute != null) ...[
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    selectedRoute?.name ?? "¿Qué bus esperas?",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                      letterSpacing: -0.4,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            Flexible(
-                              child: Text(
-                                selectedRoute?.name ?? "¿Qué bus esperas?",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                  letterSpacing: -0.4,
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    selectedRoute != null
+                                        ? "Ruta activa • Toca para cambiar"
+                                        : "Toca para buscar tu ruta",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      // F4: primaryAccessible sí llega a 4.5:1
+                                      // sobre blanco a este tamaño; primary
+                                      // a secas se queda en ~3.1:1.
+                                      color: selectedRoute != null
+                                          ? AppColors.primaryAccessible
+                                          : AppColors.textSecondary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                selectedRoute != null
-                                    ? "Ruta activa • Toca para cambiar"
-                                    : "Toca para buscar tu ruta",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  // F4: primaryAccessible sí llega a 4.5:1
-                                  // sobre blanco a este tamaño; primary
-                                  // a secas se queda en ~3.1:1.
-                                  color: selectedRoute != null
-                                      ? AppColors.primaryAccessible
-                                      : AppColors.textSecondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -190,6 +214,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     required IconData icon,
     required VoidCallback onTap,
     required String semanticLabel,
+    bool filled = false,
   }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -208,8 +233,11 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
             height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color:
-                  _actionPressed ? AppColors.surfaceMuted : Colors.transparent,
+              color: _actionPressed
+                  ? AppColors.surfaceMuted
+                  : (filled
+                      ? AppColors.surfaceMuted.withValues(alpha: 0.7)
+                      : Colors.transparent),
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
@@ -218,9 +246,16 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     );
   }
 
+  /// Botón de limpiar, no de borrar.
+  ///
+  /// Estaba en rojo de error. Quitar la ruta elegida no destruye nada —se
+  /// vuelve a elegir en dos toques— y el rojo prometía una consecuencia
+  /// que no existe. Va en gris con su círculo, como la X que limpia un
+  /// campo de texto en iOS.
   Widget _buildCloseButton() {
     return _buildActionButton(
-      iconColor: AppColors.error,
+      iconColor: AppColors.textSecondary,
+      filled: true,
       icon: Icons.close_rounded,
       semanticLabel: 'Quitar ruta activa',
       onTap: () {

@@ -32,4 +32,33 @@ void main() {
     expect((subtitle.center.dx - pill.center.dx).abs(), lessThan(2));
     expect((title.center.dy - subtitle.center.dy).abs(), greaterThan(10));
   });
+
+  testWidgets('la zona de búsqueda se anuncia como botón', (tester) async {
+    final handle = tester.ensureSemantics();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(selectedRouteProvider, (_, __) {});
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SearchPillBar(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Los dos botones de los lados ya se anunciaban; la mitad central —que
+    // es la que abre el selector— no decía nada.
+    expect(
+      find.bySemanticsLabel('¿Qué bus esperas? Toca para buscar tu ruta'),
+      findsOneWidget,
+    );
+    handle.dispose();
+  });
 }
