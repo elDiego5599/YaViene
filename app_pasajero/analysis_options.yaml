@@ -4,6 +4,10 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    # Un `flutter build ios` deja aquí el checkout de SwiftPM: código
+    # ajeno que el analizador recorre y que ahogaba los avisos propios
+    # (49) bajo once mil que no son nuestros.
+    - "build/**"
   errors:
     invalid_annotation_target: ignore
 
