@@ -104,7 +104,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
       opacity: animation,
       child: SlideTransition(
         position: Tween<Offset>(
-          begin: const Offset(-0.08, 0),
+          begin: Offset(-0.08 * AppMotion.desplazamiento(context), 0),
           end: Offset.zero,
         ).animate(animation),
         child: child,

@@ -298,7 +298,7 @@ class _TileEntranceState extends State<_TileEntrance>
       opacity: _anim,
       child: SlideTransition(
         position: Tween<Offset>(
-          begin: const Offset(0, 0.06),
+          begin: Offset(0, 0.06 * AppMotion.desplazamiento(context)),
           end: Offset.zero,
         ).animate(_anim),
         child: widget.child,

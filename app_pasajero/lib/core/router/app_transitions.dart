@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 /// Transición de pantalla suave tipo premium para toda la app: la nueva
 /// pantalla entra con un leve deslizamiento lateral y fundido, en vez del
@@ -74,11 +75,14 @@ class _FadeSlideTransitionState extends State<FadeSlideTransition> {
 
   @override
   Widget build(BuildContext context) {
+    // El fundido se queda incluso con movimiento reducido: lo que marea es
+    // el desplazamiento. Sin fundido, el cambio de pantalla se lee como un
+    // parpadeo roto.
     return FadeTransition(
       opacity: _curved,
       child: SlideTransition(
         position: Tween<Offset>(
-          begin: widget.begin,
+          begin: widget.begin * AppMotion.desplazamiento(context),
           end: Offset.zero,
         ).animate(_curved),
         child: widget.child,

@@ -9,6 +9,7 @@ export 'core/models/route_info.dart';
 export 'core/models/route_trajectory.dart';
 
 // --- Theme ---
+export 'core/theme/app_motion.dart';
 export 'core/theme/app_theme.dart';
 
 // --- Providers (capa de estado) ---
