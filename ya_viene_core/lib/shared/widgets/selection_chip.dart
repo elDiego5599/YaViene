@@ -51,15 +51,15 @@ class AnimatedSelectionChip<T> extends StatelessWidget {
           child: Stack(
             children: [
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
+                duration: AppMotion.pausado,
+                curve: AppMotion.curvaEntrada,
                 left: selectedIndex * segmentWidth,
                 top: 0,
                 bottom: 0,
                 width: segmentWidth,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeOutCubic,
+                  duration: AppMotion.pausado,
+                  curve: AppMotion.curvaEntrada,
                   margin: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
@@ -117,8 +117,8 @@ class _SelectionSegment<T> extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.normal,
+          curve: AppMotion.curvaEntrada,
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
           child: Row(
@@ -126,7 +126,7 @@ class _SelectionSegment<T> extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
+                duration: AppMotion.rapido,
                 child: Icon(
                   option.icon,
                   key: ValueKey('${option.label}-$isSelected'),
@@ -136,8 +136,8 @@ class _SelectionSegment<T> extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs + 2),
               AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
+                duration: AppMotion.normal,
+                curve: AppMotion.curvaEntrada,
                 style: AppTextStyles.labelLarge.copyWith(
                   color: color,
                   fontSize: 13,
@@ -181,8 +181,8 @@ class SelectionChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.normal,
+          curve: AppMotion.curvaEntrada,
           constraints: const BoxConstraints(minHeight: 44, minWidth: 80),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
@@ -210,7 +210,7 @@ class SelectionChip extends StatelessWidget {
                 const SizedBox(width: AppSpacing.xs + 2),
               ],
               AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
+                duration: AppMotion.rapido,
                 style: AppTextStyles.label.copyWith(
                   color: isSelected ? Colors.white : AppColors.textSecondary,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,

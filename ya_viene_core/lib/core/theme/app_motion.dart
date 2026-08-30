@@ -31,4 +31,41 @@ abstract final class AppMotion {
   /// Un desplazamiento se multiplica por esto y desaparece solo.
   static double desplazamiento(BuildContext context) =>
       reducido(context) ? 0.0 : 1.0;
+
+  // --- Vocabulario de tiempos ---
+  //
+  // Había veinte duraciones distintas repartidas por la app —120, 150, 180,
+  // 200, 220, 240, 250, 260, 300…—, escritas a mano en cada sitio. Treinta
+  // milisegundos de diferencia no se ven por separado; lo que sí se nota es
+  // que dos cosas que empiezan juntas no acaben juntas. Cinco escalones, y
+  // cada uno con un trabajo.
+
+  /// Respuesta al dedo: el color de un chip al pulsarlo, un botón que se
+  /// hunde. Tiene que sentirse inmediato sin llegar a ser un corte.
+  static const Duration instante = Duration(milliseconds: 120);
+
+  /// Un elemento cambia por dentro sin moverse de sitio.
+  static const Duration rapido = Duration(milliseconds: 180);
+
+  /// El paso por defecto: lo que dura casi todo.
+  static const Duration normal = Duration(milliseconds: 220);
+
+  /// Algo cambia de tamaño o de sitio: una hoja que se abre, una tarjeta
+  /// que crece.
+  static const Duration pausado = Duration(milliseconds: 280);
+
+  /// Recorre distancia de verdad: entradas, superposiciones, guías.
+  static const Duration entrada = Duration(milliseconds: 360);
+
+  /// Entra: arranca suelto y frena al llegar, que es como se mueve algo que
+  /// pesa.
+  static const Curve curvaEntrada = Curves.easeOutCubic;
+
+  /// Sale: espejo de [curvaEntrada], para que ida y vuelta no se sientan de
+  /// dos aplicaciones distintas.
+  static const Curve curvaSalida = Curves.easeInCubic;
+
+  /// Va y vuelve sin parar —pulsos, latidos, esqueletos de carga—: sin
+  /// arranque ni frenada marcados, o se oye el bucle.
+  static const Curve curvaCiclo = Curves.easeInOut;
 }

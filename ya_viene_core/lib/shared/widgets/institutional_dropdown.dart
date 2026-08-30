@@ -80,7 +80,7 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 180),
+          duration: AppMotion.rapido,
           style: AppTextStyles.label.copyWith(
             color: _isActive ? AppColors.primaryDeep : AppColors.textSecondary,
           ),
@@ -88,8 +88,8 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
         ),
         const SizedBox(height: AppSpacing.xs),
         AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.normal,
+          curve: AppMotion.curvaEntrada,
           decoration: BoxDecoration(
             color: _isActive ? AppColors.primaryTint : AppColors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -105,8 +105,8 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
             isExpanded: true,
             icon: AnimatedRotation(
               turns: _isExpanded ? 0.5 : 0,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
+              duration: AppMotion.normal,
+              curve: AppMotion.curvaEntrada,
               child: Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 22,
@@ -196,7 +196,7 @@ class _FieldSkeletonState extends State<_FieldSkeleton>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _curva = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _curva = CurvedAnimation(parent: _controller, curve: AppMotion.curvaCiclo);
     _animation = Tween<double>(begin: 0.46, end: 0.86).animate(_curva);
   }
 

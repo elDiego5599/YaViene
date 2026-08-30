@@ -948,8 +948,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _startHaloPulse() {
     if (_haloPulseTimer != null) return;
     _haloPulseOut = false;
-    _haloPulseTimer =
-        Timer.periodic(const Duration(milliseconds: 900), (_) {
+    _haloPulseTimer = Timer.periodic(const Duration(milliseconds: 900), (_) {
       if (_mapController == null || !mounted || !_layersReady) return;
       // En segundo plano nadie ve el latido, pero el temporizador sigue vivo y
       // cada vuelta cruza el puente hacia el mapa nativo. Es justo el caso de
@@ -993,8 +992,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // F18: antes solo se avisaba una vez con un SnackBar que "arrastra el
     // pin para moverlo". Ahora hay un badge junto al propio pin mientras es
     // manual: se ve cada vez, no solo la primera.
-    final pinIsManual = ref.watch(userLocationProvider).mode ==
-        UserLocationMode.manual;
+    final pinIsManual =
+        ref.watch(userLocationProvider).mode == UserLocationMode.manual;
 
     return Stack(
       children: [

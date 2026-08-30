@@ -43,7 +43,7 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       barrierLabel: 'Selector de ruta',
       // El framework anima este barrier con fade, nunca con slide.
       barrierColor: const Color(0x66000000),
-      transitionDuration: const Duration(milliseconds: 260),
+      transitionDuration: AppMotion.pausado,
       transitionBuilder: (context, animation, _, child) => FadeSlideTransition(
         animation: animation,
         begin: const Offset(0, 0.06),
@@ -218,8 +218,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       child: Align(
         alignment: Alignment.bottomCenter,
         child: AnimatedSize(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.pausado,
+          curve: AppMotion.curvaEntrada,
           alignment: Alignment.bottomCenter,
           child: Material(
             // Misma superficie que la hoja de distancia (AppColors.arena):
@@ -235,9 +235,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             child: CustomPaint(
               painter: const MapPatternPainter(color: AppColors.primaryDeep),
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
+                duration: AppMotion.normal,
+                switchInCurve: AppMotion.curvaEntrada,
+                switchOutCurve: AppMotion.curvaSalida,
                 transitionBuilder: (child, animation) {
                   final slide = Tween<Offset>(
                     begin: const Offset(0.04, 0),
@@ -640,8 +640,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       children: [
         if (onBack != null)
           IconButton(
-            icon:
-                const Icon(Icons.arrow_back_rounded, color: AppColors.primaryDeep),
+            icon: const Icon(Icons.arrow_back_rounded,
+                color: AppColors.primaryDeep),
             onPressed: onBack,
             visualDensity: VisualDensity.compact,
           ),
@@ -732,8 +732,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
         trailing: selected
             ? const Icon(Icons.check_circle_rounded,
                 color: AppColors.primaryDeep)
-            : const Icon(Icons.chevron_right_rounded,
-                color: Color(0xFFCBD5E1)),
+            : const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
         onTap: onTap,
       ),
     );
@@ -816,8 +815,8 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
         scale: _pressed ? 0.975 : 1,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutCubic,
+        duration: AppMotion.instante,
+        curve: AppMotion.curvaEntrada,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -843,16 +842,13 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primaryTint
-                      : AppColors.surfaceMuted,
+                  color:
+                      isActive ? AppColors.primaryTint : AppColors.surfaceMuted,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   widget.icon,
-                  color: isActive
-                      ? AppColors.primary
-                      : AppColors.textDisabled,
+                  color: isActive ? AppColors.primary : AppColors.textDisabled,
                   size: 22,
                 ),
               ),

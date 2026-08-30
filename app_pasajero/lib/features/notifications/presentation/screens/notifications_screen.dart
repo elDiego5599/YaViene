@@ -220,8 +220,8 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
         ),
         // Barra de acciones del modo selección.
         AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.rapido,
+          curve: AppMotion.curvaEntrada,
           child: selecting
               ? Container(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -326,7 +326,7 @@ class _TileEntranceState extends State<_TileEntrance>
       curve: Interval(
         espera.inMilliseconds / total.inMilliseconds,
         1,
-        curve: Curves.easeOutCubic,
+        curve: AppMotion.curvaEntrada,
       ),
     );
     if (widget.yaEntraron.add(widget.busId)) {

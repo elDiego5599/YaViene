@@ -71,15 +71,15 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 360),
+      duration: AppMotion.entrada,
     );
     _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _fade = CurvedAnimation(parent: _controller, curve: AppMotion.curvaEntrada);
     _controller.forward();
 
     _missTapController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 380),
+      duration: AppMotion.entrada,
     );
     _missTapPulse = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 35),
@@ -303,162 +303,162 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         child: CustomPaint(
           painter: const MapPatternPainter(color: AppColors.primaryDeep),
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    color: AppColors.primary,
-                    size: 21,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    key: const ValueKey('guide_title'),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.35,
-                      color: AppColors.textPrimary,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      widget.icon,
+                      color: AppColors.primary,
+                      size: 21,
                     ),
                   ),
-                ),
-                // Mismo contraste tipográfico que el ETA gigante: el número
-                // que importa (el paso actual) en peso ultraligero y grande,
-                // el resto en una etiqueta diminuta al lado.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      '${widget.stepIndex + 1}',
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      key: const ValueKey('guide_title'),
                       style: const TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w200,
-                        letterSpacing: -0.8,
-                        color: AppColors.primaryDeep,
-                      ),
-                    ),
-                    Text(
-                      '/${widget.stepCount}',
-                      style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textDisabled,
+                        letterSpacing: -0.35,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                  ],
+                  ),
+                  // Mismo contraste tipográfico que el ETA gigante: el número
+                  // que importa (el paso actual) en peso ultraligero y grande,
+                  // el resto en una etiqueta diminuta al lado.
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '${widget.stepIndex + 1}',
+                        style: const TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w200,
+                          letterSpacing: -0.8,
+                          color: AppColors.primaryDeep,
+                        ),
+                      ),
+                      Text(
+                        '/${widget.stepCount}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDisabled,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.message,
+                key: const ValueKey('guide_message'),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                  color: Color(0xFF475569),
+                ),
+              ),
+              if (widget.primaryLabel != null && widget.onPrimary != null) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    key: const ValueKey('guide_primary'),
+                    onPressed: widget.onPrimary,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: Text(
+                      widget.primaryLabel!,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 14),
+                const Center(
+                  child: Text(
+                    'Toca el área iluminada para continuar',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.message,
-              key: const ValueKey('guide_message'),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-                color: Color(0xFF475569),
-              ),
-            ),
-            if (widget.primaryLabel != null && widget.onPrimary != null) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  key: const ValueKey('guide_primary'),
-                  onPressed: widget.onPrimary,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  child: Text(
-                    widget.primaryLabel!,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ] else ...[
-              const SizedBox(height: 14),
-              const Center(
-                child: Text(
-                  'Toca el área iluminada para continuar',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            // F14: "Atrás" solo aparece si hay un paso previo al que volver.
-            if (!widget.centered)
-              Row(
-                mainAxisAlignment: widget.onBack == null
-                    ? MainAxisAlignment.center
-                    : MainAxisAlignment.spaceBetween,
-                children: [
-                  if (widget.onBack != null)
-                    TextButton.icon(
-                      key: const ValueKey('guide_back'),
-                      onPressed: widget.onBack,
-                      icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                      label: const Text('Atrás'),
+              const SizedBox(height: 8),
+              // F14: "Atrás" solo aparece si hay un paso previo al que volver.
+              if (!widget.centered)
+                Row(
+                  mainAxisAlignment: widget.onBack == null
+                      ? MainAxisAlignment.center
+                      : MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (widget.onBack != null)
+                      TextButton.icon(
+                        key: const ValueKey('guide_back'),
+                        onPressed: widget.onBack,
+                        icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                        label: const Text('Atrás'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF475569),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          minimumSize: const Size(0, 36),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    TextButton(
+                      key: const ValueKey('guide_skip'),
+                      onPressed: widget.onSkip,
                       style: TextButton.styleFrom(
+                        backgroundColor: AppColors.surfaceMuted,
                         foregroundColor: const Color(0xFF475569),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 22),
                         minimumSize: const Size(0, 36),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: const TextStyle(
+                      ),
+                      child: Text(
+                        isLast ? 'Cerrar guía' : 'Saltar guía',
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  TextButton(
-                    key: const ValueKey('guide_skip'),
-                    onPressed: widget.onSkip,
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppColors.surfaceMuted,
-                      foregroundColor: const Color(0xFF475569),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 22),
-                      minimumSize: const Size(0, 36),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      isLast ? 'Cerrar guía' : 'Saltar guía',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
+                  ],
+                ),
+            ],
           ),
         ),
       ),

@@ -73,7 +73,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
           curve: Interval(
             start,
             (start + 0.3).clamp(0.0, 1.0),
-            curve: Curves.easeOutCubic,
+            curve: AppMotion.curvaEntrada,
           ),
         ),
       );
@@ -583,15 +583,14 @@ class _DrawerItemState extends State<DrawerItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.loading ? null : widget.onTap,
-      onTapDown:
-          widget.loading ? null : (_) => setState(() => _pressed = true),
+      onTapDown: widget.loading ? null : (_) => setState(() => _pressed = true),
       onTapUp: widget.loading ? null : (_) => setState(() => _pressed = false),
       onTapCancel:
           widget.loading ? null : () => setState(() => _pressed = false),
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
         scale: _pressed ? 0.975 : 1,
-        duration: const Duration(milliseconds: 120),
+        duration: AppMotion.instante,
         // V6: el drawer solo tiene 3 ítems — entran en el cupo de "3-4
         // botones de verdad importantes" que sí llevan rebote.
         curve: Curves.easeOutBack,

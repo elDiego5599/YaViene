@@ -63,9 +63,9 @@ class LocationStatusChip extends ConsumerWidget {
     if (pill == null) return const SizedBox.shrink();
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 240),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
+      duration: AppMotion.normal,
+      switchInCurve: AppMotion.curvaEntrada,
+      switchOutCurve: AppMotion.curvaSalida,
       transitionBuilder: (child, animation) {
         final slide = Tween<Offset>(
           begin: const Offset(0, -0.1),
@@ -259,9 +259,7 @@ class _Pill extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.2,
-                      color: data.actionDanger
-                          ? AppColors.error
-                          : Colors.white,
+                      color: data.actionDanger ? AppColors.error : Colors.white,
                     ),
                   ),
                 ),

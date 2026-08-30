@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_motion.dart';
+
 class PulsingDot extends StatefulWidget {
   final Color color;
   final double size;
@@ -35,7 +37,7 @@ class _PulsingDotState extends State<PulsingDot>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
-    _curva = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _curva = CurvedAnimation(parent: _controller, curve: AppMotion.curvaCiclo);
     _opacidad = Tween<double>(begin: 0.2, end: 1.0).animate(_curva);
   }
 

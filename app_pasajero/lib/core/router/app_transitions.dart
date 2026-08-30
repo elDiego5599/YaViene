@@ -54,8 +54,8 @@ class _FadeSlideTransitionState extends State<FadeSlideTransition> {
 
   CurvedAnimation _crear() => CurvedAnimation(
         parent: widget.animation,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
+        curve: AppMotion.curvaEntrada,
+        reverseCurve: AppMotion.curvaSalida,
       );
 
   @override

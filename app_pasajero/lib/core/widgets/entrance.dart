@@ -73,7 +73,7 @@ class _ScreenEntranceState extends State<ScreenEntrance>
         curve: Interval(
           inicio,
           (inicio + 0.55).clamp(0.0, 1.0),
-          curve: Curves.easeOutCubic,
+          curve: AppMotion.curvaEntrada,
         ),
       ),
     );

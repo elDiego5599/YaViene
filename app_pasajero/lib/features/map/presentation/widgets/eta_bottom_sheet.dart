@@ -288,8 +288,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             }
           : null,
       child: AnimatedSize(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
+        duration: AppMotion.pausado,
+        curve: AppMotion.curvaEntrada,
         alignment: Alignment.bottomCenter,
         child: Container(
           key: widget.detailKey,
@@ -330,9 +330,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                     ),
                   ),
                   AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
+                    duration: AppMotion.normal,
+                    switchInCurve: AppMotion.curvaEntrada,
+                    switchOutCurve: AppMotion.curvaSalida,
                     transitionBuilder: (child, animation) =>
                         FadeTransition(opacity: animation, child: child),
                     child: child,
@@ -354,11 +354,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // Buses de la ruta que quedaron fuera del radio: sin esto, un mapa vacío
     // se lee como "esta ruta no tiene servicio", que casi nunca es lo que
     // pasa. Con esto se lee como "hay buses, pero no por aquí".
-    final outOfRange = route == null
-        ? 0
-        : ref.watch(busesOutOfRangeCountProvider(route.id));
-    final routeTooFar =
-        route == null ? false : ref.watch(routeTooFarFromUserProvider(route.id));
+    final outOfRange =
+        route == null ? 0 : ref.watch(busesOutOfRangeCountProvider(route.id));
+    final routeTooFar = route == null
+        ? false
+        : ref.watch(routeTooFarFromUserProvider(route.id));
 
     final String stateKey;
     final String title;
@@ -429,8 +429,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: const TextStyle(
-                  fontSize: 14, color: AppColors.textSecondary),
+              style:
+                  const TextStyle(fontSize: 14, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -490,8 +490,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                   color: Color(0xFF475569),
                   letterSpacing: -0.4)),
           const SizedBox(height: 4),
-          Text(
-              "$busLabel · conserva su última posición",
+          Text("$busLabel · conserva su última posición",
               style: const TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w600,
@@ -734,13 +733,13 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
       onTapUp: (_) => setState(() => _isPressed = false),
       child: AnimatedScale(
         scale: _isPressed ? 0.96 : 1,
-        duration: const Duration(milliseconds: 150),
+        duration: AppMotion.instante,
         // V6: el rebote se reserva para el CTA principal de la app — el
         // resto de los botones se queda con easeOutCubic.
         curve: Curves.easeOutBack,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
+          duration: AppMotion.normal,
+          curve: AppMotion.curvaEntrada,
           width: double.infinity,
           height: 60,
           decoration: BoxDecoration(
@@ -755,9 +754,9 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
             ],
           ),
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
+            duration: AppMotion.rapido,
+            switchInCurve: AppMotion.curvaEntrada,
+            switchOutCurve: AppMotion.curvaSalida,
             child: Row(
               key: ValueKey('${widget.isActive}-${widget.blocked}'),
               mainAxisAlignment: MainAxisAlignment.center,

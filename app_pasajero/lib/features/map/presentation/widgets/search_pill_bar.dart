@@ -83,7 +83,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   child: Tooltip(
                     message: 'Menú',
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
+                      duration: AppMotion.instante,
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
@@ -203,7 +203,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
         child: Tooltip(
           message: semanticLabel,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
+            duration: AppMotion.instante,
             width: 48,
             height: 48,
             decoration: BoxDecoration(

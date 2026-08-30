@@ -5,7 +5,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart'
     show alertRadiusMeters;
-import '../providers/route_reach_provider.dart' show alertMaxRouteDistanceMeters;
+import '../providers/route_reach_provider.dart'
+    show alertMaxRouteDistanceMeters;
 
 /// Devuelve el mensaje de error si no se puede armar el aviso, o null si
 /// todo está bien. No muestra SnackBars ni pide permisos: solo valida.
