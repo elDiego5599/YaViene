@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,6 +72,36 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   double? _cardHeight;
   bool _everGuided = false;
   bool _measuring = false;
+
+  /// Aviso de "falta la empresa", pegado al tile que lo provocó.
+  ///
+  /// Antes era un SnackBar, y no se veía nunca: esta hoja se presenta con
+  /// `showGeneralDialog`, o sea en una ruta por encima de la del mapa, y el
+  /// único ScaffoldMessenger registrado es el del mapa. El SnackBar se
+  /// pintaba debajo del velo del diálogo y debajo de la propia tarjeta.
+  String? _routeHint;
+  Timer? _routeHintTimer;
+
+  @override
+  void dispose() {
+    _routeHintTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showRouteHint(String message) {
+    HapticFeedback.mediumImpact();
+    _routeHintTimer?.cancel();
+    setState(() => _routeHint = message);
+    _routeHintTimer = Timer(const Duration(milliseconds: 2600), () {
+      if (mounted) setState(() => _routeHint = null);
+    });
+  }
+
+  void _clearRouteHint() {
+    if (_routeHint == null) return;
+    _routeHintTimer?.cancel();
+    setState(() => _routeHint = null);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,6 +342,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
               isActive: selectedCompany != null,
               onTap: () {
                 HapticFeedback.lightImpact();
+                _clearRouteHint();
                 setState(() => _view = _RouteView.companies);
               },
             ),
@@ -366,17 +400,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             subtitle: _routeSubtitle(selectedRoute),
             icon: Icons.alt_route_rounded,
             isActive: selectedRoute != null,
+            hint: _routeHint,
             onTap: () {
-              HapticFeedback.lightImpact();
               if (selectedCompany == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Primero selecciona una empresa'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                _showRouteHint('Elige primero la empresa');
                 return;
               }
+              HapticFeedback.lightImpact();
+              _clearRouteHint();
               setState(() => _view = _RouteView.routes);
             },
           ),
@@ -593,9 +624,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
       height: 76,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: child,
     );
@@ -789,12 +820,17 @@ class _PremiumSelectorTile extends StatefulWidget {
   final bool isActive;
   final VoidCallback? onTap;
 
+  /// Aviso pegado a este tile. Sustituye al subtítulo, tiñe el filo y
+  /// sacude la tarjeta una vez: el error se dice donde ocurrió.
+  final String? hint;
+
   const _PremiumSelectorTile({
     super.key,
     required this.title,
     this.subtitle,
     required this.icon,
     required this.isActive,
+    this.hint,
     this.onTap,
   });
 
@@ -802,92 +838,144 @@ class _PremiumSelectorTile extends StatefulWidget {
   State<_PremiumSelectorTile> createState() => _PremiumSelectorTileState();
 }
 
-class _PremiumSelectorTileState extends State<_PremiumSelectorTile> {
+class _PremiumSelectorTileState extends State<_PremiumSelectorTile>
+    with SingleTickerProviderStateMixin {
   bool _pressed = false;
+  late final AnimationController _shake = AnimationController(
+    vsync: this,
+    duration: AppMotion.entrada,
+  );
+
+  @override
+  void didUpdateWidget(covariant _PremiumSelectorTile old) {
+    super.didUpdateWidget(old);
+    if (widget.hint != null && old.hint != widget.hint) {
+      _shake.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _shake.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final isActive = widget.isActive;
+    final hint = widget.hint;
+    final amplitud = AppMotion.reducido(context) ? 0.0 : 6.0;
+
+    final Color borde;
+    if (hint != null) {
+      borde = AppColors.warning;
+    } else if (isActive) {
+      borde = AppColors.primary.withValues(alpha: 0.45);
+    } else {
+      borde = AppColors.hairline;
+    }
+
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.975 : 1,
-        duration: AppMotion.instante,
-        curve: AppMotion.curvaEntrada,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isActive
-                  ? AppColors.primaryDeep.withValues(alpha: 0.2)
-                  : AppColors.divider,
-              width: isActive ? 1.5 : 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDeep.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color:
-                      isActive ? AppColors.primaryTint : AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  widget.icon,
-                  color: isActive ? AppColors.primary : AppColors.textDisabled,
-                  size: 22,
-                ),
+      child: AnimatedBuilder(
+        animation: _shake,
+        builder: (context, child) {
+          final t = _shake.value;
+          // Seno amortiguado: tres idas y vueltas que se apagan solas. Es
+          // el gesto del campo de contraseña de iOS —dice "no" sin ocupar
+          // sitio ni tapar nada.
+          final dx = t == 0 || t == 1
+              ? 0.0
+              : math.sin(t * math.pi * 6) * (1 - t) * amplitud;
+          return Transform.translate(offset: Offset(dx, 0), child: child);
+        },
+        child: AnimatedScale(
+          scale: _pressed ? 0.975 : 1,
+          duration: AppMotion.instante,
+          curve: AppMotion.curvaEntrada,
+          child: AnimatedContainer(
+            duration: AppMotion.rapido,
+            curve: AppMotion.curvaEntrada,
+            padding: const EdgeInsets.all(16),
+            // Sin sombra: la tarjeta ya flota sobre arena y una sombra
+            // azulada al 4 % sobre un beige cálido no se lee como
+            // profundidad, se lee como una banda gris. Separa el filo.
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: borde,
+                width: isActive || hint != null ? 1.5 : 1.0,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        color: isActive
-                            ? AppColors.textPrimary
-                            : AppColors.textDisabled,
-                      ),
-                    ),
-                    if (widget.subtitle != null) ...[
-                      const SizedBox(height: 2),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: AppMotion.rapido,
+                  curve: AppMotion.curvaEntrada,
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppColors.primaryTint
+                        : AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color:
+                        isActive ? AppColors.primary : AppColors.textDisabled,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        widget.subtitle!,
+                        widget.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                          color: isActive
+                              ? AppColors.textPrimary
+                              : AppColors.textDisabled,
                         ),
                       ),
+                      if (hint != null || widget.subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          hint ?? widget.subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: hint != null
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: hint != null
+                                ? AppColors.warning
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFFCBD5E1)),
-            ],
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: AppColors.textDisabled,
+                ),
+              ],
+            ),
           ),
         ),
       ),
