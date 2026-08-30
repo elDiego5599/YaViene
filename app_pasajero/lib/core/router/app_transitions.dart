@@ -14,19 +14,74 @@ class FadeSlidePageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
+    return FadeSlideTransition(animation: animation, child: child);
+  }
+}
+
+/// Fundido + deslizamiento sobre una animación de ruta.
+///
+/// Vive en un widget propio porque su `CurvedAnimation` hay que desecharla, y
+/// los constructores de transición (`buildTransitions`, `transitionBuilder`)
+/// se llaman en cada construcción de la ruta: crearla ahí dejaba una suelta
+/// —enganchada a la animación de la ruta— cada vez, y ninguna se soltaba.
+class FadeSlideTransition extends StatefulWidget {
+  const FadeSlideTransition({
+    super.key,
+    required this.animation,
+    required this.child,
+    this.begin = const Offset(0.06, 0),
+  });
+
+  final Animation<double> animation;
+  final Widget child;
+
+  /// Desde dónde entra, en fracciones del tamaño del hijo.
+  final Offset begin;
+
+  @override
+  State<FadeSlideTransition> createState() => _FadeSlideTransitionState();
+}
+
+class _FadeSlideTransitionState extends State<FadeSlideTransition> {
+  late CurvedAnimation _curved;
+
+  @override
+  void initState() {
+    super.initState();
+    _curved = _crear();
+  }
+
+  CurvedAnimation _crear() => CurvedAnimation(
+        parent: widget.animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+
+  @override
+  void didUpdateWidget(FadeSlideTransition old) {
+    super.didUpdateWidget(old);
+    if (old.animation != widget.animation) {
+      _curved.dispose();
+      _curved = _crear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _curved.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: curved,
+      opacity: _curved,
       child: SlideTransition(
         position: Tween<Offset>(
-          begin: const Offset(0.06, 0),
+          begin: widget.begin,
           end: Offset.zero,
-        ).animate(curved),
-        child: child,
+        ).animate(_curved),
+        child: widget.child,
       ),
     );
   }

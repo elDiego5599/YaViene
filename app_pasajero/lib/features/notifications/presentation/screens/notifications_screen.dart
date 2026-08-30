@@ -267,7 +267,10 @@ class _TileEntrance extends StatefulWidget {
 class _TileEntranceState extends State<_TileEntrance>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _anim;
+
+  /// Declarada como `CurvedAnimation` y no como `Animation<double>`: el tipo
+  /// general no tiene `dispose()`, y esta hay que desecharla.
+  late final CurvedAnimation _anim;
 
   @override
   void initState() {
@@ -282,6 +285,9 @@ class _TileEntranceState extends State<_TileEntrance>
 
   @override
   void dispose() {
+    // La curva también se desecha: se engancha como oyente del controlador
+    // y no se suelta sola.
+    _anim.dispose();
     _controller.dispose();
     super.dispose();
   }

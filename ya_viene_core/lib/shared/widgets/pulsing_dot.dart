@@ -18,6 +18,16 @@ class _PulsingDotState extends State<PulsingDot>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
+  /// La curva se arma una vez, no en cada `build`.
+  ///
+  /// Antes se creaba ahí dentro, y cada `CurvedAnimation` se engancha como
+  /// oyente del controlador y no se suelta sola. Como el punto vive dentro
+  /// de un chip que se reconstruye cada vez que cambia el estado de la
+  /// conexión, el controlador iba acumulando oyentes muertos toda la sesión,
+  /// y cada uno de ellos volvía a evaluar la curva en cada cuadro.
+  late CurvedAnimation _curva;
+  late Animation<double> _opacidad;
+
   @override
   void initState() {
     super.initState();
@@ -25,10 +35,13 @@ class _PulsingDotState extends State<PulsingDot>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+    _curva = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _opacidad = Tween<double>(begin: 0.2, end: 1.0).animate(_curva);
   }
 
   @override
   void dispose() {
+    _curva.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -36,9 +49,7 @@ class _PulsingDotState extends State<PulsingDot>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: Tween<double>(begin: 0.2, end: 1.0).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-      ),
+      opacity: _opacidad,
       // El punto lleva una sombra difuminada, y difuminar es de lo más caro
       // que se puede pedir por píxel. Sin frontera, `FadeTransition` tiene
       // que volver a rasterizar ese desenfoque en cada cuadro del ciclo de

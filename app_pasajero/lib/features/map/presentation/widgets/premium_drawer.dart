@@ -35,6 +35,11 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
       vsync: this,
       duration: const Duration(milliseconds: 560),
     );
+    _curvaCierre = CurvedAnimation(
+      parent: _entrance,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOutBack),
+    );
+    _escalaCierre = Tween<double>(begin: 0.5, end: 1.0).animate(_curvaCierre);
     // Red de seguridad para la PRIMERA apertura: si onDrawerChanged llega
     // antes de que el estado exista (el drawer se construye al abrirse),
     // el post-frame la anima igual.
@@ -43,8 +48,43 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
     });
   }
 
+  /// Las curvas de la entrada, una por escalón, guardadas por su instante de
+  /// arranque.
+  ///
+  /// Antes se creaba una nueva dentro de `_staggered`, que se llama desde
+  /// `build`. Cada `CurvedAnimation` se engancha como oyente del controlador
+  /// y no se suelta sola, así que el drawer —que se reconstruye con cada
+  /// cambio de ruta, de sesión o de avisos— iba dejando oyentes muertos que
+  /// seguían evaluando su curva en cada cuadro de cada apertura.
+  final Map<double, CurvedAnimation> _escalones = {};
+
+  /// El rebote de la X de cerrar, por lo mismo: una sola vez, no por build.
+  /// Se asignan en initState y no con un inicializador perezoso: uno de esos
+  /// se crearía por primera vez dentro de dispose() si el drawer se desmonta
+  /// sin haberse construido nunca, y quedaría enganchado a un controlador
+  /// que está a punto de desecharse.
+  late final CurvedAnimation _curvaCierre;
+  late final Animation<double> _escalaCierre;
+
+  CurvedAnimation _escalon(double start) => _escalones.putIfAbsent(
+        start,
+        () => CurvedAnimation(
+          parent: _entrance,
+          curve: Interval(
+            start,
+            (start + 0.3).clamp(0.0, 1.0),
+            curve: Curves.easeOutCubic,
+          ),
+        ),
+      );
+
   @override
   void dispose() {
+    for (final curva in _escalones.values) {
+      curva.dispose();
+    }
+    _escalones.clear();
+    _curvaCierre.dispose();
     _entrance.dispose();
     super.dispose();
   }
@@ -59,14 +99,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
   bool _signingOut = false;
 
   Widget _staggered(Widget child, double start) {
-    final animation = CurvedAnimation(
-      parent: _entrance,
-      curve: Interval(
-        start,
-        (start + 0.3).clamp(0.0, 1.0),
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    final animation = _escalon(start);
     return FadeTransition(
       opacity: animation,
       child: SlideTransition(
@@ -129,16 +162,7 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
                         // Cierre explícito y editorial: la X roja "aparece" con la entrada
                         // (escala con rebote) dentro de un botón circular suave.
                         ScaleTransition(
-                          scale: Tween<double>(begin: 0.5, end: 1.0).animate(
-                            CurvedAnimation(
-                              parent: _entrance,
-                              curve: const Interval(
-                                0.0,
-                                0.4,
-                                curve: Curves.easeOutBack,
-                              ),
-                            ),
-                          ),
+                          scale: _escalaCierre,
                           child: Container(
                             width: 36,
                             height: 36,

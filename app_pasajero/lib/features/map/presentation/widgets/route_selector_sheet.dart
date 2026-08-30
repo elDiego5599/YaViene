@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/router/app_transitions.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
@@ -43,20 +44,11 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       // El framework anima este barrier con fade, nunca con slide.
       barrierColor: const Color(0x66000000),
       transitionDuration: const Duration(milliseconds: 260),
-      transitionBuilder: (context, animation, _, child) {
-        final curved =
-            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.06),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
-        );
-      },
+      transitionBuilder: (context, animation, _, child) => FadeSlideTransition(
+        animation: animation,
+        begin: const Offset(0, 0.06),
+        child: child,
+      ),
       pageBuilder: (context, _, __) => sheet,
     );
   }

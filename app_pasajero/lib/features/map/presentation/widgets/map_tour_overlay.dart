@@ -48,12 +48,17 @@ class MapGuideOverlay extends StatefulWidget {
 class _MapGuideOverlayState extends State<MapGuideOverlay>
     with TickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _scale;
-  late final Animation<double> _fade;
+
+  /// Declaradas como `CurvedAnimation` y no como `Animation<double>`: el tipo
+  /// general no tiene `dispose()`, y estas hay que desecharlas o se quedan
+  /// enganchadas como oyentes de su controlador.
+  late final CurvedAnimation _scale;
+  late final CurvedAnimation _fade;
 
   /// F14: pulso breve en el borde del hueco cuando un tap cae fuera — antes
   /// la barrera lo absorbía en silencio, sin ninguna señal de "ahí no es".
   late final AnimationController _missTapController;
+  late final CurvedAnimation _missTapCurva;
   late final Animation<double> _missTapPulse;
 
   /// Altura real de la carta, medida tras el primer layout: sirve para
@@ -79,15 +84,19 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     _missTapPulse = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 35),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 65),
-    ]).animate(
-      CurvedAnimation(parent: _missTapController, curve: Curves.easeOut),
-    );
+    ]).animate(_missTapCurva = CurvedAnimation(
+      parent: _missTapController,
+      curve: Curves.easeOut,
+    ));
   }
 
   void _onMissTap() => _missTapController.forward(from: 0);
 
   @override
   void dispose() {
+    _scale.dispose();
+    _fade.dispose();
+    _missTapCurva.dispose();
     _controller.dispose();
     _missTapController.dispose();
     super.dispose();

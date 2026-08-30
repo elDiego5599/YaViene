@@ -186,6 +186,7 @@ class _FieldSkeleton extends StatefulWidget {
 class _FieldSkeletonState extends State<_FieldSkeleton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late final CurvedAnimation _curva;
   late final Animation<double> _animation;
 
   @override
@@ -195,14 +196,13 @@ class _FieldSkeletonState extends State<_FieldSkeleton>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _animation = Tween<double>(
-      begin: 0.46,
-      end: 0.86,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _curva = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _animation = Tween<double>(begin: 0.46, end: 0.86).animate(_curva);
   }
 
   @override
   void dispose() {
+    _curva.dispose();
     _controller.dispose();
     super.dispose();
   }
