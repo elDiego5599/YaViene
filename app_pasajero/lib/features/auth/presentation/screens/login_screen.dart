@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../onboarding/onboarding_flow.dart';
@@ -102,8 +103,7 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(message), backgroundColor: AppColors.error),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
   }
 
@@ -287,381 +287,417 @@ class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: IntrinsicHeight(
-                    child: Column(
-                      children: [
-                        const Expanded(child: Center(child: InkHero())),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
-                          // La hoja de entrada comparte superficie con las
-                          // otras dos del producto —el selector de ruta y la
-                          // de distancia—: arena, no blanco. Con el blanco
-                          // puesto, las tres pantallas seguidas parecían de
-                          // dos aplicaciones distintas.
-                          decoration: const BoxDecoration(
-                            color: AppColors.arena,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(36),
-                              topRight: Radius.circular(36),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x1A14274E),
-                                blurRadius: 32,
-                                offset: Offset(0, -10),
+                    child: ScreenEntrance(
+                      builder: (context, entra) => Column(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: entra(
+                                const InkHero(),
+                                begin: const Offset(0, 0.05),
                               ),
-                            ],
+                            ),
                           ),
-                          child: SafeArea(
-                            top: false,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Inicia sesión o regístrate',
-                                  style: TextStyle(
-                                    fontSize: 23,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                    letterSpacing: -0.6,
-                                  ),
+                          entra(
+                            Container(
+                              width: double.infinity,
+                              padding:
+                                  const EdgeInsets.fromLTRB(28, 28, 28, 30),
+                              // La hoja de entrada comparte superficie con las
+                              // otras dos del producto —el selector de ruta y la
+                              // de distancia—: arena, no blanco. Con el blanco
+                              // puesto, las tres pantallas seguidas parecían de
+                              // dos aplicaciones distintas.
+                              decoration: const BoxDecoration(
+                                color: AppColors.arena,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(36),
+                                  topRight: Radius.circular(36),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _step == _Step.email
-                                      ? 'Con tu correo y una contraseña.'
-                                      : _step == _Step.password
-                                          ? 'Ese correo ya tiene cuenta: pon tu contraseña.'
-                                          : 'El correo es nuevo: crea tu perfil.',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.textSecondary,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0x1A14274E),
+                                    blurRadius: 32,
+                                    offset: Offset(0, -10),
                                   ),
-                                ),
-                                const SizedBox(height: 22),
-                                ValueListenableBuilder<TextEditingValue>(
-                                  valueListenable: _emailController,
-                                  builder: (context, emailValue, child) {
-                                    // F17: solo se marca inválido en el paso
-                                    // de email y con algo ya escrito — no al
-                                    // llegar vacío a la pantalla.
-                                    final showError = _step == _Step.email &&
-                                        emailValue.text.isNotEmpty &&
-                                        !ref
-                                            .read(authProvider)
-                                            .isEmailValid(emailValue.text);
-                                    return _Field(
-                                      controller: _emailController,
-                                      icon: Icons.alternate_email_rounded,
-                                      hint: 'Email',
-                                      keyboardType: TextInputType.emailAddress,
-                                      textInputAction: TextInputAction.next,
-                                      // Habilitado también en el paso de
-                                      // perfil: quien toca "¿No tienes
-                                      // cuenta? Regístrate" antes de escribir
-                                      // su correo no debe quedar atrapado sin
-                                      // poder ponerlo.
-                                      enabled: _step == _Step.email ||
-                                          _step == _Step.profile,
-                                      errorText:
-                                          showError ? 'Correo inválido' : null,
-                                    );
-                                  },
-                                ),
-                                if (_step == _Step.password) ...[
-                                  const SizedBox(height: 12),
-                                  ValueListenableBuilder<bool>(
-                                    valueListenable: _obscurePassword,
-                                    builder: (context, obscure, child) {
-                                      return _Field(
-                                        controller: _passwordController,
-                                        icon: Icons.lock_outline_rounded,
-                                        hint: 'Contraseña',
-                                        obscure: obscure,
-                                        textInputAction: TextInputAction.done,
-                                        onToggleVisibility: () =>
-                                            _obscurePassword.value = !obscure,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: ValueListenableBuilder<bool>(
-                                      valueListenable: _sendingReset,
-                                      builder: (context, sending, child) {
-                                        return TextButton(
-                                          onPressed: sending
+                                ],
+                              ),
+                              child: SafeArea(
+                                top: false,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Inicia sesión o regístrate',
+                                      style: TextStyle(
+                                        fontSize: 23,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: -0.6,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      _step == _Step.email
+                                          ? 'Con tu correo y una contraseña.'
+                                          : _step == _Step.password
+                                              ? 'Ese correo ya tiene cuenta: pon tu contraseña.'
+                                              : 'El correo es nuevo: crea tu perfil.',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 22),
+                                    ValueListenableBuilder<TextEditingValue>(
+                                      valueListenable: _emailController,
+                                      builder: (context, emailValue, child) {
+                                        // F17: solo se marca inválido en el paso
+                                        // de email y con algo ya escrito — no al
+                                        // llegar vacío a la pantalla.
+                                        final showError = _step ==
+                                                _Step.email &&
+                                            emailValue.text.isNotEmpty &&
+                                            !ref
+                                                .read(authProvider)
+                                                .isEmailValid(emailValue.text);
+                                        return _Field(
+                                          controller: _emailController,
+                                          icon: Icons.alternate_email_rounded,
+                                          hint: 'Email',
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          textInputAction: TextInputAction.next,
+                                          // Habilitado también en el paso de
+                                          // perfil: quien toca "¿No tienes
+                                          // cuenta? Regístrate" antes de escribir
+                                          // su correo no debe quedar atrapado sin
+                                          // poder ponerlo.
+                                          enabled: _step == _Step.email ||
+                                              _step == _Step.profile,
+                                          errorText: showError
+                                              ? 'Correo inválido'
+                                              : null,
+                                        );
+                                      },
+                                    ),
+                                    if (_step == _Step.password) ...[
+                                      const SizedBox(height: 12),
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: _obscurePassword,
+                                        builder: (context, obscure, child) {
+                                          return _Field(
+                                            controller: _passwordController,
+                                            icon: Icons.lock_outline_rounded,
+                                            hint: 'Contraseña',
+                                            obscure: obscure,
+                                            textInputAction:
+                                                TextInputAction.done,
+                                            onToggleVisibility: () =>
+                                                _obscurePassword.value =
+                                                    !obscure,
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: ValueListenableBuilder<bool>(
+                                          valueListenable: _sendingReset,
+                                          builder: (context, sending, child) {
+                                            return TextButton(
+                                              onPressed: sending
+                                                  ? null
+                                                  : _sendPasswordReset,
+                                              style: TextButton.styleFrom(
+                                                padding: EdgeInsets.zero,
+                                                minimumSize: const Size(0, 32),
+                                                tapTargetSize:
+                                                    MaterialTapTargetSize
+                                                        .shrinkWrap,
+                                              ),
+                                              child: Text(
+                                                sending
+                                                    ? 'Enviando…'
+                                                    : '¿Olvidaste tu contraseña?',
+                                                style: const TextStyle(
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                    if (_step == _Step.profile) ...[
+                                      const SizedBox(height: 12),
+                                      _Field(
+                                        controller: _nameController,
+                                        icon: Icons.person_outline_rounded,
+                                        hint: 'Nombre',
+                                        textInputAction: TextInputAction.next,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: _obscurePassword,
+                                        builder: (context, obscure, child) {
+                                          return _Field(
+                                            controller: _passwordController,
+                                            icon: Icons.lock_outline_rounded,
+                                            hint: 'Contraseña (mín. 6)',
+                                            obscure: obscure,
+                                            textInputAction:
+                                                TextInputAction.next,
+                                            onToggleVisibility: () =>
+                                                _obscurePassword.value =
+                                                    !obscure,
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: _obscureConfirm,
+                                        builder: (context, obscure, child) {
+                                          return _Field(
+                                            controller: _confirmController,
+                                            icon: Icons.lock_rounded,
+                                            hint: 'Repite la contraseña',
+                                            obscure: obscure,
+                                            textInputAction:
+                                                TextInputAction.done,
+                                            onToggleVisibility: () =>
+                                                _obscureConfirm.value =
+                                                    !obscure,
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                    const SizedBox(height: 24),
+                                    ValueListenableBuilder<bool>(
+                                      valueListenable: _submitting,
+                                      builder: (context, submitting, child) {
+                                        return ValueListenableBuilder<bool>(
+                                          valueListenable: _isValidEmail,
+                                          builder:
+                                              (context, isValidEmail, child) {
+                                            final canPress = !submitting &&
+                                                (_step == _Step.email
+                                                    ? isValidEmail
+                                                    : true);
+                                            // Navy también mientras envía: con
+                                            // spinner y sin aspecto de botón muerto.
+                                            final bright =
+                                                canPress || submitting;
+                                            return SizedBox(
+                                              width: double.infinity,
+                                              height: 56,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: bright
+                                                      ? AppColors.primaryDeep
+                                                      : AppColors.divider,
+                                                  foregroundColor: bright
+                                                      ? Colors.white
+                                                      : AppColors.textDisabled,
+                                                  disabledBackgroundColor:
+                                                      bright
+                                                          ? AppColors
+                                                              .primaryDeep
+                                                          : AppColors.divider,
+                                                  disabledForegroundColor:
+                                                      bright
+                                                          ? Colors.white
+                                                          : AppColors
+                                                              .textDisabled,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            999),
+                                                  ),
+                                                ),
+                                                onPressed: canPress
+                                                    ? _step == _Step.email
+                                                        ? _continueWithEmail
+                                                        : _finishAuth
+                                                    : null,
+                                                child: submitting
+                                                    ? const SizedBox(
+                                                        width: 22,
+                                                        height: 22,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2.5,
+                                                          color: Colors.white,
+                                                        ),
+                                                      )
+                                                    : Text(
+                                                        _step == _Step.email
+                                                            ? 'Continuar'
+                                                            : _step ==
+                                                                    _Step
+                                                                        .password
+                                                                ? 'Entrar'
+                                                                : 'Crear cuenta',
+                                                        style: TextStyle(
+                                                          fontSize: 17,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          letterSpacing: -0.3,
+                                                          color: bright
+                                                              ? Colors.white
+                                                              : const Color(
+                                                                  0xFF94A3B8),
+                                                        ),
+                                                      ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                    if (_step != _Step.email) ...[
+                                      const SizedBox(height: 8),
+                                      Center(
+                                        child: TextButton(
+                                          onPressed: _submitting.value
                                               ? null
-                                              : _sendPasswordReset,
-                                          style: TextButton.styleFrom(
-                                            padding: EdgeInsets.zero,
-                                            minimumSize: const Size(0, 32),
-                                            tapTargetSize: MaterialTapTargetSize
-                                                .shrinkWrap,
-                                          ),
+                                              : _goBack,
                                           child: Text(
-                                            sending
-                                                ? 'Enviando…'
-                                                : '¿Olvidaste tu contraseña?',
+                                            _emailController.text.trim().isEmpty
+                                                ? 'Regresar'
+                                                : 'Cambiar de correo',
                                             style: const TextStyle(
                                               color: AppColors.textSecondary,
-                                              fontSize: 13,
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                                if (_step == _Step.profile) ...[
-                                  const SizedBox(height: 12),
-                                  _Field(
-                                    controller: _nameController,
-                                    icon: Icons.person_outline_rounded,
-                                    hint: 'Nombre',
-                                    textInputAction: TextInputAction.next,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ValueListenableBuilder<bool>(
-                                    valueListenable: _obscurePassword,
-                                    builder: (context, obscure, child) {
-                                      return _Field(
-                                        controller: _passwordController,
-                                        icon: Icons.lock_outline_rounded,
-                                        hint: 'Contraseña (mín. 6)',
-                                        obscure: obscure,
-                                        textInputAction: TextInputAction.next,
-                                        onToggleVisibility: () =>
-                                            _obscurePassword.value = !obscure,
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  ValueListenableBuilder<bool>(
-                                    valueListenable: _obscureConfirm,
-                                    builder: (context, obscure, child) {
-                                      return _Field(
-                                        controller: _confirmController,
-                                        icon: Icons.lock_rounded,
-                                        hint: 'Repite la contraseña',
-                                        obscure: obscure,
-                                        textInputAction: TextInputAction.done,
-                                        onToggleVisibility: () =>
-                                            _obscureConfirm.value = !obscure,
-                                      );
-                                    },
-                                  ),
-                                ],
-                                const SizedBox(height: 24),
-                                ValueListenableBuilder<bool>(
-                                  valueListenable: _submitting,
-                                  builder: (context, submitting, child) {
-                                    return ValueListenableBuilder<bool>(
-                                      valueListenable: _isValidEmail,
-                                      builder: (context, isValidEmail, child) {
-                                        final canPress = !submitting &&
-                                            (_step == _Step.email
-                                                ? isValidEmail
-                                                : true);
-                                        // Navy también mientras envía: con
-                                        // spinner y sin aspecto de botón muerto.
-                                        final bright = canPress || submitting;
-                                        return SizedBox(
-                                          width: double.infinity,
-                                          height: 56,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: bright
-                                                  ? AppColors.primaryDeep
-                                                  : AppColors.divider,
-                                              foregroundColor: bright
-                                                  ? Colors.white
-                                                  : AppColors.textDisabled,
-                                              disabledBackgroundColor: bright
-                                                  ? AppColors.primaryDeep
-                                                  : AppColors.divider,
-                                              disabledForegroundColor: bright
-                                                  ? Colors.white
-                                                  : AppColors.textDisabled,
-                                              elevation: 0,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                      if (_step == _Step.password) ...[
+                                        const SizedBox(height: 4),
+                                        Center(
+                                          child: TextButton(
+                                            onPressed: _submitting.value
+                                                ? null
+                                                : () => setState(() =>
+                                                    _step = _Step.profile),
+                                            child: const Text(
+                                              '¿No tienes cuenta? Crea una con este correo',
+                                              style: TextStyle(
+                                                color: AppColors.primary,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
                                               ),
                                             ),
-                                            onPressed: canPress
-                                                ? _step == _Step.email
-                                                    ? _continueWithEmail
-                                                    : _finishAuth
-                                                : null,
-                                            child: submitting
-                                                ? const SizedBox(
-                                                    width: 22,
-                                                    height: 22,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2.5,
-                                                      color: Colors.white,
-                                                    ),
-                                                  )
-                                                : Text(
-                                                    _step == _Step.email
-                                                        ? 'Continuar'
-                                                        : _step ==
-                                                                _Step.password
-                                                            ? 'Entrar'
-                                                            : 'Crear cuenta',
-                                                    style: TextStyle(
-                                                      fontSize: 17,
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      letterSpacing: -0.3,
-                                                      color: bright
-                                                          ? Colors.white
-                                                          : const Color(
-                                                              0xFF94A3B8),
-                                                    ),
-                                                  ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                                if (_step != _Step.email) ...[
-                                  const SizedBox(height: 8),
-                                  Center(
-                                    child: TextButton(
-                                      onPressed:
-                                          _submitting.value ? null : _goBack,
-                                      child: Text(
-                                        _emailController.text.trim().isEmpty
-                                            ? 'Regresar'
-                                            : 'Cambiar de correo',
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_step == _Step.password) ...[
-                                    const SizedBox(height: 4),
-                                    Center(
-                                      child: TextButton(
-                                        onPressed: _submitting.value
-                                            ? null
-                                            : () => setState(
-                                                () => _step = _Step.profile),
-                                        child: const Text(
-                                          '¿No tienes cuenta? Crea una con este correo',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                                if (_step == _Step.email) ...[
-                                  const SizedBox(height: 16),
-                                  const Row(
-                                    children: [
-                                      Expanded(child: Divider()),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 12),
-                                        child: Text(
-                                          'o',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textDisabled,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(child: Divider()),
+                                      ],
                                     ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ValueListenableBuilder<bool>(
-                                    valueListenable: _submitting,
-                                    builder: (context, submitting, child) {
-                                      return SizedBox(
-                                        width: double.infinity,
-                                        height: 52,
-                                        child: OutlinedButton.icon(
-                                          onPressed:
-                                              submitting ? null : _handleGoogle,
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor:
-                                                const Color(0xFF334155),
-                                            backgroundColor: Colors.white,
-                                            side: const BorderSide(
-                                                color: AppColors.divider),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
+                                    if (_step == _Step.email) ...[
+                                      const SizedBox(height: 16),
+                                      const Row(
+                                        children: [
+                                          Expanded(child: Divider()),
+                                          Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 12),
+                                            child: Text(
+                                              'o',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textDisabled,
+                                              ),
                                             ),
                                           ),
-                                          icon: submitting
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Color(0xFF334155),
-                                                  ),
-                                                )
-                                              : SvgPicture.asset(
-                                                  'assets/icon/google_logo.svg',
-                                                  width: 20,
-                                                  height: 20,
+                                          Expanded(child: Divider()),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: _submitting,
+                                        builder: (context, submitting, child) {
+                                          return SizedBox(
+                                            width: double.infinity,
+                                            height: 52,
+                                            child: OutlinedButton.icon(
+                                              onPressed: submitting
+                                                  ? null
+                                                  : _handleGoogle,
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    const Color(0xFF334155),
+                                                backgroundColor: Colors.white,
+                                                side: const BorderSide(
+                                                    color: AppColors.divider),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          999),
                                                 ),
-                                          label: Text(
-                                            submitting
-                                                ? 'Iniciando…'
-                                                : 'Iniciar con Google',
-                                            style: const TextStyle(
-                                              fontSize: 15,
+                                              ),
+                                              icon: submitting
+                                                  ? const SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color:
+                                                            Color(0xFF334155),
+                                                      ),
+                                                    )
+                                                  : SvgPicture.asset(
+                                                      'assets/icon/google_logo.svg',
+                                                      width: 20,
+                                                      height: 20,
+                                                    ),
+                                              label: Text(
+                                                submitting
+                                                    ? 'Iniciando…'
+                                                    : 'Iniciar con Google',
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Center(
+                                        child: TextButton(
+                                          onPressed: _submitting.value
+                                              ? null
+                                              : () => setState(
+                                                  () => _step = _Step.profile),
+                                          child: const Text(
+                                            '¿No tienes cuenta? Regístrate',
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                              fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                         ),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Center(
-                                    child: TextButton(
-                                      onPressed: _submitting.value
-                                          ? null
-                                          : () => setState(
-                                              () => _step = _Step.profile),
-                                      child: const Text(
-                                        '¿No tienes cuenta? Regístrate',
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                        ),
                                       ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                                    ],
+                                  ],
+                                ),
+                              ),
                             ),
+                            start: 0.14,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

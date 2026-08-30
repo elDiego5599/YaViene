@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../../core/widgets/map_pattern_painter.dart';
 import '../../../onboarding/onboarding_flow.dart';
@@ -62,23 +63,36 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: AppColors.ink,
       body: CustomPaint(
-        painter: MapPatternPainter(),
+        painter: const MapPatternPainter(),
         child: Center(
-          child: InkHero(
-            logoSize: 84,
-            titleFontSize: 34,
-            taglineFontSize: 15,
-            spacingAfterLogo: 20,
-            trailing: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Color.fromRGBO(255, 255, 255, 0.6),
+          // La marca no aparece de golpe: sube un poco y se funde, y el
+          // indicador de carga entra después, cuando ya se leyó el nombre.
+          // El splash dura 900 ms como mínimo, así que la entrada termina
+          // con margen antes de que se cambie de pantalla.
+          child: ScreenEntrance(
+            builder: (context, entra) => entra(
+              InkHero(
+                logoSize: 84,
+                titleFontSize: 34,
+                taglineFontSize: 15,
+                spacingAfterLogo: 20,
+                trailing: entra(
+                  const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color.fromRGBO(255, 255, 255, 0.6),
+                    ),
+                  ),
+                  start: 0.55,
+                  begin: Offset.zero,
+                ),
               ),
+              begin: const Offset(0, 0.05),
             ),
           ),
         ),
