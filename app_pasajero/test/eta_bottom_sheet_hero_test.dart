@@ -105,7 +105,7 @@ void main() {
 
     expect(find.text('222'), findsOneWidget);
     expect(find.text('m de ti'), findsOneWidget);
-    expect(find.text('BUS YA ESTÁ CERCA'), findsOneWidget);
+    expect(find.text('El bus ya está cerca'), findsOneWidget);
     expect(find.text('Va pasando'), findsNothing);
   });
 
@@ -144,7 +144,7 @@ void main() {
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
     await tester.pump();
 
-    expect(find.text('AVISO ACTIVADO'), findsOneWidget);
+    expect(find.text('Aviso activado'), findsOneWidget);
     expect(
         find.text('Puedes cambiar de aplicación; no cierres Ya Viene del todo'),
         findsOneWidget);
@@ -185,20 +185,20 @@ void main() {
     controller.add([busAt(0.007186)]);
     await tester.pump();
     await tester.pump();
-    expect(find.text('BUS YA ESTÁ CERCA'), findsOneWidget);
+    expect(find.text('El bus ya está cerca'), findsOneWidget);
 
     // 1100 m: ya no está dentro del radio pero sigue a menos de 1500 m →
     // permanece bloqueado (el cruce de umbral no debe flapear el botón).
     controller.add([busAt(0.009881)]);
     await tester.pump();
     await tester.pump();
-    expect(find.text('BUS YA ESTÁ CERCA'), findsOneWidget);
+    expect(find.text('El bus ya está cerca'), findsOneWidget);
 
     // 1600 m: se alejó más de 1500 m → recién ahí se desbloquea.
     controller.add([busAt(0.014373)]);
     await tester.pump();
     await tester.pump();
-    expect(find.text('AVISARME CUANDO ESTÉ CERCA'), findsOneWidget);
+    expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
   });
 
   testWidgets('máximo 2 avisos activos: el tercero muestra el mensaje',
@@ -219,7 +219,7 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     container.read(selectedBusesProvider.notifier).toggleBus('C-1');
     await tester.pump();
-    await tester.tap(find.text('AVISARME CUANDO ESTÉ CERCA'));
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pump();
 
     expect(find.textContaining('Ya tienes 2 avisos activos'), findsOneWidget);

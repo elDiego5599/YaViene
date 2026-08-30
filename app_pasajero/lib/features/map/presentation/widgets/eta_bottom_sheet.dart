@@ -508,10 +508,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               isActive: isActive,
               blocked: isActive ? false : blocked,
               label: isActive
-                  ? "AVISO ACTIVADO"
+                  ? "Aviso activado"
                   : ghostBlocked
-                      ? "BUS SIN SEÑAL"
-                      : "AVISARME CUANDO ESTÉ CERCA",
+                      ? "Bus sin señal"
+                      : "Avisarme cuando esté cerca",
               onPressed: () => _toggleAlert(busId),
             ),
           ),
@@ -636,14 +636,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             isActive: isActive,
             blocked: isActive ? false : blocked,
             label: isActive
-                ? "AVISO ACTIVADO"
+                ? "Aviso activado"
                 : ghostBlocked
-                    ? "BUS SIN SEÑAL"
+                    ? "Bus sin señal"
                     : routeTooFar
-                        ? "ESTA RUTA NO PASA CERCA"
+                        ? "Esta ruta no pasa cerca"
                         : blocked
-                            ? "BUS YA ESTÁ CERCA"
-                            : "AVISARME CUANDO ESTÉ CERCA",
+                            ? "El bus ya está cerca"
+                            : "Avisarme cuando esté cerca",
             onPressed: () => _toggleAlert(busId),
           ),
         ],
@@ -781,11 +781,17 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
+                    // Caja normal, no versalitas. "AVISARME CUANDO ESTÉ
+                    // CERCA" era una frase entera de 26 letras gritada en
+                    // mayúsculas: la guía de Apple no las usa en botones, y
+                    // en español además se leen más lento. El interletrado
+                    // abierto existía para sostener las versalitas; en caja
+                    // normal solo separa las letras.
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      letterSpacing: 0.5,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ),

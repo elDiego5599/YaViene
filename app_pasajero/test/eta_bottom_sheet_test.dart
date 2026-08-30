@@ -130,8 +130,8 @@ void main() {
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
     await pumpSheet(tester);
 
-    expect(find.text('AVISO ACTIVADO'), findsOneWidget);
-    await tester.tap(find.text('AVISO ACTIVADO'));
+    expect(find.text('Aviso activado'), findsOneWidget);
+    await tester.tap(find.text('Aviso activado'));
     await tester.pump();
 
     expect(container.read(activeAlertsProvider), isEmpty);
