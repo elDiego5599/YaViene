@@ -4,6 +4,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/route_reach_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/alert_guards.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart'
+    show alertRadiusMeters;
 
 class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
@@ -44,10 +46,25 @@ void main() {
           routeDistanceMeters: routeDistanceMeters,
         );
 
-    test('rechaza el aviso si el recorrido pasa a más de 2 km', () {
+    test('rechaza el aviso si el recorrido no entra en el radio de disparo',
+        () {
       expect(validate(routeDistanceMeters: 3400),
           contains('Esta ruta no pasa cerca de ti'));
       expect(validate(routeDistanceMeters: 3400), contains('3.4 km'));
+    });
+
+    // El bug que reportó el usuario: el recorrido rozaba el anillo verde de
+    // 2 km y la app dejaba armar el aviso, pero el aviso solo suena a 1 km.
+    // El botón decía «AVISO ACTIVADO» y no iba a sonar nunca.
+    test('entre 1 y 2 km ya no se puede armar: ahí no sonaría nunca', () {
+      expect(validate(routeDistanceMeters: 1500),
+          contains('Esta ruta no pasa cerca de ti'));
+      expect(validate(routeDistanceMeters: 1900), isNotNull);
+      expect(validate(routeDistanceMeters: 2100), isNotNull);
+    });
+
+    test('el tope de la ruta es exactamente el radio que dispara', () {
+      expect(alertMaxRouteDistanceMeters, alertRadiusMeters);
     });
 
     test('a 10 km o más el decimal sobra', () {
@@ -55,9 +72,10 @@ void main() {
     });
 
     test('justo en el límite todavía deja armar', () {
-      expect(validate(routeDistanceMeters: 2000), isNull);
-      expect(validate(routeDistanceMeters: 1999), isNull);
-      expect(validate(routeDistanceMeters: 2001), isNotNull);
+      // 1000 m es alcanzable: el disparo es `distancia <= alertRadiusMeters`.
+      expect(validate(routeDistanceMeters: 1000), isNull);
+      expect(validate(routeDistanceMeters: 999), isNull);
+      expect(validate(routeDistanceMeters: 1001), isNotNull);
     });
 
     test('sin dato de distancia se deja armar: la duda no bloquea', () {
@@ -113,14 +131,19 @@ void main() {
 
     test('mide lo más que se acerca el recorrido', () {
       final container = containerWith(points: _routeAtKm(3));
-      expect(container.read(routeDistanceToUserProvider('R1')),
-          closeTo(3000, 60));
+      expect(
+          container.read(routeDistanceToUserProvider('R1')), closeTo(3000, 60));
       expect(container.read(routeTooFarFromUserProvider('R1')), isTrue);
     });
 
     test('una ruta que pasa al lado no bloquea nada', () {
       final container = containerWith(points: _routeAtKm(0.4));
       expect(container.read(routeTooFarFromUserProvider('R1')), isFalse);
+    });
+
+    test('un recorrido a 1.5 km cuenta como lejos', () {
+      final container = containerWith(points: _routeAtKm(1.5));
+      expect(container.read(routeTooFarFromUserProvider('R1')), isTrue);
     });
 
     test('sin ubicación no se sabe, y no saber no bloquea', () {

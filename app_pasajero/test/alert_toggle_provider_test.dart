@@ -11,27 +11,50 @@ class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
 }
 
+const _userLat = 6.2442;
+const _userLon = -75.5812;
+const _metersPerDegree = 111194.9;
+
+/// Un tramo recto este-oeste que pasa a [km] al norte del usuario.
+List<GeoPoint> _routeAtKm(double km) {
+  final lat = _userLat + (km * 1000) / _metersPerDegree;
+  return [
+    GeoPoint(lat: lat, lon: _userLon - 0.05),
+    GeoPoint(lat: lat, lon: _userLon + 0.05),
+  ];
+}
+
 ProviderContainer _container({
   required List<BusPosition> buses,
   required bool permissionGranted,
   NotificationPermissionRequester? requester,
+  double routeKm = 0,
 }) {
   final c = ProviderContainer(overrides: [
     userLocationProvider.overrideWith((ref) => _TestUserLocation()),
     busPositionsSourceProvider.overrideWith(
       (ref, routeId) => Stream.value(buses),
     ),
+    // Por defecto el recorrido pasa por encima del usuario: así estos tests
+    // prueban el resto de reglas sin chocar con "esta ruta no pasa cerca".
+    routeTrajectoryProvider.overrideWith(
+      (ref, routeId) => RouteTrajectory(
+        routeId: routeId,
+        routeName: 'Ruta 1',
+        points: _routeAtKm(routeKm),
+      ),
+    ),
     proximityAlertsProvider.overrideWith((ref) {
-      return ProximityAlertsNotifier(
-        ref,
-        notify: ({required String busId, String? routeName,
-              String? routeId, required int distanceMeters}) async {}
-      );
+      return ProximityAlertsNotifier(ref,
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) async {});
     }),
     alertToggleProvider.overrideWith((ref) => AlertToggleController(
           ref,
-          requestPermission:
-              requester ?? (() async => permissionGranted),
+          requestPermission: requester ?? (() async => permissionGranted),
         )),
   ]);
   addTearDown(c.dispose);
@@ -41,8 +64,8 @@ ProviderContainer _container({
 void main() {
   final userHere = UserLocationState(
     mode: UserLocationMode.gps,
-    lat: 6.2442,
-    lon: -75.5812,
+    lat: _userLat,
+    lon: _userLon,
     updatedAt: DateTime.now(),
   );
 
@@ -110,6 +133,32 @@ void main() {
     // recién armado no ha disparado, así que sigue vacío (lo observable del
     // armado es que activeAlerts lo contiene y que no lanzó excepción).
     expect(container.read(proximityAlertsProvider), isEmpty);
+  });
+
+  // El bug reportado: el recorrido rozaba el anillo de 2 km, la app dejaba
+  // armar y el aviso solo suena a 1 km. Quedaba «AVISO ACTIVADO» para siempre.
+  test('un recorrido que nunca entra en el radio de disparo no se arma',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final container = _container(
+      buses: [busLejos],
+      permissionGranted: true,
+      routeKm: 1.5,
+    );
+    (container.read(userLocationProvider.notifier) as _TestUserLocation)
+        .set(userHere);
+    container.read(selectedRouteProvider.notifier).select(route());
+    final sub = container.listen(busPositionsSourceProvider('R1'), (_, __) {});
+    addTearDown(sub.close);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final result = await container.read(alertToggleProvider).toggle('A-1');
+
+    expect(result.outcome, AlertToggleOutcome.rejected);
+    expect(result.message, contains('no pasa cerca de ti'));
+    expect(result.message, contains('1.5 km'));
+    expect(container.read(activeAlertsProvider), isEmpty);
   });
 
   test('sin ubicación lo rechaza explicando qué falta', () async {

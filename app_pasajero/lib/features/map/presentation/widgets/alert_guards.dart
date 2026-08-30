@@ -32,7 +32,8 @@ String? validateAlertActivation({
   if (routeDistanceMeters != null &&
       routeDistanceMeters > alertMaxRouteDistanceMeters) {
     return 'Esta ruta no pasa cerca de ti: lo más que se acerca son '
-        '${_kmLabel(routeDistanceMeters)}, así que el aviso no sonaría nunca. '
+        '${kmLabel(routeDistanceMeters)} y el aviso suena a '
+        '${alertRadiusMeters ~/ 1000} km, así que no sonaría nunca. '
         'Mueve tu punto de espera o elige otra ruta';
   }
   if (bus != null && bus.isGhostBus) {
@@ -51,7 +52,10 @@ String? validateAlertActivation({
 
 /// Mismo formato que la métrica grande de la hoja ("3.4 km"), sin decimal a
 /// partir de 10 km, donde el decimal ya no dice nada.
-String _kmLabel(double meters) {
+///
+/// Público porque el estado vacío de la hoja dice lo mismo con otras
+/// palabras: las dos pantallas tienen que cantar la misma distancia.
+String kmLabel(double meters) {
   final km = meters / 1000;
   return km >= 10 ? '${km.round()} km' : '${km.toStringAsFixed(1)} km';
 }

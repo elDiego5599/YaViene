@@ -15,6 +15,7 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../providers/visible_buses_provider.dart';
 import '../utils/geo.dart';
+import 'alert_guards.dart' show kmLabel;
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
@@ -356,9 +357,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // pasa. Con esto se lee como "hay buses, pero no por aquí".
     final outOfRange =
         route == null ? 0 : ref.watch(busesOutOfRangeCountProvider(route.id));
-    final routeTooFar = route == null
-        ? false
-        : ref.watch(routeTooFarFromUserProvider(route.id));
+    // La distancia real, no el umbral: el usuario necesita saber cuánto le
+    // falta para decidir si mueve el pin o cambia de ruta.
+    final routeDistance =
+        route == null ? null : ref.watch(routeDistanceToUserProvider(route.id));
+    final routeTooFar =
+        routeDistance != null && routeDistance > alertMaxRouteDistanceMeters;
 
     final String stateKey;
     final String title;
@@ -382,8 +386,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       // usuario espere sentado un bus que no viene por aquí.
       stateKey = 'empty-route-far';
       title = 'Esta ruta no pasa cerca de ti';
-      subtitle = 'Su recorrido queda a más de '
-          '${(alertMaxRouteDistanceMeters / 1000).round()} km de tu punto. '
+      subtitle = 'Lo más que se acerca su recorrido son '
+          '${kmLabel(routeDistance)} de tu punto. '
           'Mueve tu punto de espera o elige otra ruta';
       icon = Icons.wrong_location_rounded;
     } else if (buses.isEmpty && outOfRange > 0) {

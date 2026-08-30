@@ -13,17 +13,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../notifications/presentation/providers/proximity_alerts_provider.dart'
+    show alertRadiusMeters;
 import '../utils/geo.dart';
 import 'user_location_provider.dart';
 
 /// Lo más lejos que puede pasar un recorrido del punto del usuario para que
-/// armar un aviso tenga sentido.
+/// armar un aviso tenga sentido: exactamente el radio en el que el aviso
+/// suena, ni un metro más.
 ///
-/// 2 km es el mismo radio del anillo verde que se dibuja alrededor del pin
-/// ("cerca de ti"), a propósito: lo que se rechaza es exactamente lo que el
-/// usuario ya está viendo que queda fuera. Y es el doble del radio de disparo
-/// (1 km), que deja margen para caminar hacia la ruta con el aviso puesto.
-const int alertMaxRouteDistanceMeters = 2000;
+/// No admite margen, y esa es toda la regla: el aviso dispara cuando el bus
+/// entra en [alertRadiusMeters] del punto de espera, así que si el recorrido
+/// entero nunca entra en ese radio, ningún bus de esa ruta va a entrar
+/// tampoco. El aviso se quedaría armado para siempre.
+///
+/// Antes esto valía 2 km, copiado del anillo verde que se dibuja alrededor
+/// del pin, con la idea de dejar margen para caminar hacia la ruta. El margen
+/// era falso —con el pin puesto a mano el aviso mide contra el pin, no contra
+/// dónde camines— y el resultado era el peor posible: una ruta que pasa entre
+/// 1 y 2 km dejaba armar el aviso, el botón decía «AVISO ACTIVADO» y no
+/// sonaba nunca. El anillo verde responde otra pregunta (qué buses ves) y
+/// sigue en 2 km a propósito.
+const int alertMaxRouteDistanceMeters = alertRadiusMeters;
 
 /// Distancia en metros del punto del usuario al trozo más cercano del
 /// recorrido, o **null cuando no se sabe**: sin ubicación, con la geometría

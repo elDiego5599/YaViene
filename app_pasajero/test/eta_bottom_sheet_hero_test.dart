@@ -43,6 +43,18 @@ void main() {
       busPositionsSourceProvider.overrideWith(
         (ref, routeId) => Stream.value(buses),
       ),
+      // El recorrido pasa justo por el punto del usuario: lo que se prueba
+      // aquí es el botón, no la regla de "esta ruta no pasa cerca de ti".
+      routeTrajectoryProvider.overrideWith(
+        (ref, routeId) => RouteTrajectory(
+          routeId: routeId,
+          routeName: 'Ruta 1',
+          points: const [
+            GeoPoint(lat: userLat, lon: userLon - 0.05),
+            GeoPoint(lat: userLat, lon: userLon + 0.05),
+          ],
+        ),
+      ),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(

@@ -79,7 +79,7 @@ class AlertToggleController {
         bus: bus,
         busAlreadyNear: _busAlreadyNear(bus),
         activeAlertsCount: _ref.read(activeAlertsProvider).length,
-        routeDistanceMeters: _routeDistanceToUser(),
+        routeDistanceMeters: await _routeDistanceToUser(),
       );
       if (message != null) {
         return AlertToggleResult(AlertToggleOutcome.rejected, message: message);
@@ -142,9 +142,24 @@ class AlertToggleController {
 
   /// Lo más que se acerca el recorrido de la ruta abierta al punto del
   /// usuario, o null si no se sabe (sin ruta, sin ubicación, sin geometría).
-  double? _routeDistanceToUser() {
+  ///
+  /// Si el recorrido todavía está cargando se le espera un momento. Sin esa
+  /// espera, un toque rápido nada más abrir la app leería null —"no se
+  /// sabe"—, y como no saber deja pasar, se armaría justo el aviso imposible
+  /// que esta regla existe para evitar. La espera está topada y cualquier
+  /// fallo cae en null: ante la duda se sigue dejando armar.
+  Future<double?> _routeDistanceToUser() async {
     final route = _ref.read(selectedRouteProvider);
     if (route == null) return null;
+    if (_ref.read(routeTrajectoryProvider(route.id)).isLoading) {
+      try {
+        await _ref
+            .read(routeTrajectoryProvider(route.id).future)
+            .timeout(const Duration(milliseconds: 600));
+      } catch (_) {
+        // Sin geometría no se sabe, y no saber no bloquea.
+      }
+    }
     return _ref.read(routeDistanceToUserProvider(route.id));
   }
 
