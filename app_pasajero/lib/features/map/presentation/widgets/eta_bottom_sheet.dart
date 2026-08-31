@@ -115,6 +115,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       _pliegue.animateBack(0, curve: AppMotion.curvaSalida);
     }
     if (_abierta == abrir) return;
+    HapticFeedback.lightImpact();
     setState(() => _abierta = abrir);
     _publishMapInset();
   }

@@ -3,9 +3,12 @@
        su propia máscara; una marca circular sobre nada deja las esquinas en
        negro, que es la "f" azul de Flutter con otro disfraz. -->
   <rect width="512" height="512" fill="#00A859" />
-  <!-- El dibujo se recentra sobre su propio alto (va de 114 a 434, no de 0
-       a 512) y se agranda para llenar la retícula del icono. -->
-  <g transform="translate(256,256) scale(1.14) translate(-256,-274)">
+  <!-- El dibujo se centra sobre su propio alto real —de 61 (la punta de la
+       onda grande, contando el grosor del trazo) a 434 (las llantas)— y se
+       encoge hasta ocupar el 70 % del lienzo. Llenándolo, la máscara de iOS
+       le comía las puntas de la onda: el icono se ve dentro de un cuadrado
+       redondeado, no del cuadrado entero. -->
+  <g transform="translate(256,256) scale(0.96) translate(-256,-247.3)">
     <path d="M 120 130 A 200 200 0 0 1 392 130" fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round" opacity="0.5" />
     <path d="M 176 190 A 130 130 0 0 1 336 190" fill="none" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round" />
     <rect x="136" y="240" width="240" height="180" rx="36" fill="#14274E" />
