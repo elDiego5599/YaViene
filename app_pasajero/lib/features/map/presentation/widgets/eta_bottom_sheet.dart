@@ -12,7 +12,6 @@ import '../providers/map_view_state.dart';
 import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
-import '../providers/visible_buses_provider.dart';
 import '../utils/geo.dart';
 import 'alert_guards.dart' show kmLabel;
 
@@ -216,10 +215,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
 
     _publishMapInset();
 
-    // La hoja habla de los buses que el usuario está viendo: la misma lista
-    // recortada al radio que pinta el mapa. Los avisos siguen midiendo contra
-    // la ruta entera; eso vive en proximity_alerts_provider.
-    final busesAsync = ref.watch(visibleBusesProvider(selectedRoute.id));
+    // La hoja habla de los buses que el usuario está viendo: los mismos que
+    // pinta el mapa, que ahora son todos los de la ruta.
+    final busesAsync = ref.watch(busPositionsSourceProvider(selectedRoute.id));
     final buses = busesAsync.value ?? const <BusPosition>[];
     final busById = {for (final b in buses) b.busId: b};
 
@@ -231,11 +229,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // Un batch VACÍO tampoco limpia la selección: el primer batch tras una
     // reconexión del socket suele llegar vacío y eso no significa que el bus
     // desapareció de la ruta.
-    // El bus seleccionado nunca sale de la lista recortada (va en
-    // `alwaysVisible`), así que alejarse del radio no lo deselecciona: solo
-    // desaparecer de la ruta lo hace, que es lo que este listener busca.
     ref.listen<AsyncValue<List<BusPosition>>>(
-        visibleBusesProvider(selectedRoute.id), (prev, next) {
+        busPositionsSourceProvider(selectedRoute.id), (prev, next) {
       final loaded = next.value;
       if (loaded == null || loaded.isEmpty) return;
       final ids = {for (final b in loaded) b.busId};
@@ -350,11 +345,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
         ref.watch(userLocationProvider.select((s) => s.hasPosition));
     final route = ref.watch(selectedRouteProvider);
 
-    // Buses de la ruta que quedaron fuera del radio: sin esto, un mapa vacío
-    // se lee como "esta ruta no tiene servicio", que casi nunca es lo que
-    // pasa. Con esto se lee como "hay buses, pero no por aquí".
-    final outOfRange =
-        route == null ? 0 : ref.watch(busesOutOfRangeCountProvider(route.id));
     // La distancia real, no el umbral: el usuario necesita saber cuánto le
     // falta para decidir si mueve el pin o cambia de ruta.
     final routeDistance =
@@ -390,17 +380,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
           '${kmLabel(routeDistance)} de tu punto. '
           'Mueve tu punto de espera o elige otra ruta';
       icon = Icons.wrong_location_rounded;
-    } else if (buses.isEmpty && outOfRange > 0) {
-      stateKey = 'empty-buses-far';
-      title = 'Ningún bus cerca de ti';
-      subtitle = outOfRange == 1
-          ? 'Hay 1 bus en esta ruta, pero va a más de '
-              '${visibleRadiusMeters ~/ 1000} km de tu punto. Aparecerá al '
-              'acercarse'
-          : 'Hay $outOfRange buses en esta ruta, pero todos van a más de '
-              '${visibleRadiusMeters ~/ 1000} km de tu punto. Aparecerán al '
-              'acercarse';
-      icon = Icons.travel_explore_rounded;
     } else if (buses.isEmpty) {
       stateKey = 'empty-no-buses';
       title = 'No hay buses en el mapa';

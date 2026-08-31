@@ -11,10 +11,10 @@ import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/pin_hint_provider.dart';
 import '../providers/tracking_providers.dart'
-    show nearbyRadiusMeters, selectedBusesProvider;
+    show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
-import '../providers/visible_buses_provider.dart' show visibleBusesProvider;
 import '../utils/bus_hit_test.dart';
+import '../utils/camera_fit.dart';
 import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
@@ -282,7 +282,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void _reapplyLastPositions() {
     final routeId = widget.routeId;
     if (routeId == null || !mounted || !_layersReady) return;
-    final positions = ref.read(visibleBusesProvider(routeId)).value;
+    final positions = ref.read(busPositionsSourceProvider(routeId)).value;
     if (positions != null) _updateBusSourceData(positions);
   }
 
@@ -293,12 +293,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _busMotions.clear();
     _busFeatures.clear();
     _stopBusAnimTicker();
-    // Se escucha la lista YA RECORTADA al radio del punto de espera, no la
-    // fuente entera: así el mapa se repinta también cuando el usuario mueve
-    // su pin (entran y salen buses del radio sin esperar al próximo paquete
-    // del socket), y no solo cuando llegan posiciones nuevas.
+    // Todos los buses de la ruta, sin recortar por distancia al punto de
+    // espera. El recorte a 5 km existía para no saturar el mapa en rutas
+    // largas, pero en la práctica escondía justo lo que el usuario abre la
+    // app a mirar: dónde está cada bus de su ruta, incluidos los que aún
+    // vienen lejos.
     _movingBusSubscription =
-        ref.listenManual(visibleBusesProvider(routeId), (previous, next) {
+        ref.listenManual(busPositionsSourceProvider(routeId), (previous, next) {
       if (!mounted) return;
       if (_lifecycleState != AppLifecycleState.resumed) return;
       next.whenData(_updateBusSourceData);
@@ -669,11 +670,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<bool> _doSelectBusAtTap(math.Point<double> point) async {
     try {
       final routeId = widget.routeId;
-      // Los mismos buses que están dibujados: si uno está fuera del radio no
-      // se pinta, y tocar donde estaría no puede seleccionarlo.
+      // Los mismos buses que están dibujados.
       final positions = routeId == null
           ? const <BusPosition>[]
-          : ref.read(visibleBusesProvider(routeId)).value ??
+          : ref.read(busPositionsSourceProvider(routeId)).value ??
               const <BusPosition>[];
       final screenPoints = <BusScreenPoint>[];
 
@@ -809,6 +809,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     _ensureBusAnimTicker();
     _pushBusSource();
+
+    // Primer lote de la ruta recién elegida: es el momento de encuadrar, y no
+    // antes. Hasta que no se sabe dónde están los buses no hay nada que
+    // enmarcar, y mover la cámara a ciegas al elegir ruta era justamente el
+    // salto que sacaba al usuario de la ciudad.
+    if (!_hasFitInitialRoute && _rawBuses.isNotEmpty) {
+      _hasFitInitialRoute = true;
+      fitLiveViewport(animated: true);
+    }
   }
 
   /// Convierte el primer bus visible en un rect global para que la guía pueda

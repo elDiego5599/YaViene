@@ -25,37 +25,34 @@ extension _MapRouteData on _MapWidgetState {
     if (_mapController == null || !mounted) return;
     _mapController!.setGeoJsonSource(_MapWidgetState._kRouteSourceId,
         trajectory.toGeoJsonFeatureCollection());
-
-    if (!_hasFitInitialRoute) {
-      fitRouteToVisibleViewport(trajectory, animated: true);
-      _hasFitInitialRoute = true;
-    }
   }
 
-  void fitRouteToVisibleViewport(RouteTrajectory trajectory,
-      {required bool animated}) {
-    if (_mapController == null || trajectory.points.length < 2 || !mounted) {
-      return;
-    }
+  /// Encuadra lo que está vivo: los buses de la ruta y el punto de espera.
+  ///
+  /// La caja la calcula `liveViewportBounds`; aquí solo se juntan los puntos
+  /// y se le pasa a la cámara.
+  void fitLiveViewport({required bool animated}) {
+    if (_mapController == null || !mounted) return;
 
-    double minLat = trajectory.points.first.lat;
-    double maxLat = trajectory.points.first.lat;
-    double minLon = trajectory.points.first.lon;
-    double maxLon = trajectory.points.first.lon;
+    final puntos = <FitPoint>[
+      for (final bus in _rawBuses.values) (lat: bus.lat, lon: bus.lon),
+    ];
+    final ubicacion = ref.read(userLocationProvider);
+    final lat = ubicacion.lat;
+    final lon = ubicacion.lon;
+    if (lat != null && lon != null) puntos.add((lat: lat, lon: lon));
 
-    for (final point in trajectory.points) {
-      if (point.lat < minLat) minLat = point.lat;
-      if (point.lat > maxLat) maxLat = point.lat;
-      if (point.lon < minLon) minLon = point.lon;
-      if (point.lon > maxLon) maxLon = point.lon;
-    }
+    final caja = liveViewportBounds(puntos);
+    // Sin nada que enmarcar es mejor no mover la cámara: el usuario la dejó
+    // donde tocó para poner su pin, y un salto a ninguna parte es peor que
+    // quedarse quieto.
+    if (caja == null) return;
 
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLon),
-      northeast: LatLng(maxLat, maxLon),
-    );
     final update = CameraUpdate.newLatLngBounds(
-      bounds,
+      LatLngBounds(
+        southwest: LatLng(caja.minLat, caja.minLon),
+        northeast: LatLng(caja.maxLat, caja.maxLon),
+      ),
       left: 40,
       top: 148,
       right: 40,
