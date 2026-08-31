@@ -37,17 +37,29 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
 }
 
-/// Dos alturas: plegada (solo el asa, el mapa entero a la vista) y abierta.
-/// El escalón intermedio se fue con la tarjeta del bus, que ya no se
-/// redimensiona: sin ella el paso de en medio no cambiaba nada más que
-/// cuánto mapa se veía, y pedía dos arrastres para lo que hace uno.
-enum _SheetSnap { collapsed, expanded }
-
-class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
+class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
+    with SingleTickerProviderStateMixin {
   static const double _expandedMapInset = 250;
   static const double _collapsedMapInset = 120;
 
-  _SheetSnap _snap = _SheetSnap.expanded;
+  /// Cuánta hoja hay a la vista: 1 abierta, 0 plegada.
+  ///
+  /// Es la MISMA variable que mueve el dedo mientras arrastra y la que
+  /// remata el camino al soltar. Por eso la hoja va exactamente donde va el
+  /// pulgar —no espera a que lo levantes para animarse de golpe— y termina
+  /// sola de subir o bajar según hacia dónde ibas.
+  late final AnimationController _pliegue;
+
+  /// El contenido se apaga en el último tramo de la bajada: desvaneciéndose
+  /// desde el principio, el texto se lee aplastándose contra el borde.
+  late final CurvedAnimation _opacidad;
+
+  /// Alto real del contenido, medido al empezar a arrastrar: es lo que
+  /// convierte los píxeles del dedo en fracción de hoja.
+  final GlobalKey _contenidoKey = GlobalKey();
+  double _altoContenido = 0;
+
+  bool _abierta = true;
   double _lastPublishedInset = -1;
   Timer? _refreshTimer;
 
@@ -61,6 +73,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   @override
   void initState() {
     super.initState();
+    _pliegue = AnimationController(
+      vsync: this,
+      // Abrir pesa más que cerrar, como algo que se levanta y algo que cae.
+      duration: AppMotion.entrada,
+      reverseDuration: AppMotion.pausado,
+      value: 1,
+    );
+    _opacidad = CurvedAnimation(
+      parent: _pliegue,
+      curve: const Interval(0.35, 1, curve: AppMotion.curvaEntrada),
+    );
     // Refresca el texto "Sin señal · hace X min" de un bus fantasma: sin
     // posiciones nuevas la UI no se reconstruye sola.
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -71,22 +94,55 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _opacidad.dispose();
+    _pliegue.dispose();
     super.dispose();
   }
 
-  /// Toca el asa: pliega o abre.
-  void _toggleSheet() {
-    setState(() => _snap = _snap == _SheetSnap.collapsed
-        ? _SheetSnap.expanded
-        : _SheetSnap.collapsed);
+  /// Deja la hoja abierta o plegada y termina el camino que quede.
+  ///
+  /// Con impulso del dedo remata con la física del arrastre (un resorte, el
+  /// mismo que usan las hojas del sistema): soltar con brío tiene que
+  /// llegar más rápido que soltar quieto.
+  void _asentar(bool abrir, {double impulso = 0}) {
+    if (AppMotion.reducido(context)) {
+      _pliegue.value = abrir ? 1 : 0;
+    } else if (impulso != 0) {
+      _pliegue.fling(velocity: impulso);
+    } else if (abrir) {
+      _pliegue.animateTo(1, curve: AppMotion.curvaEntrada);
+    } else {
+      _pliegue.animateBack(0, curve: AppMotion.curvaSalida);
+    }
+    if (_abierta == abrir) return;
+    setState(() => _abierta = abrir);
     _publishMapInset();
   }
 
-  /// Arrastra la hoja: hacia abajo la pliega, hacia arriba la abre.
-  void _setSnap(_SheetSnap next) {
-    if (_snap == next) return;
-    setState(() => _snap = next);
-    _publishMapInset();
+  void _arrastreEmpieza(DragStartDetails _) {
+    final alto = _contenidoKey.currentContext?.size?.height ?? 0;
+    // El contenido va recortado por el pliegue: cuando ya está plegada mide
+    // 0 y hay que quedarse con la última medida buena.
+    if (alto > 0) _altoContenido = alto;
+    _pliegue.stop();
+  }
+
+  void _arrastreSigue(DragUpdateDetails details) {
+    if (_altoContenido <= 0) return;
+    final avance = (details.primaryDelta ?? 0) / _altoContenido;
+    _pliegue.value = (_pliegue.value - avance).clamp(0.0, 1.0);
+  }
+
+  void _arrastreTermina(DragEndDetails details) {
+    final porSegundo = details.primaryVelocity ?? 0;
+    // Un empujón claro manda sobre dónde quedó la hoja: si el dedo iba
+    // hacia abajo, se cierra aunque estuviera casi abierta.
+    if (_altoContenido > 0 && porSegundo.abs() > 320) {
+      final impulso = -porSegundo / _altoContenido;
+      _asentar(porSegundo < 0, impulso: impulso);
+      return;
+    }
+    _asentar(_pliegue.value >= 0.5);
   }
 
   /// Activa/desactiva la alerta de un bus. La regla de negocio vive en
@@ -158,10 +214,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   }
 
   void _publishMapInset([double? forcedInset]) {
-    final defaultInset = switch (_snap) {
-      _SheetSnap.expanded => _expandedMapInset,
-      _SheetSnap.collapsed => _collapsedMapInset,
-    };
+    final defaultInset = _abierta ? _expandedMapInset : _collapsedMapInset;
     final inset = forcedInset ?? defaultInset;
     if (_lastPublishedInset == inset) return;
     _lastPublishedInset = inset;
@@ -202,7 +255,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     // usuario venía con la hoja plegada hay que devolverla a su sitio.
     ref.listen<Set<String>>(selectedBusesProvider, (previous, next) {
       if (previous != null && previous.isEmpty && next.isNotEmpty) {
-        setState(() => _snap = _SheetSnap.expanded);
+        _asentar(true);
       }
     });
 
@@ -213,7 +266,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       // es texto, y el mapa de debajo es lo que el usuario quiere tocar.
       return _sheetShell(
         toggleable: true,
-        child: _contenidoPlegable(_buildEmptyState(const [])),
+        child: _buildEmptyState(const []),
       );
     }
 
@@ -265,38 +318,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
                 buses,
               ),
             )
-          : _contenidoPlegable(_buildEmptyState(buses)),
+          : _buildEmptyState(buses),
     );
   }
-
-  /// El contenido de una tarjeta que se pliega: plegada no deja nada más que
-  /// el asa, para que el mapa se vea entero.
-  Widget _contenidoPlegable(Widget contenido) => _snap == _SheetSnap.collapsed
-      ? const KeyedSubtree(
-          key: ValueKey('sheet-collapsed'),
-          child: SizedBox.shrink(),
-        )
-      : contenido;
 
   /// Carcasa de la hoja: asa de arrastre + contenedor redondeado.
   ///
   /// [toggleable] controla el plegado por arrastre o toque del asa. La única
   /// tarjeta que no se pliega es la del bus seleccionado.
   Widget _sheetShell({required Widget child, required bool toggleable}) {
-    final plegada = _snap == _SheetSnap.collapsed;
     return GestureDetector(
-      // Arrastrar hacia abajo pliega, hacia arriba abre.
-      onVerticalDragEnd: toggleable
-          ? (details) {
-              final velocity = details.primaryVelocity;
-              if (velocity == null) return;
-              if (velocity > 0) {
-                _setSnap(_SheetSnap.collapsed);
-              } else if (velocity < 0) {
-                _setSnap(_SheetSnap.expanded);
-              }
-            }
-          : null,
+      // El dedo manda: la hoja baja y sube pegada al pulgar, y al soltar
+      // termina sola el camino que falte.
+      onVerticalDragStart: toggleable ? _arrastreEmpieza : null,
+      onVerticalDragUpdate: toggleable ? _arrastreSigue : null,
+      onVerticalDragEnd: toggleable ? _arrastreTermina : null,
       child: Container(
         key: widget.detailKey,
         width: double.infinity,
@@ -322,69 +358,81 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             children: [
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: toggleable ? _toggleSheet : null,
-                child: Padding(
-                  // Plegada, el asa es lo único que queda: se le deja el
-                  // mismo aire arriba y abajo para que no parezca un resto
-                  // de la tarjeta, sino un control.
-                  padding: EdgeInsets.only(top: 14, bottom: plegada ? 14 : 18),
-                  child: AnimatedContainer(
-                    key: const ValueKey('sheet-handle'),
-                    duration: AppMotion.duracion(context, AppMotion.normal),
-                    curve: AppMotion.curvaEntrada,
-                    width: plegada ? 56 : 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      // Plegada el asa se oscurece un punto: es la señal de
-                      // que ahí hay algo que abrir, sin añadir una flecha.
-                      color:
-                          plegada ? AppColors.textDisabled : AppColors.divider,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
+                onTap: toggleable ? () => _asentar(!_abierta) : null,
+                child: AnimatedBuilder(
+                  animation: _pliegue,
+                  builder: (context, _) {
+                    final abierta = _pliegue.value;
+                    return Padding(
+                      // Plegada, el asa es lo único que queda: se le deja el
+                      // mismo aire arriba y abajo para que no parezca un
+                      // resto de la tarjeta, sino un control.
+                      padding:
+                          EdgeInsets.only(top: 14, bottom: 14 + 4 * abierta),
+                      child: Container(
+                        key: const ValueKey('sheet-handle'),
+                        // El asa se ensancha y se oscurece a medida que la
+                        // hoja baja: es la señal de que ahí hay algo que
+                        // abrir, y se ve venir durante el arrastre.
+                        width: 56 - 12 * abierta,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Color.lerp(
+                            AppColors.textDisabled,
+                            AppColors.divider,
+                            abierta,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-              // El pliegue: la altura se anima anclada bajo el asa —dentro
-              // del contenedor, no fuera— para que el recorte nunca coma las
-              // esquinas redondeadas mientras la hoja crece o baja. Abrir
-              // tarda un poco más que cerrar, como algo que pesa: sale
-              // suelto y frena al llegar; al cerrar, al revés.
-              AnimatedSize(
-                duration: AppMotion.duracion(
-                  context,
-                  plegada ? AppMotion.pausado : AppMotion.entrada,
-                ),
-                curve: plegada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
+              // El pliegue: el alto se recorta anclado bajo el asa —dentro
+              // del contenedor, no fuera— para que nunca coma las esquinas
+              // redondeadas mientras la hoja crece o baja. El factor es el
+              // controlador crudo, sin curva: si le pusiéramos una, el
+              // arrastre dejaría de ir donde va el dedo.
+              SizeTransition(
+                key: const ValueKey('sheet-pliegue'),
+                sizeFactor: _pliegue,
                 alignment: Alignment.topCenter,
-                child: AnimatedSwitcher(
-                  duration: AppMotion.duracion(context, AppMotion.normal),
-                  switchInCurve: AppMotion.curvaEntrada,
-                  switchOutCurve: AppMotion.curvaSalida,
-                  // El contenido entrante y el saliente se apilan por su
-                  // borde superior, que es el que no se mueve: apilados por
-                  // el centro (lo que hace por defecto) el texto saltaba
-                  // hacia arriba mientras la hoja todavía bajaba.
-                  layoutBuilder: (actual, anteriores) => Stack(
-                    alignment: Alignment.topCenter,
-                    children: [
-                      ...anteriores,
-                      if (actual != null) actual,
-                    ],
-                  ),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        // Un dedo de recorrido, no más: acompaña al pliegue
-                        // en vez de competir con él.
-                        begin:
-                            Offset(0, 0.06 * AppMotion.desplazamiento(context)),
-                        end: Offset.zero,
-                      ).animate(animation),
+                child: FadeTransition(
+                  opacity: _opacidad,
+                  child: KeyedSubtree(
+                    key: _contenidoKey,
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.duracion(context, AppMotion.normal),
+                      switchInCurve: AppMotion.curvaEntrada,
+                      switchOutCurve: AppMotion.curvaSalida,
+                      // El contenido entrante y el saliente se apilan por su
+                      // borde superior, que es el que no se mueve: apilados
+                      // por el centro (lo que hace por defecto) el texto
+                      // saltaba hacia arriba mientras la hoja todavía bajaba.
+                      layoutBuilder: (actual, anteriores) => Stack(
+                        alignment: Alignment.topCenter,
+                        children: [
+                          ...anteriores,
+                          if (actual != null) actual,
+                        ],
+                      ),
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            // Un dedo de recorrido, no más: acompaña al
+                            // pliegue en vez de competir con él.
+                            begin: Offset(
+                                0, 0.06 * AppMotion.desplazamiento(context)),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
                       child: child,
                     ),
                   ),
-                  child: child,
                 ),
               ),
             ],

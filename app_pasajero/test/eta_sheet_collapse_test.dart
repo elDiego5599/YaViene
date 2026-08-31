@@ -11,9 +11,13 @@ class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
 }
 
-/// Todas las tarjetas de la hoja se pliegan tocando el asa. La única que no
-/// es la del bus seleccionado: es la que trae el botón de aviso, y plegarla
-/// justo después de tocar el bus escondía lo que el usuario venía a buscar.
+/// Todas las tarjetas de la hoja se pliegan tocando el asa o arrastrándola.
+/// La única que no es la del bus seleccionado: es la que trae el botón de
+/// aviso, y plegarla justo después de tocar el bus escondía lo que el usuario
+/// venía a buscar.
+///
+/// Plegada, el contenido sigue montado y solo queda recortado a cero: por eso
+/// aquí se mide el alto del pliegue en vez de buscar los textos.
 void main() {
   const userLat = 6.2442;
   const userLon = -75.5812;
@@ -66,9 +70,9 @@ void main() {
         lon: userLon,
       ),
     );
-    // La hoja crece con AnimatedSize anclada abajo: mientras la animación
-    // corre, su contenido asoma por encima del borde superior y el asa no se
-    // puede tocar. Se espera a que se asiente.
+    // La hoja crece con una transición: mientras corre, su contenido asoma
+    // por encima del borde superior y el asa no se puede tocar. Se espera a
+    // que se asiente.
     await tester.pumpAndSettle();
     return container;
   }
@@ -76,19 +80,55 @@ void main() {
   /// El asa de la hoja.
   Finder asa() => find.byKey(const ValueKey('sheet-handle'));
 
+  /// Cuánto contenido queda a la vista: 0 es plegada del todo.
+  double alto(WidgetTester tester) =>
+      tester.getSize(find.byKey(const ValueKey('sheet-pliegue'))).height;
+
   testWidgets('sin ruta la tarjeta se pliega y se vuelve a abrir',
       (tester) async {
     await pump(tester);
     expect(find.text('Escoge empresa y ruta'), findsOneWidget);
+    final abierta = alto(tester);
+    expect(abierta, greaterThan(0));
 
     await tester.tap(asa());
     await tester.pumpAndSettle();
-    expect(find.text('Escoge empresa y ruta'), findsNothing,
-        reason: 'plegada solo queda el asa');
+    expect(alto(tester), 0, reason: 'plegada solo queda el asa');
 
     await tester.tap(asa());
     await tester.pumpAndSettle();
-    expect(find.text('Escoge empresa y ruta'), findsOneWidget);
+    expect(alto(tester), abierta);
+  });
+
+  testWidgets('la hoja baja pegada al dedo y se abre sola al soltar',
+      (tester) async {
+    await pump(tester);
+    final abierta = alto(tester);
+
+    final gesto = await tester.startGesture(tester.getCenter(asa()));
+    for (var i = 0; i < 3; i++) {
+      await gesto.moveBy(Offset(0, abierta / 9));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    final aMedias = alto(tester);
+    expect(aMedias, lessThan(abierta), reason: 'baja mientras el dedo baja');
+    expect(aMedias, greaterThan(0), reason: 'no se cierra de golpe');
+
+    // Se suelta quieto: sin impulso, y a un tercio del camino, vuelve arriba.
+    await tester.pump(const Duration(milliseconds: 200));
+    await gesto.up();
+    await tester.pumpAndSettle();
+    expect(alto(tester), abierta);
+  });
+
+  testWidgets('soltar con impulso hacia abajo termina de plegarla',
+      (tester) async {
+    await pump(tester);
+    final abierta = alto(tester);
+
+    await tester.fling(asa(), Offset(0, abierta / 3), 1200);
+    await tester.pumpAndSettle();
+    expect(alto(tester), 0, reason: 'el impulso manda sobre lo recorrido');
   });
 
   testWidgets('con ruta y sin bus la tarjeta también se pliega',
@@ -102,7 +142,7 @@ void main() {
 
     await tester.tap(asa());
     await tester.pumpAndSettle();
-    expect(find.text('Toca un bus en el mapa'), findsNothing);
+    expect(alto(tester), 0);
   });
 
   testWidgets('la tarjeta del bus seleccionado NO se pliega', (tester) async {
