@@ -328,6 +328,33 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// [toggleable] controla el plegado por arrastre o toque del asa. La única
   /// tarjeta que no se pliega es la del bus seleccionado.
   Widget _sheetShell({required Widget child, required bool toggleable}) {
+    // Mientras el selector de ruta está arriba, la hoja se aparta.
+    //
+    // Las dos se apoyan en el mismo borde inferior: con el selector encima,
+    // esta asomaba por debajo como un segundo borde redondeado, y bajar el
+    // selector descubría otra tarjeta en vez del mapa. Se hunde un palmo y
+    // se apaga —no cruza la pantalla peleando con el selector, que entra por
+    // el mismo lado— y vuelve sola cuando el selector se cierra, también
+    // cuando no se eligió ruta, que es cuando hace falta que vuelva.
+    final apartada = ref.watch(routeSelectorOpenProvider);
+    final paso = AppMotion.duracion(context, AppMotion.pausado);
+    return IgnorePointer(
+      ignoring: apartada,
+      child: AnimatedSlide(
+        offset: apartada ? const Offset(0, 0.4) : Offset.zero,
+        duration: paso,
+        curve: apartada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
+        child: AnimatedOpacity(
+          opacity: apartada ? 0 : 1,
+          duration: paso,
+          curve: apartada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
+          child: _sheetBody(child: child, toggleable: toggleable),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetBody({required Widget child, required bool toggleable}) {
     return GestureDetector(
       // El dedo manda: la hoja baja y sube pegada al pulgar, y al soltar
       // termina sola el camino que falte.
@@ -502,8 +529,20 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.textDisabled, size: 32),
-            const SizedBox(height: 12),
+            // El icono va en su medallón, como los de los tiles del selector
+            // y el de la píldora de ubicación: suelto sobre la arena era un
+            // glifo gris flotando en el hueco más grande de la pantalla.
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.hairline),
+              ),
+              child: Icon(icon, color: AppColors.textSecondary, size: 26),
+            ),
+            const SizedBox(height: 14),
             Text(
               title,
               style: const TextStyle(

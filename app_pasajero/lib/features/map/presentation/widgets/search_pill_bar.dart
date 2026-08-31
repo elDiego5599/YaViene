@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/map_view_state.dart';
 import 'route_selector_sheet.dart';
 
 class SearchPillBar extends ConsumerStatefulWidget {
@@ -268,18 +269,29 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     );
   }
 
-  void _openSelector() {
+  /// Abre el selector y avisa mientras esté arriba.
+  ///
+  /// El aviso es lo que aparta la hoja de distancia, que se apoya en el
+  /// mismo borde: la bandera se baja cuando el diálogo termina de cerrarse,
+  /// haya elegido ruta o no, así que la hoja vuelve sola si el usuario se
+  /// arrepintió.
+  Future<void> _openSelector() async {
     widget.onSearchOpened?.call();
-    RouteSelectorSheet.show(
-      context,
-      sheet: RouteSelectorSheet(
-        companyGuideKey: widget.companyGuideKey,
-        companyChoiceGuideKey: widget.companyChoiceGuideKey,
-        routeGuideKey: widget.routeGuideKey,
-        routeChoiceGuideKey: widget.routeChoiceGuideKey,
-        launchBusesGuideKey: widget.launchBusesGuideKey,
-      ),
-    );
+    ref.read(routeSelectorOpenProvider.notifier).state = true;
+    try {
+      await RouteSelectorSheet.show(
+        context,
+        sheet: RouteSelectorSheet(
+          companyGuideKey: widget.companyGuideKey,
+          companyChoiceGuideKey: widget.companyChoiceGuideKey,
+          routeGuideKey: widget.routeGuideKey,
+          routeChoiceGuideKey: widget.routeChoiceGuideKey,
+          launchBusesGuideKey: widget.launchBusesGuideKey,
+        ),
+      );
+    } finally {
+      if (mounted) ref.read(routeSelectorOpenProvider.notifier).state = false;
+    }
   }
 
   Widget _buildFilterButton() {

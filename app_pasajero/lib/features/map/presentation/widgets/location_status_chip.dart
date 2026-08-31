@@ -204,7 +204,13 @@ class _PillData {
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  /// La acción es de quitar/eliminar: se pinta en rojo suave en vez de verde.
+  /// La acción solo deshace, no destruye: se pinta en gris en vez de verde.
+  ///
+  /// Estaba en rojo de error. Quitar el punto de espera no borra nada —se
+  /// vuelve al GPS y se puede volver a poner tocando el mapa— y el rojo
+  /// prometía una consecuencia que no existe; encima era la única alarma de
+  /// la pantalla de inicio. Mismo criterio que la X que quita la ruta activa
+  /// en la barra de búsqueda.
   final bool actionDanger;
   final Color tint;
 }
@@ -291,11 +297,14 @@ class _Pill extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: data.actionDanger
-                        ? AppColors.errorLight
+                        ? AppColors.surfaceMuted
                         // F4: primaryAccessible da 4.5:1 con texto blanco;
                         // primary a secas se queda en ~3.1:1.
                         : AppColors.primaryAccessible,
                     borderRadius: BorderRadius.circular(14),
+                    border: data.actionDanger
+                        ? Border.all(color: AppColors.hairline)
+                        : null,
                   ),
                   child: Text(
                     data.actionLabel!,
@@ -303,7 +312,9 @@ class _Pill extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.2,
-                      color: data.actionDanger ? AppColors.error : Colors.white,
+                      color: data.actionDanger
+                          ? AppColors.textSecondary
+                          : Colors.white,
                     ),
                   ),
                 ),

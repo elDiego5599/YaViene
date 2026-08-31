@@ -3,6 +3,16 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 
 final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
 
+/// El selector de ruta está arriba, ocupando la pantalla.
+///
+/// Se apoya en el mismo borde inferior que la hoja de distancia, así que
+/// mientras esté abierto la hoja se aparta: si no, asoma por debajo del
+/// selector como un segundo borde redondeado, y al arrastrar el selector
+/// hacia abajo aparecía otra tarjeta detrás en vez del mapa. Vuelve sola al
+/// cerrarse el selector —también, y sobre todo, cuando no se eligió ruta.
+final routeSelectorOpenProvider =
+    StateProvider.autoDispose<bool>((ref) => false);
+
 /// F7: si la superposición "Preparando tu mapa…" sigue visible, el resto de
 /// la pantalla no debe amontonar sus propios indicadores de carga (ubicación,
 /// conexión) encima — un solo estado coordinado en vez de tres sueltos.
