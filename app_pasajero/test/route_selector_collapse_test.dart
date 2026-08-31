@@ -86,21 +86,67 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Cuánto contenido queda a la vista: 0 es plegada del todo.
+  double altoPliegue(WidgetTester tester) =>
+      tester.getSize(find.byKey(const ValueKey('selector-pliegue'))).height;
+
+  /// Lo oscuro que está el mapa detrás de la tarjeta.
+  double velo(WidgetTester tester) => tester
+      .widget<ColoredBox>(find.byKey(const ValueKey('selector-velo')))
+      .color
+      .a;
+
   testWidgets('la tarjeta principal se pliega y se vuelve a abrir',
       (tester) async {
     await abrir(tester);
     final abierta = altoTarjeta(tester);
+    expect(velo(tester), greaterThan(0));
 
     await tester.tap(asa());
     await tester.pumpAndSettle();
-    expect(find.text('Elige tu ruta'), findsNothing);
+    expect(altoPliegue(tester), 0);
     expect(altoTarjeta(tester), lessThan(abierta));
     expect(asa(), findsOneWidget, reason: 'el asa es lo que queda para abrir');
+    expect(velo(tester), 0,
+        reason: 'plegarla es pedir ver el mapa: el velo se va con ella');
 
     await tester.tap(asa());
     await tester.pumpAndSettle();
     expect(find.text('Elige tu ruta'), findsOneWidget);
     expect(altoTarjeta(tester), abierta);
+    expect(velo(tester), greaterThan(0));
+  });
+
+  testWidgets('la tarjeta baja pegada al dedo y se abre sola al soltar',
+      (tester) async {
+    await abrir(tester);
+    final abierta = altoPliegue(tester);
+
+    final gesto = await tester.startGesture(tester.getCenter(asa()));
+    for (var i = 0; i < 3; i++) {
+      await gesto.moveBy(Offset(0, abierta / 9));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    final aMedias = altoPliegue(tester);
+    expect(aMedias, lessThan(abierta), reason: 'baja mientras el dedo baja');
+    expect(aMedias, greaterThan(0), reason: 'no se cierra de golpe');
+    expect(velo(tester), lessThan(0.40), reason: 'el velo se aclara con ella');
+
+    // Se suelta quieto y a un tercio del camino: vuelve arriba.
+    await tester.pump(const Duration(milliseconds: 200));
+    await gesto.up();
+    await tester.pumpAndSettle();
+    expect(altoPliegue(tester), abierta);
+  });
+
+  testWidgets('soltar con impulso hacia abajo termina de plegarla',
+      (tester) async {
+    await abrir(tester);
+    final abierta = altoPliegue(tester);
+
+    await tester.fling(asa(), Offset(0, abierta / 3), 1200);
+    await tester.pumpAndSettle();
+    expect(altoPliegue(tester), 0, reason: 'el impulso manda sobre lo andado');
   });
 
   testWidgets('eligiendo empresa o ruta el asa ya no pliega', (tester) async {
@@ -114,6 +160,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Elige empresa'), findsOneWidget);
     expect(altoTarjeta(tester), alto);
+    expect(velo(tester), greaterThan(0), reason: 'el velo se queda');
 
     await tester.tap(find.text('Sobusa'));
     await tester.pumpAndSettle();

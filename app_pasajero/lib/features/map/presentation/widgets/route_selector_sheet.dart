@@ -43,14 +43,15 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       context: context,
       barrierDismissible: false,
       barrierLabel: 'Selector de ruta',
-      // El framework anima este barrier con fade, nunca con slide.
-      barrierColor: const Color(0x66000000),
+      // El velo NO es el del framework: es fijo y se quedaba encima del mapa
+      // con la tarjeta plegada, que es justo lo que uno pliega para ver. Lo
+      // dibuja la hoja, y así se aclara al mismo tiempo que ella baja.
+      barrierColor: Colors.transparent,
       transitionDuration: AppMotion.pausado,
-      transitionBuilder: (context, animation, _, child) => FadeSlideTransition(
-        animation: animation,
-        begin: const Offset(0, 0.06),
-        child: child,
-      ),
+      // La entrada la reparte la hoja por dentro: la tarjeta se desliza y el
+      // velo solo se aclara. Un velo a pantalla completa que además sube
+      // destapa una franja arriba mientras entra.
+      transitionBuilder: (context, animation, _, child) => child,
       pageBuilder: (context, _, __) => sheet,
     );
   }
@@ -68,7 +69,8 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
 /// tile real —que es justo lo que se medía para fijar el alto de las listas.
 const double _kTileHeight = 78;
 
-class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
+class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
+    with SingleTickerProviderStateMixin {
   static const double _fallbackCardHeight = 480;
 
   final GlobalKey _hostKey = GlobalKey();
@@ -85,7 +87,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   /// Solo la principal: dentro de las listas de empresa y de ruta el gesto
   /// se apaga, porque ahí el usuario está en mitad de una elección y el asa
   /// es lo único que separa la lista del borde de la pantalla.
-  bool _plegada = false;
+  ///
+  /// 1 abierta, 0 plegada. Va pegado al dedo mientras arrastra y remata solo
+  /// el camino que falte al soltar; el velo del fondo lee el mismo valor.
+  late final AnimationController _pliegue;
+  late final CurvedAnimation _opacidad;
+  final GlobalKey _contenidoKey = GlobalKey();
+  double _altoContenido = 0;
+  bool _abierta = true;
   Rect? _target;
   MapGuideStep? _measuredStep;
   GlobalKey? _measuredKey;
@@ -103,8 +112,27 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   Timer? _routeHintTimer;
 
   @override
+  void initState() {
+    super.initState();
+    _pliegue = AnimationController(
+      vsync: this,
+      duration: AppMotion.entrada,
+      reverseDuration: AppMotion.pausado,
+      value: 1,
+    );
+    _opacidad = CurvedAnimation(
+      parent: _pliegue,
+      // El contenido se apaga en el último tramo: desvaneciéndose desde el
+      // principio, el texto se lee aplastándose contra el borde.
+      curve: const Interval(0.35, 1, curve: AppMotion.curvaEntrada),
+    );
+  }
+
+  @override
   void dispose() {
     _routeHintTimer?.cancel();
+    _opacidad.dispose();
+    _pliegue.dispose();
     super.dispose();
   }
 
@@ -121,13 +149,49 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     setState(() {
       _haciaDentro = vista != _RouteView.main;
       _view = vista;
-      _plegada = false;
     });
+    // En las listas no se pliega: si venía plegada, se abre al entrar.
+    _asentar(true);
   }
 
-  void _plegar() {
+  /// Deja la tarjeta abierta o plegada y termina el camino que quede. Con
+  /// impulso del dedo remata con la física del arrastre, como las hojas del
+  /// sistema: soltar con brío llega antes que soltar quieto.
+  void _asentar(bool abrir, {double impulso = 0}) {
+    if (AppMotion.reducido(context)) {
+      _pliegue.value = abrir ? 1 : 0;
+    } else if (impulso != 0) {
+      _pliegue.fling(velocity: impulso);
+    } else if (abrir) {
+      _pliegue.animateTo(1, curve: AppMotion.curvaEntrada);
+    } else {
+      _pliegue.animateBack(0, curve: AppMotion.curvaSalida);
+    }
+    if (_abierta == abrir) return;
     HapticFeedback.lightImpact();
-    setState(() => _plegada = !_plegada);
+    setState(() => _abierta = abrir);
+  }
+
+  void _arrastreEmpieza(DragStartDetails _) {
+    final alto = _contenidoKey.currentContext?.size?.height ?? 0;
+    if (alto > 0) _altoContenido = alto;
+    _pliegue.stop();
+  }
+
+  void _arrastreSigue(DragUpdateDetails details) {
+    if (_altoContenido <= 0) return;
+    final avance = (details.primaryDelta ?? 0) / _altoContenido;
+    _pliegue.value = (_pliegue.value - avance).clamp(0.0, 1.0);
+  }
+
+  void _arrastreTermina(DragEndDetails details) {
+    final porSegundo = details.primaryVelocity ?? 0;
+    // Un empujón claro manda sobre dónde quedó la tarjeta.
+    if (_altoContenido > 0 && porSegundo.abs() > 320) {
+      _asentar(porSegundo < 0, impulso: -porSegundo / _altoContenido);
+      return;
+    }
+    _asentar(_pliegue.value >= 0.5);
   }
 
   void _clearRouteHint() {
@@ -163,10 +227,27 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
         _measuredStep == step &&
         _measuredKey == targetKey;
 
+    // La animación de la ruta: el velo se aclara con ella y la tarjeta,
+    // además, entra deslizándose desde abajo.
+    final entrada =
+        ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
+
     return Stack(
       key: _hostKey,
       fit: StackFit.expand,
       children: [
+        // El velo se aclara a la vez que la tarjeta baja: plegarla es pedir
+        // ver el mapa, y un velo fijo encima dejaba el gesto a medias.
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_pliegue, entrada]),
+            builder: (context, _) => ColoredBox(
+              key: const ValueKey('selector-velo'),
+              color: AppColors.ink
+                  .withValues(alpha: 0.40 * _pliegue.value * entrada.value),
+            ),
+          ),
+        ),
         if (!guided) ...[
           Positioned.fill(
             child: GestureDetector(
@@ -175,7 +256,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
             ),
           ),
         ],
-        _buildCard(context, plegable: !guided),
+        FadeSlideTransition(
+          animation: entrada,
+          begin: const Offset(0, 0.06),
+          child: _buildCard(context, plegable: !guided),
+        ),
         if (showOverlay)
           Positioned.fill(
             child: MapGuideOverlay(
@@ -281,96 +366,98 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
     // Plegar solo tiene sentido en la vista principal: en las listas el
     // gesto se apaga y el asa vuelve a ser un adorno.
     final puedePlegar = plegable && _view == _RouteView.main;
-    final plegada = puedePlegar && _plegada;
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Material(
-        // Misma superficie que la hoja de distancia (AppColors.arena):
-        // las dos tarjetas se ven una detrás de otra en el mismo flujo y
-        // el salto de blanco a arena las hacía parecer de apps distintas.
-        color: AppColors.arena,
-        // Sobre el velo oscuro del diálogo una sombra ancha no se ve;
-        // lo que define la tarjeta es el filo. Mismo tratamiento que la
-        // hoja de distancia, que se ve justo después.
-        elevation: 8,
-        shadowColor: const Color(0x3314274E),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          side: BorderSide(color: AppColors.hairline),
-        ),
-        clipBehavior: Clip.antiAlias,
-        // El inset del indicador de inicio va DENTRO de la hoja, no
-        // debajo. Antes empujaba la tarjeta entera hacia arriba y
-        // quedaba flotando: dos esquinas inferiores rectas cortadas a
-        // media pantalla con el mapa oscurecido asomando debajo. Una
-        // hoja se apoya en el borde de la pantalla; lo que se aparta
-        // del indicador es su contenido.
-        child: Padding(
-          padding: EdgeInsets.only(bottom: bottomInset),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // El asa sale de las vistas y sube aquí: es de la hoja, no
-              // del contenido. Así se queda quieta mientras las vistas
-              // se cruzan de lado, y es lo único que sobrevive cuando la
-              // hoja se pliega.
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: puedePlegar ? _plegar : null,
-                onVerticalDragEnd: puedePlegar
-                    ? (details) {
-                        final v = details.primaryVelocity ?? 0;
-                        if (v.abs() < 120) return;
-                        if ((v > 0) != _plegada) _plegar();
-                      }
-                    : null,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: 16,
-                    bottom: plegada ? 16 : 0,
+      child: GestureDetector(
+        // El dedo manda: la tarjeta baja y sube pegada al pulgar y termina
+        // sola el camino que falte al soltar.
+        onVerticalDragStart: puedePlegar ? _arrastreEmpieza : null,
+        onVerticalDragUpdate: puedePlegar ? _arrastreSigue : null,
+        onVerticalDragEnd: puedePlegar ? _arrastreTermina : null,
+        child: Material(
+          // Misma superficie que la hoja de distancia (AppColors.arena):
+          // las dos tarjetas se ven una detrás de otra en el mismo flujo y
+          // el salto de blanco a arena las hacía parecer de apps distintas.
+          color: AppColors.arena,
+          // Sobre el velo oscuro del diálogo una sombra ancha no se ve;
+          // lo que define la tarjeta es el filo. Mismo tratamiento que la
+          // hoja de distancia, que se ve justo después.
+          elevation: 8,
+          shadowColor: const Color(0x3314274E),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            side: BorderSide(color: AppColors.hairline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          // El inset del indicador de inicio va DENTRO de la hoja, no
+          // debajo. Antes empujaba la tarjeta entera hacia arriba y
+          // quedaba flotando: dos esquinas inferiores rectas cortadas a
+          // media pantalla con el mapa oscurecido asomando debajo. Una
+          // hoja se apoya en el borde de la pantalla; lo que se aparta
+          // del indicador es su contenido.
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomInset),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // El asa sale de las vistas y sube aquí: es de la hoja, no
+                // del contenido. Así se queda quieta mientras las vistas
+                // se cruzan de lado, y es lo único que sobrevive cuando la
+                // hoja se pliega.
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: puedePlegar ? () => _asentar(!_abierta) : null,
+                  child: AnimatedBuilder(
+                    animation: _pliegue,
+                    builder: (context, _) => Padding(
+                      padding: EdgeInsets.only(
+                        top: 16,
+                        bottom: 16 * (1 - _pliegue.value),
+                      ),
+                      child: _handle(_pliegue.value),
+                    ),
                   ),
-                  child: _handle(plegada: plegada),
                 ),
-              ),
-              // El pliegue va dentro del Material, anclado bajo el asa:
-              // por fuera, el recorte de la animación se comía las
-              // esquinas redondeadas de arriba mientras la hoja crecía.
-              AnimatedSize(
-                duration: AppMotion.duracion(
-                  context,
-                  plegada ? AppMotion.pausado : AppMotion.entrada,
-                ),
-                curve: plegada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
-                alignment: Alignment.topCenter,
-                child: AnimatedSwitcher(
-                  duration: AppMotion.duracion(context, AppMotion.normal),
-                  switchInCurve: AppMotion.curvaEntrada,
-                  switchOutCurve: AppMotion.curvaSalida,
-                  // Empuje lateral, como una pila de navegación: lo que entra
-                  // llega del lado hacia el que vamos y lo que sale se va por
-                  // el contrario. Antes las dos vistas venían del mismo lado
-                  // con un desplazamiento de 0.04 —imperceptible—, así que
-                  // entrar y volver se veían idénticos: solo un parpadeo.
-                  transitionBuilder: (child, animation) {
-                    final entra = (child.key as ValueKey?)?.value == _view;
-                    final lado = _haciaDentro ? 1.0 : -1.0;
-                    final desde = (entra ? lado : -lado) *
-                        (AppMotion.reducido(context) ? 0.0 : 0.18);
-                    final slide = Tween<Offset>(
-                      begin: Offset(desde, 0),
-                      end: Offset.zero,
-                    ).animate(animation);
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(position: slide, child: child),
-                    );
-                  },
-                  child: plegada
-                      ? const KeyedSubtree(
-                          key: ValueKey('selector-plegado'),
-                          child: SizedBox(width: double.infinity),
-                        )
-                      : KeyedSubtree(
+                // El pliegue va dentro del Material, anclado bajo el asa:
+                // por fuera, el recorte de la animación se comía las
+                // esquinas redondeadas de arriba mientras la hoja crecía.
+                // El factor es el controlador crudo, sin curva: con una curva
+                // el arrastre dejaría de ir donde va el dedo.
+                SizeTransition(
+                  key: const ValueKey('selector-pliegue'),
+                  sizeFactor: _pliegue,
+                  alignment: Alignment.topCenter,
+                  child: FadeTransition(
+                    opacity: _opacidad,
+                    child: KeyedSubtree(
+                      key: _contenidoKey,
+                      child: AnimatedSwitcher(
+                        duration: AppMotion.duracion(context, AppMotion.normal),
+                        switchInCurve: AppMotion.curvaEntrada,
+                        switchOutCurve: AppMotion.curvaSalida,
+                        // Empuje lateral, como una pila de navegación: lo
+                        // que entra llega del lado hacia el que vamos y lo
+                        // que sale se va por el contrario. Antes las dos
+                        // vistas venían del mismo lado con un desplazamiento
+                        // de 0.04 —imperceptible—, así que entrar y volver se
+                        // veían idénticos: solo un parpadeo.
+                        transitionBuilder: (child, animation) {
+                          final entra =
+                              (child.key as ValueKey?)?.value == _view;
+                          final lado = _haciaDentro ? 1.0 : -1.0;
+                          final desde = (entra ? lado : -lado) *
+                              (AppMotion.reducido(context) ? 0.0 : 0.18);
+                          final slide = Tween<Offset>(
+                            begin: Offset(desde, 0),
+                            end: Offset.zero,
+                          ).animate(animation);
+                          return FadeTransition(
+                            opacity: animation,
+                            child:
+                                SlideTransition(position: slide, child: child),
+                          );
+                        },
+                        child: KeyedSubtree(
                           key: ValueKey(_view),
                           child: switch (_view) {
                             _RouteView.main => _buildMainView(context),
@@ -386,9 +473,12 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
                               ),
                           },
                         ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -805,16 +895,18 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet> {
   /// El asa de la hoja, la misma que la de la tarjeta de distancia: al
   /// plegarse ensancha y se oscurece un punto, que es la señal de que ahí
   /// hay algo que volver a abrir sin tener que dibujar una flecha.
-  Widget _handle({bool plegada = false}) {
+  Widget _handle(double abierta) {
     return Center(
-      child: AnimatedContainer(
+      child: Container(
         key: const ValueKey('selector-handle'),
-        duration: AppMotion.duracion(context, AppMotion.normal),
-        curve: AppMotion.curvaEntrada,
-        width: plegada ? 56 : 44,
+        width: 56 - 12 * abierta,
         height: 5,
         decoration: BoxDecoration(
-          color: plegada ? AppColors.textDisabled : AppColors.divider,
+          color: Color.lerp(
+            AppColors.textDisabled,
+            AppColors.divider,
+            abierta,
+          ),
           borderRadius: BorderRadius.circular(999),
         ),
       ),
