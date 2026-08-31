@@ -37,14 +37,14 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
 }
 
-/// V3: 3 alturas de anclaje en vez de "abierta o cerrada" — como Uber. Un
-/// arrastre mueve un escalón (colapsada↔peek↔expandida); tocar el asa salta
-/// directo entre los dos extremos.
-enum _SheetSnap { collapsed, peek, expanded }
+/// Dos alturas: plegada (solo el asa, el mapa entero a la vista) y abierta.
+/// El escalón intermedio se fue con la tarjeta del bus, que ya no se
+/// redimensiona: sin ella el paso de en medio no cambiaba nada más que
+/// cuánto mapa se veía, y pedía dos arrastres para lo que hace uno.
+enum _SheetSnap { collapsed, expanded }
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   static const double _expandedMapInset = 250;
-  static const double _peekMapInset = 170;
   static const double _collapsedMapInset = 120;
 
   _SheetSnap _snap = _SheetSnap.expanded;
@@ -74,8 +74,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     super.dispose();
   }
 
-  /// Toca el asa: salta directo entre los dos extremos (sin pasar por peek),
-  /// el mismo gesto rápido de "abrir/cerrar" de siempre.
+  /// Toca el asa: pliega o abre.
   void _toggleSheet() {
     setState(() => _snap = _snap == _SheetSnap.collapsed
         ? _SheetSnap.expanded
@@ -83,13 +82,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     _publishMapInset();
   }
 
-  /// Arrastra la hoja: un escalón hacia arriba o hacia abajo entre las 3
-  /// alturas, en vez de saltar directo al extremo opuesto.
-  void _stepSnap(int direction) {
-    const order = _SheetSnap.values;
-    final next = (_snap.index + direction).clamp(0, order.length - 1);
-    if (next == _snap.index) return;
-    setState(() => _snap = order[next]);
+  /// Arrastra la hoja: hacia abajo la pliega, hacia arriba la abre.
+  void _setSnap(_SheetSnap next) {
+    if (_snap == next) return;
+    setState(() => _snap = next);
     _publishMapInset();
   }
 
@@ -164,7 +160,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   void _publishMapInset([double? forcedInset]) {
     final defaultInset = switch (_snap) {
       _SheetSnap.expanded => _expandedMapInset,
-      _SheetSnap.peek => _peekMapInset,
       _SheetSnap.collapsed => _collapsedMapInset,
     };
     final inset = forcedInset ?? defaultInset;
@@ -203,13 +198,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     });
 
-    // Tocar un bus con la hoja colapsada debe mostrar la tarjeta del bus:
-    // la selección nueva expande la hoja automáticamente.
+    // Tocar un bus abre la hoja: su tarjeta ya no se pliega, así que si el
+    // usuario venía con la hoja plegada hay que devolverla a su sitio.
     ref.listen<Set<String>>(selectedBusesProvider, (previous, next) {
-      if (previous != null &&
-          previous.isEmpty &&
-          next.isNotEmpty &&
-          _snap == _SheetSnap.collapsed) {
+      if (previous != null && previous.isEmpty && next.isNotEmpty) {
         setState(() => _snap = _SheetSnap.expanded);
       }
     });
@@ -217,10 +209,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     if (selectedRoute == null) {
       _publishMapInset(0);
       // Sin ruta tampoco se muestra la hoja: si aún no hay ubicación invita
-      // a tocar el mapa desde el primer momento.
+      // a tocar el mapa desde el primer momento. Y se pliega como las demás:
+      // es texto, y el mapa de debajo es lo que el usuario quiere tocar.
       return _sheetShell(
-        toggleable: false,
-        child: _buildEmptyState(const []),
+        toggleable: true,
+        child: _contenidoPlegable(_buildEmptyState(const [])),
       );
     }
 
@@ -254,97 +247,147 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
       }
     });
 
+    // La tarjeta del bus seleccionado es la única que no se pliega: es la que
+    // trae el aviso, y plegarla justo después de tocar el bus escondía el
+    // botón que el usuario venía a buscar. Se cierra soltando el bus, no
+    // arrastrando la hoja. Las demás tarjetas solo explican o invitan, así
+    // que se pliegan para devolver el mapa entero.
+    final tarjetaDeBus = selectedBuses.isNotEmpty;
+
     return _sheetShell(
-      toggleable: true,
-      child: _snap == _SheetSnap.collapsed
-          ? const KeyedSubtree(
-              key: ValueKey('sheet-collapsed'),
-              child: SizedBox.shrink(),
+      toggleable: !tarjetaDeBus,
+      child: tarjetaDeBus
+          ? KeyedSubtree(
+              key: ValueKey('sheet-bus-${selectedBuses.first}'),
+              child: _buildSingleBusState(
+                selectedBuses.first,
+                busById[selectedBuses.first],
+                buses,
+              ),
             )
-          : selectedBuses.isEmpty
-              ? _buildEmptyState(buses)
-              : KeyedSubtree(
-                  key: ValueKey('sheet-bus-${_snap.name}'),
-                  child: _buildSingleBusState(
-                    selectedBuses.first,
-                    busById[selectedBuses.first],
-                    buses,
-                    peek: _snap == _SheetSnap.peek,
-                  ),
-                ),
+          : _contenidoPlegable(_buildEmptyState(buses)),
     );
   }
 
-  /// Carcasa de la hoja: asa de arrastre + contenedor blanco redondeado.
-  /// [toggleable] controla el colapso por arrastre/toque del asa (sin ruta
-  /// seleccionada la hoja no colapsa: siempre muestra su contenido).
+  /// El contenido de una tarjeta que se pliega: plegada no deja nada más que
+  /// el asa, para que el mapa se vea entero.
+  Widget _contenidoPlegable(Widget contenido) => _snap == _SheetSnap.collapsed
+      ? const KeyedSubtree(
+          key: ValueKey('sheet-collapsed'),
+          child: SizedBox.shrink(),
+        )
+      : contenido;
+
+  /// Carcasa de la hoja: asa de arrastre + contenedor redondeado.
+  ///
+  /// [toggleable] controla el plegado por arrastre o toque del asa. La única
+  /// tarjeta que no se pliega es la del bus seleccionado.
   Widget _sheetShell({required Widget child, required bool toggleable}) {
+    final plegada = _snap == _SheetSnap.collapsed;
     return GestureDetector(
-      // V3: el arrastre avanza un escalón entre las 3 alturas (Uber), no
-      // salta directo al extremo opuesto.
+      // Arrastrar hacia abajo pliega, hacia arriba abre.
       onVerticalDragEnd: toggleable
           ? (details) {
               final velocity = details.primaryVelocity;
               if (velocity == null) return;
               if (velocity > 0) {
-                _stepSnap(-1);
+                _setSnap(_SheetSnap.collapsed);
               } else if (velocity < 0) {
-                _stepSnap(1);
+                _setSnap(_SheetSnap.expanded);
               }
             }
           : null,
-      child: AnimatedSize(
-        duration: AppMotion.pausado,
-        curve: AppMotion.curvaEntrada,
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          key: widget.detailKey,
-          width: double.infinity,
-          // Un filo de un pixel separa la hoja del mapa mejor que una
-          // sombra ancha: la sombra sobre un mapa lleno de color se lee
-          // como suciedad, el filo se lee como borde.
-          decoration: BoxDecoration(
-            color: AppColors.arena,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border.all(color: AppColors.hairline),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDeep.withValues(alpha: 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              )
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: toggleable ? _toggleSheet : null,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 14, bottom: 18),
-                    child: Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+      child: Container(
+        key: widget.detailKey,
+        width: double.infinity,
+        // Un filo de un pixel separa la hoja del mapa mejor que una sombra
+        // ancha: la sombra sobre un mapa lleno de color se lee como
+        // suciedad, el filo se lee como borde.
+        decoration: BoxDecoration(
+          color: AppColors.arena,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: AppColors.hairline),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryDeep.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            )
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: toggleable ? _toggleSheet : null,
+                child: Padding(
+                  // Plegada, el asa es lo único que queda: se le deja el
+                  // mismo aire arriba y abajo para que no parezca un resto
+                  // de la tarjeta, sino un control.
+                  padding: EdgeInsets.only(top: 14, bottom: plegada ? 14 : 18),
+                  child: AnimatedContainer(
+                    key: const ValueKey('sheet-handle'),
+                    duration: AppMotion.duracion(context, AppMotion.normal),
+                    curve: AppMotion.curvaEntrada,
+                    width: plegada ? 56 : 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      // Plegada el asa se oscurece un punto: es la señal de
+                      // que ahí hay algo que abrir, sin añadir una flecha.
+                      color:
+                          plegada ? AppColors.textDisabled : AppColors.divider,
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                AnimatedSwitcher(
-                  duration: AppMotion.normal,
+              ),
+              // El pliegue: la altura se anima anclada bajo el asa —dentro
+              // del contenedor, no fuera— para que el recorte nunca coma las
+              // esquinas redondeadas mientras la hoja crece o baja. Abrir
+              // tarda un poco más que cerrar, como algo que pesa: sale
+              // suelto y frena al llegar; al cerrar, al revés.
+              AnimatedSize(
+                duration: AppMotion.duracion(
+                  context,
+                  plegada ? AppMotion.pausado : AppMotion.entrada,
+                ),
+                curve: plegada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
+                alignment: Alignment.topCenter,
+                child: AnimatedSwitcher(
+                  duration: AppMotion.duracion(context, AppMotion.normal),
                   switchInCurve: AppMotion.curvaEntrada,
                   switchOutCurve: AppMotion.curvaSalida,
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
+                  // El contenido entrante y el saliente se apilan por su
+                  // borde superior, que es el que no se mueve: apilados por
+                  // el centro (lo que hace por defecto) el texto saltaba
+                  // hacia arriba mientras la hoja todavía bajaba.
+                  layoutBuilder: (actual, anteriores) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      ...anteriores,
+                      if (actual != null) actual,
+                    ],
+                  ),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        // Un dedo de recorrido, no más: acompaña al pliegue
+                        // en vez de competir con él.
+                        begin:
+                            Offset(0, 0.06 * AppMotion.desplazamiento(context)),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
                   child: child,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -434,8 +477,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
   }
 
   Widget _buildSingleBusState(
-      String busId, BusPosition? bus, List<BusPosition> buses,
-      {bool peek = false}) {
+      String busId, BusPosition? bus, List<BusPosition> buses) {
     final isActive = ref.watch(activeAlertsProvider).contains(busId);
     final locationState = ref.watch(userLocationProvider);
     final staleLabel = _staleLabel(bus);
@@ -543,9 +585,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     final isNumberMetric = metricUnit != null;
 
     return Padding(
-      // V3: en peek la hoja muestra solo el número y el botón — menos
-      // relleno vertical porque ya no lleva identidad ni detalle.
-      padding: EdgeInsets.fromLTRB(24, peek ? 2 : 6, 24, peek ? 14 : 20),
+      // La tarjeta del bus se muestra entera, siempre: es la única que no se
+      // pliega, así que no tiene una versión corta que ajustar.
+      padding: const EdgeInsets.fromLTRB(24, 6, 24, 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -558,21 +600,19 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
             ),
           ),
           const SizedBox(height: 18),
-          if (!peek) ...[
-            // Identidad de ruta: misma "ruta - placa" que ya usa
-            // Notificaciones.
-            Text(
-              busLabel,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary,
-                letterSpacing: 0.4,
-              ),
+          // Identidad de ruta: misma "ruta - placa" que ya usa
+          // Notificaciones.
+          Text(
+            busLabel,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.4,
             ),
-            const SizedBox(height: 10),
-          ],
+          ),
+          const SizedBox(height: 10),
           // Métrica principal: número grande que respira, o el estado en
           // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
           // TextStyle base) en vez de un literal duplicado.
@@ -607,7 +647,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
               ),
             ),
           ],
-          if (!peek && stateDetail != null) ...[
+          if (stateDetail != null) ...[
             const SizedBox(height: 14),
             Text(
               stateDetail,

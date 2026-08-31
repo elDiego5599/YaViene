@@ -48,7 +48,9 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    // La hoja entra con una transición: sin dejarla asentar, los toques
+    // caen sobre el contenido a medio camino y no aciertan.
+    await tester.pumpAndSettle();
   }
 
   testWidgets('cambiar de ruta no cancela el aviso armado (BUG-03)',
