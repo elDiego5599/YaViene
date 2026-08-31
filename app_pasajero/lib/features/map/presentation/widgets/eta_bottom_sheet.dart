@@ -119,9 +119,20 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet> {
     }
   }
 
-  /// Distancia en metros del usuario al bus; null si no se puede medir.
+  /// Distancia en metros del punto de espera al bus; null si no se puede
+  /// medir.
+  ///
+  /// Un bus con aviso armado se mide desde el pin con el que se armó, no
+  /// desde el pin de ahora: es la misma referencia que usa el aviso para
+  /// decidir cuándo sonar, y verla cambiar al mover el pin hacía creer que el
+  /// aviso se había mudado con él.
   double? _distanceToBus(BusPosition? bus) {
     if (bus == null) return null;
+    final ancla =
+        ref.read(proximityAlertsProvider.notifier).anchorFor(bus.busId);
+    if (ancla != null) {
+      return haversineMeters(ancla.$1, ancla.$2, bus.lat, bus.lon);
+    }
     final location = ref.read(userLocationProvider);
     if (!location.hasPosition) return null;
     return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);

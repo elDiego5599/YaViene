@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
@@ -299,5 +300,97 @@ void main() {
     expect(localFired, hasLength(1));
     expect(localFired.single.busId, 'A-2');
     await posController.close();
+  });
+
+  test('el ancla del pin sobrevive a cerrar y reabrir la app', () async {
+    // Se arma con el pin puesto en la parada (encima del bus).
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: 6.2442,
+        lon: -75.5812,
+        updatedAt: DateTime.now(),
+      ),
+    );
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    // Fuerza el vaciado del historial a disco antes de "reabrir".
+    await container.read(alertHistoryProvider.notifier).load();
+
+    // Nueva sesión: el notificador arranca vacío y el pin está ahora a ~12 km
+    // del bus. El aviso restaurado debe seguir midiendo desde la parada.
+    final localFired = <({String busId, int distanceMeters})>[];
+    final c = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) {
+        final n = _TestUserLocation();
+        n.set(UserLocationState(
+          mode: UserLocationMode.manual,
+          lat: 6.35,
+          lon: -75.55,
+          updatedAt: DateTime.now(),
+        ));
+        return n;
+      }),
+      busPositionsSourceProvider.overrideWith(
+        (ref, routeId) => Stream.value([busA]),
+      ),
+      proximityAlertsProvider.overrideWith((ref) {
+        return ProximityAlertsNotifier(
+          ref,
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) async {
+            localFired.add((busId: busId, distanceMeters: distanceMeters));
+          },
+        );
+      }),
+    ]);
+    addTearDown(c.dispose);
+    final sub = c.listen<AsyncValue<List<BusPosition>>>(
+      busPositionsSourceProvider('R1'),
+      (_, __) {},
+    );
+    addTearDown(sub.close);
+    await Future<void>.delayed(Duration.zero);
+
+    await c.read(proximityAlertsProvider.notifier).restore();
+    await c.read(proximityAlertsProvider.notifier).check();
+
+    expect(localFired, hasLength(1),
+        reason: 'el aviso mide desde el pin con el que se armó, no del nuevo');
+    expect(localFired.single.distanceMeters, lessThan(50));
+  });
+
+  test('cada aviso guarda el pin con el que se armó', () async {
+    final notifier =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    container.read(selectedRouteProvider.notifier).select(route());
+
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.2442,
+      lon: -75.5812,
+      updatedAt: DateTime.now(),
+    ));
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+
+    // Se mueve el pin y se arma OTRO bus: este segundo aviso se fija al pin
+    // nuevo, y el primero no se entera.
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.35,
+      lon: -75.55,
+      updatedAt: DateTime.now(),
+    ));
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-2');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-2', 'R1');
+
+    final alerts = container.read(proximityAlertsProvider.notifier);
+    expect(alerts.anchorFor('A-1'), (6.2442, -75.5812));
+    expect(alerts.anchorFor('A-2'), (6.35, -75.55));
   });
 }

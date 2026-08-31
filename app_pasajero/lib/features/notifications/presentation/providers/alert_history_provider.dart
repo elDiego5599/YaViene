@@ -13,6 +13,13 @@ class AlertHistoryEntry {
   final String? routeName;
   final DateTime createdAt;
 
+  /// Punto de espera al que quedó fijado el aviso (pin manual). Se guarda con
+  /// la entrada porque es lo único que sobrevive a cerrar la app: sin él, al
+  /// re-armar el aviso se volvía a tomar la ubicación de ESE momento y el
+  /// aviso se mudaba al pin nuevo. `null` = se mide en vivo (GPS).
+  final double? refLat;
+  final double? refLon;
+
   /// Momento en que se disparó la notificación. `null` = aviso aún activo.
   final DateTime? sentAt;
 
@@ -22,6 +29,8 @@ class AlertHistoryEntry {
     this.routeName,
     required this.createdAt,
     this.sentAt,
+    this.refLat,
+    this.refLon,
   });
 
   bool get sent => sentAt != null;
@@ -32,6 +41,8 @@ class AlertHistoryEntry {
         routeName: routeName,
         createdAt: createdAt,
         sentAt: sentAt ?? this.sentAt,
+        refLat: refLat,
+        refLon: refLon,
       );
 
   Map<String, dynamic> toJson() => {
@@ -40,6 +51,8 @@ class AlertHistoryEntry {
         'routeName': routeName,
         'createdAt': createdAt.toIso8601String(),
         'sentAt': sentAt?.toIso8601String(),
+        'refLat': refLat,
+        'refLon': refLon,
       };
 
   factory AlertHistoryEntry.fromJson(Map<String, dynamic> json) {
@@ -51,6 +64,10 @@ class AlertHistoryEntry {
       sentAt: json['sentAt'] == null
           ? null
           : DateTime.parse(json['sentAt'] as String),
+      // Entradas de versiones anteriores no traen ancla: quedan en vivo,
+      // que es exactamente como se comportaban.
+      refLat: (json['refLat'] as num?)?.toDouble(),
+      refLon: (json['refLon'] as num?)?.toDouble(),
     );
   }
 }
@@ -93,12 +110,20 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       _userId == null ? _kHistoryKey : 'alert_history_user_$_userId';
 
   /// Armar un aviso crea (o renueva) su registro en estado activo.
-  void upsert(String busId, {required String routeId, String? routeName}) {
+  void upsert(
+    String busId, {
+    required String routeId,
+    String? routeName,
+    double? refLat,
+    double? refLon,
+  }) {
     final entry = AlertHistoryEntry(
       busId: busId,
       routeId: routeId,
       routeName: routeName,
       createdAt: DateTime.now(),
+      refLat: refLat,
+      refLon: refLon,
     );
     final index = state.indexWhere((e) => e.busId == busId);
     if (index == -1) {

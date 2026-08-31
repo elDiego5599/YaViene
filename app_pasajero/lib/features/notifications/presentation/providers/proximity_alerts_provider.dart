@@ -106,7 +106,17 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             _routeSubs.containsKey(e.routeId);
         if (!active.activateAlert(e.busId)) continue;
         if (!wasMonitoring) {
-          _armMonitoring(e.busId, e.routeId, recordHistory: false);
+          // Ancla guardada, no la ubicación de ahora: re-armar leyendo la
+          // posición actual mudaba el aviso al pin nuevo (o lo dejaba en
+          // vivo si el GPS todavía no había respondido).
+          _armMonitoring(
+            e.busId,
+            e.routeId,
+            recordHistory: false,
+            ancla: e.refLat != null && e.refLon != null
+                ? (e.refLat!, e.refLon!)
+                : null,
+          );
         }
       }
     } finally {
@@ -117,13 +127,33 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Registra la ruta del bus al armar el aviso y suscribe posiciones de esa
   /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta.
   void armAlert(String busId, String routeId) {
-    _armMonitoring(busId, routeId, recordHistory: true);
+    _armMonitoring(
+      busId,
+      routeId,
+      recordHistory: true,
+      ancla: _anclaActual(),
+    );
   }
+
+  /// Punto de espera al que se fija un aviso nuevo: el pin manual de ahora.
+  /// Con GPS activo queda `null` → el aviso mide en vivo, porque ahí el punto
+  /// de espera es el usuario, que se mueve con él.
+  (double, double)? _anclaActual() {
+    final location = _ref.read(userLocationProvider);
+    return location.mode == UserLocationMode.manual && location.hasPosition
+        ? (location.lat!, location.lon!)
+        : null;
+  }
+
+  /// Ancla de un aviso armado, para que la pantalla mida la distancia desde
+  /// el mismo punto desde el que mide el aviso.
+  (double, double)? anchorFor(String busId) => _alertRefs[busId];
 
   void _armMonitoring(
     String busId,
     String routeId, {
     required bool recordHistory,
+    required (double, double)? ancla,
   }) {
     _monitoringPaused = false;
     _alertRoutes[busId] = routeId;
@@ -138,17 +168,14 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             busId,
             routeId: routeId,
             routeName: _ref.read(selectedRouteProvider)?.name,
+            refLat: ancla?.$1,
+            refLon: ancla?.$2,
           );
     }
-    // Ancla del aviso: si el usuario está con pin manual, el aviso se fija a
-    // ESA ubicación. Aunque luego quite el pin (sin GPS la app queda sin
-    // ubicación) o ponga otro pin, el aviso sigue midiendo desde donde se
-    // armó. Con GPS activo la referencia queda null → se mide en vivo.
-    final location = _ref.read(userLocationProvider);
-    _alertRefs[busId] =
-        location.mode == UserLocationMode.manual && location.hasPosition
-            ? (location.lat!, location.lon!)
-            : null;
+    // Ancla del aviso: el punto de espera con el que se armó. Aunque luego se
+    // quite el pin (sin GPS la app queda sin ubicación) o se ponga otro pin
+    // para armar otro bus, este aviso sigue midiendo desde donde se armó.
+    _alertRefs[busId] = ancla;
     _routeSubs.putIfAbsent(routeId, () {
       return _ref.listen<AsyncValue<List<BusPosition>>>(
         busPositionsSourceProvider(routeId),
