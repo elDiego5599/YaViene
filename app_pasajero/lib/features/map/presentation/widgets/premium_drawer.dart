@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/providers/auth_provider.dart';
-import '../../../../core/widgets/map_pattern_painter.dart';
+import '../../../../core/widgets/live_route_backdrop.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
@@ -165,10 +165,17 @@ class PremiumDrawerState extends ConsumerState<PremiumDrawer>
           right: Radius.circular(28),
         ),
       ),
-      // El patrón pinta TODO el drawer (incluido el área de la barra de
-      // estado y el gesto inferior): la SafeArea queda solo para el contenido.
-      child: CustomPaint(
-        painter: const MapPatternPainter(),
+      // El mismo fondo que el inicio de sesión: la red de rutas de noche
+      // con el bus recorriéndola. El drawer es la única pantalla oscura que
+      // se abría sobre un plano de tinta con un rayado encima, y al venir
+      // del login se notaba que eran dos apps distintas. El halo verde sube
+      // a la altura de la marca, que aquí va arriba del todo.
+      //
+      // El fondo pinta TODO el drawer (incluida el área de la barra de
+      // estado y el gesto inferior): la SafeArea queda solo para el
+      // contenido.
+      child: LiveRouteBackdrop(
+        haloY: 0.12,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
