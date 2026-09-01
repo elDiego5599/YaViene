@@ -19,15 +19,14 @@ void main() {
         child: Center(child: hijo),
       );
 
-  testWidgets('marca del splash (84/34/15)', (tester) async {
+  testWidgets('marca del splash: logo de 84, el del arranque nativo',
+      (tester) async {
     fijarPantalla(tester);
     await tester.pumpWidget(
       marcoGolden(
         sobreTinta(
           const InkHero(
             logoSize: 84,
-            titleFontSize: 34,
-            taglineFontSize: 15,
             spacingAfterLogo: 20,
             trailing: SizedBox(
               width: 22,
@@ -49,7 +48,7 @@ void main() {
     await coincideConOro(tester, 'ink_hero_splash');
   });
 
-  testWidgets('marca del login (88/36/16)', (tester) async {
+  testWidgets('marca del login y la bienvenida', (tester) async {
     fijarPantalla(tester);
     await tester.pumpWidget(marcoGolden(sobreTinta(const InkHero())));
     await tester.pumpAndSettle();

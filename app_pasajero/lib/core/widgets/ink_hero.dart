@@ -11,8 +11,6 @@ class InkHero extends StatelessWidget {
   const InkHero({
     super.key,
     this.logoSize = 88,
-    this.titleFontSize = 36,
-    this.taglineFontSize = 16,
     this.spacingAfterLogo = 18,
     this.trailing,
     this.heroTag = marcaHeroTag,
@@ -23,9 +21,12 @@ class InkHero extends StatelessWidget {
   /// que es lo que hace que el logo vuele entre las tres en vez de saltar.
   static const String marcaHeroTag = 'ya-viene-marca';
 
+  /// El dibujo sí se mide por pantalla, y no es capricho: en el arranque
+  /// tiene que medir exactamente lo que mide en la pantalla nativa que
+  /// releva (84, en el storyboard y en `launch_background.xml`). El nombre
+  /// y la tagline no, porque la pantalla nativa no escribe nada: esos van
+  /// en su rol y miden lo mismo en las tres.
   final double logoSize;
-  final double titleFontSize;
-  final double taglineFontSize;
   final double spacingAfterLogo;
 
   /// Contenido extra debajo de la tagline (p. ej. el spinner del splash).
@@ -94,30 +95,22 @@ class InkHero extends StatelessWidget {
         _quiza(
           Text(
             'Ya Viene',
-            style: TextStyle(
-              fontSize: titleFontSize,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -1.2,
-            ),
+            style: AppTextStyles.marca.copyWith(color: Colors.white),
           ),
           0.10,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         _quiza(
           Text(
             'Tu ciudad en tiempo real.',
-            style: TextStyle(
-              fontSize: taglineFontSize,
-              fontWeight: FontWeight.w500,
+            style: AppTextStyles.cuerpoFuerte.copyWith(
               color: Colors.white.withValues(alpha: 0.75),
-              letterSpacing: -0.3,
             ),
           ),
           0.22,
         ),
         if (trailing != null) ...[
-          const SizedBox(height: 28),
+          const SizedBox(height: AppSpacing.xl),
           trailing!,
         ],
       ],

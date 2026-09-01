@@ -81,8 +81,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             // que entra es lo que la pantalla nativa no puede dibujar.
             builder: (context, entra) => InkHero(
               logoSize: 84,
-              titleFontSize: 34,
-              taglineFontSize: 15,
               spacingAfterLogo: 20,
               entradaEscalonada: entra,
               trailing: entra(

@@ -31,7 +31,7 @@ class SheetHandle extends StatelessWidget {
             AppColors.divider,
             abierta,
           ),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
       ),
     );

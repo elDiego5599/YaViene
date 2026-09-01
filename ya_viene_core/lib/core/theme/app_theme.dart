@@ -120,7 +120,7 @@ abstract class AppTextStyles {
 
   // ── La escala ────────────────────────────────────────────────────────
   //
-  // Ocho roles y nada más. Antes había veinte tamaños de letra, catorce
+  // Nueve roles y nada más. Antes había veinte tamaños de letra, catorce
   // letter-spacings sueltos y w800 en treinta y cuatro sitios: eso no es
   // una jerarquía, es el mismo grito a distintos volúmenes.
   //
@@ -132,6 +132,21 @@ abstract class AppTextStyles {
   //    es para lo que estamos cargando esos dos pesos en el bundle.
   //  · Quien necesite algo que no está aquí está pidiendo un rol nuevo,
   //    no un `TextStyle` suelto.
+
+  /// El nombre de la app, escrito.
+  ///
+  /// No es un título: es la mitad tipográfica del logo, y va siempre junto
+  /// al dibujo —arranque, entrada y bienvenida, y en ningún sitio más—.
+  /// Está aquí, y no suelto en el widget que lo pinta, porque cada pantalla
+  /// lo escribía a su propio tamaño (36, 34) sin que ninguna tuviera un
+  /// motivo: el dibujo sí releva a la pantalla de arranque nativa y tiene
+  /// que medir lo que mide allí, pero esa pantalla no escribe nada.
+  static final TextStyle marca = _base.copyWith(
+    fontSize: 36.0,
+    fontWeight: FontWeight.w800,
+    height: 1.0,
+    letterSpacing: -1.2,
+  );
 
   /// El número que la app existe para dar: los metros que faltan.
   ///

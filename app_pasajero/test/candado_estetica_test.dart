@@ -49,7 +49,7 @@ void main() {
 // lleguen a cero, estas dos líneas se vuelven `isZero` y el candado deja de
 // ser un trinquete para ser una regla.
 const int _techoTamanos = 77;
-const int _techoRadios = 39;
+const int _techoRadios = 38;
 
 String _porQue(String loSuelto, int hay, int techo, String enSuLugar) {
   if (hay > techo) {
