@@ -34,6 +34,16 @@ flutter run --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.de
 flutter analyze lib test
 flutter test
 
+# Fotos de referencia (goldens): 34 PNG en test/golden/goldens/.
+# Comparan pixel a pixel la app contra la última foto aprobada.
+flutter test test/golden
+
+# Volver a tomar las fotos. SOLO cuando el cambio visual es a propósito,
+# y el commit tiene que decir qué cambió y por qué. Un golden actualizado
+# sin explicación es una regresión aprobada a ciegas.
+flutter test test/golden --update-goldens
+git diff --stat test/golden/goldens   # revisa QUÉ se movió antes de commitear
+
 # Test integral (requiere emulador + backend + ngrok arriba)
 flutter test integration_test/map_load_test.dart \
   -d emulator-5554 \
