@@ -91,8 +91,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   stops: [0.0, 0.20],
                                 ),
                                 borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(36),
-                                  topRight: Radius.circular(36),
+                                  topLeft: Radius.circular(AppRadius.sheet),
+                                  topRight: Radius.circular(AppRadius.sheet),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
@@ -107,30 +107,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 // En pantallas sin indicador de inicio el
                                 // inset es 0 y el último control quedaría
                                 // pegado al filo.
-                                minimum: const EdgeInsets.only(bottom: 16),
+                                minimum: const EdgeInsets.only(
+                                  bottom: AppSpacing.md,
+                                ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Activa tu ubicación',
-                                      style: TextStyle(
-                                        fontSize: 23,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textPrimary,
-                                        letterSpacing: -0.6,
-                                      ),
+                                      style: AppTextStyles.titulo,
                                     ),
                                     const SizedBox(height: 6),
-                                    const Text(
+                                    Text(
                                       'Así sabemos qué buses vienen hacia ti '
                                       'y te avisamos antes de que llegue '
                                       'el tuyo.',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                      style: AppTextStyles.cuerpo.copyWith(
                                         color: AppColors.textSecondary,
-                                        height: 1.4,
                                       ),
                                     ),
                                     const SizedBox(height: 28),
@@ -186,7 +180,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
-                                                BorderRadius.circular(999),
+                                                BorderRadius.circular(
+                                                    AppRadius.pill),
                                           ),
                                         ),
                                         onPressed:
@@ -201,28 +196,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                                   color: Colors.white,
                                                 ),
                                               )
-                                            : const Text(
+                                            : Text(
                                                 'Permitir ubicación',
-                                                style: TextStyle(
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.w800,
-                                                  letterSpacing: -0.3,
-                                                ),
+                                                style: AppTextStyles.boton,
                                               ),
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: AppSpacing.xs),
                                     SizedBox(
                                       width: double.infinity,
                                       child: TextButton(
                                         onPressed: _skip,
-                                        child: const Text(
+                                        child: Text(
                                           'Ahora no',
-                                          style: TextStyle(
-                                            color: AppColors.textSecondary,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: AppTextStyles.etiqueta,
                                         ),
                                       ),
                                     ),
@@ -283,22 +270,12 @@ class _BenefitRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.3,
-                ),
+                style: AppTextStyles.cuerpoFuerte,
               ),
               const SizedBox(height: 2),
               Text(
                 detail,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                  height: 1.3,
-                ),
+                style: AppTextStyles.pie,
               ),
             ],
           ),

@@ -295,11 +295,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   child: Text(
                     sending ? 'Enviando…' : '¿Olvidaste tu contraseña?',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTextStyles.etiqueta,
                   ),
                 );
               },
@@ -423,8 +419,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   stops: [0.0, 0.20],
                                 ),
                                 borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(36),
-                                  topRight: Radius.circular(36),
+                                  topLeft: Radius.circular(AppRadius.sheet),
+                                  topRight: Radius.circular(AppRadius.sheet),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
@@ -436,7 +432,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                               child: SafeArea(
                                 top: false,
-                                minimum: const EdgeInsets.only(bottom: 16),
+                                minimum: const EdgeInsets.only(
+                                  bottom: AppSpacing.md,
+                                ),
                                 // La hoja crece y encoge con los campos
                                 // dentro. Los tres pasos eran
                                 // `if (_step == ...)` a secas: la tarjeta
@@ -452,14 +450,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Inicia sesión o regístrate',
-                                        style: TextStyle(
-                                          fontSize: 23,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.textPrimary,
-                                          letterSpacing: -0.6,
-                                        ),
+                                        style: AppTextStyles.titulo,
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
@@ -468,9 +461,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             : _step == _Step.password
                                                 ? 'Ese correo ya tiene cuenta: pon tu contraseña.'
                                                 : 'El correo es nuevo: crea tu perfil.',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                        style: AppTextStyles.cuerpo.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
                                       ),
@@ -513,7 +504,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         _camposContrasena(),
                                       if (_step == _Step.profile)
                                         _camposPerfil(),
-                                      const SizedBox(height: 24),
+                                      const SizedBox(height: AppSpacing.lg),
                                       ValueListenableBuilder<bool>(
                                         valueListenable: _submitting,
                                         builder: (context, submitting, child) {
@@ -557,7 +548,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                         RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                              999),
+                                                              AppRadius.pill),
                                                     ),
                                                   ),
                                                   onPressed: canPress
@@ -583,11 +574,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                                           .password
                                                                   ? 'Entrar'
                                                                   : 'Crear cuenta',
-                                                          style: TextStyle(
-                                                            fontSize: 17,
-                                                            fontWeight:
-                                                                FontWeight.w800,
-                                                            letterSpacing: -0.3,
+                                                          style: AppTextStyles
+                                                              .boton
+                                                              .copyWith(
                                                             color: bright
                                                                 ? Colors.white
                                                                 : AppColors
@@ -601,7 +590,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         },
                                       ),
                                       if (_step != _Step.email) ...[
-                                        const SizedBox(height: 8),
+                                        const SizedBox(height: AppSpacing.sm),
                                         Center(
                                           child: TextButton(
                                             onPressed: _submitting.value
@@ -613,30 +602,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                       .isEmpty
                                                   ? 'Regresar'
                                                   : 'Cambiar de correo',
-                                              style: const TextStyle(
-                                                color: AppColors.textSecondary,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                              style: AppTextStyles.etiqueta,
                                             ),
                                           ),
                                         ),
                                         if (_step == _Step.password) ...[
-                                          const SizedBox(height: 4),
+                                          const SizedBox(height: AppSpacing.xs),
                                           Center(
                                             child: TextButton(
                                               onPressed: _submitting.value
                                                   ? null
                                                   : () => setState(() =>
                                                       _step = _Step.profile),
-                                              child: const Text(
+                                              child: Text(
                                                 '¿No tienes cuenta? '
                                                 'Crea una con este correo',
-                                                style: TextStyle(
+                                                // El verde ya lo separa del
+                                                // botón de al lado; no hace
+                                                // falta además otro peso.
+                                                style: AppTextStyles.etiqueta
+                                                    .copyWith(
                                                   color: AppColors
                                                       .primaryAccessible,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
                                                 ),
                                               ),
                                             ),
@@ -644,26 +631,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         ],
                                       ],
                                       if (_step == _Step.email) ...[
-                                        const SizedBox(height: 16),
-                                        const Row(
+                                        const SizedBox(height: AppSpacing.md),
+                                        Row(
                                           children: [
-                                            Expanded(child: Divider()),
+                                            const Expanded(child: Divider()),
                                             Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 12),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12),
                                               child: Text(
                                                 'o',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.textDisabled,
+                                                style: AppTextStyles.etiqueta
+                                                    .copyWith(
+                                                  color:
+                                                      AppColors.textDisabled,
                                                 ),
                                               ),
                                             ),
-                                            Expanded(child: Divider()),
+                                            const Expanded(child: Divider()),
                                           ],
                                         ),
-                                        const SizedBox(height: 16),
+                                        const SizedBox(height: AppSpacing.md),
                                         ValueListenableBuilder<bool>(
                                           valueListenable: _submitting,
                                           builder:
@@ -684,7 +672,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            999),
+                                                            AppRadius.pill),
                                                   ),
                                                 ),
                                                 icon: submitting
@@ -707,10 +695,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                   submitting
                                                       ? 'Iniciando…'
                                                       : 'Iniciar con Google',
-                                                  style: const TextStyle(
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                                  style: AppTextStyles
+                                                      .cuerpoFuerte,
                                                 ),
                                               ),
                                             );
@@ -723,13 +709,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                 ? null
                                                 : () => setState(() =>
                                                     _step = _Step.profile),
-                                            child: const Text(
+                                            child: Text(
                                               '¿No tienes cuenta? Regístrate',
-                                              style: TextStyle(
-                                                color:
-                                                    AppColors.primaryAccessible,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w700,
+                                              style: AppTextStyles.etiqueta
+                                                  .copyWith(
+                                                color: AppColors
+                                                    .primaryAccessible,
                                               ),
                                             ),
                                           ),
@@ -802,17 +787,13 @@ class _Field extends StatelessWidget {
         textInputAction: textInputAction,
         // Lo que uno escribe no va en negrita: w700 hacía que un correo
         // corriente pareciera un titular.
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
-        ),
+        style: AppTextStyles.cuerpo,
         decoration: InputDecoration(
           counterText: '',
           // Un campo de entrada de 48 se toca justo; a 58 se toca sin
           // pensarlo y la hoja respira. Es el alto de los campos de iOS.
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 4,
+            horizontal: AppSpacing.xs,
             vertical: 18,
           ),
           prefixIcon: Padding(
@@ -824,9 +805,7 @@ class _Field extends StatelessWidget {
           // sea ilegible. Y a 14 el texto saltaba de tamaño al empezar a
           // escribir; el marcador de posición mide lo que va a medir lo
           // que se escriba.
-          hintStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+          hintStyle: AppTextStyles.cuerpo.copyWith(
             color: AppColors.textDisabled,
           ),
           suffixIcon: onToggleVisibility != null
@@ -858,11 +837,7 @@ class _Field extends StatelessWidget {
           ),
           disabledBorder: InputBorder.none,
           errorText: errorText,
-          errorStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.error,
-          ),
+          errorStyle: AppTextStyles.pie.copyWith(color: AppColors.error),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             borderSide: const BorderSide(color: AppColors.error, width: 1.5),
