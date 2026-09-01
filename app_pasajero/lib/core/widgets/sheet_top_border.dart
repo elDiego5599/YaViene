@@ -60,4 +60,13 @@ class SheetTopBorder extends OutlinedBorder {
   @override
   ShapeBorder scale(double t) =>
       SheetTopBorder(side: side.scale(t), radio: radio * t);
+
+  // Sin esto, dos filos iguales se consideran distintos y `ShapeDecoration`
+  // y `Material` vuelven a pintar en cada reconstrucción.
+  @override
+  bool operator ==(Object other) =>
+      other is SheetTopBorder && other.side == side && other.radio == radio;
+
+  @override
+  int get hashCode => Object.hash(side, radio);
 }
