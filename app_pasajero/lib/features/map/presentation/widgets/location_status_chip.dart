@@ -225,7 +225,7 @@ class _Pill extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         onTap: data.onAction,
         child: Container(
           constraints: const BoxConstraints(maxWidth: 380),
@@ -235,7 +235,7 @@ class _Pill extends StatelessWidget {
           // que es lo que es.
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(color: AppColors.hairline),
             boxShadow: [
               BoxShadow(
@@ -253,7 +253,7 @@ class _Pill extends StatelessWidget {
                 height: 32,
                 decoration: BoxDecoration(
                   color: data.tint,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(data.icon, size: 18, color: data.iconColor),
               ),
@@ -268,24 +268,14 @@ class _Pill extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 2,
                       softWrap: true,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.25,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: AppTextStyles.cuerpoFuerte,
                     ),
                     if (data.sub != null)
                       Text(
                         data.sub!,
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.15,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTextStyles.pie,
                       ),
                   ],
                 ),
@@ -301,17 +291,14 @@ class _Pill extends StatelessWidget {
                         // F4: primaryAccessible da 4.5:1 con texto blanco;
                         // primary a secas se queda en ~3.1:1.
                         : AppColors.primaryAccessible,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                     border: data.actionDanger
                         ? Border.all(color: AppColors.hairline)
                         : null,
                   ),
                   child: Text(
                     data.actionLabel!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
+                    style: AppTextStyles.etiqueta.copyWith(
                       color: data.actionDanger
                           ? AppColors.textSecondary
                           : Colors.white,

@@ -62,7 +62,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             // La píldora flota sobre un mapa de colores impredecibles: el
             // filo la recorta contra un parque verde o una avenida clara,
             // donde solo la sombra la dejaba difusa.
@@ -107,7 +107,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: GestureDetector(
                   key: widget.searchActionKey,
@@ -154,12 +154,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                 Flexible(
                                   child: Text(
                                     selectedRoute?.name ?? "¿Qué bus esperas?",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: -0.4,
-                                    ),
+                                    style: AppTextStyles.subtitulo,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -175,16 +170,15 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                     selectedRoute != null
                                         ? "Ruta activa • Toca para cambiar"
                                         : "Toca para buscar tu ruta",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      // F4: primaryAccessible sí llega a 4.5:1
-                                      // sobre blanco a este tamaño; primary
-                                      // a secas se queda en ~3.1:1.
-                                      color: selectedRoute != null
-                                          ? AppColors.primaryAccessible
-                                          : AppColors.textSecondary,
-                                    ),
+                                    // F4: primaryAccessible sí llega a
+                                    // 4.5:1 sobre blanco a este tamaño;
+                                    // primary a secas se queda en ~3.1:1.
+                                    style: selectedRoute != null
+                                        ? AppTextStyles.pie.copyWith(
+                                            color:
+                                                AppColors.primaryAccessible,
+                                          )
+                                        : AppTextStyles.pie,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -198,7 +192,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               if (selectedRoute != null)
                 _buildCloseButton()
               else

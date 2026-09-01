@@ -48,8 +48,8 @@ void main() {
 // Los dos techos. Bajan con cada archivo que migra la Fase 3; el día que
 // lleguen a cero, estas dos líneas se vuelven `isZero` y el candado deja de
 // ser un trinquete para ser una regla.
-const int _techoTamanos = 77;
-const int _techoRadios = 38;
+const int _techoTamanos = 72;
+const int _techoRadios = 33;
 
 String _porQue(String loSuelto, int hay, int techo, String enSuLugar) {
   if (hay > techo) {
