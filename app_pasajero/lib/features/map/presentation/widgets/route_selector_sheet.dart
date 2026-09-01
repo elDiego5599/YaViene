@@ -55,7 +55,16 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       // velo solo se aclara. Un velo a pantalla completa que además sube
       // destapa una franja arriba mientras entra.
       transitionBuilder: (context, animation, _, child) => child,
-      pageBuilder: (context, _, __) => sheet,
+      // Techo al texto del sistema. La tarjeta lleva el asa, la cabecera,
+      // dos filas de 78 y el botón, y a partir del doble deja de caber en
+      // 844: al triple se salía 158 px por abajo. El doble es lo que pide
+      // la norma de accesibilidad (WCAG 1.4.4) y cabe entero; de ahí para
+      // arriba la tarjeta se queda en su tamaño máximo en vez de recortar
+      // la ruta que el usuario vino a elegir.
+      pageBuilder: (context, _, __) => MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 2.0,
+        child: sheet,
+      ),
     );
   }
 
@@ -1175,7 +1184,11 @@ class _SelectorTileState extends State<_SelectorTile>
           child: AnimatedContainer(
             duration: AppMotion.rapido,
             curve: AppMotion.curvaEntrada,
-            height: _kTileHeight,
+            // Alto mínimo, no alto fijo: dentro van el nombre y su línea
+            // de apoyo, y con el texto del sistema en grande las dos
+            // juntas miden más de 78. Al 100% miden menos, así que la
+            // fila no se mueve de donde estaba.
+            constraints: const BoxConstraints(minHeight: _kTileHeight),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             // Sin sombra: la tarjeta ya flota sobre arena y una sombra
             // azulada al 4 % sobre un beige cálido no se lee como

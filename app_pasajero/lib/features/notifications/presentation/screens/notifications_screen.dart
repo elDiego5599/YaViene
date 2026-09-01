@@ -46,13 +46,30 @@ class NotificationsScreen extends ConsumerWidget {
         // El menú la llama "Avisos", el estado vacío dice "avisos" y el
         // botón del mapa dice "Avísame". Esta era la única pantalla que
         // usaba otra palabra para la misma cosa.
-        title: const Text('Avisos'),
+        //
+        // El título y la acción crecen con el texto del sistema, pero solo
+        // hasta un punto: la barra mide 56 y no se estira, y con el texto
+        // al triple el título y «Seleccionar» se salían 46 px por la
+        // derecha. En iOS el título de la barra de navegación no crece con
+        // Texto Dinámico —crecen el contenido y la vuelta atrás—, así que
+        // ponerle techo aquí se parece más al sistema que dejarlo suelto.
+        title: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: const Text('Avisos'),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           color: AppColors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: entries.isEmpty ? null : [const _SelectAction()],
+        actions: entries.isEmpty
+            ? null
+            : [
+                MediaQuery.withClampedTextScaling(
+                  maxScaleFactor: 1.3,
+                  child: const _SelectAction(),
+                ),
+              ],
       ),
       body: entries.isEmpty
           ? const _EmptyState()
@@ -385,6 +402,81 @@ class _AlertTile extends StatelessWidget {
             ? 'Está a $distanceMeters m de tu ubicación · esperando aviso'
             : 'Esperando señal del bus';
 
+    final accion = selecting
+        ? Checkbox(
+            value: selected,
+            onChanged: (_) => onToggleSelect(),
+            activeColor: AppColors.primaryDeep,
+            visualDensity: VisualDensity.compact,
+          )
+        : sent
+            ? Text(
+                'Enviado',
+                style: AppTextStyles.etiqueta.copyWith(
+                  color: AppColors.textDisabled,
+                ),
+              )
+            // Rojo de error para algo que se deshace en un toque desde el
+            // mapa. El rojo queda para "Borrar todas", que sí borra.
+            : TextButton(
+                onPressed: onDisable,
+                style: TextButton.styleFrom(
+                  textStyle: AppTextStyles.etiqueta,
+                  foregroundColor: AppColors.primaryDeep,
+                ),
+                child: const Text('Desactivar'),
+              );
+
+    // Con el texto del sistema al doble, «Desactivar» ya no cabe al lado
+    // del nombre del bus: la fila se desbordaba 31 px por la derecha y la
+    // acción quedaba fuera de la pantalla. Pasado ese punto la tarjeta se
+    // parte en dos y la acción baja, pegada a la derecha. Es lo que hace
+    // iOS cuando una celda deja de caber, y no cuesta nada al 100%:
+    // debajo de ese umbral la fila es exactamente la de antes.
+    final accionAbajo = MediaQuery.textScalerOf(context).scale(10) > 15;
+
+    final fila = Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: sent ? AppColors.warningLight : AppColors.primaryTint,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: Icon(
+            sent
+                ? Icons.notifications_active_rounded
+                : Icons.directions_bus_filled_rounded,
+            color: sent ? AppColors.warning : AppColors.primary,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                routePlateLabel(
+                  busId: entry.busId,
+                  routeName: routeName,
+                  routeId: entry.routeId,
+                ),
+                style: AppTextStyles.subtitulo,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(subtitle, style: AppTextStyles.pie),
+            ],
+          ),
+        ),
+        if (!accionAbajo) ...[
+          const SizedBox(width: 12),
+          accion,
+        ],
+      ],
+    );
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -395,69 +487,16 @@ class _AlertTile extends StatelessWidget {
           width: selected ? 1.5 : 1.0,
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: sent ? AppColors.warningLight : AppColors.primaryTint,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-            ),
-            child: Icon(
-              sent
-                  ? Icons.notifications_active_rounded
-                  : Icons.directions_bus_filled_rounded,
-              color: sent ? AppColors.warning : AppColors.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: accionAbajo
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  routePlateLabel(
-                    busId: entry.busId,
-                    routeName: routeName,
-                    routeId: entry.routeId,
-                  ),
-                  style: AppTextStyles.subtitulo,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(subtitle, style: AppTextStyles.pie),
+                fila,
+                const SizedBox(height: AppSpacing.sm),
+                Align(alignment: Alignment.centerRight, child: accion),
               ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          if (selecting)
-            Checkbox(
-              value: selected,
-              onChanged: (_) => onToggleSelect(),
-              activeColor: AppColors.primaryDeep,
-              visualDensity: VisualDensity.compact,
             )
-          else if (sent)
-            Text(
-              'Enviado',
-              style: AppTextStyles.etiqueta.copyWith(
-                color: AppColors.textDisabled,
-              ),
-            )
-          else
-            // Rojo de error para algo que se deshace en un toque desde el
-            // mapa. El rojo queda para "Borrar todas", que sí borra.
-            TextButton(
-              onPressed: onDisable,
-              style: TextButton.styleFrom(
-                textStyle: AppTextStyles.etiqueta,
-                foregroundColor: AppColors.primaryDeep,
-              ),
-              child: const Text('Desactivar'),
-            ),
-        ],
-      ),
+          : fila,
     );
   }
 }

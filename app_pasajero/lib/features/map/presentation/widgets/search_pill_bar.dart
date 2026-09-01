@@ -58,8 +58,16 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Container(
           key: widget.pillKey,
-          height: 60,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          // Alto mínimo, no alto fijo. Dentro van dos líneas de texto, y
+          // con el tamaño del sistema al 135% —que iOS ofrece sin entrar
+          // siquiera en accesibilidad— no cabían y se recortaban.
+          //
+          // El alto fijo apretaba el contenido a 46: el botón del menú
+          // pide 48 y se quedaba sin dos. Ahora cabe entero, y el relleno
+          // baja a 5 para que la píldora siga midiendo los mismos 60 de
+          // antes (48 + 5 + 5 + los dos del filo).
+          constraints: const BoxConstraints(minHeight: 60),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -133,7 +141,13 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                     child: AnimatedOpacity(
                       opacity: _searchPressed ? 0.5 : 1,
                       duration: AppMotion.instante,
+                      // `heightFactor: 1` centra el texto a lo ancho sin
+                      // estirarlo a lo alto. Sin él, al quitarle el alto
+                      // fijo a la píldora este centro se comía todo el
+                      // alto disponible y la píldora crecía hasta llenar
+                      // la pantalla.
                       child: Center(
+                        heightFactor: 1,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [

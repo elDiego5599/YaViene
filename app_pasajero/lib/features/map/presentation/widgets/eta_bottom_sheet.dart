@@ -358,6 +358,25 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 
   Widget _sheetBody({required Widget child, required bool toggleable}) {
+    // Techo al texto del sistema, y solo aquí dentro.
+    //
+    // La hoja es la pantalla del número grande: 64 px de base. Al triple
+    // —lo que ofrece iOS en tamaños de accesibilidad— mide 192 y la hoja
+    // entera pasa de los 844 de la pantalla, así que se salía 448 px por
+    // abajo. No cabe hacerla desplazable: la hoja se arrastra con el dedo
+    // para plegarla, y un desplazamiento dentro le robaría ese gesto.
+    //
+    // El doble sí cabe entero, y el doble es exactamente lo que pide la
+    // norma de accesibilidad (WCAG 1.4.4): el texto tiene que poder
+    // duplicarse sin perder contenido ni funciones. De ahí para arriba la
+    // hoja se queda en su tamaño máximo en vez de recortar lo que muestra.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 2.0,
+      child: _cuerpoDeLaHoja(child: child, toggleable: toggleable),
+    );
+  }
+
+  Widget _cuerpoDeLaHoja({required Widget child, required bool toggleable}) {
     return GestureDetector(
       // El dedo manda: la hoja baja y sube pegada al pulgar, y al soltar
       // termina sola el camino que falte.
