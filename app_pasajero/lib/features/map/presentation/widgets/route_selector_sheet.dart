@@ -530,21 +530,17 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       // entrar a elegir y volvía a crecer al salir. Entre las tres vistas
       // solo debe cambiar el contenido.
       key: _mainCardKey,
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _headerRow(title: 'Elige tu ruta'),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Dos pasos y ves los buses moviéndose en el mapa.',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-              height: 1.3,
-            ),
+            style: AppTextStyles.cuerpo
+                .copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 22),
           // Los dos pasos van colgados de una misma línea, con su nodo
@@ -589,13 +585,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'Error al cargar empresas',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTextStyles.pie,
                     ),
                     TextButton.icon(
                       onPressed: () => ref.invalidate(companiesProvider),
@@ -652,7 +644,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       height: height,
       width: double.infinity,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -718,16 +710,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         padding: EdgeInsets.zero,
         children: [
           if (companies.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
               child: Text(
                 'Sin empresas disponibles',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
+                style: AppTextStyles.cuerpoFuerte
+                    .copyWith(color: AppColors.textSecondary),
               ),
             )
           else
@@ -782,16 +772,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         padding: EdgeInsets.zero,
         children: [
           if (routes.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
               child: Text(
                 'Esta empresa no tiene rutas aún',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                ),
+                style: AppTextStyles.cuerpoFuerte
+                    .copyWith(color: AppColors.textSecondary),
               ),
             )
           else
@@ -871,7 +859,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         backgroundColor: listo ? AppColors.primary : AppColors.primaryDeep,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 58),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.pill)),
         elevation: 0,
       ),
       child: Row(
@@ -882,12 +871,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
-                color: Colors.white,
-              ),
+              style: AppTextStyles.boton.copyWith(color: Colors.white),
             ),
           ),
         ],
@@ -934,7 +918,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.hairline),
       ),
       child: child,
@@ -955,11 +939,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: AppTextStyles.cuerpoFuerte
+                      .copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 8),
                 TextButton.icon(
@@ -990,12 +971,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
-            ),
+            style: AppTextStyles.display,
           ),
         ),
       ],
@@ -1013,10 +989,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     bool selected = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: ListTile(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           // F13: la fila ya elegida se marca al volver a la lista, en vez de
           // que todas se vean igual de "sin elegir".
           side: selected
@@ -1024,24 +1000,21 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               : const BorderSide(color: AppColors.hairline),
         ),
         tileColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
             color: iconBackground,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: badgeInitials != null
               ? Center(
                   child: Text(
                     badgeInitials,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.2,
-                    ),
+                    style: AppTextStyles.etiqueta
+                        .copyWith(color: Colors.white),
                   ),
                 )
               : Icon(icon, color: iconColor, size: 20),
@@ -1050,12 +1023,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.3,
-          ),
+          style: AppTextStyles.subtitulo,
         ),
         subtitle: subtitle == null
             ? null
@@ -1063,11 +1031,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
+                style: AppTextStyles.pie,
               ),
         trailing: selected
             ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
@@ -1209,13 +1173,13 @@ class _SelectorTileState extends State<_SelectorTile>
             duration: AppMotion.rapido,
             curve: AppMotion.curvaEntrada,
             height: _kTileHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             // Sin sombra: la tarjeta ya flota sobre arena y una sombra
             // azulada al 4 % sobre un beige cálido no se lee como
             // profundidad, se lee como una banda gris. Separa el filo.
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
                 color: borde,
                 width: isActive || hint != null ? 1.5 : 1.0,
@@ -1232,7 +1196,7 @@ class _SelectorTileState extends State<_SelectorTile>
                     color: isActive
                         ? AppColors.primaryTint
                         : AppColors.surfaceMuted,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Icon(
                     widget.icon,
@@ -1241,7 +1205,7 @@ class _SelectorTileState extends State<_SelectorTile>
                     size: 22,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1251,10 +1215,7 @@ class _SelectorTileState extends State<_SelectorTile>
                         widget.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
+                        style: AppTextStyles.subtitulo.copyWith(
                           color: isActive
                               ? AppColors.textPrimary
                               : AppColors.textDisabled,
@@ -1266,15 +1227,12 @@ class _SelectorTileState extends State<_SelectorTile>
                           hint ?? widget.subtitle!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: hint != null
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: hint != null
-                                ? AppColors.warning
-                                : AppColors.textSecondary,
-                          ),
+                          // El aviso ya se distingue por el ámbar; no
+                          // necesita además otro peso.
+                          style: hint != null
+                              ? AppTextStyles.pie
+                                  .copyWith(color: AppColors.warning)
+                              : AppTextStyles.pie,
                         ),
                       ],
                     ],
