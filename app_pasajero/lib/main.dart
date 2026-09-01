@@ -61,24 +61,24 @@ class _FirebaseInitFailedApp extends StatelessWidget {
       home: Scaffold(
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.cloud_off_rounded,
                     size: 48, color: AppColors.error),
-                const SizedBox(height: 16),
-                const Text(
+                const SizedBox(height: AppSpacing.md),
+                Text(
                   'No se pudo iniciar Ya Viene',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: AppTextStyles.subtitulo,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 const Text(
                   'Revisa tu conexión e intenta de nuevo. Si persiste, reinstala la app.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
                 FilledButton(
                   onPressed: () async {
                     try {

@@ -46,15 +46,7 @@ class NotificationsScreen extends ConsumerWidget {
         // El menú la llama "Avisos", el estado vacío dice "avisos" y el
         // botón del mapa dice "Avísame". Esta era la única pantalla que
         // usaba otra palabra para la misma cosa.
-        title: const Text(
-          'Avisos',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.3,
-          ),
-        ),
+        title: const Text('Avisos'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           color: AppColors.textPrimary,
@@ -101,13 +93,11 @@ class _SelectAction extends ConsumerWidget {
         }
       },
       style: TextButton.styleFrom(
+        textStyle: AppTextStyles.etiqueta,
         foregroundColor: selecting ? AppColors.error : AppColors.primaryDeep,
         disabledForegroundColor: AppColors.textDisabled,
       ),
-      child: Text(
-        selecting ? 'Borrar todas' : 'Seleccionar',
-        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800),
-      ),
+      child: Text(selecting ? 'Borrar todas' : 'Seleccionar'),
     );
   }
 }
@@ -178,7 +168,8 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
       children: [
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            padding: const EdgeInsets.fromLTRB(
+                20, AppSpacing.sm, 20, AppSpacing.xl),
             itemCount: entries.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
@@ -230,19 +221,22 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
           curve: AppMotion.curvaEntrada,
           child: selecting
               ? Container(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                      20, AppSpacing.xs, 20, AppSpacing.lg),
                   child: SizedBox(
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
+                        textStyle: AppTextStyles.boton,
                         backgroundColor: AppColors.error,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         disabledBackgroundColor: AppColors.divider,
                         disabledForegroundColor: AppColors.textDisabled,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.pill),
                         ),
                       ),
                       onPressed: selected.isEmpty
@@ -266,10 +260,6 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                         selected.isEmpty
                             ? 'Selecciona avisos'
                             : 'Borrar ${selected.length}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
                       ),
                     ),
                   ),
@@ -396,10 +386,10 @@ class _AlertTile extends StatelessWidget {
             : 'Esperando señal del bus';
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: selected ? AppColors.primaryDeep : AppColors.divider,
           width: selected ? 1.5 : 1.0,
@@ -412,7 +402,7 @@ class _AlertTile extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: sent ? AppColors.warningLight : AppColors.primaryTint,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
             child: Icon(
               sent
@@ -433,22 +423,10 @@ class _AlertTile extends StatelessWidget {
                     routeName: routeName,
                     routeId: entry.routeId,
                   ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.3,
-                  ),
+                  style: AppTextStyles.subtitulo,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.3,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(subtitle, style: AppTextStyles.pie),
               ],
             ),
           ),
@@ -461,11 +439,9 @@ class _AlertTile extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             )
           else if (sent)
-            const Text(
+            Text(
               'Enviado',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
+              style: AppTextStyles.etiqueta.copyWith(
                 color: AppColors.textDisabled,
               ),
             )
@@ -475,12 +451,10 @@ class _AlertTile extends StatelessWidget {
             TextButton(
               onPressed: onDisable,
               style: TextButton.styleFrom(
+                textStyle: AppTextStyles.etiqueta,
                 foregroundColor: AppColors.primaryDeep,
               ),
-              child: const Text(
-                'Desactivar',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-              ),
+              child: const Text('Desactivar'),
             ),
         ],
       ),
@@ -504,7 +478,7 @@ class _EmptyState extends StatelessWidget {
               height: 72,
               decoration: BoxDecoration(
                 color: AppColors.primaryTint,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(AppRadius.card),
               ),
               child: const Icon(
                 Icons.notifications_none_rounded,
@@ -513,23 +487,16 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No tienes avisos activos',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.3,
-              ),
+              style: AppTextStyles.subtitulo,
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: AppSpacing.sm),
+            Text(
               'En el mapa, toca un bus y activa "Avísame" para que te '
               'notifiquemos cuando se acerque a tu ubicación.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.4,
+              style: AppTextStyles.cuerpo.copyWith(
                 color: AppColors.textSecondary,
               ),
             ),

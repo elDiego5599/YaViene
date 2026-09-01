@@ -129,7 +129,8 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               Positioned.fill(child: _GuideBarrier(onInvalidTap: () {})),
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 380),
                     child: ScaleTransition(
@@ -179,7 +180,8 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       opacity: _missTapPulse.value,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.card + 4),
                           border: const Border.fromBorderSide(
                             BorderSide(color: AppColors.coral, width: 3),
                           ),
@@ -291,12 +293,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       color: Colors.white,
       elevation: 16,
       shadowColor: const Color(0x6614274E),
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       clipBehavior: Clip.antiAlias,
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.hairline),
         ),
         child: Column(
@@ -310,7 +312,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   height: 38,
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Icon(
                     widget.icon,
@@ -323,14 +325,13 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   child: Text(
                     widget.title,
                     key: const ValueKey('guide_title'),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.35,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.subtitulo,
                   ),
                 ),
+                // El título y el contador se tocaban: el `Expanded` se come
+                // todo el ancho libre y nadie había puesto un respiro entre
+                // los dos. Antes lo tapaba que el título medía un punto menos.
+                const SizedBox(width: AppSpacing.sm),
                 // Mismo contraste tipográfico que el ETA gigante: el número
                 // que importa (el paso actual) en peso ultraligero y grande,
                 // el resto en una etiqueta diminuta al lado.
@@ -349,9 +350,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                     ),
                     Text(
                       '/${widget.stepCount}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                      style: AppTextStyles.etiqueta.copyWith(
                         color: AppColors.textDisabled,
                       ),
                     ),
@@ -363,15 +362,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
             Text(
               widget.message,
               key: const ValueKey('guide_message'),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-                color: Color(0xFF475569),
+              style: AppTextStyles.cuerpo.copyWith(
+                color: const Color(0xFF475569),
               ),
             ),
             if (widget.primaryLabel != null && widget.onPrimary != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -379,35 +375,28 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   key: const ValueKey('guide_primary'),
                   onPressed: widget.onPrimary,
                   style: FilledButton.styleFrom(
+                    textStyle: AppTextStyles.boton,
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                   ),
-                  child: Text(
-                    widget.primaryLabel!,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: Text(widget.primaryLabel!),
                 ),
               ),
             ] else ...[
               const SizedBox(height: 14),
-              const Center(
+              Center(
                 child: Text(
                   'Toca el área iluminada para continuar',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
+                  style: AppTextStyles.etiqueta.copyWith(
                     color: AppColors.primary,
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             // F14: "Atrás" solo aparece si hay un paso previo al que volver.
             if (!widget.centered)
               Row(
@@ -426,32 +415,24 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         minimumSize: const Size(0, 36),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        textStyle: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        textStyle: AppTextStyles.etiqueta,
                       ),
                     ),
                   TextButton(
                     key: const ValueKey('guide_skip'),
                     onPressed: widget.onSkip,
                     style: TextButton.styleFrom(
+                      textStyle: AppTextStyles.etiqueta,
                       backgroundColor: AppColors.surfaceMuted,
                       foregroundColor: const Color(0xFF475569),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 22),
                       minimumSize: const Size(0, 36),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: Text(
-                      isLast ? 'Cerrar guía' : 'Saltar guía',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: Text(isLast ? 'Cerrar guía' : 'Saltar guía'),
                   ),
                 ],
               ),
@@ -504,7 +485,8 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(hole, const Radius.circular(24));
+    final rrect =
+        RRect.fromRectAndRadius(hole, const Radius.circular(AppRadius.card));
     final scrim = AppColors.primaryDeep.withValues(alpha: 0.62);
 
     canvas.saveLayer(Offset.zero & size, Paint());

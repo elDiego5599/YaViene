@@ -30,26 +30,26 @@ void main() {
     );
   });
 
-  test('el techo de radios sueltos no sube', () {
+  test('no queda ningún radio suelto', () {
     final medida = _medir();
     expect(
       medida.radiosSueltos,
-      _techoRadios,
-      reason: _porQue(
-        'un `circular(` con un número a mano',
-        medida.radiosSueltos,
-        _techoRadios,
-        'AppRadius.sm / md / lg / card / sheet / pill',
-      ),
+      isZero,
+      reason: 'Apareció un `circular(` con un número a mano. Los radios ya '
+          'están todos migrados: este contador llegó a cero y se quedó ahí.\n'
+          'Usa AppRadius.sm / md / lg / card / sheet / pill. Si de verdad hace '
+          'falta un radio que no está, el que falta es una constante nueva en '
+          '`app_theme.dart`, no una excepción aquí.',
     );
   });
 }
 
-// Los dos techos. Bajan con cada archivo que migra la Fase 3; el día que
-// lleguen a cero, estas dos líneas se vuelven `isZero` y el candado deja de
-// ser un trinquete para ser una regla.
-const int _techoTamanos = 32;
-const int _techoRadios = 17;
+// El techo que queda. Bajó con cada archivo que migró la Fase 3, de 77 a uno.
+// El que sobrevive es el numeral del tour (`map_tour_overlay.dart`): una
+// miniatura del rol `dato`, escrita a mano porque un solo sitio no basta para
+// abrir un rol. Los radios ya llegaron a cero y su prueba es `isZero`; si este
+// llegara a cero también, esta línea desaparece y la de arriba se le parece.
+const int _techoTamanos = 1;
 
 String _porQue(String loSuelto, int hay, int techo, String enSuLugar) {
   if (hay > techo) {

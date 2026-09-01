@@ -125,7 +125,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(children: hijos),
@@ -166,7 +166,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
       backgroundColor: AppColors.ink,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.horizontal(
-          right: Radius.circular(28),
+          right: Radius.circular(AppRadius.sheet),
         ),
       ),
       // El mismo fondo que el inicio de sesión: la red de rutas de noche
@@ -182,7 +182,8 @@ class AppDrawerState extends ConsumerState<AppDrawer>
         haloY: 0.12,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, 26, AppSpacing.lg, 20),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,16 +197,13 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                           height: 30,
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Ya Viene',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.w800,
+                            style: AppTextStyles.titulo.copyWith(
                               color: AppColors.textOnInk,
-                              letterSpacing: -0.6,
                             ),
                           ),
                         ),
@@ -241,10 +239,10 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                   const SizedBox(height: 22),
                   _staggered(
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.12),
                         ),
@@ -270,11 +268,8 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                   )
                                 : Text(
                                     inicial,
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
+                                    style: AppTextStyles.titulo.copyWith(
                                       color: Colors.white,
-                                      letterSpacing: -0.5,
                                     ),
                                   ),
                           ),
@@ -289,11 +284,8 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                       : 'Hola',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
+                                  style: AppTextStyles.subtitulo.copyWith(
                                     color: AppColors.textOnInk,
-                                    letterSpacing: -0.4,
                                   ),
                                 ),
                                 if (email != null && email.isNotEmpty) ...[
@@ -302,9 +294,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                     email,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
+                                    style: AppTextStyles.pie.copyWith(
                                       color: AppColors.textDisabled,
                                     ),
                                   ),
@@ -334,16 +324,15 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                               )
                             : Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
+                                    horizontal: AppSpacing.sm, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(999),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
                                 ),
                                 child: Text(
                                   '${activeAlerts.length}',
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w800,
+                                  style: AppTextStyles.etiqueta.copyWith(
                                     color: Colors.white,
                                   ),
                                 ),
@@ -463,12 +452,12 @@ class ActiveRouteCard extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: hasRoute
             ? AppColors.primary.withValues(alpha: 0.10)
             : Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: hasRoute
               ? AppColors.primary.withValues(alpha: 0.20)
@@ -478,11 +467,9 @@ class ActiveRouteCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'RUTA ACTIVA',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+            style: AppTextStyles.etiqueta.copyWith(
               letterSpacing: 1.2,
               color: AppColors.textDisabled,
             ),
@@ -493,11 +480,8 @@ class ActiveRouteCard extends ConsumerWidget {
               route.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+              style: AppTextStyles.titulo.copyWith(
                 color: AppColors.textOnInk,
-                letterSpacing: -0.5,
               ),
             ),
             if (showTerminals) ...[
@@ -505,21 +489,16 @@ class ActiveRouteCard extends ConsumerWidget {
               TerminalsLine(a: a, b: b),
             ],
           ] else ...[
-            const Text(
+            Text(
               'Sin ruta activa',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+              style: AppTextStyles.cuerpoFuerte.copyWith(
                 color: AppColors.textOnInk,
-                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
+            const SizedBox(height: AppSpacing.xs),
+            Text(
               'Elige tu ruta en el mapa',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.pie.copyWith(
                 color: AppColors.textDisabled,
               ),
             ),
@@ -540,9 +519,7 @@ class TerminalsLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const textStyle = TextStyle(
-      fontSize: 12.5,
-      fontWeight: FontWeight.w600,
+    final textStyle = AppTextStyles.pie.copyWith(
       color: AppColors.textDisabled,
     );
     // Fallback visual: ruta de un solo terminal, sin línea incompleta.
@@ -565,7 +542,7 @@ class TerminalsLine extends StatelessWidget {
             style: textStyle,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.sm),
         // Línea de ida y vuelta: punto → trazo → punto, todo en verde.
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -593,7 +570,7 @@ class TerminalsLine extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.sm),
         Flexible(
           child: Text(
             b,
@@ -663,7 +640,8 @@ class _DrawerItemState extends State<DrawerItem> {
       child: AnimatedContainer(
         duration: AppMotion.instante,
         curve: AppMotion.curvaSalida,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: 15),
         color: Colors.white.withValues(alpha: _pressed ? 0.07 : 0),
         child: Row(
           children: [
@@ -688,12 +666,7 @@ class _DrawerItemState extends State<DrawerItem> {
             Expanded(
               child: Text(
                 widget.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: tinte,
-                  letterSpacing: -0.3,
-                ),
+                style: AppTextStyles.cuerpoFuerte.copyWith(color: tinte),
               ),
             ),
             if (widget.trailing != null) widget.trailing!,

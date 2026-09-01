@@ -25,10 +25,11 @@ class IdleStatusChip extends ConsumerWidget {
     if (config == null) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.divider),
         boxShadow: [
           BoxShadow(
@@ -45,11 +46,8 @@ class IdleStatusChip extends ConsumerWidget {
           const SizedBox(width: 10),
           Text(
             config.label,
-            style: const TextStyle(
+            style: AppTextStyles.etiqueta.copyWith(
               color: AppColors.primaryDeep,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
             ),
           ),
         ],

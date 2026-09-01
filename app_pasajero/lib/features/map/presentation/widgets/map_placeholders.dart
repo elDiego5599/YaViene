@@ -29,25 +29,22 @@ class MapStylePlaceholder extends StatelessWidget {
           ? GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {},
-              child: const ColoredBox(
+              child: ColoredBox(
                 color: AppColors.background,
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.directions_bus_rounded,
                         size: 44,
                         color: AppColors.textDisabled,
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
                         'Preparando tu mapa…',
-                        style: TextStyle(
+                        style: AppTextStyles.cuerpoFuerte.copyWith(
                           color: AppColors.textSecondary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
                         ),
                       ),
                     ],
@@ -84,19 +81,16 @@ class MapStyleFailedBanner extends StatelessWidget {
           boxShadow: AppShadows.floating,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: 12),
           child: Row(
             children: [
               const Icon(Icons.cloud_off_rounded, color: AppColors.coral),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'No se pudo cargar el mapa',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: AppTextStyles.cuerpoFuerte,
                 ),
               ),
               TextButton(

@@ -262,11 +262,11 @@ abstract class AppTextStyles {
 
   // ── Nombres viejos ───────────────────────────────────────────────────
   //
-  // Siguen aquí con sus valores exactos de hoy porque la app todavía los
-  // usa y esta fase define, no migra: si estos cambiaran, cambiarían las
-  // fotos de referencia y no habría forma de distinguir un error de
-  // migración de una mejora. La Fase 3 los va retirando archivo por
-  // archivo, y cuando no quede ninguno se borran.
+  // La Fase 3 los retiró de `app_pasajero` y del tema: ahí ya no queda
+  // ninguno. Siguen aquí con sus valores exactos porque los usan
+  // `app_conductor` y los widgets de `shared/` que solo él monta, y esa app
+  // es de demostración: migrarla movería fotos de referencia que nadie mira
+  // a cambio de nada. Se borran el día que ella se retire o se migre.
 
   static final TextStyle h1 = _base.copyWith(
     fontSize: 28.0,
@@ -352,14 +352,23 @@ abstract class AppTheme {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        titleTextStyle: AppTextStyles.h3,
+        // El título de la barra manda sobre las filas de la pantalla que
+        // encabeza, así que va un escalón por encima de ellas: las filas de
+        // Avisos son `subtitulo` y estaban empatadas con él. Es además el
+        // tamaño que Material le da por defecto a una barra.
+        titleTextStyle: AppTextStyles.titulo,
         iconTheme: const IconThemeData(color: AppColors.primaryDeep, size: 24),
       ),
 
       // F11: sin esto, un TextButton sin minimumSize propio cae en los 40dp
       // de fábrica de Material — por debajo del tap target accesible de 44dp.
+      //
+      // El color tampoco estaba puesto, así que un TextButton sin `styleFrom`
+      // propio —el «Reintentar» del banner de mapa caído, por ejemplo— salía
+      // en el morado de fábrica de Material 3, que no es un color de esta app.
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
+          foregroundColor: AppColors.primaryDeep,
           minimumSize: const Size(0, 44),
           tapTargetSize: MaterialTapTargetSize.padded,
         ),
@@ -373,7 +382,7 @@ abstract class AppTheme {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.pill)),
           elevation: 0,
-          textStyle: AppTextStyles.labelLarge,
+          textStyle: AppTextStyles.boton,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         ),
       ),
@@ -398,8 +407,12 @@ abstract class AppTheme {
           borderSide:
               const BorderSide(color: AppColors.primaryDeep, width: 2.0),
         ),
-        labelStyle: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        hintStyle: AppTextStyles.body.copyWith(color: AppColors.textDisabled),
+        labelStyle: AppTextStyles.cuerpo.copyWith(
+          color: AppColors.textSecondary,
+        ),
+        hintStyle: AppTextStyles.cuerpo.copyWith(
+          color: AppColors.textDisabled,
+        ),
       ),
 
       cardTheme: CardThemeData(
