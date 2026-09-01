@@ -409,25 +409,35 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: toggleable ? () => _asentar(!_abierta) : null,
-                child: AnimatedBuilder(
-                  animation: _pliegue,
-                  builder: (context, _) {
-                    final abierta = _pliegue.value;
-                    return Padding(
-                      // Plegada, el asa es lo único que queda: se le deja el
-                      // mismo aire arriba y abajo para que no parezca un
-                      // resto de la tarjeta, sino un control.
-                      padding:
-                          EdgeInsets.only(top: 14, bottom: 14 + 4 * abierta),
-                      child: SheetHandle(
-                        key: const ValueKey('sheet-handle'),
-                        abierta: abierta,
-                      ),
-                    );
-                  },
+              Semantics(
+                button: toggleable,
+                // El asa es dos rayas de 4 px: leída sola no dice nada, y
+                // es el único control que pliega la tarjeta sin arrastrar.
+                label: !toggleable
+                    ? null
+                    : _abierta
+                        ? 'Plegar la tarjeta'
+                        : 'Abrir la tarjeta',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: toggleable ? () => _asentar(!_abierta) : null,
+                  child: AnimatedBuilder(
+                    animation: _pliegue,
+                    builder: (context, _) {
+                      final abierta = _pliegue.value;
+                      return Padding(
+                        // Plegada, el asa es lo único que queda: se le deja el
+                        // mismo aire arriba y abajo para que no parezca un
+                        // resto de la tarjeta, sino un control.
+                        padding:
+                            EdgeInsets.only(top: 14, bottom: 14 + 4 * abierta),
+                        child: SheetHandle(
+                          key: const ValueKey('sheet-handle'),
+                          abierta: abierta,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
               // El pliegue: el alto se recorta anclado bajo el asa —dentro
@@ -539,37 +549,46 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     return KeyedSubtree(
       key: ValueKey(stateKey),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, 10, AppSpacing.lg, 40),
-        child: Column(
-          children: [
-            // El icono va en su medallón, como los de los tiles del selector
-            // y el de la píldora de ubicación: suelto sobre la arena era un
-            // glifo gris flotando en el hueco más grande de la pantalla.
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.hairline),
+        padding:
+            const EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 40),
+        // Título y frase son una sola cosa: "No hay buses en el mapa" y
+        // el porqué. Sueltos, hay que deslizar dos veces para enterarse
+        // de por qué la hoja está vacía.
+        child: MergeSemantics(
+          child: Column(
+            children: [
+              // El icono va en su medallón, como los de los tiles del
+              // selector y el de la píldora de ubicación: suelto sobre la
+              // arena era un glifo gris flotando en el hueco más grande de
+              // la pantalla. No dice nada que no diga el título, así que en
+              // voz alta no existe.
+              ExcludeSemantics(
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.hairline),
+                  ),
+                  child: Icon(icon, color: AppColors.textSecondary, size: 26),
+                ),
               ),
-              child: Icon(icon, color: AppColors.textSecondary, size: 26),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: AppTextStyles.subtitulo,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              style: AppTextStyles.cuerpo
-                  .copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              const SizedBox(height: 14),
+              Text(
+                title,
+                style: AppTextStyles.subtitulo,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                subtitle,
+                style: AppTextStyles.cuerpo
+                    .copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -586,6 +605,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // F6: misma "ruta - placa" que ya usa Notificaciones, en vez de "Bus $id"
     // crudo — el mismo bus no debe tener dos nombres distintos en la app.
     final busLabel = routePlateLabel(
+      busId: busId,
+      routeName: route?.name,
+      routeId: route?.id,
+    );
+    final busSpoken = routePlateSpoken(
       busId: busId,
       routeName: route?.name,
       routeId: route?.id,
@@ -619,16 +643,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           const Icon(Icons.wifi_off_rounded, color: AppColors.coral, size: 56),
           const SizedBox(height: 10),
           Text(staleLabel,
-              style: AppTextStyles.subtitulo
-                  .copyWith(color: AppColors.textBody)),
+              style:
+                  AppTextStyles.subtitulo.copyWith(color: AppColors.textBody)),
           const SizedBox(height: AppSpacing.xs),
           Text("$busLabel · conserva su última posición",
               style: AppTextStyles.etiqueta
                   .copyWith(color: AppColors.textDisabled)),
           const SizedBox(height: AppSpacing.lg),
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, 0, AppSpacing.lg, 20),
+            padding:
+                const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 20),
             child: _StickyAlertButton(
               key: widget.alertKey,
               onBlockedChanged: widget.onGuideAlertBlocked,
@@ -663,6 +687,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     Color stripColor;
     String metricText = '';
     String? metricUnit;
+    // Lo que se lee en voz alta. Cuando la métrica es una palabra
+    // —"Calculando"— la palabra ya es la frase entera.
+    String metricSpoken = '';
     if (!locationState.hasPosition) {
       // Gris de texto, no gris de deshabilitado: aquí no hay número sino
       // una palabra de 28 en peso 800, y `textDisabled` daba 2,4:1 sobre
@@ -670,9 +697,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // toca a un estado sin dato.
       stripColor = AppColors.textSecondary;
       metricText = "Sin tu ubicación";
+      metricSpoken = metricText;
     } else if (distance == null) {
       stripColor = AppColors.textSecondary;
       metricText = "Calculando";
+      metricSpoken = metricText;
     } else {
       // V1: el número hero carga la urgencia en su propio color, en vez de
       // quedarse siempre en el mismo azul — lejos, acercándose o ya casi.
@@ -680,6 +709,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       final parts = _metricParts(distance);
       metricText = parts.$1;
       metricUnit = parts.$2;
+      metricSpoken = _metricSpoken(distance);
     }
     final isNumberMetric = metricUnit != null;
 
@@ -705,33 +735,49 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             busLabel,
             textAlign: TextAlign.center,
             style: AppTextStyles.etiqueta,
+            // En pantalla el guion separa la ruta de la placa; leído,
+            // "Calle 72 guion SQA223" no dice qué es cada cosa.
+            semanticsLabel: busSpoken,
           ),
           const SizedBox(height: 10),
           // Métrica principal: número grande que respira, o el estado en
           // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
           // TextStyle base) en vez de un literal duplicado.
-          Text(
-            metricText,
-            key: widget.metricKey,
-            textAlign: TextAlign.center,
-            // El número es `dato`, el rol que existe para él. Cuando en
-            // su sitio va una palabra —"Sin señal", "Llegando"— no cabe a
-            // 64 ni tendría sentido en w200: pasa a `display`, que es el
-            // otro rol grande, y ocupa el mismo hueco.
-            style: (isNumberMetric
-                    ? AppTextStyles.dato
-                    : AppTextStyles.display)
-                .copyWith(color: stripColor),
-          ),
-          if (metricUnit != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              metricUnit,
-              key: widget.metricUnitKey,
-              style: AppTextStyles.cuerpoFuerte
-                  .copyWith(color: AppColors.textSecondary),
+          // El número y su unidad son dos bloques —64 y 15— y en voz alta
+          // se leerían como "850" y luego "m de ti", con una pausa en
+          // medio y la unidad abreviada. Aquí se dicen en una sola frase.
+          Semantics(
+            label: metricSpoken,
+            excludeSemantics: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  metricText,
+                  key: widget.metricKey,
+                  textAlign: TextAlign.center,
+                  // El número es `dato`, el rol que existe para él. Cuando
+                  // en su sitio va una palabra —"Sin señal", "Llegando"—
+                  // no cabe a 64 ni tendría sentido en w200: pasa a
+                  // `display`, que es el otro rol grande, y ocupa el mismo
+                  // hueco.
+                  style: (isNumberMetric
+                          ? AppTextStyles.dato
+                          : AppTextStyles.display)
+                      .copyWith(color: stripColor),
+                ),
+                if (metricUnit != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    metricUnit,
+                    key: widget.metricUnitKey,
+                    style: AppTextStyles.cuerpoFuerte
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
           if (stateDetail != null) ...[
             const SizedBox(height: 14),
             Text(
@@ -761,6 +807,20 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         ],
       ),
     );
+  }
+
+  /// La misma distancia, dicha entera y en castellano.
+  ///
+  /// En pantalla la unidad va abreviada porque debajo del número se lee
+  /// sola; en voz alta "m" es una letra suelta y el punto decimal se
+  /// pronuncia "punto".
+  String _metricSpoken(double meters) {
+    if (meters < 1000) {
+      final m = meters.round();
+      return 'A $m ${m == 1 ? "metro" : "metros"} de ti';
+    }
+    final km = (meters / 1000).toStringAsFixed(1).replaceAll('.', ',');
+    return 'A $km kilómetros de ti';
   }
 
   /// Divide la distancia en número grande + unidad: ("850", "m de ti") o
@@ -843,75 +903,84 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
             ? const Color(0xFF065F46)
             : AppColors.primary;
 
-    return GestureDetector(
-      onTap: () {
-        // Un botón bloqueado (por histéresis) no debe poder armar el aviso
-        // aunque el bus ya no esté dentro del radio: el estado visual y la
-        // guía dependen de ese bloqueo.
-        if (widget.blocked) return;
-        HapticFeedback.mediumImpact();
-        widget.onPressed();
-      },
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      child: AnimatedScale(
-        scale: _isPressed ? 0.96 : 1,
-        duration: AppMotion.instante,
-        // V6: el rebote se reserva para el CTA principal de la app — el
-        // resto de los botones se queda con easeOutCubic.
-        curve: Curves.easeOutBack,
-        child: AnimatedContainer(
-          duration: AppMotion.normal,
-          curve: AppMotion.curvaEntrada,
-          width: double.infinity,
-          height: 60,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            boxShadow: [
-              BoxShadow(
-                color: backgroundColor.withValues(alpha: 0.24),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: AnimatedSwitcher(
-            duration: AppMotion.rapido,
-            switchInCurve: AppMotion.curvaEntrada,
-            switchOutCurve: AppMotion.curvaSalida,
-            child: Row(
-              key: ValueKey('${widget.isActive}-${widget.blocked}'),
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.blocked
-                      ? Icons.notifications_off_rounded
-                      : widget.isActive
-                          ? Icons.check_circle_rounded
-                          : Icons.notifications_active_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    // Caja normal, no versalitas. "AVISARME CUANDO ESTÉ
-                    // CERCA" era una frase entera de 26 letras gritada en
-                    // mayúsculas: la guía de Apple no las usa en botones, y
-                    // en español además se leen más lento. El interletrado
-                    // abierto existía para sostener las versalitas; en caja
-                    // normal solo separa las letras.
-                    style: AppTextStyles.boton
-                        .copyWith(color: Colors.white),
-                  ),
+    return Semantics(
+      button: true,
+      // Bloqueado no es lo mismo que ausente: el botón sigue ahí y su
+      // rótulo dice por qué no se puede tocar ("El bus ya está cerca").
+      // Anunciarlo deshabilitado es lo que evita que alguien lo toque tres
+      // veces esperando respuesta.
+      enabled: !widget.blocked,
+      label: widget.label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () {
+          // Un botón bloqueado (por histéresis) no debe poder armar el aviso
+          // aunque el bus ya no esté dentro del radio: el estado visual y la
+          // guía dependen de ese bloqueo.
+          if (widget.blocked) return;
+          HapticFeedback.mediumImpact();
+          widget.onPressed();
+        },
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          scale: _isPressed ? 0.96 : 1,
+          duration: AppMotion.instante,
+          // V6: el rebote se reserva para el CTA principal de la app — el
+          // resto de los botones se queda con easeOutCubic.
+          curve: Curves.easeOutBack,
+          child: AnimatedContainer(
+            duration: AppMotion.normal,
+            curve: AppMotion.curvaEntrada,
+            width: double.infinity,
+            height: 60,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              boxShadow: [
+                BoxShadow(
+                  color: backgroundColor.withValues(alpha: 0.24),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
+            ),
+            child: AnimatedSwitcher(
+              duration: AppMotion.rapido,
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaSalida,
+              child: Row(
+                key: ValueKey('${widget.isActive}-${widget.blocked}'),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    widget.blocked
+                        ? Icons.notifications_off_rounded
+                        : widget.isActive
+                            ? Icons.check_circle_rounded
+                            : Icons.notifications_active_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      // Caja normal, no versalitas. "AVISARME CUANDO ESTÉ
+                      // CERCA" era una frase entera de 26 letras gritada en
+                      // mayúsculas: la guía de Apple no las usa en botones, y
+                      // en español además se leen más lento. El interletrado
+                      // abierto existía para sostener las versalitas; en caja
+                      // normal solo separa las letras.
+                      style: AppTextStyles.boton.copyWith(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

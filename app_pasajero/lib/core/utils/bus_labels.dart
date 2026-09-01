@@ -9,6 +9,14 @@ String busPlaca(String busId) {
       : placa;
 }
 
+/// El nombre de la ruta, o su id si no llegó nombre.
+String? _ruta(String? routeName, String? routeId) {
+  final preferido = routeName?.trim();
+  if (preferido != null && preferido.isNotEmpty) return preferido;
+  final alterno = routeId?.trim();
+  return alterno != null && alterno.isNotEmpty ? alterno : null;
+}
+
 /// Etiqueta "ruta - placa" para notificaciones e historial: en vez de
 /// "Bus B-042" el usuario ve el NOMBRE de la ruta y la placa, p. ej.
 /// "Calle 72 - Uninorte - SQA223".
@@ -18,11 +26,23 @@ String routePlateLabel({
   String? routeId,
 }) {
   final placa = busPlaca(busId);
-  final preferredRoute = routeName?.trim();
-  final fallbackRoute = routeId?.trim();
-  final route = preferredRoute != null && preferredRoute.isNotEmpty
-      ? preferredRoute
-      : fallbackRoute;
-  if (route == null || route.isEmpty) return placa;
+  final route = _ruta(routeName, routeId);
+  if (route == null) return placa;
   return placa.isEmpty ? route : '$route - $placa';
+}
+
+/// La misma etiqueta, dicha en voz alta.
+///
+/// En pantalla el guion separa la ruta de la placa y se entiende de un
+/// vistazo; leído, «Calle 72 guion SQA223» no dice qué es cada cosa. Esto
+/// nombra las dos partes.
+String routePlateSpoken({
+  required String busId,
+  String? routeName,
+  String? routeId,
+}) {
+  final placa = busPlaca(busId);
+  final route = _ruta(routeName, routeId);
+  if (route == null) return placa.isEmpty ? '' : 'Bus $placa';
+  return placa.isEmpty ? route : '$route, bus $placa';
 }
