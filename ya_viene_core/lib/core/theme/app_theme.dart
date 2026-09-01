@@ -118,6 +118,125 @@ abstract class AppTextStyles {
     letterSpacing: -0.3,
   );
 
+  // ── La escala ────────────────────────────────────────────────────────
+  //
+  // Ocho roles y nada más. Antes había veinte tamaños de letra, catorce
+  // letter-spacings sueltos y w800 en treinta y cuatro sitios: eso no es
+  // una jerarquía, es el mismo grito a distintos volúmenes.
+  //
+  // Tres reglas para no volver ahí:
+  //  · El espaciado no se elige, se deduce del tamaño. Cuanto más grande
+  //    la letra, más se cierra; a partir del cuerpo ya no se toca.
+  //  · w800 es la excepción, no la norma: solo el título que encabeza una
+  //    pantalla y el botón principal. Los cuerpos van en w400 y w500, que
+  //    es para lo que estamos cargando esos dos pesos en el bundle.
+  //  · Quien necesite algo que no está aquí está pidiendo un rol nuevo,
+  //    no un `TextStyle` suelto.
+
+  /// El número que la app existe para dar: los metros que faltan.
+  ///
+  /// Es el único sitio donde el peso más fino tiene sentido, porque es el
+  /// único texto lo bastante grande para sostenerlo.
+  static final TextStyle dato = _base.copyWith(
+    fontSize: 64.0,
+    fontWeight: FontWeight.w200,
+    height: 0.9,
+    letterSpacing: -2.0,
+    color: AppColors.primaryDeep,
+  );
+
+  /// Lo primero que se lee de una pantalla. Uno por pantalla.
+  static final TextStyle display = _base.copyWith(
+    fontSize: 28.0,
+    fontWeight: FontWeight.w800,
+    height: 1.15,
+    letterSpacing: -0.6,
+  );
+
+  /// Encabeza un bloque dentro de la pantalla.
+  static final TextStyle titulo = _base.copyWith(
+    fontSize: 22.0,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+    letterSpacing: -0.4,
+  );
+
+  /// Encabeza una fila o una tarjeta: el nombre de una ruta, el de una
+  /// empresa, el de una opción del menú.
+  static final TextStyle subtitulo = _base.copyWith(
+    fontSize: 18.0,
+    fontWeight: FontWeight.w700,
+    height: 1.3,
+    letterSpacing: -0.3,
+  );
+
+  /// El cuerpo cuando tiene que pesar: el texto de un botón, el dato de
+  /// una fila. Mismo tamaño que [cuerpo] a propósito — lo que cambia es el
+  /// peso, no la medida, y así las dos cosas siguen alineadas.
+  static final TextStyle cuerpoFuerte = _base.copyWith(
+    fontSize: 15.0,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+    letterSpacing: -0.2,
+  );
+
+  /// Texto para leer. La medida de lectura de la app.
+  static final TextStyle cuerpo = _base.copyWith(
+    fontSize: 15.0,
+    fontWeight: FontWeight.w400,
+    height: 1.5,
+    letterSpacing: -0.2,
+  );
+
+  /// Nombra algo que está al lado: la unidad del número, el estado de una
+  /// píldora, el encabezado de una sección del menú.
+  static final TextStyle etiqueta = _base.copyWith(
+    fontSize: 13.0,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+    letterSpacing: -0.1,
+    color: AppColors.textSecondary,
+  );
+
+  /// La letra chica: la aclaración que se lee después, si acaso.
+  static final TextStyle pie = _base.copyWith(
+    fontSize: 12.0,
+    fontWeight: FontWeight.w500,
+    height: 1.3,
+    letterSpacing: 0,
+    color: AppColors.textSecondary,
+  );
+
+  /// Los ocho roles vestidos de Material, para lo que no pasa por
+  /// nosotros: diálogos, `SnackBar`, `ListTile`, el texto que se escribe
+  /// en un campo. El nombre de Material a la izquierda es solo el enchufe;
+  /// la decisión es siempre el rol de la derecha.
+  static TextTheme get textTheme => TextTheme(
+        displayLarge: dato,
+        displayMedium: display,
+        displaySmall: display,
+        headlineLarge: display,
+        headlineMedium: titulo,
+        headlineSmall: titulo,
+        titleLarge: titulo,
+        titleMedium: subtitulo,
+        titleSmall: cuerpoFuerte,
+        bodyLarge: cuerpo,
+        bodyMedium: cuerpo,
+        bodySmall: pie,
+        labelLarge: cuerpoFuerte,
+        labelMedium: etiqueta,
+        labelSmall: pie,
+      );
+
+  // ── Nombres viejos ───────────────────────────────────────────────────
+  //
+  // Siguen aquí con sus valores exactos de hoy porque la app todavía los
+  // usa y esta fase define, no migra: si estos cambiaran, cambiarían las
+  // fotos de referencia y no habría forma de distinguir un error de
+  // migración de una mejora. La Fase 3 los va retirando archivo por
+  // archivo, y cuando no quede ninguno se borran.
+
   static final TextStyle h1 = _base.copyWith(
     fontSize: 28.0,
     fontWeight: FontWeight.w800,
@@ -183,6 +302,12 @@ abstract class AppTheme {
       scaffoldBackgroundColor: AppColors.arena,
       // Fuente del bundle de la app (Plus Jakarta Sans), como AppTextStyles.
       fontFamily: 'PlusJakartaSans',
+      // OJO: falta `textTheme: AppTextStyles.textTheme`. Está escrito y
+      // probado, pero enchufarlo mueve 35 de las 36 fotos de referencia
+      // —`bodyMedium` es el `DefaultTextStyle` de todo `Text` sin estilo
+      // propio—, y esta fase define sin mover nada para que los cambios de
+      // la siguiente se puedan leer. Se enchufa al abrir la migración, que
+      // es donde ese movimiento se revisa foto por foto.
       // Firma de movimiento: cualquier InkWell/ListTile suelto que no defina
       // su propio splash hereda este verde tenue en vez del gris de fábrica.
       splashColor: AppColors.primary.withValues(alpha: 0.10),

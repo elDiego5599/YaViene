@@ -117,10 +117,12 @@ ponerle candado.
    que es para lo que se está pagando el peso en el bundle.
 3. **Escala de radios.** Los 14 literales caen en los 6 de `AppRadius`.
    `999` es *el* pill; `99` desaparece.
-4. **Conectar el tema.** `AppTheme.lightTheme` fija `fontFamily` pero
-   **nunca `textTheme`**, así que `Theme.of(context).textTheme` devuelve
-   Material, no lo nuestro (`ya_viene_core/lib/core/theme/app_theme.dart:177-185`).
-   Se conecta.
+4. ~~**Conectar el tema.**~~ **Movido al primer paso de la Fase 3.**
+   `AppTextStyles.textTheme` ya está escrito, pero enchufarlo mueve 35 de
+   las 36 fotos: `bodyMedium` es el `DefaultTextStyle` de todo `Text` sin
+   estilo propio. Eso es migración, no definición, y hacerlo aquí dejaría
+   la Fase 3 sin línea base contra la que comparar. La línea está en
+   `app_theme.dart` comentada y lista para descomentar.
 5. **Candado.** Regla de lint / comprobación en CI que falle ante un
    `TextStyle(` con `fontSize` literal o un `circular(<número>)` nuevo fuera
    del tema. `analysis_options.yaml` ya lleva reglas propias, encaja.
@@ -128,6 +130,18 @@ ponerle candado.
 **Hecho cuando:** el tema entrega tipografía, existe el candado, y los
 goldens de la Fase 0 **siguen pasando sin actualizarse** (la fase 2 define,
 no migra).
+
+**Estado: hecho.** La escala son ocho roles con nombre en español —`dato`,
+`display`, `titulo`, `subtitulo`, `cuerpoFuerte`, `cuerpo`, `etiqueta`,
+`pie`— cada uno con tamaño, peso, interlínea y espaciado fijos; el
+espaciado se deduce del tamaño, así que los catorce letter-spacings sueltos
+caen a seis. `cuerpo` y `cuerpoFuerte` comparten los 15 px a propósito: lo
+que cambia entre ellos es el peso, no la medida. Los nombres viejos
+(`h1`…`etaNumber`) siguen ahí con sus valores exactos de hoy y los retira
+la Fase 3. El candado es `app_pasajero/test/candado_estetica_test.dart`:
+cuenta `TextStyle(` con `fontSize` a mano (77) y `circular(` con número a
+mano (39), y falla si el número **sube o baja** sin mover el techo. Los 36
+goldens pasan sin tocarse.
 
 ---
 

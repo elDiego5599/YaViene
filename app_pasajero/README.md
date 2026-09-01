@@ -44,6 +44,12 @@ flutter test test/golden
 flutter test test/golden --update-goldens
 git diff --stat test/golden/goldens   # revisa QUÉ se movió antes de commitear
 
+# El candado del sistema de diseño. Cuenta los `TextStyle` con `fontSize` a
+# mano y los `circular(` con número a mano, y falla si el número sube.
+# Si migraste un archivo y bajó, baja también el techo en el mismo commit:
+# lo ganado se cierra, no se deja abierto.
+flutter test test/candado_estetica_test.dart
+
 # Test integral (requiere emulador + backend + ngrok arriba)
 flutter test integration_test/map_load_test.dart \
   -d emulator-5554 \
