@@ -537,8 +537,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         children: [
           _headerRow(title: 'Elige tu ruta'),
           const SizedBox(height: 6),
+          // «en el mapa» sobraba: la hoja está encima del mapa y se ve
+          // detrás. Sobrando, partía la frase en dos líneas y dejaba
+          // «mapa.» solo en la segunda.
           Text(
-            'Dos pasos y ves los buses moviéndose en el mapa.',
+            'Dos pasos y ves los buses moviéndose.',
             style: AppTextStyles.cuerpo
                 .copyWith(color: AppColors.textSecondary),
           ),

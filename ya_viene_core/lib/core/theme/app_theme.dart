@@ -13,6 +13,11 @@ abstract class AppColors {
   /// Arena cálida: superficies de tarjetas y estados vacíos.
   static const Color arena = Color(0xFFFAF6F0);
 
+  /// El borde de arriba de una hoja que sube sobre fondo oscuro: medio tono
+  /// por encima de [arena], para que la hoja tenga labio propio en vez de
+  /// una línea de borde muerta. Se funde en [arena] en el primer 20 %.
+  static const Color arenaAlta = Color(0xFFFFFDF8);
+
   /// Coral suave: excepciones importantes (bus sin señal, avisos críticos).
   static const Color coral = Color(0xFFE86A5E);
   static const Color coralLight = Color(0xFFFBE7E4);
@@ -42,6 +47,16 @@ abstract class AppColors {
   static const Color errorOnInk = Color(0xFFFF6B6B);
 
   static const Color textPrimary = Color(0xFF0F172A);
+
+  /// El escalón que faltaba entre [textPrimary] y [textSecondary]: el
+  /// párrafo de una tarjeta clara, donde [textSecondary] se aclara de más
+  /// (4.8:1 sobre blanco) y [textPrimary] pesa como un título. Este da
+  /// 7.5:1 y se lee como texto, no como rótulo.
+  ///
+  /// Estaba escrito a mano cuatro veces —la guía del mapa y la hoja del
+  /// bus— con el mismo número y sin nombre.
+  static const Color textBody = Color(0xFF475569);
+
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled = Color(0xFF94A3B8);
 

@@ -601,7 +601,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           const SizedBox(height: 10),
           Text(staleLabel,
               style: AppTextStyles.subtitulo
-                  .copyWith(color: const Color(0xFF475569))),
+                  .copyWith(color: AppColors.textBody)),
           const SizedBox(height: AppSpacing.xs),
           Text("$busLabel · conserva su última posición",
               style: AppTextStyles.etiqueta

@@ -363,7 +363,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               widget.message,
               key: const ValueKey('guide_message'),
               style: AppTextStyles.cuerpo.copyWith(
-                color: const Color(0xFF475569),
+                color: AppColors.textBody,
               ),
             ),
             if (widget.primaryLabel != null && widget.onPrimary != null) ...[
@@ -411,7 +411,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       icon: const Icon(Icons.arrow_back_rounded, size: 16),
                       label: const Text('Atrás'),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF475569),
+                        foregroundColor: AppColors.textBody,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         minimumSize: const Size(0, 36),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -424,7 +424,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                     style: TextButton.styleFrom(
                       textStyle: AppTextStyles.etiqueta,
                       backgroundColor: AppColors.surfaceMuted,
-                      foregroundColor: const Color(0xFF475569),
+                      foregroundColor: AppColors.textBody,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),

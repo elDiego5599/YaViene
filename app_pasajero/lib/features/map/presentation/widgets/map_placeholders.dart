@@ -95,10 +95,15 @@ class MapStyleFailedBanner extends StatelessWidget {
               ),
               TextButton(
                 onPressed: onRetry,
-                child: const Text(
-                  'Reintentar',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                // El peso venía suelto en el `Text` y el tamaño lo ponía
+                // Material por detrás. Es el mismo rol al que Material caía
+                // —`boton`—, escrito ahora donde se lee; bajarlo a la medida
+                // del aviso lo dejaba con el peso exacto de la frase y ya no
+                // parecía que se pudiera tocar.
+                style: TextButton.styleFrom(
+                  textStyle: AppTextStyles.boton,
                 ),
+                child: const Text('Reintentar'),
               ),
             ],
           ),
