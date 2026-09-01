@@ -65,7 +65,7 @@ void main() {
     await openDrawer(tester);
 
     expect(find.text('Ya Viene'), findsOneWidget);
-    expect(find.text('Hola, QA Tester'), findsOneWidget);
+    expect(find.text('Hola, QA'), findsOneWidget);
     expect(find.text('qa@yaviene.app'), findsOneWidget);
     expect(find.text('Sin ruta activa'), findsOneWidget);
     expect(find.text('Avisos'), findsOneWidget);

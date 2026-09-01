@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/widgets/sheet_handle.dart';
+import '../../../../core/widgets/sheet_top_border.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/map_view_state.dart';
@@ -366,12 +369,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         width: double.infinity,
         // Un filo de un pixel separa la hoja del mapa mejor que una sombra
         // ancha: la sombra sobre un mapa lleno de color se lee como
-        // suciedad, el filo se lee como borde.
-        decoration: BoxDecoration(
+        // suciedad, el filo se lee como borde. Solo arriba: la hoja va
+        // pegada al borde de abajo y ocupa todo el ancho, y un filo
+        // completo bajaba por los dos cantos de la pantalla.
+        decoration: ShapeDecoration(
           color: AppColors.arena,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: AppColors.hairline),
-          boxShadow: [
+          shape: const SheetTopBorder(
+            side: BorderSide(color: AppColors.hairline),
+          ),
+          shadows: [
             BoxShadow(
               color: AppColors.primaryDeep.withValues(alpha: 0.06),
               blurRadius: 20,
@@ -397,21 +403,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                       // resto de la tarjeta, sino un control.
                       padding:
                           EdgeInsets.only(top: 14, bottom: 14 + 4 * abierta),
-                      child: Container(
+                      child: SheetHandle(
                         key: const ValueKey('sheet-handle'),
-                        // El asa se ensancha y se oscurece a medida que la
-                        // hoja baja: es la señal de que ahí hay algo que
-                        // abrir, y se ve venir durante el arrastre.
-                        width: 56 - 12 * abierta,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Color.lerp(
-                            AppColors.textDisabled,
-                            AppColors.divider,
-                            abierta,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
+                        abierta: abierta,
                       ),
                     );
                   },

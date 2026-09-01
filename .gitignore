@@ -18,3 +18,6 @@ modificaciones.md
 # Firebase config (project-specific, not tracked)
 app_pasajero/android/app/google-services.json
 app_pasajero/ios/Runner/GoogleService-Info.plist
+
+# Salida transitoria de un golden que falló: se regenera sola.
+**/test/golden/failures/

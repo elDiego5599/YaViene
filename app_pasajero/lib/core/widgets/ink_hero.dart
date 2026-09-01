@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'entrance.dart';
 
 /// F12: logo + halo + wordmark + tagline, compartido por splash, login y
 /// onboarding. Antes cada pantalla repetía el mismo bloque con constantes
@@ -15,6 +16,7 @@ class InkHero extends StatelessWidget {
     this.spacingAfterLogo = 18,
     this.trailing,
     this.heroTag = marcaHeroTag,
+    this.entradaEscalonada,
   });
 
   /// Etiqueta del `Hero` del logo. Compartida por splash, login y bienvenida,
@@ -33,6 +35,18 @@ class InkHero extends StatelessWidget {
   /// una misma pantalla revientan en tiempo de ejecución, así que quien
   /// necesite un segundo `InkHero` a la vez lo apaga aquí.
   final String? heroTag;
+
+  /// Anima las piezas por separado y **deja el logo quieto**.
+  ///
+  /// Es para el splash, que es la pantalla que releva a la de arranque
+  /// nativa. Esa ya dibuja el logo, en el mismo sitio y del mismo tamaño;
+  /// si Flutter lo volviera a fundir desde cero, el relevo se vería como un
+  /// parpadeo. Así el logo no se mueve y lo que entra es lo que la pantalla
+  /// nativa no puede dibujar: el nombre, la tagline y el indicador.
+  ///
+  /// Quien no lo pase (login, bienvenida) sigue envolviendo el bloque
+  /// entero por fuera, como antes.
+  final Entrada? entradaEscalonada;
 
   /// Solo vuela el logo, no el bloque entero: el texto tendría que volver a
   /// componerse en cada cuadro del vuelo para caber en un ancho que cambia,
@@ -63,6 +77,13 @@ class InkHero extends StatelessWidget {
     return Hero(tag: tag, child: marca);
   }
 
+  /// Aplica la entrada si la hay; si no, devuelve la pieza tal cual.
+  Widget _quiza(Widget pieza, double start) {
+    final entrada = entradaEscalonada;
+    if (entrada == null) return pieza;
+    return entrada(pieza, start: start, begin: const Offset(0, 0.06));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -70,24 +91,30 @@ class InkHero extends StatelessWidget {
       children: [
         _logo(),
         SizedBox(height: spacingAfterLogo),
-        Text(
-          'Ya Viene',
-          style: TextStyle(
-            fontSize: titleFontSize,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-            letterSpacing: -1.2,
+        _quiza(
+          Text(
+            'Ya Viene',
+            style: TextStyle(
+              fontSize: titleFontSize,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -1.2,
+            ),
           ),
+          0.10,
         ),
         const SizedBox(height: 4),
-        Text(
-          'Tu ciudad en tiempo real.',
-          style: TextStyle(
-            fontSize: taglineFontSize,
-            fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.75),
-            letterSpacing: -0.3,
+        _quiza(
+          Text(
+            'Tu ciudad en tiempo real.',
+            style: TextStyle(
+              fontSize: taglineFontSize,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.75),
+              letterSpacing: -0.3,
+            ),
           ),
+          0.22,
         ),
         if (trailing != null) ...[
           const SizedBox(height: 28),

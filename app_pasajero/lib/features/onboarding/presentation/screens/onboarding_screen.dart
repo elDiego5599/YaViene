@@ -152,7 +152,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     const SizedBox(height: 22),
                                     entra(
                                       const _BenefitRow(
-                                        icon: Icons.timer_outlined,
+                                        // El recorrido, no el cronómetro: lo
+                                        // que la app entrega son metros, no
+                                        // minutos.
+                                        icon: Icons.route_rounded,
                                         title: 'Cuánto falta',
                                         detail: 'Calculado con la posición '
                                             'real del bus',
@@ -164,7 +167,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     entra(
                                       const _BenefitRow(
                                         icon:
-                                            Icons.notifications_active_outlined,
+                                            Icons.notifications_active_rounded,
                                         title: 'Aviso antes de que llegue',
                                         detail: 'Suena cuando se acerca a tu '
                                             'punto de espera',

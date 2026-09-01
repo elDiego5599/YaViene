@@ -3,6 +3,7 @@ library;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -126,7 +127,12 @@ class YaVieneApp extends ConsumerWidget {
       darkTheme: AppTheme.lightTheme.copyWith(pageTransitionsTheme: fadeSlide),
       themeMode: ThemeMode.light,
       routerConfig: router,
+      // El idioma no es solo el texto que escribimos nosotros: sin los
+      // delegates, los menús que dibuja el sistema (copiar, pegar,
+      // seleccionar todo) y los tooltips salen en inglés.
       locale: const Locale('es', 'CO'),
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      supportedLocales: const [Locale('es', 'CO'), Locale('es')],
     );
   }
 }

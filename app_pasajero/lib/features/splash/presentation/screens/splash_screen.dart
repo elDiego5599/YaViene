@@ -74,26 +74,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           // El splash dura 900 ms como mínimo, así que la entrada termina
           // con margen antes de que se cambie de pantalla.
           child: ScreenEntrance(
-            builder: (context, entra) => entra(
-              InkHero(
-                logoSize: 84,
-                titleFontSize: 34,
-                taglineFontSize: 15,
-                spacingAfterLogo: 20,
-                trailing: entra(
-                  const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Color.fromRGBO(255, 255, 255, 0.6),
-                    ),
+            // El logo NO entra: ya está en pantalla. La pantalla de arranque
+            // nativa lo dibuja en este mismo sitio y a este mismo tamaño
+            // (`LaunchScreen.storyboard`, 84 pt a -72,5 del centro), así que
+            // fundirlo desde cero convertiría el relevo en un parpadeo. Lo
+            // que entra es lo que la pantalla nativa no puede dibujar.
+            builder: (context, entra) => InkHero(
+              logoSize: 84,
+              titleFontSize: 34,
+              taglineFontSize: 15,
+              spacingAfterLogo: 20,
+              entradaEscalonada: entra,
+              trailing: entra(
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color.fromRGBO(255, 255, 255, 0.6),
                   ),
-                  start: 0.55,
-                  begin: Offset.zero,
                 ),
+                start: 0.55,
+                begin: Offset.zero,
               ),
-              begin: const Offset(0, 0.05),
             ),
           ),
         ),

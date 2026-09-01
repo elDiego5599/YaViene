@@ -131,23 +131,27 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         title: 'Mira la distancia',
         message:
             'Aquí verás a qué distancia está el bus de tu punto de espera.',
-        icon: Icons.timer_outlined,
+        // El paso se llama "Mira la distancia" y el texto habla de metros:
+        // el cronómetro que había aquí prometía minutos.
+        icon: Icons.route_rounded,
         primaryLabel: 'Continuar',
       );
     case MapGuideStep.alert:
       return const MapGuideCopy(
         title: 'Activa el aviso',
+        // "Si Android te pide permiso" se leía tal cual en un iPhone. Quien
+        // ve el aviso del sistema no necesita que le digan qué sistema es.
         message: 'Pulsa este botón para recibir una notificación cuando el bus '
-            'esté cerca. Si Android te pide permiso, elige Permitir.',
+            'esté cerca. Si el teléfono te pide permiso, elige Permitir.',
         icon: Icons.notifications_active_rounded,
       );
     case MapGuideStep.background:
       return const MapGuideCopy(
         title: 'Sigue con lo tuyo',
-        message: 'Puedes cambiar de aplicación y hacer otra cosa. En Android, '
-            'Ya Viene seguirá pendiente del bus; no cierres la app deslizando '
-            'su tarjeta ni la fuerces a detenerse.',
-        icon: Icons.phone_android_rounded,
+        message: 'Puedes cambiar de aplicación y hacer otra cosa: Ya Viene '
+            'seguirá pendiente del bus. Lo único que lo corta es cerrar la '
+            'app del todo.',
+        icon: Icons.smartphone_rounded,
         primaryLabel: 'Finalizar guía',
       );
   }

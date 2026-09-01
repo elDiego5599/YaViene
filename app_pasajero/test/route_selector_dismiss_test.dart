@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/sheet_top_border.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/route_selector_sheet.dart';
 
@@ -35,8 +36,7 @@ void main() {
         (w) =>
             w is Material &&
             w.shape ==
-                const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                const SheetTopBorder(
                   side: BorderSide(color: AppColors.hairline),
                 ),
       );

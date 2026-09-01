@@ -4,6 +4,19 @@
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12089"/>
     </dependencies>
+    <!--
+      Pantalla de arranque nativa. No es decoración: es el primer fotograma
+      que ve el usuario y tiene que ser indistinguible del primero que dibuja
+      Flutter, o el arranque parpadea.
+
+      El fondo es #0B1628 —el mismo `AppColors.ink` del splash— y no el
+      blanco de fábrica. El logo mide 84 pt y se centra 72,5 pt por encima
+      del centro: es exactamente donde lo deja el splash
+      (`splash_screen.dart`, `InkHero(logoSize: 84)` dentro de una columna
+      centrada con el wordmark, la tagline y el indicador debajo). Medido
+      sobre `test/golden/goldens/ink_hero_splash.png`: el disco cae entre
+      y=308 y y=391 en una pantalla de 844.
+    -->
     <scenes>
         <!--View Controller-->
         <scene sceneID="EHf-IW-A2E">
@@ -19,10 +32,10 @@
                             <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
                             </imageView>
                         </subviews>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.043137254901960784" green="0.086274509803921567" blue="0.15686274509803921" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
+                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-72.5" id="4X2-HB-R7a"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -32,6 +45,6 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchImage" width="168" height="185"/>
+        <image name="LaunchImage" width="84" height="84"/>
     </resources>
 </document>

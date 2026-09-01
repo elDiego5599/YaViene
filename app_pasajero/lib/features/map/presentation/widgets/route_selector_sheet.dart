@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+
 import '../../../../core/router/app_transitions.dart';
+import '../../../../core/widgets/sheet_handle.dart';
+import '../../../../core/widgets/sheet_top_border.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
 import 'map_tour_overlay.dart';
@@ -425,11 +428,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             color: AppColors.arena,
             // Sobre el velo oscuro del diálogo una sombra ancha no se ve;
             // lo que define la tarjeta es el filo. Mismo tratamiento que la
-            // hoja de distancia, que se ve justo después.
+            // hoja de distancia, que se ve justo después: solo arriba, que
+            // es donde la tarjeta se encuentra con el mapa.
             elevation: 8,
             shadowColor: const Color(0x3314274E),
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+            shape: const SheetTopBorder(
               side: BorderSide(color: AppColors.hairline),
             ),
             clipBehavior: Clip.antiAlias,
@@ -453,7 +456,12 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                     onTap: puedeCerrar ? _cerrar : null,
                     child: const Padding(
                       padding: EdgeInsets.only(top: 16, bottom: 16),
-                      child: _Asa(),
+                      // `abierta` se queda en 1: esta hoja no se pliega,
+                      // se va entera, así que el asa no tiene nada que
+                      // anunciar y no cambia de ancho ni de color.
+                      child: SheetHandle(
+                        key: ValueKey('selector-handle'),
+                      ),
                     ),
                   ),
                   // Las vistas se cruzan de lado sin cambiar el alto de la
@@ -1066,31 +1074,6 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             : const Icon(Icons.chevron_right_rounded,
                 color: AppColors.textDisabled),
         onTap: onTap,
-      ),
-    );
-  }
-}
-
-/// El asa de la hoja, la misma que la de la tarjeta de distancia: la marca
-/// de que a esta tarjeta se le puede poner el dedo encima y bajarla.
-///
-/// Antes cambiaba de ancho y de color al plegarse, para anunciar que quedaba
-/// algo que volver a abrir. Ya no se pliega —se va—, así que no hay nada que
-/// anunciar y se queda quieta.
-class _Asa extends StatelessWidget {
-  const _Asa();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        key: const ValueKey('selector-handle'),
-        width: 44,
-        height: 5,
-        decoration: BoxDecoration(
-          color: AppColors.textDisabled,
-          borderRadius: BorderRadius.circular(999),
-        ),
       ),
     );
   }

@@ -151,6 +151,10 @@ class AppDrawerState extends ConsumerState<AppDrawer>
     final auth = ref.watch(authProvider).state;
     final email = auth.email;
     final name = (auth.name ?? '').trim();
+    // Solo el nombre de pila. El saludo iba con el nombre completo y
+    // "Hola, Sofía Res…" se cortaba con hueco de sobra al lado; además
+    // nadie saluda por nombre y apellido.
+    final nombrePila = name.isEmpty ? '' : name.split(RegExp(r'\s+')).first;
     final activeAlerts = ref.watch(activeAlertsProvider);
     final inicial = name.isNotEmpty
         ? name.characters.first.toUpperCase()
@@ -280,7 +284,9 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  name.isNotEmpty ? 'Hola, $name' : 'Hola',
+                                  nombrePila.isNotEmpty
+                                      ? 'Hola, $nombrePila'
+                                      : 'Hola',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(

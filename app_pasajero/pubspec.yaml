@@ -10,6 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # ── Idioma ───────────────────────────────────────────────────────────────────
+  # Sin esto, `locale: es_CO` en `main.dart` no cambia nada: los menús que
+  # dibuja el sistema —copiar, pegar, seleccionar todo, los tooltips— salen
+  # en inglés porque Material solo trae inglés de fábrica.
+  flutter_localizations:
+    sdk: flutter
+
   # ── Paquetes Locales (Monorepo) ─────────────────────────────────────────────
   ya_viene_core:
     path: ../ya_viene_core
@@ -42,7 +49,7 @@ dependencies:
   firebase_core: ^3.6.0
   # ── Utilities ─────────────────────────────────────────────────────────────────
   equatable: ^2.0.5
-  intl: ^0.19.0
+  intl: ^0.20.2
   permission_handler: ^11.3.1
   geolocator: ^13.0.1
   flutter_local_notifications: ^22.3.0
