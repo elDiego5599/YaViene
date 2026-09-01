@@ -20,6 +20,10 @@ abstract class AppColors {
 
   /// Coral suave: excepciones importantes (bus sin señal, avisos críticos).
   static const Color coral = Color(0xFFE86A5E);
+
+  /// El coral cuando lo que se pinta es un glifo o una letra. Hermano de
+  /// [primaryAccessible] y [warningAccessible]; ver el porqué allí.
+  static const Color coralAccessible = Color(0xFFC0392B);
   static const Color coralLight = Color(0xFFFBE7E4);
 
   /// Azul eléctrico: reservado a la ruta activa del usuario y su métrica.
@@ -57,7 +61,14 @@ abstract class AppColors {
   /// bus— con el mismo número y sin nombre.
   static const Color textBody = Color(0xFF475569);
 
-  static const Color textSecondary = Color(0xFF64748B);
+  /// El rótulo y el pie: lo que acompaña sin ser el texto principal.
+  ///
+  /// Era #64748B, medio punto por debajo de la raya en los tres fondos
+  /// claros de la app: 4,4:1 sobre la arena de las hojas, 4,3:1 sobre el
+  /// gris de los campos de texto. Este es el mismo gris azulado medio
+  /// tono más oscuro, y pasa el 4,5:1 en los tres —arena, blanco y
+  /// [surfaceMuted]— sin acercarse a [textBody], que pesa como párrafo.
+  static const Color textSecondary = Color(0xFF5E6B82);
   static const Color textDisabled = Color(0xFF94A3B8);
 
   /// Rojo del bus en vivo sobre el mapa. Comparte el valor de [coral] —
@@ -77,6 +88,14 @@ abstract class AppColors {
   /// cerca por ahora). Distinto de [coral]: eso es para excepciones ya
   /// confirmadas (bus sin señal), esto es "reintenta o espera".
   static const Color warning = Color(0xFFD97706);
+
+  /// El ámbar cuando lo que se pinta es un glifo o una letra y no un
+  /// relleno: [warning] da 2,9:1 sobre la arena y 2,9:1 sobre su propio
+  /// [warningLight], por debajo del 3:1 que pide la norma incluso para
+  /// iconos. Este da 5,0:1 sobre la arena, casi el mismo número que
+  /// [primaryAccessible] (5,1:1) y que [coralAccessible] (5,1:1): los
+  /// tres semáforos pesan igual y ninguno grita más que otro.
+  static const Color warningAccessible = Color(0xFFA85206);
   static const Color warningLight = Color(0xFFFEF3C7);
 }
 

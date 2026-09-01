@@ -33,7 +33,7 @@ class LocationStatusChip extends ConsumerWidget {
       UserLocationMode.locating => const _PillData(
           key: 'locating',
           icon: Icons.my_location_rounded,
-          iconColor: AppColors.primary,
+          iconColor: AppColors.primaryAccessible,
           text: 'Localizando tu ubicación…',
           tint: AppColors.primaryTint,
         ),
@@ -49,7 +49,7 @@ class LocationStatusChip extends ConsumerWidget {
       UserLocationMode.denied => _PillData(
           key: 'denied',
           icon: Icons.location_disabled_rounded,
-          iconColor: AppColors.coral,
+          iconColor: AppColors.coralAccessible,
           text: 'Sin ubicación: toca el mapa o reintenta',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
@@ -58,7 +58,7 @@ class LocationStatusChip extends ConsumerWidget {
       UserLocationMode.gpsFailed => _PillData(
           key: 'gpsFailed',
           icon: Icons.gps_off_rounded,
-          iconColor: AppColors.coral,
+          iconColor: AppColors.coralAccessible,
           text: 'No pudimos obtener tu ubicación',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
@@ -101,7 +101,7 @@ class LocationStatusChip extends ConsumerWidget {
       return _PillData(
         key: 'manual$sufijo',
         icon: Icons.location_on_rounded,
-        iconColor: AppColors.primary,
+        iconColor: AppColors.primaryAccessible,
         text: 'Tu punto de espera',
         sub: pinHint,
         actionLabel: 'Quitar',
@@ -114,7 +114,7 @@ class LocationStatusChip extends ConsumerWidget {
       return _PillData(
         key: 'manual-empty$sufijo',
         icon: Icons.directions_bus_rounded,
-        iconColor: AppColors.warning,
+        iconColor: AppColors.warningAccessible,
         text: 'No hay buses cerca de tu punto',
         sub: pinHint,
         actionLabel: 'Usar GPS',
@@ -125,7 +125,7 @@ class LocationStatusChip extends ConsumerWidget {
     return _PillData(
       key: 'manual-near$sufijo',
       icon: Icons.location_on_rounded,
-      iconColor: AppColors.primary,
+      iconColor: AppColors.primaryAccessible,
       text: '$nearbyCount bus${nearbyCount == 1 ? '' : 'es'} '
           'cerca de tu punto',
       sub: pinHint,
@@ -156,7 +156,7 @@ class LocationStatusChip extends ConsumerWidget {
       return withFix(const _PillData(
         key: 'gps',
         icon: Icons.my_location_rounded,
-        iconColor: AppColors.primary,
+        iconColor: AppColors.primaryAccessible,
         text: 'Usando tu ubicación',
         tint: AppColors.primaryTint,
       ));
@@ -165,7 +165,7 @@ class LocationStatusChip extends ConsumerWidget {
       return withFix(const _PillData(
         key: 'gps-empty',
         icon: Icons.directions_bus_rounded,
-        iconColor: AppColors.warning,
+        iconColor: AppColors.warningAccessible,
         text: 'No hay buses cerca de ti',
         tint: AppColors.warningLight,
       ));
@@ -173,7 +173,7 @@ class LocationStatusChip extends ConsumerWidget {
     return withFix(_PillData(
       key: 'gps-near',
       icon: Icons.my_location_rounded,
-      iconColor: AppColors.primary,
+      iconColor: AppColors.primaryAccessible,
       text:
           'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
       tint: AppColors.primaryTint,
@@ -255,6 +255,10 @@ class _Pill extends StatelessWidget {
                   color: data.tint,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
+                // El glifo de 18 va en la variante accesible de su
+                // color: sobre el tinte de su propio medallón, el color
+                // de relleno se queda en 2,7-2,8:1 y la norma pide 3:1
+                // hasta para un icono.
                 child: Icon(data.icon, size: 18, color: data.iconColor),
               ),
               const SizedBox(width: 10),

@@ -664,10 +664,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     String metricText = '';
     String? metricUnit;
     if (!locationState.hasPosition) {
-      stripColor = AppColors.textDisabled;
+      // Gris de texto, no gris de deshabilitado: aquí no hay número sino
+      // una palabra de 28 en peso 800, y `textDisabled` daba 2,4:1 sobre
+      // la arena. Este da 4,4:1 y sigue siendo el gris apagado que le
+      // toca a un estado sin dato.
+      stripColor = AppColors.textSecondary;
       metricText = "Sin tu ubicación";
     } else if (distance == null) {
-      stripColor = AppColors.textDisabled;
+      stripColor = AppColors.textSecondary;
       metricText = "Calculando";
     } else {
       // V1: el número hero carga la urgencia en su propio color, en vez de
@@ -769,10 +773,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 
   /// V1: verde lejos, ámbar acercándose, coral ya casi — el mismo semáforo
   /// que ya usa `alertRadiusMeters` para "el bus ya está cerca".
+  ///
+  /// Van las variantes accesibles del semáforo, no las de relleno: este
+  /// color pinta el número de 64 en peso 200, que es el trazo más fino de
+  /// toda la app y lo único que la app existe para decir. Los tres de
+  /// relleno se quedaban en 2,9:1 sobre la arena, por debajo del 3:1 que
+  /// pide la norma hasta para un icono; estos tres dan 5:1 y, entre
+  /// ellos, el mismo 5:1, así que ninguna distancia se lee más pesada que
+  /// otra por culpa del color.
   Color _urgencyColor(double meters) {
-    if (meters < 300) return AppColors.coral;
-    if (meters < alertRadiusMeters) return AppColors.warning;
-    return AppColors.primary;
+    if (meters < 300) return AppColors.coralAccessible;
+    if (meters < alertRadiusMeters) return AppColors.warningAccessible;
+    return AppColors.primaryAccessible;
   }
 }
 

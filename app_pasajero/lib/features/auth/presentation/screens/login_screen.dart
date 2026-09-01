@@ -805,8 +805,13 @@ class _Field extends StatelessWidget {
           // sea ilegible. Y a 14 el texto saltaba de tamaño al empezar a
           // escribir; el marcador de posición mide lo que va a medir lo
           // que se escriba.
+          //
+          // Y va en el gris de rótulo, no en el de deshabilitado: el
+          // campo no está deshabilitado y lo que dice el marcador —qué
+          // se espera ahí dentro— es la única pista que hay. En
+          // `textDisabled` daba 2,2:1 sobre el gris del campo.
           hintStyle: AppTextStyles.cuerpo.copyWith(
-            color: AppColors.textDisabled,
+            color: AppColors.textSecondary,
           ),
           suffixIcon: onToggleVisibility != null
               ? IconButton(

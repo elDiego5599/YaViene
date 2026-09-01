@@ -448,7 +448,12 @@ class _AlertTile extends StatelessWidget {
             sent
                 ? Icons.notifications_active_rounded
                 : Icons.directions_bus_filled_rounded,
-            color: sent ? AppColors.warning : AppColors.primary,
+            // El glifo va en la variante accesible: sobre su propio
+            // tinte, el color de relleno se queda en 2,8:1 y la norma
+            // pide 3:1 hasta para un icono.
+            color: sent
+                ? AppColors.warningAccessible
+                : AppColors.primaryAccessible,
             size: 24,
           ),
         ),

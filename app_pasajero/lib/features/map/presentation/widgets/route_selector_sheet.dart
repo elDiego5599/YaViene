@@ -1247,7 +1247,7 @@ class _SelectorTileState extends State<_SelectorTile>
                           // necesita además otro peso.
                           style: hint != null
                               ? AppTextStyles.pie
-                                  .copyWith(color: AppColors.warning)
+                                  .copyWith(color: AppColors.warningAccessible)
                               : AppTextStyles.pie,
                         ),
                       ],
