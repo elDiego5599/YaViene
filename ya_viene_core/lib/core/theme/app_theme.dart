@@ -120,16 +120,17 @@ abstract class AppTextStyles {
 
   // ── La escala ────────────────────────────────────────────────────────
   //
-  // Nueve roles y nada más. Antes había veinte tamaños de letra, catorce
+  // Diez roles y nada más. Antes había veinte tamaños de letra, catorce
   // letter-spacings sueltos y w800 en treinta y cuatro sitios: eso no es
   // una jerarquía, es el mismo grito a distintos volúmenes.
   //
   // Tres reglas para no volver ahí:
   //  · El espaciado no se elige, se deduce del tamaño. Cuanto más grande
   //    la letra, más se cierra; a partir del cuerpo ya no se toca.
-  //  · w800 es la excepción, no la norma: solo el título que encabeza una
-  //    pantalla y el botón principal. Los cuerpos van en w400 y w500, que
-  //    es para lo que estamos cargando esos dos pesos en el bundle.
+  //  · w800 es la excepción, no la norma: solo el nombre de la app, el
+  //    título que encabeza una pantalla y el botón principal —`marca`,
+  //    `display` y `boton`, y ninguno más—. Los cuerpos van en w400 y w500,
+  //    que es para lo que estamos cargando esos dos pesos en el bundle.
   //  · Quien necesite algo que no está aquí está pidiendo un rol nuevo,
   //    no un `TextStyle` suelto.
 
@@ -203,6 +204,21 @@ abstract class AppTextStyles {
     letterSpacing: -0.2,
   );
 
+  /// Lo que dice un botón que hace algo de verdad.
+  ///
+  /// Es el tercer y último sitio donde vive w800. Está aquí porque si no,
+  /// cada botón principal de la app lo escribe a mano —y ya lo hacía, en
+  /// cinco pantallas, con el mismo 16/w800 copiado— o lo pide con un
+  /// `copyWith(fontWeight: w800)` sobre [cuerpoFuerte], que es un rol
+  /// suelto con otro nombre. El color no se fija: lo pone quien lo pinte,
+  /// que unas veces es blanco sobre tinta y otras al revés.
+  static final TextStyle boton = _base.copyWith(
+    fontSize: 16.0,
+    fontWeight: FontWeight.w800,
+    height: 1.2,
+    letterSpacing: -0.2,
+  );
+
   /// Nombra algo que está al lado: la unidad del número, el estado de una
   /// píldora, el encabezado de una sección del menú.
   static final TextStyle etiqueta = _base.copyWith(
@@ -239,7 +255,7 @@ abstract class AppTextStyles {
         bodyLarge: cuerpo,
         bodyMedium: cuerpo,
         bodySmall: pie,
-        labelLarge: cuerpoFuerte,
+        labelLarge: boton,
         labelMedium: etiqueta,
         labelSmall: pie,
       );

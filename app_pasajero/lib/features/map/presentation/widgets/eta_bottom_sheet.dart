@@ -520,7 +520,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     return KeyedSubtree(
       key: ValueKey(stateKey),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg, 10, AppSpacing.lg, 40),
         child: Column(
           children: [
             // El icono va en su medallón, como los de los tiles del selector
@@ -531,7 +532,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               height: 56,
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: AppColors.hairline),
               ),
               child: Icon(icon, color: AppColors.textSecondary, size: 26),
@@ -539,17 +540,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             const SizedBox(height: 14),
             Text(
               title,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary),
+              style: AppTextStyles.subtitulo,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               subtitle,
-              style:
-                  const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: AppTextStyles.cuerpo
+                  .copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -602,20 +600,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           const Icon(Icons.wifi_off_rounded, color: AppColors.coral, size: 56),
           const SizedBox(height: 10),
           Text(staleLabel,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF475569),
-                  letterSpacing: -0.4)),
-          const SizedBox(height: 4),
+              style: AppTextStyles.subtitulo
+                  .copyWith(color: const Color(0xFF475569))),
+          const SizedBox(height: AppSpacing.xs),
           Text("$busLabel · conserva su última posición",
-              style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDisabled)),
-          const SizedBox(height: 24),
+              style: AppTextStyles.etiqueta
+                  .copyWith(color: AppColors.textDisabled)),
+          const SizedBox(height: AppSpacing.lg),
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, 0, AppSpacing.lg, 20),
             child: _StickyAlertButton(
               key: widget.alertKey,
               onBlockedChanged: widget.onGuideAlertBlocked,
@@ -669,7 +663,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     return Padding(
       // La tarjeta del bus se muestra entera, siempre: es la única que no se
       // pliega, así que no tiene una versión corta que ajustar.
-      padding: const EdgeInsets.fromLTRB(24, 6, 24, 20),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 6, AppSpacing.lg, 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -678,7 +672,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             height: 4,
             decoration: BoxDecoration(
               color: stripColor,
-              borderRadius: BorderRadius.circular(99),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
           ),
           const SizedBox(height: 18),
@@ -687,12 +681,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           Text(
             busLabel,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.4,
-            ),
+            style: AppTextStyles.etiqueta,
           ),
           const SizedBox(height: 10),
           // Métrica principal: número grande que respira, o el estado en
@@ -702,42 +691,30 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             metricText,
             key: widget.metricKey,
             textAlign: TextAlign.center,
-            style: isNumberMetric
-                ? AppTextStyles.etaNumber.copyWith(
-                    fontSize: 64,
-                    color: stripColor,
-                    height: 1.0,
-                    letterSpacing: -2.0,
-                  )
-                : AppTextStyles.etaNumber.copyWith(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    color: stripColor,
-                    height: 1.1,
-                    letterSpacing: -1.0,
-                  ),
+            // El número es `dato`, el rol que existe para él. Cuando en
+            // su sitio va una palabra —"Sin señal", "Llegando"— no cabe a
+            // 64 ni tendría sentido en w200: pasa a `display`, que es el
+            // otro rol grande, y ocupa el mismo hueco.
+            style: (isNumberMetric
+                    ? AppTextStyles.dato
+                    : AppTextStyles.display)
+                .copyWith(color: stripColor),
           ),
           if (metricUnit != null) ...[
             const SizedBox(height: 6),
             Text(
               metricUnit,
               key: widget.metricUnitKey,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
+              style: AppTextStyles.cuerpoFuerte
+                  .copyWith(color: AppColors.textSecondary),
             ),
           ],
           if (stateDetail != null) ...[
             const SizedBox(height: 14),
             Text(
               stateDetail,
-              style: const TextStyle(
-                  fontSize: 14,
-                  height: 1.35,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary),
+              style: AppTextStyles.cuerpoFuerte
+                  .copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -860,7 +837,7 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           height: 60,
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             boxShadow: [
               BoxShadow(
                 color: backgroundColor.withValues(alpha: 0.24),
@@ -899,12 +876,8 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
                     // en español además se leen más lento. El interletrado
                     // abierto existía para sostener las versalitas; en caja
                     // normal solo separa las letras.
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.2,
-                    ),
+                    style: AppTextStyles.boton
+                        .copyWith(color: Colors.white),
                   ),
                 ),
               ],
