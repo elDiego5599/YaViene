@@ -206,6 +206,76 @@ void main() {
       await tester.pump(const Duration(milliseconds: 450));
     }
 
+    Future<void> pumpEntrada(
+      WidgetTester tester, {
+      required bool sinAnimaciones,
+    }) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData.fromView(tester.view)
+              .copyWith(disableAnimations: sinAnimaciones),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Stack(
+                children: [
+                  const ColoredBox(
+                    color: Color(0xFFF8FAFC),
+                    child: SizedBox.expand(),
+                  ),
+                  MapGuideOverlay(
+                    target: const Rect.fromLTWH(160, 260, 100, 64),
+                    title: 'Empieza aquí',
+                    message: 'Toca la zona iluminada para continuar.',
+                    icon: Icons.search_rounded,
+                    stepIndex: 1,
+                    stepCount: 8,
+                    onSkip: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    double escalaDeLaTarjeta(WidgetTester tester) {
+      final escala = tester.widget<ScaleTransition>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('guide_card')),
+              matching: find.byType(ScaleTransition),
+            )
+            .first,
+      );
+      return escala.scale.value;
+    }
+
+    testWidgets('la tarjeta entra creciendo y termina en su tamaño',
+        (tester) async {
+      await pumpEntrada(tester, sinAnimaciones: false);
+      await tester.pump();
+      expect(escalaDeLaTarjeta(tester), lessThan(1.0));
+
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(escalaDeLaTarjeta(tester), 1.0);
+    });
+
+    testWidgets('con movimiento reducido la tarjeta no crece ni se pasa',
+        (tester) async {
+      await pumpEntrada(tester, sinAnimaciones: true);
+      await tester.pump();
+      // `easeOutBack` se pasa de tamaño y vuelve: eso es exactamente lo que
+      // apaga «Reducir movimiento». La tarjeta se funde, quieta.
+      expect(escalaDeLaTarjeta(tester), 1.0);
+
+      await tester.pump(const Duration(milliseconds: 120));
+      expect(escalaDeLaTarjeta(tester), 1.0);
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(escalaDeLaTarjeta(tester), 1.0);
+      expect(find.text('Empieza aquí'), findsOneWidget);
+    });
+
     testWidgets('solo deja atravesar el objetivo y no cierra al tocar afuera',
         (tester) async {
       var skipped = false;

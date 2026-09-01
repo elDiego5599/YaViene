@@ -73,6 +73,10 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       duration: AppMotion.entrada,
     );
     _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
+    // `easeOutBack` se pasa de tamaño y vuelve: es el rebote que hace que la
+    // guía se sienta viva, y es exactamente lo que no debe hacer si el
+    // sistema pide menos movimiento. Se resuelve en `build` y no aquí porque
+    // el ajuste puede cambiar con la guía abierta.
     _fade = CurvedAnimation(parent: _controller, curve: AppMotion.curvaEntrada);
     _controller.forward();
 
@@ -90,6 +94,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   }
 
   void _onMissTap() => _missTapController.forward(from: 0);
+
+  /// La escala de entrada, o ninguna si el sistema pide menos movimiento.
+  Animation<double> _escalaEntrada(BuildContext context) =>
+      AppMotion.reducido(context)
+          ? const AlwaysStoppedAnimation<double>(1)
+          : _scale;
 
   @override
   void dispose() {
@@ -134,7 +144,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 380),
                     child: ScaleTransition(
-                      scale: _scale,
+                      scale: _escalaEntrada(context),
                       child: KeyedSubtree(key: _cardKey, child: card),
                     ),
                   ),
@@ -201,7 +211,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   ? _aboveBottom(hole, size, bottomInset, cardHeight)
                   : null,
               child: ScaleTransition(
-                scale: _scale,
+                scale: _escalaEntrada(context),
                 child: KeyedSubtree(key: _cardKey, child: card),
               ),
             ),

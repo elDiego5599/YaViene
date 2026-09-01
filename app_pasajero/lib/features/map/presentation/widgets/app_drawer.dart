@@ -208,9 +208,15 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                           ),
                         ),
                         // Cerrar un menú no es destruir nada: la X deja de
-                        // ser roja. Conserva el rebote de la entrada.
+                        // ser roja. Conserva el rebote de la entrada —salvo
+                        // con «Reducir movimiento», donde un rebote que se
+                        // pasa de tamaño y vuelve es justo lo que molesta.
+                        // El fundido escalonado se queda: lo que marea es el
+                        // desplazamiento, no la opacidad.
                         ScaleTransition(
-                          scale: _escalaCierre,
+                          scale: AppMotion.reducido(context)
+                              ? const AlwaysStoppedAnimation<double>(1)
+                              : _escalaCierre,
                           child: Container(
                             width: 36,
                             height: 36,

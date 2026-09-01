@@ -26,7 +26,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  Future<ProviderContainer> pumpDrawer(WidgetTester tester) async {
+  Future<ProviderContainer> pumpDrawer(
+    WidgetTester tester, {
+    bool sinAnimaciones = false,
+  }) async {
     final container = ProviderContainer(overrides: [
       authProvider.overrideWith((ref) => _FakeAuth()),
     ]);
@@ -40,12 +43,16 @@ void main() {
     );
     addTearDown(sub.close);
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: Scaffold(
-            appBar: AppBar(),
-            drawer: const AppDrawer(),
+      MediaQuery(
+        data: MediaQueryData.fromView(tester.view)
+            .copyWith(disableAnimations: sinAnimaciones),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(),
+              drawer: const AppDrawer(),
+            ),
           ),
         ),
       ),
@@ -58,6 +65,46 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
   }
+
+  /// La escala del botón de cierre a mitad de la entrada.
+  double escalaDeLaX(WidgetTester tester) {
+    final escala = tester.widget<ScaleTransition>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('drawer_close')),
+            matching: find.byType(ScaleTransition),
+          )
+          .first,
+    );
+    return escala.scale.value;
+  }
+
+  /// Abre el drawer y se detiene dentro de la entrada, sin dejarla terminar.
+  Future<void> abrirAMedias(WidgetTester tester) async {
+    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+  }
+
+  testWidgets('la X entra con rebote y termina en su tamaño', (tester) async {
+    await pumpDrawer(tester);
+    await abrirAMedias(tester);
+    expect(escalaDeLaX(tester), lessThan(1.0));
+
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(escalaDeLaX(tester), 1.0);
+  });
+
+  testWidgets('con movimiento reducido la X no rebota', (tester) async {
+    await pumpDrawer(tester, sinAnimaciones: true);
+    await abrirAMedias(tester);
+    // Un rebote que se pasa de tamaño y vuelve es justo lo que molesta con
+    // «Reducir movimiento»: la X nace ya en su tamaño y se queda ahí.
+    expect(escalaDeLaX(tester), 1.0);
+
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(escalaDeLaX(tester), 1.0);
+  });
 
   testWidgets('abre con sus secciones y la entrada escalonada termina visible',
       (tester) async {

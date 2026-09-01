@@ -59,6 +59,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Timer? _placeholderTimeout;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
+  /// El sistema pide menos movimiento. Se guarda en vez de consultarse en
+  /// cada sitio porque los dos latidos del mapa se encienden desde
+  /// escuchadores de providers, fuera de `build`, donde leer `MediaQuery`
+  /// engancharía dependencias a destiempo.
+  bool _movimientoReducido = false;
+
   /// Pulso "radar" bajo el pin del usuario: la animación corre en Flutter y
   /// solo se re-proyecta la posición del pin cuando cambia la cámara.
   /// Se inicializa en initState: un `late final` perezoso se crearía por
@@ -260,6 +266,27 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _mapController!.dispose();
     }
     super.dispose();
+  }
+
+  /// Los dos latidos del mapa —el radar bajo el pin y el halo del bus
+  /// elegido— son bucles que no paran solos: son exactamente lo que apaga
+  /// «Reducir movimiento» / «Quitar animaciones». Se quedan los dos
+  /// dibujados, quietos, en su estado de reposo; lo que se va es el vaivén.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reducido = AppMotion.reducido(context);
+    if (reducido == _movimientoReducido) return;
+    _movimientoReducido = reducido;
+    if (reducido) {
+      _haloCtrl.stop();
+      // Fase 0 es el anillo más apretado y más visible: el pin conserva su
+      // aro de «estás aquí» sin que se expanda ni se desvanezca.
+      _haloCtrl.value = 0;
+    } else if (!_haloCtrl.isAnimating) {
+      _haloCtrl.repeat();
+    }
+    if (_layersReady) _syncHaloPulse(ref.read(selectedBusesProvider));
   }
 
   @override
@@ -943,7 +970,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   /// Arranca o para la "respiración" del halo según haya algo seleccionado.
   void _syncHaloPulse(Set<String> selectedBuses) {
-    if (selectedBuses.isEmpty) {
+    if (selectedBuses.isEmpty || _movimientoReducido) {
       _stopHaloPulse();
     } else {
       _startHaloPulse();
