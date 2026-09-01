@@ -302,12 +302,13 @@ abstract class AppTheme {
       scaffoldBackgroundColor: AppColors.arena,
       // Fuente del bundle de la app (Plus Jakarta Sans), como AppTextStyles.
       fontFamily: 'PlusJakartaSans',
-      // OJO: falta `textTheme: AppTextStyles.textTheme`. Está escrito y
-      // probado, pero enchufarlo mueve 35 de las 36 fotos de referencia
-      // —`bodyMedium` es el `DefaultTextStyle` de todo `Text` sin estilo
-      // propio—, y esta fase define sin mover nada para que los cambios de
-      // la siguiente se puedan leer. Se enchufa al abrir la migración, que
-      // es donde ese movimiento se revisa foto por foto.
+      // El tema fijaba la fuente pero no la escala, así que
+      // `Theme.of(context).textTheme` devolvía la de Material en tamaños
+      // que no son los nuestros. Todo lo que no trae estilo propio —un
+      // diálogo, un `SnackBar`, un `ListTile`, el texto que se escribe en
+      // un campo, y sobre todo el `DefaultTextStyle` de cualquier `Text`
+      // pelado— caía ahí. Ahora cae en la escala.
+      textTheme: AppTextStyles.textTheme,
       // Firma de movimiento: cualquier InkWell/ListTile suelto que no defina
       // su propio splash hereda este verde tenue en vez del gris de fábrica.
       splashColor: AppColors.primary.withValues(alpha: 0.10),
