@@ -551,7 +551,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             lineUp: false,
             lineDown: true,
             child: companiesAsync.when(
-              data: (companies) => _PremiumSelectorTile(
+              data: (companies) => _SelectorTile(
                 key: widget.companyGuideKey,
                 title: selectedCompany?.name ?? 'Empresa',
                 subtitle: selectedCompany != null
@@ -608,7 +608,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             current: selectedCompany != null && selectedRoute == null,
             lineUp: true,
             lineDown: false,
-            child: _PremiumSelectorTile(
+            child: _SelectorTile(
               key: widget.routeGuideKey,
               title: selectedRoute?.name ?? 'Ruta',
               subtitle: _routeSubtitle(selectedRoute) ??
@@ -917,7 +917,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   }
 
   /// Placeholder del tile de empresa con la MISMA altura que
-  /// `_PremiumSelectorTile`: mientras cargan las empresas (o fallan) el hueco
+  /// `_SelectorTile`: mientras cargan las empresas (o fallan) el hueco
   /// de la guía sigue anclado a su posición real.
   Widget _tilePlaceholder({Key? key, required Widget child}) {
     return Container(
@@ -1139,7 +1139,7 @@ String _companyInitials(String name) {
   return (significant[0][0] + significant[1][0]).toUpperCase();
 }
 
-class _PremiumSelectorTile extends StatefulWidget {
+class _SelectorTile extends StatefulWidget {
   final String title;
   final String? subtitle;
   final IconData icon;
@@ -1150,7 +1150,7 @@ class _PremiumSelectorTile extends StatefulWidget {
   /// sacude la tarjeta una vez: el error se dice donde ocurrió.
   final String? hint;
 
-  const _PremiumSelectorTile({
+  const _SelectorTile({
     super.key,
     required this.title,
     this.subtitle,
@@ -1161,10 +1161,10 @@ class _PremiumSelectorTile extends StatefulWidget {
   });
 
   @override
-  State<_PremiumSelectorTile> createState() => _PremiumSelectorTileState();
+  State<_SelectorTile> createState() => _SelectorTileState();
 }
 
-class _PremiumSelectorTileState extends State<_PremiumSelectorTile>
+class _SelectorTileState extends State<_SelectorTile>
     with SingleTickerProviderStateMixin {
   bool _pressed = false;
   late final AnimationController _shake = AnimationController(
@@ -1173,7 +1173,7 @@ class _PremiumSelectorTileState extends State<_PremiumSelectorTile>
   );
 
   @override
-  void didUpdateWidget(covariant _PremiumSelectorTile old) {
+  void didUpdateWidget(covariant _SelectorTile old) {
     super.didUpdateWidget(old);
     if (widget.hint != null && old.hint != widget.hint) {
       _shake.forward(from: 0);

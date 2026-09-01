@@ -14,14 +14,14 @@ import '../../../onboarding/onboarding_flow.dart';
 
 enum _Step { email, password, profile }
 
-class PremiumLoginScreen extends ConsumerStatefulWidget {
-  const PremiumLoginScreen({super.key});
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  ConsumerState<PremiumLoginScreen> createState() => _PremiumLoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _PremiumLoginScreenState extends ConsumerState<PremiumLoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();

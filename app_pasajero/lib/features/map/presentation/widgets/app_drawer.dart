@@ -14,14 +14,14 @@ import '../providers/user_location_provider.dart';
 /// Centro personal de viaje: la ruta que el usuario sigue ahora mismo, la
 /// ubicación del aviso y el cierre de sesión. Fondo tinta con patrón de
 /// calles y entrada escalonada (fade + slide leve).
-class PremiumDrawer extends ConsumerStatefulWidget {
-  const PremiumDrawer({super.key});
+class AppDrawer extends ConsumerStatefulWidget {
+  const AppDrawer({super.key});
 
   @override
-  ConsumerState<PremiumDrawer> createState() => PremiumDrawerState();
+  ConsumerState<AppDrawer> createState() => AppDrawerState();
 }
 
-class PremiumDrawerState extends ConsumerState<PremiumDrawer>
+class AppDrawerState extends ConsumerState<AppDrawer>
     with SingleTickerProviderStateMixin {
   /// Entrada escalonada: cada bloque aparece con fade + deslizamiento leve
   /// desde la izquierda, sin blur ni efectos caros. La dispara el Scaffold

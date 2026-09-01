@@ -13,12 +13,12 @@ import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/map_constants.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
 import '../widgets/location_status_chip.dart';
 import '../widgets/map_tour_overlay.dart';
 import '../widgets/map_widget.dart';
-import '../widgets/premium_drawer.dart';
 import '../widgets/search_pill_bar.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -29,8 +29,8 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
-  final GlobalKey<PremiumDrawerState> _drawerKey =
-      GlobalKey<PremiumDrawerState>();
+  final GlobalKey<AppDrawerState> _drawerKey =
+      GlobalKey<AppDrawerState>();
   final GlobalKey _mapKey = GlobalKey();
   final GlobalKey _pillKey = GlobalKey();
   final GlobalKey _searchActionKey = GlobalKey();
@@ -318,7 +318,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
-      drawer: PremiumDrawer(key: _drawerKey),
+      drawer: AppDrawer(key: _drawerKey),
       onDrawerChanged: (opened) {
         if (opened) _drawerKey.currentState?.playEntrance();
       },

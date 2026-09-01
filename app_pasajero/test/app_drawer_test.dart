@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/providers/auth_provider.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/premium_drawer.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/app_drawer.dart';
 
 /// Fake de autenticación sin Firebase: el drawer solo lee `state`.
 class _FakeAuth implements AuthNotifier {
@@ -45,7 +45,7 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             appBar: AppBar(),
-            drawer: const PremiumDrawer(),
+            drawer: const AppDrawer(),
           ),
         ),
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-/// Transición de pantalla suave tipo premium para toda la app: la nueva
+/// Transición de pantalla suave para toda la app: la nueva
 /// pantalla entra con un leve deslizamiento lateral y fundido, en vez del
 /// corte seco de Android por defecto.
 class FadeSlidePageTransitionsBuilder extends PageTransitionsBuilder {
