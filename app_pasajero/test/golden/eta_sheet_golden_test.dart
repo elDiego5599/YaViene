@@ -133,4 +133,15 @@ void main() {
     await montar(tester, buses: [_busA(0.002)]);
     await coincideConOro(tester, 'hoja_bus_cerca');
   });
+
+  // La misma hoja con el texto del sistema al 130%. No es un capricho de
+  // accesibilidad: es la pantalla con el número de 44 px y tres líneas de
+  // apoyo, y es donde primero se desborda algo si la Fase 2 sube un
+  // tamaño. Sin esta foto, el desbordamiento aparece en el teléfono de
+  // alguien y no en el CI.
+  testWidgets('hoja · texto al 130%', (tester) async {
+    fijarPantalla(tester, escalaTexto: 1.3);
+    await montar(tester, buses: [_busA(0.007645)]);
+    await coincideConOro(tester, 'hoja_metros_texto_grande');
+  });
 }

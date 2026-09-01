@@ -27,12 +27,23 @@ const FakeViewPadding kMargenesSeguros = FakeViewPadding(top: 47, bottom: 34);
 /// vive en un `showGeneralDialog`): esas cuelgan del `Navigator` del
 /// `MaterialApp`, o sea POR ENCIMA de cualquier `MediaQuery` que pongamos
 /// dentro de `home`, y solo ven lo que diga la ventana.
-void fijarPantalla(WidgetTester tester, {Size tamano = kPantalla}) {
+void fijarPantalla(
+  WidgetTester tester, {
+  Size tamano = kPantalla,
+  double escalaTexto = 1.0,
+}) {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = tamano;
   tester.view.padding = kMargenesSeguros;
   tester.view.viewPadding = kMargenesSeguros;
   addTearDown(tester.view.reset);
+  // La escala va en el dispatcher y no en un `MediaQuery` anidado por la
+  // misma razón que las muescas: hay pantallas que se montan como diálogo
+  // y no ven nada de lo que cuelgue de `home`.
+  if (escalaTexto != 1.0) {
+    tester.platformDispatcher.textScaleFactorTestValue = escalaTexto;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  }
 }
 
 /// Envuelve [hijo] como lo ve la app de verdad.

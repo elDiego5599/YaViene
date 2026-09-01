@@ -34,7 +34,7 @@ flutter run --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.de
 flutter analyze lib test
 flutter test
 
-# Fotos de referencia (goldens): 34 PNG en test/golden/goldens/.
+# Fotos de referencia (goldens): 36 PNG en test/golden/goldens/.
 # Comparan pixel a pixel la app contra la última foto aprobada.
 flutter test test/golden
 

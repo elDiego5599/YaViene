@@ -89,4 +89,14 @@ void main() {
     await escribirCorreoYSeguir(tester);
     await coincideConOro(tester, 'login_perfil');
   });
+
+  // El paso del perfil al 130%: cuatro campos, dos botones y el héroe
+  // encima, en la pantalla con menos aire de la app. Si algo se sale, se
+  // sale aquí.
+  testWidgets('inicio de sesión · perfil con texto al 130%', (tester) async {
+    fijarPantalla(tester, escalaTexto: 1.3);
+    await montar(tester, correoConocido: false);
+    await escribirCorreoYSeguir(tester);
+    await coincideConOro(tester, 'login_perfil_texto_grande');
+  });
 }
