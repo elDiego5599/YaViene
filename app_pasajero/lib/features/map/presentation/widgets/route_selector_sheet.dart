@@ -694,13 +694,6 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             // el borde de la hoja: se desvanecen. Antes una fila a medio
             // salir quedaba partida por la mitad justo debajo del título y
             // parecía que se metía por detrás de él.
-            //
-            // Y si no llenan la caja, se quedan en el centro. La tarjeta
-            // mide lo mismo en las tres vistas —cambiarlo haría que se
-            // encogiera a mitad del deslizamiento—, así que con dos
-            // empresas las dos filas se agarraban al título y dejaban
-            // debajo media tarjeta en blanco, como una lista cortada.
-            // Centradas, dos filas son dos filas.
             Expanded(child: _listaConDesvanecido(builder(context))),
           ],
         ),
@@ -718,10 +711,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// intermedio: las filas que salían del viewport seguían pintando su
   /// rectángulo blanco encima de la cabecera. Con un `Material` propio
   /// dentro del recorte, la tinta vive donde debe.
+  /// La lista arranca pegada al título, no en el centro de la caja. Con dos
+  /// empresas centradas quedaba un hueco arriba y otro abajo y la lista se
+  /// leía como flotando; arriba, empieza donde el ojo ya está.
   Widget _listaConDesvanecido(Widget lista) {
     final conTinta = Material(
       type: MaterialType.transparency,
-      child: Align(child: lista),
+      child: Align(alignment: Alignment.topCenter, child: lista),
     );
     return LayoutBuilder(
       builder: (context, constraints) {
