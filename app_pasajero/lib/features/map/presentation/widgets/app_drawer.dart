@@ -182,8 +182,8 @@ class AppDrawerState extends ConsumerState<AppDrawer>
         haloY: 0.12,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, 26, AppSpacing.lg, 20),
+            padding:
+                const EdgeInsets.fromLTRB(AppSpacing.lg, 26, AppSpacing.lg, 20),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,10 +191,15 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                   _staggered(
                     Row(
                       children: [
-                        SvgPicture.asset(
-                          'assets/icon/ya_viene_logo.svg',
-                          width: 30,
-                          height: 30,
+                        // El logo se anunciaba como "imagen", sin más, y
+                        // justo al lado va el nombre escrito: es el mismo
+                        // dato dos veces, y una de ellas sin decir nada.
+                        ExcludeSemantics(
+                          child: SvgPicture.asset(
+                            'assets/icon/ya_viene_logo.svg',
+                            width: 30,
+                            height: 30,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -258,54 +263,61 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                           // El único bloque de color macizo del panel. Con
                           // todo lo demás en monocromo, el verde por fin
                           // significa algo en vez de ser un tono más.
-                          Container(
-                            width: 52,
-                            height: 52,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: inicial == null
-                                ? const Icon(
-                                    Icons.person_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  )
-                                : Text(
-                                    inicial,
-                                    style: AppTextStyles.titulo.copyWith(
+                          // La inicial es el nombre dibujado, no un dato
+                          // aparte: leída suelta es una letra sin frase
+                          // delante de "Hola, Diego".
+                          ExcludeSemantics(
+                            child: Container(
+                              width: 52,
+                              height: 52,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: inicial == null
+                                  ? const Icon(
+                                      Icons.person_rounded,
                                       color: Colors.white,
+                                      size: 28,
+                                    )
+                                  : Text(
+                                      inicial,
+                                      style: AppTextStyles.titulo.copyWith(
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  nombrePila.isNotEmpty
-                                      ? 'Hola, $nombrePila'
-                                      : 'Hola',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.subtitulo.copyWith(
-                                    color: AppColors.textOnInk,
-                                  ),
-                                ),
-                                if (email != null && email.isNotEmpty) ...[
-                                  const SizedBox(height: 3),
+                            child: MergeSemantics(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    email,
+                                    nombrePila.isNotEmpty
+                                        ? 'Hola, $nombrePila'
+                                        : 'Hola',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.pie.copyWith(
-                                      color: AppColors.textDisabled,
+                                    style: AppTextStyles.subtitulo.copyWith(
+                                      color: AppColors.textOnInk,
                                     ),
                                   ),
+                                  if (email != null && email.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      email,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.pie.copyWith(
+                                        color: AppColors.textDisabled,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ],
@@ -321,6 +333,12 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                       DrawerItem(
                         icon: Icons.notifications_none_rounded,
                         title: 'Avisos',
+                        // La pastilla verde es un número sin frase: dicho
+                        // solo, "2" detrás de "Avisos" no dice de qué.
+                        dicho: activeAlerts.isEmpty
+                            ? 'Avisos'
+                            : 'Avisos, ${activeAlerts.length} '
+                                'activo${activeAlerts.length == 1 ? '' : 's'}',
                         trailing: activeAlerts.isEmpty
                             ? Icon(
                                 Icons.chevron_right_rounded,
@@ -455,61 +473,73 @@ class ActiveRouteCard extends ConsumerWidget {
     final a = route?.terminalA ?? '';
     final b = route?.terminalB ?? '';
     final showTerminals = hasRoute && (a.isNotEmpty || b.isNotEmpty);
+    // Los dos terminales son una línea de ida y vuelta dibujada: leídos
+    // sueltos son dos nombres de sitio sin relación entre ellos.
+    final terminales = b.isEmpty ? a : 'entre $a y $b';
+    final dicha = !hasRoute
+        ? 'Sin ruta activa. Elige tu ruta en el mapa'
+        : showTerminals
+            ? 'Ruta activa: ${route.name}, $terminales'
+            : 'Ruta activa: ${route.name}';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: hasRoute
-            ? AppColors.primary.withValues(alpha: 0.10)
-            : Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
+    return Semantics(
+      label: dicha,
+      excludeSemantics: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
           color: hasRoute
-              ? AppColors.primary.withValues(alpha: 0.20)
-              : Colors.white.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'RUTA ACTIVA',
-            style: AppTextStyles.etiqueta.copyWith(
-              letterSpacing: 1.2,
-              color: AppColors.textDisabled,
-            ),
+              ? AppColors.primary.withValues(alpha: 0.10)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: hasRoute
+                ? AppColors.primary.withValues(alpha: 0.20)
+                : Colors.white.withValues(alpha: 0.1),
           ),
-          const SizedBox(height: 12),
-          if (hasRoute) ...[
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              route.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.titulo.copyWith(
-                color: AppColors.textOnInk,
-              ),
-            ),
-            if (showTerminals) ...[
-              const SizedBox(height: 14),
-              TerminalsLine(a: a, b: b),
-            ],
-          ] else ...[
-            Text(
-              'Sin ruta activa',
-              style: AppTextStyles.cuerpoFuerte.copyWith(
-                color: AppColors.textOnInk,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Elige tu ruta en el mapa',
-              style: AppTextStyles.pie.copyWith(
+              'RUTA ACTIVA',
+              style: AppTextStyles.etiqueta.copyWith(
+                letterSpacing: 1.2,
                 color: AppColors.textDisabled,
               ),
             ),
+            const SizedBox(height: 12),
+            if (hasRoute) ...[
+              Text(
+                route.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.titulo.copyWith(
+                  color: AppColors.textOnInk,
+                ),
+              ),
+              if (showTerminals) ...[
+                const SizedBox(height: 14),
+                TerminalsLine(a: a, b: b),
+              ],
+            ] else ...[
+              Text(
+                'Sin ruta activa',
+                style: AppTextStyles.cuerpoFuerte.copyWith(
+                  color: AppColors.textOnInk,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Elige tu ruta en el mapa',
+                style: AppTextStyles.pie.copyWith(
+                  color: AppColors.textDisabled,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -606,6 +636,12 @@ class DrawerItem extends StatefulWidget {
   final Widget? trailing;
   final VoidCallback onTap;
 
+  /// La fila entera, dicha en una frase, cuando el título no basta.
+  ///
+  /// El título es lo que se lee; el remate —una pastilla con un número, un
+  /// galón— es lo que se ve. En voz alta van juntos o no se entienden.
+  final String? dicho;
+
   /// Acción destructiva: tiñe icono y texto. Solo "Cerrar sesión".
   final bool danger;
 
@@ -619,6 +655,7 @@ class DrawerItem extends StatefulWidget {
     required this.title,
     required this.onTap,
     this.trailing,
+    this.dicho,
     this.danger = false,
     this.loading = false,
   });
@@ -636,47 +673,62 @@ class _DrawerItemState extends State<DrawerItem> {
     // filo que las separa. La respuesta al toque es el fondo, que es
     // además como responde una lista en iOS.
     final tinte = widget.danger ? AppColors.errorOnInk : AppColors.textOnInk;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      // Cargando, la fila no responde: anunciarla habilitada invita a
+      // tocarla otra vez mientras la sesión se está cerrando.
+      enabled: !widget.loading,
+      label: widget.dicho ?? widget.title,
+      // `excludeSemantics` tapa el árbol de abajo, y con él la acción del
+      // gesto: sin este toque el doble toque de VoiceOver no abriría la
+      // fila.
       onTap: widget.loading ? null : widget.onTap,
-      onTapDown: widget.loading ? null : (_) => setState(() => _pressed = true),
-      onTapUp: widget.loading ? null : (_) => setState(() => _pressed = false),
-      onTapCancel:
-          widget.loading ? null : () => setState(() => _pressed = false),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: AppMotion.instante,
-        curve: AppMotion.curvaSalida,
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: 15),
-        color: Colors.white.withValues(alpha: _pressed ? 0.07 : 0),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 22,
-              height: 22,
-              child: widget.loading
-                  ? Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: tinte.withValues(alpha: 0.7),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: widget.loading ? null : widget.onTap,
+        onTapDown:
+            widget.loading ? null : (_) => setState(() => _pressed = true),
+        onTapUp:
+            widget.loading ? null : (_) => setState(() => _pressed = false),
+        onTapCancel:
+            widget.loading ? null : () => setState(() => _pressed = false),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: AppMotion.instante,
+          curve: AppMotion.curvaSalida,
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: 15),
+          color: Colors.white.withValues(alpha: _pressed ? 0.07 : 0),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: widget.loading
+                    ? Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: tinte.withValues(alpha: 0.7),
+                        ),
+                      )
+                    : Icon(
+                        widget.icon,
+                        color:
+                            tinte.withValues(alpha: widget.danger ? 1 : 0.75),
+                        size: 22,
                       ),
-                    )
-                  : Icon(
-                      widget.icon,
-                      color: tinte.withValues(alpha: widget.danger ? 1 : 0.75),
-                      size: 22,
-                    ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                widget.title,
-                style: AppTextStyles.cuerpoFuerte.copyWith(color: tinte),
               ),
-            ),
-            if (widget.trailing != null) widget.trailing!,
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: AppTextStyles.cuerpoFuerte.copyWith(color: tinte),
+                ),
+              ),
+              if (widget.trailing != null) widget.trailing!,
+            ],
+          ),
         ),
       ),
     );

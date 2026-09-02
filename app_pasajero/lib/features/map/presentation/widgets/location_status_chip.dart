@@ -174,8 +174,8 @@ class LocationStatusChip extends ConsumerWidget {
       key: 'gps-near',
       icon: Icons.my_location_rounded,
       iconColor: AppColors.primaryAccessible,
-      text:
-          'Usando tu ubicación · $nearbyCount bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      text: 'Usando tu ubicación · $nearbyCount '
+          'bus${nearbyCount == 1 ? '' : 'es'} cerca',
       tint: AppColors.primaryTint,
     ));
   }
@@ -213,6 +213,20 @@ class _PillData {
   /// en la barra de búsqueda.
   final bool actionDanger;
   final Color tint;
+
+  /// La píldora entera, dicha en una frase.
+  ///
+  /// En pantalla son tres bloques —el rótulo, la pista en gris y el
+  /// botón— y sueltos se leerían como tres cosas sin relación, con el
+  /// punto medio del separador pronunciado en voz alta.
+  String get dicha {
+    final partes = <String>[
+      text.replaceAll(' · ', ', '),
+      if (sub != null) sub!,
+      if (actionLabel != null && onAction != null) actionLabel!,
+    ];
+    return partes.join('. ');
+  }
 }
 
 class _Pill extends StatelessWidget {
@@ -222,95 +236,106 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        onTap: data.onAction,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 380),
-          padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
-          // Sombra corta y filo fino: una sombra larga sobre el mapa hace
-          // que la píldora flote como una nube; una corta la deja apoyada,
-          // que es lo que es.
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(color: AppColors.hairline),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDeep.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: data.tint,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                // El glifo de 18 va en la variante accesible de su
-                // color: sobre el tinte de su propio medallón, el color
-                // de relleno se queda en 2,7-2,8:1 y la norma pide 3:1
-                // hasta para un icono.
-                child: Icon(data.icon, size: 18, color: data.iconColor),
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data.text,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                      softWrap: true,
-                      style: AppTextStyles.cuerpoFuerte,
-                    ),
-                    if (data.sub != null)
-                      Text(
-                        data.sub!,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: AppTextStyles.pie,
-                      ),
-                  ],
-                ),
-              ),
-              if (data.actionLabel != null && data.onAction != null) ...[
-                const SizedBox(width: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: data.actionDanger
-                        ? AppColors.surfaceMuted
-                        // F4: primaryAccessible da 4.5:1 con texto blanco;
-                        // primary a secas se queda en ~3.1:1.
-                        : AppColors.primaryAccessible,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    border: data.actionDanger
-                        ? Border.all(color: AppColors.hairline)
-                        : null,
-                  ),
-                  child: Text(
-                    data.actionLabel!,
-                    style: AppTextStyles.etiqueta.copyWith(
-                      color: data.actionDanger
-                          ? AppColors.textSecondary
-                          : Colors.white,
-                    ),
-                  ),
+    return Semantics(
+      // La píldora entera es el botón: el rótulo no se toca por un lado y
+      // la acción por otro, el toque es el mismo en toda la superficie.
+      button: data.onAction != null,
+      label: data.dicha,
+      // `excludeSemantics` tapa el árbol de abajo, y con él la acción del
+      // InkWell; sin este toque la píldora se anunciaría como botón y el
+      // doble toque de VoiceOver no haría nada.
+      onTap: data.onAction,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          onTap: data.onAction,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 380),
+            padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
+            // Sombra corta y filo fino: una sombra larga sobre el mapa hace
+            // que la píldora flote como una nube; una corta la deja apoyada,
+            // que es lo que es.
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              border: Border.all(color: AppColors.hairline),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDeep.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
               ],
-            ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: data.tint,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  // El glifo de 18 va en la variante accesible de su
+                  // color: sobre el tinte de su propio medallón, el color
+                  // de relleno se queda en 2,7-2,8:1 y la norma pide 3:1
+                  // hasta para un icono.
+                  child: Icon(data.icon, size: 18, color: data.iconColor),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data.text,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        softWrap: true,
+                        style: AppTextStyles.cuerpoFuerte,
+                      ),
+                      if (data.sub != null)
+                        Text(
+                          data.sub!,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: AppTextStyles.pie,
+                        ),
+                    ],
+                  ),
+                ),
+                if (data.actionLabel != null && data.onAction != null) ...[
+                  const SizedBox(width: 10),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: data.actionDanger
+                          ? AppColors.surfaceMuted
+                          // F4: primaryAccessible da 4.5:1 con texto blanco;
+                          // primary a secas se queda en ~3.1:1.
+                          : AppColors.primaryAccessible,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      border: data.actionDanger
+                          ? Border.all(color: AppColors.hairline)
+                          : null,
+                    ),
+                    child: Text(
+                      data.actionLabel!,
+                      style: AppTextStyles.etiqueta.copyWith(
+                        color: data.actionDanger
+                            ? AppColors.textSecondary
+                            : Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

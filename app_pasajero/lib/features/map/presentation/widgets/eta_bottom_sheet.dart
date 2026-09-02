@@ -895,6 +895,11 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
     });
   }
 
+  void _activar() {
+    HapticFeedback.mediumImpact();
+    widget.onPressed();
+  }
+
   @override
   Widget build(BuildContext context) {
     final backgroundColor = widget.blocked
@@ -911,6 +916,11 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
       // veces esperando respuesta.
       enabled: !widget.blocked,
       label: widget.label,
+      // El toque va aquí arriba además de en el gesto: `excludeSemantics`
+      // tapa el árbol de abajo entero, y con él la acción del
+      // GestureDetector. Sin esta línea el botón se anuncia pero el doble
+      // toque de VoiceOver no lo activa.
+      onTap: widget.blocked ? null : _activar,
       excludeSemantics: true,
       child: GestureDetector(
         onTap: () {
@@ -918,8 +928,7 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           // aunque el bus ya no esté dentro del radio: el estado visual y la
           // guía dependen de ese bloqueo.
           if (widget.blocked) return;
-          HapticFeedback.mediumImpact();
-          widget.onPressed();
+          _activar();
         },
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapCancel: () => setState(() => _isPressed = false),

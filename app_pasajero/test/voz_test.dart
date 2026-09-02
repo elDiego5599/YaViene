@@ -6,12 +6,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/providers/auth_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/'
+    'map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/'
+    'realtime_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
+    'app_drawer.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'eta_bottom_sheet.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
+    'idle_status_chip.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
+    'location_status_chip.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
+    'route_selector_sheet.dart';
 
 import 'golden/golden_harness.dart';
 
@@ -23,6 +36,21 @@ import 'golden/golden_harness.dart';
 /// semántica —lo mismo que lee VoiceOver— y no el de pintura.
 const double _lat = 6.2442;
 const double _lon = -75.5812;
+
+/// Autenticación sin Firebase: el menú solo lee `state`.
+class _CuentaDePrueba implements AuthNotifier {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #state) {
+      return const AuthState(
+        status: AuthStatus.verified,
+        email: 'qa@yaviene.app',
+        name: 'Quique Tester',
+      );
+    }
+    return null;
+  }
+}
 
 class _UbicacionDePrueba extends UserLocationNotifier {
   _UbicacionDePrueba() {
@@ -97,6 +125,14 @@ bool? seHabilita(SemanticsNode nodo) =>
       Tristate.none => null,
     };
 
+/// ¿El doble toque de VoiceOver lo activa?
+///
+/// Un nodo puede anunciarse como botón y no serlo: `excludeSemantics`
+/// tapa el árbol de abajo y con él la acción del gesto, así que la
+/// bandera y la acción hay que mirarlas por separado.
+bool seActiva(SemanticsNode nodo) =>
+    nodo.getSemanticsData().hasAction(SemanticsAction.tap);
+
 /// Enciende el árbol de semántica mientras dure el cuerpo.
 ///
 /// Flutter solo lo construye si alguien lo pide —VoiceOver en el
@@ -134,6 +170,86 @@ Future<void> montarHojaVacia(WidgetTester tester) async {
       );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
+}
+
+/// Abre el menú lateral y devuelve su contenedor.
+Future<ProviderContainer> abrirMenu(WidgetTester tester) async {
+  final container = ProviderContainer(overrides: [
+    authProvider.overrideWith((ref) => _CuentaDePrueba()),
+  ]);
+  addTearDown(container.dispose);
+  final sub = container.listen<RouteInfo?>(selectedRouteProvider, (_, __) {});
+  addTearDown(sub.close);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        home: Scaffold(appBar: AppBar(), drawer: const AppDrawer()),
+      ),
+    ),
+  );
+  tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+  // Tres cuadros, y en este orden. El primero construye el menú y encola
+  // el arranque de la entrada; el segundo es el primer tic de su reloj —si
+  // se salta, la animación empieza a contar recién en el cuadro largo y se
+  // queda a medias—; el tercero la termina. Y hasta que no termina, las
+  // filas están a opacidad cero, que en Flutter también las borra del
+  // árbol de semántica y no solo de la pantalla.
+  await tester.pump();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 700));
+  return container;
+}
+
+/// Abre el selector de ruta encima de un andamio mínimo.
+Future<ProviderContainer> abrirSelector(
+  WidgetTester tester, {
+  List<RouteInfo> rutas = const [],
+}) async {
+  final guia = MapGuideNotifier();
+  await guia.initialize(
+    userId: 'voz',
+    isNewUser: false,
+    hasLocation: true,
+    locationSettled: true,
+    hasRoute: false,
+    hasSelectedBus: false,
+    hasActiveAlert: false,
+  );
+  final container = ProviderContainer(overrides: [
+    mapGuideProvider.overrideWith((ref) => guia),
+    companiesProvider.overrideWith(
+      (ref) async => const [Company(id: 'EMP-01', name: 'Transporte del Sur')],
+    ),
+    routesByCompanyProvider.overrideWith((ref, id) async => rutas),
+  ]);
+  addTearDown(container.dispose);
+  for (final p in [selectedCompanyProvider, selectedRouteProvider]) {
+    addTearDown(container.listen(p, (_, __) {}).close);
+  }
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: ElevatedButton(
+                onPressed: () => RouteSelectorSheet.show(
+                  context,
+                  sheet: const RouteSelectorSheet(),
+                ),
+                child: const Text('abrir'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('abrir'));
+  await tester.pumpAndSettle();
+  return container;
 }
 
 void main() {
@@ -185,6 +301,7 @@ void main() {
         );
         expect(esBoton(nodo), isTrue);
         expect(seHabilita(nodo), isTrue);
+        expect(seActiva(nodo), isTrue);
       });
     });
 
@@ -199,6 +316,9 @@ void main() {
             tester.getSemantics(find.bySemanticsLabel('El bus ya está cerca'));
         expect(esBoton(nodo), isTrue);
         expect(seHabilita(nodo), isFalse);
+        // Deshabilitado no ofrece toque: quien no puede armar el aviso
+        // tampoco debería poder intentarlo desde VoiceOver.
+        expect(seActiva(nodo), isFalse);
       });
     });
 
@@ -233,6 +353,269 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('sheet-handle')));
         await tester.pumpAndSettle();
         expect(find.bySemanticsLabel('Abrir la tarjeta'), findsOneWidget);
+      });
+    });
+  });
+
+  group('el menú', () {
+    testWidgets('cada fila se anuncia como botón', (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        await abrirMenu(tester);
+
+        final nodo = tester.getSemantics(
+          find.bySemanticsLabel('Ver guía de uso'),
+        );
+        expect(esBoton(nodo), isTrue);
+        expect(seActiva(nodo), isTrue);
+      });
+    });
+
+    testWidgets('el contador de avisos se dice con su frase', (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        final container = await abrirMenu(tester);
+        container.read(activeAlertsProvider.notifier).activateAlert('A-1');
+        await tester.pump();
+
+        // En pantalla es una pastilla verde con un "1" dentro.
+        expect(find.text('1'), findsOneWidget);
+        expect(find.bySemanticsLabel('Avisos, 1 activo'), findsOneWidget);
+
+        container.read(activeAlertsProvider.notifier).activateAlert('A-2');
+        await tester.pump();
+        expect(find.bySemanticsLabel('Avisos, 2 activos'), findsOneWidget);
+      });
+    });
+
+    testWidgets('la inicial del avatar no se lee suelta', (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        await abrirMenu(tester);
+
+        expect(find.text('Q'), findsOneWidget);
+        expect(find.bySemanticsLabel('Q'), findsNothing);
+      });
+    });
+
+    testWidgets('la ruta activa se dice con sus dos terminales',
+        (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        final container = await abrirMenu(tester);
+
+        expect(
+          find.bySemanticsLabel('Sin ruta activa. Elige tu ruta en el mapa'),
+          findsOneWidget,
+        );
+
+        container.read(selectedRouteProvider.notifier).select(
+              const RouteInfo(
+                id: 'R-106',
+                name: 'Ruta 106',
+                companyId: 'EMP-01',
+                terminalA: 'Terminal',
+                terminalB: 'Centro',
+              ),
+            );
+        await tester.pump();
+        expect(
+          find.bySemanticsLabel('Ruta activa: Ruta 106, entre Terminal y '
+              'Centro'),
+          findsOneWidget,
+        );
+      });
+    });
+  });
+
+  group('la píldora de ubicación', () {
+    testWidgets('se dice de un tirón y es el botón entero', (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        final container = ProviderContainer(overrides: [
+          userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
+        ]);
+        addTearDown(container.dispose);
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(
+              const Align(
+                alignment: Alignment.topCenter,
+                child: LocationStatusChip(),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // El rótulo, la pista en gris y el botón son tres bloques en
+        // pantalla y una sola frase en voz alta.
+        final nodo = tester.getSemantics(find.bySemanticsLabel(
+          'Tu punto de espera. Arrástralo para moverlo. Quitar',
+        ));
+        expect(esBoton(nodo), isTrue);
+        expect(seActiva(nodo), isTrue);
+      });
+    });
+  });
+
+  group('el chip de conexión', () {
+    testWidgets('se anuncia solo cuando aparece', (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        final container = ProviderContainer(overrides: [
+          connectionStateProvider.overrideWith(
+            (ref) => Stream.value(ConnectionStatus.disconnected),
+          ),
+        ]);
+        addTearDown(container.dispose);
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(
+              const Align(
+                alignment: Alignment.topCenter,
+                child: IdleStatusChip(),
+              ),
+            ),
+          ),
+        );
+        // El punto del chip late en bucle: `pumpAndSettle` no vuelve
+        // nunca de una animación que no termina.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final nodo =
+            tester.getSemantics(find.bySemanticsLabel('Sin conexión al '
+                'servidor'));
+        // Nadie va a pasar el dedo buscándolo: aparece solo y tiene que
+        // decirse solo.
+        expect(nodo.flagsCollection.isLiveRegion, isTrue);
+      });
+    });
+
+    testWidgets('los puntos de espera no se pronuncian', (tester) async {
+      await conVoz(tester, () async {
+        fijarPantalla(tester);
+        final container = ProviderContainer(overrides: [
+          connectionStateProvider.overrideWith(
+            (ref) => Stream.value(ConnectionStatus.reconnecting),
+          ),
+        ]);
+        addTearDown(container.dispose);
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(
+              const Align(
+                alignment: Alignment.topCenter,
+                child: IdleStatusChip(),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Reconectando...'), findsOneWidget);
+        expect(find.bySemanticsLabel('Reconectando'), findsOneWidget);
+      });
+    });
+  });
+  group('el selector de ruta', () {
+    testWidgets('cada paso dice de qué paso es, no solo su nombre',
+        (tester) async {
+      await conVoz(tester, () async {
+        await abrirSelector(tester);
+
+        // «Empresa» y «Ruta» sueltos son dos palabras sin frase; el
+        // subtítulo va pegado porque es lo que dice qué se elige aquí.
+        for (final rotulo in [
+          'Empresa. Con cuál viajas',
+          'Ruta. Cuál esperas',
+        ]) {
+          final nodo = tester.getSemantics(find.bySemanticsLabel(rotulo));
+          expect(esBoton(nodo), isTrue, reason: rotulo);
+          expect(seActiva(nodo), isTrue, reason: rotulo);
+        }
+      });
+    });
+
+    testWidgets('el aviso de la empresa se anuncia sin que lo busquen',
+        (tester) async {
+      await conVoz(tester, () async {
+        await abrirSelector(tester);
+
+        await tester.tap(find.text('Ruta'));
+        await tester.pump();
+
+        final nodo = tester.getSemantics(find.bySemanticsLabel(
+          'Ruta. Cuál esperas. Elige primero la empresa',
+        ));
+        // La sacudida es un aviso que solo se ve. Sin región viva, el
+        // motivo de que el toque no llevara a ninguna parte no se dice.
+        expect(nodo.flagsCollection.isLiveRegion, isTrue);
+      });
+    });
+
+    testWidgets('la flecha de volver dice a dónde vuelve', (tester) async {
+      await conVoz(tester, () async {
+        await abrirSelector(tester);
+
+        await tester.tap(find.text('Empresa'));
+        await tester.pumpAndSettle();
+
+        expect(find.bySemanticsLabel('Volver'), findsOneWidget);
+      });
+    });
+
+    testWidgets('la insignia de la empresa no se deletrea aparte',
+        (tester) async {
+      await conVoz(tester, () async {
+        await abrirSelector(tester);
+
+        await tester.tap(find.text('Empresa'));
+        await tester.pumpAndSettle();
+
+        // La insignia dice «TS»: son las iniciales del nombre que va
+        // justo al lado, y dichas serían el mismo dato dos veces.
+        expect(find.text('TS'), findsOneWidget);
+        expect(find.bySemanticsLabel('TS'), findsNothing);
+        final nodo =
+            tester.getSemantics(find.bySemanticsLabel('Transporte del Sur'));
+        expect(esBoton(nodo), isTrue);
+        expect(seActiva(nodo), isTrue);
+      });
+    });
+
+    testWidgets('la ruta dice sus terminales, no la flecha', (tester) async {
+      await conVoz(tester, () async {
+        final container = await abrirSelector(tester, rutas: const [
+          RouteInfo(
+            id: 'R-106',
+            name: 'Ruta 106',
+            companyId: 'EMP-01',
+            terminalA: 'Centro',
+            terminalB: 'Norte',
+          ),
+        ]);
+        container.read(selectedCompanyProvider.notifier).select(
+              const Company(id: 'EMP-01', name: 'Transporte del Sur'),
+            );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Ruta'));
+        await tester.pumpAndSettle();
+
+        // En pantalla es «Centro ↔ Norte»; leído, la flecha se pronuncia
+        // y deja dos nombres sueltos sin relación entre ellos.
+        expect(find.text('Centro ↔ Norte'), findsOneWidget);
+        final nodo = tester.getSemantics(
+          find.bySemanticsLabel('Ruta 106, entre Centro y Norte'),
+        );
+        expect(esBoton(nodo), isTrue);
+        expect(seActiva(nodo), isTrue);
       });
     });
   });

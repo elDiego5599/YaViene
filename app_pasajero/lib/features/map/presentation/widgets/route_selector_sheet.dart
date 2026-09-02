@@ -295,9 +295,19 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           Positioned.fill(
             // Tocar fuera sale por el mismo camino que el arrastre: la
             // tarjeta se va por abajo en vez de desvanecerse en el sitio.
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            child: Semantics(
+              // El velo es la única salida de la vista principal: no hay
+              // botón de cerrar, solo tocar fuera o arrastrar. Sin rótulo
+              // es un nodo enorme y mudo, y con VoiceOver arrastrar no es
+              // una opción.
+              button: true,
+              label: 'Cerrar',
               onTap: _cerrar,
+              excludeSemantics: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _cerrar,
+              ),
             ),
           ),
         ],
@@ -460,16 +470,24 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                   // del contenido. Así se queda quieta mientras las vistas
                   // se cruzan de lado, y es lo único que sobrevive cuando la
                   // hoja se pliega.
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  Semantics(
+                    // En las listas el asa no hace nada: anunciarla como
+                    // botón sería ofrecer una acción que no existe.
+                    button: puedeCerrar,
+                    label: puedeCerrar ? 'Cerrar' : null,
                     onTap: puedeCerrar ? _cerrar : null,
-                    child: const Padding(
-                      padding: EdgeInsets.only(top: 16, bottom: 16),
-                      // `abierta` se queda en 1: esta hoja no se pliega,
-                      // se va entera, así que el asa no tiene nada que
-                      // anunciar y no cambia de ancho ni de color.
-                      child: SheetHandle(
-                        key: ValueKey('selector-handle'),
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: puedeCerrar ? _cerrar : null,
+                      child: const Padding(
+                        padding: EdgeInsets.only(top: 16, bottom: 16),
+                        // `abierta` se queda en 1: esta hoja no se pliega,
+                        // se va entera, así que el asa no tiene nada que
+                        // anunciar y no cambia de ancho ni de color.
+                        child: SheetHandle(
+                          key: ValueKey('selector-handle'),
+                        ),
                       ),
                     ),
                   ),
@@ -573,6 +591,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 subtitle: selectedCompany != null
                     ? 'Empresa de transporte masivo'
                     : 'Con cuál viajas',
+                // El título es el nombre elegido y por sí solo no dice de
+                // qué paso salió: «Sobusa» a secas podría ser la ruta.
+                dicho: selectedCompany == null
+                    ? 'Empresa. Con cuál viajas'
+                    : 'Empresa: ${selectedCompany.name}',
                 icon: Icons.business_rounded,
                 isActive: selectedCompany != null,
                 onTap: () {
@@ -589,7 +612,12 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 child: const SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    // Una rueda girando no se ve con VoiceOver: sin rótulo
+                    // el hueco de la empresa se anuncia vacío.
+                    semanticsLabel: 'Cargando empresas',
+                  ),
                 ),
               ),
               error: (_, __) => _tilePlaceholder(
@@ -627,6 +655,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                   (selectedRoute != null ? null : 'Cuál esperas'),
               icon: Icons.alt_route_rounded,
               isActive: selectedRoute != null,
+              dicho: selectedRoute == null
+                  ? 'Ruta. Cuál esperas'
+                  : 'Ruta: ${selectedRoute.name}'
+                      '${_terminalesDichos(selectedRoute)}',
               hint: _routeHint,
               onTap: () {
                 if (selectedCompany == null) {
@@ -743,6 +775,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 badgeInitials: _companyInitials(company.name),
                 title: company.name,
                 subtitle: null,
+                // La insignia son las iniciales del nombre que va justo
+                // al lado: dichas, es el mismo dato deletreado antes de
+                // decirlo entero.
+                dicho: company.name,
                 selected: selectedCompany?.id == company.id,
                 onTap: () {
                   HapticFeedback.selectionClick();
@@ -801,6 +837,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                   iconBackground: AppColors.primaryTint,
                   title: route.name,
                   subtitle: _routeSubtitle(route) ?? 'Tiempo real',
+                  dicho: '${route.name}${_terminalesDichos(route)}',
                   selected: selectedRoute?.id == route.id,
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -944,7 +981,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     return Center(
       key: key,
       child: message == null
-          ? const CircularProgressIndicator()
+          ? const CircularProgressIndicator(semanticsLabel: 'Cargando')
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -973,8 +1010,15 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       children: [
         if (onBack != null)
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: AppColors.primaryDeep),
+            // Un icono sin rótulo se anuncia «botón» y nada más. El
+            // `tooltip` no basta: viaja en su propio campo, aparte del
+            // rótulo, y no todos los lectores lo dicen.
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: AppColors.primaryDeep,
+              semanticLabel: 'Volver',
+            ),
+            tooltip: 'Volver',
             onPressed: onBack,
             visualDensity: VisualDensity.compact,
           ),
@@ -998,61 +1042,87 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     String? subtitle,
     required VoidCallback onTap,
     String? badgeInitials,
+    String? dicho,
     bool selected = false,
   }) {
+    final base = dicho ?? title;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: ListTile(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          // F13: la fila ya elegida se marca al volver a la lista, en vez de
-          // que todas se vean igual de "sin elegir".
-          side: selected
-              ? const BorderSide(color: AppColors.primary, width: 1.5)
-              : const BorderSide(color: AppColors.hairline),
-        ),
-        tileColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: iconBackground,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: badgeInitials != null
-              ? Center(
-                  child: Text(
-                    badgeInitials,
-                    style: AppTextStyles.etiqueta
-                        .copyWith(color: Colors.white),
-                  ),
-                )
-              : Icon(icon, color: iconColor, size: 20),
-        ),
-        title: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTextStyles.subtitulo,
-        ),
-        subtitle: subtitle == null
-            ? null
-            : Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.pie,
-              ),
-        trailing: selected
-            ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
-            : const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textDisabled),
+      child: Semantics(
+        button: true,
+        // La palomita de la derecha es lo único que distingue la fila ya
+        // elegida, y una palomita no se oye. `selected` la dice.
+        selected: selected,
+        label: subtitle == null || dicho != null ? base : '$base. $subtitle',
+        // `excludeSemantics` tapa el árbol de abajo, y con él la acción
+        // del ListTile: sin este toque la fila no se podría elegir.
         onTap: onTap,
+        excludeSemantics: true,
+        child: ListTile(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            // F13: la fila ya elegida se marca al volver a la lista, en vez de
+            // que todas se vean igual de "sin elegir".
+            side: selected
+                ? const BorderSide(color: AppColors.primary, width: 1.5)
+                : const BorderSide(color: AppColors.hairline),
+          ),
+          tileColor: AppColors.surface,
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconBackground,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: badgeInitials != null
+                ? Center(
+                    child: Text(
+                      badgeInitials,
+                      style: AppTextStyles.etiqueta
+                          .copyWith(color: Colors.white),
+                    ),
+                  )
+                : Icon(icon, color: iconColor, size: 20),
+          ),
+          title: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.subtitulo,
+          ),
+          subtitle: subtitle == null
+              ? null
+              : Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.pie,
+                ),
+          trailing: selected
+              ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+              : const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textDisabled),
+          onTap: onTap,
+        ),
       ),
     );
   }
+}
+
+/// Los dos terminales, dichos como una frase y no como una flecha.
+///
+/// En pantalla «Centro ↔ Norte» se lee de un vistazo; en voz alta la
+/// flecha se pronuncia y parte la frase en dos nombres sueltos.
+String _terminalesDichos(RouteInfo route) {
+  final a = route.terminalA ?? '';
+  final b = route.terminalB ?? '';
+  if (a.isEmpty && b.isEmpty) return '';
+  if (b.isEmpty) return ', desde $a';
+  if (a.isEmpty) return ', hasta $b';
+  return ', entre $a y $b';
 }
 
 String? _routeSubtitle(RouteInfo? route) {
@@ -1109,6 +1179,14 @@ class _SelectorTile extends StatefulWidget {
   /// sacude la tarjeta una vez: el error se dice donde ocurrió.
   final String? hint;
 
+  /// La fila entera, dicha en una frase, cuando lo escrito no se lee bien
+  /// en voz alta.
+  ///
+  /// El subtítulo de la ruta son dos terminales unidos por una flecha
+  /// («Centro ↔ Norte»): en pantalla se entiende de un vistazo, leído en
+  /// voz alta es un nombre, «flecha izquierda derecha» y otro nombre.
+  final String? dicho;
+
   const _SelectorTile({
     super.key,
     required this.title,
@@ -1116,6 +1194,7 @@ class _SelectorTile extends StatefulWidget {
     required this.icon,
     required this.isActive,
     this.hint,
+    this.dicho,
     this.onTap,
   });
 
@@ -1160,106 +1239,129 @@ class _SelectorTileState extends State<_SelectorTile>
       borde = AppColors.hairline;
     }
 
-    return GestureDetector(
+    // El aviso manda sobre todo lo demás: es la razón por la que la fila
+    // se sacudió, y en voz es lo único que explica por qué el toque no
+    // llevó a ninguna parte.
+    final base = widget.dicho ?? widget.title;
+    final dicha = hint != null
+        ? '$base. $hint'
+        : widget.subtitle != null && widget.dicho == null
+            ? '$base. ${widget.subtitle}'
+            : base;
+
+    return Semantics(
+      button: true,
+      label: dicha,
+      // El aviso aparece sin que nadie lo pida —la sacudida es su aviso
+      // visual— y sin región viva no se anuncia hasta que alguien vuelve
+      // a pasar el dedo por encima.
+      liveRegion: hint != null,
+      // `excludeSemantics` tapa el árbol de abajo, y con él la acción del
+      // gesto: sin este toque el doble toque de VoiceOver no haría nada.
       onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedBuilder(
-        animation: _shake,
-        builder: (context, child) {
-          final t = _shake.value;
-          // Seno amortiguado: tres idas y vueltas que se apagan solas. Es
-          // el gesto del campo de contraseña de iOS —dice "no" sin ocupar
-          // sitio ni tapar nada.
-          final dx = t == 0 || t == 1
-              ? 0.0
-              : math.sin(t * math.pi * 6) * (1 - t) * amplitud;
-          return Transform.translate(offset: Offset(dx, 0), child: child);
-        },
-        child: AnimatedScale(
-          scale: _pressed ? 0.975 : 1,
-          duration: AppMotion.instante,
-          curve: AppMotion.curvaEntrada,
-          child: AnimatedContainer(
-            duration: AppMotion.rapido,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedBuilder(
+          animation: _shake,
+          builder: (context, child) {
+            final t = _shake.value;
+            // Seno amortiguado: tres idas y vueltas que se apagan solas. Es
+            // el gesto del campo de contraseña de iOS —dice "no" sin ocupar
+            // sitio ni tapar nada.
+            final dx = t == 0 || t == 1
+                ? 0.0
+                : math.sin(t * math.pi * 6) * (1 - t) * amplitud;
+            return Transform.translate(offset: Offset(dx, 0), child: child);
+          },
+          child: AnimatedScale(
+            scale: _pressed ? 0.975 : 1,
+            duration: AppMotion.instante,
             curve: AppMotion.curvaEntrada,
-            // Alto mínimo, no alto fijo: dentro van el nombre y su línea
-            // de apoyo, y con el texto del sistema en grande las dos
-            // juntas miden más de 78. Al 100% miden menos, así que la
-            // fila no se mueve de donde estaba.
-            constraints: const BoxConstraints(minHeight: _kTileHeight),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            // Sin sombra: la tarjeta ya flota sobre arena y una sombra
-            // azulada al 4 % sobre un beige cálido no se lee como
-            // profundidad, se lee como una banda gris. Separa el filo.
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(
-                color: borde,
-                width: isActive || hint != null ? 1.5 : 1.0,
-              ),
-            ),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: AppMotion.rapido,
-                  curve: AppMotion.curvaEntrada,
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? AppColors.primaryTint
-                        : AppColors.surfaceMuted,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    color:
-                        isActive ? AppColors.primary : AppColors.textDisabled,
-                    size: 22,
-                  ),
+            child: AnimatedContainer(
+              duration: AppMotion.rapido,
+              curve: AppMotion.curvaEntrada,
+              // Alto mínimo, no alto fijo: dentro van el nombre y su línea
+              // de apoyo, y con el texto del sistema en grande las dos
+              // juntas miden más de 78. Al 100% miden menos, así que la
+              // fila no se mueve de donde estaba.
+              constraints: const BoxConstraints(minHeight: _kTileHeight),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              // Sin sombra: la tarjeta ya flota sobre arena y una sombra
+              // azulada al 4 % sobre un beige cálido no se lee como
+              // profundidad, se lee como una banda gris. Separa el filo.
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(
+                  color: borde,
+                  width: isActive || hint != null ? 1.5 : 1.0,
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.subtitulo.copyWith(
-                          color: isActive
-                              ? AppColors.textPrimary
-                              : AppColors.textDisabled,
-                        ),
-                      ),
-                      if (hint != null || widget.subtitle != null) ...[
-                        const SizedBox(height: 2),
+              ),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: AppMotion.rapido,
+                    curve: AppMotion.curvaEntrada,
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? AppColors.primaryTint
+                          : AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(
+                      widget.icon,
+                      color:
+                          isActive ? AppColors.primary : AppColors.textDisabled,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          hint ?? widget.subtitle!,
+                          widget.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          // El aviso ya se distingue por el ámbar; no
-                          // necesita además otro peso.
-                          style: hint != null
-                              ? AppTextStyles.pie
-                                  .copyWith(color: AppColors.warningAccessible)
-                              : AppTextStyles.pie,
+                          style: AppTextStyles.subtitulo.copyWith(
+                            color: isActive
+                                ? AppColors.textPrimary
+                                : AppColors.textDisabled,
+                          ),
                         ),
+                        if (hint != null || widget.subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            hint ?? widget.subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            // El aviso ya se distingue por el ámbar; no
+                            // necesita además otro peso.
+                            style: hint != null
+                                ? AppTextStyles.pie.copyWith(
+                                    color: AppColors.warningAccessible,
+                                  )
+                                : AppTextStyles.pie,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: AppColors.textDisabled,
-                ),
-              ],
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: AppColors.textDisabled,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
