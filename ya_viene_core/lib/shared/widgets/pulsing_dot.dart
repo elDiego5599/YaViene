@@ -35,7 +35,7 @@ class _PulsingDotState extends State<PulsingDot>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: AppMotion.latido,
     )..repeat();
     _curva = CurvedAnimation(parent: _controller, curve: AppMotion.curvaCiclo);
     _opacidad = Tween<double>(begin: 0.2, end: 1.0).animate(_curva);

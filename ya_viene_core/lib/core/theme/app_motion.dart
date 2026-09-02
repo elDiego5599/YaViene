@@ -57,6 +57,34 @@ abstract final class AppMotion {
   /// Recorre distancia de verdad: entradas, superposiciones, guías.
   static const Duration entrada = Duration(milliseconds: 360);
 
+  // --- Y para lo que no es un solo elemento ---
+  //
+  // Los cinco escalones de arriba miden una cosa que se mueve. Fuera de
+  // ellos quedaban cinco duraciones sueltas escritas a mano —700, 560, 450,
+  // 320/55, 1800— que no son eso: son un grupo entero entrando, o un bucle
+  // que no termina nunca. Nombrarlas aquí es lo que impide que vuelvan a
+  // ser seis, y luego siete.
+
+  /// Cuánto se retrasa cada elemento respecto al anterior en una entrada
+  /// escalonada. Lo justo para leerse como un barrido y no como una lista
+  /// que tarda: por debajo los elementos entran a la vez, por encima el
+  /// último se hace esperar.
+  static const Duration escalon = Duration(milliseconds: 55);
+
+  /// El grupo entero, del primer elemento al último. Un menú lateral y una
+  /// pantalla de entrada son el mismo gesto a distinta escala, así que
+  /// entran al mismo paso.
+  static const Duration grupo = Duration(milliseconds: 560);
+
+  /// Un bucle que dice "trabajando": lo bastante vivo para leerse como
+  /// actividad y no como decoración.
+  static const Duration pulso = Duration(milliseconds: 1100);
+
+  /// Un bucle que dice "vivo" sin pedir atención: el halo del bus en el
+  /// mapa, el punto de la conexión. Va despacio a propósito —está siempre
+  /// en pantalla, y lo que está siempre no puede tener prisa.
+  static const Duration latido = Duration(milliseconds: 1800);
+
   /// Entra: arranca suelto y frena al llegar, que es como se mueve algo que
   /// pesa.
   static const Curve curvaEntrada = Curves.easeOutCubic;

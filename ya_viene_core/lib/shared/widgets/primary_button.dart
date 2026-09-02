@@ -44,14 +44,7 @@ class PrimaryButton extends StatelessWidget {
           padding: EdgeInsets.zero,
         ),
         child: isLoading
-            ? SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(foregroundColor),
-                ),
-              )
+            ? IndicadorCarga(color: foregroundColor)
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
