@@ -450,11 +450,49 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                     ]),
                     0.32,
                   ),
+                  const SizedBox(height: 26),
+                  // Los créditos del mapa viven aquí desde que la "i" azul de
+                  // MapLibre dejó libre su esquina para el botón de recentrar.
+                  // OpenStreetMap y CARTO piden que se vean; el pie de un menú
+                  // es donde los pone todo el mundo, y donde no estorban.
+                  _staggered(const _MapCredits(), 0.40),
+                  const SizedBox(height: AppSpacing.sm),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Créditos del mapa, al pie del menú y en voz baja.
+class _MapCredits extends StatelessWidget {
+  const _MapCredits();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Mapa',
+            style: AppTextStyles.etiqueta.copyWith(
+              color: AppColors.textOnInk.withValues(alpha: 0.45),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '© MapLibre · © OpenStreetMap · © CARTO',
+            style: AppTextStyles.pie.copyWith(
+              color: AppColors.textOnInk.withValues(alpha: 0.35),
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -29,6 +29,20 @@ class MapCameraRequestNotifier extends StateNotifier<int> {
   void centerOnBarranquilla() => state++;
 }
 
+/// Petición de volver al punto de espera, desde el botón de recentrar del
+/// mapa. Mismo mecanismo que [MapCameraRequestNotifier]: se cuenta por
+/// solicitud, porque tocar el botón dos veces seguidas —después de arrastrar
+/// el mapa en medio— tiene que mover la cámara las dos veces.
+class MapRecenterRequestNotifier extends StateNotifier<int> {
+  MapRecenterRequestNotifier() : super(0);
+
+  void recenter() => state++;
+}
+
+final mapRecenterRequestProvider =
+    StateNotifierProvider<MapRecenterRequestNotifier, int>(
+        (ref) => MapRecenterRequestNotifier());
+
 final mapCameraRequestProvider =
     StateNotifierProvider<MapCameraRequestNotifier, int>(
         (ref) => MapCameraRequestNotifier());

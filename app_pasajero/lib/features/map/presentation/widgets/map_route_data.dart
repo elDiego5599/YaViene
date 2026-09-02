@@ -77,7 +77,10 @@ extension _MapRouteData on _MapWidgetState {
       bottom: _currentBottomInset + 32,
     );
 
-    if (animated) {
+    // Movimiento reducido: 800 ms de ciudad desplazándose es exactamente el
+    // movimiento de campo grande que esa preferencia existe para quitar. Con
+    // ella activada la cámara aparece ya puesta, sin viaje.
+    if (animated && !AppMotion.reducido(context)) {
       _mapController!.animateCamera(
         update,
         duration: const Duration(milliseconds: 800),

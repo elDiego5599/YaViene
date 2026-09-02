@@ -17,6 +17,7 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 import 'alert_guards.dart' show kmLabel;
+import 'map_recenter_button.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
@@ -351,7 +352,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           opacity: apartada ? 0 : 1,
           duration: paso,
           curve: apartada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
-          child: _sheetBody(child: child, toggleable: toggleable),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // El botón de recentrar viaja pegado al borde de arriba de la
+              // hoja: sube y baja con ella al plegarse, y se va con ella
+              // cuando el selector ocupa la pantalla. Suelto sobre el mapa
+              // habría que estarle calculando el hueco, y con la hoja sin
+              // ruta —que no empuja el mapa pero sí tapa el tercio de
+              // abajo— se quedaba debajo.
+              const Padding(
+                padding: EdgeInsets.only(
+                  right: AppSpacing.md,
+                  bottom: AppSpacing.sm,
+                ),
+                child: MapRecenterButton(),
+              ),
+              _sheetBody(child: child, toggleable: toggleable),
+            ],
+          ),
         ),
       ),
     );

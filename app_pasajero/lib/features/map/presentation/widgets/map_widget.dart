@@ -46,6 +46,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<UserLocationState>? _userPinSubscription;
   ProviderSubscription<double>? _mapInsetSubscription;
   ProviderSubscription<int>? _cameraRequestSubscription;
+  ProviderSubscription<int>? _recenterRequestSubscription;
   ProviderSubscription<Set<String>>? _busSelectionSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
@@ -55,6 +56,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   int _mapGeneration = 0;
   bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
+
+  /// Si la cámara ya se llevó sola al punto de espera. El encuadre automático
+  /// es una cortesía de arranque, no una correa: en cuanto ocurre una vez, el
+  /// mapa es del usuario.
+  bool _hasCenteredOnUser = false;
   bool _placeholderShown = true;
   Timer? _placeholderTimeout;
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
@@ -189,6 +195,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (previous == next) return;
       _moveToRequestedCamera();
     });
+    // Volver al punto de espera desde el botón del mapa. Es una orden
+    // explícita del usuario, así que no pasa por `_hasCenteredOnUser`: esa
+    // bandera solo frena el encuadre automático.
+    _recenterRequestSubscription =
+        ref.listenManual<int>(mapRecenterRequestProvider, (previous, next) {
+      if (previous == next || !mounted || !_layersReady) return;
+      centerOnUserPin(animated: true);
+    });
     // Selección de bus (desde la hoja): el mapa debe repintar el halo y el
     // tamaño del ícono al instante, sin esperar el siguiente paquete GPS.
     _busSelectionSubscription =
@@ -251,6 +265,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _userPinSubscription?.close();
     _mapInsetSubscription?.close();
     _cameraRequestSubscription?.close();
+    _recenterRequestSubscription?.close();
     _busSelectionSubscription?.close();
     _trajectorySub?.close();
     _stopsSub?.close();
@@ -349,12 +364,27 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
   }
 
+  /// Encuadra el punto de espera y recuerda que ya se hizo, para que el
+  /// encuadre automático ocurra una sola vez por vida del mapa.
+  bool _centrarEnElUsuario({required bool animated}) {
+    if (!centerOnUserPin(animated: animated)) return false;
+    _hasCenteredOnUser = true;
+    return true;
+  }
+
   void _setupUserPinSubscription() {
     _userPinSubscription?.close();
     _userPinSubscription = ref.listenManual<UserLocationState>(
         userLocationProvider, (previous, next) {
       if (!mounted) return;
       if (_layersReady) _updateUserPinSource(next);
+      // La ubicación puede llegar después del estilo: el pin guardado se lee
+      // de preferencias y el GPS tarda lo suyo. La primera vez que hay algo
+      // que enmarcar, la cámara va allí; después ya no, que mover el mapa
+      // debajo de alguien que lo está arrastrando es lo peor que puede pasar.
+      if (_layersReady && !_hasCenteredOnUser && next.hasPosition) {
+        _centrarEnElUsuario(animated: true);
+      }
     }, fireImmediately: true);
   }
 
@@ -439,7 +469,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // El punto de espera no depende de los buses, así que el encuadre
         // tampoco: si ya hay pin (o GPS) la cámara va a él ahora mismo, sin
         // esperar al primer lote —que con una ruta sin buses no llega nunca—.
-        if (centerOnUserPin(animated: true)) _hasFitInitialRoute = true;
+        if (_centrarEnElUsuario(animated: true)) _hasFitInitialRoute = true;
       } else {
         _teardownBusSubscription();
         teardownRouteData();
@@ -456,6 +486,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _layersReady = false;
       _styleInitInFlight = false;
       _hasFitInitialRoute = false;
+      _hasCenteredOnUser = false;
     }
     _mapController = controller;
   }
@@ -481,14 +512,19 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (mounted) setState(() {});
       await _applyMapBottomInset(ref.read(mapBottomInsetProvider),
           animated: false);
-      _moveToRequestedCamera();
+      final camaraPedida = _moveToRequestedCamera();
       _setupUserPinSubscription();
       if (widget.routeId != null) {
         reloadMapData();
         _setupBusSubscription(widget.routeId!);
-        // Mismo criterio en el arranque, pero sin animación: el mapa acaba
-        // de aparecer y no hay de dónde venir.
-        if (centerOnUserPin(animated: false)) _hasFitInitialRoute = true;
+      }
+      // El encuadre inicial es el punto de espera, haya ruta o no: quien
+      // abre la app con su pin guardado veía toda Barranquilla desde el
+      // zoom 11 de arranque, con su punto de mota. Sin animación, que el
+      // mapa acaba de aparecer y no hay de dónde venir. Si alguien pidió
+      // cámara a propósito (reiniciar la guía), esa manda.
+      if (!camaraPedida && _centrarEnElUsuario(animated: false)) {
+        _hasFitInitialRoute = true;
       }
       // Si ya había un bus seleccionado antes de que el estilo terminara de
       // cargar (p. ej. al recrear la vista nativa), el halo no debe esperar
@@ -775,14 +811,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   /// Aplica una solicitud de cámara pendiente (contador > 0) al mapa.
-  void _moveToRequestedCamera() {
+  /// Devuelve si llegó a mover la cámara: quien la pidió a propósito (el
+  /// "Ver guía de uso" del menú) manda sobre cualquier encuadre automático.
+  bool _moveToRequestedCamera() {
     final controller = _mapController;
-    if (controller == null || !_layersReady || !mounted) return;
-    if (ref.read(mapCameraRequestProvider) <= 0) return;
+    if (controller == null || !_layersReady || !mounted) return false;
+    if (ref.read(mapCameraRequestProvider) <= 0) return false;
     controller.moveCamera(CameraUpdate.newLatLngZoom(
       MapCameraRequestNotifier.barranquilla,
       11.5,
     ));
+    return true;
   }
 
   void _updateBusSourceData(List<BusPosition> positions) {
@@ -1064,6 +1103,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               zoom: 11.0,
             ),
             compassEnabled: false,
+            // La "i" azul de MapLibre es el único elemento de la pantalla
+            // fuera de la paleta, y ocupa justo la esquina donde toda app de
+            // mapa pone el botón de recentrar. Se manda al pie izquierdo, que
+            // la hoja inferior cubre siempre, y los créditos que exigen
+            // OpenStreetMap y CARTO se leen enteros en el menú lateral.
+            attributionButtonPosition: AttributionButtonPosition.bottomLeft,
+            attributionButtonMargins: const math.Point(8, 8),
             myLocationEnabled: false,
             onMapClick: (point, latLng) async {
               // El mapa aún no está listo (estilo/fuentes cargando): no se
