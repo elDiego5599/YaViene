@@ -26,28 +26,37 @@ class MapStylePlaceholder extends StatelessWidget {
         if (!visible && placeholderShown) onFadeEnd();
       },
       child: placeholderShown
-          ? GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              child: ColoredBox(
-                color: AppColors.background,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.directions_bus_rounded,
-                        size: 44,
-                        color: AppColors.textDisabled,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Preparando tu mapa…',
-                        style: AppTextStyles.cuerpoFuerte.copyWith(
-                          color: AppColors.textSecondary,
+          ? Semantics(
+              // El gesto de aquí abajo solo existe para tragarse los
+              // toques mientras el mapa carga: sin rótulo es un nodo del
+              // tamaño de la pantalla que se anuncia tocable y no hace
+              // nada. Lo que hay que decir es que se está esperando.
+              label: 'Preparando tu mapa',
+              liveRegion: true,
+              excludeSemantics: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                child: ColoredBox(
+                  color: AppColors.background,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.directions_bus_rounded,
+                          size: 44,
+                          color: AppColors.textDisabled,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Text(
+                          'Preparando tu mapa…',
+                          style: AppTextStyles.cuerpoFuerte.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -74,38 +83,47 @@ class MapStyleFailedBanner extends StatelessWidget {
       top: 16,
       left: 16,
       right: 16,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: AppShadows.floating,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md, vertical: 12),
-          child: Row(
-            children: [
-              const Icon(Icons.cloud_off_rounded, color: AppColors.coral),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'No se pudo cargar el mapa',
-                  style: AppTextStyles.cuerpoFuerte,
+      child: Semantics(
+        // El aviso aparece sin que nadie lo pida y tapa el mapa entero
+        // con su noticia: si no se anuncia al aparecer, no se anuncia.
+        liveRegion: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: AppShadows.floating,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: 12),
+            child: Row(
+              children: [
+                // La nube tachada es la frase dibujada: dicha aparte no
+                // añade nada a «No se pudo cargar el mapa».
+                const ExcludeSemantics(
+                  child: Icon(Icons.cloud_off_rounded, color: AppColors.coral),
                 ),
-              ),
-              TextButton(
-                onPressed: onRetry,
-                // El peso venía suelto en el `Text` y el tamaño lo ponía
-                // Material por detrás. Es el mismo rol al que Material caía
-                // —`boton`—, escrito ahora donde se lee; bajarlo a la medida
-                // del aviso lo dejaba con el peso exacto de la frase y ya no
-                // parecía que se pudiera tocar.
-                style: TextButton.styleFrom(
-                  textStyle: AppTextStyles.boton,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No se pudo cargar el mapa',
+                    style: AppTextStyles.cuerpoFuerte,
+                  ),
                 ),
-                child: const Text('Reintentar'),
-              ),
-            ],
+                TextButton(
+                  onPressed: onRetry,
+                  // El peso venía suelto en el `Text` y el tamaño lo ponía
+                  // Material por detrás. Es el mismo rol al que Material caía
+                  // —`boton`—, escrito ahora donde se lee; bajarlo a la medida
+                  // del aviso lo dejaba con el peso exacto de la frase y ya no
+                  // parecía que se pudiera tocar.
+                  style: TextButton.styleFrom(
+                    textStyle: AppTextStyles.boton,
+                  ),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

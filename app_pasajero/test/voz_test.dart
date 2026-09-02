@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/providers/auth_provider.dart';
+import 'package:ya_viene_pasajero/features/auth/presentation/screens/'
+    'login_screen.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
@@ -25,6 +27,8 @@ import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'route_selector_sheet.dart';
+import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
+    'onboarding_screen.dart';
 
 import 'golden/golden_harness.dart';
 
@@ -49,6 +53,26 @@ class _CuentaDePrueba implements AuthNotifier {
       );
     }
     return null;
+  }
+}
+
+/// La misma cuenta, pero sin sesión abierta: el login se queda en su sitio.
+///
+/// Con `verified` la pantalla se va derecha al mapa nada más construirse.
+class _SinSesion implements AuthNotifier {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    switch (invocation.memberName) {
+      case #state:
+        return const AuthState();
+      case #isEmailValid:
+        final texto = invocation.positionalArguments.first as String;
+        return texto.contains('@') && texto.contains('.');
+      case #checkEmail:
+        return Future<bool>.value(true);
+      default:
+        return null;
+    }
   }
 }
 
@@ -617,6 +641,69 @@ void main() {
         expect(esBoton(nodo), isTrue);
         expect(seActiva(nodo), isTrue);
       });
+    });
+  });
+
+  group('la entrada', () {
+    testWidgets('el ojo de la contraseña dice qué hace, no solo «botón»',
+        (tester) async {
+      fijarPantalla(tester);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [authProvider.overrideWith((ref) => _SinSesion())],
+          child: marcoGoldenRuteado(const LoginScreen(), ruta: '/login'),
+        ),
+      );
+      // El fondo late para siempre: `pumpAndSettle` no volvería.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
+
+      await tester.enterText(find.byType(TextField).first, 'ana@yaviene.app');
+      await tester.pump();
+      await tester.tap(find.text('Continuar'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final manija = tester.ensureSemantics();
+
+      // El `tooltip` que ya tenía viaja en su propio campo, aparte del
+      // rótulo: no basta.
+      expect(find.bySemanticsLabel('Mostrar contraseña'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.visibility_off_rounded));
+      await tester.pump();
+      expect(find.bySemanticsLabel('Ocultar contraseña'), findsOneWidget);
+
+      manija.dispose();
+    });
+
+    testWidgets('cada razón se oye entera, no en dos mitades', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      fijarPantalla(tester);
+      await tester.pumpWidget(
+        ProviderScope(child: marcoGoldenRuteado(const OnboardingScreen())),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 900));
+
+      final manija = tester.ensureSemantics();
+
+      // Promesa y letra chica se anuncian juntas: sueltas, la segunda
+      // llega sin saber de qué habla.
+      expect(
+        find.bySemanticsLabel(
+          'Buses en vivo. Ves dónde va el tuyo, no dónde debería ir',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          'Aviso antes de que llegue. Suena cuando se acerca a tu punto '
+          'de espera',
+        ),
+        findsOneWidget,
+      );
+
+      manija.dispose();
     });
   });
 }

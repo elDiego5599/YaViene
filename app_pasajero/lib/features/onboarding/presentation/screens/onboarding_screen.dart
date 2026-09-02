@@ -194,6 +194,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                                     CircularProgressIndicator(
                                                   strokeWidth: 2.5,
                                                   color: Colors.white,
+                                                  // El botón se queda sin
+                                                  // texto mientras el
+                                                  // sistema pregunta.
+                                                  semanticsLabel:
+                                                      'Pidiendo el permiso',
                                                 ),
                                               )
                                             : Text(
@@ -254,33 +259,40 @@ class _BenefitRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Ancho fijo para que los tres títulos arranquen en la misma
-        // columna aunque los glifos midan distinto.
-        SizedBox(
-          width: 30,
-          child: Icon(icon, color: AppColors.primary, size: 26),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.cuerpoFuerte,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                detail,
-                style: AppTextStyles.pie,
-              ),
-            ],
+    return Semantics(
+      // Promesa y letra chica son una sola cosa: separadas hay que pasar
+      // dos veces por cada fila, y la segunda mitad —de dónde sale el
+      // dato— llega suelta, sin saber de qué promesa habla.
+      label: '$title. $detail',
+      excludeSemantics: true,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Ancho fijo para que los tres títulos arranquen en la misma
+          // columna aunque los glifos midan distinto.
+          SizedBox(
+            width: 30,
+            child: Icon(icon, color: AppColors.primary, size: 26),
           ),
-        ),
-      ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.cuerpoFuerte,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: AppTextStyles.pie,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

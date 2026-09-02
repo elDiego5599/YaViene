@@ -67,10 +67,14 @@ class InkHero extends StatelessWidget {
           ),
         ],
       ),
-      child: SvgPicture.asset(
-        'assets/icon/ya_viene_logo.svg',
-        width: logoSize,
-        height: logoSize,
+      // El nombre va escrito justo debajo: el logo dicho aparte solo
+      // añade un «imagen» delante de «Ya Viene».
+      child: ExcludeSemantics(
+        child: SvgPicture.asset(
+          'assets/icon/ya_viene_logo.svg',
+          width: logoSize,
+          height: logoSize,
+        ),
       ),
     );
     final tag = heroTag;

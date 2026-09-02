@@ -325,10 +325,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: MapWidget(
-              key: _mapKey,
-              routeId: selectedRoute?.id,
-              onGuideBusTargetChanged: _onGuideBusTargetChanged,
+            child: Semantics(
+              // El mapa es una vista nativa: no aporta nada al árbol de
+              // semántica, así que con VoiceOver la mitad de la pantalla
+              // es un hueco mudo. No se puede fingir que se lee —los
+              // buses son puntos en un dibujo—, pero sí decir qué es y
+              // dónde está lo mismo dicho con palabras: la distancia vive
+              // en la hoja de abajo.
+              label: selectedRoute == null
+                  ? 'Mapa. Elige tu ruta arriba para ver sus buses'
+                  : 'Mapa con los buses de ${selectedRoute.name}. '
+                      'La distancia se lee en la tarjeta de abajo',
+              child: MapWidget(
+                key: _mapKey,
+                routeId: selectedRoute?.id,
+                onGuideBusTargetChanged: _onGuideBusTargetChanged,
+              ),
             ),
           ),
           Positioned(

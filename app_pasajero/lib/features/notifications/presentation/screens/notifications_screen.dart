@@ -58,7 +58,15 @@ class NotificationsScreen extends ConsumerWidget {
           child: const Text('Avisos'),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          // La flecha de la barra no es la de Material —que trae su
+          // rótulo puesto—, es un icono a secas: sin esto se anuncia
+          // «botón» y nada más.
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            semanticLabel: 'Volver',
+          ),
+          tooltip: 'Volver',
           color: AppColors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -402,12 +410,26 @@ class _AlertTile extends StatelessWidget {
             ? 'Está a $distanceMeters m de tu ubicación · esperando aviso'
             : 'Esperando señal del bus';
 
+    // La fila entera, dicha de un tirón: el punto medio del separador se
+    // pronuncia, y el guion de la placa no dice qué es cada mitad.
+    final dichoBus = routePlateSpoken(
+      busId: entry.busId,
+      routeName: routeName,
+      routeId: entry.routeId,
+    );
+    final dicha = '$dichoBus. ${subtitle.replaceAll(' · ', ', ')}';
+
     final accion = selecting
-        ? Checkbox(
-            value: selected,
-            onChanged: (_) => onToggleSelect(),
-            activeColor: AppColors.primaryDeep,
-            visualDensity: VisualDensity.compact,
+        ? Semantics(
+            // Una casilla suelta se anuncia «casilla, sin marcar»: sin el
+            // nombre del bus, no se sabe cuál se está marcando.
+            label: dichoBus,
+            child: Checkbox(
+              value: selected,
+              onChanged: (_) => onToggleSelect(),
+              activeColor: AppColors.primaryDeep,
+              visualDensity: VisualDensity.compact,
+            ),
           )
         : sent
             ? Text(
@@ -418,13 +440,21 @@ class _AlertTile extends StatelessWidget {
               )
             // Rojo de error para algo que se deshace en un toque desde el
             // mapa. El rojo queda para "Borrar todas", que sí borra.
-            : TextButton(
-                onPressed: onDisable,
-                style: TextButton.styleFrom(
-                  textStyle: AppTextStyles.etiqueta,
-                  foregroundColor: AppColors.primaryDeep,
+            : Semantics(
+                // En una lista de avisos, cinco botones que dicen
+                // «Desactivar» y nada más son cinco botones iguales.
+                label: 'Desactivar el aviso de $dichoBus',
+                excludeSemantics: true,
+                onTap: onDisable,
+                button: true,
+                child: TextButton(
+                  onPressed: onDisable,
+                  style: TextButton.styleFrom(
+                    textStyle: AppTextStyles.etiqueta,
+                    foregroundColor: AppColors.primaryDeep,
+                  ),
+                  child: const Text('Desactivar'),
                 ),
-                child: const Text('Desactivar'),
               );
 
     // Con el texto del sistema al doble, «Desactivar» ya no cabe al lado
@@ -444,35 +474,42 @@ class _AlertTile extends StatelessWidget {
             color: sent ? AppColors.warningLight : AppColors.primaryTint,
             borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
-          child: Icon(
-            sent
-                ? Icons.notifications_active_rounded
-                : Icons.directions_bus_filled_rounded,
-            // El glifo va en la variante accesible: sobre su propio
-            // tinte, el color de relleno se queda en 2,8:1 y la norma
-            // pide 3:1 hasta para un icono.
-            color: sent
-                ? AppColors.warningAccessible
-                : AppColors.primaryAccessible,
-            size: 24,
+          // El glifo dice lo mismo que el subtítulo: enviado o esperando.
+          child: ExcludeSemantics(
+            child: Icon(
+              sent
+                  ? Icons.notifications_active_rounded
+                  : Icons.directions_bus_filled_rounded,
+              // El glifo va en la variante accesible: sobre su propio
+              // tinte, el color de relleno se queda en 2,8:1 y la norma
+              // pide 3:1 hasta para un icono.
+              color: sent
+                  ? AppColors.warningAccessible
+                  : AppColors.primaryAccessible,
+              size: 24,
+            ),
           ),
         ),
         const SizedBox(width: 14),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                routePlateLabel(
-                  busId: entry.busId,
-                  routeName: routeName,
-                  routeId: entry.routeId,
+          child: Semantics(
+            label: dicha,
+            excludeSemantics: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  routePlateLabel(
+                    busId: entry.busId,
+                    routeName: routeName,
+                    routeId: entry.routeId,
+                  ),
+                  style: AppTextStyles.subtitulo,
                 ),
-                style: AppTextStyles.subtitulo,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(subtitle, style: AppTextStyles.pie),
-            ],
+                const SizedBox(height: AppSpacing.xs),
+                Text(subtitle, style: AppTextStyles.pie),
+              ],
+            ),
           ),
         ),
         if (!accionAbajo) ...[
@@ -524,10 +561,13 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.primaryTint,
                 borderRadius: BorderRadius.circular(AppRadius.card),
               ),
-              child: const Icon(
-                Icons.notifications_none_rounded,
-                color: AppColors.primary,
-                size: 36,
+              // La campana repite en dibujo el título que va debajo.
+              child: const ExcludeSemantics(
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  color: AppColors.primary,
+                  size: 36,
+                ),
               ),
             ),
             const SizedBox(height: 20),

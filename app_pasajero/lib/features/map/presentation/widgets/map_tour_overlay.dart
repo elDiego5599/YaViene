@@ -324,10 +324,14 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                     color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  child: Icon(
-                    widget.icon,
-                    color: AppColors.primary,
-                    size: 21,
+                  // El icono repite en dibujo lo que el título dice en
+                  // palabras; suelto se anuncia «imagen» y nada más.
+                  child: ExcludeSemantics(
+                    child: Icon(
+                      widget.icon,
+                      color: AppColors.primary,
+                      size: 21,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -345,35 +349,47 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 // Mismo contraste tipográfico que el ETA gigante: el número
                 // que importa (el paso actual) en peso ultraligero y grande,
                 // el resto en una etiqueta diminuta al lado.
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      '${widget.stepIndex + 1}',
-                      style: const TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w200,
-                        letterSpacing: -0.8,
-                        color: AppColors.primaryDeep,
+                Semantics(
+                  // En pantalla es un número grande con su fracción
+                  // pequeña al lado; leído es «uno, barra seis».
+                  label: 'Paso ${widget.stepIndex + 1} '
+                      'de ${widget.stepCount}',
+                  excludeSemantics: true,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '${widget.stepIndex + 1}',
+                        style: const TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w200,
+                          letterSpacing: -0.8,
+                          color: AppColors.primaryDeep,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '/${widget.stepCount}',
-                      style: AppTextStyles.etiqueta.copyWith(
-                        color: AppColors.textDisabled,
+                      Text(
+                        '/${widget.stepCount}',
+                        style: AppTextStyles.etiqueta.copyWith(
+                          color: AppColors.textDisabled,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              widget.message,
-              key: const ValueKey('guide_message'),
-              style: AppTextStyles.cuerpo.copyWith(
-                color: AppColors.textBody,
+            Semantics(
+              // La guía cambia de paso sola, debajo del dedo de nadie: sin
+              // región viva el paso nuevo se queda escrito y callado.
+              liveRegion: true,
+              child: Text(
+                widget.message,
+                key: const ValueKey('guide_message'),
+                style: AppTextStyles.cuerpo.copyWith(
+                  color: AppColors.textBody,
+                ),
               ),
             ),
             if (widget.primaryLabel != null && widget.onPrimary != null) ...[
@@ -462,10 +478,16 @@ class _GuideBarrier extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onInvalidTap,
-      child: const SizedBox.expand(),
+    // Las barreras solo existen para rechazar los toques que caen fuera
+    // del hueco. Anunciadas serían cuatro rectángulos tocables del tamaño
+    // de la pantalla que no llevan a ninguna parte, y encima rodeando a lo
+    // único que sí hay que tocar.
+    return ExcludeSemantics(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onInvalidTap,
+        child: const SizedBox.expand(),
+      ),
     );
   }
 }

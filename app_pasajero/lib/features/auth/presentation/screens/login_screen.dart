@@ -564,6 +564,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                               CircularProgressIndicator(
                                                             strokeWidth: 2.5,
                                                             color: Colors.white,
+                                                            // El botón se
+                                                            // queda sin
+                                                            // texto mientras
+                                                            // espera: sin
+                                                            // esto pasa de
+                                                            // decir «Entrar»
+                                                            // a no decir
+                                                            // nada.
+                                                            semanticsLabel:
+                                                                'Un momento',
                                                           ),
                                                         )
                                                       : Text(
@@ -821,6 +831,12 @@ class _Field extends StatelessWidget {
                         : Icons.visibility_rounded,
                     color: AppColors.textSecondary,
                     size: 22,
+                    // El `tooltip` de abajo viaja en su propio campo, aparte
+                    // del rótulo, y no todos los lectores lo dicen: sin esto
+                    // el ojo se anuncia «botón» y nada más, al lado de un
+                    // campo de contraseña.
+                    semanticLabel:
+                        obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
                   ),
                   // F3a: el ícono de ojo no tenía ninguna etiqueta accesible.
                   tooltip:

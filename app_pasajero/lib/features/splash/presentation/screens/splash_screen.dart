@@ -90,6 +90,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
                     color: Color.fromRGBO(255, 255, 255, 0.6),
+                    // Es la única pieza de esta pantalla que dice que algo
+                    // está pasando. Sin rótulo, el arranque es la marca y
+                    // un silencio de hasta seis segundos.
+                    semanticsLabel: 'Abriendo tu sesión',
                   ),
                 ),
                 start: 0.55,
