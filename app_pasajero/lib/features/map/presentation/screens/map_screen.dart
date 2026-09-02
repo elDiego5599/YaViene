@@ -14,6 +14,7 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/map_constants.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/cabecera_flotante.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
 import '../widgets/location_status_chip.dart';
@@ -284,6 +285,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // de conexión no deben amontonarse sobre el "Preparando tu mapa…" — un
     // solo estado de carga en vez de tres independientes.
     final mapPreparing = ref.watch(mapPreparingProvider);
+    // Con el selector arriba, el grupo flotante de la cabecera se aparta,
+    // igual que la hoja de abajo. El velo del selector es tinta al 40% a
+    // pantalla completa: debajo, la píldora blanca y el medallón de
+    // ubicación no desaparecen, se ensucian —blanco que se vuelve gris
+    // azulado, verde que se apaga—, que es la única parte de la app donde
+    // un color sale distinto de como se eligió. Y no tienen nada que hacer
+    // ahí: mientras se elige ruta, la ruta se elige en la tarjeta.
+    final cabeceraApartada = ref.watch(routeSelectorOpenProvider);
     final guide = ref.watch(mapGuideProvider);
     final step = guide.step;
     final activeAlerts = ref.watch(activeAlertsProvider);
@@ -347,26 +356,38 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             top: 0,
             left: 0,
             right: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SearchPillBar(
-                  pillKey: _pillKey,
-                  searchActionKey: _searchActionKey,
-                  companyGuideKey: _companyGuideKey,
-                  companyChoiceGuideKey: _companyChoiceGuideKey,
-                  routeGuideKey: _routeGuideKey,
-                  routeChoiceGuideKey: _routeChoiceGuideKey,
-                  launchBusesGuideKey: _launchBusesGuideKey,
-                  onSearchOpened: _onSearchOpened,
+            // El mismo techo que la hoja de abajo y el selector: al doble
+            // se cumple la norma de accesibilidad (WCAG 1.4.4) y las
+            // píldoras siguen siendo píldoras. Era el único grupo flotante
+            // sin tope, y a escala 3 la barra de búsqueda, el estado de
+            // ubicación y el de conexión se comían la pantalla hasta
+            // tapar el mapa que están describiendo.
+            child: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 2.0,
+              child: CabeceraFlotante(
+                apartada: cabeceraApartada,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SearchPillBar(
+                      pillKey: _pillKey,
+                      searchActionKey: _searchActionKey,
+                      companyGuideKey: _companyGuideKey,
+                      companyChoiceGuideKey: _companyChoiceGuideKey,
+                      routeGuideKey: _routeGuideKey,
+                      routeChoiceGuideKey: _routeChoiceGuideKey,
+                      launchBusesGuideKey: _launchBusesGuideKey,
+                      onSearchOpened: _onSearchOpened,
+                    ),
+                    if (!mapPreparing) ...[
+                      const SizedBox(height: 8),
+                      LocationStatusChip(routeId: selectedRoute?.id),
+                      const SizedBox(height: 8),
+                      const IdleStatusChip(),
+                    ],
+                  ],
                 ),
-                if (!mapPreparing) ...[
-                  const SizedBox(height: 8),
-                  LocationStatusChip(routeId: selectedRoute?.id),
-                  const SizedBox(height: 8),
-                  const IdleStatusChip(),
-                ],
-              ],
+              ),
             ),
           ),
           Positioned(

@@ -187,19 +187,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         onPressed:
                                             _requesting ? null : _allowLocation,
                                         child: _requesting
-                                            ? const SizedBox(
-                                                width: 22,
-                                                height: 22,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2.5,
-                                                  color: Colors.white,
-                                                  // El botón se queda sin
-                                                  // texto mientras el
-                                                  // sistema pregunta.
-                                                  semanticsLabel:
-                                                      'Pidiendo el permiso',
-                                                ),
+                                            ? const IndicadorCarga(
+                                                color: Colors.white,
+                                                // El botón se queda sin
+                                                // texto mientras el
+                                                // sistema pregunta.
+                                                semanticsLabel:
+                                                    'Pidiendo el permiso',
                                               )
                                             : Text(
                                                 'Permitir ubicación',

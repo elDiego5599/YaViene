@@ -21,7 +21,7 @@ class ScreenEntrance extends StatefulWidget {
   const ScreenEntrance({
     super.key,
     required this.builder,
-    this.duration = const Duration(milliseconds: 700),
+    this.duration = AppMotion.grupo,
   });
 
   /// Cuánto dura el grupo entero, del primer elemento al último.

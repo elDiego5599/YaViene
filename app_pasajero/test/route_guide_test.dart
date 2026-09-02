@@ -117,7 +117,10 @@ void main() {
     await tester.tap(find.text('Ruta'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('B18 Tcherassi'), findsOneWidget);
+    // El código va en la insignia y el nombre en el título: la fila dice
+    // «B18» y «Tcherassi» por separado, que es como se lee en el parabrisas.
+    expect(find.text('B18'), findsOneWidget);
+    expect(find.text('Tcherassi'), findsOneWidget);
 
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pump();

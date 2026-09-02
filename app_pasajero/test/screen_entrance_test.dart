@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/entrance.dart';
 
 Widget _host({bool sinAnimaciones = false}) {
@@ -42,8 +43,9 @@ void main() {
     expect(_opacidad(tester, 'segundo'), 0.0);
 
     // A mitad del grupo el primero ya entró y el segundo aún no arranca:
-    // el desfase es real, no dos elementos moviéndose a la vez.
-    await tester.pump(const Duration(milliseconds: 350));
+    // el desfase es real, no dos elementos moviéndose a la vez. La mitad se
+    // calcula, no se escribe: el grupo dura lo que diga AppMotion.
+    await tester.pump(AppMotion.grupo ~/ 2);
     expect(_opacidad(tester, 'primero'), greaterThan(0.8));
     expect(_opacidad(tester, 'segundo'), lessThan(0.4));
 

@@ -20,8 +20,11 @@ class MapStylePlaceholder extends StatelessWidget {
     final visible = !layersReady && placeholderShown;
     return AnimatedOpacity(
       opacity: visible ? 1 : 0,
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeOut,
+      // El velo se va con el paso de una entrada, no con el suyo propio: es
+      // lo último que el usuario ve antes del mapa y no tiene por qué durar
+      // más que cualquier otra cosa que aparece.
+      duration: AppMotion.duracion(context, AppMotion.entrada),
+      curve: AppMotion.curvaSalida,
       onEnd: () {
         if (!visible && placeholderShown) onFadeEnd();
       },

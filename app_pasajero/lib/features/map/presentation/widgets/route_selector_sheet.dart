@@ -609,15 +609,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               // y el usuario podría tocar otro botón y salirse del flujo.
               loading: () => _tilePlaceholder(
                 key: widget.companyGuideKey,
-                child: const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    // Una rueda girando no se ve con VoiceOver: sin rótulo
-                    // el hueco de la empresa se anuncia vacío.
-                    semanticsLabel: 'Cargando empresas',
-                  ),
+                child: const IndicadorCarga(
+                  // Los puntos no se ven con VoiceOver: sin rótulo el hueco
+                  // de la empresa se anuncia vacío.
+                  semanticsLabel: 'Cargando empresas',
                 ),
               ),
               error: (_, __) => _tilePlaceholder(
@@ -699,6 +694,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             // el borde de la hoja: se desvanecen. Antes una fila a medio
             // salir quedaba partida por la mitad justo debajo del título y
             // parecía que se metía por detrás de él.
+            //
+            // Y si no llenan la caja, se quedan en el centro. La tarjeta
+            // mide lo mismo en las tres vistas —cambiarlo haría que se
+            // encogiera a mitad del deslizamiento—, así que con dos
+            // empresas las dos filas se agarraban al título y dejaban
+            // debajo media tarjeta en blanco, como una lista cortada.
+            // Centradas, dos filas son dos filas.
             Expanded(child: _listaConDesvanecido(builder(context))),
           ],
         ),
@@ -717,7 +719,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// rectángulo blanco encima de la cabecera. Con un `Material` propio
   /// dentro del recorte, la tinta vive donde debe.
   Widget _listaConDesvanecido(Widget lista) {
-    final conTinta = Material(type: MaterialType.transparency, child: lista);
+    final conTinta = Material(
+      type: MaterialType.transparency,
+      child: Align(child: lista),
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final alto = constraints.maxHeight;
@@ -752,6 +757,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         key: widget.companyChoiceGuideKey,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.zero,
+        // Se mide por su contenido para poder quedarse en el centro cuando
+        // sobra caja; si no cabe, ocupa el alto entero y se desplaza igual.
+        shrinkWrap: true,
         children: [
           if (companies.isEmpty)
             Padding(
@@ -818,6 +826,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         key: widget.routeChoiceGuideKey,
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.zero,
+        shrinkWrap: true,
         children: [
           if (routes.isEmpty)
             Padding(
@@ -831,11 +840,22 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               ),
             )
           else
-            ...routes.map((route) => _compactTile(
+            ...routes.map((route) {
+              // El código va en la insignia y el nombre se queda con lo
+              // suyo. Seis rutas con el mismo icono verde son seis filas
+              // que solo se distinguen leyendo; «B18», «C11», «C16» es
+              // exactamente lo que el pasajero busca en el parabrisas.
+              final codigo = _routeCode(route.name);
+              return _compactTile(
                   icon: Icons.alt_route_rounded,
                   iconColor: AppColors.primary,
                   iconBackground: AppColors.primaryTint,
-                  title: route.name,
+                  badgeInitials: codigo?.code,
+                  // Verde oscuro sobre el verde claro de la insignia: la
+                  // empresa lleva tinta sólida y letra blanca, la ruta va
+                  // en voz más baja. Son dos niveles, no dos etiquetas.
+                  badgeColor: AppColors.primaryAccessible,
+                  title: codigo?.rest ?? route.name,
                   subtitle: _routeSubtitle(route) ?? 'Tiempo real',
                   dicho: '${route.name}${_terminalesDichos(route)}',
                   selected: selectedRoute?.id == route.id,
@@ -847,7 +867,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                         .complete(MapGuideStep.route);
                     _irA(_RouteView.main);
                   },
-                )),
+                );
+            }),
         ],
       ),
       loading: () => _listPlaceholder(
@@ -981,7 +1002,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     return Center(
       key: key,
       child: message == null
-          ? const CircularProgressIndicator(semanticsLabel: 'Cargando')
+          ? const IndicadorCarga(size: 34, semanticsLabel: 'Cargando')
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1042,6 +1063,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     String? subtitle,
     required VoidCallback onTap,
     String? badgeInitials,
+    Color badgeColor = Colors.white,
     String? dicho,
     bool selected = false,
   }) {
@@ -1079,10 +1101,18 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             ),
             child: badgeInitials != null
                 ? Center(
-                    child: Text(
-                      badgeInitials,
-                      style: AppTextStyles.etiqueta
-                          .copyWith(color: Colors.white),
+                    // Un código de ruta puede ser «B18» o «C16»: cabe de
+                    // sobra, pero el día que llegue uno de cuatro no se
+                    // saldrá de la caja, se encogerá.
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: FittedBox(
+                        child: Text(
+                          badgeInitials,
+                          style: AppTextStyles.etiqueta
+                              .copyWith(color: badgeColor),
+                        ),
+                      ),
                     ),
                   )
                 : Icon(icon, color: iconColor, size: 20),
@@ -1133,20 +1163,51 @@ String? _routeSubtitle(RouteInfo? route) {
   return '$a ↔ $b';
 }
 
-/// V2: paleta fija tomada de los tokens de marca — el color no se genera al
-/// azar, solo se elige de forma determinística según el id de la empresa.
+/// Los seis colores con los que puede salir una empresa.
+///
+/// Antes se tomaban prestados de los tokens semánticos, y ahí estaba el
+/// problema: el naranja es el de «cuidado» y el coral el de «sin conexión».
+/// Una empresa de buses aparecía vestida de aviso, con el mismo color que
+/// usa la app para decir que algo va mal. Este es un escalón de azul noche
+/// a verde: seis peldaños que se distinguen entre sí sin que ninguno
+/// signifique nada más en el resto de la app, y todos lo bastante oscuros
+/// para llevar letra blanca encima.
 const _companyPalette = [
-  AppColors.electricBlue,
-  AppColors.coral,
-  AppColors.warning,
-  AppColors.primaryDeep,
-  AppColors.primary,
-  AppColors.primaryAccessible,
+  Color(0xFF14274E), // noche
+  Color(0xFF22406F), // marino
+  Color(0xFF1C5670), // petróleo
+  Color(0xFF0F6A65), // verde azulado
+  Color(0xFF1C6B4C), // bosque
+  Color(0xFF3B6B2E), // oliva
 ];
 
 Color _companyColor(String companyId) {
   final hash = companyId.codeUnits.fold<int>(0, (sum, c) => sum + c);
   return _companyPalette[hash % _companyPalette.length];
+}
+
+/// El código de una ruta y lo que queda del nombre sin él.
+typedef RouteCode = ({String code, String rest});
+
+/// «B18 Tcherassi» → («B18», «Tcherassi»).
+///
+/// Las rutas de Barranquilla se llaman por su código —el que va pintado en
+/// el parabrisas y el que la gente dice en la esquina—, y el nombre que
+/// sigue es el destino. Separarlos deja el código donde se busca de un
+/// vistazo y el destino donde se lee.
+///
+/// Devuelve `null` si la primera palabra no es un código, o si no queda
+/// nombre detrás: una ruta llamada solo «B18» pierde el título si se le
+/// arranca el código, y una llamada «Ruta Norte» no tiene ninguno.
+final _codigoDeRuta = RegExp(r'^[A-Z]{0,2}\d{1,3}[A-Z]?$');
+
+RouteCode? _routeCode(String name) {
+  final words = name.trim().split(RegExp(r'\s+'));
+  if (words.length < 2) return null;
+  if (!_codigoDeRuta.hasMatch(words.first)) return null;
+  final rest = words.skip(1).join(' ');
+  if (rest.isEmpty) return null;
+  return (code: words.first, rest: rest);
 }
 
 const _companyInitialsStopWords = {'de', 'del', 'la', 'el', 'los', 'las', 'y'};

@@ -329,8 +329,8 @@ class _TileEntranceState extends State<_TileEntrance>
   /// general no tiene `dispose()`, y esta hay que desecharla.
   late final CurvedAnimation _anim;
 
-  static const Duration _entrada = Duration(milliseconds: 320);
-  static const Duration _paso = Duration(milliseconds: 55);
+  static const Duration _entrada = AppMotion.entrada;
+  static const Duration _paso = AppMotion.escalon;
 
   @override
   void initState() {

@@ -31,10 +31,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
   @override
   void initState() {
     super.initState();
-    _entrance = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 560),
-    );
+    _entrance = AnimationController(vsync: this, duration: AppMotion.grupo);
     _curvaCierre = CurvedAnimation(
       parent: _entrance,
       curve: const Interval(0.0, 0.4, curve: Curves.easeOutBack),
@@ -743,12 +740,8 @@ class _DrawerItemState extends State<DrawerItem> {
                 width: 22,
                 height: 22,
                 child: widget.loading
-                    ? Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: tinte.withValues(alpha: 0.7),
-                        ),
+                    ? IndicadorCarga(
+                        color: tinte.withValues(alpha: 0.7),
                       )
                     : Icon(
                         widget.icon,

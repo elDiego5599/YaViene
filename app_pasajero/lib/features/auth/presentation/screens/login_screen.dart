@@ -557,24 +557,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                           : _finishAuth
                                                       : null,
                                                   child: submitting
-                                                      ? const SizedBox(
-                                                          width: 22,
-                                                          height: 22,
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                            strokeWidth: 2.5,
-                                                            color: Colors.white,
-                                                            // El botón se
-                                                            // queda sin
-                                                            // texto mientras
-                                                            // espera: sin
-                                                            // esto pasa de
-                                                            // decir «Entrar»
-                                                            // a no decir
-                                                            // nada.
-                                                            semanticsLabel:
-                                                                'Un momento',
-                                                          ),
+                                                      ? const IndicadorCarga(
+                                                          color: Colors.white,
+                                                          // El botón se
+                                                          // queda sin
+                                                          // texto mientras
+                                                          // espera: sin
+                                                          // esto pasa de
+                                                          // decir «Entrar»
+                                                          // a no decir
+                                                          // nada.
+                                                          semanticsLabel:
+                                                              'Un momento',
                                                         )
                                                       : Text(
                                                           _step == _Step.email
@@ -686,15 +680,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                   ),
                                                 ),
                                                 icon: submitting
-                                                    ? const SizedBox(
-                                                        width: 20,
-                                                        height: 20,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: AppColors
-                                                              .textPrimary,
-                                                        ),
+                                                    ? const IndicadorCarga(
+                                                        size: 20,
+                                                        color: AppColors
+                                                            .textPrimary,
                                                       )
                                                     : SvgPicture.asset(
                                                         'assets/icon/google_logo.svg',
