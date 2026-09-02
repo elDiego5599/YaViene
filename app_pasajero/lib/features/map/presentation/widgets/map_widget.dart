@@ -173,18 +173,32 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kUserRadiusFillLayerId = 'user-radius-fill-layer';
   static const _kUserRadiusLineLayerId = 'user-radius-line-layer';
 
-  static final LatLngBounds _colombiaBounds = LatLngBounds(
-    southwest: const LatLng(-4.227, -79.023),
-    northeast: const LatLng(12.556, -66.869),
+  /// Hasta dónde puede irse la cámara.
+  ///
+  /// Antes era Colombia entera, y eso no era una decisión: era no haber
+  /// puesto ninguna. Poder alejarse hasta ver el Amazonas no es libertad,
+  /// es perderse. Los cuatro números viven en [MapConstants], donde un test
+  /// los compara contra la geometría real de las rutas.
+  ///
+  /// Android acota el centro de la cámara y iOS acota lo que se ve; el
+  /// cuadrado está dimensionado para que a [MapConstants.zoomMinimo] la
+  /// pantalla quepa dentro, que es lo que hace que las dos se sientan igual.
+  static final LatLngBounds _areaMetropolitana = LatLngBounds(
+    southwest: const LatLng(
+      MapConstants.areaSurLat,
+      MapConstants.areaOesteLon,
+    ),
+    northeast: const LatLng(
+      MapConstants.areaNorteLat,
+      MapConstants.areaEsteLon,
+    ),
   );
 
   @override
   void initState() {
     super.initState();
-    _haloCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat();
+    _haloCtrl = AnimationController(vsync: this, duration: AppMotion.latido)
+      ..repeat();
     WidgetsBinding.instance.addObserver(this);
     _mapInsetSubscription =
         ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {
@@ -819,7 +833,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     if (ref.read(mapCameraRequestProvider) <= 0) return false;
     controller.moveCamera(CameraUpdate.newLatLngZoom(
       MapCameraRequestNotifier.barranquilla,
-      11.5,
+      MapConstants.zoomMinimo,
     ));
     return true;
   }
@@ -1098,18 +1112,33 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // El azul de la ruta y los buses rojos resaltan sobre él.
             styleString:
                 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+            // Abre en el plano más lejano que permite el mapa, centrado en
+            // el área servida: la primera imagen es Malambo, Soledad y
+            // Barranquilla a la vez, que es exactamente hasta dónde llega la
+            // app.
             initialCameraPosition: const CameraPosition(
-              target: LatLng(11.0041, -74.8070),
-              zoom: 11.0,
+              target: LatLng(
+                MapConstants.areaCentroLat,
+                MapConstants.areaCentroLon,
+              ),
+              zoom: MapConstants.zoomMinimo,
             ),
             compassEnabled: false,
-            // La "i" azul de MapLibre es el único elemento de la pantalla
-            // fuera de la paleta, y ocupa justo la esquina donde toda app de
-            // mapa pone el botón de recentrar. Se manda al pie izquierdo, que
-            // la hoja inferior cubre siempre, y los créditos que exigen
-            // OpenStreetMap y CARTO se leen enteros en el menú lateral.
+            // La "i" azul de MapLibre era el único elemento de la pantalla
+            // fuera de la paleta. Los créditos que exigen OpenStreetMap y
+            // CARTO se leen enteros en el menú lateral —que es atribución
+            // "razonablemente visible" en el sentido de la ODbL, y es lo que
+            // hacen las apps de mapas que no tienen una esquina que gastar—,
+            // así que aquí sobra.
+            //
+            // El plugin no trae forma de esconderla: `MapLibreMap` solo deja
+            // moverla. Se manda mil puntos fuera de la esquina inferior
+            // izquierda, que en Android es margen negativo dentro de un
+            // contenedor que recorta y en iOS un origen fuera de la pantalla.
+            // En ninguna de las dos vuelve a asomar, y al no estar no roba
+            // toques.
             attributionButtonPosition: AttributionButtonPosition.bottomLeft,
-            attributionButtonMargins: const math.Point(8, 8),
+            attributionButtonMargins: const math.Point(-1000, -1000),
             myLocationEnabled: false,
             onMapClick: (point, latLng) async {
               // El mapa aún no está listo (estilo/fuentes cargando): no se
@@ -1125,6 +1154,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               // selecciona y NO se mueve el pin manual.
               if (!guideBlocksBusTap && await _selectBusAtTap(point)) return;
               if (!mounted) return;
+              // Y tocar el mapa fuera de un bus suelta el que estuviera
+              // elegido. Sin esto la hoja se quedaba clavada en un bus hasta
+              // que el usuario acertaba a tocar ese mismo bus otra vez: la
+              // única salida de la selección era el objeto más pequeño y más
+              // móvil de la pantalla. Tocar al lado es como se cierra una
+              // ficha en cualquier mapa.
+              //
+              // El toque se consume: soltar el bus y plantar el pin son dos
+              // cosas distintas y no pueden pasar con el mismo dedo.
+              if (!guideBlocksBusTap &&
+                  ref.read(selectedBusesProvider).isNotEmpty) {
+                ref.read(selectedBusesProvider.notifier).clear();
+                return;
+              }
               final location = ref.read(userLocationProvider);
               // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.
               // Durante la búsqueda de GPS el toque sí coloca el pin manual
@@ -1147,8 +1190,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             scrollGesturesEnabled: true,
             tiltGesturesEnabled: false,
             zoomGesturesEnabled: true,
-            minMaxZoomPreference: const MinMaxZoomPreference(5.0, 18.5),
-            cameraTargetBounds: CameraTargetBounds(_colombiaBounds),
+            // Con 5.0 se podía alejar hasta ver el Caribe entero: media
+            // docena de niveles de teselas que se descargan y se dibujan
+            // para enseñar seis rutas del tamaño de un dedo.
+            minMaxZoomPreference: const MinMaxZoomPreference(
+              MapConstants.zoomMinimo,
+              MapConstants.zoomMaximo,
+            ),
+            cameraTargetBounds: CameraTargetBounds(_areaMetropolitana),
           ),
         ),
         // El radar verde del pin solo acompaña el paso de ubicación de la

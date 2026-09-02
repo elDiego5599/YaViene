@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import '../utils/map_constants.dart';
 
 final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
 
@@ -24,7 +25,13 @@ final mapPreparingProvider = StateProvider.autoDispose<bool>((ref) => true);
 class MapCameraRequestNotifier extends StateNotifier<int> {
   MapCameraRequestNotifier() : super(0);
 
-  static const barranquilla = LatLng(11.0041, -74.8070);
+  /// El centro del área servida, no el centro geográfico de la ciudad: la
+  /// cámara general tiene que dejar ver de Malambo al norte de Barranquilla,
+  /// y con el punto en el norte la mitad del encuadre caía en el mar.
+  static const barranquilla = LatLng(
+    MapConstants.areaCentroLat,
+    MapConstants.areaCentroLon,
+  );
 
   void centerOnBarranquilla() => state++;
 }

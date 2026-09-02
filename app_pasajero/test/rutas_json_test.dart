@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,33 @@ void main() {
       for (final p in ruta.waypoints) {
         expect(p.lat, inInclusiveRange(10.8, 11.2));
         expect(p.lon, inInclusiveRange(-75.0, -74.6));
+      }
+    }
+  });
+
+  test('el área del mapa contiene las seis rutas enteras', () async {
+    // El mapa ya no deja alejarse de Barranquilla: la cámara vive dentro de
+    // MapConstants.area*. Si mañana entra una ruta que sale de ese
+    // rectángulo, el pasajero podría seguir un bus hasta que la cámara se
+    // topara con una pared invisible. Este test lo dice antes.
+    final raw = await rootBundle.loadString('assets/data/rutas.json');
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    final rutas = (decoded['rutas'] as List<dynamic>)
+        .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    for (final ruta in rutas) {
+      for (final p in ruta.waypoints) {
+        expect(
+          p.lat,
+          inInclusiveRange(MapConstants.areaSurLat, MapConstants.areaNorteLat),
+          reason: '${ruta.name} se sale del área por el norte o el sur',
+        );
+        expect(
+          p.lon,
+          inInclusiveRange(MapConstants.areaOesteLon, MapConstants.areaEsteLon),
+          reason: '${ruta.name} se sale del área por el este o el oeste',
+        );
       }
     }
   });
