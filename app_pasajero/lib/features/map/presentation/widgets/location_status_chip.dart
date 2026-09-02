@@ -42,6 +42,10 @@ class LocationStatusChip extends ConsumerWidget {
           icon: Icons.location_off_rounded,
           iconColor: AppColors.error,
           text: 'Ubicación bloqueada en los Ajustes',
+          // Sin esta segunda línea la píldora era un callejón sin salida: el
+          // único camino que ofrecía salía de la app. La app mide desde un
+          // punto, y ese punto se puede poner a mano sin permiso ninguno.
+          sub: 'O toca el mapa para poner tu punto',
           actionLabel: 'Abrir',
           onAction: () => openAppSettings(),
           tint: AppColors.errorLight,
@@ -50,7 +54,8 @@ class LocationStatusChip extends ConsumerWidget {
           key: 'denied',
           icon: Icons.location_disabled_rounded,
           iconColor: AppColors.coralAccessible,
-          text: 'Sin ubicación: toca el mapa o reintenta',
+          text: 'Sin ubicación',
+          sub: 'Toca el mapa para poner tu punto',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
           tint: AppColors.coralLight,
@@ -60,12 +65,18 @@ class LocationStatusChip extends ConsumerWidget {
           icon: Icons.gps_off_rounded,
           iconColor: AppColors.coralAccessible,
           text: 'No pudimos obtener tu ubicación',
+          sub: 'Toca el mapa para poner tu punto',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
           tint: AppColors.coralLight,
         ),
       UserLocationMode.manual => _manualPill(nearbyCount, notifier, pinHint),
       UserLocationMode.gps => _gpsPill(location, nearbyCount, notifier),
+      // Estado de arranque: dura lo que tarda en leerse el permiso. Aquí no
+      // se dice nada a propósito —una invitación que parpadea medio segundo
+      // antes de "Localizando…" se lee como un fallo—, y para que este estado
+      // no se quede clavado si algo revienta, `initialize()` acaba siempre en
+      // un modo con salida.
       UserLocationMode.unknown => null,
     };
 

@@ -72,6 +72,26 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   }
 
   Future<void> _doInitialize() async {
+    try {
+      await _initializeOrThrow();
+    } catch (e) {
+      // El modo `unknown` no tiene píldora ni salida: es el estado de "aún
+      // no sé", y quedarse ahí por una excepción de la plataforma deja al
+      // usuario sin ubicación y sin nadie que le diga que puede poner el pin
+      // a mano. Cualquier fallo aterriza en un modo que sí lo dice.
+      debugPrint('initialize location error: $e');
+      if (state.mode != UserLocationMode.unknown) return;
+      try {
+        if (await _restoreSavedPin()) return;
+      } catch (_) {
+        // Si lo que falló fue el propio almacén de preferencias, el pin
+        // guardado tampoco se puede leer; queda el modo sin ubicación.
+      }
+      state = const UserLocationState(mode: UserLocationMode.denied);
+    }
+  }
+
+  Future<void> _initializeOrThrow() async {
     final prefs = await SharedPreferences.getInstance();
     if (await _hasGpsPermission()) {
       await _locate();

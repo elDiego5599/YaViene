@@ -436,6 +436,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (widget.routeId != null) {
         reloadMapData();
         _setupBusSubscription(widget.routeId!);
+        // El punto de espera no depende de los buses, así que el encuadre
+        // tampoco: si ya hay pin (o GPS) la cámara va a él ahora mismo, sin
+        // esperar al primer lote —que con una ruta sin buses no llega nunca—.
+        if (centerOnUserPin(animated: true)) _hasFitInitialRoute = true;
       } else {
         _teardownBusSubscription();
         teardownRouteData();
@@ -482,6 +486,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (widget.routeId != null) {
         reloadMapData();
         _setupBusSubscription(widget.routeId!);
+        // Mismo criterio en el arranque, pero sin animación: el mapa acaba
+        // de aparecer y no hay de dónde venir.
+        if (centerOnUserPin(animated: false)) _hasFitInitialRoute = true;
       }
       // Si ya había un bus seleccionado antes de que el estilo terminara de
       // cargar (p. ej. al recrear la vista nativa), el halo no debe esperar

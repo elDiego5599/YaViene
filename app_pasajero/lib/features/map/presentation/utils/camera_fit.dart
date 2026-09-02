@@ -58,3 +58,21 @@ FitBounds? liveViewportBounds(
 
   return (minLat: minLat, minLon: minLon, maxLat: maxLat, maxLon: maxLon);
 }
+
+/// Caja centrada en el punto de espera, del lado mínimo.
+///
+/// Enmarcar "todo lo vivo" tiene un efecto secundario feo: basta un bus en el
+/// otro extremo de la ruta para que la caja abarque media ciudad, y entonces
+/// el pin —lo único que el usuario reconoce en el mapa— queda de mota en una
+/// esquina. Cuando hay punto de espera, el encuadre es el punto de espera; los
+/// buses ya se ven llegar hacia él.
+FitBounds waitingPointBounds(
+  double lat,
+  double lon, {
+  double spanDeg = minFitSpanDeg,
+}) {
+  return liveViewportBounds(
+    [(lat: lat, lon: lon)],
+    minSpanDeg: spanDeg,
+  )!;
+}

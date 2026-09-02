@@ -66,4 +66,33 @@ void main() {
       expect(caja.maxLon - caja.minLon, closeTo(minFitSpanDeg, 1e-9));
     });
   });
+
+  group('waitingPointBounds', () {
+    test('la caja queda centrada en el punto de espera', () {
+      final caja = waitingPointBounds(11.0041, -74.8070);
+
+      expect((caja.minLat + caja.maxLat) / 2, closeTo(11.0041, 1e-9));
+      expect((caja.minLon + caja.maxLon) / 2, closeTo(-74.8070, 1e-9));
+    });
+
+    test('mide el lado mínimo, no un punto', () {
+      final caja = waitingPointBounds(11.0041, -74.8070);
+
+      expect(caja.maxLat - caja.minLat, closeTo(minFitSpanDeg, 1e-9));
+      expect(caja.maxLon - caja.minLon, closeTo(minFitSpanDeg, 1e-9));
+    });
+
+    test('un bus lejano ya no arrastra el encuadre', () {
+      // El caso que motivó el cambio: con un bus al otro extremo de la ruta,
+      // enmarcar "todo lo vivo" abría la caja a media ciudad.
+      final viva = liveViewportBounds(const [
+        (lat: 11.0041, lon: -74.8070),
+        (lat: 10.90, lon: -74.90),
+      ])!;
+      final delPunto = waitingPointBounds(11.0041, -74.8070);
+
+      expect(viva.maxLat - viva.minLat, greaterThan(0.10));
+      expect(delPunto.maxLat - delPunto.minLat, closeTo(minFitSpanDeg, 1e-9));
+    });
+  });
 }
