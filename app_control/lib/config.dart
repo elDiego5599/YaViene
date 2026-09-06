@@ -42,5 +42,25 @@ class AppConfig {
             uri.host == '::1');
   }
 
+  static const String _fallbackBackendUrl = String.fromEnvironment(
+    'BACKEND_URL_FALLBACK',
+    defaultValue: 'https://ya-viene-backend.fly.dev',
+  );
+
+  /// Dirección de respaldo, la misma idea que en la app del pasajero: si el
+  /// túnel de siempre no contesta, el panel se va al despliegue de Fly en vez
+  /// de quedarse sin flota.
+  ///
+  /// Pasa por el mismo filtro `esSegura` que la principal, y aquí importa más:
+  /// por el respaldo viajarían la clave del panel y el token de toda la flota,
+  /// y a diferencia de la principal —que revienta el arranque si no es
+  /// https— este no puede reventar nada, porque es un camino que solo se pisa
+  /// cuando ya algo va mal. Un respaldo inseguro simplemente no se usa.
+  static String get fallbackBackendUrl {
+    if (_fallbackBackendUrl.isEmpty) return '';
+    if (kReleaseMode && !esSegura(_fallbackBackendUrl)) return '';
+    return _fallbackBackendUrl;
+  }
+
   static const String wsPath = '/ws';
 }

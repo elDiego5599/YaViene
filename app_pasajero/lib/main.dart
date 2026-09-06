@@ -14,6 +14,16 @@ import 'core/services/bus_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Se lanza ANTES de Firebase y se espera después: las dos cosas son
+  // independientes, así que la pregunta por el backend viaja mientras Firebase
+  // arranca y en el caso normal —el backend de siempre contesta— no le suma
+  // nada al arranque.
+  final backendUrl = BackendResolver.resolver(
+    principal: AppConfig.backendUrl,
+    respaldo: AppConfig.fallbackBackendUrl,
+  );
+
   try {
     await Firebase.initializeApp();
   } catch (e, st) {
@@ -46,7 +56,7 @@ void main() async {
     ProviderScope(
       // El paquete compartido no adivina la URL: se la da la app, que es
       // quien tiene el `--dart-define` y quien sabe explicar que falta.
-      overrides: [backendUrlProvider.overrideWithValue(AppConfig.backendUrl)],
+      overrides: [backendUrlProvider.overrideWithValue(await backendUrl)],
       child: const YaVieneApp(),
     ),
   );
@@ -83,10 +93,16 @@ class _FirebaseInitFailedApp extends StatelessWidget {
                   onPressed: () async {
                     try {
                       await Firebase.initializeApp();
+                      // Se vuelve a elegir backend: si el usuario llegó a esta
+                      // pantalla fue porque algo de red estaba mal, y puede
+                      // que ahora la respuesta sea otra.
+                      final url = await BackendResolver.resolver(
+                        principal: AppConfig.backendUrl,
+                        respaldo: AppConfig.fallbackBackendUrl,
+                      );
                       runApp(ProviderScope(
                         overrides: [
-                          backendUrlProvider
-                              .overrideWithValue(AppConfig.backendUrl),
+                          backendUrlProvider.overrideWithValue(url),
                         ],
                         child: const YaVieneApp(),
                       ));

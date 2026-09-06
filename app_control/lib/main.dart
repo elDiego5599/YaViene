@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
-// Solo el provider de la URL: el resto del paquete choca con el tema local.
+// Solo el provider de la URL y el resolutor: el resto del paquete choca con
+// el tema local.
+import 'package:ya_viene_core/core/network/backend_resolver.dart'
+    show BackendResolver;
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show backendUrlProvider;
 
@@ -15,6 +18,15 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Se lanza antes de abrir la ventana y se espera justo antes de crear el
+  // contenedor: así la pregunta por el backend viaja mientras se monta la
+  // ventana, en vez de sumarse a ese tiempo.
+  final backendUrl = BackendResolver.resolver(
+    principal: AppConfig.backendUrl,
+    respaldo: AppConfig.fallbackBackendUrl,
+  );
+
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     try {
       await windowManager.ensureInitialized();
@@ -34,7 +46,7 @@ Future<void> main() async {
   }
 
   final container = ProviderContainer(
-    overrides: [backendUrlProvider.overrideWithValue(AppConfig.backendUrl)],
+    overrides: [backendUrlProvider.overrideWithValue(await backendUrl)],
   );
   try {
     await container.read(authProvider.notifier).restoreSession();

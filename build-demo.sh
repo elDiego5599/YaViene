@@ -28,6 +28,14 @@ set -uo pipefail
 # Fly queda para cuando den el visto bueno; hasta entonces el backend corre en
 # el portátil y sale por aquí (--backend-url=... para apuntar a otro sitio).
 BACKEND_URL="${BACKEND_URL:-https://occupy-shed-squatter.ngrok-free.dev}"
+
+# Respaldo: si la de arriba no contesta al arrancar, la app se va a esta otra
+# sola (lo decide `BackendResolver`). Es el despliegue de Fly, que duerme
+# mientras no se usa y lo levanta la primera petición. Su valor por defecto ya
+# está dentro de `config.dart`, así que no hace falta pasarlo; se pone aquí
+# igualmente para que quede escrito en el resumen qué se está grabando, y para
+# poder cambiarlo o apagarlo (`--backend-url-respaldo=`) sin tocar código.
+BACKEND_URL_FALLBACK="${BACKEND_URL_FALLBACK:-https://ya-viene-backend.fly.dev}"
 HACER_PASAJERO=1
 HACER_PANEL=1
 INSTALAR=1
@@ -36,6 +44,7 @@ VERIFICAR=1
 for arg in "$@"; do
   case "$arg" in
     --backend-url=*) BACKEND_URL="${arg#--backend-url=}" ;;
+    --backend-url-respaldo=*) BACKEND_URL_FALLBACK="${arg#--backend-url-respaldo=}" ;;
     --solo-pasajero) HACER_PANEL=0 ;;
     --solo-panel)    HACER_PASAJERO=0 ;;
     --sin-instalar)  INSTALAR=0 ;;
@@ -58,6 +67,7 @@ aviso(){ echo "  ! $1"; }
 echo "══════════════════════════════════════════════"
 echo "  COMPILAR LA DEMO — $(date '+%H:%M:%S')"
 echo "  Backend que quedará grabado: $BACKEND_URL"
+echo "  Respaldo si ese no contesta:  ${BACKEND_URL_FALLBACK:-(ninguno)}"
 echo "══════════════════════════════════════════════"
 
 # ── 0. Herramientas ───────────────────────────────────────────
@@ -94,7 +104,8 @@ if [ "$HACER_PASAJERO" = "1" ]; then
     || aviso "Sin android/key.properties: se firmará con la llave de debug (no publicable)"
 
   if (cd "$RAIZ/app_pasajero" && flutter build apk --release \
-        --dart-define=BACKEND_URL="$BACKEND_URL" >/dev/null 2>&1); then
+        --dart-define=BACKEND_URL="$BACKEND_URL" \
+        --dart-define=BACKEND_URL_FALLBACK="$BACKEND_URL_FALLBACK" >/dev/null 2>&1); then
     mkdir -p "$(dirname "$APK_DESTINO")"
     cp "$RAIZ/app_pasajero/build/app/outputs/flutter-apk/app-release.apk" "$APK_DESTINO"
     ok "APK en $APK_DESTINO ($(du -h "$APK_DESTINO" | cut -f1))"
@@ -133,7 +144,8 @@ if [ "$HACER_PANEL" = "1" ]; then
   if [ "$SISTEMA" = "desconocido" ]; then
     aviso "$(uname -s) no es un sistema donde se use el panel; se salta"
   elif ! (cd "$RAIZ/app_control" && flutter build "$SISTEMA" --release \
-            --dart-define=BACKEND_URL="$BACKEND_URL" >/dev/null 2>&1); then
+            --dart-define=BACKEND_URL="$BACKEND_URL" \
+        --dart-define=BACKEND_URL_FALLBACK="$BACKEND_URL_FALLBACK" >/dev/null 2>&1); then
     bad "Falló la compilación del panel. Repite sin silenciar para ver el error:"
     bad "  cd app_control && flutter build $SISTEMA --release --dart-define=BACKEND_URL=$BACKEND_URL"
   elif [ "$SISTEMA" = "windows" ]; then

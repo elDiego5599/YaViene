@@ -8,6 +8,9 @@ export 'core/models/connection_status.dart';
 export 'core/models/route_info.dart';
 export 'core/models/route_trajectory.dart';
 
+// --- Red ---
+export 'core/network/backend_resolver.dart';
+
 // --- Theme ---
 export 'core/theme/app_motion.dart';
 export 'core/theme/app_theme.dart';
