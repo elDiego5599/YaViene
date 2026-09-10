@@ -84,11 +84,39 @@ void main() {
       (tester) async {
     await pumpHero(tester, [busAt(0.007645)]);
 
-    // F6: mismo formato "ruta - placa" que ya usa Notificaciones.
-    expect(find.text('Ruta 1 - A-1'), findsOneWidget);
+    // Encima de la distancia, "Bus" y la placa: la ruta ya está elegida.
+    expect(find.text('Bus A-1'), findsOneWidget);
+    expect(find.text('Ruta 1 - A-1'), findsNothing);
     expect(find.text('850'), findsOneWidget,
         reason: 'el número es la métrica principal del hero');
     expect(find.text('m de ti'), findsOneWidget);
+  });
+
+  testWidgets(
+      'con el aviso armado en otro pin, la distancia dice que es del pin '
+      'anterior', (tester) async {
+    final container = await pumpHero(tester, [busAt(0.007645)]);
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await tester.pump();
+
+    // Mismo pin con el que se armó: la distancia es la de siempre.
+    expect(find.text('m de ti'), findsOneWidget);
+
+    // Pin nuevo, más al norte. El aviso sigue midiendo desde el de antes, y
+    // la hoja con él: el número no cambia, pero ya no puede decir "de ti".
+    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+      const UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: userLat + 0.01,
+        lon: userLon,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('850'), findsOneWidget);
+    expect(find.text('m de tu pin anterior'), findsOneWidget);
+    expect(find.text('m de ti'), findsNothing);
   });
 
   testWidgets('hero card: métrica en kilómetros (2.2 km de ti)',

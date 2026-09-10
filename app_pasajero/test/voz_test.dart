@@ -305,13 +305,13 @@ void main() {
       });
     });
 
-    testWidgets('el nombre del bus dice qué es cada parte', (tester) async {
+    testWidgets('el nombre del bus se lee igual que se ve', (tester) async {
       await conVoz(tester, () async {
         fijarPantalla(tester);
         await montarHoja(tester, desfase: 0.007645);
 
-        expect(find.text('Ruta 1 - A-1'), findsOneWidget);
-        expect(find.bySemanticsLabel('Ruta 1, bus A-1'), findsOneWidget);
+        expect(find.text('Bus A-1'), findsOneWidget);
+        expect(find.bySemanticsLabel('Bus A-1'), findsOneWidget);
       });
     });
 

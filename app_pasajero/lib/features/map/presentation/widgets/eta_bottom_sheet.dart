@@ -629,11 +629,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       routeName: route?.name,
       routeId: route?.id,
     );
-    final busSpoken = routePlateSpoken(
-      busId: busId,
-      routeName: route?.name,
-      routeId: route?.id,
-    );
+    // Encima de la distancia va solo "Bus" y la placa: la ruta ya la nombra
+    // la píldora de arriba, y lo que el pasajero coteja con el bus que se
+    // acerca es la placa. Leído dice lo mismo, así que no lleva etiqueta
+    // aparte para la voz.
+    final busTitulo = 'Bus ${busPlaca(busId)}';
+
+    // El aviso mide desde el pin con el que se armó, y la hoja también
+    // (`_distanceToBus`). Si después el pasajero pone el pin en otro sitio y
+    // vuelve a este bus, el número es el del pin anterior: decir "de ti"
+    // ahí confundía, porque parece la distancia al pin nuevo. Menos de un
+    // metro de diferencia es el mismo pin.
+    final ancla =
+        ref.read(proximityAlertsProvider.notifier).anchorFor(busId);
+    final desdePinAnterior = isActive &&
+        ancla != null &&
+        (!locationState.hasPosition ||
+            haversineMeters(ancla.$1, ancla.$2, locationState.lat!,
+                    locationState.lon!) >=
+                1);
+    final referencia = desdePinAnterior ? 'de tu pin anterior' : 'de ti';
 
     // Defensa: el bus seleccionado ya no está en la ruta (aún no se procesó
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
@@ -710,7 +725,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // Lo que se lee en voz alta. Cuando la métrica es una palabra
     // —"Calculando"— la palabra ya es la frase entera.
     String metricSpoken = '';
-    if (!locationState.hasPosition) {
+    if (!locationState.hasPosition && !desdePinAnterior) {
       // Gris de texto, no gris de deshabilitado: aquí no hay número sino
       // una palabra de 28 en peso 800, y `textDisabled` daba 2,4:1 sobre
       // la arena. Este da 4,4:1 y sigue siendo el gris apagado que le
@@ -726,10 +741,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // V1: el número hero carga la urgencia en su propio color, en vez de
       // quedarse siempre en el mismo azul — lejos, acercándose o ya casi.
       stripColor = _urgencyColor(distance);
-      final parts = _metricParts(distance);
+      final parts = _metricParts(distance, referencia);
       metricText = parts.$1;
       metricUnit = parts.$2;
-      metricSpoken = _metricSpoken(distance);
+      metricSpoken = _metricSpoken(distance, referencia);
     }
     final isNumberMetric = metricUnit != null;
 
@@ -749,15 +764,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             ),
           ),
           const SizedBox(height: 18),
-          // Identidad de ruta: misma "ruta - placa" que ya usa
-          // Notificaciones.
+          // Identidad del bus: "Bus SQA223" (ver `busTitulo`).
           Text(
-            busLabel,
+            busTitulo,
             textAlign: TextAlign.center,
             style: AppTextStyles.etiqueta,
-            // En pantalla el guion separa la ruta de la placa; leído,
-            // "Calle 72 guion SQA223" no dice qué es cada cosa.
-            semanticsLabel: busSpoken,
           ),
           const SizedBox(height: 10),
           // Métrica principal: número grande que respira, o el estado en
@@ -833,22 +844,23 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   ///
   /// En pantalla la unidad va abreviada porque debajo del número se lee
   /// sola; en voz alta "m" es una letra suelta y el punto decimal se
-  /// pronuncia "punto".
-  String _metricSpoken(double meters) {
+  /// pronuncia "punto". [referencia] dice desde dónde se mide: "de ti" o
+  /// "de tu pin anterior".
+  String _metricSpoken(double meters, String referencia) {
     if (meters < 1000) {
       final m = meters.round();
-      return 'A $m ${m == 1 ? "metro" : "metros"} de ti';
+      return 'A $m ${m == 1 ? "metro" : "metros"} $referencia';
     }
     final km = (meters / 1000).toStringAsFixed(1).replaceAll('.', ',');
-    return 'A $km kilómetros de ti';
+    return 'A $km kilómetros $referencia';
   }
 
   /// Divide la distancia en número grande + unidad: ("850", "m de ti") o
-  /// ("1.4", "km de ti").
-  (String, String) _metricParts(double meters) {
-    if (meters < 1000) return (meters.round().toString(), "m de ti");
+  /// ("1.4", "km de tu pin anterior").
+  (String, String) _metricParts(double meters, String referencia) {
+    if (meters < 1000) return (meters.round().toString(), "m $referencia");
     final km = (meters / 1000).toStringAsFixed(1);
-    return (km, "km de ti");
+    return (km, "km $referencia");
   }
 
   /// V1: verde lejos, ámbar acercándose, coral ya casi — el mismo semáforo
