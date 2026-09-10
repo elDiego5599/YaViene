@@ -5,7 +5,10 @@ import '../../data/services/realtime_service.dart';
 import '../../domain/repositories/realtime_repository.dart';
 
 final realtimeServiceProvider = Provider<RealtimeRepository>((ref) {
-  final service = RealtimeService();
+  // El mismo backend que ya eligió el arranque (`BackendResolver`), no la
+  // constante de compilación: si el túnel principal está caído, el socket
+  // tiene que irse al respaldo con todo lo demás.
+  final service = RealtimeService(ref.watch(backendUrlProvider));
   ref.onDispose(() => service.dispose());
   return service;
 });

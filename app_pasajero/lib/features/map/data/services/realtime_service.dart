@@ -7,6 +7,19 @@ import '../../../../config.dart';
 import '../../domain/repositories/realtime_repository.dart';
 
 class RealtimeService implements RealtimeRepository {
+  /// A qué backend se conecta el socket.
+  ///
+  /// Antes esto leía `AppConfig.backendUrl` directamente, es decir la
+  /// constante de compilación, y se saltaba entero al `BackendResolver` del
+  /// arranque: si el túnel de siempre no contestaba, la app se iba al
+  /// respaldo para todo lo que va por HTTP —empresas, rutas, posiciones
+  /// iniciales— y el socket seguía llamando al túnel caído. La pantalla
+  /// quedaba con los datos puestos y «Sin conexión» encima, que es la peor
+  /// versión posible: parece que la app funciona a medias.
+  RealtimeService(this._backendUrl);
+
+  final String _backendUrl;
+
   io.Socket? _socket;
   final _subscriptions = <String>{};
   final _connectionStateController =
@@ -73,7 +86,7 @@ class RealtimeService implements RealtimeRepository {
   void connect() {
     if (_socket?.connected == true) return;
     _socket?.dispose();
-    final url = AppConfig.backendUrl;
+    final url = _backendUrl;
     _emitConnectionStatus(ConnectionStatus.reconnecting);
     _socket = io.io(url, <String, dynamic>{
       'transports': ['websocket'],
