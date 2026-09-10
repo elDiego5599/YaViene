@@ -689,7 +689,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _headerRow(title: title, onBack: onBack),
-            const SizedBox(height: 12),
+            // Sin hueco fijo aquí: lo pone el relleno de la lista, que es
+            // la franja que se desvanece (ver `_listaConDesvanecido`).
             // Las filas no se cortan a filo vivo contra el título ni contra
             // el borde de la hoja: se desvanecen. Antes una fila a medio
             // salir quedaba partida por la mitad justo debajo del título y
@@ -714,6 +715,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// La lista arranca pegada al título, no en el centro de la caja. Con dos
   /// empresas centradas quedaba un hueco arriba y otro abajo y la lista se
   /// leía como flotando; arriba, empieza donde el ojo ya está.
+  ///
+  /// Las dos listas llevan [_fundidoLista] de relleno arriba y abajo, justo
+  /// el alto del fundido. Sin él, la primera fila en reposo quedaba dentro
+  /// de la franja que se desvanece y salía con el borde de arriba lavado,
+  /// como borrosa. Con el relleno, en reposo ninguna fila toca el fundido;
+  /// solo las que se desplazan hacia el borde.
+  static const double _fundidoLista = 16;
+
   Widget _listaConDesvanecido(Widget lista) {
     final conTinta = Material(
       type: MaterialType.transparency,
@@ -723,7 +732,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       builder: (context, constraints) {
         final alto = constraints.maxHeight;
         if (!alto.isFinite || alto <= 48) return ClipRect(child: conTinta);
-        final fundido = (16 / alto).clamp(0.0, 0.2);
+        final fundido = (_fundidoLista / alto).clamp(0.0, 0.2);
         return ClipRect(
           child: ShaderMask(
             blendMode: BlendMode.dstIn,
@@ -752,7 +761,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       data: (companies) => ListView(
         key: widget.companyChoiceGuideKey,
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
         // Se mide por su contenido para poder quedarse en el centro cuando
         // sobra caja; si no cabe, ocupa el alto entero y se desplaza igual.
         shrinkWrap: true,
@@ -821,7 +830,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       data: (routes) => ListView(
         key: widget.routeChoiceGuideKey,
         physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
         shrinkWrap: true,
         children: [
           if (routes.isEmpty)
