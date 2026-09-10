@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -12,6 +13,7 @@ import '../providers/realtime_providers.dart';
 import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
+import '../utils/bus_semantics.dart';
 import '../utils/map_constants.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/cabecera_flotante.dart';
@@ -278,6 +280,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         routeTooFar: routeTooFar,
       );
 
+  /// Las acciones que el mapa ofrece a un lector de pantalla: una por bus
+  /// de la ruta, con su placa y a cuánto está. El texto y el motivo están en
+  /// `utils/bus_semantics.dart`; aquí sólo se conectan con la selección.
+  Map<CustomSemanticsAction, VoidCallback> _accionesDeBuses(
+      RouteInfo? selectedRoute) {
+    if (selectedRoute == null) return const {};
+    final buses =
+        ref.watch(busPositionsSourceProvider(selectedRoute.id)).value ??
+            const <BusPosition>[];
+    if (buses.isEmpty) return const {};
+
+    final location = ref.watch(userLocationProvider);
+    final acciones = accionesDeBuses(
+      buses: buses,
+      userLat: location.hasPosition ? location.lat : null,
+      userLon: location.hasPosition ? location.lon : null,
+      seleccionados: ref.watch(selectedBusesProvider),
+    );
+    return {
+      for (final accion in acciones)
+        CustomSemanticsAction(label: accion.etiqueta): () {
+          ref.read(selectedBusesProvider.notifier).toggleBus(accion.busId);
+        },
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
@@ -324,6 +352,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         !alertLimitReached &&
         !routeTooFar;
 
+    final accionesDeBuses = _accionesDeBuses(selectedRoute);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
@@ -343,8 +373,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               // en la hoja de abajo.
               label: selectedRoute == null
                   ? 'Mapa. Elige tu ruta arriba para ver sus buses'
-                  : 'Mapa con los buses de ${selectedRoute.name}. '
-                      'La distancia se lee en la tarjeta de abajo',
+                  : accionesDeBuses.isEmpty
+                      ? 'Mapa con los buses de ${selectedRoute.name}. '
+                          'La distancia se lee en la tarjeta de abajo'
+                      : 'Mapa con ${accionesDeBuses.length} buses de '
+                          '${selectedRoute.name}. Elige uno en las acciones '
+                          'disponibles; la distancia se lee en la tarjeta '
+                          'de abajo',
+              customSemanticsActions: accionesDeBuses,
               child: MapWidget(
                 key: _mapKey,
                 routeId: selectedRoute?.id,
