@@ -124,6 +124,14 @@ class AuthNotifier extends ChangeNotifier {
 
   bool isEmailValid(String email) => _emailPattern.hasMatch(email.trim());
 
+  bool _emailProbeWasAmbiguous = false;
+
+  /// `true` cuando el último [checkEmail] dijo "existe" sin poder probarlo:
+  /// Firebase respondió con la protección anti-enumeración encendida. La
+  /// pantalla de acceso lo usa para ofrecer el registro si la contraseña
+  /// tampoco entra.
+  bool get emailProbeWasAmbiguous => _emailProbeWasAmbiguous;
+
   /// Verifica si el correo ya tiene cuenta. Devuelve null en error de red.
   ///
   /// Firebase deprecó la consulta de métodos (protección anti-enumeración) y
@@ -148,8 +156,12 @@ class AuthNotifier extends ChangeNotifier {
     try {
       // ignore: deprecated_member_use
       final methods = await _auth.fetchSignInMethodsForEmail(normalized);
-      if (methods.contains('password')) return _settle(true);
+      if (methods.contains('password')) {
+        _emailProbeWasAmbiguous = false;
+        return _settle(true);
+      }
       if (methods.isNotEmpty) {
+        _emailProbeWasAmbiguous = false;
         return _settle(false); // solo Google: sin contraseña
       }
       return _settle(await _probeExistence(normalized));
@@ -181,6 +193,7 @@ class AuthNotifier extends ChangeNotifier {
   }
 
   Future<bool> _probeExistence(String email) async {
+    _emailProbeWasAmbiguous = false;
     try {
       await _auth.signInWithEmailAndPassword(
         email: email,
@@ -193,12 +206,17 @@ class AuthNotifier extends ChangeNotifier {
         case 'invalid-credential':
           // Protección anti-enumeración activa: no se puede distinguir.
           // Tratarlo como existente evita el "me mandó a registrarme otra
-          // vez" aunque la cuenta sí exista.
+          // vez" aunque la cuenta sí exista, pero deja marcada la duda: si
+          // luego la contraseña tampoco entra, la pantalla ofrece crear la
+          // cuenta en vez de dejar al recién llegado encerrado en el paso
+          // de contraseña sin manera de registrarse.
+          _emailProbeWasAmbiguous = true;
           return true;
         case 'user-not-found':
         case 'invalid-login-credentials':
           return false;
         default:
+          _emailProbeWasAmbiguous = true;
           return true;
       }
     }

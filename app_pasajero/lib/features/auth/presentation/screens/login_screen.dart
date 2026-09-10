@@ -185,6 +185,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _showError('Ese correo ya tiene cuenta: entra con tu contraseña');
       return;
     }
+    // El caso contrario: la detección dijo "existe" sin poder comprobarlo
+    // (Firebase con la protección anti-enumeración responde igual para una
+    // cuenta ajena que para una que no existe), y la contraseña tampoco
+    // entra. Puede ser un dedo torcido o puede ser alguien que nunca se
+    // registró y quedó encerrado en este paso. No se decide por él: se le
+    // ofrece el registro y él elige.
+    if (_step == _Step.password &&
+        auth.emailProbeWasAmbiguous &&
+        const {
+          'user-not-found',
+          'invalid-credential',
+          'invalid-login-credentials',
+          'wrong-password',
+        }.contains(auth.state.errorCode)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.state.errorMessage ??
+              'No pudimos entrar con esa contraseña'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'Crear cuenta',
+            textColor: Colors.white,
+            onPressed: () {
+              if (!mounted) return;
+              setState(() => _step = _Step.profile);
+              _passwordController.clear();
+              _confirmController.clear();
+            },
+          ),
+        ),
+      );
+      return;
+    }
     _showError(auth.state.errorMessage ?? 'No se pudo iniciar sesión');
   }
 
