@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copia de seguridad de Android 11 y anteriores.
+
+  Lo que la app guarda en SharedPreferences es dato personal en texto plano:
+  el pin de espera es la esquina donde la persona espera el bus todos los
+  días (casa, trabajo) y el historial de avisos dice a qué hora tomó cuál
+  ruta. Dentro del teléfono eso vive en el almacenamiento privado de la app,
+  que sólo la app lee; pero la copia automática lo sube a la cuenta de Google
+  del usuario y lo restaura en cualquier teléfono donde inicie sesión, y ahí
+  ya no manda la app.
+
+  Cifrar en el dispositivo no arregla eso —la llave viajaría en la misma
+  copia— así que se excluye el fichero entero. El coste es mínimo: son
+  preferencias que la app vuelve a pedir (el pin se toca otra vez en el
+  mapa), no datos que el usuario perdería.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+</full-backup-content>
