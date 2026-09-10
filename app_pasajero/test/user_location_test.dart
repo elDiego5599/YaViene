@@ -75,6 +75,57 @@ void main() {
     expect(notifier.state.hasPosition, isFalse);
   });
 
+  test('un pin guardado que no es un punto válido se descarta y se borra',
+      () async {
+    const channel = MethodChannel('flutter.baseflow.com/permissions/methods');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'checkPermissionStatus') return 0; // denied
+      if (call.method == 'shouldShowRequestPermissionRationale') return false;
+      return null;
+    });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    for (final (lat, lon) in [
+      (95.0, -74.79145),
+      (10.9512, 200.0),
+      (double.nan, -74.79145),
+      (10.9512, double.infinity),
+    ]) {
+      SharedPreferences.setMockInitialValues({
+        _kManualLat: lat,
+        _kManualLon: lon,
+        'user_loc_asked': true,
+      });
+
+      final notifier = UserLocationNotifier();
+      await notifier.initialize();
+
+      expect(notifier.state.mode, UserLocationMode.denied,
+          reason: '($lat, $lon) no debe restaurarse');
+      expect(notifier.state.hasPosition, isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getDouble(_kManualLat), isNull);
+      expect(prefs.getDouble(_kManualLon), isNull);
+    }
+  });
+
+  test('setManualPin ignora un punto imposible y no lo guarda', () async {
+    final notifier = UserLocationNotifier();
+
+    notifier.setManualPin(double.nan, -74.79145);
+    notifier.setManualPin(10.9512, -181);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(notifier.state.mode, UserLocationMode.unknown);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getDouble(_kManualLat), isNull);
+    expect(prefs.getDouble(_kManualLon), isNull);
+  });
+
   test('clearManualPin borra el pin guardado', () async {
     SharedPreferences.setMockInitialValues({
       _kManualLat: 10.9512,

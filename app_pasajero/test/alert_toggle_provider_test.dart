@@ -5,6 +5,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
@@ -241,11 +242,21 @@ void main() {
 
     await container.read(alertToggleProvider).toggle('A-1');
     expect(container.read(activeAlertsProvider), contains('A-1'));
+    // `load()` espera a que termine la escritura y relee del disco: lo que
+    // devuelve es lo que vería la app al reabrirse.
+    final history = container.read(alertHistoryProvider.notifier);
+    await history.load();
+    expect(container.read(alertHistoryProvider).map((e) => e.busId),
+        contains('A-1'));
 
     final result = await container.read(alertToggleProvider).toggle('A-1');
     expect(result.outcome, AlertToggleOutcome.deactivated);
     expect(container.read(activeAlertsProvider), isEmpty);
     expect(container.read(proximityAlertsProvider), isEmpty);
+    // El historial es la única persistencia de los avisos activos: si la
+    // entrada siguiera en disco, el aviso se volvería a armar al reabrir.
+    await history.load();
+    expect(container.read(alertHistoryProvider), isEmpty);
   });
 
   test('la carrera de dos taps no supera el límite: limitReached', () async {

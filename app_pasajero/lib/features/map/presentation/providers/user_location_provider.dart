@@ -126,12 +126,27 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     }
   }
 
+  /// Un pin solo vale si es un punto real del planeta. `LatLng` de Google
+  /// Maps recorta la latitud y da la vuelta a la longitud sin avisar, así que
+  /// un valor fuera de rango se pintaba en un sitio mientras las distancias
+  /// y los avisos se medían desde otro; y un NaN no se puede pintar.
+  static bool _coordenadasValidas(double lat, double lon) =>
+      lat.isFinite && lon.isFinite && lat.abs() <= 90 && lon.abs() <= 180;
+
   /// Restaura el pin manual guardado en el arranque anterior (si existe).
+  ///
+  /// Lo que hay en SharedPreferences no se da por bueno: si no es un punto
+  /// válido se borra, y el arranque sigue como si no hubiera pin.
   Future<bool> _restoreSavedPin() async {
     final prefs = await SharedPreferences.getInstance();
     final lat = prefs.getDouble(_kManualLat);
     final lon = prefs.getDouble(_kManualLon);
     if (lat == null || lon == null) return false;
+    if (!_coordenadasValidas(lat, lon)) {
+      await prefs.remove(_kManualLat);
+      await prefs.remove(_kManualLon);
+      return false;
+    }
     state = UserLocationState(
       mode: UserLocationMode.manual,
       lat: lat,
@@ -268,6 +283,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   /// Pin manual: el usuario tocó el mapa. Se guarda para reencontrarlo en el
   /// próximo arranque cuando no hay permiso de GPS.
   void setManualPin(double lat, double lon) {
+    if (!_coordenadasValidas(lat, lon)) return;
     _gpsSub?.cancel();
     _gpsSub = null;
     state = UserLocationState(
