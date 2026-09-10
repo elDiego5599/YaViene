@@ -41,6 +41,20 @@ void main() {
       busPositionsSourceProvider.overrideWith(
         (ref, routeId) => Stream.value(buses ?? [busA()]),
       ),
+      // La notificación de verdad no se puede pintar en un test (el plugin
+      // no tiene canal), y desde que `notifyBusNear` devuelve si de verdad
+      // se mostró, el fallo dejaría el aviso sin marcar. Aquí se mide el
+      // camino en que el aviso sí salió: se sustituye por uno que responde
+      // que sí.
+      proximityAlertsProvider.overrideWith(
+        (ref) => ProximityAlertsNotifier(ref, notify: ({
+          required String busId,
+          String? routeName,
+          String? routeId,
+          required int distanceMeters,
+        }) async =>
+            true),
+      ),
     ]);
     (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
       const UserLocationState(

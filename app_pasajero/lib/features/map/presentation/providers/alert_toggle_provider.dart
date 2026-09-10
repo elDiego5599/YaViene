@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../notifications/presentation/providers/alert_history_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../utils/geo.dart';
 import '../widgets/alert_guards.dart' as guards;
@@ -93,6 +94,15 @@ class AlertToggleController {
     if (wasActive) {
       notifier.deactivateAlert(busId);
       _ref.read(proximityAlertsProvider.notifier).disarmAlert(busId);
+      // Y fuera del historial. Un aviso activo nunca notificó —al notificar
+      // se marca y se desactiva solo—, así que quitarlo aquí no borra nada
+      // que haya pasado: borra la intención que se acaba de retirar. Sin
+      // esto el registro se quedaba en la pantalla de Notificaciones como un
+      // aviso vivo que ya no mide nada, y al reabrir la app `restore` lo
+      // volvía a armar, resucitando el aviso que el pasajero había quitado.
+      // Es lo mismo que ya hacía la propia pantalla de Notificaciones al
+      // desactivar desde allí.
+      _ref.read(alertHistoryProvider.notifier).remove(busId);
       return const AlertToggleResult(AlertToggleOutcome.deactivated);
     }
 

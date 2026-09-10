@@ -58,6 +58,7 @@ void main() {
               String? routeId,
               required int distanceMeters}) async {
             fired.add((busId: busId, distanceMeters: distanceMeters));
+            return true;
           },
         );
       }),
@@ -123,6 +124,59 @@ void main() {
     expect(container.read(activeAlertsProvider), isEmpty);
   });
 
+  test('si la notificación no llegó a mostrarse, el aviso sigue vivo',
+      () async {
+    // El sistema puede negarse a pintar la notificación (permiso revocado,
+    // canal caído). Antes eso se daba por enviado igual: el aviso se
+    // marcaba, salía de la lista y el usuario nunca se enteraba de nada. Si
+    // no se mostró, todo se queda como estaba y el barrido siguiente lo
+    // vuelve a intentar mientras el bus siga dentro del radio.
+    var intentos = 0;
+    final c = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+      busPositionsSourceProvider.overrideWith(
+        (ref, routeId) => Stream.value([busA]),
+      ),
+      proximityAlertsProvider.overrideWith((ref) {
+        return ProximityAlertsNotifier(
+          ref,
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) async {
+            intentos += 1;
+            return false;
+          },
+        );
+      }),
+    ]);
+    addTearDown(c.dispose);
+    (c.read(userLocationProvider.notifier) as _TestUserLocation).set(userHere);
+    final keepAlive = c.listen<AsyncValue<List<BusPosition>>>(
+      busPositionsSourceProvider('R1'),
+      (_, __) {},
+    );
+    addTearDown(keepAlive.close);
+    await Future<void>.delayed(Duration.zero);
+
+    c.read(selectedRouteProvider.notifier).select(route());
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    c.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+
+    final notifier = c.read(proximityAlertsProvider.notifier);
+    await notifier.check();
+
+    expect(intentos, 1);
+    expect(c.read(activeAlertsProvider), {'A-1'},
+        reason: 'sin notificación mostrada, el aviso no se da por enviado');
+    expect(c.read(alertHistoryProvider).single.sent, isFalse);
+
+    // Segundo barrido: se reintenta.
+    await notifier.check();
+    expect(intentos, 2);
+  });
+
   test('re-armar un aviso disparado limpia la marca y puede volver a sonar',
       () async {
     // Bus a ~800 m: dentro del radio de alerta (1000 m) pero por debajo del
@@ -157,6 +211,7 @@ void main() {
               String? routeId,
               required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
+            return true;
           },
         );
       }),
@@ -282,6 +337,7 @@ void main() {
               String? routeId,
               required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
+            return true;
           },
         );
       }),
@@ -344,6 +400,7 @@ void main() {
               String? routeId,
               required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
+            return true;
           },
         );
       }),

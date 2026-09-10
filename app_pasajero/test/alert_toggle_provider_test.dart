@@ -50,7 +50,7 @@ ProviderContainer _container({
               {required String busId,
               String? routeName,
               String? routeId,
-              required int distanceMeters}) async {});
+              required int distanceMeters}) async => true);
     }),
     alertToggleProvider.overrideWith((ref) => AlertToggleController(
           ref,

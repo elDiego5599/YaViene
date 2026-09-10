@@ -17,8 +17,9 @@ const int alertRadiusMeters = 1000;
 /// 900 m) dispararía otra vez al instante cada vez que se re-arma el aviso.
 const int alertReArmMeters = 1500;
 
-/// Firma del disparo de notificación (inyectable en tests).
-typedef BusNearNotifier = Future<void> Function({
+/// Firma del disparo de notificación (inyectable en tests). Devuelve si el
+/// aviso llegó a mostrarse: un aviso que no se mostró no se da por enviado.
+typedef BusNearNotifier = Future<bool> Function({
   required String busId,
   String? routeName,
   String? routeId,
@@ -55,7 +56,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   bool _monitoringPaused = false;
   String? _monitoringUserId;
 
-  static Future<void> _defaultNotify({
+  static Future<bool> _defaultNotify({
     required String busId,
     String? routeName,
     String? routeId,
@@ -294,6 +295,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     }
 
     if (fire.isNotEmpty) {
+      // Sólo los que de verdad se mostraron. El resto se queda como está
+      // —armado, activo y sin marcar— y el barrido de dentro de cinco
+      // segundos lo vuelve a intentar mientras el bus siga dentro del radio.
+      final enviados = <String>{};
       for (final entry in fire.entries) {
         // Nombre de ruta y placa del bus para el texto de la notificación.
         String? routeName;
@@ -303,12 +308,14 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             break;
           }
         }
-        unawaited(_notify(
+        final mostrado = await _notify(
           busId: entry.key,
           routeName: routeName,
           routeId: _alertRoutes[entry.key],
           distanceMeters: entry.value,
-        ));
+        );
+        if (!mostrado) continue;
+        enviados.add(entry.key);
         // El aviso ya se envió: pasa a "enviado" en el historial, sale de la
         // lista de alertas activas (visible en la pantalla de
         // Notificaciones) y se libera la suscripción de su ruta.
@@ -316,7 +323,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         _ref.read(activeAlertsProvider.notifier).deactivateAlert(entry.key);
         disarmAlert(entry.key);
       }
-      state = {...state, ...fire.keys}..removeAll(rearm);
+      if (enviados.isNotEmpty) {
+        state = {...state, ...enviados}..removeAll(rearm);
+      } else if (rearm.isNotEmpty) {
+        state = {...state}..removeAll(rearm);
+      }
     } else if (rearm.isNotEmpty) {
       state = {...state}..removeAll(rearm);
     }

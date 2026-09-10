@@ -79,7 +79,15 @@ class BusNotificationService {
   }
 
   /// Notificación diferenciada por bus: id hash estable entre ejecuciones.
-  static Future<void> notifyBusNear({
+  ///
+  /// Devuelve si el aviso llegó a mostrarse. Antes esto se tragaba el fallo
+  /// y devolvía lo mismo en los dos casos, así que quien llamaba daba el
+  /// aviso por enviado igual: el bus salía de la lista de avisos activos y
+  /// se marcaba como notificado en el historial sin que en el teléfono
+  /// hubiera aparecido nada. El permiso revocado desde ajustes es el caso
+  /// normal, y es justo el que dejaba al pasajero esperando un aviso que ya
+  /// no podía llegar.
+  static Future<bool> notifyBusNear({
     required String busId,
     String? routeName,
     String? routeId,
@@ -102,9 +110,12 @@ class BusNotificationService {
           iOS: DarwinNotificationDetails(),
         ),
       );
+      return true;
     } catch (e, st) {
       debugPrint('notifyBusNear failed for $busId: $e\n$st');
-      // El aviso falla blando: nunca debe tumbar el flujo del mapa.
+      // El aviso falla blando: nunca debe tumbar el flujo del mapa. Pero el
+      // fallo se cuenta, para que el aviso siga armado y se reintente.
+      return false;
     }
   }
 }
