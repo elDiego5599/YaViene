@@ -148,9 +148,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       const _BenefitRow(
                                         // El recorrido, no el cronómetro: lo
                                         // que la app entrega son metros, no
-                                        // minutos.
+                                        // minutos. «Cuánto falta» se lee como
+                                        // tiempo y prometía justo lo que la
+                                        // app no calcula.
                                         icon: Icons.route_rounded,
-                                        title: 'Cuánto falta',
+                                        title: 'A qué distancia viene',
                                         detail: 'Calculado con la posición '
                                             'real del bus',
                                       ),
@@ -179,9 +181,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                           foregroundColor: Colors.white,
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    AppRadius.pill),
+                                            borderRadius: BorderRadius.circular(
+                                                AppRadius.pill),
                                           ),
                                         ),
                                         onPressed:

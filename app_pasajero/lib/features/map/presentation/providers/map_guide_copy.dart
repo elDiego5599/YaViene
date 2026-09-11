@@ -121,9 +121,11 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
     case MapGuideStep.buses:
       return const MapGuideCopy(
         title: 'Mira los buses',
+        // «Cuánto falta» se leía como minutos; lo que abre el toque es la
+        // distancia en metros, igual que el paso siguiente.
         message:
             'Estos iconos representan los buses en vivo. Toca uno para ver '
-            'cuánto falta.',
+            'a qué distancia está.',
         icon: Icons.directions_bus_rounded,
       );
     case MapGuideStep.distance:

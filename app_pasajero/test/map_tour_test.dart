@@ -324,7 +324,7 @@ void main() {
                   MapGuideOverlay(
                     target: const Rect.fromLTWH(32, 210, 363, 432),
                     title: 'Mira los buses',
-                    message: 'Toca un bus para ver cuánto falta.',
+                    message: 'Toca un bus para ver a qué distancia está.',
                     icon: Icons.directions_bus_rounded,
                     stepIndex: 6,
                     stepCount: 9,
