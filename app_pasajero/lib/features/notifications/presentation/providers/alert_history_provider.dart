@@ -70,6 +70,23 @@ class AlertHistoryEntry {
       refLon: (json['refLon'] as num?)?.toDouble(),
     );
   }
+
+  /// Lee una entrada del disco sin dejar que una sola mala tumbe el resto.
+  /// `null` si no tiene forma de entrada: no es un mapa, no trae bus, una
+  /// fecha no se entiende o un campo viene con otro tipo. El historial es
+  /// también la única persistencia de los avisos activos, así que tirarlo
+  /// entero por una entrada rota desarmaba en silencio todos los demás.
+  static AlertHistoryEntry? tryFromJson(Object? json) {
+    if (json is! Map<String, dynamic>) return null;
+    try {
+      final entry = AlertHistoryEntry.fromJson(json);
+      return entry.busId.trim().isEmpty ? null : entry;
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
+  }
 }
 
 const _kHistoryKey = 'alert_history';
@@ -186,19 +203,32 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       }
     }
     if (raw == null || raw.isEmpty) return;
+    Object? decoded;
     try {
-      final list = (jsonDecode(raw) as List)
-          .map((e) => AlertHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final purgado = _purgar(list);
-      state = purgado;
-      // Una instalación vieja puede traer el historial ya crecido: se
-      // reescribe podado para que no vuelva a leerse entero mañana.
-      if (purgado.length != list.length) _save();
-    } catch (_) {
-      // Historial corrupto: se descarta; la próxima acción lo reescribe.
-      state = const [];
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      decoded = null;
     }
+    if (decoded is! List) {
+      // Ni siquiera es una lista: no hay entrada que rescatar. Se reescribe
+      // vacío para no volver a tropezar con lo mismo en cada arranque.
+      state = const [];
+      _save();
+      return;
+    }
+    // Entrada por entrada: antes una sola rota (una fecha a medias, un bus
+    // que llegó como número) hacía saltar el `catch` y se perdía el
+    // historial entero, avisos activos incluidos.
+    final list = decoded
+        .map(AlertHistoryEntry.tryFromJson)
+        .whereType<AlertHistoryEntry>()
+        .toList();
+    final purgado = _purgar(list);
+    state = purgado;
+    // Se reescribe saneado si algo se cayó: por rota o por vieja (una
+    // instalación antigua puede traer el historial ya crecido). Así lo que
+    // se descartó no vuelve a leerse mañana.
+    if (purgado.length != decoded.length) _save();
   }
 
   void _save() {

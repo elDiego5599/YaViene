@@ -47,13 +47,14 @@ void main() {
       // camino en que el aviso sí salió: se sustituye por uno que responde
       // que sí.
       proximityAlertsProvider.overrideWith(
-        (ref) => ProximityAlertsNotifier(ref, notify: ({
-          required String busId,
-          String? routeName,
-          String? routeId,
-          required int distanceMeters,
-        }) async =>
-            true),
+        (ref) => ProximityAlertsNotifier(ref,
+            notify: ({
+              required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters,
+            }) async =>
+                true),
       ),
     ]);
     (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
@@ -252,6 +253,48 @@ void main() {
       ]);
       expect(historial.length, 50);
       expect(historial.map((e) => e.busId), contains('A-9'));
+    });
+
+    // Antes una sola entrada rota vaciaba el historial entero, y con él los
+    // avisos activos que no habían sonado.
+    test('una entrada rota se cae sola y el disco queda saneado', () async {
+      final activo = entrada('A-1', diasAtras: 1)..['sentAt'] = null;
+      final historial = await cargar([
+        activo,
+        entrada('A-2', diasAtras: 2)..['createdAt'] = 'ayer por la tarde',
+        entrada('A-3', diasAtras: 2)..['busId'] = 42,
+        entrada('A-4', diasAtras: 2)..['busId'] = '  ',
+        entrada('A-5', diasAtras: 3),
+      ]);
+      expect(historial.map((e) => e.busId), ['A-1', 'A-5']);
+      expect(historial.first.sent, isFalse);
+
+      await pumpEventQueue();
+      final prefs = await SharedPreferences.getInstance();
+      final guardado = jsonDecode(prefs.getString('alert_history')!) as List;
+      expect(guardado.map((e) => (e as Map)['busId']), ['A-1', 'A-5']);
+    });
+
+    test('lo que no es una lista, o una lista con basura, no revienta',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'alert_history': jsonEncode([
+          'no soy una entrada',
+          7,
+          entrada('A-1', diasAtras: 1),
+        ]),
+      });
+      final notifier = AlertHistoryNotifier();
+      await notifier.load();
+      expect(notifier.state.map((e) => e.busId), ['A-1']);
+
+      SharedPreferences.setMockInitialValues({'alert_history': '{roto'});
+      final roto = AlertHistoryNotifier();
+      await roto.load();
+      expect(roto.state, isEmpty);
+      await pumpEventQueue();
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('alert_history'), '[]');
     });
   });
 }
