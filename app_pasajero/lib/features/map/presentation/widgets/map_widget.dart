@@ -646,12 +646,20 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _kBusHaloLayerId,
         // Dorado neón, no el rojo del bus: así el halo se lee como "esto
         // está seleccionado", no como una sombra del propio ícono.
+        //
+        // Radio y filo crecieron con el bus, un 20 % —de 20 y 2 a 24 y
+        // 2,4—, igual que el latido de `_startHaloPulse`. Con el bus más
+        // grande y el halo como estaba, en la fase recogida (16 más el
+        // filo, 36 de ancho) el halo apenas asomaba 3 puntos por las
+        // puntas de una cápsula elegida de 30 a zoom 15. Hoy la elegida
+        // mide 36 a ese zoom y el halo recogido, 21,6 de radio con su
+        // filo, sigue asomando 3,6 por cada punta.
         const CircleLayerProperties(
-          circleRadius: 20.0,
+          circleRadius: 24.0,
           circleColor: '#FFC72C',
           circleOpacity: 0.55,
           circleBlur: 0.75,
-          circleStrokeWidth: 2.0,
+          circleStrokeWidth: 2.4,
           circleStrokeColor: '#FFF3C4',
           circleStrokeOpacity: 0.9,
         ),
@@ -679,6 +687,18 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // MapLibre nativo permite UNA interpolación por zoom por
             // expresión; el tamaño según selección se elige en el output
             // con un 'case' en formato plano (cond → valor, else).
+            //
+            // Suelto, el bus va de 1,1 a zoom 11 a 1,5 a zoom 15; elegido,
+            // 1,2 veces eso: 1,32 y 1,8. La cápsula son 60 px de dibujo que
+            // entran a 3 por punto, así que a zoom 13, el de mirar el
+            // barrio, uno suelto mide 26 puntos y uno elegido 31,2.
+            //
+            // El suelto se quedaba en 17 puntos y después en 20,4 (0,7 y
+            // 1,0, luego 0,84 y 1,2), más chico que la cabeza del pin, y
+            // costaba encontrarlo antes de tocarlo, que es justo cuando hay
+            // que verlo. El elegido crece menos porque ya lo marcan el halo
+            // y el latido: con la proporción de antes, 1,27, a zoom 15 habría
+            // pasado de 38 puntos y taparía la calle por la que va.
             'interpolate',
             ['linear'],
             ['zoom'],
@@ -690,8 +710,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 ['get', 'isSelected'],
                 true
               ],
-              0.9,
-              0.7
+              1.32,
+              1.1
             ],
             15,
             [
@@ -701,8 +721,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 ['get', 'isSelected'],
                 true
               ],
-              1.25,
-              1.0
+              1.8,
+              1.5
             ]
           ],
           iconAllowOverlap: true,
@@ -1056,7 +1076,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _mapController!.setLayerProperties(
         _kBusHaloLayerId,
         CircleLayerProperties(
-          circleRadius: _haloPulseOut ? 27.0 : 16.0,
+          // 16 y 27 por 1,2: el latido crece con el halo y el bus.
+          circleRadius: _haloPulseOut ? 32.4 : 19.2,
           circleOpacity: _haloPulseOut ? 0.22 : 0.68,
           circleBlur: _haloPulseOut ? 0.95 : 0.5,
           circleStrokeOpacity: _haloPulseOut ? 0.3 : 1.0,
@@ -1072,7 +1093,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _mapController!.setLayerProperties(
         _kBusHaloLayerId,
         const CircleLayerProperties(
-          circleRadius: 20.0,
+          // El reposo de la capa: el mismo 24 con el que se crea.
+          circleRadius: 24.0,
           circleOpacity: 0.55,
           circleBlur: 0.75,
           circleStrokeOpacity: 0.9,
