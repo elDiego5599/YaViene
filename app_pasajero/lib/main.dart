@@ -1,5 +1,7 @@
 library;
 
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,9 +13,20 @@ import 'config.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_transitions.dart';
 import 'core/services/bus_notification_service.dart';
+import 'core/widgets/ink_hero.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lo primero es pintar. Antes el primer cuadro de Flutter salía después de
+  // Firebase y de saber a qué backend hablar, y esa pregunta va en serie:
+  // hasta 3 s por el principal y, si no contesta, hasta 20 s más por el
+  // respaldo (BackendResolver). Todo ese rato el teléfono se quedaba en la
+  // pantalla nativa, quieta, sin decir si la app seguía viva. Preguntar a los
+  // dos a la vez acortaría la espera, pero despertaría la máquina de respaldo
+  // en cada arranque aunque el principal conteste; la pregunta sigue en serie
+  // y lo que cambia es que la espera se ve.
+  runApp(const _ArranqueTemprano());
 
   // Se lanza ANTES de Firebase y se espera después: las dos cosas son
   // independientes, así que la pregunta por el backend viaja mientras Firebase
@@ -60,6 +73,91 @@ void main() async {
       child: const YaVieneApp(),
     ),
   );
+}
+
+/// Primer cuadro de la app mientras se resuelven Firebase y el backend.
+///
+/// Es una copia de la pantalla de arranque nativa, no una pantalla nueva: el
+/// mismo fondo de tinta y el logo de 84 en el mismo sitio, así que el relevo
+/// nativa → Flutter no se nota. Para que el logo caiga justo donde después lo
+/// deja el splash se usa el mismo `InkHero` con las mismas medidas; el nombre
+/// y la tagline van montados pero invisibles (ocupan su hueco y no se leen),
+/// porque el splash los hace entrar y, si ya estuvieran a la vista, se
+/// apagarían un instante en el relevo. Tampoco va el fondo de rutas: el
+/// splash lo arranca desde cero y aquí solo lo haría saltar.
+class _ArranqueTemprano extends StatefulWidget {
+  const _ArranqueTemprano();
+
+  @override
+  State<_ArranqueTemprano> createState() => _ArranqueTempranoState();
+}
+
+class _ArranqueTempranoState extends State<_ArranqueTemprano> {
+  /// Lo normal es que esta pantalla dure lo que tarda Firebase en arrancar,
+  /// unos cientos de milisegundos, y ahí no debe asomar nada: el indicador
+  /// aparecería y se iría al relevarla el splash. Solo si la espera pasa de
+  /// 1,5 s —ya no es un arranque normal; casi siempre es que el principal no
+  /// contesta— entra el indicador, para decir que la app está viva.
+  static const Duration _paciencia = Duration(milliseconds: 1500);
+
+  late final Timer _timer;
+  bool _lento = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(_paciencia, () {
+      if (mounted) setState(() => _lento = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  /// Monta la pieza con su tamaño pero sin mostrarla. Con opacidad 0,
+  /// `Opacity` la saca también del árbol de accesibilidad.
+  static Widget _invisible(
+    Widget child, {
+    double start = 0,
+    Offset begin = Offset.zero,
+  }) =>
+      Opacity(opacity: 0, child: child);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      home: Scaffold(
+        backgroundColor: AppColors.ink,
+        body: Center(
+          child: InkHero(
+            // Las mismas medidas que SplashScreen y que la pantalla nativa.
+            logoSize: 84,
+            spacingAfterLogo: 20,
+            // Sin vuelo: esta app se desmonta entera cuando llega la de
+            // verdad, no hay pantalla a la que volar.
+            heroTag: null,
+            entradaEscalonada: _invisible,
+            trailing: AnimatedOpacity(
+              opacity: _lento ? 1 : 0,
+              duration: AppMotion.normal,
+              // El mismo tamaño que el indicador del splash: con otro, la
+              // columna mediría distinto y el logo quedaría corrido.
+              child: const IndicadorCarga(
+                size: 26,
+                color: Color.fromRGBO(255, 255, 255, 0.75),
+                semanticsLabel: 'Conectando con Ya Viene',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _FirebaseInitFailedApp extends StatelessWidget {
