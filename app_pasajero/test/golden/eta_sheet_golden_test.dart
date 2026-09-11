@@ -97,6 +97,10 @@ void main() {
     // El `AnimatedSwitcher` de la hoja tarda; con un salto fijo la foto
     // sale siempre en el mismo fotograma.
     await tester.pump(const Duration(milliseconds: 400));
+    // Y otro tanto para el alto: la hoja lo sigue con `AnimatedSize`, y la
+    // tarjeta del bus termina de rellenarse —distancia, unidad, botón— un
+    // fotograma después de elegirlo, así que esa animación arranca tarde.
+    await tester.pump(const Duration(milliseconds: 400));
     return container;
   }
 

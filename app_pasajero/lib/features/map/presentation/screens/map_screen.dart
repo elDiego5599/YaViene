@@ -415,12 +415,33 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       launchBusesGuideKey: _launchBusesGuideKey,
                       onSearchOpened: _onSearchOpened,
                     ),
-                    if (!mapPreparing) ...[
-                      const SizedBox(height: 8),
-                      LocationStatusChip(routeId: selectedRoute?.id),
-                      const SizedBox(height: 8),
-                      const IdleStatusChip(),
-                    ],
+                    // Los dos estados aparecen cuando el mapa termina de
+                    // prepararse. Antes lo hacían de golpe, empujando la
+                    // cabecera un cuadro para otro; ahora se abren hacia
+                    // abajo mientras se funden.
+                    AnimatedSwitcher(
+                      duration: AppMotion.duracion(context, AppMotion.pausado),
+                      switchInCurve: AppMotion.curvaCambio,
+                      switchOutCurve: AppMotion.curvaCambio,
+                      transitionBuilder: (child, animation) => SizeTransition(
+                        sizeFactor: animation,
+                        alignment: Alignment.topCenter,
+                        child: FadeTransition(opacity: animation, child: child),
+                      ),
+                      child: mapPreparing
+                          ? const SizedBox.shrink(
+                              key: ValueKey('estados-ocultos'))
+                          : Column(
+                              key: const ValueKey('estados'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(height: 8),
+                                LocationStatusChip(routeId: selectedRoute?.id),
+                                const SizedBox(height: 8),
+                                const IdleStatusChip(),
+                              ],
+                            ),
+                    ),
                   ],
                 ),
               ),

@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../../../core/router/app_transitions.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
 import '../providers/map_guide_copy.dart';
@@ -50,7 +49,9 @@ class RouteSelectorSheet extends ConsumerStatefulWidget {
       // con la tarjeta plegada, que es justo lo que uno pliega para ver. Lo
       // dibuja la hoja, y así se aclara al mismo tiempo que ella baja.
       barrierColor: Colors.transparent,
-      transitionDuration: AppMotion.pausado,
+      // El paso de lo que recorre distancia de verdad: la tarjeta sube desde
+      // fuera de la pantalla, no un dedo.
+      transitionDuration: AppMotion.entrada,
       // La entrada la reparte la hoja por dentro: la tarjeta se desliza y el
       // velo solo se aclara. Un velo a pantalla completa que además sube
       // destapa una franja arriba mientras entra.
@@ -112,6 +113,27 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// lee el mismo valor, así que el mapa se aclara al ritmo del pulgar.
   late final AnimationController _presencia;
   final GlobalKey _tarjetaKey = GlobalKey();
+
+  /// La animación de la ruta con su curva: sube frenando y se va
+  /// despegándose. Se guarda junto a la ruta de la que sale y se rehace
+  /// solo si esta cambia, por lo mismo que en `FadeSlideTransition`: una
+  /// `CurvedAnimation` creada en cada `build` se queda enganchada como
+  /// oyente y nadie la suelta.
+  Animation<double>? _rutaDeLaLlegada;
+  CurvedAnimation? _llegada;
+
+  Animation<double> _llegadaDe(Animation<double> ruta) {
+    if (!identical(ruta, _rutaDeLaLlegada) || _llegada == null) {
+      _llegada?.dispose();
+      _rutaDeLaLlegada = ruta;
+      _llegada = CurvedAnimation(
+        parent: ruta,
+        curve: AppMotion.curvaEntrada,
+        reverseCurve: AppMotion.curvaSalida,
+      );
+    }
+    return _llegada!;
+  }
   double _altoTarjeta = 0;
 
   /// La salida ya empezó: el diálogo se cierra al terminar la animación y
@@ -147,6 +169,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   @override
   void dispose() {
     _routeHintTimer?.cancel();
+    _llegada?.dispose();
     _presencia.dispose();
     super.dispose();
   }
@@ -271,9 +294,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         _measuredKey == targetKey;
 
     // La animación de la ruta: el velo se aclara con ella y la tarjeta,
-    // además, entra deslizándose desde abajo.
-    final entrada =
-        ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
+    // además, sube desde abajo.
+    final entrada = _llegadaDe(
+        ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation);
 
     return Stack(
       key: _hostKey,
@@ -311,11 +334,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             ),
           ),
         ],
-        FadeSlideTransition(
-          animation: entrada,
-          begin: const Offset(0, 0.06),
-          child: _buildCard(context, descartable: !guided),
-        ),
+        _buildCard(context, descartable: !guided, llegada: entrada),
         if (showOverlay)
           Positioned.fill(
             child: MapGuideOverlay(
@@ -416,7 +435,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     });
   }
 
-  Widget _buildCard(BuildContext context, {required bool descartable}) {
+  Widget _buildCard(
+    BuildContext context, {
+    required bool descartable,
+    required Animation<double> llegada,
+  }) {
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
     // Descartar solo tiene sentido en la vista principal: en las listas el
     // gesto se apaga y el asa vuelve a ser un adorno.
@@ -433,12 +456,24 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         // así arranca exacta desde el primer fotograma, sin esperar a que
         // alguien la mida, y sigue siendo un desplazamiento —no un recorte—
         // que no reconstruye el contenido en cada paso.
+        //
+        // La entrada va por el mismo camino: la tarjeta sube entera desde
+        // abajo, frenando, como una hoja del sistema. Antes solo recorría un
+        // dedo mientras se fundía, y aparecía más que llegar. Con movimiento
+        // reducido no sube: se funde en su sitio.
         child: AnimatedBuilder(
-          animation: _presencia,
-          builder: (context, child) => FractionalTranslation(
-            translation: Offset(0, 1 - _presencia.value),
-            child: child,
-          ),
+          animation: Listenable.merge([_presencia, llegada]),
+          builder: (context, child) {
+            final reducido = AppMotion.reducido(context);
+            return Opacity(
+              opacity: reducido ? llegada.value : 1,
+              child: FractionalTranslation(
+                translation: Offset(
+                    0, 1 - _presencia.value * (reducido ? 1 : llegada.value)),
+                child: child,
+              ),
+            );
+          },
           child: Material(
             key: _tarjetaKey,
             // Misma superficie que la hoja de distancia (AppColors.arena):

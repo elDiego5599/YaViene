@@ -39,23 +39,30 @@ abstract final class AppMotion {
   // milisegundos de diferencia no se ven por separado; lo que sí se nota es
   // que dos cosas que empiezan juntas no acaben juntas. Cinco escalones, y
   // cada uno con un trabajo.
+  //
+  // Los cuatro de en medio se alargaron un poco (eran 180, 220, 280 y 360)
+  // al pasar a las curvas enfatizadas de más abajo: esas hacen casi todo el
+  // recorrido en el primer tercio, y con los tiempos viejos la llegada se
+  // comprimía tanto que el cambio se leía como un golpe. Con algo más de
+  // cola se ve frenar. `instante` no se toca: es respuesta al dedo, y ahí
+  // cualquier espera se nota como retraso.
 
   /// Respuesta al dedo: el color de un chip al pulsarlo, un botón que se
   /// hunde. Tiene que sentirse inmediato sin llegar a ser un corte.
   static const Duration instante = Duration(milliseconds: 120);
 
   /// Un elemento cambia por dentro sin moverse de sitio.
-  static const Duration rapido = Duration(milliseconds: 180);
+  static const Duration rapido = Duration(milliseconds: 200);
 
   /// El paso por defecto: lo que dura casi todo.
-  static const Duration normal = Duration(milliseconds: 220);
+  static const Duration normal = Duration(milliseconds: 280);
 
   /// Algo cambia de tamaño o de sitio: una hoja que se abre, una tarjeta
   /// que crece.
-  static const Duration pausado = Duration(milliseconds: 280);
+  static const Duration pausado = Duration(milliseconds: 360);
 
   /// Recorre distancia de verdad: entradas, superposiciones, guías.
-  static const Duration entrada = Duration(milliseconds: 360);
+  static const Duration entrada = Duration(milliseconds: 440);
 
   // --- Y para lo que no es un solo elemento ---
   //
@@ -87,11 +94,28 @@ abstract final class AppMotion {
 
   /// Entra: arranca suelto y frena al llegar, que es como se mueve algo que
   /// pesa.
-  static const Curve curvaEntrada = Curves.easeOutCubic;
+  ///
+  /// Es la desaceleración enfatizada de Material 3, no `easeOutCubic`: esa
+  /// frena de forma pareja y lo que llega parece clavarse en su sitio; esta
+  /// recorre casi todo el camino de entrada y se toma la última parte con
+  /// calma, que es donde el ojo mira.
+  static const Curve curvaEntrada = Cubic(0.05, 0.7, 0.1, 1.0);
 
   /// Sale: espejo de [curvaEntrada], para que ida y vuelta no se sientan de
-  /// dos aplicaciones distintas.
-  static const Curve curvaSalida = Curves.easeInCubic;
+  /// dos aplicaciones distintas. La aceleración enfatizada de Material 3:
+  /// se despega despacio y se va rápido, sin quedarse a medio camino.
+  ///
+  /// Puesta de `reverseCurve` o de `switchOutCurve` se recorre marcha
+  /// atrás, y ahí hace lo contrario: lo que sale se aparta de golpe y se
+  /// apaga despacio. Para un fundido que deja sitio a otra cosa es lo que
+  /// conviene —lo viejo no estorba a lo nuevo—, así que se deja también
+  /// en esos huecos.
+  static const Curve curvaSalida = Cubic(0.3, 0.0, 0.8, 0.15);
+
+  /// Algo que cambia de tamaño sin irse: la hoja de abajo que crece al
+  /// tocar un bus, una tarjeta que gana una línea. Arranca y llega con
+  /// suavidad, porque ni viene de fuera ni se va.
+  static const Curve curvaCambio = Curves.easeInOutCubicEmphasized;
 
   /// Va y vuelve sin parar —pulsos, latidos, esqueletos de carga—: sin
   /// arranque ni frenada marcados, o se oye el bucle.

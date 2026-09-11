@@ -181,7 +181,9 @@ void main() {
     await guide.complete(MapGuideStep.launchBuses);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
+    // La salida del selector dura `AppMotion.entrada` y arranca un
+    // fotograma tarde, porque el cierre lo pide un post-frame.
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(guide.state.step, MapGuideStep.buses);
     expect(find.text('Elige tu ruta'), findsNothing);

@@ -34,7 +34,10 @@ class AppDrawerState extends ConsumerState<AppDrawer>
     _entrance = AnimationController(vsync: this, duration: AppMotion.grupo);
     _curvaCierre = CurvedAnimation(
       parent: _entrance,
-      curve: const Interval(0.0, 0.4, curve: Curves.easeOutBack),
+      // Crece y frena, sin pasarse de tamaño: el rebote de `easeOutBack`
+      // que llevaba era lo único juguetón de un menú que por lo demás
+      // entra sobrio.
+      curve: const Interval(0.0, 0.4, curve: AppMotion.curvaEntrada),
     );
     _escalaCierre = Tween<double>(begin: 0.5, end: 1.0).animate(_curvaCierre);
     // Red de seguridad para la PRIMERA apertura: si onDrawerChanged llega
@@ -55,7 +58,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
   /// seguían evaluando su curva en cada cuadro de cada apertura.
   final Map<double, CurvedAnimation> _escalones = {};
 
-  /// El rebote de la X de cerrar, por lo mismo: una sola vez, no por build.
+  /// La entrada de la X de cerrar, por lo mismo: una sola vez, no por build.
   /// Se asignan en initState y no con un inicializador perezoso: uno de esos
   /// se crearía por primera vez dentro de dispose() si el drawer se desmonta
   /// sin haberse construido nunca, y quedaría enganchado a un controlador

@@ -86,7 +86,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 60));
   }
 
-  testWidgets('la X entra con rebote y termina en su tamaño', (tester) async {
+  testWidgets('la X entra creciendo y termina en su tamaño', (tester) async {
     await pumpDrawer(tester);
     await abrirAMedias(tester);
     expect(escalaDeLaX(tester), lessThan(1.0));
@@ -95,11 +95,12 @@ void main() {
     expect(escalaDeLaX(tester), 1.0);
   });
 
-  testWidgets('con movimiento reducido la X no rebota', (tester) async {
+  testWidgets('con movimiento reducido la X nace en su tamaño',
+      (tester) async {
     await pumpDrawer(tester, sinAnimaciones: true);
     await abrirAMedias(tester);
-    // Un rebote que se pasa de tamaño y vuelve es justo lo que molesta con
-    // «Reducir movimiento»: la X nace ya en su tamaño y se queda ahí.
+    // Crecer es movimiento, y eso es lo que apaga «Reducir movimiento»: la
+    // X nace ya en su tamaño y se queda ahí.
     expect(escalaDeLaX(tester), 1.0);
 
     await tester.pump(const Duration(milliseconds: 700));

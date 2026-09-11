@@ -148,7 +148,22 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       // la pantalla.
                       child: Center(
                         heightFactor: 1,
-                        child: Column(
+                        // Al elegir o quitar la ruta, el texto se releva
+                        // fundiéndose en vez de cambiar de un cuadro al
+                        // siguiente: la píldora es lo primero que se mira,
+                        // y ahí un corte seco se lee como un parpadeo.
+                        child: AnimatedSwitcher(
+                          duration:
+                              AppMotion.duracion(context, AppMotion.normal),
+                          // Encadenado, como en la hoja de abajo: dos
+                          // nombres cruzados a la vez no se leen.
+                          switchInCurve: const Interval(0.3, 1,
+                              curve: AppMotion.curvaEntrada),
+                          switchOutCurve: const Interval(0.6, 1,
+                              curve: AppMotion.curvaSalida),
+                          transitionBuilder: _relevoDeTexto,
+                          child: Column(
+                          key: ValueKey(selectedRoute?.id),
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Row(
@@ -201,16 +216,31 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                             ),
                           ],
                         ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              if (selectedRoute != null)
-                _buildCloseButton()
-              else
-                _buildFilterButton(),
+              // La X y el botón de filtros se relevan fundiéndose con un
+              // leve cambio de escala, como un icono que se convierte en
+              // otro, y no de un cuadro al siguiente.
+              AnimatedSwitcher(
+                duration: AppMotion.duracion(context, AppMotion.normal),
+                switchInCurve: AppMotion.curvaEntrada,
+                switchOutCurve: AppMotion.curvaSalida,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.8, end: 1).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: selectedRoute != null
+                    ? _buildCloseButton()
+                    : _buildFilterButton(),
+              ),
             ],
           ),
         ),
@@ -218,14 +248,34 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     );
   }
 
+  /// El relevo del texto de la píldora: fundido con un paso corto hacia
+  /// arriba, lo justo para que se lea que cambió sin que la píldora parezca
+  /// moverse.
+  Widget _relevoDeTexto(Widget child, Animation<double> animation) {
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset(0, 0.2 * AppMotion.desplazamiento(context)),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildActionButton({
+    required Key key,
     required Color iconColor,
     required IconData icon,
     required VoidCallback onTap,
     required String semanticLabel,
     bool filled = false,
   }) {
+    // La llave es la que deja al relevo de la cola distinguir la X del
+    // botón de filtros: sin ella son el mismo widget y cambian de golpe.
     return GestureDetector(
+      key: key,
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       onTapDown: (_) => setState(() => _actionPressed = true),
@@ -263,6 +313,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   /// campo de texto en iOS.
   Widget _buildCloseButton() {
     return _buildActionButton(
+      key: const ValueKey('pill-quitar-ruta'),
       iconColor: AppColors.textSecondary,
       filled: true,
       icon: Icons.close_rounded,
@@ -304,6 +355,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
 
   Widget _buildFilterButton() {
     return _buildActionButton(
+      key: const ValueKey('pill-filtro'),
       iconColor: AppColors.primaryDeep,
       icon: Icons.tune_rounded,
       semanticLabel: 'Cambiar ruta',

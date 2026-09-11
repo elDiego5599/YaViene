@@ -265,8 +265,8 @@ void main() {
         (tester) async {
       await pumpEntrada(tester, sinAnimaciones: true);
       await tester.pump();
-      // `easeOutBack` se pasa de tamaño y vuelve: eso es exactamente lo que
-      // apaga «Reducir movimiento». La tarjeta se funde, quieta.
+      // Crecer es movimiento, y eso es lo que apaga «Reducir movimiento».
+      // La tarjeta se funde, quieta.
       expect(escalaDeLaTarjeta(tester), 1.0);
 
       await tester.pump(const Duration(milliseconds: 120));

@@ -7,6 +7,12 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 class FadeSlidePageTransitionsBuilder extends PageTransitionsBuilder {
   const FadeSlidePageTransitionsBuilder();
 
+  /// Una pantalla entera es lo que más recorre: le toca el paso de las
+  /// entradas, no los 300 ms que trae el framework, que con la curva
+  /// enfatizada dejaban la llegada comprimida en un golpe.
+  @override
+  Duration get transitionDuration => AppMotion.entrada;
+
   @override
   Widget buildTransitions<T>(
     PageRoute<T> route,

@@ -473,35 +473,69 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   opacity: _opacidad,
                   child: KeyedSubtree(
                     key: _contenidoKey,
-                    child: AnimatedSwitcher(
-                      duration: AppMotion.duracion(context, AppMotion.normal),
-                      switchInCurve: AppMotion.curvaEntrada,
-                      switchOutCurve: AppMotion.curvaSalida,
-                      // El contenido entrante y el saliente se apilan por su
-                      // borde superior, que es el que no se mueve: apilados
-                      // por el centro (lo que hace por defecto) el texto
-                      // saltaba hacia arriba mientras la hoja todavía bajaba.
-                      layoutBuilder: (actual, anteriores) => Stack(
-                        alignment: Alignment.topCenter,
-                        children: [
-                          ...anteriores,
-                          if (actual != null) actual,
-                        ],
-                      ),
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            // Un dedo de recorrido, no más: acompaña al
-                            // pliegue en vez de competir con él.
-                            begin: Offset(
-                                0, 0.06 * AppMotion.desplazamiento(context)),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
+                    // El alto de la hoja sigue al del contenido. Sin esto,
+                    // al tocar un bus la hoja saltaba de un cuadro al
+                    // siguiente al alto de la tarjeta —y al soltarlo, al del
+                    // estado vacío—, y el fundido de dentro no lo
+                    // disimulaba: lo que el ojo sigue es el borde de arriba.
+                    child: AnimatedSize(
+                      duration: AppMotion.duracion(context, AppMotion.pausado),
+                      curve: AppMotion.curvaCambio,
+                      alignment: Alignment.topCenter,
+                      child: AnimatedSwitcher(
+                        duration:
+                            AppMotion.duracion(context, AppMotion.pausado),
+                        // Fundido encadenado: lo viejo se apaga en el primer
+                        // 40 % y lo nuevo entra a partir del 30 %. Cruzados a
+                        // la vez, el número del bus y el texto del estado
+                        // vacío se leían uno encima del otro a medio cambio.
+                        switchInCurve: const Interval(0.3, 1,
+                            curve: AppMotion.curvaEntrada),
+                        switchOutCurve: const Interval(0.6, 1,
+                            curve: AppMotion.curvaSalida),
+                        // El contenido entrante y el saliente se apilan por su
+                        // borde superior, que es el que no se mueve: apilados
+                        // por el centro (lo que hace por defecto) el texto
+                        // saltaba hacia arriba mientras la hoja todavía bajaba.
+                        //
+                        // Lo que sale va posicionado para que no cuente en el
+                        // alto: así el tamaño viaja directo al del contenido
+                        // nuevo en vez de esperar a que el viejo termine de
+                        // irse. Y sin recorte, porque el viejo puede ser más
+                        // alto que el alto que ya está menguando.
+                        layoutBuilder: (actual, anteriores) => SizedBox(
+                          width: double.infinity,
+                          child: Stack(
+                            alignment: Alignment.topCenter,
+                            clipBehavior: Clip.none,
+                            children: [
+                              for (final anterior in anteriores)
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: anterior,
+                                ),
+                              if (actual != null) actual,
+                            ],
+                          ),
                         ),
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              // Un dedo de recorrido, no más: acompaña al
+                              // pliegue en vez de competir con él.
+                              begin: Offset(
+                                  0, 0.06 * AppMotion.desplazamiento(context)),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                        child: child,
                       ),
-                      child: child,
                     ),
                   ),
                 ),
@@ -756,7 +790,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         mainAxisSize: MainAxisSize.min,
         children: [
           // Franja fina de estado: el color de la identidad en cada estado.
-          Container(
+          // Cuando el bus se acerca y cambia de tramo, el color pasa de uno
+          // a otro en vez de saltar.
+          AnimatedContainer(
+            duration: AppMotion.duracion(context, AppMotion.pausado),
+            curve: AppMotion.curvaCambio,
             height: 4,
             decoration: BoxDecoration(
               color: stripColor,
@@ -764,11 +802,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             ),
           ),
           const SizedBox(height: 18),
-          // Identidad del bus: "Bus SQA223" (ver `busTitulo`).
+          // Identidad del bus: "Bus SQA223" (ver `busTitulo`). Encabeza la
+          // tarjeta, así que va en `subtitulo` —negro y en negrita—, no en
+          // la etiqueta gris de 13 que se perdía encima del número.
           Text(
             busTitulo,
             textAlign: TextAlign.center,
-            style: AppTextStyles.etiqueta,
+            style: AppTextStyles.subtitulo,
           ),
           const SizedBox(height: 10),
           // Métrica principal: número grande que respira, o el estado en
@@ -783,19 +823,26 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  metricText,
-                  key: widget.metricKey,
-                  textAlign: TextAlign.center,
-                  // El número es `dato`, el rol que existe para él. Cuando
-                  // en su sitio va una palabra —"Sin señal", "Llegando"—
-                  // no cabe a 64 ni tendría sentido en w200: pasa a
-                  // `display`, que es el otro rol grande, y ocupa el mismo
-                  // hueco.
-                  style: (isNumberMetric
-                          ? AppTextStyles.dato
-                          : AppTextStyles.display)
-                      .copyWith(color: stripColor),
+                // El color del número acompaña al de la franja, al mismo
+                // paso: los dos dicen lo mismo y cambian juntos.
+                TweenAnimationBuilder<Color?>(
+                  tween: ColorTween(end: stripColor),
+                  duration: AppMotion.duracion(context, AppMotion.pausado),
+                  curve: AppMotion.curvaCambio,
+                  builder: (context, color, _) => Text(
+                    metricText,
+                    key: widget.metricKey,
+                    textAlign: TextAlign.center,
+                    // El número es `dato`, el rol que existe para él. Cuando
+                    // en su sitio va una palabra —"Sin señal", "Llegando"—
+                    // no cabe a 64 ni tendría sentido en w200: pasa a
+                    // `display`, que es el otro rol grande, y ocupa el mismo
+                    // hueco.
+                    style: (isNumberMetric
+                            ? AppTextStyles.dato
+                            : AppTextStyles.display)
+                        .copyWith(color: color),
+                  ),
                 ),
                 if (metricUnit != null) ...[
                   const SizedBox(height: 6),

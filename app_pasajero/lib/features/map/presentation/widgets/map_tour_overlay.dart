@@ -53,6 +53,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   /// enganchadas como oyentes de su controlador.
   late final CurvedAnimation _scale;
   late final CurvedAnimation _fade;
+  late final Animation<double> _escala;
 
   /// F14: pulso breve en el borde del hueco cuando un tap cae fuera — antes
   /// la barrera lo absorbía en silencio, sin ninguna señal de "ahí no es".
@@ -72,11 +73,14 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       vsync: this,
       duration: AppMotion.entrada,
     );
-    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    // `easeOutBack` se pasa de tamaño y vuelve: es el rebote que hace que la
-    // guía se sienta viva, y es exactamente lo que no debe hacer si el
-    // sistema pide menos movimiento. Se resuelve en `build` y no aquí porque
-    // el ajuste puede cambiar con la guía abierta.
+    _scale =
+        CurvedAnimation(parent: _controller, curve: AppMotion.curvaEntrada);
+    // La tarjeta crece poco —del 92 % a su tamaño— y frena sin pasarse,
+    // mientras se funde. Antes nacía de cero con `easeOutBack`, que se pasa
+    // de tamaño y vuelve: un rebote de juguete que desentonaba con el resto
+    // de la app. Con movimiento reducido no crece nada; se resuelve en
+    // `build` y no aquí porque el ajuste puede cambiar con la guía abierta.
+    _escala = Tween<double>(begin: 0.92, end: 1).animate(_scale);
     _fade = CurvedAnimation(parent: _controller, curve: AppMotion.curvaEntrada);
     _controller.forward();
 
@@ -99,7 +103,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   Animation<double> _escalaEntrada(BuildContext context) =>
       AppMotion.reducido(context)
           ? const AlwaysStoppedAnimation<double>(1)
-          : _scale;
+          : _escala;
 
   @override
   void dispose() {
@@ -143,9 +147,14 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 380),
-                    child: ScaleTransition(
-                      scale: _escalaEntrada(context),
-                      child: KeyedSubtree(key: _cardKey, child: card),
+                    // Se funde a la vez que crece: sin fundido, empezar en
+                    // el 92 % era aparecer de golpe un poco más pequeña.
+                    child: FadeTransition(
+                      opacity: _fade,
+                      child: ScaleTransition(
+                        scale: _escalaEntrada(context),
+                        child: KeyedSubtree(key: _cardKey, child: card),
+                      ),
                     ),
                   ),
                 ),
