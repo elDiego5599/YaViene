@@ -305,12 +305,16 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   /// (cierre de sesión) no se relanza la localización: la sesión terminó y
   /// dejar el GPS corriendo en el login filtraría ubicación sin usuario.
   Future<void> clearManualPin({bool resumeGps = true}) async {
+    // Lo primero, antes de cualquier `await`: mientras se borraba el pin del
+    // disco el stream del GPS seguía vivo, y una lectura que llegara en ese
+    // hueco escribía una posición después del cierre de sesión. Si toca
+    // volver al GPS, `_locate` abre una suscripción nueva.
+    _gpsSub?.cancel();
+    _gpsSub = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kManualLat);
     await prefs.remove(_kManualLon);
     if (!resumeGps) {
-      _gpsSub?.cancel();
-      _gpsSub = null;
       state = const UserLocationState(mode: UserLocationMode.denied);
       return;
     }
