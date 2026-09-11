@@ -165,6 +165,54 @@ void main() {
     expect(currentBuses(container, 'R-101') ?? const [], isEmpty);
   });
 
+  // Los eventos llegan sin tipar. Un campo con otro tipo lanzaba dentro del
+  // `listen`, y un error sin recoger ahí tumba el test.
+  test('eventos con campos de otro tipo se descartan sin lanzar', () async {
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+    await pumpEventQueue();
+
+    fake._batch.add({
+      'routeId': 'R-101',
+      'buses': [_busJson('BUS-A1', 'R-101')],
+    });
+    await pumpEventQueue();
+
+    fake._batch.add({'routeId': 123, 'buses': const []});
+    fake._busLeft.add({'routeId': 'R-101', 'busId': 5});
+    fake._busRemoved.add({
+      'routeId': 'R-101',
+      'busId': ['BUS-A1'],
+    });
+    fake._busVisible.add({'routeId': 'R-101', 'busId': 7, 'eventId': 'e-1'});
+    await pumpEventQueue();
+
+    final buses = currentBuses(container, 'R-101');
+    expect(buses!.map((b) => b.busId), ['BUS-A1']);
+  });
+
+  test('bus:visible con la posición de otro bus o de otra ruta se ignora',
+      () async {
+    container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+    await pumpEventQueue();
+
+    fake._batch.add({'routeId': 'R-101', 'buses': const []});
+    fake._busVisible.add({
+      'routeId': 'R-101',
+      'busId': 'BUS-A1',
+      'eventId': 'e-1',
+      'position': _busJson('BUS-OTRO', 'R-101'),
+    });
+    fake._busVisible.add({
+      'routeId': 'R-101',
+      'busId': 'BUS-A2',
+      'eventId': 'e-2',
+      'position': _busJson('BUS-A2', 'R-999'),
+    });
+    await pumpEventQueue();
+
+    expect(currentBuses(container, 'R-101') ?? const [], isEmpty);
+  });
+
   group('nearbyBusesCountProvider (2 km)', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});

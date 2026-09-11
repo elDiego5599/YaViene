@@ -32,8 +32,20 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
 
   bool belongsTo(dynamic routeId) => routeIds.contains(routeId);
 
+  // Los eventos llegan del socket como JSON sin tipar. Un `as String?` sobre
+  // un campo que venga con otro tipo (un busId numérico, un routeId dentro de
+  // una lista) lanzaba dentro del `listen`, fuera de cualquier `try`: el
+  // error se escapaba por la zona y el evento se perdía a medias. Ahora un
+  // campo que no es texto con contenido cuenta como ausente, y el evento que
+  // lo necesita se descarta entero.
+  String? texto(Object? valor) {
+    if (valor is! String) return null;
+    final limpio = valor.trim();
+    return limpio.isEmpty ? null : limpio;
+  }
+
   final batchSub = service.batchPositionStream.listen((batch) {
-    final routeId = batch['routeId'] as String?;
+    final routeId = texto(batch['routeId']);
     if (routeId == null || !belongsTo(routeId)) return;
     final buses = batch['buses'];
     positions.clear();
@@ -63,7 +75,7 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
 
   final leftSub = service.busLeftStream.listen((event) {
     if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
-    final busId = event['busId'] as String?;
+    final busId = texto(event['busId']);
     if (busId != null && positions.remove(busId) != null) {
       emitSnapshot();
     }
@@ -71,8 +83,10 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
 
   final hiddenSub = service.busHiddenStream.listen((event) {
     if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
-    final eventId = event['eventId'] as String?;
-    final busId = event['busId'] as String?;
+    // Un eventId que no es texto se trata como si no viniera: se pierde la
+    // deduplicación, pero ocultar dos veces el mismo bus no cambia nada.
+    final eventId = texto(event['eventId']);
+    final busId = texto(event['busId']);
     if (busId == null) return;
     if (eventId != null) {
       if (!processedEventIds.add(eventId)) return;
@@ -85,7 +99,7 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
 
   final removedSub = service.busRemovedStream.listen((event) {
     if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
-    final busId = event['busId'] as String?;
+    final busId = texto(event['busId']);
     if (busId != null && positions.remove(busId) != null) {
       emitSnapshot();
     }
@@ -93,8 +107,8 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
 
   final visibleSub = service.busVisibleStream.listen((event) {
     if (event['routeId'] != null && !belongsTo(event['routeId'])) return;
-    final eventId = event['eventId'] as String?;
-    final busId = event['busId'] as String?;
+    final eventId = texto(event['eventId']);
+    final busId = texto(event['busId']);
     if (busId == null) return;
     if (eventId != null) {
       if (!processedEventIds.add(eventId)) return;
@@ -109,7 +123,10 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
         return;
       }
       final pos = safeBusPosition(json);
-      if (pos != null) {
+      // La posición tiene que ser la del bus que el evento dice y de una ruta
+      // de este stream. Si no, quedaba guardada con la llave de otro bus, o
+      // pintaba en esta ruta un bus que va por otra.
+      if (pos != null && pos.busId == busId && belongsTo(pos.routeId)) {
         positions[busId] = pos;
         emitSnapshot();
       }
