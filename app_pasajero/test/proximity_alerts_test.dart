@@ -88,6 +88,51 @@ void main() {
     expect(fired.single.distanceMeters, lessThan(500));
   });
 
+  // `Timer.periodic` no espera al barrido anterior. Con una notificación
+  // lenta (el primer aviso en iOS espera a que se conteste el permiso), el
+  // barrido siguiente veía el mismo bus todavía sin marcar y avisaba otra vez.
+  test('dos barridos encimados no avisan dos veces el mismo bus', () async {
+    final suelta = Completer<bool>();
+    var llamadas = 0;
+    final c = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+      busPositionsSourceProvider.overrideWith(
+        (ref, routeId) => Stream.value([busA]),
+      ),
+      proximityAlertsProvider.overrideWith((ref) {
+        return ProximityAlertsNotifier(
+          ref,
+          notify: (
+              {required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters}) {
+            llamadas++;
+            return suelta.future;
+          },
+        );
+      }),
+    ]);
+    addTearDown(c.dispose);
+    (c.read(userLocationProvider.notifier) as _TestUserLocation).set(userHere);
+    final sub = c.listen<AsyncValue<List<BusPosition>>>(
+      busPositionsSourceProvider('R1'),
+      (_, __) {},
+    );
+    addTearDown(sub.close);
+    await Future<void>.delayed(Duration.zero);
+    c.read(selectedRouteProvider.notifier).select(route());
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+
+    final notifier = c.read(proximityAlertsProvider.notifier);
+    final primero = notifier.check();
+    await notifier.check();
+    suelta.complete(true);
+    await primero;
+
+    expect(llamadas, 1);
+  });
+
   test('no notifica dos veces por el mismo acercamiento', () async {
     container.read(selectedRouteProvider.notifier).select(route());
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');

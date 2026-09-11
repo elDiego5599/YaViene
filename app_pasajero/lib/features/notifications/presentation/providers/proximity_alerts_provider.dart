@@ -239,7 +239,26 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     super.dispose();
   }
 
+  /// Hay un barrido en curso. `Timer.periodic` dispara cada 5 s sin esperar
+  /// a que el anterior termine, y el barrido espera a que cada notificación
+  /// se muestre: el primer aviso en iOS se queda esperando a que la persona
+  /// conteste el permiso, y ese rato puede durar varios ticks. El tick
+  /// siguiente veía el mismo bus dentro del radio, todavía sin marcar, y lo
+  /// avisaba otra vez. Mientras uno corre, los que llegan se saltan; el
+  /// siguiente tick libre vuelve a medir con datos frescos.
+  bool _checkInFlight = false;
+
   Future<void> _check() async {
+    if (_checkInFlight) return;
+    _checkInFlight = true;
+    try {
+      await _checkOnce();
+    } finally {
+      _checkInFlight = false;
+    }
+  }
+
+  Future<void> _checkOnce() async {
     if (_monitoringPaused) return;
     final alerts = _ref.read(activeAlertsProvider);
     if (alerts.isEmpty) {
