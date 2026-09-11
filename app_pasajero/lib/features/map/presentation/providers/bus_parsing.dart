@@ -12,6 +12,18 @@ BusPosition? safeBusPosition(Map<String, dynamic> json) {
   }
 }
 
+/// El `timestamp` lo pone el servidor al recibir la posición, y el reloj del
+/// teléfono no es el suyo: puede ir unos minutos corrido si alguien lo puso a
+/// mano. Diez minutos de holgura cubren eso sin dejar pasar una fecha que no
+/// tiene sentido.
+const Duration _holguraDeReloj = Duration(minutes: 10);
+
+/// Lo más vieja que puede llegar una posición que el servidor todavía da por
+/// viva: a los 5 min sin publicar el bus pasa a «sin señal» (`GHOST_MS` en el
+/// backend) y el barrido que lo marca corre cada 10 s. Una posición en vivo
+/// más vieja que eso, holgura aparte, es un resto que no debería llegar.
+const Duration _vidaEnVivo = Duration(minutes: 5, seconds: 10);
+
 BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
   final lat = (json['lat'] as num?)?.toDouble();
   final lon = (json['lon'] as num?)?.toDouble();
@@ -31,6 +43,22 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
       lon > 180) {
     throw const FormatException('posición fuera de rango');
   }
+  // Antes una fecha que faltaba o no se entendía se volvía `DateTime.now()`,
+  // y el bus salía como recién reportado aunque la posición tuviera horas.
+  final timestamp = DateTime.tryParse(json['timestamp'] as String? ?? '');
+  if (timestamp == null) {
+    throw const FormatException('posición sin fecha válida');
+  }
+  final isGhost = json['isGhost'] as bool? ?? false;
+  final ahora = DateTime.now();
+  if (timestamp.difference(ahora) > _holguraDeReloj) {
+    throw const FormatException('posición con fecha del futuro');
+  }
+  // Los buses sin señal no tienen tope: su fecha vieja es justo lo que se
+  // enseña («Sin señal · hace 2 h»).
+  if (!isGhost && ahora.difference(timestamp) > _vidaEnVivo + _holguraDeReloj) {
+    throw const FormatException('posición en vivo demasiado vieja');
+  }
   return BusPosition(
     busId: busId,
     routeId: routeId,
@@ -39,8 +67,7 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
     heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
     speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
     sentido: json['sentido'] as String?,
-    timestamp:
-        DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
-    isGhostBus: json['isGhost'] as bool? ?? false,
+    timestamp: timestamp,
+    isGhostBus: isGhost,
   );
 }
