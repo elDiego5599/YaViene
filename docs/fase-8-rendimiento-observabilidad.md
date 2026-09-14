@@ -25,7 +25,7 @@ Ejemplo:
 
 ```bash
 curl http://localhost:3000/api/metrics \
-  -H 'x-admin-key: CLAVE_ADMIN'
+  -H 'x-admin-key: CLAVE_ADMIN'  # gitleaks:allow
 ```
 
 ## Cambios Conductor

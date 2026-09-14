@@ -50,9 +50,10 @@ Produccion:
 Ejemplo local:
 
 ```bash
+ADMIN_KEY='una-clave-administrativa-local'  # gitleaks:allow
 curl -X POST http://localhost:3000/api/admin/drivers \
   -H 'Content-Type: application/json' \
-  -H 'x-admin-key: una-clave-administrativa-local' \
+  -H "x-admin-key: $ADMIN_KEY" \
   -d '{
     "phoneNumber": "3000000000",
     "name": "Conductor de prueba",

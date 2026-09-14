@@ -1,0 +1,16 @@
+# Hallazgos del historial revisados uno por uno (T3.12). Cada huella va con
+# su motivo. Formato: commit:archivo:regla:línea.
+#
+# Hoy los dos ejemplos siguen en los docs, pero en el árbol se silencian en
+# su propia línea con `gitleaks:allow`. Las huellas cubren los commits viejos,
+# que ya no se pueden marcar.
+
+# Motivo: ejemplo de documentación, no un secreto. `CLAVE_ADMIN` es un
+# marcador en un curl de muestra contra localhost (commit 826e3e0, «limita la
+# frecuencia de seguimiento y documenta operaciones»).
+826e3e0624aa21acb753f432e72045a9361c766a:docs/fase-8-rendimiento-observabilidad.md:curl-auth-header:27
+
+# Motivo: ejemplo de documentación, no un secreto.
+# `una-clave-administrativa-local` es un marcador en un curl de muestra contra
+# localhost (commit 1eb4779, «login autenticado del conductor»).
+1eb477918f8e768ca536261443eb983aaaf1b4f9:docs/fase-2-seguridad.md:curl-auth-header:53
