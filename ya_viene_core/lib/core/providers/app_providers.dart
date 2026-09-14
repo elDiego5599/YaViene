@@ -57,6 +57,20 @@ class BackendUrl extends Notifier<String> {
   }
 }
 
+/// Si la app habla ahora con el respaldo y no con el principal.
+///
+/// Con D1 = espejo de la demo, el respaldo sirve una flota simulada a
+/// propósito; el panel y el pasajero lo dicen en una línea para que nadie
+/// confunda esa flota con la del túnel. Una URL fija, o un respaldo que es el
+/// mismo principal, nunca lo está.
+final enRespaldoProvider = Provider<bool>((ref) {
+  final url = ref.watch(backendUrlProvider);
+  final backend = ref.watch(backendUrlProvider.notifier);
+  return backend.respaldo.isNotEmpty &&
+      backend.respaldo != backend.principal &&
+      url == backend.respaldo;
+});
+
 Future<List<T>> _getJsonList<T>(
   String backendUrl,
   String path,

@@ -457,6 +457,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               metricUnitKey: _metricUnitGuideKey,
               detailKey: _detailGuideKey,
               onGuideAlertBlocked: _onGuideAlertBlocked,
+              enRespaldo: ref.watch(enRespaldoProvider),
             ),
           ),
           if (visibleStep != null && copy != null)

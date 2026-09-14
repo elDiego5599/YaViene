@@ -48,6 +48,7 @@ void main() {
     WidgetTester tester, {
     required List<BusPosition> buses,
     bool conUbicacion = true,
+    bool enRespaldo = false,
   }) async {
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
@@ -72,11 +73,11 @@ void main() {
         child: marcoGolden(
           // Abajo del todo, como en el mapa (`map_screen.dart:360-364`):
           // así la foto también vigila el respeto al área segura inferior.
-          const ColoredBox(
-            color: Color(0xFFE8E6E1),
+          ColoredBox(
+            color: const Color(0xFFE8E6E1),
             child: Align(
               alignment: Alignment.bottomCenter,
-              child: EtaBottomSheet(),
+              child: EtaBottomSheet(enRespaldo: enRespaldo),
             ),
           ),
         ),
@@ -147,5 +148,20 @@ void main() {
     fijarPantalla(tester, escalaTexto: 1.3);
     await montar(tester, buses: [_busA(0.007645)]);
     await coincideConOro(tester, 'hoja_metros_texto_grande');
+  });
+
+  // En el respaldo (T2.3), con la tarjeta del bus, que es la cara más alta
+  // de la hoja. Al 100% y al 200%, que es el techo de la hoja: si la línea
+  // de más no cupiera ahí, se desbordaría aquí y no en un teléfono.
+  testWidgets('hoja · en el respaldo', (tester) async {
+    fijarPantalla(tester);
+    await montar(tester, buses: [_busA(0.007645)], enRespaldo: true);
+    await coincideConOro(tester, 'hoja_respaldo');
+  });
+
+  testWidgets('hoja · en el respaldo, texto al 200%', (tester) async {
+    fijarPantalla(tester, escalaTexto: 2.0);
+    await montar(tester, buses: [_busA(0.007645)], enRespaldo: true);
+    await coincideConOro(tester, 'hoja_respaldo_texto_doble');
   });
 }

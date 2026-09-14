@@ -27,6 +27,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
     this.metricUnitKey,
     this.detailKey,
     this.onGuideAlertBlocked,
+    this.enRespaldo = false,
   });
 
   /// GlobalKey sobre el botón de aviso: el tour de primer uso lo mide para
@@ -36,6 +37,12 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   final GlobalKey? metricUnitKey;
   final GlobalKey? detailKey;
   final ValueChanged<bool>? onGuideAlertBlocked;
+
+  /// Si la app habla con el respaldo (T2.3): la hoja lo dice en una línea
+  /// discreta. Lo pasa el mapa desde `enRespaldoProvider`; la hoja no lee la
+  /// configuración del backend por su cuenta, así que montarla en una prueba
+  /// no pide backend.
+  final bool enRespaldo;
 
   @override
   ConsumerState<EtaBottomSheet> createState() => _EtaBottomSheetState();
@@ -460,6 +467,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   ),
                 ),
               ),
+              // En el respaldo, una línea lo dice (T2.3). Va fuera del
+              // pliegue: plegada la hoja, los buses del mapa siguen siendo
+              // los del respaldo, así que la línea no se esconde con el
+              // resto. Y aparte del contenido, para no tocar lo que dice
+              // cada estado, el «Toca un bus en el mapa» incluido.
+              if (widget.enRespaldo)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Text(
+                    'Conectado al respaldo',
+                    key: const ValueKey('sheet-respaldo'),
+                    style: AppTextStyles.pie,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               // El pliegue: el alto se recorta anclado bajo el asa —dentro
               // del contenedor, no fuera— para que nunca coma las esquinas
               // redondeadas mientras la hoja crece o baja. El factor es el

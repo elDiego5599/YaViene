@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ya_viene_core/core/providers/app_providers.dart'
+    show enRespaldoProvider;
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/clock_widget.dart';
@@ -192,7 +194,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Header(
+          DashboardHeader(
             connection: fleet.connection,
             onLogout: _logout,
           ),
@@ -282,8 +284,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({
+/// La cabecera del panel. Pública solo para probarla sin montar el mapa.
+@visibleForTesting
+class DashboardHeader extends ConsumerWidget {
+  const DashboardHeader({
+    super.key,
     required this.connection,
     required this.onLogout,
   });
@@ -292,7 +297,10 @@ class _Header extends StatelessWidget {
   final VoidCallback onLogout;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Con D1 = espejo de la demo, el respaldo sirve una flota simulada: el
+    // operador tiene que saber que lo que ve no es la flota del túnel.
+    final enRespaldo = ref.watch(enRespaldoProvider);
     final (label, color) = switch (connection) {
       FleetConnection.connected => ('En línea', AppColors.online),
       FleetConnection.disconnected => ('Sin conexión', AppColors.danger),
@@ -345,6 +353,17 @@ class _Header extends StatelessWidget {
             ],
           ),
           const Spacer(),
+          if (enRespaldo) ...[
+            Text(
+              'Conectado al respaldo',
+              style: AppType.ui(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
