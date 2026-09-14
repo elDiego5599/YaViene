@@ -10,7 +10,7 @@ class FleetBus {
     this.routeId,
     this.lat,
     this.lon,
-    this.heading = 0,
+    this.heading,
     this.speedKmh = 0,
     this.capturedAt,
     this.receivedAt,
@@ -31,7 +31,7 @@ class FleetBus {
       online: json['online'] == true,
       lat: (json['lat'] as num?)?.toDouble(),
       lon: (json['lon'] as num?)?.toDouble(),
-      heading: (json['heading'] as num?)?.toDouble() ?? 0,
+      heading: (json['heading'] as num?)?.toDouble(),
       speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0,
       capturedAt: (json['capturedAt'] as num?)?.toInt(),
       receivedAt: (json['receivedAt'] as num?)?.toInt(),
@@ -50,7 +50,10 @@ class FleetBus {
   final bool online;
   final double? lat;
   final double? lon;
-  final double heading;
+
+  /// Grados en [0, 360); null si el bus no lo mandó. Una posición sin rumbo
+  /// deja el que había (`copyWith`) en vez de girar el bus hacia el norte.
+  final double? heading;
   final double speedKmh;
   final int? capturedAt;
   final int? receivedAt;

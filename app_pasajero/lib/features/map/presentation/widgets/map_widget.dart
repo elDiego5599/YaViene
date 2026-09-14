@@ -883,8 +883,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     for (final entry in byId.entries) {
       final id = entry.key;
-      final pos = entry.value;
       final prev = _rawBuses[id];
+      final pos = conRumboAnterior(entry.value, prev);
       _rawBuses[id] = pos;
       // Llegó paquete suyo: aunque no se haya movido un metro pueden haber
       // cambiado la velocidad o el estado de fantasma, que también se pintan.
@@ -903,14 +903,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final existing = _busMotions[id];
       final from = existing != null && !existing.isFinished(now)
           ? displayOf(existing, now)
-          : (prev.lat, prev.lon, prev.heading);
+          : (prev.lat, prev.lon, prev.heading ?? pos.heading ?? 0.0);
       _busMotions[id] = BusMotion(
         fromLat: from.$1,
         fromLon: from.$2,
         fromHeading: from.$3,
         toLat: pos.lat,
         toLon: pos.lon,
-        toHeading: pos.heading,
+        // Sin rumbo conocido, el bus avanza sin girar.
+        toHeading: pos.heading ?? from.$3,
         start: now,
       );
     }
@@ -1022,7 +1023,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       }
       final display = motion != null
           ? displayOf(motion, now)
-          : (pos.lat, pos.lon, pos.heading);
+          : (pos.lat, pos.lon, pos.heading ?? 0.0);
       final feature = <String, Object?>{
         'type': 'Feature',
         'geometry': {

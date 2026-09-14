@@ -64,7 +64,8 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
     routeId: routeId,
     lat: lat,
     lon: lon,
-    heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
+    // Sin rumbo queda null: rellenarlo con 0 giraba el bus hacia el norte.
+    heading: (json['heading'] as num?)?.toDouble(),
     speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
     sentido: json['sentido'] as String?,
     timestamp: timestamp,

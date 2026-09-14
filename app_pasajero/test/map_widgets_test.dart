@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/halo_painter.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_bus_animator.dart';
@@ -60,6 +61,26 @@ void main() {
             start.add(const Duration(seconds: 2)),
           ),
           isTrue);
+    });
+
+    // El backend guarda NULL cuando el bus no manda rumbo. Pintarlo como 0 lo
+    // giraba hacia el norte en cada paquete.
+    test('una posición sin rumbo se queda con el del paquete anterior', () {
+      BusPosition pos(double? heading) => BusPosition(
+            busId: 'B-1',
+            routeId: 'R-101',
+            lat: 10.98,
+            lon: -74.8,
+            heading: heading,
+            speedKmh: 20,
+            timestamp: DateTime(2026, 9, 14, 12),
+            isGhostBus: false,
+          );
+      expect(conRumboAnterior(pos(null), pos(90)).heading, 90);
+      expect(conRumboAnterior(pos(0), pos(90)).heading, 0,
+          reason: '0 es el norte, un rumbo de verdad');
+      expect(conRumboAnterior(pos(null), null).heading, isNull);
+      expect(conRumboAnterior(pos(null), pos(null)).heading, isNull);
     });
 
     test('displayOf interpola lineal y heading por arco corto', () {

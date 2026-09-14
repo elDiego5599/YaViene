@@ -44,4 +44,19 @@ void main() {
       throwsFormatException,
     );
   });
+
+  // El backend guarda NULL cuando el bus no manda rumbo. Rellenarlo con 0 lo
+  // volvía el norte.
+  test('BusPosition sin rumbo lo deja vacío, y el 0 sigue siendo el norte', () {
+    const base = {
+      'busId': 'B-042',
+      'routeId': 'R-101',
+      'lat': 10.99,
+      'lon': -74.80,
+    };
+    Map<String, dynamic> con(Object? heading) => {...base, 'heading': heading};
+    expect(BusPosition.fromJson(base).heading, isNull);
+    expect(BusPosition.fromJson(con(null)).heading, isNull);
+    expect(BusPosition.fromJson(con(0)).heading, 0);
+  });
 }

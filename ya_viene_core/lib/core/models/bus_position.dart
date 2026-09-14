@@ -5,7 +5,10 @@ class BusPosition extends Equatable {
   final String routeId;
   final double lat;
   final double lon;
-  final double heading;
+
+  /// Grados en [0, 360); null si el bus no lo mandó. No se rellena con 0,
+  /// porque 0 es el norte.
+  final double? heading;
   final double speedKmh;
 
   /// Sentido de marcha reportado por el bus: "ida" o "venida" (null si el
@@ -62,7 +65,7 @@ class BusPosition extends Equatable {
       routeId: routeId,
       lat: lat,
       lon: lon,
-      heading: (json['heading'] as num?)?.toDouble() ?? 0.0,
+      heading: (json['heading'] as num?)?.toDouble(),
       speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
       sentido: json['sentido'] as String?,
       timestamp: parsedTimestamp,

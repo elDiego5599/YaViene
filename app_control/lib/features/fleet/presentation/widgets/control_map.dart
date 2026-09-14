@@ -133,7 +133,8 @@ class _ControlMapState extends ConsumerState<ControlMap> {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Transform.rotate(
-          angle: bus.heading * math.pi / 180,
+          // Un bus del que nunca llegó rumbo se pinta sin girar.
+          angle: (bus.heading ?? 0) * math.pi / 180,
           child: CustomPaint(
             size: Size.square(size),
             painter: _FlatBusPainter(

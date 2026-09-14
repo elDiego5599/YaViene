@@ -60,14 +60,15 @@ class _FakeSocket extends FleetSocketService {
 
 /// Lo que manda el backend en `bus:position` al panel: la posición, sin
 /// placa, interno ni conductor.
-FleetBus _posicion(String busId, {int sequence = 1, bool isGhost = false}) =>
+FleetBus _posicion(String busId,
+        {int sequence = 1, bool isGhost = false, bool conRumbo = true}) =>
     FleetBus.fromJson({
       'busId': busId,
       'companyId': 'c-1',
       'routeId': 'R-1',
       'lat': 10.98 + sequence / 10000,
       'lon': -74.8,
-      'heading': 90,
+      if (conRumbo) 'heading': 90,
       'speedKmh': 20,
       'capturedAt': 1000 + sequence,
       'receivedAt': 1000 + sequence,
@@ -230,6 +231,21 @@ void main() {
       await _vaciar();
       return (notifier, socket, api);
     }
+
+    // El backend guarda NULL cuando el bus no manda rumbo. Leerlo como 0
+    // giraba el bus hacia el norte en cada posición.
+    test('una posición sin rumbo deja el bus mirando hacia donde iba', () async {
+      final (notifier, socket, _) = await arrancar();
+
+      socket.posiciones.add(_posicion('B-1', sequence: 1));
+      await _vaciar();
+      expect(notifier.state.buses['B-1']!.heading, 90);
+
+      socket.posiciones.add(_posicion('B-1', sequence: 2, conRumbo: false));
+      await _vaciar();
+      expect(notifier.state.buses['B-1']!.sequence, 2);
+      expect(notifier.state.buses['B-1']!.heading, 90);
+    });
 
     test('una posición en vivo no borra placa, interno ni conductor', () async {
       final (notifier, socket, _) = await arrancar();

@@ -53,4 +53,15 @@ void main() {
     expect(fantasma, isNotNull);
     expect(fantasma!.isGhostBus, isTrue);
   });
+
+  // El backend guarda NULL cuando el bus no manda rumbo. Rellenarlo con 0 lo
+  // giraba hacia el norte.
+  test('sin rumbo la posición pasa con el rumbo vacío; el 0 es el norte', () {
+    final ahora = DateTime.now().toIso8601String();
+    expect(safeBusPosition(_json(timestamp: ahora))!.heading, isNull);
+    expect(
+      safeBusPosition({..._json(timestamp: ahora), 'heading': 0})!.heading,
+      0,
+    );
+  });
 }
