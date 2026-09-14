@@ -287,26 +287,34 @@ class _Legend extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.softShadow,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'LEYENDA',
-            style: AppType.ui(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.6,
-              color: AppColors.textMuted,
+      // `IntrinsicWidth` y filas estiradas para que las tres cifras caigan
+      // una encima de otra. Con cada fila a su ancho, la cifra iba pegada
+      // detrás del nombre, y como «En línea», «Sin señal» y «Ocultos» miden
+      // distinto, los tres números salían cada uno a una altura. Así la
+      // caja mide lo que la fila más ancha y el `Spacer` de cada fila
+      // empuja su cifra hasta el borde derecho.
+      child: IntrinsicWidth(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'LEYENDA',
+              style: AppType.ui(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.6,
+                color: AppColors.textMuted,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          // Los puntos son los colores del marcador, no los del estado en
-          // la lista: esta caja explica lo que hay dibujado sobre el mapa.
-          _legendRow(AppColors.busActive, 'En línea', online),
-          _legendRow(AppColors.busGhost, 'Sin señal', offline),
-          _legendRow(AppColors.hidden, 'Ocultos', hidden),
-        ],
+            const SizedBox(height: 6),
+            // Los puntos son los colores del marcador, no los del estado en
+            // la lista: esta caja explica lo que hay dibujado sobre el mapa.
+            _legendRow(AppColors.busActive, 'En línea', online),
+            _legendRow(AppColors.busGhost, 'Sin señal', offline),
+            _legendRow(AppColors.hidden, 'Ocultos', hidden),
+          ],
+        ),
       ),
     );
   }
@@ -315,7 +323,6 @@ class _Legend extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.5),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 9,
@@ -337,7 +344,10 @@ class _Legend extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+          // Los 8 son el mínimo con el nombre más largo; en las otras dos
+          // filas el `Spacer` se queda con lo que sobra.
           const SizedBox(width: 8),
+          const Spacer(),
           Text(
             '$count',
             style: AppType.ui(
