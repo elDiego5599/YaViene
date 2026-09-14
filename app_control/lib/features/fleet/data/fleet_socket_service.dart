@@ -7,8 +7,12 @@ import '../../../../config.dart';
 import '../domain/fleet_bus.dart';
 
 class FleetSocketService {
-  FleetSocketService({required this.token});
+  FleetSocketService({required this.baseUrl, required this.token});
 
+  /// El backend que resolvió el arranque (`backendUrlProvider`). Antes era
+  /// `AppConfig.backendUrl`, fijo: si el túnel no contestaba y el panel
+  /// entraba por el respaldo, el REST iba a un sitio y el socket a otro.
+  final String baseUrl;
   final String token;
 
   io.Socket? _socket;
@@ -39,7 +43,7 @@ class FleetSocketService {
     if (_socket?.connected == true) return;
     _socket?.dispose();
 
-    final socket = io.io(AppConfig.backendUrl, <String, dynamic>{
+    final socket = io.io(baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'path': AppConfig.wsPath,
       'autoConnect': true,

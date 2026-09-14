@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+// Solo el provider de la URL: el resto del paquete choca con el tema local.
+import 'package:ya_viene_core/core/providers/app_providers.dart'
+    show backendUrlProvider;
 
 import '../../data/auth_api.dart';
 import '../../domain/auth_session.dart';
@@ -36,9 +39,8 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier({AuthApi? api, FlutterSecureStorage? storage})
-      : _api = api ?? AuthApi(),
-        _storage = storage ?? const FlutterSecureStorage(),
+  AuthNotifier({required this._api, FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage(),
         super(const AuthState());
 
   static const _kToken = 'auth_token';
@@ -145,6 +147,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
+/// El login contra el backend que resolvió el arranque (`main.dart`
+/// sobrescribe `backendUrlProvider` con lo que eligió `BackendResolver`).
+final authApiProvider = Provider<AuthApi>(
+  (ref) => AuthApi(baseUrl: ref.watch(backendUrlProvider)),
+);
+
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier();
+  return AuthNotifier(api: ref.watch(authApiProvider));
 });

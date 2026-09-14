@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Solo el provider de la URL: el resto del paquete choca con el tema local.
+import 'package:ya_viene_core/core/providers/app_providers.dart'
+    show backendUrlProvider;
 
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/fleet_api.dart';
@@ -103,7 +106,9 @@ class FleetState {
 }
 
 class FleetNotifier extends StateNotifier<FleetState> {
-  FleetNotifier(this._ref, {FleetApi? api}) : _api = api ?? FleetApi(), super(const FleetState());
+  FleetNotifier(this._ref, {FleetApi? api})
+      : _api = api ?? _ref.read(fleetApiProvider),
+        super(const FleetState());
 
   final Ref _ref;
   final FleetApi _api;
@@ -138,7 +143,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }
     _subs.clear();
     _socket?.dispose();
-    final socket = FleetSocketService(token: token);
+    final socket = _ref.read(fleetSocketFactoryProvider)(token);
     _socket = socket;
     _subs.add(socket.connectionStream.listen((connected) {
       state = state.copyWith(
@@ -524,6 +529,20 @@ class FleetNotifier extends StateNotifier<FleetState> {
     super.dispose();
   }
 }
+
+/// La flota por REST, contra el backend que resolvió el arranque.
+final fleetApiProvider = Provider<FleetApi>(
+  (ref) => FleetApi(baseUrl: ref.watch(backendUrlProvider)),
+);
+
+/// Cómo se abre el socket de la flota, contra el mismo backend que el REST.
+/// Es una fábrica y no un servicio porque el notifier cierra el socket al
+/// salir y abre uno nuevo, con otro token, al volver a entrar.
+final fleetSocketFactoryProvider =
+    Provider<FleetSocketService Function(String token)>((ref) {
+  final baseUrl = ref.watch(backendUrlProvider);
+  return (token) => FleetSocketService(baseUrl: baseUrl, token: token);
+});
 
 final fleetProvider = StateNotifierProvider<FleetNotifier, FleetState>((ref) {
   return FleetNotifier(ref);

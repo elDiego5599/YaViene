@@ -7,9 +7,12 @@ import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
+import 'package:ya_viene_core/core/providers/app_providers.dart'
+    show backendUrlProvider;
 
 class _FakeFleetApi extends FleetApi {
-  _FakeFleetApi({this.positions, this.routes, this.throwsSessionExpired = false});
+  _FakeFleetApi({this.positions, this.routes, this.throwsSessionExpired = false})
+      : super(baseUrl: 'http://localhost:3000');
 
   final List<FleetBus>? positions;
   final List<FleetRoute>? routes;
@@ -33,6 +36,7 @@ const _session = AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Empre
 ProviderContainer _containerWith(FleetApi api) {
   final container = ProviderContainer(
     overrides: [
+      backendUrlProvider.overrideWithValue('http://localhost:3000'),
       fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: api)),
     ],
   );
@@ -154,6 +158,20 @@ void main() {
     notifier.acknowledgeSessionExpired();
 
     expect(notifier.state.sessionExpired, false);
+  });
+
+  test('con backendUrlProvider = respaldo, el login, la flota y el socket van al respaldo', () {
+    const respaldo = 'https://ya-viene-backend.fly.dev';
+    final container = ProviderContainer(
+      overrides: [backendUrlProvider.overrideWithValue(respaldo)],
+    );
+    addTearDown(container.dispose);
+
+    expect(container.read(authApiProvider).baseUrl, respaldo);
+    expect(container.read(fleetApiProvider).baseUrl, respaldo);
+    final socket = container.read(fleetSocketFactoryProvider)('tok');
+    addTearDown(socket.dispose);
+    expect(socket.baseUrl, respaldo);
   });
 
   group('FleetState — filtros y contadores (usados por el dashboard y el mapa)', () {

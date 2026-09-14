@@ -26,7 +26,7 @@ void main() {
     final token = (jsonDecode(login.body) as Map)['token'] as String;
     expect(token.isNotEmpty, true, reason: 'login falló: ${login.body}');
 
-    final service = FleetSocketService(token: token);
+    final service = FleetSocketService(baseUrl: backend, token: token);
     final batchFuture = service.busBatchStream.first.timeout(const Duration(seconds: 10));
     final connected = <bool>[];
     service.connectionStream.listen((c) => connected.add(c));

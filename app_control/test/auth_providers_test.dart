@@ -6,7 +6,8 @@ import 'package:ya_viene_control/features/auth/domain/auth_session.dart';
 import 'package:ya_viene_control/features/auth/presentation/providers/auth_providers.dart';
 
 class _FakeAuthApi extends AuthApi {
-  _FakeAuthApi({this.loginResult, this.loginError, this.validateResult, this.validateThrows});
+  _FakeAuthApi({this.loginResult, this.loginError, this.validateResult, this.validateThrows})
+      : super(baseUrl: 'http://localhost:3000');
 
   final AuthSession? loginResult;
   final AuthApiException? loginError;

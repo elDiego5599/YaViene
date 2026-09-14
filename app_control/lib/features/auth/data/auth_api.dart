@@ -1,18 +1,23 @@
 import 'package:dio/dio.dart';
 
-import '../../../../config.dart';
 import '../domain/auth_session.dart';
 
 class AuthApi {
-  AuthApi({Dio? dio})
+  /// [baseUrl] es el backend que resolvió el arranque (`backendUrlProvider`),
+  /// no `AppConfig.backendUrl`: si el túnel no contestó y el panel entró por
+  /// el respaldo, el login tiene que ir al mismo sitio.
+  AuthApi({required String baseUrl, Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
-              baseUrl: AppConfig.backendUrl,
+              baseUrl: baseUrl,
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 8),
             ));
 
   final Dio _dio;
+
+  /// A qué backend pregunta.
+  String get baseUrl => _dio.options.baseUrl;
 
   Future<AuthSession> login(String username, String password) async {
     try {

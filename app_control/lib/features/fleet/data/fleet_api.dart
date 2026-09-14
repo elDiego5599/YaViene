@@ -1,19 +1,24 @@
 import 'package:dio/dio.dart';
 
-import '../../../../config.dart';
 import '../domain/fleet_bus.dart';
 import '../domain/fleet_route.dart';
 
 class FleetApi {
-  FleetApi({Dio? dio})
+  /// [baseUrl] es el backend que resolvió el arranque (`backendUrlProvider`),
+  /// no `AppConfig.backendUrl`: si el túnel no contestó y el panel entró por
+  /// el respaldo, la flota tiene que pedirse al mismo sitio.
+  FleetApi({required String baseUrl, Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
-              baseUrl: AppConfig.backendUrl,
+              baseUrl: baseUrl,
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 8),
             ));
 
   final Dio _dio;
+
+  /// A qué backend pregunta.
+  String get baseUrl => _dio.options.baseUrl;
 
   Options _auth(String token) => Options(
         headers: {'Authorization': 'Bearer $token'},
