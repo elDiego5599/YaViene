@@ -70,5 +70,9 @@ BusPosition _jsonToBusPosition(Map<String, dynamic> json) {
     sentido: json['sentido'] as String?,
     timestamp: timestamp,
     isGhostBus: isGhost,
+    // La captura del equipo es lo que ordena las posiciones de un bus
+    // (`esMasNueva`); antes no se leía y la última en llegar ganaba.
+    sequence: (json['sequence'] as num?)?.toInt(),
+    capturedAt: (json['capturedAt'] as num?)?.toInt(),
   );
 }

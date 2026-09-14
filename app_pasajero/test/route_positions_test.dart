@@ -64,12 +64,18 @@ class _FakeRealtimeService implements RealtimeRepository {
   bool get isConnected => true;
 }
 
+/// Lo que manda el backend por bus (`toPublicPosition`), con la captura del
+/// equipo en milisegundos: es lo que ordena las posiciones de un bus.
 Map<String, dynamic> _busJson(
   String busId,
   String routeId, {
   double lat = 10.98,
   double lon = -74.78,
+  int sequence = 1,
+  int? capturedAt,
+  bool isGhost = false,
 }) {
+  final ahora = DateTime.now();
   return {
     'busId': busId,
     'routeId': routeId,
@@ -77,8 +83,10 @@ Map<String, dynamic> _busJson(
     'lon': lon,
     'heading': 90,
     'speedKmh': 25,
-    'timestamp': DateTime.now().toIso8601String(),
-    'isGhost': false,
+    'timestamp': ahora.toIso8601String(),
+    'capturedAt': capturedAt ?? ahora.millisecondsSinceEpoch,
+    'sequence': sequence,
+    'isGhost': isGhost,
   };
 }
 
@@ -211,6 +219,92 @@ void main() {
     await pumpEventQueue();
 
     expect(currentBuses(container, 'R-101') ?? const [], isEmpty);
+  });
+
+  // Los mensajes no llegan en orden: el socket reconecta, el lote de la
+  // suscripción sale de la base, el respaldo va atrás. La captura del equipo
+  // es lo que decide cuál es la posición de un bus (T2.5).
+  group('ninguna posición más vieja retrocede un bus', () {
+    // Las posiciones en vivo salen agrupadas cada 200 ms.
+    Future<void> esperarVivo() =>
+        Future<void>.delayed(const Duration(milliseconds: 250));
+
+    late int t0;
+    setUp(() => t0 = DateTime.now().millisecondsSinceEpoch);
+
+    BusPosition unico() => currentBuses(container, 'R-101')!.single;
+
+    test('una posición vieja que llega tarde no pisa la nueva', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._busPosition
+        ..add(_busJson('BUS-A', 'R-101',
+            lat: 10.99, sequence: 2, capturedAt: t0 + 2000))
+        ..add(_busJson('BUS-A', 'R-101',
+            lat: 10.98, sequence: 1, capturedAt: t0 + 1000));
+      await esperarVivo();
+
+      expect(unico().lat, 10.99);
+      expect(unico().sequence, 2);
+    });
+
+    test('el fantasma con la misma captura sí cambia el estado', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._busPosition.add(_busJson('BUS-A', 'R-101', capturedAt: t0));
+      await esperarVivo();
+      fake._busPosition
+          .add(_busJson('BUS-A', 'R-101', capturedAt: t0, isGhost: true));
+      await esperarVivo();
+
+      expect(unico().isGhostBus, isTrue);
+    });
+
+    test('un batch posterior a un evento vivo no lo retrocede', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._busPosition.add(_busJson('BUS-A', 'R-101',
+          lat: 10.99, sequence: 5, capturedAt: t0 + 5000));
+      await esperarVivo();
+      fake._batch.add({
+        'routeId': 'R-101',
+        'buses': [
+          _busJson('BUS-A', 'R-101',
+              lat: 10.98, sequence: 3, capturedAt: t0 + 3000),
+          _busJson('BUS-B', 'R-101'),
+        ],
+      });
+      await pumpEventQueue();
+
+      final buses = {
+        for (final b in currentBuses(container, 'R-101')!) b.busId: b,
+      };
+      expect(buses.keys.toSet(), {'BUS-A', 'BUS-B'});
+      expect(buses['BUS-A']!.lat, 10.99);
+      expect(buses['BUS-A']!.sequence, 5);
+    });
+
+    test('bus:visible con una posición más vieja no lo retrocede', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._busPosition.add(_busJson('BUS-A', 'R-101',
+          lat: 10.99, sequence: 5, capturedAt: t0 + 5000));
+      await esperarVivo();
+      fake._busVisible.add({
+        'routeId': 'R-101',
+        'busId': 'BUS-A',
+        'eventId': 'e-9',
+        'position': _busJson('BUS-A', 'R-101',
+            lat: 10.98, sequence: 3, capturedAt: t0 + 3000),
+      });
+      await pumpEventQueue();
+
+      expect(unico().lat, 10.99);
+    });
   });
 
   group('nearbyBusesCountProvider (2 km)', () {

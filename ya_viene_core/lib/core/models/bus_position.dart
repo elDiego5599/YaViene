@@ -18,6 +18,12 @@ class BusPosition extends Equatable {
   final bool isGhostBus;
   final int? sequence;
 
+  /// Cuándo capturó el equipo del bus esta posición, en milisegundos desde
+  /// epoch; null si el servidor no la manda. Es lo que ordena las posiciones
+  /// de un bus ([esMasNueva]): `sequence` vuelve a empezar con cada sesión del
+  /// equipo.
+  final int? capturedAt;
+
   const BusPosition({
     required this.busId,
     required this.routeId,
@@ -29,6 +35,7 @@ class BusPosition extends Equatable {
     required this.isGhostBus,
     this.sentido,
     this.sequence,
+    this.capturedAt,
   });
 
   /// Lanza [FormatException] si al JSON le falta identidad o coordenada.
@@ -72,6 +79,7 @@ class BusPosition extends Equatable {
       isGhostBus:
           (json['isGhostBus'] as bool?) ?? (json['isGhost'] as bool?) ?? false,
       sequence: (json['sequence'] as num?)?.toInt(),
+      capturedAt: (json['capturedAt'] as num?)?.toInt(),
     );
   }
 
@@ -87,6 +95,7 @@ class BusPosition extends Equatable {
       'timestamp': timestamp.toIso8601String(),
       'isGhost': isGhostBus,
       'sequence': sequence,
+      'capturedAt': capturedAt,
     };
   }
 
@@ -101,6 +110,7 @@ class BusPosition extends Equatable {
     DateTime? timestamp,
     bool? isGhostBus,
     int? sequence,
+    int? capturedAt,
   }) {
     return BusPosition(
       busId: busId ?? this.busId,
@@ -113,6 +123,7 @@ class BusPosition extends Equatable {
       timestamp: timestamp ?? this.timestamp,
       isGhostBus: isGhostBus ?? this.isGhostBus,
       sequence: sequence ?? this.sequence,
+      capturedAt: capturedAt ?? this.capturedAt,
     );
   }
 
@@ -128,5 +139,25 @@ class BusPosition extends Equatable {
         timestamp,
         isGhostBus,
         sequence,
+        capturedAt,
       ];
+}
+
+/// La captura del equipo manda: es monotónica por bus aunque cambie la sesión.
+///
+/// Dice si una posición de un bus puede ocupar el lugar de la que ya se tiene
+/// de él. Los mensajes no llegan en orden —el socket reconecta, el REST vuelve
+/// tarde, el respaldo va atrás— y antes la última en llegar ganaba siempre.
+/// Sin captura en alguna de las dos no hay con qué comparar y pasa la nueva.
+/// Con la misma captura es el mismo punto: solo pasa si cambia el estado de
+/// fantasma. Pasajero y panel usan esta misma regla.
+bool esMasNueva({
+  required int? capturaNueva,
+  required int? capturaPrevia,
+  required bool fantasmaNuevo,
+  required bool fantasmaPrevio,
+}) {
+  if (capturaPrevia == null || capturaNueva == null) return true;
+  if (capturaNueva != capturaPrevia) return capturaNueva > capturaPrevia;
+  return fantasmaNuevo != fantasmaPrevio; // mismo punto: solo cambia el estado
 }

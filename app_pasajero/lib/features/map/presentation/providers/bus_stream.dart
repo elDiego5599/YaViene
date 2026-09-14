@@ -32,6 +32,19 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
 
   bool belongsTo(dynamic routeId) => routeIds.contains(routeId);
 
+  // Si [nueva] puede ocupar el lugar de [previa]. La captura del equipo manda
+  // (`esMasNueva`, en core): una posición que llega tarde —el socket
+  // reconectó, el lote salió de la base antes, el respaldo va atrás— no
+  // retrocede el bus (T2.5).
+  bool reemplaza(BusPosition nueva, BusPosition? previa) =>
+      previa == null ||
+      esMasNueva(
+        capturaNueva: nueva.capturedAt,
+        capturaPrevia: previa.capturedAt,
+        fantasmaNuevo: nueva.isGhostBus,
+        fantasmaPrevio: previa.isGhostBus,
+      );
+
   // Los eventos llegan del socket como JSON sin tipar. Un `as String?` sobre
   // un campo que venga con otro tipo (un busId numérico, un routeId dentro de
   // una lista) lanzaba dentro del `listen`, fuera de cualquier `try`: el
@@ -48,6 +61,9 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
     final routeId = texto(batch['routeId']);
     if (routeId == null || !belongsTo(routeId)) return;
     final buses = batch['buses'];
+    // El lote dice qué buses hay en la ruta; de cada uno queda la posición
+    // más nueva entre la del lote y la que ya había llegado en vivo.
+    final previas = Map.of(positions);
     positions.clear();
     if (buses is List) {
       for (final item in buses) {
@@ -59,7 +75,9 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
           continue;
         }
         final pos = safeBusPosition(json);
-        if (pos != null) positions[pos.busId] = pos;
+        if (pos == null) continue;
+        final previa = previas[pos.busId];
+        positions[pos.busId] = reemplaza(pos, previa) ? pos : previa!;
       }
     }
     emitSnapshot();
@@ -69,6 +87,7 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
     final pos = safeBusPosition(json);
     if (pos == null) return;
     if (!belongsTo(pos.routeId)) return;
+    if (!reemplaza(pos, positions[pos.busId])) return;
     positions[pos.busId] = pos;
     scheduleLiveSnapshot();
   });
@@ -125,8 +144,12 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
       final pos = safeBusPosition(json);
       // La posición tiene que ser la del bus que el evento dice y de una ruta
       // de este stream. Si no, quedaba guardada con la llave de otro bus, o
-      // pintaba en esta ruta un bus que va por otra.
-      if (pos != null && pos.busId == busId && belongsTo(pos.routeId)) {
+      // pintaba en esta ruta un bus que va por otra. Y no puede ser más
+      // vieja que la que ya se tiene de él.
+      if (pos != null &&
+          pos.busId == busId &&
+          belongsTo(pos.routeId) &&
+          reemplaza(pos, positions[busId])) {
         positions[busId] = pos;
         emitSnapshot();
       }

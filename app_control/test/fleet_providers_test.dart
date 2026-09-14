@@ -38,15 +38,24 @@ class _FakeFleetApi extends FleetApi {
   }
 }
 
-/// Un socket sin red: lo que se mete en [posiciones] le llega al notifier
-/// como si el backend hubiera emitido `bus:position`.
+/// Un socket sin red: lo que se mete en [posiciones], [lotes] o [visibles] le
+/// llega al notifier como si el backend hubiera emitido `bus:position`,
+/// `fleet:batch` o `bus:visible`.
 class _FakeSocket extends FleetSocketService {
   _FakeSocket() : super(baseUrl: 'http://localhost:3000', token: 'tok');
 
   final posiciones = StreamController<FleetBus>.broadcast();
+  final lotes = StreamController<List<FleetBus>>.broadcast();
+  final visibles = StreamController<FleetBus>.broadcast();
 
   @override
   Stream<FleetBus> get busPositionStream => posiciones.stream;
+
+  @override
+  Stream<List<FleetBus>> get busBatchStream => lotes.stream;
+
+  @override
+  Stream<FleetBus> get busVisibleStream => visibles.stream;
 
   @override
   void connect() {}
@@ -54,6 +63,8 @@ class _FakeSocket extends FleetSocketService {
   @override
   void dispose() {
     posiciones.close();
+    lotes.close();
+    visibles.close();
     super.dispose();
   }
 }
@@ -311,6 +322,92 @@ void main() {
       expect(notifier.state.buscar('abc1').map((b) => b.busId), ['B-1']);
       expect(notifier.state.buscar('0457').map((b) => b.busId), ['B-1']);
       expect(notifier.state.buscar('carlos').map((b) => b.busId), ['B-1']);
+    });
+
+    // Los mensajes no llegan en orden: el socket reconecta, el REST vuelve
+    // tarde, el lote de la suscripción sale de la base. La captura del equipo
+    // es lo que decide cuál es la posición del bus (T2.5).
+    group('y ninguna posición más vieja lo retrocede', () {
+      test('una posición vieja que llega tarde no pisa la nueva', () async {
+        final (notifier, socket, _) = await arrancar();
+
+        socket.posiciones
+          ..add(_posicion('B-1', sequence: 5))
+          ..add(_posicion('B-1', sequence: 3));
+        await _vaciar();
+
+        final bus = notifier.state.buses['B-1']!;
+        expect(bus.sequence, 5);
+        expect(bus.capturedAt, 1005);
+        expect(bus.lat, closeTo(10.9805, 1e-9));
+      });
+
+      test('el fantasma con la misma captura sí cambia el estado', () async {
+        final (notifier, socket, _) = await arrancar();
+
+        socket.posiciones
+          ..add(_posicion('B-1', sequence: 5))
+          ..add(_posicion('B-1', sequence: 5, isGhost: true));
+        await _vaciar();
+
+        final bus = notifier.state.buses['B-1']!;
+        expect(bus.isGhost, isTrue);
+        expect(bus.online, isFalse);
+      });
+
+      test('un refresh REST lento no retrocede un bus', () async {
+        final (notifier, socket, api) = await arrancar();
+        socket.posiciones.add(_posicion('B-1', sequence: 5));
+        await _vaciar();
+
+        // El REST salió antes de esa posición y vuelve después, con la placa
+        // corregida: la placa entra y la posición vieja no.
+        api.positions = [
+          catalogado.copyWith(
+              placa: 'XYZ789', lat: 10.9, lon: -74.7, capturedAt: 1002, sequence: 2),
+        ];
+        await notifier.refresh();
+        final bus = notifier.state.buses['B-1']!;
+        expect(bus.placa, 'XYZ789');
+        expect(bus.sequence, 5);
+        expect(bus.lat, closeTo(10.9805, 1e-9));
+
+        // Uno que sí es más nuevo trae su posición.
+        api.positions = [
+          catalogado.copyWith(lat: 10.9, lon: -74.7, capturedAt: 1009, sequence: 9),
+        ];
+        await notifier.refresh();
+        expect(notifier.state.buses['B-1']!.sequence, 9);
+        expect(notifier.state.buses['B-1']!.lat, 10.9);
+      });
+
+      test('un batch posterior a un evento vivo no lo retrocede', () async {
+        final (notifier, socket, _) = await arrancar();
+        socket.posiciones.add(_posicion('B-1', sequence: 5));
+        await _vaciar();
+
+        socket.lotes.add([
+          catalogado.copyWith(lat: 10.9, lon: -74.7, capturedAt: 1002, sequence: 2),
+        ]);
+        await _vaciar();
+
+        expect(notifier.state.buses['B-1']!.sequence, 5);
+        expect(notifier.state.buses['B-1']!.placa, 'ABC123');
+      });
+
+      test('bus:visible con una posición más vieja lo muestra sin retrocederlo', () async {
+        final (notifier, socket, _) =
+            await arrancar(rest: [catalogado.copyWith(visible: false)]);
+        socket.posiciones.add(_posicion('B-1', sequence: 5));
+        await _vaciar();
+
+        socket.visibles.add(_posicion('B-1', sequence: 3));
+        await _vaciar();
+
+        final bus = notifier.state.buses['B-1']!;
+        expect(bus.visible, isTrue);
+        expect(bus.sequence, 5);
+      });
     });
   });
 

@@ -59,4 +59,47 @@ void main() {
     expect(BusPosition.fromJson(con(null)).heading, isNull);
     expect(BusPosition.fromJson(con(0)).heading, 0);
   });
+
+  test('BusPosition lee la captura del equipo y la conserva', () {
+    final position = BusPosition.fromJson(const {
+      'busId': 'B-042',
+      'routeId': 'R-101',
+      'lat': 10.99,
+      'lon': -74.80,
+      'capturedAt': 1754300000000,
+    });
+    expect(position.capturedAt, 1754300000000);
+    expect(position.toJson()['capturedAt'], 1754300000000);
+    expect(position.copyWith(lat: 11).capturedAt, 1754300000000);
+  });
+
+  // Los mensajes no llegan en orden: el socket reconecta, el REST vuelve
+  // tarde, el respaldo va atrás. La captura del equipo es lo que los ordena.
+  group('esMasNueva', () {
+    bool masNueva(int? nueva, int? previa,
+            {bool fantasmaNuevo = false, bool fantasmaPrevio = false}) =>
+        esMasNueva(
+          capturaNueva: nueva,
+          capturaPrevia: previa,
+          fantasmaNuevo: fantasmaNuevo,
+          fantasmaPrevio: fantasmaPrevio,
+        );
+
+    test('una captura posterior reemplaza y una anterior no', () {
+      expect(masNueva(2000, 1000), isTrue);
+      expect(masNueva(1000, 2000), isFalse);
+    });
+
+    test('con la misma captura solo pasa si cambia el fantasma', () {
+      expect(masNueva(1000, 1000), isFalse);
+      expect(masNueva(1000, 1000, fantasmaNuevo: true), isTrue);
+      expect(masNueva(1000, 1000, fantasmaPrevio: true), isTrue);
+    });
+
+    test('sin captura en alguna de las dos se acepta la nueva', () {
+      expect(masNueva(null, 1000), isTrue);
+      expect(masNueva(1000, null), isTrue);
+      expect(masNueva(null, null), isTrue);
+    });
+  });
 }

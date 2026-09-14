@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:ya_viene_core/core/models/bus_position.dart' show esMasNueva;
 import 'package:ya_viene_core/core/network/backend_supervisor.dart';
 // Solo el provider de la URL: el resto del paquete choca con el tema local.
 import 'package:ya_viene_core/core/providers/app_providers.dart'
@@ -209,11 +210,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }));
     _subs.add(socket.busBatchStream.listen((buses) {
       // Respeta el estado visible guardado en el backend: los buses que
-      // quedaron habilitados/ocultos de la última sesión se ven igual.
-      final map = <String, FleetBus>{
-        for (final b in buses) b.busId: b,
-      };
-      state = state.copyWith(buses: map, clearError: true);
+      // quedaron habilitados/ocultos de la última sesión se ven igual. La
+      // posición, solo si es más nueva que la que ya llegó en vivo.
+      state = state.copyWith(buses: _fusionarFoto(buses), clearError: true);
     }));
     _subs.add(socket.busPositionStream.listen((bus) {
       final previous = state.buses[bus.busId];
@@ -234,6 +233,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
         _programarRecarga();
         return;
       }
+      // Una posición más vieja que la que ya tiene el bus llega tarde (el
+      // socket reconectó, el respaldo va atrás): se descarta (T2.5).
+      if (!_masNueva(bus, previous)) return;
       // El evento es la posición y nada más: no trae placa, interno ni
       // conductor, y `FleetBus.fromJson` los deja vacíos. Partir de él los
       // borraba en cada posición —la lista caía al busId y la búsqueda por
@@ -292,6 +294,15 @@ class FleetNotifier extends StateNotifier<FleetState> {
         }
         return;
       }
+      if (!_masNueva(bus, previous)) {
+        // Vuelve a verse, pero donde ya estaba: la posición del evento es
+        // más vieja que la que llegó en vivo (T2.5).
+        state = state.copyWith(buses: {
+          ...state.buses,
+          bus.busId: previous.copyWith(visible: true),
+        });
+        return;
+      }
       state = state.copyWith(buses: {
         ...state.buses,
         bus.busId: previous.copyWith(
@@ -337,14 +348,45 @@ class FleetNotifier extends StateNotifier<FleetState> {
     if (token == null) return;
     try {
       final buses = await _api.fetchPositions(token);
-      state = state.copyWith(
-        buses: {for (final b in buses) b.busId: b},
-        clearError: true,
-      );
+      state = state.copyWith(buses: _fusionarFoto(buses), clearError: true);
     } catch (e) {
       if (_onSessionExpired(e)) return;
       state = state.copyWith(error: 'No se pudo actualizar la flota.');
     }
+  }
+
+  /// La regla de core (`esMasNueva`) entre dos estados de un mismo bus.
+  static bool _masNueva(FleetBus nuevo, FleetBus previo) => esMasNueva(
+        capturaNueva: nuevo.capturedAt,
+        capturaPrevia: previo.capturedAt,
+        fantasmaNuevo: nuevo.isGhost,
+        fantasmaPrevio: previo.isGhost,
+      );
+
+  /// Junta una foto completa de la flota (REST o `fleet:batch`) con lo que el
+  /// panel ya tiene. La foto manda en qué buses hay y en su catálogo (placa,
+  /// interno, conductor, visible); la posición de cada bus, solo si es más
+  /// nueva que la que ya llegó en vivo. El REST pudo salir antes de ese
+  /// evento y volver después, y reemplazar el mapa entero retrocedía el bus
+  /// (T2.5).
+  Map<String, FleetBus> _fusionarFoto(List<FleetBus> foto) => {
+        for (final b in foto) b.busId: _conPosicionMasNueva(b, state.buses[b.busId]),
+      };
+
+  static FleetBus _conPosicionMasNueva(FleetBus foto, FleetBus? previo) {
+    if (previo == null || _masNueva(foto, previo)) return foto;
+    return foto.copyWith(
+      online: previo.online,
+      routeId: previo.routeId,
+      lat: previo.lat,
+      lon: previo.lon,
+      heading: previo.heading,
+      speedKmh: previo.speedKmh,
+      capturedAt: previo.capturedAt,
+      receivedAt: previo.receivedAt,
+      sequence: previo.sequence,
+      isGhost: previo.isGhost,
+    );
   }
 
   Future<void> refreshRoutes() async {
