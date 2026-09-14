@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:ya_viene_core/core/network/backend_supervisor.dart';
 // Solo el provider de la URL: el resto del paquete choca con el tema local.
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show backendUrlProvider;
@@ -122,15 +124,20 @@ class FleetState {
 }
 
 class FleetNotifier extends StateNotifier<FleetState> {
-  FleetNotifier(this._ref, {FleetApi? api})
-      : _api = api ?? _ref.read(fleetApiProvider),
+  FleetNotifier(this._ref, {FleetApi? api, this._supervisor})
+      : _apiFija = api,
         super(const FleetState());
 
   final Ref _ref;
-  final FleetApi _api;
+  final FleetApi? _apiFija;
+  final BackendSupervisor? _supervisor;
   FleetSocketService? _socket;
   final List<StreamSubscription> _subs = [];
   Timer? _recarga;
+
+  /// Se lee en cada pedido y no una sola vez al crear el notifier: el
+  /// backend puede cambiar con el panel abierto (`BackendSupervisor`).
+  FleetApi get _api => _apiFija ?? _ref.read(fleetApiProvider);
 
   String? get _token => _ref.read(authProvider).session?.token;
 
@@ -153,6 +160,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       connection: FleetConnection.disconnected,
       error: null,
     );
+    _supervisor?.detener();
     _recarga?.cancel();
     for (final s in _subs) {
       s.cancel();
@@ -174,6 +182,13 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final socket = _ref.read(fleetSocketFactoryProvider)(token);
     _socket = socket;
     _subs.add(socket.connectionStream.listen((connected) {
+      // Si el socket no vuelve en 30 s, el supervisor pregunta si el
+      // principal sigue vivo o toca pasar al respaldo.
+      if (connected) {
+        _supervisor?.conexionRecuperada();
+      } else {
+        _supervisor?.conexionPerdida();
+      }
       state = state.copyWith(
         connection: connected ? FleetConnection.connected : FleetConnection.disconnected,
       );
@@ -184,6 +199,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
         connection: FleetConnection.disconnected,
         error: null,
       );
+      _supervisor?.detener();
       for (final s in _subs) {
         s.cancel();
       }
@@ -367,6 +383,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
   /// Cierra el socket de flota y reinicia el estado (usado al cerrar sesión:
   /// sin esto el socket seguía vivo consumiendo datos con la sesión muerta).
   void stop() {
+    _supervisor?.detener();
     _recarga?.cancel();
     for (final s in _subs) {
       s.cancel();
@@ -377,6 +394,16 @@ class FleetNotifier extends StateNotifier<FleetState> {
     state = const FleetState(
       connection: FleetConnection.disconnected,
     );
+  }
+
+  /// El backend cambió con el panel abierto (el supervisor pasó al
+  /// respaldo): cierra el socket y abre otro contra el backend nuevo, que se
+  /// suscribe a la flota al conectar, y vuelve a pedir flota y rutas por
+  /// REST. El filtro de ruta y el bus elegido se quedan. Si el panel no está
+  /// abierto no hace nada: el próximo `start()` ya usa el backend nuevo.
+  void cambiarBackend() {
+    if (_socket == null) return;
+    start();
   }
 
   /// Resetea la bandera de sesión expirada una vez el dashboard la mostró.
@@ -591,10 +618,16 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 }
 
-/// La flota por REST, contra el backend que resolvió el arranque.
+/// La flota por REST, contra el backend actual: el que resolvió el arranque
+/// o el respaldo si el túnel se cayó con el panel abierto.
 final fleetApiProvider = Provider<FleetApi>(
   (ref) => FleetApi(baseUrl: ref.watch(backendUrlProvider)),
 );
+
+/// Con qué se abre cada socket de `socket_io_client`. Es `io.io`; las
+/// pruebas lo cambian para simular el túnel y el respaldo.
+final fleetIoSocketFactoryProvider =
+    Provider<FleetIoSocketFactory>((ref) => io.io);
 
 /// Cómo se abre el socket de la flota, contra el mismo backend que el REST.
 /// Es una fábrica y no un servicio porque el notifier cierra el socket al
@@ -602,9 +635,25 @@ final fleetApiProvider = Provider<FleetApi>(
 final fleetSocketFactoryProvider =
     Provider<FleetSocketService Function(String token)>((ref) {
   final baseUrl = ref.watch(backendUrlProvider);
-  return (token) => FleetSocketService(baseUrl: baseUrl, token: token);
+  final crearSocket = ref.watch(fleetIoSocketFactoryProvider);
+  return (token) => FleetSocketService(
+        baseUrl: baseUrl,
+        token: token,
+        crearSocket: crearSocket,
+      );
 });
 
 final fleetProvider = StateNotifierProvider<FleetNotifier, FleetState>((ref) {
-  return FleetNotifier(ref);
+  // Si el socket pasa 30 s sin conexión, el supervisor vuelve a elegir
+  // backend. Si elige otro, el panel se muda sin cerrar la sesión.
+  final supervisor = BackendSupervisor(
+    reResolver: ref.read(backendUrlProvider.notifier).reResolver,
+  );
+  final notifier = FleetNotifier(ref, supervisor: supervisor);
+  // Se escucha la fábrica del socket y no la URL: quien escucha la URL se
+  // entera antes de que se rehagan los providers que dependen de ella, y
+  // leería la fábrica y la API del backend anterior.
+  ref.listen(fleetSocketFactoryProvider, (_, _) => notifier.cambiarBackend());
+  ref.onDispose(supervisor.dispose);
+  return notifier;
 });

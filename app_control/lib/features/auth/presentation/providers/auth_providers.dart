@@ -39,7 +39,7 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier({required this._api, FlutterSecureStorage? storage})
+  AuthNotifier({required this.api, FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage(),
         super(const AuthState());
 
@@ -47,7 +47,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static const _kCompanyId = 'auth_company_id';
   static const _kCompanyName = 'auth_company_name';
 
-  final AuthApi _api;
+  /// A qué backend van el login y la validación. Puede cambiar con el panel
+  /// abierto (`BackendSupervisor`): el provider la cambia aquí en vez de
+  /// rehacer el notifier, que dejaba la sesión en «desconocida» y sacaba al
+  /// operador al login aunque su token siguiera valiendo.
+  AuthApi api;
   final FlutterSecureStorage _storage;
 
   Future<void> restoreSession() async {
@@ -68,7 +72,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Validamos el token guardado: si el backend lo rechaza (p.ej. secretos
       // rotados o token expirado), no entramos con una sesión muerta.
       try {
-        final valid = await _api.validateSession(token);
+        final valid = await api.validateSession(token);
         if (!valid) {
           await _clearStored();
           state = const AuthState(status: AuthStatus.unauthenticated);
@@ -105,7 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final AuthSession session;
     try {
-      session = await _api.login(username, password);
+      session = await api.login(username, password);
     } on AuthApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return false;
@@ -147,12 +151,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-/// El login contra el backend que resolvió el arranque (`main.dart`
-/// sobrescribe `backendUrlProvider` con lo que eligió `BackendResolver`).
+/// El login contra el backend actual: el que resolvió el arranque
+/// (`main.dart`) o el respaldo si el túnel se cayó con el panel abierto.
 final authApiProvider = Provider<AuthApi>(
   (ref) => AuthApi(baseUrl: ref.watch(backendUrlProvider)),
 );
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(api: ref.watch(authApiProvider));
+  final notifier = AuthNotifier(api: ref.read(authApiProvider));
+  ref.listen<AuthApi>(authApiProvider, (_, api) => notifier.api = api);
+  return notifier;
 });

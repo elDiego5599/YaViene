@@ -6,14 +6,26 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../../../config.dart';
 import '../domain/fleet_bus.dart';
 
-class FleetSocketService {
-  FleetSocketService({required this.baseUrl, required this.token});
+/// Cómo se abre un socket de `socket_io_client` con una URL y sus opciones.
+/// Existe para las pruebas: el panel usa `io.io`.
+typedef FleetIoSocketFactory = io.Socket Function(
+  String url,
+  Map<String, dynamic> opciones,
+);
 
-  /// El backend que resolvió el arranque (`backendUrlProvider`). Antes era
+class FleetSocketService {
+  FleetSocketService({
+    required this.baseUrl,
+    required this.token,
+    this._crearSocket = io.io,
+  });
+
+  /// El backend actual (`backendUrlProvider`). Antes era
   /// `AppConfig.backendUrl`, fijo: si el túnel no contestaba y el panel
   /// entraba por el respaldo, el REST iba a un sitio y el socket a otro.
   final String baseUrl;
   final String token;
+  final FleetIoSocketFactory _crearSocket;
 
   io.Socket? _socket;
   Timer? _retryTimer;
@@ -43,7 +55,7 @@ class FleetSocketService {
     if (_socket?.connected == true) return;
     _socket?.dispose();
 
-    final socket = io.io(baseUrl, <String, dynamic>{
+    final socket = _crearSocket(baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'path': AppConfig.wsPath,
       'autoConnect': true,

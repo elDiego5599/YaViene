@@ -328,6 +328,41 @@ void main() {
     expect(socket.baseUrl, respaldo);
   });
 
+  // El respaldo puede entrar con el panel abierto (`BackendSupervisor`).
+  // Antes el cambio rehacía el notifier de la sesión, que volvía a
+  // «desconocida», y el operador salía al login aunque su token siguiera
+  // valiendo.
+  test('si la URL cambia con el panel abierto, todo pasa al respaldo sin cerrar la sesión',
+      () async {
+    const principal = 'https://tunel.ngrok-free.dev';
+    const respaldo = 'https://ya-viene-backend.fly.dev';
+    final container = ProviderContainer(
+      overrides: [
+        backendUrlProvider.overrideWith(() => BackendUrl(
+              principal,
+              principal: principal,
+              respaldo: respaldo,
+              sonda: (url, _) async => url == respaldo,
+            )),
+      ],
+    );
+    addTearDown(container.dispose);
+    final auth = container.read(authProvider.notifier)
+      ..state = const AuthState(status: AuthStatus.authenticated, session: _session);
+
+    await container.read(backendUrlProvider.notifier).reResolver();
+    await _vaciar();
+
+    expect(container.read(backendUrlProvider), respaldo);
+    expect(container.read(authApiProvider).baseUrl, respaldo);
+    expect(container.read(fleetApiProvider).baseUrl, respaldo);
+    final socket = container.read(fleetSocketFactoryProvider)('tok');
+    addTearDown(socket.dispose);
+    expect(socket.baseUrl, respaldo);
+    expect(container.read(authProvider.notifier), same(auth));
+    expect(container.read(authProvider).session?.token, 'tok');
+  });
+
   group('FleetState — filtros y contadores (usados por el dashboard y el mapa)', () {
     const online = FleetBus(busId: 'B-1', companyId: 'c-1', routeId: 'R-1', visible: true, online: true);
     const hidden = FleetBus(busId: 'B-2', companyId: 'c-1', routeId: 'R-1', visible: false, online: true);
