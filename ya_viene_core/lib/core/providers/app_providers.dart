@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/company.dart';
 import '../models/route_info.dart';
+import '../network/backend_resolver.dart';
 
 /// La dirección del backend la pone la app que usa este paquete, no el
 /// paquete. Antes cada lado leía por su cuenta el `--dart-define` y no
@@ -11,12 +12,50 @@ import '../models/route_info.dart';
 /// se iba en silencio a localhost, así que en un release sin la variable la
 /// app decía "no se pudo cargar" sin decir por qué. Sin `override` esto
 /// lanza, que es la forma de que el olvido se vea en el primer arranque.
-final backendUrlProvider = Provider<String>((ref) {
-  throw UnimplementedError(
+///
+/// La URL puede cambiar con la app abierta ([BackendUrl.reResolver]): quien
+/// la mira con `watch` pasa solo al backend nuevo, sin reiniciar.
+final backendUrlProvider = NotifierProvider<BackendUrl, String>(
+  () => throw UnimplementedError(
     'Falta backendUrlProvider: la app debe sobrescribirlo en su '
     'ProviderScope con la URL del backend.',
-  );
-});
+  ),
+);
+
+/// La URL del backend con la que habla la app, y entre cuáles puede cambiar.
+class BackendUrl extends Notifier<String> {
+  /// [inicial] es la que eligió el arranque; [principal] y [respaldo], entre
+  /// las que se vuelve a elegir. [sonda] existe para las pruebas.
+  BackendUrl(
+    this._inicial, {
+    required this.principal,
+    this.respaldo = '',
+    Future<bool> Function(String url, Duration espera)? sonda,
+  }) : _sonda = sonda;
+
+  /// Una URL que no cambia nunca: sin respaldo, [reResolver] no tiene a
+  /// dónde ir.
+  BackendUrl.fija(String url) : this(url, principal: url);
+
+  final String _inicial;
+  final String principal;
+  final String respaldo;
+  final Future<bool> Function(String url, Duration espera)? _sonda;
+
+  @override
+  String build() => _inicial;
+
+  /// Vuelve a elegir con `BackendResolver` y cambia solo si la respuesta es
+  /// otra: con la misma URL, quien la mira no tiene por qué reconstruirse.
+  Future<void> reResolver() async {
+    final elegida = await BackendResolver.resolver(
+      principal: principal,
+      respaldo: respaldo,
+      sonda: _sonda,
+    );
+    if (elegida != state) state = elegida;
+  }
+}
 
 Future<List<T>> _getJsonList<T>(
   String backendUrl,

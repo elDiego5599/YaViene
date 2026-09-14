@@ -118,7 +118,7 @@ void main() {
     expect(url, respaldo.url);
 
     final container = ProviderContainer(
-      overrides: [backendUrlProvider.overrideWithValue(url)],
+      overrides: [backendUrlProvider.overrideWith(() => BackendUrl.fija(url))],
     );
     addTearDown(container.dispose);
 

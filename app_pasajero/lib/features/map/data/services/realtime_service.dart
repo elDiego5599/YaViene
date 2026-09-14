@@ -6,6 +6,13 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../config.dart';
 import '../../domain/repositories/realtime_repository.dart';
 
+/// Cómo se abre un socket. La app usa el de `socket_io_client`; las pruebas
+/// ponen uno de mentira.
+typedef RealtimeSocketFactory = io.Socket Function(
+  String url,
+  Map<String, dynamic> opciones,
+);
+
 class RealtimeService implements RealtimeRepository {
   /// A qué backend se conecta el socket.
   ///
@@ -16,9 +23,20 @@ class RealtimeService implements RealtimeRepository {
   /// iniciales— y el socket seguía llamando al túnel caído. La pantalla
   /// quedaba con los datos puestos y «Sin conexión» encima, que es la peor
   /// versión posible: parece que la app funciona a medias.
-  RealtimeService(this._backendUrl);
+  ///
+  /// La URL puede cambiar después con [cambiarBackend]. [supervisor] se
+  /// entera de cada pérdida y recuperación de la conexión, que es lo que usa
+  /// para decidir si hay que buscar otro backend.
+  RealtimeService(
+    this._backendUrl, {
+    BackendSupervisor? supervisor,
+    RealtimeSocketFactory crearSocket = io.io,
+  })  : _supervisor = supervisor,
+        _crearSocket = crearSocket;
 
-  final String _backendUrl;
+  String _backendUrl;
+  final BackendSupervisor? _supervisor;
+  final RealtimeSocketFactory _crearSocket;
 
   io.Socket? _socket;
   final _subscriptions = <String>{};
@@ -36,6 +54,10 @@ class RealtimeService implements RealtimeRepository {
   final _busRemovedController =
       StreamController<Map<String, dynamic>>.broadcast();
   bool _disposed = false;
+
+  /// Si la app quiere estar conectada: entre [connect] y [disconnect]. Fuera
+  /// de ese tramo, un socket cerrado es lo esperado y no una caída.
+  bool _quiereConexion = false;
   Timer? _retryTimer;
   ConnectionStatus? _lastConnectionState;
 
@@ -48,6 +70,11 @@ class RealtimeService implements RealtimeRepository {
   void _emitConnectionStatus(ConnectionStatus status) {
     _lastConnectionState = status;
     _emit(_connectionStateController, status);
+    if (status == ConnectionStatus.connected) {
+      _supervisor?.conexionRecuperada();
+    } else if (_quiereConexion) {
+      _supervisor?.conexionPerdida();
+    }
   }
 
   /// Deserializa un payload del socket de forma defensiva: datos
@@ -84,11 +111,12 @@ class RealtimeService implements RealtimeRepository {
 
   @override
   void connect() {
+    _quiereConexion = true;
     if (_socket?.connected == true) return;
     _socket?.dispose();
     final url = _backendUrl;
     _emitConnectionStatus(ConnectionStatus.reconnecting);
-    _socket = io.io(url, <String, dynamic>{
+    _socket = _crearSocket(url, <String, dynamic>{
       'transports': ['websocket'],
       'path': AppConfig.wsPath,
       'autoConnect': true,
@@ -166,6 +194,22 @@ class RealtimeService implements RealtimeRepository {
     });
   }
 
+  /// Pasa el socket a [url] sin perder lo que la app seguía.
+  ///
+  /// Cambia solo el socket de debajo: el servicio y sus streams son los
+  /// mismos, así que el mapa, que ya los escucha, sigue recibiendo sin
+  /// enterarse, y las rutas se vuelven a pedir solas al conectar. Si la app
+  /// no quiere conexión en este momento, solo se guarda la URL para el
+  /// próximo [connect].
+  void cambiarBackend(String url) {
+    if (url == _backendUrl) return;
+    _backendUrl = url;
+    if (_disposed || !_quiereConexion) return;
+    _socket?.dispose();
+    _socket = null;
+    connect();
+  }
+
   @override
   void subscribeToRoute(String routeId) {
     _subscriptions.add(routeId);
@@ -176,6 +220,8 @@ class RealtimeService implements RealtimeRepository {
   /// un login posterior puede volver a [connect] con el mismo provider.
   @override
   void disconnect() {
+    _quiereConexion = false;
+    _supervisor?.detener();
     _retryTimer?.cancel();
     _retryTimer = null;
     _subscriptions.clear();
@@ -191,6 +237,7 @@ class RealtimeService implements RealtimeRepository {
   @override
   void dispose() {
     _disposed = true;
+    _quiereConexion = false;
     _retryTimer?.cancel();
     _retryTimer = null;
     _subscriptions.clear();

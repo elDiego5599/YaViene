@@ -10,6 +10,7 @@ export 'core/models/route_trajectory.dart';
 
 // --- Red ---
 export 'core/network/backend_resolver.dart';
+export 'core/network/backend_supervisor.dart';
 
 // --- Providers (capa de estado) ---
 export 'core/providers/app_providers.dart';

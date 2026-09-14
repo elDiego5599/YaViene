@@ -65,15 +65,24 @@ void main() async {
     ),
   );
 
+  final url = await backendUrl;
   runApp(
     ProviderScope(
       // El paquete compartido no adivina la URL: se la da la app, que es
       // quien tiene el `--dart-define` y quien sabe explicar que falta.
-      overrides: [backendUrlProvider.overrideWithValue(await backendUrl)],
+      overrides: [backendUrlProvider.overrideWith(() => _backendUrl(url))],
       child: const YaVieneApp(),
     ),
   );
 }
+
+/// La URL que eligió el arranque, junto con las dos candidatas: si deja de
+/// contestar con la app abierta, se vuelve a elegir entre ellas sin reiniciar.
+BackendUrl _backendUrl(String elegida) => BackendUrl(
+      elegida,
+      principal: AppConfig.backendUrl,
+      respaldo: AppConfig.fallbackBackendUrl,
+    );
 
 /// Primer cuadro de la app mientras se resuelven Firebase y el backend.
 ///
@@ -201,7 +210,8 @@ class _FirebaseInitFailedApp extends StatelessWidget {
                       );
                       runApp(ProviderScope(
                         overrides: [
-                          backendUrlProvider.overrideWithValue(url),
+                          backendUrlProvider
+                              .overrideWith(() => _backendUrl(url)),
                         ],
                         child: const YaVieneApp(),
                       ));

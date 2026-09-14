@@ -9,7 +9,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:ya_viene_core/core/network/backend_resolver.dart'
     show BackendResolver;
 import 'package:ya_viene_core/core/providers/app_providers.dart'
-    show backendUrlProvider;
+    show BackendUrl, backendUrlProvider;
 
 import 'config.dart';
 import 'core/router/app_router.dart';
@@ -45,8 +45,15 @@ Future<void> main() async {
     }
   }
 
+  final url = await backendUrl;
   final container = ProviderContainer(
-    overrides: [backendUrlProvider.overrideWithValue(await backendUrl)],
+    overrides: [
+      backendUrlProvider.overrideWith(() => BackendUrl(
+            url,
+            principal: AppConfig.backendUrl,
+            respaldo: AppConfig.fallbackBackendUrl,
+          )),
+    ],
   );
   try {
     await container.read(authProvider.notifier).restoreSession();
