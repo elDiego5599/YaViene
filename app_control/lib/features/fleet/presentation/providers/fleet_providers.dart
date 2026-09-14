@@ -66,6 +66,22 @@ class FleetState {
       ? buses.values.toList()
       : buses.values.where((b) => b.routeId == routeFilter).toList();
 
+  /// [fleetList] filtrada por lo que el operador escribe en el buscador del
+  /// dashboard: placa, número de bus, interno, ruta o conductor.
+  List<FleetBus> buscar(String query) {
+    if (query.isEmpty) return fleetList;
+    final q = query.toLowerCase();
+    return fleetList.where((b) {
+      final nombreRuta = routeName(b.routeId) ?? '';
+      return b.placa.toLowerCase().contains(q) ||
+          b.busId.replaceFirst('BUS-', '').toLowerCase().contains(q) ||
+          b.interno.toLowerCase().contains(q) ||
+          (b.routeId?.toLowerCase().contains(q) ?? false) ||
+          nombreRuta.toLowerCase().contains(q) ||
+          (b.driverName?.toLowerCase().contains(q) ?? false);
+    }).toList();
+  }
+
   int get totalBuses => _routeScoped.length;
   int get onlineBuses => _routeScoped.where((b) => b.online && !b.isGhost).length;
   int get hiddenBuses => _routeScoped.where((b) => !b.visible).length;
@@ -114,8 +130,19 @@ class FleetNotifier extends StateNotifier<FleetState> {
   final FleetApi _api;
   FleetSocketService? _socket;
   final List<StreamSubscription> _subs = [];
+  Timer? _recarga;
 
   String? get _token => _ref.read(authProvider).session?.token;
+
+  /// Pide la flota por REST una sola vez aunque aparezcan varios buses
+  /// nuevos seguidos: el primero arma el temporizador y los que llegan dentro
+  /// del mismo segundo ya van incluidos en esa recarga.
+  void _programarRecarga() {
+    if (_recarga?.isActive ?? false) return;
+    _recarga = Timer(const Duration(seconds: 1), () {
+      refresh();
+    });
+  }
 
   /// Sesión expirada/revocada: marca el estado para que el dashboard avise y
   /// cierre sesión, y detiene la reconexión del socket.
@@ -126,6 +153,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
       connection: FleetConnection.disconnected,
       error: null,
     );
+    _recarga?.cancel();
     for (final s in _subs) {
       s.cancel();
     }
@@ -174,11 +202,42 @@ class FleetNotifier extends StateNotifier<FleetState> {
     _subs.add(socket.busPositionStream.listen((bus) {
       final previous = state.buses[bus.busId];
       debugPrint('[fleet] bus:position ${bus.busId} lat=${bus.lat} lon=${bus.lon}');
+      // La misma regla que getFleetPositions en el backend (fleet_admin.ts):
+      // en línea es haber reportado y no ser fantasma. Antes se marcaba
+      // `true` siempre, y un evento fantasma dejaba el bus «En línea» hasta
+      // que alguien pulsaba Recargar.
+      final online = !bus.isGhost;
+      if (previous == null) {
+        // Un bus que el panel aún no conocía: lo dieron de alta en otro
+        // panel, o el REST del arranque no ha vuelto. Entra con lo que trae
+        // el evento y el catálogo (placa, interno, conductor) se pide aparte.
+        state = state.copyWith(buses: {
+          ...state.buses,
+          bus.busId: bus.copyWith(online: online),
+        });
+        _programarRecarga();
+        return;
+      }
+      // El evento es la posición y nada más: no trae placa, interno ni
+      // conductor, y `FleetBus.fromJson` los deja vacíos. Partir de él los
+      // borraba en cada posición —la lista caía al busId y la búsqueda por
+      // placa dejaba de encontrar—. Se parte del bus que ya estaba y solo se
+      // pisa lo que el evento sí trae, como en `bus:visible`.
       state = state.copyWith(buses: {
         ...state.buses,
-        bus.busId: bus.copyWith(
-          online: true,
-          visible: previous?.visible ?? bus.visible,
+        bus.busId: previous.copyWith(
+          online: online,
+          // Como en el backend: la ruta de la posición manda sobre la del
+          // catálogo. Si el evento no trae ruta, se queda la que había.
+          routeId: bus.routeId,
+          lat: bus.lat,
+          lon: bus.lon,
+          heading: bus.heading,
+          speedKmh: bus.speedKmh,
+          capturedAt: bus.capturedAt,
+          receivedAt: bus.receivedAt,
+          sequence: bus.sequence,
+          isGhost: bus.isGhost,
         ),
       });
     }));
@@ -308,6 +367,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
   /// Cierra el socket de flota y reinicia el estado (usado al cerrar sesión:
   /// sin esto el socket seguía vivo consumiendo datos con la sesión muerta).
   void stop() {
+    _recarga?.cancel();
     for (final s in _subs) {
       s.cancel();
     }
@@ -521,6 +581,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
 
   @override
   void dispose() {
+    _recarga?.cancel();
     for (final s in _subs) {
       s.cancel();
     }

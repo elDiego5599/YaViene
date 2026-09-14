@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ya_viene_control/features/auth/domain/auth_session.dart';
 import 'package:ya_viene_control/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
+import 'package:ya_viene_control/features/fleet/data/fleet_socket_service.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
@@ -14,12 +17,16 @@ class _FakeFleetApi extends FleetApi {
   _FakeFleetApi({this.positions, this.routes, this.throwsSessionExpired = false})
       : super(baseUrl: 'http://localhost:3000');
 
-  final List<FleetBus>? positions;
+  List<FleetBus>? positions;
   final List<FleetRoute>? routes;
   final bool throwsSessionExpired;
 
+  /// Cuántas veces se pidió la flota por REST.
+  int pedidas = 0;
+
   @override
   Future<List<FleetBus>> fetchPositions(String token) async {
+    pedidas++;
     if (throwsSessionExpired) throw const SessionExpiredException();
     return positions ?? const [];
   }
@@ -31,13 +38,54 @@ class _FakeFleetApi extends FleetApi {
   }
 }
 
+/// Un socket sin red: lo que se mete en [posiciones] le llega al notifier
+/// como si el backend hubiera emitido `bus:position`.
+class _FakeSocket extends FleetSocketService {
+  _FakeSocket() : super(baseUrl: 'http://localhost:3000', token: 'tok');
+
+  final posiciones = StreamController<FleetBus>.broadcast();
+
+  @override
+  Stream<FleetBus> get busPositionStream => posiciones.stream;
+
+  @override
+  void connect() {}
+
+  @override
+  void dispose() {
+    posiciones.close();
+    super.dispose();
+  }
+}
+
+/// Lo que manda el backend en `bus:position` al panel: la posición, sin
+/// placa, interno ni conductor.
+FleetBus _posicion(String busId, {int sequence = 1, bool isGhost = false}) =>
+    FleetBus.fromJson({
+      'busId': busId,
+      'companyId': 'c-1',
+      'routeId': 'R-1',
+      'lat': 10.98 + sequence / 10000,
+      'lon': -74.8,
+      'heading': 90,
+      'speedKmh': 20,
+      'capturedAt': 1000 + sequence,
+      'receivedAt': 1000 + sequence,
+      'sequence': sequence,
+      'isGhost': isGhost,
+    });
+
+/// Deja correr los eventos del stream y los futures pendientes.
+Future<void> _vaciar() => Future<void>.delayed(Duration.zero);
+
 const _session = AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Empresa 1');
 
-ProviderContainer _containerWith(FleetApi api) {
+ProviderContainer _containerWith(FleetApi api, {FleetSocketService? socket}) {
   final container = ProviderContainer(
     overrides: [
       backendUrlProvider.overrideWithValue('http://localhost:3000'),
       fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: api)),
+      if (socket != null) fleetSocketFactoryProvider.overrideWithValue((_) => socket),
     ],
   );
   container.read(authProvider.notifier).state =
@@ -158,6 +206,96 @@ void main() {
     notifier.acknowledgeSessionExpired();
 
     expect(notifier.state.sessionExpired, false);
+  });
+
+  group('bus:position conserva el catálogo del bus', () {
+    const catalogado = FleetBus(
+      busId: 'B-1',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'ABC123',
+      interno: '0457',
+      driverName: 'Carlos Pérez',
+      visible: true,
+      online: true,
+    );
+
+    Future<(FleetNotifier, _FakeSocket, _FakeFleetApi)> arrancar({
+      List<FleetBus>? rest,
+    }) async {
+      final api = _FakeFleetApi(positions: rest ?? [catalogado]);
+      final socket = _FakeSocket();
+      final container = _containerWith(api, socket: socket);
+      final notifier = container.read(fleetProvider.notifier)..start();
+      await _vaciar();
+      return (notifier, socket, api);
+    }
+
+    test('una posición en vivo no borra placa, interno ni conductor', () async {
+      final (notifier, socket, _) = await arrancar();
+
+      socket.posiciones.add(_posicion('B-1', sequence: 7));
+      await _vaciar();
+
+      final bus = notifier.state.buses['B-1']!;
+      expect(bus.placa, 'ABC123');
+      expect(bus.interno, '0457');
+      expect(bus.driverName, 'Carlos Pérez');
+      expect(bus.sequence, 7);
+      expect(bus.lat, closeTo(10.9807, 1e-9));
+      expect(bus.online, true);
+    });
+
+    test('un evento fantasma deja el bus Inactivo, igual que tras recargar por REST', () async {
+      final (notifier, socket, api) = await arrancar();
+
+      socket.posiciones.add(_posicion('B-1', sequence: 8, isGhost: true));
+      await _vaciar();
+      final porSocket = notifier.state.buses['B-1']!;
+      expect(porSocket.online, false);
+      expect(notifier.state.offlineBuses, 1);
+
+      // Lo que devuelve getFleetPositions para ese mismo bus fantasma.
+      api.positions = [catalogado.copyWith(online: false, isGhost: true)];
+      await notifier.refresh();
+      final porRest = notifier.state.buses['B-1']!;
+      expect(porSocket.online, porRest.online);
+      expect(porSocket.isGhost, porRest.isGhost);
+    });
+
+    test('un bus desconocido aparece y dispara una sola recarga', () async {
+      final (notifier, socket, api) = await arrancar(rest: const []);
+      final antes = api.pedidas;
+      api.positions = [
+        catalogado.copyWith(placa: 'NUE001'),
+      ];
+
+      socket.posiciones
+        ..add(_posicion('B-1'))
+        ..add(_posicion('B-1', sequence: 2))
+        ..add(_posicion('B-9'));
+      await _vaciar();
+      expect(notifier.state.buses.keys, containsAll(['B-1', 'B-9']));
+      expect(api.pedidas, antes, reason: 'la recarga espera un segundo');
+
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      expect(api.pedidas, antes + 1);
+      expect(notifier.state.buses['B-1']!.placa, 'NUE001');
+    });
+
+    test('la búsqueda por placa sigue encontrando el bus tras 100 posiciones', () async {
+      final (notifier, socket, _) = await arrancar();
+
+      for (var i = 1; i <= 100; i++) {
+        socket.posiciones.add(_posicion('B-1', sequence: i));
+      }
+      await _vaciar();
+
+      expect(notifier.state.buses['B-1']!.sequence, 100);
+      expect(notifier.state.buscar('abc1').map((b) => b.busId), ['B-1']);
+      expect(notifier.state.buscar('0457').map((b) => b.busId), ['B-1']);
+      expect(notifier.state.buscar('carlos').map((b) => b.busId), ['B-1']);
+    });
   });
 
   test('con backendUrlProvider = respaldo, el login, la flota y el socket van al respaldo', () {

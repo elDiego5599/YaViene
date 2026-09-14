@@ -186,17 +186,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final fleet = ref.watch(fleetProvider);
 
-    final buses = fleet.fleetList.where((b) {
-      if (_query.isEmpty) return true;
-      final q = _query.toLowerCase();
-      final routeName = fleet.routeName(b.routeId) ?? '';
-      return b.placa.toLowerCase().contains(q) ||
-          b.busId.replaceFirst('BUS-', '').toLowerCase().contains(q) ||
-          b.interno.toLowerCase().contains(q) ||
-          (b.routeId?.toLowerCase().contains(q) ?? false) ||
-          routeName.toLowerCase().contains(q) ||
-          (b.driverName?.toLowerCase().contains(q) ?? false);
-    }).toList();
+    final buses = fleet.buscar(_query);
 
     return Scaffold(
       body: Column(
