@@ -16,7 +16,8 @@ enum UserLocationMode {
   /// Permiso bloqueado de forma permanente → hay que ir a Ajustes.
   permanentDenied,
 
-  /// Permiso concedido pero no se pudo obtener la posición (sin señal o GPS apagado).
+  /// Permiso concedido pero no se pudo obtener la posición (sin señal o GPS
+  /// apagado).
   gpsFailed,
 
   /// Pidiendo posición al GPS.
@@ -163,7 +164,8 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
 
   /// Permiso pendiente en vuelo: `permission_handler` lanza PlatformException
   /// ("A request for permissions is already running") si se piden dos veces a
-  /// la vez. Este futuro comparte una sola petición entre llamadas concurrentes.
+  /// la vez. Este futuro comparte una sola petición entre llamadas
+  /// concurrentes.
   Future<PermissionStatus>? _pendingRequest;
 
   Future<PermissionStatus> _requestLocation() {

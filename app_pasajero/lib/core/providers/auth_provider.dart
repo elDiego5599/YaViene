@@ -376,7 +376,8 @@ class AuthNotifier extends ChangeNotifier {
       _state = const AuthState(
         status: AuthStatus.error,
         errorMessage:
-            'No se pudo conectar con Google: revisa tu internet e intenta de nuevo',
+            'No se pudo conectar con Google: revisa tu internet '
+            'e intenta de nuevo',
       );
       notifyListeners();
       return false;

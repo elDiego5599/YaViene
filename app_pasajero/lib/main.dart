@@ -183,7 +183,8 @@ class _FirebaseInitFailedApp extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 const Text(
-                  'Revisa tu conexión e intenta de nuevo. Si persiste, reinstala la app.',
+                  'Revisa tu conexión e intenta de nuevo. '
+                  'Si persiste, reinstala la app.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.md),

@@ -36,11 +36,11 @@ void main() {
           reason: 'sin $falta debería lanzar');
     }
     expect(
-      () => BusPosition.fromJson({...base, 'lat': 91.0}),
+      () => BusPosition.fromJson(Map.of(base)..['lat'] = 91.0),
       throwsFormatException,
     );
     expect(
-      () => BusPosition.fromJson({...base, 'busId': '  '}),
+      () => BusPosition.fromJson(Map.of(base)..['busId'] = '  '),
       throwsFormatException,
     );
   });

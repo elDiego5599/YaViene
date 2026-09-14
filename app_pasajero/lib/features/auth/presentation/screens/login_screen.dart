@@ -433,10 +433,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               // control en los iPhone con indicador.
                               padding: const EdgeInsets.fromLTRB(28, 30, 28, 0),
                               // La hoja de entrada comparte superficie con las
-                              // otras dos del producto —el selector de ruta y la
-                              // de distancia—: arena, no blanco. Con el blanco
-                              // puesto, las tres pantallas seguidas parecían de
-                              // dos aplicaciones distintas.
+                              // otras dos del producto —el selector de ruta y
+                              // la de distancia—: arena, no blanco. Con el
+                              // blanco puesto, las tres pantallas seguidas
+                              // parecían de dos aplicaciones distintas.
                               decoration: const BoxDecoration(
                                 // El pliegue por donde la hoja se separa de
                                 // la noche recoge la luz: blanco cálido que
@@ -493,8 +493,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         _step == _Step.email
                                             ? 'Con tu correo y una contraseña.'
                                             : _step == _Step.password
-                                                ? 'Ese correo ya tiene cuenta: pon tu contraseña.'
-                                                : 'El correo es nuevo: crea tu perfil.',
+                                                ? 'Ese correo ya tiene cuenta:'
+                                                    ' pon tu contraseña.'
+                                                : 'El correo es nuevo: '
+                                                    'crea tu perfil.',
                                         style: AppTextStyles.cuerpo.copyWith(
                                           color: AppColors.textSecondary,
                                         ),
@@ -503,9 +505,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ValueListenableBuilder<TextEditingValue>(
                                         valueListenable: _emailController,
                                         builder: (context, emailValue, child) {
-                                          // F17: solo se marca inválido en el paso
-                                          // de email y con algo ya escrito — no al
-                                          // llegar vacío a la pantalla.
+                                          // F17: solo se marca inválido en
+                                          // el paso de email y con algo ya
+                                          // escrito — no al llegar vacío a la
+                                          // pantalla.
                                           final showError =
                                               _step == _Step.email &&
                                                   emailValue.text.isNotEmpty &&
@@ -523,9 +526,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                 TextInputAction.next,
                                             // Habilitado también en el paso de
                                             // perfil: quien toca "¿No tienes
-                                            // cuenta? Regístrate" antes de escribir
-                                            // su correo no debe quedar atrapado sin
-                                            // poder ponerlo.
+                                            // cuenta? Regístrate" antes de
+                                            // escribir su correo no debe
+                                            // quedar atrapado sin poder
+                                            // ponerlo.
                                             enabled: _step == _Step.email ||
                                                 _step == _Step.profile,
                                             errorText: showError
@@ -550,10 +554,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                   (_step == _Step.email
                                                       ? isValidEmail
                                                       : true);
-                                              // Navy también mientras envía: con
-                                              // spinner y sin aspecto de botón muerto.
+                                              // Navy también mientras envía:
+                                              // con spinner y sin aspecto de
+                                              // botón muerto.
                                               final bright =
                                                   canPress || submitting;
+                                              final etiqueta =
+                                                  _step == _Step.email
+                                                      ? 'Continuar'
+                                                      : _step == _Step.password
+                                                          ? 'Entrar'
+                                                          : 'Crear cuenta';
+                                              final tinta = bright
+                                                  ? Colors.white
+                                                  : AppColors.textDisabled;
                                               return SizedBox(
                                                 width: double.infinity,
                                                 height: 56,
@@ -605,20 +619,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                               'Un momento',
                                                         )
                                                       : Text(
-                                                          _step == _Step.email
-                                                              ? 'Continuar'
-                                                              : _step ==
-                                                                      _Step
-                                                                          .password
-                                                                  ? 'Entrar'
-                                                                  : 'Crear cuenta',
+                                                          etiqueta,
                                                           style: AppTextStyles
                                                               .boton
                                                               .copyWith(
-                                                            color: bright
-                                                                ? Colors.white
-                                                                : AppColors
-                                                                    .textDisabled,
+                                                            color: tinta,
                                                           ),
                                                         ),
                                                 ),

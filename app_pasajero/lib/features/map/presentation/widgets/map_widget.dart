@@ -518,7 +518,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       }
       await _initializeMapSources();
       _layersReady = true;
-      // Si el estilo cargó tarde (tras el timeout), se quita el banner de error.
+      // Si el estilo cargó tarde (tras el timeout), se quita el banner de
+      // error.
       if (_styleFailed) _styleFailed = false;
       // CRÍTICO: el placeholder se construye según `_layersReady`; sin un
       // rebuild aquí se quedaría en "Preparando tu mapa…" aunque el estilo
@@ -1116,11 +1117,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             key: ValueKey('map-$_mapGeneration'),
             onMapCreated: _onMapCreated,
             onStyleLoadedCallback: _onStyleLoadedCallback,
-            // El mapa nativo silencia map#onMapClick cuando el toque cae sobre un
-            // feature (línea de ruta, paradas, pins, buses... dentro de ±10 px) y
-            // deja solo feature#onTap. Con este flag, el toque SIEMPRE dispara
-            // onMapClick: se coloca el pin en cualquier lado (la selección de bus
-            // se decide en _selectBusAtTap).
+            // El mapa nativo silencia map#onMapClick cuando el toque cae
+            // sobre un feature (línea de ruta, paradas, pins, buses...
+            // dentro de ±10 px) y deja solo feature#onTap. Con este flag,
+            // el toque SIEMPRE dispara onMapClick: se coloca el pin en
+            // cualquier lado (la selección de bus se decide en
+            // _selectBusAtTap).
             featureTapsTriggersMapClick: true,
             // Al detenerse la cámara el pin queda en una posición de pantalla
             // distinta: se re-proyecta para que el pulso siga clavado en la
@@ -1191,9 +1193,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 return;
               }
               final location = ref.read(userLocationProvider);
-              // Con el GPS activo el pin sigue al usuario: el toque no lo mueve.
-              // Durante la búsqueda de GPS el toque sí coloca el pin manual
-              // (cancela la espera de localización).
+              // Con el GPS activo el pin sigue al usuario: el toque no lo
+              // mueve. Durante la búsqueda de GPS el toque sí coloca el pin
+              // manual (cancela la espera de localización).
               if (location.mode == UserLocationMode.gps) {
                 return;
               }

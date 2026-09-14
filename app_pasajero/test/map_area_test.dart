@@ -12,9 +12,9 @@ double _kmPorGradoLon(double lat) =>
     111.320 * math.cos(lat * math.pi / 180.0);
 
 void main() {
-  final altoKm =
+  const altoKm =
       (MapConstants.areaNorteLat - MapConstants.areaSurLat) * _kmPorGradoLat;
-  final centroLat =
+  const centroLat =
       (MapConstants.areaNorteLat + MapConstants.areaSurLat) / 2;
   final anchoKm = (MapConstants.areaEsteLon - MapConstants.areaOesteLon) *
       _kmPorGradoLon(centroLat);

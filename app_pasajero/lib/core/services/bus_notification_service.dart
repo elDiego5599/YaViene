@@ -5,7 +5,8 @@ import '../utils/bus_labels.dart';
 /// Notificaciones locales de proximidad de buses (sin servidor).
 ///
 /// Cada bus con alerta activa tiene su propio aviso (id estable por bus):
-/// "Calle 72 - Uninorte - B-042 está cerca de ti · Está a 430 m de tu ubicación".
+/// título "Calle 72 - Uninorte - B-042 está cerca de ti" y cuerpo
+/// "Está a 430 m de tu ubicación".
 class BusNotificationService {
   BusNotificationService._();
 
@@ -93,11 +94,15 @@ class BusNotificationService {
     String? routeId,
     required int distanceMeters,
   }) async {
+    final etiqueta = routePlateLabel(
+      busId: busId,
+      routeName: routeName,
+      routeId: routeId,
+    );
     try {
       await _plugin.show(
         id: _stableNotificationId(busId),
-        title:
-            '${routePlateLabel(busId: busId, routeName: routeName, routeId: routeId)} está cerca de ti',
+        title: '$etiqueta está cerca de ti',
         body: 'Está a $distanceMeters m de tu ubicación',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(

@@ -37,7 +37,8 @@ String? validateAlertActivation({
         'Mueve tu punto de espera o elige otra ruta';
   }
   if (bus != null && bus.isGhostBus) {
-    return 'El bus ${bus.busId} está sin señal; el aviso se activa cuando vuelva a transmitir';
+    return 'El bus ${bus.busId} está sin señal; el aviso se activa '
+        'cuando vuelva a transmitir';
   }
   if (busAlreadyNear) {
     return 'El bus ${bus!.busId} ya está a menos de $alertRadiusMeters m; '

@@ -12,8 +12,11 @@ const respaldo = 'https://ya-viene-backend.fly.dev';
 
 /// Sonda de mentira: contesta que sí solo a las URLs de [vivas], y apunta a
 /// quién se le preguntó y con cuánta espera.
-({Future<bool> Function(String, Duration) sonda, List<String> preguntadas, List<Duration> esperas})
-    sondaFalsa(Set<String> vivas) {
+({
+  Future<bool> Function(String, Duration) sonda,
+  List<String> preguntadas,
+  List<Duration> esperas,
+}) sondaFalsa(Set<String> vivas) {
   final preguntadas = <String>[];
   final esperas = <Duration>[];
   return (

@@ -184,7 +184,8 @@ void main() {
   });
 
   test(
-      'el batch no filtra su basura: los buses malformados se ignoran sin tumbar la suscripción',
+      'el batch no filtra su basura: los buses malformados se ignoran '
+      'sin tumbar la suscripción',
       () async {
     final fake = FakeRealtimeRepository();
     final container = containerWith(fake);
@@ -215,7 +216,8 @@ void main() {
   });
 
   test(
-      'ráfaga de posiciones en vivo produce una sola actualización (debounce 200ms)',
+      'ráfaga de posiciones en vivo produce una sola actualización '
+      '(debounce 200ms)',
       () async {
     final fake = FakeRealtimeRepository();
     final container = containerWith(fake);
@@ -261,7 +263,8 @@ void main() {
   });
 
   testWidgets(
-      'el chip de estado sigue la conexión: desconectado, reconectando y en línea',
+      'el chip de estado sigue la conexión: desconectado, '
+      'reconectando y en línea',
       (tester) async {
     final fake = FakeRealtimeRepository();
     await tester.pumpWidget(

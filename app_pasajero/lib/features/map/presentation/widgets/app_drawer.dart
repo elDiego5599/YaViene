@@ -362,8 +362,8 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                 ),
                               ),
                         onTap: () {
-                          // Sin cerrar el drawer: al volver de Notificaciones se
-                          // regresa al menú abierto, no al mapa.
+                          // Sin cerrar el drawer: al volver de Notificaciones
+                          // se regresa al menú abierto, no al mapa.
                           context.push('/notifications');
                         },
                       ),

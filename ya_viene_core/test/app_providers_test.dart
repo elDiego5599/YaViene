@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 void main() {
@@ -15,7 +15,8 @@ void main() {
     expect(container.read(selectedCompanyProvider), isNull);
   });
 
-  test('selectedRoute persiste aunque nadie lo mire (no autoDispose)', () async {
+  test('selectedRoute persiste aunque nadie lo mire (no autoDispose)',
+      () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(selectedRouteProvider.notifier).select(
