@@ -30,8 +30,8 @@ class LiveRouteBackdrop extends StatefulWidget {
   final bool showUser;
 
   /// Altura del halo verde, en fracción de la pantalla: donde vaya a caer
-  /// la marca. El splash la centra; el login y la bienvenida la suben para
-  /// dejarle sitio a la hoja.
+  /// la marca. El splash la centra; la bienvenida la sube para dejarle sitio
+  /// a la hoja.
   final double haloY;
 
   final Widget child;
@@ -294,8 +294,8 @@ class _RedDeRutasPainter extends CustomPainter {
   }
 
   /// La ruta viva. Va en la banda de arriba, como una línea de horizonte:
-  /// la marca queda debajo en las tres pantallas —el splash la centra, el
-  /// login y la bienvenida la suben— y ninguna la cruza.
+  /// la marca queda debajo en todas las pantallas —el splash la centra, la
+  /// bienvenida la sube— y ninguna la cruza.
   Path _rutaA(Size s) => Path()
     ..moveTo(-30, s.height * 0.205)
     ..cubicTo(

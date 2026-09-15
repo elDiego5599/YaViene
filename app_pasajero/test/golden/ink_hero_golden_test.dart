@@ -5,14 +5,13 @@ import 'package:ya_viene_pasajero/core/widgets/ink_hero.dart';
 
 import 'golden_harness.dart';
 
-/// La marca sobre tinta, que es lo que se ve en el splash, en el login y en
-/// la bienvenida.
+/// La marca sobre tinta, que es lo que se ve en el splash y en la
+/// bienvenida.
 ///
-/// Se fotografía el `InkHero` suelto y no el `SplashScreen` entero por dos
-/// motivos: el splash arranca Firebase en su primer cuadro, y su fondo
-/// (`LiveRouteBackdrop`) es una animación que no para nunca, así que la
-/// foto saldría distinta cada vez. Los píxeles que importan —el logo, el
-/// nombre, la bajada y sus tamaños— son todos de este widget.
+/// Se fotografía el `InkHero` suelto y no el `SplashScreen` entero porque
+/// su fondo (`LiveRouteBackdrop`) es una animación que no para nunca, así
+/// que la foto saldría distinta cada vez. Los píxeles que importan —el
+/// logo, el nombre, la bajada y sus tamaños— son todos de este widget.
 void main() {
   Widget sobreTinta(Widget hijo) => ColoredBox(
         color: AppColors.ink,
@@ -48,10 +47,10 @@ void main() {
     await coincideConOro(tester, 'ink_hero_splash');
   });
 
-  testWidgets('marca del login y la bienvenida', (tester) async {
+  testWidgets('marca de la bienvenida', (tester) async {
     fijarPantalla(tester);
     await tester.pumpWidget(marcoGolden(sobreTinta(const InkHero())));
     await tester.pumpAndSettle();
-    await coincideConOro(tester, 'ink_hero_login');
+    await coincideConOro(tester, 'ink_hero_bienvenida');
   });
 }

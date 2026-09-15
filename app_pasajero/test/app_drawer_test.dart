@@ -3,23 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/core/providers/auth_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/app_drawer.dart';
-
-/// Fake de autenticación sin Firebase: el drawer solo lee `state`.
-class _FakeAuth implements AuthNotifier {
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #state) {
-      return const AuthState(
-        status: AuthStatus.verified,
-        email: 'qa@yaviene.app',
-        name: 'QA Tester',
-      );
-    }
-    return null;
-  }
-}
 
 void main() {
   setUp(() {
@@ -30,9 +14,7 @@ void main() {
     WidgetTester tester, {
     bool sinAnimaciones = false,
   }) async {
-    final container = ProviderContainer(overrides: [
-      authProvider.overrideWith((ref) => _FakeAuth()),
-    ]);
+    final container = ProviderContainer();
     addTearDown(container.dispose);
     // Mantiene vivo el provider autoDispose de la ruta seleccionada mientras
     // el drawer está cerrado (sin listeners); si no, seleccionar y luego
@@ -113,12 +95,12 @@ void main() {
     await openDrawer(tester);
 
     expect(find.text('Ya Viene'), findsOneWidget);
-    expect(find.text('Hola, QA'), findsOneWidget);
-    expect(find.text('qa@yaviene.app'), findsOneWidget);
     expect(find.text('Sin ruta activa'), findsOneWidget);
     expect(find.text('Avisos'), findsOneWidget);
     expect(find.text('Ver guía de uso'), findsOneWidget);
-    expect(find.text('Cerrar sesión'), findsOneWidget);
+    // Sin cuenta (D3): ni saludo con el nombre ni «Cerrar sesión».
+    expect(find.textContaining('Hola'), findsNothing);
+    expect(find.text('Cerrar sesión'), findsNothing);
     // Sin EN VIVO ni versiones de relleno.
     expect(find.text('EN VIVO'), findsNothing);
   });

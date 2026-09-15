@@ -19,7 +19,7 @@ abstract class RealtimeRepository {
   void unsubscribeFromRoute(String routeId);
 
   /// Cierra el socket y detiene el reintento sin destruir el servicio
-  /// (un login posterior puede reconectar con el mismo provider).
+  /// (el mapa puede reconectar con el mismo provider después del arranque).
   void disconnect();
   void dispose();
   bool get isConnected;

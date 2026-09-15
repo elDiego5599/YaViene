@@ -34,7 +34,7 @@ flutter run --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.de
 flutter analyze lib test
 flutter test
 
-# Fotos de referencia (goldens): 36 PNG en test/golden/goldens/.
+# Fotos de referencia (goldens): 34 PNG en test/golden/goldens/.
 # Comparan pixel a pixel la app contra la última foto aprobada.
 flutter test test/golden
 
@@ -55,7 +55,6 @@ flutter test integration_test/map_load_test.dart \
   -d emulator-5554 \
   --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.dev \
   --dart-define=DISABLE_MAP_GUIDE=true
-# Flake conocido: el 1er intento tras instalar puede fallar en login/registro -> reintentar.
 
 # APK release
 flutter build apk --release --dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.dev
@@ -68,7 +67,7 @@ cp build/app/outputs/flutter-apk/app-release.apk ~/Desktop/APKs/YaViene-Pasajero
 
 ```
 lib/
-  core/           # Auth, theme, utils (bus_labels, prefs)
+  core/           # Router, theme, utils (bus_labels, prefs); sin cuenta (D3)
   features/
     map/          # MapWidget (1030 líneas, delega a 5 módulos), guía, ETA
       presentation/

@@ -21,8 +21,6 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final guide = MapGuideNotifier();
     await guide.initialize(
-      userId: 'hint-user',
-      isNewUser: false,
       hasLocation: true,
       locationSettled: true,
       hasRoute: false,

@@ -43,8 +43,6 @@ void main() {
     // su velo y la foto sería de la guía, no del selector.
     final guia = MapGuideNotifier();
     await guia.initialize(
-      userId: 'golden-user',
-      isNewUser: false,
       hasLocation: true,
       locationSettled: true,
       hasRoute: false,

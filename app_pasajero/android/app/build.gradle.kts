@@ -3,7 +3,6 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -31,9 +30,6 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        // OJO: cambiarlo exige actualizar google-services.json (package_name) y
-        // registrar el nuevo paquete + SHA-1 en la consola de Firebase, o la
-        // autenticación deja de funcionar.
         applicationId = "com.example.ya_viene_pasajero"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

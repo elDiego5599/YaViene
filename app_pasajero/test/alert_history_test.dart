@@ -172,36 +172,52 @@ void main() {
     expect(c.read(alertHistoryProvider), hasLength(1));
   });
 
-  test('restore() rearma el monitoreo después de cerrar sesión', () async {
-    final c = buildContainer();
-    addTearDown(c.dispose);
-    arm(c, 'A-2');
-
-    // El logout conserva activeAlerts/historial, pero cierra las suscripciones
-    // de red para que no sobrevivan en la pantalla de login.
-    c.read(proximityAlertsProvider.notifier).pauseMonitoring();
-    expect(c.read(activeAlertsProvider), {'A-2'});
-
-    await c.read(proximityAlertsProvider.notifier).restore();
-
-    expect(c.read(activeAlertsProvider), {'A-2'});
-    expect(c.read(alertHistoryProvider).single.sent, isFalse);
-  });
-
-  test('los avisos no se comparten entre usuarios del mismo dispositivo',
+  // Con cuenta, cada una tenía su historial en `alert_history_user_<uid>`.
+  // Sin cuentas (D3) el historial es del teléfono: la primera carga funde
+  // lo de todas las cuentas en `alert_history`, uno por bus, y borra las
+  // claves viejas, que llevaban el id de la cuenta en el nombre.
+  test('los historiales de las cuentas se funden en uno del teléfono',
       () async {
-    final c = buildContainer();
-    addTearDown(c.dispose);
-    arm(c, 'A-2');
+    Map<String, dynamic> entrada(String busId, DateTime creado,
+            {DateTime? enviado}) =>
+        {
+          'busId': busId,
+          'routeId': 'R1',
+          'routeName': 'Ruta 1',
+          'createdAt': creado.toIso8601String(),
+          'sentAt': enviado?.toIso8601String(),
+        };
+    final hoy = DateTime.now();
+    final antes = hoy.subtract(const Duration(hours: 3));
+    SharedPreferences.setMockInitialValues({
+      'alert_history': jsonEncode([entrada('A-0', antes, enviado: antes)]),
+      'alert_history_user_a': jsonEncode([
+        entrada('A-1', antes),
+        entrada('A-2', antes, enviado: antes),
+      ]),
+      'alert_history_user_b': jsonEncode([entrada('A-1', hoy)]),
+      'alert_history_legacy_migrated_user': 'a',
+    });
 
-    final notifier = c.read(proximityAlertsProvider.notifier);
-    await notifier.restore(userId: 'user-a');
-    expect(c.read(activeAlertsProvider), {'A-2'});
+    final notifier = AlertHistoryNotifier();
+    await notifier.load();
 
-    await notifier.restore(userId: 'user-b');
+    final porBus = {for (final e in notifier.state) e.busId: e};
+    expect(porBus.keys, unorderedEquals(['A-0', 'A-1', 'A-2']));
+    // A-1 estaba en las dos cuentas: se queda la más reciente, y sigue
+    // activo, así que `restore()` lo vuelve a armar.
+    expect(porBus['A-1']!.createdAt, hoy);
+    expect(porBus['A-1']!.sent, isFalse);
+    expect(porBus['A-2']!.sent, isTrue);
 
-    expect(c.read(activeAlertsProvider), isEmpty);
-    expect(c.read(alertHistoryProvider), isEmpty);
+    await pumpEventQueue();
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getKeys().where((k) => k.startsWith('alert_history_')),
+      isEmpty,
+    );
+    final guardado = jsonDecode(prefs.getString('alert_history')!) as List;
+    expect(guardado, hasLength(3));
   });
 
   group('purga del historial', () {
@@ -216,14 +232,13 @@ void main() {
       };
     }
 
-    Future<List<AlertHistoryEntry>> cargar(List<Map<String, dynamic>> guardado,
-        {String? userId}) async {
+    Future<List<AlertHistoryEntry>> cargar(
+        List<Map<String, dynamic>> guardado) async {
       SharedPreferences.setMockInitialValues({
-        userId == null ? 'alert_history' : 'alert_history_user_$userId':
-            jsonEncode(guardado),
+        'alert_history': jsonEncode(guardado),
       });
       final notifier = AlertHistoryNotifier();
-      await notifier.load(userId: userId);
+      await notifier.load();
       return notifier.state;
     }
 

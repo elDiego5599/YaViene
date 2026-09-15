@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/core/providers/auth_provider.dart';
-import 'package:ya_viene_pasajero/features/auth/presentation/screens/'
-    'login_screen.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
@@ -27,7 +24,7 @@ import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
 
 import 'golden/golden_harness.dart';
 
-/// El texto del sistema en grande, en las seis superficies principales.
+/// El texto del sistema en grande, en las cinco superficies principales.
 ///
 /// Una caja de alto fijo con letra dentro no avisa: se desborda en el
 /// teléfono de alguien, no en el CI. Estas pruebas la obligan a avisar
@@ -39,22 +36,6 @@ import 'golden/golden_harness.dart';
 ///   techo —la de distancia y la del selector se paran en el 200%, que es
 ///   lo que pide la WCAG— pero ninguna puede recortar lo que muestra.
 const List<double> kEscalas = [1.35, 3.0];
-
-class _AutenticacionFalsa implements AuthNotifier {
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    switch (invocation.memberName) {
-      case #state:
-        return const AuthState();
-      case #isEmailValid:
-        return true;
-      case #checkEmail:
-        return Future<bool>.value(true);
-      default:
-        return null;
-    }
-  }
-}
 
 class _UbicacionDePrueba extends UserLocationNotifier {
   _UbicacionDePrueba() {
@@ -109,21 +90,6 @@ void main() {
       sinDesbordes(tester, 'La bienvenida', escala);
     });
 
-    testWidgets('inicio de sesión', (tester) async {
-      fijarPantalla(tester, escalaTexto: escala);
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authProvider.overrideWith((ref) => _AutenticacionFalsa()),
-          ],
-          child: marcoGoldenRuteado(const LoginScreen(), ruta: '/login'),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 900));
-      sinDesbordes(tester, 'El inicio de sesión', escala);
-    });
-
     testWidgets('píldora de búsqueda con ruta', (tester) async {
       fijarPantalla(tester, escalaTexto: escala);
       final container = ProviderContainer();
@@ -158,8 +124,6 @@ void main() {
       fijarPantalla(tester, escalaTexto: escala);
       final guia = MapGuideNotifier();
       await guia.initialize(
-        userId: 'texto-grande',
-        isNewUser: false,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,

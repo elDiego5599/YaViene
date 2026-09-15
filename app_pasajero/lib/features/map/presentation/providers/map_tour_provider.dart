@@ -49,6 +49,11 @@ int mapGuideStepCount(MapGuideState state) {
 /// La versión evita que los flags del coach mark anterior (`map_tour_seen` y
 /// `map_tour_bus_seen`) oculten esta guía nueva a usuarios que ya actualizaron
 /// la aplicación.
+///
+/// La guía es del teléfono, no de una cuenta: sale sola la primera vez que se
+/// abre el mapa y, terminada o saltada, no vuelve salvo que se pida desde el
+/// drawer. Antes solo salía a cuentas recién creadas; sin cuentas (D3), quien
+/// ya usaba la app sin haberla visto la verá una vez.
 class MapGuideNotifier extends StateNotifier<MapGuideState> {
   MapGuideNotifier() : super(const MapGuideState());
 
@@ -59,14 +64,13 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
   static const _kStep = 'map_guide_step';
   static const _kStatus = 'map_guide_status';
   static const _kIncludesLocation = 'map_guide_includes_location';
-  static const _kUser = 'map_guide_user';
-  static const _kEligible = 'map_guide_eligible';
 
-  String? _activeUserId;
+  /// Claves de cuando la guía se decidía por cuenta: el id de la cuenta que
+  /// la había visto y si tenía derecho a verla sola. Ya no significan nada y
+  /// una guarda el id de una cuenta, así que se borran al pasar por aquí.
+  static const _kPorCuenta = ['map_guide_user', 'map_guide_eligible'];
 
   Future<void> initialize({
-    required String? userId,
-    required bool isNewUser,
     required bool hasLocation,
     required bool locationSettled,
     required bool hasRoute,
@@ -78,38 +82,11 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
       state = const MapGuideState(initialized: true, skipped: true);
       return;
     }
-    if (_activeUserId != userId) {
-      _activeUserId = userId;
-      state = const MapGuideState();
-    }
     if (state.initialized) return;
 
-    if (userId == null) {
-      state = const MapGuideState(initialized: true);
-      return;
-    }
-
     final prefs = await SharedPreferences.getInstance();
-    final storedUser = prefs.getString(_kUser);
-    final sameUser = storedUser == userId;
-    if (!sameUser && !isNewUser) {
-      // Una cuenta que ya existía en otro dispositivo no tiene derecho a la
-      // guía automática: solo la puede pedir explícitamente desde el drawer.
-      state = const MapGuideState(initialized: true);
-      return;
-    }
-    if (!sameUser && isNewUser) {
-      await prefs.setString(_kUser, userId);
-      await prefs.setBool(_kEligible, true);
-      await prefs.remove(_kStep);
-      await prefs.remove(_kStatus);
-      await prefs.remove(_kIncludesLocation);
-    }
-    if (isNewUser) await prefs.setBool(_kEligible, true);
-    final eligible = prefs.getBool(_kEligible) ?? false;
-    if (!eligible) {
-      state = const MapGuideState(initialized: true);
-      return;
+    for (final clave in _kPorCuenta) {
+      await prefs.remove(clave);
     }
 
     final storedVersion = prefs.getInt(_kVersion);
@@ -192,15 +169,11 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
   }
 
   Future<void> restart({
-    required String? userId,
     required bool hasLocation,
     required bool locationSettled,
   }) async {
-    if (!locationSettled || userId == null) return;
-    _activeUserId = userId;
+    if (!locationSettled) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kUser, userId);
-    await prefs.setBool(_kEligible, true);
     await prefs.setInt(_kVersion, _version);
     await prefs.remove(_kStatus);
     final step = hasLocation ? MapGuideStep.search : MapGuideStep.location;

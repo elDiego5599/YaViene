@@ -303,23 +303,18 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     await prefs.setDouble(_kManualLon, lon);
   }
 
-  /// Quita el pin y vuelve al GPS si hay permiso. Con [resumeGps] en false
-  /// (cierre de sesión) no se relanza la localización: la sesión terminó y
-  /// dejar el GPS corriendo en el login filtraría ubicación sin usuario.
-  Future<void> clearManualPin({bool resumeGps = true}) async {
-    // Lo primero, antes de cualquier `await`: mientras se borraba el pin del
-    // disco el stream del GPS seguía vivo, y una lectura que llegara en ese
-    // hueco escribía una posición después del cierre de sesión. Si toca
-    // volver al GPS, `_locate` abre una suscripción nueva.
+  /// Quita el pin («Quitar» en el mapa) y vuelve al GPS si hay permiso. Es
+  /// la única forma de borrar el punto de espera guardado, y así lo dice la
+  /// política de privacidad.
+  Future<void> clearManualPin() async {
+    // Lo primero, antes de cualquier `await`: una lectura del GPS que llegara
+    // mientras se borra el pin del disco escribiría una posición a medio
+    // camino. `_locate` abre una suscripción nueva.
     _gpsSub?.cancel();
     _gpsSub = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kManualLat);
     await prefs.remove(_kManualLon);
-    if (!resumeGps) {
-      state = const UserLocationState(mode: UserLocationMode.denied);
-      return;
-    }
     if (await _hasGpsPermission()) {
       await _locate();
     } else {

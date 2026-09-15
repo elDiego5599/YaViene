@@ -14,9 +14,9 @@ Future<void> markOnboardingSeen() async {
   await prefs.setBool(_kOnboardingSeen, true);
 }
 
-/// Tras iniciar sesión (o reentrar con sesión guardada): si es la primera
-/// vez en el dispositivo se muestra la pantalla de bienvenida con la
-/// explicación de la ubicación; si ya se vio, va directo al mapa.
+/// Tras el arranque: si es la primera vez en el dispositivo se muestra la
+/// pantalla de bienvenida con la explicación de la ubicación; si ya se vio,
+/// va directo al mapa.
 Future<void> goToHome(BuildContext context) async {
   final seen = await isOnboardingSeen();
   if (!context.mounted) return;

@@ -42,8 +42,8 @@ final connectionStateProvider =
 });
 
 /// Re-emite el último estado conocido al arrancar: el stream del servicio es
-/// broadcast y tras un logout→login el provider se recrea y quedaría en
-/// blanco hasta el siguiente evento del socket.
+/// broadcast y, cuando el provider se recrea (al volver al mapa), quedaría
+/// en blanco hasta el siguiente evento del socket.
 Stream<ConnectionStatus> _connectionStateWithInitial(
     RealtimeRepository repo) async* {
   final last = repo.lastConnectionState;

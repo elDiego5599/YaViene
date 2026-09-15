@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'entrance.dart';
 
-/// F12: logo + halo + wordmark + tagline, compartido por splash, login y
+/// F12: logo + halo + wordmark + tagline, compartido por splash y
 /// onboarding. Antes cada pantalla repetía el mismo bloque con constantes
 /// ligeramente distintas (tamaños de fuente, espaciados) sin ningún motivo
 /// para divergir entre sí.
@@ -17,15 +17,15 @@ class InkHero extends StatelessWidget {
     this.entradaEscalonada,
   });
 
-  /// Etiqueta del `Hero` del logo. Compartida por splash, login y bienvenida,
-  /// que es lo que hace que el logo vuele entre las tres en vez de saltar.
+  /// Etiqueta del `Hero` del logo. Compartida por splash y bienvenida, que
+  /// es lo que hace que el logo vuele de una a otra en vez de saltar.
   static const String marcaHeroTag = 'ya-viene-marca';
 
   /// El dibujo sí se mide por pantalla, y no es capricho: en el arranque
   /// tiene que medir exactamente lo que mide en la pantalla nativa que
   /// releva (84, en el storyboard y en `launch_background.xml`). El nombre
   /// y la tagline no, porque la pantalla nativa no escribe nada: esos van
-  /// en su rol y miden lo mismo en las tres.
+  /// en su rol y miden lo mismo en todas.
   final double logoSize;
   final double spacingAfterLogo;
 
@@ -45,8 +45,8 @@ class InkHero extends StatelessWidget {
   /// parpadeo. Así el logo no se mueve y lo que entra es lo que la pantalla
   /// nativa no puede dibujar: el nombre, la tagline y el indicador.
   ///
-  /// Quien no lo pase (login, bienvenida) sigue envolviendo el bloque
-  /// entero por fuera, como antes.
+  /// Quien no lo pase (la bienvenida) sigue envolviendo el bloque entero
+  /// por fuera, como antes.
   final Entrada? entradaEscalonada;
 
   /// Solo vuela el logo, no el bloque entero: el texto tendría que volver a

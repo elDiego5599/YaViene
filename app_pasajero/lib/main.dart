@@ -2,7 +2,6 @@ library;
 
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -19,7 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Lo primero es pintar. Antes el primer cuadro de Flutter salía después de
-  // Firebase y de saber a qué backend hablar, y esa pregunta va en serie:
+  // saber a qué backend hablar, y esa pregunta va en serie:
   // hasta 3 s por el principal y, si no contesta, hasta 20 s más por el
   // respaldo (BackendResolver). Todo ese rato el teléfono se quedaba en la
   // pantalla nativa, quieta, sin decir si la app seguía viva. Preguntar a los
@@ -28,22 +27,14 @@ void main() async {
   // y lo que cambia es que la espera se ve.
   runApp(const _ArranqueTemprano());
 
-  // Se lanza ANTES de Firebase y se espera después: las dos cosas son
-  // independientes, así que la pregunta por el backend viaja mientras Firebase
-  // arranca y en el caso normal —el backend de siempre contesta— no le suma
-  // nada al arranque.
+  // Se lanza ya y se espera al final: la pregunta por el backend viaja
+  // mientras se preparan las notificaciones y la pantalla, y en el caso
+  // normal —el backend de siempre contesta— no le suma nada al arranque.
   final backendUrl = BackendResolver.resolver(
     principal: AppConfig.backendUrl,
     respaldo: AppConfig.fallbackBackendUrl,
   );
 
-  try {
-    await Firebase.initializeApp();
-  } catch (e, st) {
-    debugPrint('Firebase init falló: $e\n$st');
-    runApp(const _FirebaseInitFailedApp());
-    return;
-  }
   // El plugin de notificaciones no debe impedir que la app abra si falla la
   // inicialización (los avisos fallan blando más adelante).
   try {
@@ -84,7 +75,7 @@ BackendUrl _backendUrl(String elegida) => BackendUrl(
       respaldo: AppConfig.fallbackBackendUrl,
     );
 
-/// Primer cuadro de la app mientras se resuelven Firebase y el backend.
+/// Primer cuadro de la app mientras se resuelve el backend.
 ///
 /// Es una copia de la pantalla de arranque nativa, no una pantalla nueva: el
 /// mismo fondo de tinta y el logo de 84 en el mismo sitio, así que el relevo
@@ -102,7 +93,7 @@ class _ArranqueTemprano extends StatefulWidget {
 }
 
 class _ArranqueTempranoState extends State<_ArranqueTemprano> {
-  /// Lo normal es que esta pantalla dure lo que tarda Firebase en arrancar,
+  /// Lo normal es que esta pantalla dure lo que tarda el backend en contestar,
   /// unos cientos de milisegundos, y ahí no debe asomar nada: el indicador
   /// aparecería y se iría al relevarla el splash. Solo si la espera pasa de
   /// 1,5 s —ya no es un arranque normal; casi siempre es que el principal no
@@ -161,67 +152,6 @@ class _ArranqueTempranoState extends State<_ArranqueTemprano> {
                 color: Color.fromRGBO(255, 255, 255, 0.75),
                 semanticsLabel: 'Conectando con Ya Viene',
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FirebaseInitFailedApp extends StatelessWidget {
-  const _FirebaseInitFailedApp();
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off_rounded,
-                    size: 48, color: AppColors.error),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'No se pudo iniciar Ya Viene',
-                  style: AppTextStyles.subtitulo,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  'Revisa tu conexión e intenta de nuevo. '
-                  'Si persiste, reinstala la app.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await Firebase.initializeApp();
-                      // Se vuelve a elegir backend: si el usuario llegó a esta
-                      // pantalla fue porque algo de red estaba mal, y puede
-                      // que ahora la respuesta sea otra.
-                      final url = await BackendResolver.resolver(
-                        principal: AppConfig.backendUrl,
-                        respaldo: AppConfig.fallbackBackendUrl,
-                      );
-                      runApp(ProviderScope(
-                        overrides: [
-                          backendUrlProvider
-                              .overrideWith(() => _backendUrl(url)),
-                        ],
-                        child: const YaVieneApp(),
-                      ));
-                    } catch (e, st) {
-                      debugPrint('Reintento Firebase falló: $e\n$st');
-                    }
-                  },
-                  child: const Text('Reintentar'),
-                ),
-              ],
             ),
           ),
         ),

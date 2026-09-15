@@ -3,17 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../../../core/providers/app_state.dart';
-import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/live_route_backdrop.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 
-/// Centro personal de viaje: la ruta que el usuario sigue ahora mismo, la
-/// ubicación del aviso y el cierre de sesión. Fondo tinta con patrón de
-/// calles y entrada escalonada (fade + slide leve).
+/// Centro personal de viaje: la ruta que el usuario sigue ahora mismo, sus
+/// avisos y la guía de uso. Sin bloque de cuenta ni «Cerrar sesión»: el
+/// pasajero entra sin cuenta. Fondo tinta con patrón de calles y entrada
+/// escalonada (fade + slide leve).
 class AppDrawer extends ConsumerStatefulWidget {
   const AppDrawer({super.key});
 
@@ -54,7 +53,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
   /// Antes se creaba una nueva dentro de `_staggered`, que se llama desde
   /// `build`. Cada `CurvedAnimation` se engancha como oyente del controlador
   /// y no se suelta sola, así que el drawer —que se reconstruye con cada
-  /// cambio de ruta, de sesión o de avisos— iba dejando oyentes muertos que
+  /// cambio de ruta o de avisos— iba dejando oyentes muertos que
   /// seguían evaluando su curva en cada cuadro de cada apertura.
   final Map<double, CurvedAnimation> _escalones = {};
 
@@ -93,10 +92,6 @@ class AppDrawerState extends ConsumerState<AppDrawer>
   void playEntrance() {
     if (mounted) _entrance.forward(from: 0);
   }
-
-  /// F9: cerrar sesión ahora sí muestra spinner y bloquea el doble-tap, como
-  /// cualquier otro botón asíncrono de la app.
-  bool _signingOut = false;
 
   /// Un solo bloque para las acciones, con filos finos entre filas.
   ///
@@ -148,19 +143,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authProvider).state;
-    final email = auth.email;
-    final name = (auth.name ?? '').trim();
-    // Solo el nombre de pila. El saludo iba con el nombre completo y
-    // "Hola, Sofía Res…" se cortaba con hueco de sobra al lado; además
-    // nadie saluda por nombre y apellido.
-    final nombrePila = name.isEmpty ? '' : name.split(RegExp(r'\s+')).first;
     final activeAlerts = ref.watch(activeAlertsProvider);
-    final inicial = name.isNotEmpty
-        ? name.characters.first.toUpperCase()
-        : (email != null && email.isNotEmpty
-            ? email.characters.first.toUpperCase()
-            : null);
 
     return Drawer(
       backgroundColor: AppColors.ink,
@@ -169,11 +152,10 @@ class AppDrawerState extends ConsumerState<AppDrawer>
           right: Radius.circular(AppRadius.sheet),
         ),
       ),
-      // El mismo fondo que el inicio de sesión: la red de rutas de noche
-      // con el bus recorriéndola. El drawer es la única pantalla oscura que
-      // se abría sobre un plano de tinta con un rayado encima, y al venir
-      // del login se notaba que eran dos apps distintas. El halo verde sube
-      // a la altura de la marca, que aquí va arriba del todo.
+      // El mismo fondo que el arranque y la bienvenida: la red de rutas de
+      // noche con el bus recorriéndola. Antes el drawer se abría sobre un
+      // plano de tinta con un rayado encima y parecía de otra app. El halo
+      // verde sube a la altura de la marca, que aquí va arriba del todo.
       //
       // El fondo pinta TODO el drawer (incluida el área de la barra de
       // estado y el gesto inferior): la SafeArea queda solo para el
@@ -247,86 +229,11 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                     ),
                     0.0,
                   ),
+                  // Sin la tarjeta de cuenta que iba aquí, la ruta activa
+                  // sube a ser el primer bloque, con el aire que la marca
+                  // dejaba antes a esa tarjeta.
                   const SizedBox(height: 22),
-                  _staggered(
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.12),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          // El único bloque de color macizo del panel. Con
-                          // todo lo demás en monocromo, el verde por fin
-                          // significa algo en vez de ser un tono más.
-                          // La inicial es el nombre dibujado, no un dato
-                          // aparte: leída suelta es una letra sin frase
-                          // delante de "Hola, Diego".
-                          ExcludeSemantics(
-                            child: Container(
-                              width: 52,
-                              height: 52,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: inicial == null
-                                  ? const Icon(
-                                      Icons.person_rounded,
-                                      color: Colors.white,
-                                      size: 28,
-                                    )
-                                  : Text(
-                                      inicial,
-                                      style: AppTextStyles.titulo.copyWith(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: MergeSemantics(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    nombrePila.isNotEmpty
-                                        ? 'Hola, $nombrePila'
-                                        : 'Hola',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTextStyles.subtitulo.copyWith(
-                                      color: AppColors.textOnInk,
-                                    ),
-                                  ),
-                                  if (email != null && email.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      email,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTextStyles.pie.copyWith(
-                                        color: AppColors.textDisabled,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    0.08,
-                  ),
-                  const SizedBox(height: 26),
-                  _staggered(const ActiveRouteCard(), 0.16),
+                  _staggered(const ActiveRouteCard(), 0.08),
                   const SizedBox(height: 30),
                   _staggered(
                     _grupo([
@@ -409,7 +316,6 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                           ref.read(selectedRouteProvider.notifier).clear();
                           final location = ref.read(userLocationProvider);
                           await ref.read(mapGuideProvider.notifier).restart(
-                                userId: auth.uid,
                                 hasLocation: location.hasPosition,
                                 locationSettled: location.mode !=
                                         UserLocationMode.unknown &&
@@ -427,35 +333,14 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                         },
                       ),
                     ]),
-                    0.24,
-                  ),
-                  const SizedBox(height: 18),
-                  // Sección propia, como en Ajustes de iOS: lo destructivo
-                  // no comparte bloque con lo que no lo es.
-                  _staggered(
-                    _grupo([
-                      DrawerItem(
-                        icon: Icons.logout_rounded,
-                        title:
-                            _signingOut ? 'Cerrando sesión…' : 'Cerrar sesión',
-                        danger: true,
-                        loading: _signingOut,
-                        onTap: () async {
-                          if (_signingOut) return;
-                          setState(() => _signingOut = true);
-                          await signOutAndGoToLogin(ref, context);
-                          if (mounted) setState(() => _signingOut = false);
-                        },
-                      ),
-                    ]),
-                    0.32,
+                    0.16,
                   ),
                   const SizedBox(height: 26),
                   // Los créditos del mapa viven aquí desde que la "i" azul de
                   // MapLibre dejó libre su esquina para el botón de recentrar.
                   // OpenStreetMap y CARTO piden que se vean; el pie de un menú
                   // es donde los pone todo el mundo, y donde no estorban.
-                  _staggered(const _MapCredits(), 0.40),
+                  _staggered(const _MapCredits(), 0.24),
                   const SizedBox(height: AppSpacing.sm),
                 ],
               ),
@@ -666,8 +551,8 @@ class TerminalsLine extends StatelessWidget {
 /// tres filas, tres parejas de color inventadas fila por fila (ámbar,
 /// celeste, rojo) sin que ninguna significara nada. Un menú no es un
 /// semáforo. Los iconos son del mismo gris claro y el único color que
-/// queda es el verde de la marca en el contador de avisos y el rojo de
-/// [danger], que sí significan algo.
+/// queda es el verde de la marca en el contador de avisos, que sí significa
+/// algo. El rojo de «Cerrar sesión» se fue con la cuenta.
 class DrawerItem extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -680,13 +565,6 @@ class DrawerItem extends StatefulWidget {
   /// galón— es lo que se ve. En voz alta van juntos o no se entienden.
   final String? dicho;
 
-  /// Acción destructiva: tiñe icono y texto. Solo "Cerrar sesión".
-  final bool danger;
-
-  /// F9: reemplaza el ícono por un spinner y bloquea el tap — mismo patrón
-  /// que ya usan los botones asíncronos del login.
-  final bool loading;
-
   const DrawerItem({
     super.key,
     required this.icon,
@@ -694,8 +572,6 @@ class DrawerItem extends StatefulWidget {
     required this.onTap,
     this.trailing,
     this.dicho,
-    this.danger = false,
-    this.loading = false,
   });
 
   @override
@@ -710,26 +586,19 @@ class _DrawerItemState extends State<DrawerItem> {
     // Dentro de un grupo, encoger una fila la despega de sus vecinas y del
     // filo que las separa. La respuesta al toque es el fondo, que es
     // además como responde una lista en iOS.
-    final tinte = widget.danger ? AppColors.errorOnInk : AppColors.textOnInk;
     return Semantics(
       button: true,
-      // Cargando, la fila no responde: anunciarla habilitada invita a
-      // tocarla otra vez mientras la sesión se está cerrando.
-      enabled: !widget.loading,
       label: widget.dicho ?? widget.title,
       // `excludeSemantics` tapa el árbol de abajo, y con él la acción del
       // gesto: sin este toque el doble toque de VoiceOver no abriría la
       // fila.
-      onTap: widget.loading ? null : widget.onTap,
+      onTap: widget.onTap,
       excludeSemantics: true,
       child: GestureDetector(
-        onTap: widget.loading ? null : widget.onTap,
-        onTapDown:
-            widget.loading ? null : (_) => setState(() => _pressed = true),
-        onTapUp:
-            widget.loading ? null : (_) => setState(() => _pressed = false),
-        onTapCancel:
-            widget.loading ? null : () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: AppMotion.instante,
@@ -739,25 +608,18 @@ class _DrawerItemState extends State<DrawerItem> {
           color: Colors.white.withValues(alpha: _pressed ? 0.07 : 0),
           child: Row(
             children: [
-              SizedBox(
-                width: 22,
-                height: 22,
-                child: widget.loading
-                    ? IndicadorCarga(
-                        color: tinte.withValues(alpha: 0.7),
-                      )
-                    : Icon(
-                        widget.icon,
-                        color:
-                            tinte.withValues(alpha: widget.danger ? 1 : 0.75),
-                        size: 22,
-                      ),
+              Icon(
+                widget.icon,
+                color: AppColors.textOnInk.withValues(alpha: 0.75),
+                size: 22,
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   widget.title,
-                  style: AppTextStyles.cuerpoFuerte.copyWith(color: tinte),
+                  style: AppTextStyles.cuerpoFuerte.copyWith(
+                    color: AppColors.textOnInk,
+                  ),
                 ),
               ),
               if (widget.trailing != null) widget.trailing!,

@@ -54,7 +54,6 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       <String, ProviderSubscription<AsyncValue<List<BusPosition>>>>{};
   final _routePositions = <String, List<BusPosition>>{};
   bool _monitoringPaused = false;
-  String? _monitoringUserId;
 
   static Future<bool> _defaultNotify({
     required String busId,
@@ -77,8 +76,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => _check());
   }
 
-  /// Detiene el timer periódico (al cerrar sesión). Idempotente; [start] lo
-  /// relanza.
+  /// Detiene el timer periódico. Idempotente; [start] lo relanza.
   void stop() {
     _timer?.cancel();
     _timer = null;
@@ -87,18 +85,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Fuerza una verificación (útil en tests).
   Future<void> check() => _check();
 
-  /// Re-arma los avisos activos persistidos (al reabrir la app o al volver a
-  /// iniciar sesión). Idempotente: un aviso ya armado en memoria no se
-  /// duplica. Las entradas "enviadas" no se re-arman.
-  Future<void> restore({String? userId}) async {
-    if (_monitoringUserId != userId) {
-      pauseMonitoring();
-      _ref.read(activeAlertsProvider.notifier).clear();
-      _monitoringUserId = userId;
-    }
+  /// Re-arma los avisos activos persistidos (al reabrir la app o al volver
+  /// al mapa). Idempotente: un aviso ya armado en memoria no se duplica. Las
+  /// entradas "enviadas" no se re-arman.
+  Future<void> restore() async {
     _monitoringPaused = true;
     try {
-      await _ref.read(alertHistoryProvider.notifier).load(userId: userId);
+      await _ref.read(alertHistoryProvider.notifier).load();
       final entries = _ref.read(alertHistoryProvider);
       for (final e in entries) {
         if (e.sent || e.routeId.isEmpty) continue;
@@ -203,21 +196,6 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Limpia el registro de avisos disparados/rearmados.
   void clear() {
     _monitoringPaused = false;
-    _monitoringUserId = null;
-    state = {};
-    _alertRoutes.clear();
-    _alertRefs.clear();
-    for (final sub in _routeSubs.values) {
-      sub.close();
-    }
-    _routeSubs.clear();
-    _routePositions.clear();
-  }
-
-  /// Cierra el seguimiento en memoria al cerrar sesión, pero conserva los
-  /// avisos activos y su historial para que [restore] los reactive al volver.
-  void pauseMonitoring() {
-    _monitoringPaused = true;
     state = {};
     _alertRoutes.clear();
     _alertRefs.clear();

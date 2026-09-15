@@ -90,7 +90,67 @@ class AlertHistoryEntry {
 }
 
 const _kHistoryKey = 'alert_history';
+
+/// Claves de cuando el historial se guardaba por cuenta
+/// (`alert_history_user_<id>`) y la marca de a qué cuenta se le había dado
+/// el historial anterior. Solo se leen para fundirlas en [_kHistoryKey] una
+/// vez y borrarlas.
+const _kPrefijoPorCuenta = 'alert_history_user_';
 const _kLegacyMigratedUser = 'alert_history_legacy_migrated_user';
+
+/// Lee una lista guardada sin fiarse de ella: lo que no sea una lista o una
+/// entrada con forma se descarta.
+List<AlertHistoryEntry> _leer(String? raw) {
+  if (raw == null || raw.isEmpty) return const [];
+  Object? decoded;
+  try {
+    decoded = jsonDecode(raw);
+  } on FormatException {
+    return const [];
+  }
+  if (decoded is! List) return const [];
+  return decoded
+      .map(AlertHistoryEntry.tryFromJson)
+      .whereType<AlertHistoryEntry>()
+      .toList();
+}
+
+/// Sin cuentas (D3), el historial es del teléfono. Quien usó la app con
+/// cuenta tiene su historial en `alert_history_user_<id>` —uno por cada
+/// cuenta que abrió en este teléfono— y ahí viven también sus avisos
+/// activos, así que no se puede tirar: se funde todo en [_kHistoryKey], una
+/// entrada por bus (la activada más tarde gana), y se borran las claves
+/// viejas, que además guardaban el id de la cuenta. Devuelve lo fundido, o
+/// `null` si no había nada que migrar.
+Future<String?> _migrarPorCuenta(SharedPreferences prefs) async {
+  final claves =
+      prefs.getKeys().where((k) => k.startsWith(_kPrefijoPorCuenta)).toList();
+  if (claves.isEmpty) {
+    if (prefs.containsKey(_kLegacyMigratedUser)) {
+      await prefs.remove(_kLegacyMigratedUser);
+    }
+    return null;
+  }
+  final porBus = <String, AlertHistoryEntry>{};
+  for (final raw in [
+    prefs.getString(_kHistoryKey),
+    for (final clave in claves) prefs.getString(clave),
+  ]) {
+    for (final e in _leer(raw)) {
+      final previa = porBus[e.busId];
+      if (previa == null || e.createdAt.isAfter(previa.createdAt)) {
+        porBus[e.busId] = e;
+      }
+    }
+  }
+  final fundido = jsonEncode(porBus.values.map((e) => e.toJson()).toList());
+  await prefs.setString(_kHistoryKey, fundido);
+  for (final clave in claves) {
+    await prefs.remove(clave);
+  }
+  await prefs.remove(_kLegacyMigratedUser);
+  return fundido;
+}
 
 /// El historial crecía sin techo: una entrada por cada bus al que se le haya
 /// armado un aviso alguna vez, guardadas enteras en SharedPreferences y
@@ -121,10 +181,6 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   AlertHistoryNotifier() : super(const []);
 
   Future<void> _saveQueue = Future<void>.value();
-  String? _userId;
-
-  String get _storageKey =>
-      _userId == null ? _kHistoryKey : 'alert_history_user_$_userId';
 
   /// Armar un aviso crea (o renueva) su registro en estado activo.
   void upsert(
@@ -178,30 +234,14 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   }
 
   /// Carga el historial guardado (al arrancar la app o volver al mapa).
-  Future<void> load({String? userId}) async {
-    if (_userId != userId) {
-      await _saveQueue;
-      _userId = userId;
-      state = const [];
-    }
+  Future<void> load() async {
     // No leer una versión antigua del disco mientras una activación reciente
     // todavía está terminando de persistirse.
     await _saveQueue;
     final prefs = await SharedPreferences.getInstance();
-    var raw = prefs.getString(_storageKey);
-    // Migración única de instalaciones anteriores a la versión con historial
-    // por usuario. El dato legado se asigna al primer usuario que lo abre y
-    // luego se elimina para que nunca se reutilice con otra cuenta.
-    if (raw == null && userId != null) {
-      final migratedUser = prefs.getString(_kLegacyMigratedUser);
-      final legacy = prefs.getString(_kHistoryKey);
-      if (migratedUser == null && legacy != null) {
-        raw = legacy;
-        await prefs.setString(_storageKey, legacy);
-        await prefs.setString(_kLegacyMigratedUser, userId);
-        await prefs.remove(_kHistoryKey);
-      }
-    }
+    var raw = prefs.getString(_kHistoryKey);
+    final fundido = await _migrarPorCuenta(prefs);
+    if (fundido != null) raw = fundido;
     if (raw == null || raw.isEmpty) return;
     Object? decoded;
     try {
@@ -235,10 +275,9 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     final purgado = _purgar(state);
     if (purgado.length != state.length) state = purgado;
     final encoded = jsonEncode(state.map((e) => e.toJson()).toList());
-    final key = _storageKey;
     _saveQueue = _saveQueue.catchError((_) {}).then((_) async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(key, encoded);
+      await prefs.setString(_kHistoryKey, encoded);
     });
   }
 }

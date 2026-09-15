@@ -4,69 +4,37 @@ import 'package:integration_test/integration_test.dart';
 
 import 'package:ya_viene_pasajero/main.dart' as app;
 
-/// Flujos reales de la pasajero contra Firebase y el backend reales (túnel),
-/// desde una instalación limpia. Cobertura anti-tontos:
-/// 1) registro con correo nuevo (botón "Regístrate") → onboarding → mapa;
+/// Flujos reales de la pasajero contra el backend real (túnel), desde una
+/// instalación limpia. Cobertura anti-tontos:
+/// 1) arranque → bienvenida (primera vez) → mapa, sin cuenta ni inicio de
+///    sesión (D3);
 /// 2) el placeholder "Preparando tu mapa…" se funde (regresión del bug del
 ///    placeholder eterno);
 /// 3) selección de ruta desde el buscador (empresa Sobusa → ruta);
 /// 4) drawer → Avisos → volver (regresa al drawer abierto) → cerrar con la X;
-/// 5) Cerrar sesión → login;
-/// 6) volver a entrar con la cuenta ya creada (usuario que vuelve) → mapa.
+/// 5) el menú no ofrece cerrar sesión: no hay cuenta que cerrar.
 ///
 /// main() es `void main() async`: no se puede await; el arranque async
 /// sigue corriendo mientras el test espera por frames reales. Un solo
-/// testWidgets porque main() (y Firebase.initializeApp) no se repiten.
+/// testWidgets porque main() no se repite.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('flujos reales: registro, ruta, notificaciones, logout y login',
+  testWidgets('flujos reales sin cuenta: bienvenida, ruta y avisos',
       (tester) async {
     app.main();
 
-    // 1) Pantalla de login (instalación limpia).
-    await _waitUntil(
-      tester,
-      () => find.text('Iniciar con Google').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 60),
-      message: 'no apareció la pantalla de login',
-    );
-
-    // Registro por el botón "¿No tienes cuenta? Regístrate" (nuevo camino).
-    final email = 'qa${DateTime.now().millisecondsSinceEpoch}@yaviene.app';
-    const password = 'Demo123456';
-    await tester.tap(find.text('¿No tienes cuenta? Regístrate'));
-    await _waitUntil(
-      tester,
-      () => find.text('Crear cuenta').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 15),
-      message: 'el botón Regístrate no llevó al paso de crear cuenta',
-    );
-    // Sin correo escrito aún: el botón de volver debe decir "Regresar", no
-    // "Cambiar de correo" (no hay correo que cambiar).
-    expect(find.text('Cambiar de correo'), findsNothing);
-    expect(find.text('Regresar'), findsOneWidget);
-    await tester.enterText(find.widgetWithText(TextField, 'Email'), email);
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Nombre'), 'QA Tester');
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Contraseña (mín. 6)'), password);
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Repite la contraseña'), password);
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.ensureVisible(find.text('Crear cuenta'));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text('Crear cuenta'));
-
-    // Onboarding (primera vez) o directo al mapa.
+    // 1) Del arranque a la bienvenida (primera vez) o directo al mapa. No
+    //    hay pantalla de inicio de sesión en el camino.
     await _waitUntil(
       tester,
       () =>
           find.text('Ahora no').evaluate().isNotEmpty ||
           find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 45),
-      message: 'ni onboarding ni mapa tras el registro',
+      timeout: const Duration(seconds: 60),
+      message: 'ni bienvenida ni mapa tras el arranque',
     );
+    expect(find.text('Iniciar con Google'), findsNothing);
     if (find.text('Ahora no').evaluate().isNotEmpty) {
       await tester.tap(find.text('Ahora no'));
     }
@@ -155,6 +123,8 @@ void main() {
       timeout: const Duration(seconds: 10),
       message: 'no abrió el drawer',
     );
+    // 5) Sin cuenta no hay sesión que cerrar.
+    expect(find.text('Cerrar sesión'), findsNothing);
     await tester.tap(find.text('Avisos'));
     await _waitUntil(
       tester,
@@ -179,46 +149,6 @@ void main() {
           tester.getCenter(find.byIcon(Icons.menu_rounded)).dx > 30,
       timeout: const Duration(seconds: 15),
       message: 'la X no cerró el drawer',
-    );
-
-    // 5) Cerrar sesión → login.
-    await tester.tap(find.byIcon(Icons.menu_rounded));
-    await _waitUntil(
-      tester,
-      () => find.text('Cerrar sesión').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 10),
-      message: 'no abrió el drawer para cerrar sesión',
-    );
-    await tester.tap(find.text('Cerrar sesión'));
-    await _waitUntil(
-      tester,
-      () => find.text('Iniciar con Google').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 20),
-      message: 'no se llegó a la pantalla de login tras cerrar sesión',
-    );
-    // Anti-tontos: ya sin sesión no debe existir ningún botón para saltarse
-    // el inicio de sesión y colarse al mapa.
-    expect(find.text('Saltar inicio de sesión (Modo Pruebas)'), findsNothing);
-
-    // 6) Volver a entrar con la cuenta ya creada (usuario que vuelve).
-    await tester.enterText(find.byType(TextField).first, email);
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Continuar'));
-    await _waitUntil(
-      tester,
-      () => find.text('Entrar').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 30),
-      message: 'la cuenta existente no llegó al paso de contraseña',
-    );
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Contraseña'), password);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text('Entrar'));
-    await _waitUntil(
-      tester,
-      () => find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 45),
-      message: 'no se volvió al mapa tras entrar',
     );
 
     // Sin excepciones no capturadas en todo el recorrido.

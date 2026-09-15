@@ -72,9 +72,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               // vacío más grande de la pantalla— y dejaban
                               // el contenido apelmazado arriba.
                               padding: const EdgeInsets.fromLTRB(28, 30, 28, 0),
-                              // Misma superficie que la hoja del login y que
-                              // las del mapa: arena. Las dos pantallas van
-                              // seguidas y el salto de blanco a arena se veía.
+                              // Misma superficie que las hojas del mapa:
+                              // arena. La bienvenida va justo antes del mapa
+                              // y el salto de blanco a arena se veía.
                               decoration: const BoxDecoration(
                                 // El pliegue por donde la hoja se separa de
                                 // la noche recoge la luz: blanco cálido que

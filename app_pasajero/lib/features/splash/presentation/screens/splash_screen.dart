@@ -2,18 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
-import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../../core/widgets/live_route_backdrop.dart';
 import '../../../onboarding/onboarding_flow.dart';
 
-/// Pantalla de arranque: espera a que Firebase resuelva la sesión guardada
-/// (o confirme que no hay) antes de ir al mapa o al inicio de sesión, para
-/// que nunca se vea el login "parpadeando".
+/// Pantalla de arranque: deja el estado de la sesión anterior limpio, muestra
+/// la marca un momento y sigue a la bienvenida (primera vez) o al mapa. No
+/// hay cuenta que esperar: el pasajero entra sin iniciar sesión.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -37,28 +35,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Arranque limpio pero NO destructivo: se quita estado efímero en memoria
     // (selecciones, avisos, sockets) y se conserva el pin manual guardado,
     // que es lo único que sobrevive al reabrir la app (la ruta se vuelve a
-    // elegir cada sesión). El reseteo completo (con borrado del pin) es solo
-    // para cerrar sesión.
+    // elegir cada vez). El pin solo se borra cuando el usuario lo quita.
     await resetTransientState(ref);
-    final auth = ref.read(authProvider);
     // Tiempo mínimo de marca para que se vea el logo con calma.
-    final minBranding = Future.delayed(const Duration(milliseconds: 900));
-    // Red de seguridad: Firebase siempre emite su estado al arrancar, pero
-    // si por cualquier razón no lo hiciera, no nos quedamos colgados.
-    // F15: se distingue de "no hay sesión" para no dejar caer en el login
-    // sin ninguna pista de que la verificación no llegó a completarse.
-    var timedOut = false;
-    final session = auth.sessionResolved.timeout(
-      const Duration(seconds: 6),
-      onTimeout: () => timedOut = true,
-    );
-    await Future.wait([session, minBranding]);
+    await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
-    if (auth.state.status == AuthStatus.verified) {
-      await goToHome(context);
-    } else {
-      context.replace(timedOut ? '/login?reason=timeout' : '/login');
-    }
+    await goToHome(context);
   }
 
   @override
@@ -89,8 +71,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   color: Color.fromRGBO(255, 255, 255, 0.75),
                   // Es la única pieza de esta pantalla que dice que algo
                   // está pasando. Sin rótulo, el arranque es la marca y
-                  // un silencio de hasta seis segundos.
-                  semanticsLabel: 'Abriendo tu sesión',
+                  // un silencio.
+                  semanticsLabel: 'Abriendo Ya Viene',
                 ),
                 start: 0.55,
                 begin: Offset.zero,

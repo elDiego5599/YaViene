@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/core/providers/auth_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'app_drawer.dart';
 
@@ -13,28 +12,13 @@ import 'golden_harness.dart';
 ///
 /// Once estilos escritos a mano sobre fondo ink. Es la superficie oscura
 /// más grande de la app, así que aquí se ve enseguida si la migración de
-/// tipografía cambia pesos o interletrado.
-class _AutenticacionFalsa implements AuthNotifier {
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #state) {
-      return const AuthState(
-        status: AuthStatus.verified,
-        email: 'sofia@yaviene.app',
-        name: 'Sofía Restrepo',
-      );
-    }
-    return null;
-  }
-}
-
+/// tipografía cambia pesos o interletrado. Sin cuenta (D3) ya no lleva la
+/// tarjeta con el nombre ni «Cerrar sesión»: la ruta activa es lo primero.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   Future<void> abrir(WidgetTester tester, {RouteInfo? ruta}) async {
-    final container = ProviderContainer(overrides: [
-      authProvider.overrideWith((ref) => _AutenticacionFalsa()),
-    ]);
+    final container = ProviderContainer();
     addTearDown(container.dispose);
     final sub = container.listen<RouteInfo?>(selectedRouteProvider, (_, __) {});
     addTearDown(sub.close);

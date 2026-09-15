@@ -240,7 +240,7 @@ class RealtimeService implements RealtimeRepository {
   }
 
   /// Cierra el socket y detiene el reintento, pero sin destruir el servicio:
-  /// un login posterior puede volver a [connect] con el mismo provider.
+  /// el mapa puede volver a [connect] con el mismo provider.
   @override
   void disconnect() {
     _quiereConexion = false;

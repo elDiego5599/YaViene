@@ -3,7 +3,6 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../../../core/providers/auth_provider.dart';
 import '../../../../services/background_keep_alive.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_guide_copy.dart';
@@ -96,9 +95,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _initializeGuide();
       ref.read(realtimeServiceProvider).connect();
       ref.read(userLocationProvider.notifier).initialize();
-      ref.read(proximityAlertsProvider.notifier).restore(
-            userId: ref.read(authProvider).state.uid,
-          );
+      ref.read(proximityAlertsProvider.notifier).restore();
       ref.read(proximityAlertsProvider.notifier).start();
       BackgroundKeepAlive.start();
     });
@@ -118,8 +115,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final locationSettled = location.mode != UserLocationMode.unknown &&
         location.mode != UserLocationMode.locating;
     await ref.read(mapGuideProvider.notifier).initialize(
-          userId: ref.read(authProvider).state.uid,
-          isNewUser: ref.read(authProvider).state.isNewUser,
           hasLocation: location.hasPosition,
           locationSettled: locationSettled,
           hasRoute: ref.read(selectedRouteProvider) != null,

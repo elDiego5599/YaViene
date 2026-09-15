@@ -35,8 +35,6 @@ void main() {
       final withoutLocation = MapGuideNotifier();
       addTearDown(withoutLocation.dispose);
       await withoutLocation.initialize(
-        userId: 'user-1',
-        isNewUser: true,
         hasLocation: false,
         locationSettled: true,
         hasRoute: false,
@@ -49,8 +47,6 @@ void main() {
       final withLocation = MapGuideNotifier();
       addTearDown(withLocation.dispose);
       await withLocation.initialize(
-        userId: 'user-2',
-        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -65,8 +61,6 @@ void main() {
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
-        userId: 'user-3',
-        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -94,8 +88,6 @@ void main() {
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
-        userId: 'user-4',
-        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -113,8 +105,6 @@ void main() {
       final resumed = MapGuideNotifier();
       addTearDown(resumed.dispose);
       await resumed.initialize(
-        userId: 'user-4',
-        isNewUser: false,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -125,12 +115,20 @@ void main() {
       expect(resumed.state.step, isNull);
     });
 
-    test('un login existente en otro dispositivo no activa la guía', () async {
+    // Sin cuentas (D3) la guía es del teléfono. Las dos claves que la
+    // ataban a una cuenta guardaban el id de quien entró: se borran al
+    // arrancar, y lo que el teléfono ya había hecho con la guía se respeta.
+    test('las claves de la cuenta se borran y una guía terminada no vuelve',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        'map_guide_user': 'uid-viejo',
+        'map_guide_eligible': true,
+        'map_guide_version': 2,
+        'map_guide_status': 'completed',
+      });
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
-        userId: 'existing-account',
-        isNewUser: false,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -139,14 +137,17 @@ void main() {
       );
       expect(guide.state.initialized, isTrue);
       expect(guide.state.step, isNull);
+      expect(guide.state.completed, isTrue);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('map_guide_user'), isFalse);
+      expect(prefs.containsKey('map_guide_eligible'), isFalse);
     });
 
     test('saltar persiste y reiniciar vuelve al inicio apropiado', () async {
       final guide = MapGuideNotifier();
       addTearDown(guide.dispose);
       await guide.initialize(
-        userId: 'user-5',
-        isNewUser: true,
         hasLocation: true,
         locationSettled: true,
         hasRoute: false,
@@ -158,7 +159,6 @@ void main() {
       expect(guide.state.step, isNull);
 
       await guide.restart(
-        userId: 'user-5',
         hasLocation: false,
         locationSettled: true,
       );

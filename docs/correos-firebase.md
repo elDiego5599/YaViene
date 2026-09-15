@@ -1,15 +1,21 @@
 # Los correos que manda Firebase
 
+> **Ya no se mandan.** Desde T6.9 (decisión D3) la app del pasajero no tiene
+> cuentas ni usa Firebase, así que ninguna de estas plantillas sale. El
+> proyecto sigue en la consola de Firebase hasta que se borre; esto queda
+> como registro de lo que decían los correos por si la cuenta vuelve algún
+> día.
+
 Firebase arma estos correos en su servidor, no en la app. Por eso no viven
 en el código: se escriben a mano en **Firebase Console → Authentication →
 Templates**, con el lapicito de cada plantilla. Quedan aquí para que no se
 pierdan si alguien rehace el proyecto, y para que el texto se revise como se
 revisa cualquier otro texto que ve el usuario.
 
-Lo único que sí está en el código es el idioma: `_auth.setLanguageCode('es')`
-en [`auth_provider.dart`](../app_pasajero/lib/core/providers/auth_provider.dart).
-Sin esa línea los correos salen en inglés aunque la app entera esté en
-español.
+Lo único que estaba en el código era el idioma: `_auth.setLanguageCode('es')`
+en `app_pasajero/lib/core/providers/auth_provider.dart`, que se fue con la
+cuenta. Sin esa línea los correos salen en inglés aunque la app entera esté
+en español.
 
 ## Lo que no se puede
 

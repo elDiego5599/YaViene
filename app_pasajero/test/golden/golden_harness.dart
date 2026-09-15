@@ -74,9 +74,8 @@ Widget marcoGolden(Widget hijo) {
 
 /// Igual que [marcoGolden] pero con un `GoRouter` de una sola ruta.
 ///
-/// Hay pantallas que preguntan por la ruta actual (el login lee
-/// `GoRouterState.of(context)` para saber si llegó desde el splash con un
-/// aviso de sesión). Sin router revientan al construirse.
+/// Hay pantallas que navegan con el router: la bienvenida sale al mapa con
+/// `context.replace`. Sin router, tocar sus botones revienta.
 Widget marcoGoldenRuteado(Widget hijo, {String ruta = '/'}) {
   return MaterialApp.router(
     debugShowCheckedModeBanner: false,

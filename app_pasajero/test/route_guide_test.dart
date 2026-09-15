@@ -74,8 +74,6 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     guide = MapGuideNotifier();
     await guide.initialize(
-      userId: 'route-user',
-      isNewUser: true,
       hasLocation: true,
       locationSettled: true,
       hasRoute: false,
