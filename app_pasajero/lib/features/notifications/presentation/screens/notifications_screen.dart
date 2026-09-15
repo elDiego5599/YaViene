@@ -79,14 +79,43 @@ class NotificationsScreen extends ConsumerWidget {
                 ),
               ],
       ),
-      body: entries.isEmpty
-          ? const _EmptyState()
-          : _HistoryList(
-              entries: entries,
-              positions: positions,
-              location: location,
-              route: route,
-            ),
+      body: Column(
+        children: [
+          // En iPhone el aviso solo suena con la app abierta: la app no
+          // declara `UIBackgroundModes` y no hay push. Va arriba y en los
+          // dos estados, no al fondo de una lista que puede no verse entera.
+          if (Theme.of(context).platform == TargetPlatform.iOS)
+            const _SoloConLaAppAbierta(),
+          Expanded(
+            child: entries.isEmpty
+                ? const _EmptyState()
+                : _HistoryList(
+                    entries: entries,
+                    positions: positions,
+                    location: location,
+                    route: route,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// La línea que en iPhone dice cuándo suena el aviso. La web dice la misma
+/// frase en el paso del aviso (`index.html`, paso 3).
+class _SoloConLaAppAbierta extends StatelessWidget {
+  const _SoloConLaAppAbierta();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.sm),
+      child: Text(
+        'En iPhone el aviso suena con la app abierta.',
+        textAlign: TextAlign.center,
+        style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
+      ),
     );
   }
 }

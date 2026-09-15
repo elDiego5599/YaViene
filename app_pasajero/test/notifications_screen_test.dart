@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -169,5 +170,35 @@ void main() {
     expect(find.text('No tienes avisos activos'), findsOneWidget);
     expect(container.read(activeAlertsProvider), isEmpty);
     expect(container.read(alertHistoryProvider), isEmpty);
+  });
+
+  // D4-a: en iPhone el aviso solo suena con la app abierta (la app no
+  // declara `UIBackgroundModes` y no hay push). La pantalla de avisos lo
+  // dice, con avisos o sin ellos.
+  const soloConLaAppAbierta = 'En iPhone el aviso suena con la app abierta.';
+
+  testWidgets('en iPhone dice que el aviso suena con la app abierta',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      final container = await pumpScreen(tester, [bus('A-1')]);
+      expect(find.text(soloConLaAppAbierta), findsOneWidget);
+
+      arm(container, 'A-1');
+      await tester.pump();
+      expect(find.text('Ruta 1 - A-1'), findsOneWidget);
+      expect(find.text(soloConLaAppAbierta), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('en Android no lo dice', (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    expect(find.text(soloConLaAppAbierta), findsNothing);
+
+    arm(container, 'A-1');
+    await tester.pump();
+    expect(find.text(soloConLaAppAbierta), findsNothing);
   });
 }
