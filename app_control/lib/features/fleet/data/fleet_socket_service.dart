@@ -28,6 +28,10 @@ class FleetSocketService {
   final FleetIoSocketFactory _crearSocket;
 
   io.Socket? _socket;
+
+  /// Suelta el `onReconnectAttempt` del socket actual. Ese oyente se cuelga
+  /// del `Manager` del socket, no del socket, y su `dispose` no lo suelta.
+  void Function()? _soltarReconexion;
   Timer? _retryTimer;
   final _busBatchController = StreamController<List<FleetBus>>.broadcast();
   final _busPositionController = StreamController<FleetBus>.broadcast();
@@ -51,9 +55,18 @@ class FleetSocketService {
 
   bool get isConnected => _socket?.connected == true;
 
+  /// Cierra el socket actual y suelta todo lo que el servicio le colgó,
+  /// también lo que cuelga de su `Manager`.
+  void _soltarSocket() {
+    _soltarReconexion?.call();
+    _soltarReconexion = null;
+    _socket?.dispose();
+    _socket = null;
+  }
+
   void connect() {
     if (_socket?.connected == true) return;
-    _socket?.dispose();
+    _soltarSocket();
 
     final socket = _crearSocket(baseUrl, <String, dynamic>{
       'transports': ['websocket'],
@@ -64,6 +77,11 @@ class FleetSocketService {
       'reconnectionDelayMax': 10000,
       'randomizationFactor': 0.3,
       'auth': {'token': token},
+      // Un `Manager` propio para cada socket. Sin esto `io.io` devolvía el
+      // que ya tenía guardado para el mismo servidor, con su mismo socket y
+      // el token de la primera entrada: tras volver a entrar, el backend lo
+      // rechazaba y el panel volvía a «sesión expirada».
+      'forceNew': true,
     });
     _socket = socket;
 
@@ -95,7 +113,8 @@ class FleetSocketService {
       }
     });
     socket.onConnectError((_) => emit(_connectionController, false));
-    socket.onReconnectAttempt((_) => emit(_connectionController, false));
+    _soltarReconexion =
+        socket.onReconnectAttempt((_) => emit(_connectionController, false));
     socket.on('error', (_) => emit(_connectionController, false));
 
     socket.on('fleet:batch', (data) {
@@ -169,9 +188,7 @@ class FleetSocketService {
   void dispose() {
     _retryTimer?.cancel();
     _retryTimer = null;
-    _socket?.disconnect();
-    _socket?.dispose();
-    _socket = null;
+    _soltarSocket();
     _busBatchController.close();
     _busPositionController.close();
     _busHiddenController.close();

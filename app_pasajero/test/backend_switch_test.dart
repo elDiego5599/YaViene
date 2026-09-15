@@ -300,4 +300,46 @@ void main() {
     unawaited(escucha.cancel());
     await _cerrar(tester, app);
   });
+
+  // T2.11. Un reinicio del backend dura menos que la paciencia del
+  // supervisor: la app se queda donde estaba, el mismo socket vuelve con la
+  // reconexión del paquete y tiene que pedir la ruta otra vez él solo, porque
+  // el backend recién arrancado no sabe quién seguía qué.
+  testWidgets(
+      'el backend se reinicia → el mismo socket vuelve, pide la ruta otra vez '
+      'y le llega el lote', (tester) async {
+    final red = _Red({principal, respaldo});
+    final app = _app(red);
+    final realtime = app.read(realtimeServiceProvider)..connect();
+    realtime.subscribeToRoute('R-101');
+    final lotes = <Map<String, dynamic>>[];
+    final escucha = realtime.batchPositionStream.listen(lotes.add);
+    await tester.pump();
+    final socket = red.abiertos.single;
+    socket.emitidos.clear();
+
+    red.tumbar(principal);
+    await tester.pump(const Duration(seconds: 5));
+    expect(realtime.isConnected, isFalse);
+    red.revivir(principal);
+    await tester.pump();
+
+    expect(realtime.isConnected, isTrue);
+    expect(red.sockets, [socket]);
+    expect(socket.suscripciones, ['R-101']);
+    expect(app.read(backendUrlProvider), principal);
+
+    // Lo que contesta el backend a esa suscripción (`socket/handler.ts`).
+    socket.recibir('positions:batch', {
+      'routeId': 'R-101',
+      'buses': [
+        {'busId': 'B-7', 'routeId': 'R-101', 'lat': 10.98, 'lon': -74.8},
+      ],
+    });
+    await tester.pump();
+    expect(lotes, hasLength(1));
+
+    unawaited(escucha.cancel());
+    await _cerrar(tester, app);
+  });
 }

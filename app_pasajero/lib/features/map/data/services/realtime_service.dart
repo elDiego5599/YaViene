@@ -77,6 +77,28 @@ class RealtimeService implements RealtimeRepository {
     }
   }
 
+  // Los dos `onReconnect*` se cuelgan del `Manager` del socket, no del
+  // socket, y el `dispose` del socket no los suelta. Son métodos y no
+  // funciones sueltas para poder soltarlos en [_soltarSocket]: tomados de
+  // `this` son siempre iguales entre sí.
+  void _alIntentarReconectar(dynamic _) =>
+      _emitConnectionStatus(ConnectionStatus.reconnecting);
+
+  void _alFallarLaReconexion(dynamic _) =>
+      _emitConnectionStatus(ConnectionStatus.disconnected);
+
+  /// Cierra el socket actual y suelta todo lo que el servicio le colgó,
+  /// también lo que cuelga de su `Manager`.
+  void _soltarSocket() {
+    final socket = _socket;
+    if (socket == null) return;
+    socket.io
+      ..off('reconnect_attempt', _alIntentarReconectar)
+      ..off('reconnect_error', _alFallarLaReconexion);
+    socket.dispose();
+    _socket = null;
+  }
+
   /// Deserializa un payload del socket de forma defensiva: datos
   /// malformados no deben tumbar el callback ni la suscripción.
   Map<String, dynamic>? _asMap(Object? data) {
@@ -113,7 +135,7 @@ class RealtimeService implements RealtimeRepository {
   void connect() {
     _quiereConexion = true;
     if (_socket?.connected == true) return;
-    _socket?.dispose();
+    _soltarSocket();
     final url = _backendUrl;
     _emitConnectionStatus(ConnectionStatus.reconnecting);
     _socket = _crearSocket(url, <String, dynamic>{
@@ -124,6 +146,10 @@ class RealtimeService implements RealtimeRepository {
       'reconnectionDelay': 1000,
       'reconnectionDelayMax': 10000,
       'randomizationFactor': 0.3,
+      // Un `Manager` propio para cada socket. Sin esto `io.io` devolvía el
+      // que ya tenía guardado para el mismo servidor, con su mismo socket, y
+      // cada vuelta de conectar le colgaba otro par de `onReconnect*`.
+      'forceNew': true,
     });
 
     // Reintento infinito aunque el paquete agote sus intentos: con la red
@@ -144,10 +170,8 @@ class RealtimeService implements RealtimeRepository {
     });
     _socket!.onDisconnect(
         (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
-    _socket!.onReconnectAttempt(
-        (_) => _emitConnectionStatus(ConnectionStatus.reconnecting));
-    _socket!.onReconnectError(
-        (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
+    _socket!.onReconnectAttempt(_alIntentarReconectar);
+    _socket!.onReconnectError(_alFallarLaReconexion);
     _socket!.onConnectError(
         (_) => _emitConnectionStatus(ConnectionStatus.disconnected));
     _socket!.on(
@@ -205,8 +229,7 @@ class RealtimeService implements RealtimeRepository {
     if (url == _backendUrl) return;
     _backendUrl = url;
     if (_disposed || !_quiereConexion) return;
-    _socket?.dispose();
-    _socket = null;
+    _soltarSocket();
     connect();
   }
 
@@ -241,8 +264,7 @@ class RealtimeService implements RealtimeRepository {
     _retryTimer?.cancel();
     _retryTimer = null;
     _subscriptions.clear();
-    _socket?.disconnect();
-    _socket?.dispose();
+    _soltarSocket();
     _connectionStateController.close();
     _busPositionController.close();
     _batchPositionController.close();

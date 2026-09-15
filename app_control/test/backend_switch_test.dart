@@ -434,4 +434,40 @@ void main() {
 
     await _cerrar(tester, panel);
   });
+
+  // T2.11. Un reinicio del backend dura menos que la paciencia del
+  // supervisor: el panel se queda donde estaba, el mismo socket vuelve con la
+  // reconexión del paquete y tiene que pedir la flota otra vez él solo,
+  // porque el backend recién arrancado no sabe quién seguía qué.
+  testWidgets(
+      'el backend se reinicia → el mismo socket vuelve, pide la flota otra vez '
+      'y le llega el lote', (tester) async {
+    final red = _Red({principal, respaldo});
+    final (panel, _) = await _abrir(tester, red);
+    final socket = red.abiertos.single;
+    expect(socket.suscritoAFlota, isTrue);
+    socket.emitidos.clear();
+
+    red.tumbar(principal);
+    await tester.pump(const Duration(seconds: 5));
+    expect(panel.read(fleetProvider).connection, FleetConnection.disconnected);
+    red.revivir(principal);
+    await tester.pump();
+
+    expect(panel.read(fleetProvider).connection, FleetConnection.connected);
+    expect(red.sockets, [socket]);
+    expect(socket.suscritoAFlota, isTrue);
+    expect(panel.read(backendUrlProvider), principal);
+
+    // Lo que contesta el backend a `subscribe:fleet` (`socket/handler.ts`).
+    socket.recibir('fleet:batch', {
+      'buses': [
+        {..._posicion('B-1', sequence: 9), 'placa': 'ABC123', 'visible': true},
+      ],
+    });
+    await tester.pump();
+    expect(panel.read(fleetProvider).buses['B-1']?.sequence, 9);
+
+    await _cerrar(tester, panel);
+  });
 }
