@@ -52,12 +52,18 @@ jobs:
           flutter analyze lib
           flutter test
 
+      # Las pruebas de oro (`@Tags(['goldens'])`) se quedan fuera de esta
+      # máquina: las 34 fotos se tomaron en un Mac y aquí, en Linux, el texto
+      # se dibuja con medio píxel de diferencia, así que fallaban las 34 sin
+      # que hubiera cambiado nada. Se comparan en `compilar-apple`, que ya
+      # corre en macOS; regenerarlas en Linux solo movería el problema al Mac
+      # del dueño, y aflojar la tolerancia dejaría pasar regresiones de verdad.
       - name: Analyze passenger
         working-directory: app_pasajero
         run: |
           flutter pub get
           flutter analyze --fatal-infos lib test
-          flutter test
+          flutter test --exclude-tags goldens
 
       - name: Analyze and test control
         working-directory: app_control
@@ -114,6 +120,13 @@ jobs:
         run: |
           flutter pub get
           flutter build macos
+
+      # Aquí, y no en el job de Linux, porque estas fotos se tomaron en macOS.
+      # Va al final a propósito: primero se ve si compila, que es lo que este
+      # job vigila; un cambio visual no debe esconder un fallo de compilación.
+      - name: Fotos de referencia del pasajero
+        working-directory: app_pasajero
+        run: flutter test --tags goldens
 
   compilar-android:
     runs-on: ubuntu-latest

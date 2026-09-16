@@ -1,0 +1,10 @@
+# Etiquetas de este paquete. Declararlas quita el aviso de «etiqueta
+# desconocida» al usar `--tags` o `--exclude-tags`, y deja escrito para qué
+# sirve cada una.
+tags:
+  # Pruebas que comparan la pantalla con una foto de referencia
+  # (test/golden/). Las fotos se tomaron en macOS; en Linux el texto se
+  # dibuja con medio píxel de diferencia y fallan todas aunque no haya
+  # cambiado nada. Por eso la CI las corre en su máquina de macOS y las
+  # excluye en la de Linux (.github/workflows/ci.yml).
+  goldens:

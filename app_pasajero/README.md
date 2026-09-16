@@ -36,7 +36,11 @@ flutter test
 
 # Fotos de referencia (goldens): 34 PNG en test/golden/goldens/.
 # Comparan pixel a pixel la app contra la última foto aprobada.
+# Van con @Tags(['goldens']): `flutter test` a secas las corre, y la CI de
+# Linux las excluye porque las fotos se tomaron en macOS (allí el texto se
+# dibuja distinto). En la CI se comparan en la máquina de macOS.
 flutter test test/golden
+flutter test --tags goldens           # solo las fotos, estén donde estén
 
 # Volver a tomar las fotos. SOLO cuando el cambio visual es a propósito,
 # y el commit tiene que decir qué cambió y por qué. Un golden actualizado
