@@ -3,8 +3,8 @@
 # sirve cada una.
 tags:
   # Pruebas que comparan la pantalla con una foto de referencia
-  # (test/golden/). Las fotos se tomaron en macOS; en Linux el texto se
-  # dibuja con medio píxel de diferencia y fallan todas aunque no haya
-  # cambiado nada. Por eso la CI las corre en su máquina de macOS y las
-  # excluye en la de Linux (.github/workflows/ci.yml).
+  # (test/golden/). Las fotos se tomaron en el Mac del dueño y solo valen
+  # ahí: en Linux fallan las 34 y en el macOS de GitHub, 19 de 34, aunque no
+  # haya cambiado nada de la pantalla. Por eso la CI las excluye en todas sus
+  # máquinas (.github/workflows/ci.yml) y se corren a mano antes de subir.
   goldens:
