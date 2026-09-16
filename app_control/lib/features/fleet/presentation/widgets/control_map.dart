@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
+import '../bus_estado.dart';
 import '../providers/fleet_providers.dart';
 
 class ControlMap extends ConsumerStatefulWidget {
@@ -49,6 +50,16 @@ class _ControlMapState extends ConsumerState<ControlMap> {
           }),
         )
         .toList();
+
+    // Cada bus de la ruta cae en un estado y solo en uno, así que las cuatro
+    // cifras suman el total. Antes eran tres contadores que se solapaban —un
+    // bus oculto y sin señal se contaba dos veces— y el operador no podía
+    // sumarlos para saber cuántos buses tenía.
+    final conteo = <BusEstado, int>{for (final e in BusEstado.values) e: 0};
+    for (final bus in fleet.buses.values) {
+      if (!_inRoute(fleet, bus)) continue;
+      conteo[BusEstado.de(bus)] = conteo[BusEstado.de(bus)]! + 1;
+    }
 
     return Stack(
       children: [
@@ -99,21 +110,10 @@ class _ControlMapState extends ConsumerState<ControlMap> {
         Positioned(
           left: 18,
           bottom: 18,
-          child: _Legend(
-            // La leyenda describe lo que se ve en el mapa: escopado a la ruta
-            // seleccionada como las pestañas y los marcadores (antes contaba
-            // toda la empresa y los números no coincidían con nada).
-            online: fleet.buses.values
-                .where((b) =>
-                    _inRoute(fleet, b) && b.online && b.visible && !b.isGhost)
-                .length,
-            hidden: fleet.buses.values
-                .where((b) => _inRoute(fleet, b) && !b.visible)
-                .length,
-            offline: fleet.buses.values
-                .where((b) => _inRoute(fleet, b) && (!b.online || b.isGhost))
-                .length,
-          ),
+          // La leyenda describe lo que se ve en el mapa: escopada a la ruta
+          // seleccionada como las pestañas y los marcadores (antes contaba
+          // toda la empresa y los números no coincidían con nada).
+          child: FleetLegend(conteo: conteo),
         ),
       ],
     );
@@ -132,14 +132,18 @@ class _ControlMapState extends ConsumerState<ControlMap> {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Transform.rotate(
-          // Un bus del que nunca llegó rumbo se pinta sin girar.
-          angle: (bus.heading ?? 0) * math.pi / 180,
-          child: CustomPaint(
-            size: Size.square(size),
-            painter: _FlatBusPainter(
-              active: bus.online && !bus.isGhost && bus.visible,
-              selected: selected,
+        child: Semantics(
+          label: '${bus.placa.isEmpty ? bus.busId : bus.placa}: '
+              '${BusEstado.de(bus).rotulo}',
+          child: Transform.rotate(
+            // Un bus del que nunca llegó rumbo se pinta sin girar.
+            angle: (bus.heading ?? 0) * math.pi / 180,
+            child: CustomPaint(
+              size: Size.square(size),
+              painter: _FlatBusPainter(
+                estado: BusEstado.de(bus),
+                selected: selected,
+              ),
             ),
           ),
         ),
@@ -152,10 +156,20 @@ class _ControlMapState extends ConsumerState<ControlMap> {
   El mismo bus que ve el pasajero. Antes el panel dibujaba uno propio —un
   rectángulo azul marino con dos farolas verdes— y el operador no podía
   relacionar lo que tenía en pantalla con lo que le describía por teléfono
-  alguien parado en el paradero. Ahora es la misma cápsula y la misma
-  lectura: en color reporta, gris no. El color activo sí cambia respecto al
-  pasajero —verde en vez de coral— porque el fondo es otro; el porqué está
-  en `AppColors.busActive`.
+  alguien parado en el paradero. Ahora es la misma cápsula.
+
+  Lo que dice el dibujo son dos cosas a la vez, y ninguna es solo el color
+  (T6.4). El relleno dice si el bus está reportando y el borde si hace falta
+  mirarlo:
+
+      relleno lleno + borde continuo → en línea
+      relleno lleno + borde punteado → inactivo, sigue en turno
+      cápsula hueca + borde continuo → sin señal
+      cápsula hueca + borde punteado → oculto, lo apagó el operador
+
+  Así el mapa se lee igual en blanco y negro, en el proyector del pitch o
+  con cualquier daltonismo. Antes había un solo eje —color sí, color no— y
+  tres de los cuatro estados caían del mismo lado: eran el mismo bus gris.
 
   La diferencia con la app es de medio: allá el ícono se hornea una vez a
   PNG y MapLibre lo reusa como sprite; aquí se pinta en cada cuadro con
@@ -164,17 +178,24 @@ class _ControlMapState extends ConsumerState<ControlMap> {
   pasajero, escalada al alto del marcador.
 */
 class _FlatBusPainter extends CustomPainter {
-  const _FlatBusPainter({required this.active, required this.selected});
+  const _FlatBusPainter({required this.estado, required this.selected});
 
-  final bool active;
+  final BusEstado estado;
   final bool selected;
+
+  /// Reportando: la cápsula va llena.
+  bool get _lleno => estado == BusEstado.enLinea || estado == BusEstado.inactivo;
+
+  /// Algo que mirar: el borde va punteado.
+  bool get _punteado =>
+      estado == BusEstado.inactivo || estado == BusEstado.oculto;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final h = size.height * 0.75;
     final w = h * 32 / 60;
-    final baseColor = active ? AppColors.busActive : AppColors.busGhost;
+    final baseColor = estado.color;
 
     if (selected) {
       // Halo azul eléctrico: en la app ese color está reservado a la ruta
@@ -194,7 +215,7 @@ class _FlatBusPainter extends CustomPainter {
       Radius.circular(w / 2),
     );
 
-    if (active) {
+    if (estado == BusEstado.enLinea) {
       canvas.drawShadow(
         ui.Path()..addRRect(capsule.shift(Offset(0, h * 0.05))),
         baseColor.withValues(alpha: 0.45),
@@ -203,28 +224,42 @@ class _FlatBusPainter extends CustomPainter {
       );
     }
 
-    // Degradado sutil (más claro arriba) para que no se vea una silueta plana.
-    final top = active ? Color.lerp(baseColor, Colors.white, 0.3)! : baseColor;
-    canvas.drawRRect(
-      capsule,
-      Paint()
-        ..shader = ui.Gradient.linear(
-          Offset(center.dx, center.dy - h / 2),
-          Offset(center.dx, center.dy + h / 2),
-          [top, baseColor],
-        ),
+    if (_lleno) {
+      // Degradado sutil (más claro arriba) para que no se vea una silueta
+      // plana.
+      canvas.drawRRect(
+        capsule,
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset(center.dx, center.dy - h / 2),
+            Offset(center.dx, center.dy + h / 2),
+            [Color.lerp(baseColor, Colors.white, 0.3)!, baseColor],
+          ),
+      );
+    } else {
+      // Hueca: blanco casi opaco para que el bus siga siendo una silueta
+      // sólida sobre las calles y no un fantasma que se pierde en el mapa.
+      canvas.drawRRect(
+        capsule,
+        Paint()..color = Colors.white.withValues(alpha: 0.88),
+      );
+    }
+
+    // El borde. En la cápsula llena es blanco y sirve para separarla de
+    // cualquier fondo de mapa; en la hueca es del color del estado, porque
+    // ahí el borde es todo lo que hay.
+    final trazo = (w * (_lleno ? 0.08 : 0.14)).clamp(1.2, 3.0);
+    final borde = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = trazo
+      ..color = _lleno ? Colors.white.withValues(alpha: 0.92) : baseColor;
+    final contorno = ui.Path()..addRRect(capsule);
+    canvas.drawPath(
+      _punteado ? _aPunteado(contorno, trazo * 1.8, trazo * 1.4) : contorno,
+      borde,
     );
 
-    // Anillo blanco: separa el ícono de cualquier fondo de mapa.
-    canvas.drawRRect(
-      capsule,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = (w * 0.08).clamp(1.2, 2.6)
-        ..color = Colors.white.withValues(alpha: active ? 0.92 : 0.5),
-    );
-
-    if (active) {
+    if (estado == BusEstado.enLinea) {
       // Insinúa un parabrisas: un óvalo tenue cerca del extremo, nada más.
       canvas.save();
       canvas.clipRRect(capsule);
@@ -240,9 +275,24 @@ class _FlatBusPainter extends CustomPainter {
     }
   }
 
+  /// El mismo contorno, cortado en trazos. Se recorre el camino con sus
+  /// métricas y se extrae un tramo de cada [trazo] + [hueco].
+  ui.Path _aPunteado(ui.Path origen, double trazo, double hueco) {
+    final salida = ui.Path();
+    for (final metrica in origen.computeMetrics()) {
+      var desde = 0.0;
+      while (desde < metrica.length) {
+        final hasta = math.min(desde + trazo, metrica.length);
+        salida.addPath(metrica.extractPath(desde, hasta), Offset.zero);
+        desde = hasta + hueco;
+      }
+    }
+    return salida;
+  }
+
   @override
   bool shouldRepaint(_FlatBusPainter oldDelegate) =>
-      oldDelegate.active != active || oldDelegate.selected != selected;
+      oldDelegate.estado != estado || oldDelegate.selected != selected;
 }
 
 class _Attribution extends StatelessWidget {
@@ -267,16 +317,13 @@ class _Attribution extends StatelessWidget {
   }
 }
 
-class _Legend extends StatelessWidget {
-  const _Legend({
-    required this.online,
-    required this.hidden,
-    required this.offline,
-  });
+/// La leyenda del mapa. Pública solo para probarla sin montar las teselas.
+@visibleForTesting
+class FleetLegend extends StatelessWidget {
+  const FleetLegend({super.key, required this.conteo});
 
-  final int online;
-  final int hidden;
-  final int offline;
+  /// Cuántos buses de la ruta hay en cada estado. Excluyentes: suman el total.
+  final Map<BusEstado, int> conteo;
 
   @override
   Widget build(BuildContext context) {
@@ -288,12 +335,12 @@ class _Legend extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: AppColors.softShadow,
       ),
-      // `IntrinsicWidth` y filas estiradas para que las tres cifras caigan
+      // `IntrinsicWidth` y filas estiradas para que las cuatro cifras caigan
       // una encima de otra. Con cada fila a su ancho, la cifra iba pegada
-      // detrás del nombre, y como «En línea», «Sin señal» y «Ocultos» miden
-      // distinto, los tres números salían cada uno a una altura. Así la
-      // caja mide lo que la fila más ancha y el `Spacer` de cada fila
-      // empuja su cifra hasta el borde derecho.
+      // detrás del nombre, y como «En línea», «Sin señal» y «Oculto» miden
+      // distinto, los números salían cada uno a una altura. Así la caja mide
+      // lo que la fila más ancha y el `Spacer` de cada fila empuja su cifra
+      // hasta el borde derecho.
       child: IntrinsicWidth(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -309,48 +356,43 @@ class _Legend extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            // Los puntos son los colores del marcador, no los del estado en
-            // la lista: esta caja explica lo que hay dibujado sobre el mapa.
-            _legendRow(AppColors.busActive, 'En línea', online),
-            _legendRow(AppColors.busGhost, 'Sin señal', offline),
-            _legendRow(AppColors.hidden, 'Ocultos', hidden),
+            // Un renglón por estado, en el orden en que empeoran. El ícono es
+            // el mismo que lleva el bus en la lista, así que la leyenda
+            // también explica lo que se ve allá.
+            for (final estado in BusEstado.values)
+              _fila(estado, conteo[estado] ?? 0),
           ],
         ),
       ),
     );
   }
 
-  Widget _legendRow(Color color, String label, int count) {
+  Widget _fila(BusEstado estado, int cuantos) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.5),
       child: Row(
         children: [
-          Container(
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 5),
-              ],
-            ),
+          Icon(
+            estado.icono,
+            size: 13,
+            color: estado.color,
+            semanticLabel: estado.rotulo,
           ),
           const SizedBox(width: 8),
           Text(
-            label,
+            estado.rotulo,
             style: AppType.ui(
               fontSize: 12,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
-          // Los 8 son el mínimo con el nombre más largo; en las otras dos
-          // filas el `Spacer` se queda con lo que sobra.
+          // Los 8 son el mínimo con el nombre más largo; en las otras filas
+          // el `Spacer` se queda con lo que sobra.
           const SizedBox(width: 8),
           const Spacer(),
           Text(
-            '$count',
+            '$cuantos',
             style: AppType.ui(
               fontSize: 12,
               fontWeight: FontWeight.w800,

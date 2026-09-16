@@ -10,6 +10,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/clock_widget.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/fleet_bus.dart';
+import '../bus_estado.dart';
 import '../providers/fleet_providers.dart';
 import '../widgets/bus_dialog.dart';
 import '../widgets/control_map.dart';
@@ -907,7 +908,7 @@ class _SelectedBusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (statusLabel, statusColor) = _status(bus);
+    final estado = BusEstado.de(bus);
     return Container(
       width: 292,
       padding: const EdgeInsets.all(15),
@@ -927,10 +928,14 @@ class _SelectedBusCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.14),
+                  color: estado.color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(Icons.directions_bus, color: statusColor, size: 19),
+                child: Icon(
+                  Icons.directions_bus,
+                  color: estado.color,
+                  size: 19,
+                ),
               ),
               const SizedBox(width: 11),
               Expanded(
@@ -946,12 +951,24 @@ class _SelectedBusCard extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    Text(
-                      statusLabel,
-                      style: AppType.mono(
-                        fontSize: 10.5,
-                        color: AppColors.textMuted,
-                      ),
+                    // El estado, con su ícono delante: el mismo que lleva el
+                    // bus en la fila de la lista y en la leyenda del mapa, y
+                    // la única forma de distinguirlo si el color no se ve.
+                    // El rótulo pasa de gris claro a [AppColors.textSecondary]
+                    // porque a 10,5 pt el anterior daba 2,4:1 sobre la
+                    // tarjeta blanca: se leía como un texto apagado más.
+                    Row(
+                      children: [
+                        Icon(estado.icono, size: 12, color: estado.color),
+                        const SizedBox(width: 5),
+                        Text(
+                          estado.rotulo,
+                          style: AppType.mono(
+                            fontSize: 10.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1066,12 +1083,6 @@ class _SelectedBusCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  (String, Color) _status(FleetBus bus) {
-    if (!bus.online) return ('Sin señal', AppColors.offline);
-    if (bus.isGhost) return ('Inactivo', AppColors.ghost);
-    return ('En línea', AppColors.online);
   }
 }
 

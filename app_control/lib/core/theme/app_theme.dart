@@ -40,17 +40,43 @@ abstract class AppColors {
   static const Color textSecondary = core.AppColors.textSecondary;
   static const Color textMuted = core.AppColors.textDisabled;
 
-  /// Transmitiendo.
-  static const Color online = core.AppColors.primary;
+  /*
+    Los cuatro estados de un bus. Eran dos colores para cuatro palabras:
+    «Inactivo», «Sin señal» y «Oculto» apuntaban los tres al mismo gris, así
+    que sobre el mapa un bus con el equipo trabado, uno que dejó de
+    transmitir y uno que el operador apagó a mano se dibujaban idénticos, y
+    el operador tenía que abrir la ficha para saber cuál era cuál (YV-29).
 
-  /// Lleva más de 90 s sin mandar posición pero la sesión sigue viva.
-  static const Color ghost = core.AppColors.busGhost;
+    Ahora cada uno tiene el suyo, y los cuatro son variantes accesibles que
+    ya existían en el sistema: pasan 4,5:1 sobre el blanco de las tarjetas y
+    sobre la arena del escritorio, que es lo que pide la norma para texto
+    chico —el rótulo del estado mide entre 8 y 12 pt—. Ninguno de los cuatro
+    trabaja solo: cada estado lleva también su ícono (`BusEstado.icono`),
+    porque un operador que no distingue verde de ámbar, o un proyector que
+    lava los colores, dejan el panel sin información.
+  */
 
-  /// Un bus oculto se trata igual que uno sin señal: mismo gris, no una
-  /// alarma. Sigue siendo un bus real que el operador puede volver a mostrar.
-  static const Color hidden = core.AppColors.busGhost;
+  /// Transmitiendo. El verde de la marca (#00A859) da 3,1:1 sobre blanco:
+  /// no alcanza ni para el rótulo ni para el texto blanco de un botón. Este
+  /// es ese mismo verde en su variante accesible.
+  static const Color online = core.AppColors.primaryAccessible;
 
-  static const Color offline = core.AppColors.busGhost;
+  /// Lleva más de 90 s sin mandar posición pero la sesión sigue viva. Ámbar,
+  /// que en el sistema significa «reintenta o espera»: el bus está ahí y lo
+  /// que falla es el equipo, no el turno.
+  static const Color ghost = core.AppColors.warningAccessible;
+
+  /// No está transmitiendo. Coral, que es lo que el sistema reserva para la
+  /// excepción ya confirmada —«bus sin señal» con esas palabras—, en su
+  /// variante para glifos y letras.
+  static const Color offline = core.AppColors.coralAccessible;
+
+  /// El operador lo quitó del mapa del pasajero. Gris, y a propósito: es una
+  /// decisión suya, no una avería, y no debe pedir atención como las otras
+  /// dos. Antes compartía gris con «sin señal», que era justo la confusión
+  /// que había que deshacer.
+  static const Color hidden = core.AppColors.textSecondary;
+
   static const Color danger = core.AppColors.error;
 
   /// El bus que el operador tiene abierto en la ficha. En la app este azul
@@ -59,18 +85,16 @@ abstract class AppColors {
   /// venir sin competir con el verde ni con el gris.
   static const Color selection = core.AppColors.electricBlue;
 
-  /// El bus sobre el mapa: verde si reporta, gris si no. Misma forma que el
-  /// del pasajero, distinto color, y a propósito. Dos razones:
-  ///
-  /// 1. El mapa de OpenStreetMap pinta las arterias en salmón, y el coral del
-  ///    pasajero —que allá va sobre un mapa vectorial de calles blancas— se
-  ///    perdía encima de ellas. Sobre teselas de OSM el verde no compite con
-  ///    nada: el agua es azul, los parques verde pálido y las vías cálidas.
-  /// 2. El panel ya decía "En línea" en verde en la lista de flota y en el
-  ///    tablero ([online]); solo el mapa lo decía en coral. Ahora los tres
-  ///    sitios usan el mismo color para la misma palabra.
-  static const Color busActive = core.AppColors.primary;
-  static const Color busGhost = core.AppColors.busGhost;
+  // El bus sobre el mapa tenía aquí dos colores propios —uno activo y uno
+  // gris— y era la tercera lista de estados del panel: la fila conocía tres
+  // situaciones, la leyenda otras tres y el marcador solo dos. Ya no existen:
+  // el marcador pinta el color del estado como todo lo demás, y quién está en
+  // qué estado lo decide `BusEstado`, que es el único sitio con esa regla.
+  //
+  // Lo que sí se queda es que el bus del mapa va en verde y no en el coral
+  // del pasajero: OpenStreetMap pinta las arterias en salmón, y el coral
+  // —que allá va sobre un mapa vectorial de calles blancas— se perdía encima
+  // de ellas.
 
   static List<BoxShadow> get softShadow => core.AppShadows.soft;
   static List<BoxShadow> get floatingShadow => core.AppShadows.floating;

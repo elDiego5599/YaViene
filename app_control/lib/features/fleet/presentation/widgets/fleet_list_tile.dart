@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
+import '../bus_estado.dart';
 
 class FleetListTile extends StatelessWidget {
   const FleetListTile({
@@ -25,7 +26,7 @@ class FleetListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (statusLabel, statusColor) = _status(bus);
+    final estado = BusEstado.de(bus);
     final card = Material(
       // Seleccionado = el mismo azul del halo en el mapa. Antes era un verde
       // tenue suelto, que además chocaba con el verde de "en línea": una fila
@@ -52,14 +53,20 @@ class FleetListTile extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // El recuadro sigue siendo un bus: dice qué es esta fila. Lo que
+              // dice en qué situación está es el ícono de al lado del nombre.
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
+                  color: estado.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(Icons.directions_bus, size: 20, color: statusColor),
+                child: Icon(
+                  Icons.directions_bus,
+                  size: 20,
+                  color: estado.color,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -68,27 +75,28 @@ class FleetListTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Tooltip(
-                          message: statusLabel == 'Sin señal'
-                              ? 'Sin señal: el bus no está transmitiendo'
-                              : 'En línea: el bus está transmitiendo',
-                          child: Text(
-                            bus.placa.isEmpty ? bus.busId : bus.placa,
-                            style: AppType.ui(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: 0.4,
-                            ),
+                        Text(
+                          bus.placa.isEmpty ? bus.busId : bus.placa,
+                          style: AppType.ui(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                            letterSpacing: 0.4,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            shape: BoxShape.circle,
+                        // Era un punto de 6 px: cuatro situaciones distintas
+                        // con la misma forma, y quien no separa verde de
+                        // ámbar veía cuatro filas idénticas. El ícono dice
+                        // cuál es sin leer el color, y el tooltip lo explica
+                        // con palabras (antes solo conocía dos casos).
+                        Tooltip(
+                          message: _explicacion(estado),
+                          child: Icon(
+                            estado.icono,
+                            size: 14,
+                            color: estado.color,
+                            semanticLabel: estado.rotulo,
                           ),
                         ),
                       ],
@@ -174,7 +182,7 @@ class FleetListTile extends StatelessWidget {
                       fontSize: 8,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,
-                      color: bus.visible ? AppColors.online : AppColors.textMuted,
+                      color: bus.visible ? AppColors.online : AppColors.hidden,
                     ),
                   ),
                 ],
@@ -187,9 +195,13 @@ class FleetListTile extends StatelessWidget {
     return Opacity(opacity: bus.online ? 1 : 0.7, child: card);
   }
 
-  (String, Color) _status(FleetBus bus) {
-    if (!bus.online) return ('Sin señal', AppColors.offline);
-    if (bus.isGhost) return ('Inactivo', AppColors.ghost);
-    return ('En línea', AppColors.online);
-  }
+  /// Qué significa el estado, en la frase que el operador necesita: qué pasa
+  /// y si tiene que hacer algo.
+  String _explicacion(BusEstado estado) => switch (estado) {
+        BusEstado.enLinea => 'En línea: el bus está transmitiendo',
+        BusEstado.inactivo =>
+          'Inactivo: lleva más de 90 s sin reportar, pero el turno sigue abierto',
+        BusEstado.sinSenal => 'Sin señal: el bus no está transmitiendo',
+        BusEstado.oculto => 'Oculto: lo quitaste del mapa de los pasajeros',
+      };
 }
