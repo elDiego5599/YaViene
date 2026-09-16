@@ -41,7 +41,6 @@ se auditan y se publican por separado del checkpoint documental de Fase 0.
 
 | Componente | Ubicacion |
 |---|---|
-| App conductor | `app_conductor/` |
 | App pasajero | `app_pasajero/` |
 | Core compartido | `ya_viene_core/` |
 | Backend | `../YaVieneBackend/` |
@@ -64,10 +63,8 @@ Mac. Para el emulador Android se utiliza `10.0.2.2`.
 |---|---|---|
 | Backend | `npm run build` | PASS |
 | Backend | `npx tsc --noEmit` | PASS |
-| Conductor | `flutter analyze lib` | PASS, 0 issues |
 | Pasajero | `flutter analyze lib` | PASS, 0 issues |
 | Core | `flutter analyze lib` | PASS, 0 issues |
-| Conductor | `flutter test` | PASS, 1 test |
 | Core | `flutter test` | No existe directorio `test/` |
 | Backend | Tests automatizados | No existen |
 | Pasajero | Tests automatizados | No existe una suite significativa |

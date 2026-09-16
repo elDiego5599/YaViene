@@ -8,13 +8,9 @@ Estado: checklist ejecutado localmente
 - Backend `npm run build`: PASS.
 - Backend `npm test`: PASS, 4 tests.
 - Backend `npm audit --omit=dev --audit-level=high`: PASS.
-- Conductor `flutter analyze lib`: PASS.
 - Pasajero `flutter analyze lib`: PASS.
 - Core `flutter analyze lib`: PASS.
 - Core `flutter test`: PASS.
-- Conductor `flutter test`: PASS.
-- APK conductor debug: PASS.
-- APK conductor release: PASS.
 
 ## Checks De Sistema
 

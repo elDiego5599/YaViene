@@ -55,7 +55,6 @@ queda como prueba de campo, no como simulacion automatica.
 - Backend build: PASS.
 - Backend E2E: PASS.
 - Backend tests: PASS.
-- Conductor analyzer/test: PASS.
 - Pasajero analyzer: PASS.
 - Core analyzer/test: PASS.
 

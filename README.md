@@ -9,7 +9,6 @@ en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
 | Carpeta | Qué es |
 |---|---|
 | `YaVieneBackend` | Backend Node.js + TypeScript: recibe el GPS del bus por MQTT, lo difunde al pasajero por WebSockets, guarda rutas y posiciones en SQLite. |
-| `app_conductor` | App Flutter interna, solo para demostración: hace de emisor GPS de prueba cuando no hay un equipo instalado. No es parte del producto. |
 | `app_pasajero` | App Flutter del pasajero: mapa con los buses en vivo, pin del usuario (GPS o toque manual), detalle de proximidad y aviso a 1 km con notificación local. |
 | `app_control` | Panel de control de escritorio (macOS y Windows): ve el estado de la flota y administra las empresas. |
 | `ya_viene_core` | Lógica compartida entre las apps (tipos, distancia, utilidades). |
@@ -81,7 +80,6 @@ para. Sin `--fondo` corren en primer plano y se paran con Ctrl+C.
 
 - [x] Backend completo: ingesta MQTT, difusión WebSocket, SQLite, fantasmas
   ("sin señal").
-- [x] App conductor: captura GPS + publicación MQTT.
 - [x] App pasajero: mapa en vivo, pin por GPS o manual, selección de bus,
   aviso a 1 km con la app en segundo plano, panel inferior con estado del bus.
 - [x] Panel de control (macOS y Windows).

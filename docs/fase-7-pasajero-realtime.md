@@ -54,7 +54,6 @@ socket desconecta
 
 - `flutter analyze lib` del pasajero: PASS.
 - `flutter analyze lib` del core: PASS.
-- Test del conductor: PASS despues de actualizar el modelo compartido.
 - Backend y MQTT ya tenian ACK y ciclo de vida verificados en fases anteriores.
 
 ## Limitaciones Pendientes

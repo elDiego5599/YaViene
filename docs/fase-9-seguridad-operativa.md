@@ -12,8 +12,6 @@ Estado: implementada en modo configurable
 - `GET /api/metrics` continua protegido por clave administrativa.
 - TLS HTTP opcional mediante `HTTP_TLS_CERT_PATH` y `HTTP_TLS_KEY_PATH`.
 - TLS MQTT opcional mediante `MQTT_TLS_CERT_PATH` y `MQTT_TLS_KEY_PATH`.
-- El conductor puede activar MQTT seguro con
-  `--dart-define=MQTT_USE_TLS=true`.
 - HTTP, Socket.io y MQTT conservan modo local sin TLS para desarrollo.
 
 ## Variables TLS
@@ -48,8 +46,7 @@ renovacion.
 - Sexto login en ventana: `429`.
 - Logs MQTT por paquete con debug apagado: cero.
 - Backend build y TypeScript: PASS.
-- Analyzer conductor y pasajero: PASS.
-- Test conductor: PASS.
+- Analyzer pasajero: PASS.
 
 ## Limitaciones
 

@@ -202,11 +202,11 @@ Aquí el informe se equivoca dos veces seguidas:
 **«No hay pipeline de Flutter».** Sí lo hay:
 `.github/workflows/ci.yml` en el monorepo corre en cada push y PR a
 `main` y hace `flutter analyze` + `flutter test` sobre `ya_viene_core`,
-`app_conductor`, `app_pasajero` (con `analyze lib test`) y `app_control`.
+`app_pasajero` (con `analyze lib test`) y `app_control`.
 
-**«Falta README».** Están los cuatro: `app_conductor/README.md`,
-`app_control/README.md`, `app_pasajero/README.md` y
-`ya_viene_core/README.md`, más el del monorepo.
+**«Falta README».** Están los tres: `app_control/README.md`,
+`app_pasajero/README.md` y `ya_viene_core/README.md`, más el del
+monorepo.
 
 Lo que sí es verdad:
 

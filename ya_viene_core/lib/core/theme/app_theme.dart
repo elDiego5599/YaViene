@@ -297,37 +297,12 @@ abstract class AppTextStyles {
   // ── Nombres viejos ───────────────────────────────────────────────────
   //
   // La Fase 3 los retiró de `app_pasajero` y del tema: ahí ya no queda
-  // ninguno. Siguen aquí con sus valores exactos porque los usan
-  // `app_conductor` y los widgets de `shared/` que solo él monta, y esa app
-  // es de demostración: migrarla movería fotos de referencia que nadie mira
-  // a cambio de nada. Se borran el día que ella se retire o se migre.
-
-  static final TextStyle h1 = _base.copyWith(
-    fontSize: 28.0,
-    fontWeight: FontWeight.w800,
-    height: 1.15,
-    letterSpacing: -0.6,
-  );
-
-  static final TextStyle h2 = _base.copyWith(
-    fontSize: 22.0,
-    fontWeight: FontWeight.w800,
-    height: 1.2,
-    letterSpacing: -0.4,
-  );
-
-  static final TextStyle h3 = _base.copyWith(
-    fontSize: 18.0,
-    fontWeight: FontWeight.w700,
-    height: 1.3,
-    letterSpacing: -0.3,
-  );
-
-  static final TextStyle bodyLarge = _base.copyWith(
-    fontSize: 16.0,
-    fontWeight: FontWeight.w500,
-    height: 1.5,
-  );
+  // ninguno. Siguen aquí los que todavía sostienen a alguien: `body` y
+  // `label` en el desplegable de `shared/`, `labelLarge` y `label` en el
+  // chip, y `etaNumber` en el pasajero.
+  //
+  // `h1`, `h2`, `h3` y `bodyLarge` se fueron con la app de demostración que
+  // era su único lector.
 
   static final TextStyle body = _base.copyWith(
     fontSize: 14.0,

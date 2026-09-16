@@ -34,16 +34,15 @@ sistema de diseño que ya está escrito y darle voz a la app.**
 6. **Lista de intocables estéticos** — ya están en 9/10 y tocarlos empeora.
    Ver §"Congelado" al final. Si una fase parece exigir tocar algo de esa
    lista, se para y se replantea.
-7. **Radio de impacto del tema compartido.** `ya_viene_core` lo consumen tres
+7. **Radio de impacto del tema compartido.** `ya_viene_core` lo consumen dos
    apps:
    - `app_control` toma **solo `AppColors`** y tiene su propio `ThemeData`
      (`app_control/lib/core/theme/app_theme.dart:2,16-37`). Cambiar
      `textTheme` no lo afecta; **cambiar el valor de un color sí**.
-   - `app_conductor/lib/main.dart:37` usa `AppTheme.lightTheme` entero, así
-     que sí cambia de tipografía. Es demo, no se trabaja en él, pero **sus
-     pruebas tienen que seguir pasando**.
+   - `app_pasajero` usa `AppTheme.lightTheme` entero, así que sí cambia de
+     tipografía.
    - Añadir tokens nuevos es seguro. Cambiar el valor de uno existente
-     requiere revisar las tres apps.
+     requiere revisar las dos apps.
 
 ---
 

@@ -1,7 +1,7 @@
 # Ya Viene: Fase 2, autenticacion y autorizacion
 
 Fecha: 2026-08-04
-Estado: implementada y verificada en backend, simulador y conductor
+Estado: implementada y verificada en backend y simulador
 
 ## Cambios Implementados
 
@@ -26,7 +26,7 @@ Estado: implementada y verificada en backend, simulador y conductor
 - El parser HTTP limita cuerpos a 32 KB y rechaza JSON invalido con `400`.
 - El simulador ahora provisiona con clave administrativa, inicia sesion y
   soporta JWTs MQTT de mas de 255 bytes.
-- La app conductor valida el PIN y usa `/api/auth/login` para iniciar turno.
+- `/api/auth/login` valida el PIN antes de entregar el token del turno.
 - El cierre de turno envia el Bearer token al endpoint offline.
 
 ## Variables Requeridas

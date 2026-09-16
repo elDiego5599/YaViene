@@ -25,7 +25,7 @@ posicion de una conexion nueva para el mismo bus.
 - `removePositionOwned` elimina solamente si coinciden bus y sesion.
 - El cierre HTTP revoca siempre la sesion autenticada.
 - La desconexion MQTT solo elimina la posicion perteneciente a esa sesion.
-- El cliente MQTT del conductor usa el mismo `clientId` en constructor y
+- El cliente MQTT que publica usa el mismo `clientId` en constructor y
   `MqttConnectMessage`.
 
 ## Flujo De Sesion
@@ -79,8 +79,6 @@ login
 - Verificacion de `404` despues de la ultima desconexion.
 - Backend `npm run build`: PASS.
 - Backend `npx tsc --noEmit`: PASS.
-- Conductor `flutter analyze lib`: PASS.
-- Test del conductor: PASS.
 
 ## Limitaciones Pendientes
 

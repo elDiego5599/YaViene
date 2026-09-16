@@ -45,13 +45,6 @@ jobs:
           flutter analyze --fatal-infos lib test
           flutter test
 
-      - name: Analyze conductor
-        working-directory: app_conductor
-        run: |
-          flutter pub get
-          flutter analyze lib
-          flutter test
-
       # Las pruebas de oro (`@Tags(['goldens'])`) no corren en la CI, en
       # ninguna de sus máquinas. Las 34 fotos se tomaron en el Mac del dueño:
       # en Linux fallaban las 34 y en el macOS de GitHub fallan 19 de 34, sin

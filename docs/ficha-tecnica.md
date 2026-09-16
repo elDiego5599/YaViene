@@ -7,8 +7,8 @@ controla la flota en tiempo real desde un panel de escritorio.
 ## Arquitectura
 
 ```
-CONDUCTOR (Android) ──MQTT──▶ ┌───────────────────────────────────────┐
- (tel. real o simulador)       │  Backend Node.js (un proceso)        │
+GPS A BORDO DEL BUS ──MQTT──▶ ┌───────────────────────────────────────┐
+ (equipo a bordo o sim.)       │  Backend Node.js (un proceso)        │
                                │  • Broker MQTT (aedes)               │
 PASAJERO (Android) ──socket.io─│  • API REST + validación de física   │
  (MapLibre, notificaciones)    │  • SQLite (WAL, single-writer)       │
@@ -25,7 +25,9 @@ PANEL DE CONTROL (macOS) ─socket└──────────┬───�
   `capturedAt` (reloj del dispositivo), sentido.
 - **Candado de física:** velocidad reportada y *calculada* ≤ 120 km/h,
   reloj ±30 s (futuro) y −15 min (buffer offline), secuencia monótona.
-- Sesión única por conductor (el segundo teléfono expulsa al primero).
+- Sesión única: una sesión nueva revoca las anteriores del mismo conductor, y
+  dar de baja u ocultar un bus revoca las suyas (`revokeSessionsForDriver`,
+  `revokeSessionsForBus`).
 - **"Sin señal" (ghost):** si un bus no publica en 5 min, NO desaparece del
   mapa: pasa a estado fantasma y se registra el evento (visible en el panel).
 - Deduplicación y orden por `sequence`; eventos `bus:left/hidden/visible/

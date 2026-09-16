@@ -10,7 +10,7 @@ posiciones ya entregadas se reproduzcan indefinidamente cada diez segundos.
 
 ## Problema Anterior
 
-El conductor guardaba todas las posiciones aunque MQTT funcionara, las
+El publicador guardaba todas las posiciones aunque MQTT funcionara, las
 publicaba en vivo y luego las reproducia desde el buffer. Ademas, el buffer
 limpiaba la tabla completa al terminar un replay, incluyendo posiciones nuevas
 creadas durante la sincronizacion.
@@ -78,8 +78,8 @@ Resultados:
 
 ## Secuencias
 
-- El conductor conserva la siguiente secuencia en SQLite local.
-- Las secuencias sobreviven reinicios de la app.
+- El publicador conserva la siguiente secuencia en su almacenamiento local.
+- Las secuencias sobreviven reinicios del proceso.
 - Filas antiguas sin secuencia reciben una secuencia durante la migracion.
 - El backend guarda `captured_at`, `sequence` y `session_id`.
 - La deduplicacion es por bus y sesion.
@@ -96,8 +96,6 @@ Resultados:
 ## Pruebas Ejecutadas
 
 - Backend build y TypeScript: PASS.
-- Flutter analyze del conductor: PASS.
-- Test del conductor: PASS.
 - Simulador MQTT autenticado: PASS.
 - Suscripcion al topic ACK: PASS.
 - Posicion valida: ACK `accepted:true`.
@@ -107,13 +105,11 @@ Resultados:
 
 ## Limitaciones Pendientes
 
-- La prueba de persistencia del outbox en un dispositivo Android real queda
-  pendiente de ejecutar con perdida de red prolongada.
+- La prueba de persistencia del outbox en el equipo del bus queda pendiente
+  de ejecutar con perdida de red prolongada.
 - Aun no existe una prueba automatizada que mate el proceso entre envio y ACK.
 - El sanity check continua usando tiempo de recepcion; la correccion completa
   de tiempo de captura corresponde a la siguiente fase.
-- La app sigue usando `distanceFilter: 0`, por lo que puede generar demasiadas
-  posiciones.
 - El ACK viaja por MQTT sin TLS.
 
 ## Criterio De Salida

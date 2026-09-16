@@ -43,7 +43,6 @@ Archivo:
 Ejecuta:
 
 - `flutter pub get` y analyzer/test del core.
-- Analyzer/test del conductor.
 - Analyzer del pasajero.
 
 ## CI Backend
@@ -65,8 +64,6 @@ Ejecuta:
 
 - Backend `npm run build`: PASS.
 - Backend `npm test`: 3/3 PASS.
-- Conductor analyzer: PASS.
-- Conductor tests: PASS.
 - Pasajero analyzer: PASS.
 - Core analyzer: PASS.
 - Core test: PASS.

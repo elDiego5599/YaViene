@@ -28,17 +28,6 @@ curl http://localhost:3000/api/metrics \
   -H 'x-admin-key: CLAVE_ADMIN'  # gitleaks:allow
 ```
 
-## Cambios Conductor
-
-El engine Android utiliza:
-
-- `distanceFilter: 5` metros.
-- `intervalDuration: 2` segundos.
-- ACK y outbox sin cambios de durabilidad.
-
-Esto reduce lecturas GPS redundantes, escrituras SQLite, publicaciones MQTT y
-consumo de bateria sin eliminar el control de entrega.
-
 ## Cambios Pasajero
 
 El provider agrupa actualizaciones live durante 200 ms antes de emitir al mapa.
@@ -49,8 +38,6 @@ render completo por cada paquete MQTT.
 
 - Backend build: PASS.
 - TypeScript: PASS.
-- Analyzer conductor: PASS.
-- Tests conductor: PASS.
 - Analyzer pasajero: PASS.
 - Simulador MQTT: PASS.
 - `/api/metrics` sin admin: `401`.
@@ -83,12 +70,10 @@ fallo de entrega.
 - Todavia no se ha ejecutado una prueba de carga con muchos buses y pasajeros.
 - El coalescing visual aun reconstruye el GeoJSON completo cuando vence el
   intervalo.
-- El limite de 5 metros debe validarse con conductores reales y consumo de
-  bateria.
 
 ## Criterio De Salida
 
 La fase se considera implementada porque el pipeline tiene contadores
-consultables, logs operativos controlados y limites de frecuencia en conductor
-y pasajero. La siguiente fase debe cubrir transporte cifrado, rate limiting y
+consultables, logs operativos controlados y limites de frecuencia del lado del
+pasajero. La siguiente fase debe cubrir transporte cifrado, rate limiting y
 health/readiness de produccion.
