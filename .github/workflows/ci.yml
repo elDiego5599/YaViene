@@ -76,3 +76,92 @@ jobs:
             echo "== $app"
             (cd "$app" && flutter pub outdated --no-dev-dependencies)
           done
+
+  # Compilar es la única prueba de que lo que se entrega arranca: `flutter
+  # test` no pasa por Gradle, Xcode ni MSBuild, así que un plugin roto, una
+  # firma mal puesta o un SDK que sube su mínimo solo se ven al construir
+  # (NEW-05, NEW-06). Los tres jobs van sueltos, sin `needs`, para que un
+  # fallo de análisis no esconda un fallo de compilación, y porque corren en
+  # máquinas distintas.
+  #
+  # Cuesta: el repo es privado, y ahí GitHub descuenta el minuto de macOS por
+  # 10 y el de Windows por 2 de la cuota. El `timeout-minutes` de cada job es
+  # el tope de ese gasto si una compilación se queda colgada.
+  compilar-apple:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Sin firma: la CI no tiene el certificado del dueño ni debe tenerlo.
+      # Aun así compila el binario, que es lo que se vigila. El dominio de
+      # BACKEND_URL es inválido a propósito: `config.dart` exige la variable
+      # y exige https, y aquí no se conecta nadie a ningún lado.
+      - name: iOS del pasajero (sin firma)
+        working-directory: app_pasajero
+        run: |
+          flutter pub get
+          flutter build ios --no-codesign --dart-define=BACKEND_URL=https://ejemplo.invalid
+
+      # El panel se firma «ad hoc» (`CODE_SIGN_IDENTITY = "-"` en el
+      # proyecto de Xcode), así que compila sin cuenta de desarrollador.
+      - name: macOS del panel
+        working-directory: app_control
+        run: |
+          flutter pub get
+          flutter build macos
+
+  compilar-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      # Gradle 9.1 y el plugin de Android 9.0.1 piden un JDK moderno. Se fija
+      # aquí para que el build no dependa del JDK que traiga el runner el día
+      # que GitHub cambie la imagen.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # `key.properties` y el keystore están fuera de git, así que aquí la
+      # release cae a la firma de depuración (app/build.gradle.kts). Es a
+      # propósito: la CI comprueba que compila; la APK que se entrega se
+      # firma en la máquina del dueño.
+      - name: APK del pasajero
+        working-directory: app_pasajero
+        run: |
+          flutter pub get
+          flutter build apk --dart-define=BACKEND_URL=https://ejemplo.invalid
+
+  compilar-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    # bash, no pwsh: con pwsh un ejecutable que devuelve error no corta el
+    # paso, y el `flutter pub get` fallido pasaría inadvertido.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Aquí no hay máquina con Windows: este job es el único sitio donde se
+      # ve si el panel sigue armándose para el escritorio de la empresa.
+      - name: Windows del panel
+        working-directory: app_control
+        run: |
+          flutter pub get
+          flutter build windows
