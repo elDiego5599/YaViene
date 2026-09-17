@@ -24,6 +24,17 @@ class FleetListTile extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
 
+  /// Lo que tiene que medir el hueco de la placa para que el chip de la ruta
+  /// quepa con cualquier placa: 88 de la más ancha que puede haber, tres
+  /// letras y tres números con el guion de las placas de antes («WWW-000»
+  /// mide 87,3), 8 y 14 del ícono de estado, y 45 del chip más corto que
+  /// todavía dice algo: 18 de relleno y unos 27 de texto, lo que ocupan tres
+  /// letras y los puntos suspensivos («Tch…» mide 26,9). Con menos, el chip
+  /// no se pinta. Se decide con el hueco, que es igual en todas las filas, y
+  /// no con lo que le deja a cada una su placa: así en una lista o todas
+  /// llevan chip o ninguna.
+  static const double _huecoParaRuta = 88 + 8 + 14 + 45;
+
   @override
   Widget build(BuildContext context) {
     final estado = BusEstado.de(bus);
@@ -69,76 +80,109 @@ class FleetListTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
+              // La placa y la ruta se reparten lo que dejan el recuadro, el
+              // lápiz y el interruptor. Antes cedía la placa: el chip tomaba
+              // todo lo suyo, y con una ruta de nombre largo, o en cualquier
+              // pantalla de 1440 o menos, el ícono de estado quedaba pintado
+              // encima del chip. Ahora la placa va entera y el que cede es el
+              // chip, que con una ruta elegida arriba repite su pestaña.
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          bus.placa.isEmpty ? bus.busId : bus.placa,
-                          style: AppType.ui(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                            letterSpacing: 0.4,
-                          ),
+                child: LayoutBuilder(
+                  builder: (context, hueco) => Row(
+                    children: [
+                      ConstrainedBox(
+                        // Ni la placa ni el nombre del conductor pasan del
+                        // hueco; sin este tope empujarían la fila hacia afuera.
+                        constraints: BoxConstraints(maxWidth: hueco.maxWidth),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Si la placa no cabe a su tamaño —una de letras
+                            // anchas en una pantalla de 1280, o la ventana
+                            // achicada a mano—, se achica lo justo: cortada
+                            // ya no diría qué bus es.
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    bus.placa.isEmpty ? bus.busId : bus.placa,
+                                    style: AppType.ui(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Era un punto de 6 px: cuatro situaciones
+                                  // distintas con la misma forma, y quien no
+                                  // separa verde de ámbar veía cuatro filas
+                                  // idénticas. El ícono dice cuál es sin leer
+                                  // el color, y el tooltip lo explica con
+                                  // palabras (antes solo conocía dos casos).
+                                  Tooltip(
+                                    message: _explicacion(estado),
+                                    child: Icon(
+                                      estado.icono,
+                                      size: 14,
+                                      color: estado.color,
+                                      semanticLabel: estado.rotulo,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            if (bus.driverName != null)
+                              Text(
+                                bus.driverName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.ui(
+                                  fontSize: 11.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        // Era un punto de 6 px: cuatro situaciones distintas
-                        // con la misma forma, y quien no separa verde de
-                        // ámbar veía cuatro filas idénticas. El ícono dice
-                        // cuál es sin leer el color, y el tooltip lo explica
-                        // con palabras (antes solo conocía dos casos).
-                        Tooltip(
-                          message: _explicacion(estado),
-                          child: Icon(
-                            estado.icono,
-                            size: 14,
-                            color: estado.color,
-                            semanticLabel: estado.rotulo,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        if (bus.driverName != null)
-                          Flexible(
-                            child: Text(
-                              bus.driverName!,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppType.ui(
-                                fontSize: 11.5,
-                                color: AppColors.textSecondary,
+                      ),
+                      if (routeName != null &&
+                          hueco.maxWidth >= _huecoParaRuta)
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.navy.withValues(alpha: 0.06),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                routeName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.ui(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                  letterSpacing: 0.3,
+                                ),
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                  ],
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              if (routeName != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.navy.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Text(
-                    routeName!,
-                    style: AppType.ui(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.navy,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-              ],
+              if (routeName != null) const SizedBox(width: 6),
               IconButton(
                 onPressed: onEdit,
                 icon: const Icon(
