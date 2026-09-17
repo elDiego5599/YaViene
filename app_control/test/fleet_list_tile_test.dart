@@ -10,6 +10,11 @@
 // los anchos no se parecen a los de la app, y aquí lo que se prueba es
 // justo si las cosas caben. Cargarla en este archivo no toca las demás
 // pruebas: cada archivo corre en su propio aislado.
+//
+// Y miden en macOS y en Windows, que es donde corre el panel. Sin decirlo,
+// `flutter test` se hace pasar por Android, y allá el lápiz mide 40 de
+// ancho en vez de los 33 del escritorio: el hueco de la placa saldría 7 más
+// angosto que el de verdad y las cuentas de aquí no probarían la app.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -35,11 +40,14 @@ Future<void> _cargarFuentes() async {
   }
 }
 
-/// El ancho de una fila con la ventana maximizada. El panel arranca así
-/// (`windowManager.maximize()` en `main.dart`), de modo que el ancho lo pone
-/// la pantalla: a la lista le toca un cuarto de lo que dejan los 16 de cada
-/// lado y los 12 entre lista y mapa, y a la fila eso menos el borde de la
-/// lista (1 y 1) y el relleno de su `ListView` (12 y 12).
+/// El ancho de una fila para una ventana de tanto. El panel arranca
+/// maximizado (`windowManager.maximize()` en `main.dart`), así que lo normal
+/// es que el ancho lo ponga la pantalla, pero la cuenta vale también para
+/// una ventana achicada a mano: la lista es siempre un cuarto
+/// (`flex: 1` contra el `flex: 3` del mapa, sin puntos de quiebre). A la
+/// lista le toca un cuarto de lo que dejan los 16 de cada lado y los 12
+/// entre lista y mapa, y a la fila eso menos el borde de la lista (1 y 1) y
+/// el relleno de su `ListView` (12 y 12).
 double _fila(double pantalla) => (pantalla - 16 * 2 - 12) / 4 - 2 - 24;
 
 /// 1280 es un portátil de 1920 con Windows al 150 % o una MacBook vieja, 1440
@@ -67,41 +75,61 @@ Future<void> _montar(
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light,
+      // La fila vive en un `ListView`, que le da el ancho de la lista y
+      // ningún límite de alto. Encerrada en una caja de alto fijo se
+      // estiraría hasta llenarla y las medidas no serían las de la app.
       home: Scaffold(
-        body: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: ancho,
-            child: FleetListTile(
-              bus: FleetBus(
-                busId: placa,
-                companyId: 'empresa',
-                placa: placa,
-                driverName: conductor,
-                visible: true,
-                online: false,
-                isGhost: true,
+        body: ListView(
+          children: [
+            Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: ancho,
+                child: FleetListTile(
+                  bus: FleetBus(
+                    busId: placa,
+                    companyId: 'empresa',
+                    placa: placa,
+                    driverName: conductor,
+                    visible: true,
+                    online: false,
+                    isGhost: true,
+                  ),
+                  selected: false,
+                  updating: false,
+                  routeName: ruta,
+                  onTap: () {},
+                  onToggle: (_) {},
+                  onEdit: () {},
+                ),
               ),
-              selected: false,
-              updating: false,
-              routeName: ruta,
-              onTap: () {},
-              onToggle: (_) {},
-              onEdit: () {},
             ),
-          ),
+          ],
         ),
       ),
     ),
   );
 }
 
+/// El panel solo se instala en escritorio (`app_control` es macOS y
+/// Windows), y ahí el lápiz y el interruptor miden lo mismo en las dos.
+const _escritorio = TargetPlatformVariant(
+  <TargetPlatform>{TargetPlatform.macOS, TargetPlatform.windows},
+);
+
 RenderParagraph _parrafo(WidgetTester tester, String texto) =>
     tester.renderObject<RenderParagraph>(find.text(texto));
 
+/// Lo que se le perdona a una medida al compararla con otra. Cuando la placa
+/// se achica justo hasta llenar el hueco, su ícono termina en
+/// 157,00000000000003 y el lápiz empieza en 157: no se montan, es la coma
+/// flotante.
+const _holgura = 0.01;
+
 /// Si el texto se pintó entero o lo cortaron los puntos suspensivos.
 bool _entero(RenderParagraph parrafo) =>
-    parrafo.size.width + 0.01 >= parrafo.getMaxIntrinsicWidth(double.infinity);
+    parrafo.size.width + _holgura >=
+    parrafo.getMaxIntrinsicWidth(double.infinity);
 
 void main() {
   setUpAll(_cargarFuentes);
@@ -128,15 +156,15 @@ void main() {
             final caja = tester.getRect(
               find.ancestor(of: chip, matching: find.byType(Container)).first,
             );
-            expect(icono.right, lessThanOrEqualTo(caja.left),
+            expect(icono.right, lessThanOrEqualTo(caja.left + _holgura),
                 reason: 'el ícono de estado quedó encima del chip');
-            expect(caja.right, lessThanOrEqualTo(lapiz.left),
+            expect(caja.right, lessThanOrEqualTo(lapiz.left + _holgura),
                 reason: 'el chip quedó encima del lápiz');
           } else {
-            expect(icono.right, lessThanOrEqualTo(lapiz.left),
+            expect(icono.right, lessThanOrEqualTo(lapiz.left + _holgura),
                 reason: 'el ícono de estado quedó encima del lápiz');
           }
-        });
+        }, variant: _escritorio);
       }
     }
   }
@@ -148,13 +176,13 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(_entero(_parrafo(tester, 'WNP-659')), isTrue);
     expect(_entero(_parrafo(tester, _rutaLarga)), isFalse);
-  });
+  }, variant: _escritorio);
 
   testWidgets('con espacio de sobra la ruta se lee entera', (tester) async {
     await _montar(tester, ancho: _fila(1600), placa: 'WNP-659', ruta: _rutaCorta);
 
     expect(_entero(_parrafo(tester, _rutaCorta)), isTrue);
-  });
+  }, variant: _escritorio);
 
   // A 1440 a la placa angosta le sobraría para «Tche…», pero a la ancha no:
   // o todas las filas llevan chip o ninguna, y la lista no se ve salteada.
@@ -165,7 +193,7 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text(_rutaCorta), findsNothing);
-    });
+    }, variant: _escritorio);
   }
 
   // 1536 es una pantalla de 1920 con Windows al 125 %.
@@ -174,15 +202,55 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(_rutaLarga), findsOneWidget);
-  });
+  }, variant: _escritorio);
 
-  // A 1280 la placa más ancha no cabe a su tamaño ni sin chip: se achica lo
-  // justo, entera y sin salirse de la fila.
+  // Y en cuanto vuelve, con la placa más ancha del tablero, la ruta de
+  // nombre corto se lee entera: si volviera solo para mostrarse cortada no
+  // valdría la pena.
+  testWidgets('a 1536 el chip vuelve con la ruta entera', (tester) async {
+    await _montar(tester, ancho: _fila(1536), placa: 'WNP-659', ruta: _rutaCorta);
+
+    expect(tester.takeException(), isNull);
+    expect(_entero(_parrafo(tester, _rutaCorta)), isTrue);
+  }, variant: _escritorio);
+
+  // Con la ventana maximizada la placa nunca se achica, ni la más ancha
+  // posible en la pantalla más chica: para eso el chip se va antes y le deja
+  // también el aire que lo separaba del lápiz.
+  for (final ruta in [_rutaLarga, null]) {
+    testWidgets(
+        'a 1280 la placa más ancha va a su tamaño, '
+        'con ${ruta ?? 'ninguna ruta'}', (tester) async {
+      await _montar(
+        tester,
+        ancho: _fila(1280),
+        placa: _placaMasAncha,
+        ruta: ruta,
+      );
+
+      expect(tester.takeException(), isNull, reason: 'la fila se desborda');
+      final placa = _parrafo(tester, _placaMasAncha);
+      expect(_entero(placa), isTrue, reason: 'la placa se cortó');
+      expect(
+        tester.getRect(find.text(_placaMasAncha)).width,
+        closeTo(placa.size.width, _holgura),
+        reason: 'la placa se achicó teniendo sitio',
+      );
+    }, variant: _escritorio);
+  }
+
+  // Achicando la ventana a mano se llega a un ancho en que ni la placa sola
+  // cabe: ahí se achica lo justo, entera y sin salirse de la fila.
   for (final ruta in [_rutaCorta, null]) {
     testWidgets(
-        'a 1280 la placa más ancha se achica sin salirse, '
+        'con la ventana en 1200 la placa más ancha se achica sin salirse, '
         'con ${ruta ?? 'ninguna ruta'}', (tester) async {
-      await _montar(tester, ancho: _fila(1280), placa: _placaMasAncha, ruta: ruta);
+      await _montar(
+        tester,
+        ancho: _fila(1200),
+        placa: _placaMasAncha,
+        ruta: ruta,
+      );
 
       expect(tester.takeException(), isNull, reason: 'la fila se desborda');
       final placa = _parrafo(tester, _placaMasAncha);
@@ -191,20 +259,10 @@ void main() {
           lessThan(placa.size.width));
       final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
       final lapiz = tester.getRect(find.byType(IconButton));
-      expect(icono.right, lessThanOrEqualTo(lapiz.left),
+      expect(icono.right, lessThanOrEqualTo(lapiz.left + _holgura),
           reason: 'el ícono de estado quedó encima del lápiz');
-    });
+    }, variant: _escritorio);
   }
-
-  testWidgets('con espacio la placa más ancha va a su tamaño', (tester) async {
-    await _montar(tester, ancho: _fila(1600), placa: _placaMasAncha, ruta: _rutaLarga);
-
-    expect(tester.takeException(), isNull);
-    final placa = _parrafo(tester, _placaMasAncha);
-    expect(tester.getRect(find.text(_placaMasAncha)).width,
-        closeTo(placa.size.width, 0.01));
-    expect(find.text(_rutaLarga), findsOneWidget);
-  });
 
   testWidgets('un conductor de nombre largo no empuja la fila', (tester) async {
     await _montar(
@@ -219,5 +277,5 @@ void main() {
     final nombre = _parrafo(tester, 'María Fernanda Villalobos Castañeda');
     expect(_entero(nombre), isFalse);
     expect(nombre.size.height, lessThan(20), reason: 'va en un solo renglón');
-  });
+  }, variant: _escritorio);
 }

@@ -27,13 +27,13 @@ class FleetListTile extends StatelessWidget {
   /// Lo que tiene que medir el hueco de la placa para que el chip de la ruta
   /// quepa con cualquier placa: 88 de la más ancha que puede haber, tres
   /// letras y tres números con el guion de las placas de antes («WWW-000»
-  /// mide 87,3), 8 y 14 del ícono de estado, y 45 del chip más corto que
-  /// todavía dice algo: 18 de relleno y unos 27 de texto, lo que ocupan tres
-  /// letras y los puntos suspensivos («Tch…» mide 26,9). Con menos, el chip
-  /// no se pinta. Se decide con el hueco, que es igual en todas las filas, y
-  /// no con lo que le deja a cada una su placa: así en una lista o todas
-  /// llevan chip o ninguna.
-  static const double _huecoParaRuta = 88 + 8 + 14 + 45;
+  /// mide 87,3), 8 y 14 del ícono de estado, 45 del chip más corto que
+  /// todavía dice algo —18 de relleno y unos 27 de texto, lo que ocupan tres
+  /// letras y los puntos suspensivos («Tch…» mide 26,9)— y los 6 que lo
+  /// separan del lápiz. Con menos, el chip no se pinta. Se decide con el
+  /// hueco, que es igual en todas las filas, y no con lo que le deja a cada
+  /// una su placa: así en una lista o todas llevan chip o ninguna.
+  static const double _huecoParaRuta = 88 + 8 + 14 + 45 + 6;
 
   @override
   Widget build(BuildContext context) {
@@ -97,9 +97,9 @@ class FleetListTile extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Si la placa no cabe a su tamaño —una de letras
-                            // anchas en una pantalla de 1280, o la ventana
-                            // achicada a mano—, se achica lo justo: cortada
+                            // Si la placa no cabe a su tamaño, que con la
+                            // ventana maximizada no pasa ni a 1280 pero sí
+                            // achicándola a mano, se achica lo justo: cortada
                             // ya no diría qué bus es.
                             FittedBox(
                               fit: BoxFit.scaleDown,
@@ -152,27 +152,33 @@ class FleetListTile extends StatelessWidget {
                       if (routeName != null &&
                           hueco.maxWidth >= _huecoParaRuta)
                         Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.navy.withValues(alpha: 0.06),
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.pill),
-                              ),
-                              child: Text(
-                                routeName!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppType.ui(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.navy,
-                                  letterSpacing: 0.3,
+                          child: Padding(
+                            // El aire antes del lápiz va con el chip: en una
+                            // fila sin chip lo aprovecha la placa.
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.navy.withValues(alpha: 0.06),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.pill),
+                                ),
+                                child: Text(
+                                  routeName!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppType.ui(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.navy,
+                                    letterSpacing: 0.3,
+                                  ),
                                 ),
                               ),
                             ),
@@ -182,7 +188,6 @@ class FleetListTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (routeName != null) const SizedBox(width: 6),
               IconButton(
                 onPressed: onEdit,
                 icon: const Icon(
