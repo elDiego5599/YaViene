@@ -22,7 +22,16 @@ class LiveRouteBackdrop extends StatefulWidget {
     required this.child,
     this.showUser = false,
     this.haloY = 0.30,
+    this.conPie = false,
   });
+
+  /// La ciudad sigue hasta abajo. Las pantallas de entrada apoyan una hoja
+  /// en la mitad de abajo y ahí el fondo se hunde a propósito; el menú no
+  /// tiene hoja, y ese mismo hundimiento lo dejaba vacío de la mitad para
+  /// abajo. Con esto la retícula vuelve a subir desde el borde, otra ruta
+  /// con su bus cruza la banda de abajo y un resplandor verde tenue sube
+  /// desde el borde: la red de arriba y la de abajo son la misma ciudad.
+  final bool conPie;
 
   /// Dibuja el punto "aquí estás" sobre la ruta, con el bus acercándose.
   /// Lo usa la pantalla que pide el permiso de ubicación: enseña para qué
@@ -89,6 +98,7 @@ class _LiveRouteBackdropState extends State<LiveRouteBackdrop>
               avance: avance,
               showUser: widget.showUser,
               haloY: widget.haloY,
+              conPie: widget.conPie,
             ),
           ),
         ),
@@ -103,11 +113,13 @@ class _RedDeRutasPainter extends CustomPainter {
     required this.avance,
     required this.showUser,
     required this.haloY,
+    required this.conPie,
   }) : super(repaint: avance);
 
   final Animation<double> avance;
   final bool showUser;
   final double haloY;
+  final bool conPie;
 
   /// Dónde espera el usuario, en fracción de la ruta principal. Justo
   /// pasada la mitad: el bus entra por la izquierda y se le acerca.
@@ -117,6 +129,7 @@ class _RedDeRutasPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _pintarCielo(canvas, size);
     _pintarPuntos(canvas, size);
+    if (conPie) _pintarPie(canvas, size);
 
     final quietas = [_rutaB(size), _rutaC(size)];
     final trazoQuieto = Paint()
@@ -141,7 +154,7 @@ class _RedDeRutasPainter extends CustomPainter {
     final medida = principal.computeMetrics().first;
     _pintarParadas(canvas, medida);
     if (showUser) _pintarUsuario(canvas, medida);
-    _pintarBus(canvas, medida);
+    _pintarBus(canvas, medida, avance.value);
   }
 
   /// Noche sobre la ciudad: la tinta se aclara hacia arriba y se hunde
@@ -195,6 +208,67 @@ class _RedDeRutasPainter extends CustomPainter {
     }
   }
 
+  /// La banda de abajo del menú: resplandor, retícula que se enciende hacia el
+  /// borde y una segunda ruta con dos paradas y su bus. Todo más tenue que
+  /// arriba —la ruta al 9 % contra el 13 % de la viva, los puntos a lo sumo al
+  /// 6 %—, porque encima van el texto del pie y los créditos, que tienen que
+  /// seguir leyéndose.
+  void _pintarPie(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(size.width * 0.5, size.height * 1.04),
+          size.width * 1.05,
+          [
+            AppColors.primary.withValues(alpha: 0.16),
+            AppColors.primary.withValues(alpha: 0.0),
+          ],
+        ),
+    );
+
+    // La retícula de arriba, en espejo: misma rejilla y mismo corrimiento,
+    // para que las dos mitades encajen donde se cruzan.
+    final pincel = Paint()..style = PaintingStyle.fill;
+    const paso = 34.0;
+    final desde = size.height * 0.5;
+    for (double y = 28; y < size.height; y += paso) {
+      if (y < desde) continue;
+      final encendido = ((y - desde) / (size.height - desde)).clamp(0.0, 1.0);
+      pincel.color = Colors.white.withValues(alpha: 0.015 + 0.045 * encendido);
+      final corrimiento = ((y / paso).round().isEven) ? 0.0 : 12.0;
+      for (double x = 18; x < size.width; x += paso) {
+        canvas.drawCircle(Offset(x + corrimiento, y), 1.5, pincel);
+      }
+    }
+
+    final ruta = _rutaD(size);
+    canvas.drawPath(
+      ruta,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round
+        ..color = Colors.white.withValues(alpha: 0.09),
+    );
+    final medida = ruta.computeMetrics().first;
+    final anillo = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = Colors.white.withValues(alpha: 0.18);
+    final centro = Paint()..color = const Color(0xFF09131F);
+    for (final fraccion in const [0.30, 0.68]) {
+      final punto = medida.getTangentForOffset(medida.length * fraccion);
+      if (punto == null) continue;
+      canvas.drawCircle(punto.position, 3.2, centro);
+      canvas.drawCircle(punto.position, 3.2, anillo);
+    }
+    // Otro bus, a media vuelta del de arriba: nunca asoman los dos a la
+    // vez por el mismo borde, y el menú tiene algo vivo en cada mitad.
+    _pintarBus(canvas, medida, (avance.value + 0.5) % 1.0, brillo: 0.7);
+  }
+
   void _pintarParadas(Canvas canvas, ui.PathMetric medida) {
     final anillo = Paint()
       ..style = PaintingStyle.stroke
@@ -238,8 +312,15 @@ class _RedDeRutasPainter extends CustomPainter {
     canvas.drawCircle(p, 5.5, Paint()..color = AppColors.electricBlue);
   }
 
-  void _pintarBus(Canvas canvas, ui.PathMetric medida) {
-    final t = avance.value;
+  /// [brillo] baja el bus entero —estela, halo y punto— sin cambiar su
+  /// dibujo: el de la banda de abajo del menú va más apagado que el de
+  /// arriba, que es el protagonista.
+  void _pintarBus(
+    Canvas canvas,
+    ui.PathMetric medida,
+    double t, {
+    double brillo = 1,
+  }) {
     final recorrido = medida.length * t;
     final punto = medida.getTangentForOffset(recorrido);
     if (punto == null) return;
@@ -248,7 +329,7 @@ class _RedDeRutasPainter extends CustomPainter {
     // el último tramo para que no aparezca ni se corte de golpe.
     final entrada = (t / 0.06).clamp(0.0, 1.0);
     final salida = ((1 - t) / 0.06).clamp(0.0, 1.0);
-    final visible = math.min(entrada, salida);
+    final visible = math.min(entrada, salida) * brillo;
     if (visible <= 0.01) return;
 
     // La estela: cuatro tramos que se van encendiendo hacia el bus. Es lo
@@ -337,7 +418,32 @@ class _RedDeRutasPainter extends CustomPainter {
       s.height * 0.44,
     );
 
+  /// La ruta de abajo del menú: entra por la izquierda a la altura de los
+  /// créditos, sube por el medio y sale por la derecha más arriba, por
+  /// debajo del último grupo de filas.
+  Path _rutaD(Size s) => Path()
+    ..moveTo(-30, s.height * 0.86)
+    ..cubicTo(
+      s.width * 0.30,
+      s.height * 0.88,
+      s.width * 0.42,
+      s.height * 0.70,
+      s.width * 0.70,
+      s.height * 0.72,
+    )
+    ..cubicTo(
+      s.width * 0.88,
+      s.height * 0.73,
+      s.width * 0.92,
+      s.height * 0.64,
+      s.width + 30,
+      s.height * 0.62,
+    );
+
   @override
   bool shouldRepaint(covariant _RedDeRutasPainter old) =>
-      old.showUser != showUser || old.avance != avance || old.haloY != haloY;
+      old.showUser != showUser ||
+      old.avance != avance ||
+      old.haloY != haloY ||
+      old.conPie != conPie;
 }

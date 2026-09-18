@@ -192,4 +192,38 @@ void main() {
 
     expect(find.textContaining(kAppVersion), findsWidgets);
   });
+
+  // El pie iba pegado al último grupo y debajo quedaba media pantalla de
+  // tinta vacía. Ahora baja hasta el fondo del menú.
+  testWidgets('el pie del menú se apoya abajo del todo', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpDrawer(tester);
+    await openDrawer(tester);
+
+    final pie = tester.getRect(find.textContaining('OpenStreetMap'));
+    final menu = tester.getRect(find.byType(Drawer));
+    expect(menu.bottom - pie.bottom, lessThan(48));
+  });
+
+  testWidgets('en una pantalla baja el pie no se monta encima', (tester) async {
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpDrawer(tester);
+    await openDrawer(tester);
+
+    expect(tester.takeException(), isNull);
+    await tester.dragUntilVisible(
+      find.textContaining('OpenStreetMap'),
+      find.byType(Scrollable).last,
+      const Offset(0, -80),
+    );
+    // El fondo anima sin fin: se deja correr la inercia a mano.
+    await tester.pump(const Duration(seconds: 1));
+    final grupo = tester.getRect(find.text('Acerca de'));
+    final pie = tester.getRect(find.textContaining('OpenStreetMap'));
+    expect(pie.top, greaterThan(grupo.bottom));
+  });
 }

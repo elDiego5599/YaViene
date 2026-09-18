@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/app_info.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/live_route_backdrop.dart';
 import '../../../legal/legal_docs.dart';
 import '../providers/map_tour_provider.dart';
@@ -149,31 +150,18 @@ class AppDrawerState extends ConsumerState<AppDrawer>
   /// cargue las traducciones de Material, y abre una lista de licencias
   /// entera —también en inglés— desde el menú de un pasajero.
   Future<void> _acercaDe(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Ya Viene'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Versión $kAppVersion', style: AppTextStyles.cuerpoFuerte),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Piloto en Barranquilla. Las posiciones salen del GPS que va '
-              'instalado en cada bus.',
-              style: AppTextStyles.cuerpo.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
+    return mostrarDialogo<void>(
+      context,
+      (dialogContext) => Dialogo(
+        icono: Icons.info_outline_rounded,
+        titulo: 'Ya Viene',
+        detalle: 'Versión $kAppVersion',
+        mensaje: 'Piloto en Barranquilla. Las posiciones salen del GPS que '
+            'va instalado en cada bus.',
+        principal: DialogoAccion(
+          'Cerrar',
+          () => Navigator.pop(dialogContext),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cerrar'),
-          ),
-        ],
       ),
     );
   }
@@ -199,215 +187,241 @@ class AppDrawerState extends ConsumerState<AppDrawer>
       // contenido.
       child: LiveRouteBackdrop(
         haloY: 0.12,
+        conPie: true,
         child: SafeArea(
           child: Padding(
             padding:
                 const EdgeInsets.fromLTRB(AppSpacing.lg, 26, AppSpacing.lg, 20),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _staggered(
-                    Row(
-                      children: [
-                        // El logo se anunciaba como "imagen", sin más, y
-                        // justo al lado va el nombre escrito: es el mismo
-                        // dato dos veces, y una de ellas sin decir nada.
-                        ExcludeSemantics(
-                          child: SvgPicture.asset(
-                            'assets/icon/ya_viene_logo.svg',
-                            width: 30,
-                            height: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Ya Viene',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.titulo.copyWith(
-                              color: AppColors.textOnInk,
-                            ),
-                          ),
-                        ),
-                        // Cerrar un menú no es destruir nada: la X deja de
-                        // ser roja. Conserva el rebote de la entrada —salvo
-                        // con «Reducir movimiento», donde un rebote que se
-                        // pasa de tamaño y vuelve es justo lo que molesta.
-                        // El fundido escalonado se queda: lo que marea es el
-                        // desplazamiento, no la opacidad.
-                        ScaleTransition(
-                          scale: AppMotion.reducido(context)
-                              ? const AlwaysStoppedAnimation<double>(1)
-                              : _escalaCierre,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08),
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              key: const ValueKey('drawer_close'),
-                              onPressed: () => Navigator.pop(context),
-                              padding: EdgeInsets.zero,
-                              icon: Icon(
-                                Icons.close_rounded,
-                                color:
-                                    AppColors.textOnInk.withValues(alpha: 0.75),
-                                size: 20,
+            // El pie se apoya en el fondo del menú y no justo debajo del
+            // último grupo: pegado arriba dejaba media pantalla de tinta
+            // vacía, que se leía como un menú a medio cargar. El resto que
+            // sobra lo llena el hueco, no el pie; en un teléfono bajo, donde
+            // no sobra nada, todo se desplaza como antes.
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _staggered(
+                        Row(
+                          children: [
+                            // El logo se anunciaba como "imagen", sin más, y
+                            // justo al lado va el nombre escrito: es el mismo
+                            // dato dos veces, y una de ellas sin decir nada.
+                            ExcludeSemantics(
+                              child: SvgPicture.asset(
+                                'assets/icon/ya_viene_logo.svg',
+                                width: 30,
+                                height: 30,
                               ),
-                              tooltip: 'Cerrar menú',
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    0.0,
-                  ),
-                  // Sin la tarjeta de cuenta que iba aquí, la ruta activa
-                  // sube a ser el primer bloque, con el aire que la marca
-                  // dejaba antes a esa tarjeta.
-                  const SizedBox(height: 22),
-                  _staggered(const ActiveRouteCard(), 0.08),
-                  const SizedBox(height: 30),
-                  _staggered(
-                    _grupo([
-                      DrawerItem(
-                        icon: Icons.notifications_none_rounded,
-                        title: 'Avisos',
-                        // La pastilla verde es un número sin frase: dicho
-                        // solo, "2" detrás de "Avisos" no dice de qué.
-                        dicho: activeAlerts.isEmpty
-                            ? 'Avisos'
-                            : 'Avisos, ${activeAlerts.length} '
-                                'activo${activeAlerts.length == 1 ? '' : 's'}',
-                        trailing: activeAlerts.isEmpty
-                            ? Icon(
-                                Icons.chevron_right_rounded,
-                                color:
-                                    AppColors.textOnInk.withValues(alpha: 0.3),
-                                size: 20,
-                              )
-                            : Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.sm, vertical: 3),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Ya Viene',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.titulo.copyWith(
+                                  color: AppColors.textOnInk,
+                                ),
+                              ),
+                            ),
+                            // Cerrar un menú no es destruir nada: la X deja de
+                            // ser roja. Conserva el rebote de la entrada —salvo
+                            // con «Reducir movimiento», donde un rebote que se
+                            // pasa de tamaño y vuelve es justo lo que molesta.
+                            // El fundido escalonado se queda: lo que marea es
+                            // el desplazamiento, no la opacidad.
+                            ScaleTransition(
+                              scale: AppMotion.reducido(context)
+                                  ? const AlwaysStoppedAnimation<double>(1)
+                                  : _escalaCierre,
+                              child: Container(
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.pill),
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  shape: BoxShape.circle,
                                 ),
-                                child: Text(
-                                  '${activeAlerts.length}',
-                                  style: AppTextStyles.etiqueta.copyWith(
-                                    color: Colors.white,
+                                child: IconButton(
+                                  key: const ValueKey('drawer_close'),
+                                  onPressed: () => Navigator.pop(context),
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    color: AppColors.textOnInk
+                                        .withValues(alpha: 0.75),
+                                    size: 20,
                                   ),
+                                  tooltip: 'Cerrar menú',
                                 ),
                               ),
-                        onTap: () {
-                          // Sin cerrar el drawer: al volver de Notificaciones
-                          // se regresa al menú abierto, no al mapa.
-                          context.push('/notifications');
-                        },
+                            ),
+                          ],
+                        ),
+                        0.0,
                       ),
-                      DrawerItem(
-                        icon: Icons.help_outline_rounded,
-                        title: 'Ver guía de uso',
-                        onTap: () async {
-                          // F8: reiniciar la guía borra la ruta/bus activos sin
-                          // avisar. Si hay algo que perder, se confirma antes.
-                          final hasSelection =
-                              ref.read(selectedRouteProvider) != null ||
-                                  ref.read(selectedBusesProvider).isNotEmpty;
-                          if (hasSelection) {
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('¿Reiniciar la guía?'),
-                                content: const Text(
-                                  'Vas a perder la ruta y el bus que tienes '
-                                  'seleccionados ahora mismo.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, false),
-                                    child: const Text('Cancelar'),
+                      // Sin la tarjeta de cuenta que iba aquí, la ruta activa
+                      // sube a ser el primer bloque, con el aire que la marca
+                      // dejaba antes a esa tarjeta.
+                      const SizedBox(height: 22),
+                      _staggered(const ActiveRouteCard(), 0.08),
+                      const SizedBox(height: 30),
+                      _staggered(
+                        _grupo([
+                          DrawerItem(
+                            icon: Icons.notifications_none_rounded,
+                            title: 'Avisos',
+                            // La pastilla verde es un número sin frase: dicho
+                            // solo, "2" detrás de "Avisos" no dice de qué.
+                            dicho: activeAlerts.isEmpty
+                                ? 'Avisos'
+                                : activeAlerts.length == 1
+                                    ? 'Avisos, 1 activo'
+                                    : 'Avisos, ${activeAlerts.length} activos',
+                            trailing: activeAlerts.isEmpty
+                                ? Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppColors.textOnInk
+                                        .withValues(alpha: 0.3),
+                                    size: 20,
+                                  )
+                                : Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.sm, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.pill),
+                                    ),
+                                    child: Text(
+                                      '${activeAlerts.length}',
+                                      style: AppTextStyles.etiqueta.copyWith(
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, true),
-                                    child: const Text('Reiniciar guía'),
+                            onTap: () {
+                              // Sin cerrar el drawer: al volver de
+                              // Notificaciones se regresa al menú abierto, no
+                              // al mapa.
+                              context.push('/notifications');
+                            },
+                          ),
+                          DrawerItem(
+                            icon: Icons.help_outline_rounded,
+                            title: 'Ver guía de uso',
+                            onTap: () async {
+                              // F8: reiniciar la guía borra la ruta/bus activos
+                              // sin avisar. Si hay algo que perder, se confirma
+                              // antes.
+                              final hasSelection =
+                                  ref.read(selectedRouteProvider) != null ||
+                                      ref
+                                          .read(selectedBusesProvider)
+                                          .isNotEmpty;
+                              if (hasSelection) {
+                                final confirmed = await mostrarDialogo<bool>(
+                                  context,
+                                  (dialogContext) => Dialogo(
+                                    icono: Icons.restart_alt_rounded,
+                                    titulo: '¿Reiniciar la guía?',
+                                    mensaje:
+                                        'Vas a perder la ruta y el bus que '
+                                        'tienes seleccionados ahora mismo.',
+                                    delicado: true,
+                                    principal: DialogoAccion(
+                                      'Reiniciar guía',
+                                      () => Navigator.pop(dialogContext, true),
+                                    ),
+                                    secundaria: DialogoAccion(
+                                      'Cancelar',
+                                      () => Navigator.pop(dialogContext, false),
+                                    ),
                                   ),
-                                ],
-                              ),
-                            );
-                            if (confirmed != true || !context.mounted) return;
-                          }
-                          // La guía empieza limpia: se deselecciona el bus y se
-                          // quita la ruta activa para que el flujo arranque
-                          // desde cero (si la ruta queda, sus buses siguen
-                          // tocables durante el paso de ubicación).
-                          ref.read(selectedBusesProvider.notifier).clear();
-                          ref.read(selectedRouteProvider.notifier).clear();
-                          final location = ref.read(userLocationProvider);
-                          await ref.read(mapGuideProvider.notifier).restart(
-                                hasLocation: location.hasPosition,
-                                locationSettled: location.mode !=
-                                        UserLocationMode.unknown &&
-                                    location.mode != UserLocationMode.locating,
-                              );
-                          // Sin ubicación la guía empieza pidiendo el punto de
-                          // espera: hay que mostrar la ciudad para saber dónde
-                          // tocar, aunque la cámara esté en otro lado.
-                          if (!location.hasPosition) {
-                            ref
-                                .read(mapCameraRequestProvider.notifier)
-                                .centerOnBarranquilla();
-                          }
-                          if (context.mounted) Navigator.pop(context);
-                        },
+                                );
+                                if (confirmed != true || !context.mounted) {
+                                  return;
+                                }
+                              }
+                              // La guía empieza limpia: se deselecciona el bus
+                              // y se quita la ruta activa para que el flujo
+                              // arranque desde cero (si la ruta queda, sus
+                              // buses siguen tocables durante el paso de
+                              // ubicación).
+                              ref.read(selectedBusesProvider.notifier).clear();
+                              ref.read(selectedRouteProvider.notifier).clear();
+                              final location = ref.read(userLocationProvider);
+                              await ref.read(mapGuideProvider.notifier).restart(
+                                    hasLocation: location.hasPosition,
+                                    locationSettled: location.mode !=
+                                            UserLocationMode.unknown &&
+                                        location.mode !=
+                                            UserLocationMode.locating,
+                                  );
+                              // Sin ubicación la guía empieza pidiendo el punto
+                              // de espera: hay que mostrar la ciudad para saber
+                              // dónde tocar, aunque la cámara esté en otro
+                              // lado.
+                              if (!location.hasPosition) {
+                                ref
+                                    .read(mapCameraRequestProvider.notifier)
+                                    .centerOnBarranquilla();
+                              }
+                              if (context.mounted) Navigator.pop(context);
+                            },
+                          ),
+                        ]),
+                        0.16,
                       ),
-                    ]),
-                    0.16,
+                      const SizedBox(height: AppSpacing.md),
+                      // Segundo grupo, y no tres filas más en el primero: lo de
+                      // arriba es lo que el pasajero usa (sus avisos, la guía);
+                      // esto es lo que consulta de vez en cuando. Sin cuenta,
+                      // este menú es el único sitio estable donde volver a leer
+                      // lo que se aceptó en la bienvenida.
+                      _staggered(
+                        _grupo([
+                          DrawerItem(
+                            icon: Icons.lock_outline_rounded,
+                            title: 'Privacidad',
+                            onTap: () =>
+                                context.push(legalPath(legalPrivacidad.id)),
+                          ),
+                          DrawerItem(
+                            icon: Icons.description_outlined,
+                            title: 'Términos',
+                            onTap: () =>
+                                context.push(legalPath(legalTerminos.id)),
+                          ),
+                          DrawerItem(
+                            icon: Icons.info_outline_rounded,
+                            title: 'Acerca de',
+                            onTap: () => _acercaDe(context),
+                          ),
+                        ]),
+                        0.20,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Segundo grupo, y no tres filas más en el primero: lo de
-                  // arriba es lo que el pasajero usa (sus avisos, la guía);
-                  // esto es lo que consulta de vez en cuando. Sin cuenta,
-                  // este menú es el único sitio estable donde volver a leer
-                  // lo que se aceptó en la bienvenida.
-                  _staggered(
-                    _grupo([
-                      DrawerItem(
-                        icon: Icons.lock_outline_rounded,
-                        title: 'Privacidad',
-                        onTap: () =>
-                            context.push(legalPath(legalPrivacidad.id)),
-                      ),
-                      DrawerItem(
-                        icon: Icons.description_outlined,
-                        title: 'Términos',
-                        onTap: () => context.push(legalPath(legalTerminos.id)),
-                      ),
-                      DrawerItem(
-                        icon: Icons.info_outline_rounded,
-                        title: 'Acerca de',
-                        onTap: () => _acercaDe(context),
-                      ),
-                    ]),
-                    0.20,
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const SizedBox(height: 26),
+                      // Los créditos del mapa viven aquí desde que la "i"
+                      // azul de MapLibre dejó libre su esquina para el botón
+                      // de recentrar. OpenStreetMap y CARTO piden que se
+                      // vean; el pie de un menú es donde los pone todo el
+                      // mundo, y donde no estorban.
+                      _staggered(const _Pie(), 0.24),
+                    ],
                   ),
-                  const SizedBox(height: 26),
-                  // Los créditos del mapa viven aquí desde que la "i" azul de
-                  // MapLibre dejó libre su esquina para el botón de recentrar.
-                  // OpenStreetMap y CARTO piden que se vean; el pie de un menú
-                  // es donde los pone todo el mundo, y donde no estorban.
-                  _staggered(const _MapCredits(), 0.24),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -416,32 +430,31 @@ class AppDrawerState extends ConsumerState<AppDrawer>
   }
 }
 
-/// Créditos del mapa, al pie del menú y en voz baja.
-class _MapCredits extends StatelessWidget {
-  const _MapCredits();
+/// Pie del menú: los créditos del mapa, en voz baja y separados de las
+/// acciones por un filo.
+class _Pie extends StatelessWidget {
+  const _Pie();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Mapa',
-            style: AppTextStyles.etiqueta.copyWith(
-              color: AppColors.textOnInk.withValues(alpha: 0.45),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '© MapLibre · © OpenStreetMap · © CARTO',
-            style: AppTextStyles.pie.copyWith(
-              color: AppColors.textOnInk.withValues(alpha: 0.35),
-              height: 1.4,
-            ),
-          ),
-        ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xs, AppSpacing.md, AppSpacing.xs, 0),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+      ),
+      child: Text(
+        // Sin «Mapa» delante: con él, «CARTO» se quedaba solo en una
+        // segunda línea. Los espacios duros pegan cada © a su nombre, para
+        // que con el texto grande se corte por los puntos.
+        '©\u00A0MapLibre · ©\u00A0OpenStreetMap · ©\u00A0CARTO',
+        style: AppTextStyles.pie.copyWith(
+          color: AppColors.textOnInk.withValues(alpha: 0.35),
+          height: 1.4,
+        ),
       ),
     );
   }

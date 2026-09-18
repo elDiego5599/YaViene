@@ -438,6 +438,45 @@ abstract class AppTheme {
         space: 0,
       ),
 
+      // Los avisos de abajo —«activa las notificaciones», «ya tienes un
+      // aviso para ese bus»— salían en el gris oscuro de fábrica, pegados al
+      // borde y con el botón en morado. Ahora flotan con el tinta del menú,
+      // redondeados como las píldoras del mapa, con el texto de la app y la
+      // acción en el verde de la marca, que sobre tinta llega de sobra a
+      // 4.5:1.
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.ink,
+        elevation: 0,
+        insetPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        contentTextStyle: AppTextStyles.cuerpo.copyWith(
+          color: AppColors.textOnInk,
+        ),
+        actionTextColor: AppColors.primary,
+      ),
+
+      // Por si algún diálogo se abre sin pasar por la ventana propia de la
+      // app: al menos cae en su superficie, su radio y su tipografía.
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        titleTextStyle: AppTextStyles.subtitulo,
+        contentTextStyle: AppTextStyles.cuerpo.copyWith(
+          color: AppColors.textBody,
+        ),
+      ),
+
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         modalBackgroundColor: AppColors.surface,

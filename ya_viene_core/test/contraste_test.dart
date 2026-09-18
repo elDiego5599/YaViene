@@ -109,5 +109,18 @@ void main() {
       esperaAlMenos(AppColors.textOnInk, AppColors.ink, 4.5, 'el texto');
       esperaAlMenos(AppColors.errorOnInk, AppColors.ink, 4.5, 'el destructivo');
     });
+
+    test('la acción de los avisos de abajo', () {
+      // El «Ajustes» del aviso de notificaciones va en el verde de la marca
+      // sobre la tinta del aviso.
+      esperaAlMenos(AppColors.primary, AppColors.ink, 4.5, 'la acción');
+    });
+
+    test('el tema pone los avisos de abajo sobre la tinta', () {
+      final tema = AppTheme.lightTheme.snackBarTheme;
+      expect(tema.backgroundColor, AppColors.ink);
+      expect(tema.actionTextColor, AppColors.primary);
+      expect(tema.behavior, SnackBarBehavior.floating);
+    });
   });
 }
