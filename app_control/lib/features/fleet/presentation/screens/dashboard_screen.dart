@@ -24,7 +24,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with WidgetsBindingObserver {
   final _searchController = TextEditingController();
   String _query = '';
   bool _refreshing = false;
@@ -60,13 +61,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
     );
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(fleetProvider.notifier).start();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // La ventana vuelve al frente: puede haberse perdido eventos mientras
+    // el sistema tenía la conexión dormida, y esperar al siguiente minuto
+    // sería justo cuando el operador está mirando la lista.
+    if (state == AppLifecycleState.resumed) {
+      ref.read(fleetProvider.notifier).alVolverAlFrente();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sessionExpiredSub?.close();
     _searchController.dispose();
     super.dispose();

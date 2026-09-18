@@ -125,16 +125,31 @@ class FleetState {
 }
 
 class FleetNotifier extends StateNotifier<FleetState> {
-  FleetNotifier(this._ref, {FleetApi? api, this._supervisor})
-      : _apiFija = api,
+  FleetNotifier(
+    this._ref, {
+    FleetApi? api,
+    this._supervisor,
+    this.resincronizarCada = const Duration(seconds: 60),
+  })  : _apiFija = api,
         super(const FleetState());
 
   final Ref _ref;
   final FleetApi? _apiFija;
   final BackendSupervisor? _supervisor;
+
+  /// Cada cuánto el panel vuelve a pedir la flota por REST mientras está
+  /// abierto. Es un parámetro para que las pruebas no esperen un minuto.
+  final Duration resincronizarCada;
   FleetSocketService? _socket;
   final List<StreamSubscription> _subs = [];
   Timer? _recarga;
+
+  /// El latido de la resincronización. El panel se enteraba de los cambios
+  /// solo por el socket: un evento perdido —el socket cayó un segundo, el
+  /// backend se reinició— dejaba la lista mintiendo hasta que el operador
+  /// pulsaba «Recargar». La foto se funde con lo que ya hay (T2.5), así que
+  /// una posición en vivo más nueva no retrocede por culpa del REST.
+  Timer? _resync;
 
   /// Se lee en cada pedido y no una sola vez al crear el notifier: el
   /// backend puede cambiar con el panel abierto (`BackendSupervisor`).
@@ -163,6 +178,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
     );
     _supervisor?.detener();
     _recarga?.cancel();
+    _resync?.cancel();
     for (final s in _subs) {
       s.cancel();
     }
@@ -341,6 +357,17 @@ class FleetNotifier extends StateNotifier<FleetState> {
     // Fallback REST: pobla la lista de buses registrados aunque el socket
     // tarde o falle, y asegura que aparezcan los buses sin posición.
     refresh();
+    _resync?.cancel();
+    _resync = Timer.periodic(resincronizarCada, (_) => refresh());
+  }
+
+  /// La ventana del panel vuelve al frente. Un panel en segundo plano puede
+  /// haberse perdido eventos —el sistema duerme la conexión— y esperar hasta
+  /// un minuto para enterarse sería justo cuando el operador está mirando.
+  void alVolverAlFrente() {
+    if (_socket == null) return;
+    refresh();
+    refreshRoutes();
   }
 
   Future<void> refresh() async {
@@ -427,6 +454,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
   void stop() {
     _supervisor?.detener();
     _recarga?.cancel();
+    _resync?.cancel();
     for (final s in _subs) {
       s.cancel();
     }
@@ -651,6 +679,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
   @override
   void dispose() {
     _recarga?.cancel();
+    _resync?.cancel();
     for (final s in _subs) {
       s.cancel();
     }

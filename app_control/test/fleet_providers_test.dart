@@ -92,11 +92,19 @@ Future<void> _vaciar() => Future<void>.delayed(Duration.zero);
 
 const _session = AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Empresa 1');
 
-ProviderContainer _containerWith(FleetApi api, {FleetSocketService? socket}) {
+ProviderContainer _containerWith(
+  FleetApi api, {
+  FleetSocketService? socket,
+  Duration? resincronizarCada,
+}) {
   final container = ProviderContainer(
     overrides: [
       backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
-      fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: api)),
+      fleetProvider.overrideWith((ref) => FleetNotifier(
+            ref,
+            api: api,
+            resincronizarCada: resincronizarCada ?? const Duration(seconds: 60),
+          )),
       if (socket != null) fleetSocketFactoryProvider.overrideWithValue((_) => socket),
     ],
   );
@@ -208,6 +216,93 @@ void main() {
     final notifier = container.read(fleetProvider.notifier);
 
     expect(() => notifier.stop(), returnsNormally);
+  });
+
+  // El panel se enteraba de los cambios solo por el socket: un evento que se
+  // perdiera —el socket cayó un segundo, el backend se reinició— dejaba la
+  // lista mintiendo hasta que el operador pulsaba «Recargar». Cada minuto
+  // vuelve a pedir la flota por REST y la funde con lo que ya tiene (T2.5),
+  // así que la posición en vivo no retrocede por culpa de la foto.
+  group('resincronización del panel', () {
+    test('mientras el panel está abierto la flota se vuelve a pedir sola', () async {
+      final api = _FakeFleetApi();
+      final socket = _FakeSocket();
+      final container = _containerWith(api,
+          socket: socket, resincronizarCada: const Duration(milliseconds: 20));
+      container.read(fleetProvider.notifier).start();
+      await _vaciar();
+      final alArrancar = api.pedidas;
+
+      await Future<void>.delayed(const Duration(milliseconds: 70));
+
+      expect(api.pedidas, greaterThan(alArrancar + 1),
+          reason: 'el panel tiene que resincronizarse solo, sin tocar «Recargar»');
+    });
+
+    test('un evento perdido se corrige en la siguiente resincronización', () async {
+      // El panel cree que el bus sigue a la vista porque el `bus:hidden` no
+      // le llegó; el backend ya lo tiene oculto.
+      const oculto = FleetBus(busId: 'B-1', companyId: 'c-1', visible: false, online: true);
+      final api = _FakeFleetApi(positions: [oculto]);
+      final socket = _FakeSocket();
+      final container = _containerWith(api,
+          socket: socket, resincronizarCada: const Duration(milliseconds: 20));
+      final notifier = container.read(fleetProvider.notifier)..start();
+      await _vaciar();
+      notifier.state = notifier.state.copyWith(buses: {
+        'B-1': const FleetBus(busId: 'B-1', companyId: 'c-1', visible: true, online: true),
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 70));
+
+      expect(notifier.state.buses['B-1']!.visible, false);
+    });
+
+    test('al volver del segundo plano la flota se pide de inmediato', () async {
+      final api = _FakeFleetApi();
+      final socket = _FakeSocket();
+      final container = _containerWith(api, socket: socket);
+      final notifier = container.read(fleetProvider.notifier)..start();
+      await _vaciar();
+      final alArrancar = api.pedidas;
+
+      notifier.alVolverAlFrente();
+      await _vaciar();
+
+      expect(api.pedidas, alArrancar + 1,
+          reason: 'volver a la ventana no debería esperar al siguiente minuto');
+    });
+
+    test('stop() apaga la resincronización', () async {
+      final api = _FakeFleetApi();
+      final socket = _FakeSocket();
+      final container = _containerWith(api,
+          socket: socket, resincronizarCada: const Duration(milliseconds: 20));
+      final notifier = container.read(fleetProvider.notifier)..start();
+      await _vaciar();
+      notifier.stop();
+      final alParar = api.pedidas;
+
+      await Future<void>.delayed(const Duration(milliseconds: 70));
+
+      expect(api.pedidas, alParar,
+          reason: 'con la sesión cerrada no se piden datos con un token muerto');
+    });
+
+    test('con la sesión expirada la resincronización no insiste', () async {
+      final api = _FakeFleetApi(throwsSessionExpired: true);
+      final socket = _FakeSocket();
+      final container = _containerWith(api,
+          socket: socket, resincronizarCada: const Duration(milliseconds: 20));
+      final notifier = container.read(fleetProvider.notifier)..start();
+      await _vaciar();
+      expect(notifier.state.sessionExpired, true);
+      final alExpirar = api.pedidas;
+
+      await Future<void>.delayed(const Duration(milliseconds: 70));
+
+      expect(api.pedidas, alExpirar);
+    });
   });
 
   test('acknowledgeSessionExpired() solo cambia estado si estaba marcado', () async {
