@@ -15,9 +15,13 @@ class RouteInfo extends Equatable {
     this.terminalB,
   });
 
+  /// El backend manda el identificador como `routeId`, el nombre que usa el
+  /// resto del contrato, y lo repite como `id` para las apps ya instaladas.
+  /// Se lee `routeId` primero y se cae a `id` para seguir entendiendo a un
+  /// backend anterior; también es la clave que deja [toJson].
   factory RouteInfo.fromJson(Map<String, dynamic> json) {
     return RouteInfo(
-      id: json['id'] as String? ?? '',
+      id: json['routeId'] as String? ?? json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       companyId: json['companyId'] as String? ?? '',
       terminalA: json['terminalA'] as String?,
