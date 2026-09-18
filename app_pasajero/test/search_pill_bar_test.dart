@@ -61,4 +61,44 @@ void main() {
     );
     handle.dispose();
   });
+
+  testWidgets('con ruta elegida, arriba dice «Ruta activa» y debajo la ruta',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(selectedRouteProvider, (_, __) {});
+    container.read(selectedRouteProvider.notifier).select(
+          const RouteInfo(
+            id: 'R-106',
+            name: 'Ruta 106',
+            companyId: 'EMP-01',
+          ),
+        );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SearchPillBar(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // El dueño lo pidió así: la etiqueta encima, el nombre debajo, y sin el
+    // «Toca para cambiar», que ya sobraba en una píldora que todo el mundo
+    // sabe que se toca.
+    final etiqueta = tester.getRect(find.text('Ruta activa'));
+    final nombre = tester.getRect(find.text('Ruta 106'));
+    expect(etiqueta.center.dy, lessThan(nombre.center.dy));
+    expect(find.textContaining('Toca para cambiar'), findsNothing);
+    expect(find.bySemanticsLabel('Ruta activa: Ruta 106'), findsOneWidget);
+    handle.dispose();
+  });
 }

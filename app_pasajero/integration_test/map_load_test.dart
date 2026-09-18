@@ -97,7 +97,7 @@ void main() {
     await tester.tap(find.text('B18 Tcherassi'));
     await _waitUntil(
       tester,
-      () => find.text('Ruta activa • Toca para cambiar').evaluate().isNotEmpty,
+      () => find.text('Ruta activa').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
       message: 'la ruta no quedó activa',
     );

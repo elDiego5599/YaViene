@@ -129,9 +129,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   // elidir nombres de ruta largos sin desbordar.
                   child: Semantics(
                     button: true,
+                    // Ya se anuncia como botón: repetir «toca para cambiar»
+                    // en la etiqueta solo alargaba lo que dice el lector.
                     label: selectedRoute != null
-                        ? 'Ruta activa: ${selectedRoute.name}. Toca para '
-                            'cambiar'
+                        ? 'Ruta activa: ${selectedRoute.name}'
                         : '¿Qué bus esperas? Toca para buscar tu ruta',
                     excludeSemantics: true,
                     // Los dos botones de los lados se apagan al tocarlos y
@@ -162,60 +163,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                           switchOutCurve: const Interval(0.6, 1,
                               curve: AppMotion.curvaSalida),
                           transitionBuilder: _relevoDeTexto,
-                          child: Column(
-                          key: ValueKey(selectedRoute?.id),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (selectedRoute != null) ...[
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                ],
-                                Flexible(
-                                  child: Text(
-                                    selectedRoute?.name ?? "¿Qué bus esperas?",
-                                    style: AppTextStyles.subtitulo,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    selectedRoute != null
-                                        ? "Ruta activa • Toca para cambiar"
-                                        : "Toca para buscar tu ruta",
-                                    // F4: primaryAccessible sí llega a
-                                    // 4.5:1 sobre blanco a este tamaño;
-                                    // primary a secas se queda en ~3.1:1.
-                                    style: selectedRoute != null
-                                        ? AppTextStyles.pie.copyWith(
-                                            color:
-                                                AppColors.primaryAccessible,
-                                          )
-                                        : AppTextStyles.pie,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                          child: selectedRoute != null
+                              ? _rutaActiva(selectedRoute.name)
+                              : _sinRuta(),
                         ),
                       ),
                     ),
@@ -245,6 +195,80 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Con ruta: la etiqueta «Ruta activa» arriba, en pequeño y en verde, y
+  /// el nombre de la ruta debajo, que es lo que de verdad se lee. Antes iba
+  /// al revés y con «Toca para cambiar» pegado: el nombre quedaba arriba sin
+  /// contexto y la instrucción sobraba en una píldora que ya se sabe tocar.
+  /// La clave es la ruta: al cambiar de una a otra el texto se releva.
+  Widget _rutaActiva(String nombre) {
+    return Column(
+      key: ValueKey(nombre),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            // F4: primaryAccessible sí llega a 4.5:1 sobre blanco a este
+            // tamaño; primary a secas se queda en ~3.1:1.
+            // Flexible: con el texto al 300 % la etiqueta sola ya no cabe
+            // en la píldora y tiene que poder recortarse.
+            Flexible(
+              child: Text(
+                'Ruta activa',
+                style: AppTextStyles.pie.copyWith(
+                  color: AppColors.primaryAccessible,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 1),
+        Text(
+          nombre,
+          style: AppTextStyles.subtitulo,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _sinRuta() {
+    return Column(
+      key: const ValueKey('sin-ruta'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '¿Qué bus esperas?',
+          style: AppTextStyles.subtitulo,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Toca para buscar tu ruta',
+          style: AppTextStyles.pie,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
