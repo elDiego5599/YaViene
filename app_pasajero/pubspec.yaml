@@ -32,7 +32,7 @@ dependencies:
 
   # ── Networking & Real-time ────────────────────────────────────────────────────
   # NOTA: El pasajero SOLO consume via WebSocket (lectura). NO hay MQTT.
-  # Zero Trust: el broker MQTT solo acepta PUBLISH de conductores autenticados.
+  # Tiempo real: las posiciones de los buses llegan del backend por Socket.IO.
   socket_io_client: ^2.0.3+1
 
   # ── Local Storage ─────────────────────────────────────────────────────────────
