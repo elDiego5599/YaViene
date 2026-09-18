@@ -339,6 +339,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           Positioned.fill(
             child: MapGuideOverlay(
               target: _target!,
+              // En las listas el hueco no crece hacia arriba: la cabecera
+              // con la flecha de volver va pegada encima y quedaba medio
+              // iluminada, y tocarla sacaba de la lista en mitad de la
+              // guía. Por arriba no le hace falta aire: la lista ya lleva
+              // sus 16 de relleno antes de la primera fila.
+              targetInsets: _view == _RouteView.main
+                  ? null
+                  : const EdgeInsets.fromLTRB(10, 0, 10, 10),
               title: copy.title,
               message: copy.message,
               icon: copy.icon,

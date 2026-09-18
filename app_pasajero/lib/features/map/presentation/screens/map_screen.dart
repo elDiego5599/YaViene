@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,9 +47,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _metricUnitGuideKey = GlobalKey();
   final GlobalKey _detailGuideKey = GlobalKey();
   final GlobalKey _alertGuideKey = GlobalKey();
+  final GlobalKey _recenterGuideKey = GlobalKey();
 
   Rect? _guideTarget;
   MapGuideStep? _measuredGuideStep;
+  bool _busesEncuadrado = false;
   bool _alertBlocked = false;
 
   ProviderSubscription<UserLocationState>? _locationSub;
@@ -73,6 +77,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         if (previous?.step != next.step) {
           _guideTarget = null;
           _measuredGuideStep = null;
+          _busesEncuadrado = false;
+          ref.read(mapGuideFocusProvider.notifier).state = null;
           _scheduleGuideMeasurement(next.step);
         }
       },
@@ -162,11 +168,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // (AnimatedSwitcher): el objetivo se mueve durante unos frames, lo
           // seguimos mientras cambie y nos detenemos cuando se asienta.
           if (attempt < 40) _scheduleGuideMeasurement(step, attempt + 1);
+        } else if (step == MapGuideStep.buses) {
+          _encuadrarBuses(rect);
         }
         return;
       }
       if (attempt < 12) _scheduleGuideMeasurement(step, attempt + 1);
     });
+  }
+
+  /// Lleva el punto de espera al centro del área iluminada del paso de los
+  /// buses, una vez por paso y ya con el área quieta.
+  ///
+  /// Se hace aquí y no al pulsar «Ver buses en vivo»: en ese momento la
+  /// hoja todavía era la del selector, alta, y la cámara centraba el pin en
+  /// el poco mapa que ella dejaba ver; al bajar la hoja el pin se quedaba
+  /// arriba, bajo la tarjeta de la guía. Sin pin no se mueve nada: la
+  /// cámara ya enseña la ruta.
+  void _encuadrarBuses(Rect area) {
+    if (_busesEncuadrado) return;
+    _busesEncuadrado = true;
+    if (!ref.read(userLocationProvider).hasPosition) return;
+    ref.read(mapGuideFocusProvider.notifier).state = area;
+    ref.read(mapRecenterRequestProvider.notifier).recenter();
   }
 
   bool _isMapStep(MapGuideStep? step) => isMapGuideStep(step);
@@ -228,12 +252,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final bottom = mapRect.bottom - MapConstants.guideBottomInset;
     if (bottom - top < 220) return mapRect.deflate(12);
     final horizontalInset = (mapRect.width * 0.08).clamp(24.0, 32.0);
-    return Rect.fromLTRB(
-      mapRect.left + horizontalInset,
-      top,
-      mapRect.right - horizontalInset,
-      bottom,
-    );
+    var right = mapRect.right - horizontalInset;
+    var abajo = bottom;
+    // El botón de recentrar entra entero en el área: con el pin de espera
+    // puesto es lo primero que alguien quiere tocar al ver los buses, y
+    // quedaba partido por el borde del hueco —la mitad iluminada, la otra
+    // mitad tras el velo—. El hueco crece 10 por lado sobre esta caja, así
+    // que se descuentan aquí: por abajo termina justo donde empieza la hoja
+    // (el botón va 8 por encima de ella) y por la derecha deja 4 de aire.
+    final boton = ref.read(userLocationProvider).hasPosition
+        ? _rectFor(_recenterGuideKey)
+        : null;
+    if (boton != null) {
+      right = math.max(right, boton.right + 4 - 10);
+      abajo = math.max(abajo, boton.bottom + AppSpacing.sm - 10);
+    }
+    // Simétrica: la izquierda se aparta del borde lo mismo que la derecha.
+    final lado = mapRect.right - right;
+    return Rect.fromLTRB(mapRect.left + lado, top, right, abajo);
   }
 
   void _skipGuide() {
@@ -451,6 +487,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               metricKey: _metricGuideKey,
               metricUnitKey: _metricUnitGuideKey,
               detailKey: _detailGuideKey,
+              recenterKey: _recenterGuideKey,
               onGuideAlertBlocked: _onGuideAlertBlocked,
               enRespaldo: ref.watch(enRespaldoProvider),
             ),
@@ -460,6 +497,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               child: MapGuideOverlay(
                 target: _guideTarget ?? Rect.zero,
                 targetPadding: visibleStep == MapGuideStep.location ? 0 : 10,
+                cartaAbajo: visibleStep == MapGuideStep.buses,
                 centered: isCenteredStep,
                 title: copy.title,
                 message: copy.message,

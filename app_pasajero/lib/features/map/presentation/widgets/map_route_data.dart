@@ -63,6 +63,27 @@ extension _MapRouteData on _MapWidgetState {
   }
 
   void moveCameraToBounds(FitBounds caja, {required bool animated}) {
+    // Espera a que el mapa termine de aplicar el margen de la hoja: los
+    // rellenos de abajo se calculan contando con él.
+    _margenEnCurso.then((_) {
+      if (_mapController == null || !mounted) return;
+      _moverCamaraA(caja, animated: animated);
+    });
+  }
+
+  void _moverCamaraA(FitBounds caja, {required bool animated}) {
+    // Con la guía enseñando el mapa, el encuadre va al trozo que ella deja
+    // a la vista. La caja llega en coordenadas de pantalla y el mapa ocupa
+    // la pantalla entera, así que sus bordes son los rellenos tal cual.
+    final foco = ref.read(mapGuideFocusProvider);
+    final alto = context.size?.height;
+    final enFoco = foco != null && alto != null;
+    // En iOS el mapa suma su margen de contenido (el alto de la hoja) al
+    // relleno que se le pasa aquí; en Android el relleno lo sustituye. Sin
+    // restarlo, en iPhone la hoja contaba dos veces y el pin quedaba en la
+    // parte alta del trozo iluminado en vez de en su centro.
+    final yaDescontado =
+        defaultTargetPlatform == TargetPlatform.iOS ? _currentBottomInset : 0.0;
     final update = CameraUpdate.newLatLngBounds(
       LatLngBounds(
         southwest: LatLng(caja.minLat, caja.minLon),
@@ -72,9 +93,11 @@ extension _MapRouteData on _MapWidgetState {
       // barra de búsqueda y la hoja: centrado en la pantalla entera, el pin
       // se habría quedado debajo de la tarjeta.
       left: 40,
-      top: 148,
+      top: enFoco ? foco.top : 148,
       right: 40,
-      bottom: _currentBottomInset + 32,
+      bottom: enFoco
+          ? math.max(0.0, alto - foco.bottom - yaDescontado)
+          : _currentBottomInset + 32,
     );
 
     // Movimiento reducido: 800 ms de ciudad desplazándose es exactamente el

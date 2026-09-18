@@ -18,6 +18,8 @@ class MapGuideOverlay extends StatefulWidget {
     this.onPrimary,
     this.onBack,
     this.targetPadding = 10,
+    this.targetInsets,
+    this.cartaAbajo = false,
     this.centered = false,
   });
 
@@ -35,6 +37,19 @@ class MapGuideOverlay extends StatefulWidget {
   /// retrocede un paso de la guía.
   final VoidCallback? onBack;
   final double targetPadding;
+
+  /// Cuánto crece el hueco por cada lado, cuando no es lo mismo en los
+  /// cuatro; si está, manda sobre [targetPadding]. Las listas de empresa y
+  /// de ruta tienen la cabecera pegada encima: crecer 10 px hacia arriba
+  /// metía el hueco en ella y dejaba tocable la flecha de volver.
+  final EdgeInsets? targetInsets;
+
+  /// La carta va debajo del hueco aunque no quepa entera: entonces se apoya
+  /// abajo del todo y pisa un poco el borde del hueco. Es el paso de los
+  /// buses, cuyo hueco baja hasta la hoja para abarcar el botón de
+  /// recentrar; arriba la carta tapaba el mapa que se está enseñando y se
+  /// metía bajo la isla del teléfono.
+  final bool cartaAbajo;
 
   /// Modo de cierre: sin área iluminada ni barreras; la carta queda centrada
   /// y la única acción es el botón primario ("Finalizar guía").
@@ -121,9 +136,11 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final bounds = Offset.zero & size;
-        final rawHole = widget.target.inflate(widget.targetPadding);
+        final rawHole = widget.targetInsets?.inflateRect(widget.target) ??
+            widget.target.inflate(widget.targetPadding);
         final hole = rawHole.intersect(bounds);
         final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+        final topInset = MediaQuery.of(context).viewPadding.top;
         final card = _buildCard();
         _measureCard();
 
@@ -170,7 +187,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final cardHeight = _cardHeight ?? 220.0;
         final fitsBelow =
             hole.bottom + 22 + cardHeight <= size.height - bottomInset;
-        final placeAbove = hole.top > 245 || !fitsBelow;
+        final placeAbove = !widget.cartaAbajo && (hole.top > 245 || !fitsBelow);
 
         return Stack(
           fit: StackFit.expand,
@@ -215,9 +232,11 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
             Positioned(
               left: 20,
               right: 20,
-              top: placeAbove ? null : _belowTop(hole, size, bottomInset),
+              top: placeAbove
+                  ? null
+                  : _belowTop(hole, size, bottomInset, cardHeight),
               bottom: placeAbove
-                  ? _aboveBottom(hole, size, bottomInset, cardHeight)
+                  ? _aboveBottom(hole, size, bottomInset, topInset, cardHeight)
                   : null,
               child: ScaleTransition(
                 scale: _escalaEntrada(context),
@@ -245,21 +264,36 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     });
   }
 
-  double _belowTop(Rect hole, Size size, double bottomInset) {
+  double _belowTop(
+      Rect hole, Size size, double bottomInset, double cardHeight) {
     final proposed = hole.bottom + 22;
     // El límite superior solo evita que la carta quede bajo la barra de
-    // navegación; `fitsBelow` ya garantiza que no suba hasta el hueco.
-    final maxTop = mathMax(12.0, size.height - bottomInset - 180);
+    // navegación; `fitsBelow` ya garantiza que no suba hasta el hueco. Con
+    // [cartaAbajo] no hay esa garantía y el límite es la carta medida: sube
+    // lo justo para quedar entera sobre la barra, aunque pise el hueco.
+    // Con [cartaAbajo] se apoya más abajo que el resto de pasos: el margen
+    // de 12 sobre toda la zona segura la dejaba flotando a media altura y
+    // le quitaba mapa al trozo iluminado. Esa zona reserva unos 34 px para
+    // la barra de inicio, que se dibuja en los últimos ~13: descontando 16
+    // la carta sigue sin tocarla, y en teléfonos sin zona segura queda el
+    // margen de 12 de siempre.
+    final maxTop = widget.cartaAbajo
+        ? mathMax(
+            12.0, size.height - cardHeight - mathMax(12.0, bottomInset - 16))
+        : mathMax(12.0, size.height - bottomInset - 180);
     return proposed.clamp(12.0, maxTop);
   }
 
-  double _aboveBottom(
-      Rect hole, Size size, double bottomInset, double cardHeight) {
+  double _aboveBottom(Rect hole, Size size, double bottomInset, double topInset,
+      double cardHeight) {
     final proposed = size.height - hole.top + 22;
     final minBottom = bottomInset + 12;
     // La carta queda sobre el objetivo con 22 px de aire y nunca sube tanto
-    // que su borde superior se salga de la pantalla.
-    final maxBottom = mathMax(minBottom, size.height - cardHeight - 12);
+    // que su borde superior se meta bajo la barra de estado: allí la isla
+    // del teléfono le tapaba el título. Si no cabe, pisa el borde del hueco,
+    // que se sigue viendo, en vez de esconder lo que hay que leer.
+    final maxBottom = mathMax(
+        minBottom, size.height - cardHeight - mathMax(12, topInset + 8));
     return proposed.clamp(minBottom, maxBottom);
   }
 

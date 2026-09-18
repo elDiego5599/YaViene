@@ -26,6 +26,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
     this.metricKey,
     this.metricUnitKey,
     this.detailKey,
+    this.recenterKey,
     this.onGuideAlertBlocked,
     this.enRespaldo = false,
   });
@@ -36,6 +37,10 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   final GlobalKey? metricKey;
   final GlobalKey? metricUnitKey;
   final GlobalKey? detailKey;
+
+  /// Sobre el botón de recentrar: el paso de buses de la guía lo mide para
+  /// que su hueco lo abarque entero.
+  final GlobalKey? recenterKey;
   final ValueChanged<bool>? onGuideAlertBlocked;
 
   /// Si la app habla con el respaldo (T2.3): la hoja lo dice en una línea
@@ -369,12 +374,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               // habría que estarle calculando el hueco, y con la hoja sin
               // ruta —que no empuja el mapa pero sí tapa el tercio de
               // abajo— se quedaba debajo.
-              const Padding(
-                padding: EdgeInsets.only(
+              Padding(
+                padding: const EdgeInsets.only(
                   right: AppSpacing.md,
                   bottom: AppSpacing.sm,
                 ),
-                child: MapRecenterButton(),
+                child: MapRecenterButton(key: widget.recenterKey),
               ),
               _sheetBody(child: child, toggleable: toggleable),
             ],

@@ -384,6 +384,64 @@ void main() {
       expect(card.bottom, lessThanOrEqualTo(hole.top));
     });
 
+    // Un iPhone con isla y barra de inicio: 47 px arriba y 34 abajo.
+    Future<void> pumpEnIphone(WidgetTester tester, Rect target,
+        {bool cartaAbajo = false}) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(top: 47, bottom: 34);
+      tester.view.viewPadding = const FakeViewPadding(top: 47, bottom: 34);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                const ColoredBox(
+                  color: Color(0xFFF8FAFC),
+                  child: SizedBox.expand(),
+                ),
+                MapGuideOverlay(
+                  target: target,
+                  title: 'Mira los buses',
+                  message: 'Estos iconos representan los buses en vivo.',
+                  icon: Icons.directions_bus_rounded,
+                  stepIndex: 5,
+                  stepCount: 8,
+                  cartaAbajo: cartaAbajo,
+                  onSkip: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+    }
+
+    testWidgets('con cartaAbajo la tarjeta se apoya abajo aunque pise el hueco',
+        (tester) async {
+      // El trozo de mapa del paso de los buses: ocupa casi toda la
+      // pantalla y la tarjeta no cabe debajo sin pisarlo.
+      const target = Rect.fromLTWH(20, 210, 350, 420);
+      await pumpEnIphone(tester, target, cartaAbajo: true);
+
+      final card = tester.getRect(find.byKey(const ValueKey('guide_card')));
+      expect(card.center.dy, greaterThan(target.center.dy));
+      // Entera sobre la barra de inicio, que ocupa los últimos ~13 px.
+      expect(card.bottom, lessThanOrEqualTo(844 - 18));
+      expect(card.bottom, greaterThan(844 - 34 - 12));
+    });
+
+    testWidgets('arriba la tarjeta nunca se mete bajo la isla', (tester) async {
+      // Hueco bajo y alto: sin el límite la tarjeta subía hasta y = 0.
+      await pumpEnIphone(tester, const Rect.fromLTWH(20, 330, 350, 400));
+
+      final card = tester.getRect(find.byKey(const ValueKey('guide_card')));
+      expect(card.top, greaterThanOrEqualTo(47 + 8));
+    });
+
     testWidgets('Saltar guía y acción primaria son explícitos', (tester) async {
       var skipped = false;
       var primary = false;

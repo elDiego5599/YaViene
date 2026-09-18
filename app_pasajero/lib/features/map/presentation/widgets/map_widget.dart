@@ -51,6 +51,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
   double _currentBottomInset = 0;
+
+  /// El cambio de margen que el mapa está aplicando todavía. En iOS ese
+  /// margen se anima y un encuadre lanzado a la vez se calcula con el valor
+  /// a medias: el pin terminaba lejos del centro o la cámara en otra zona.
+  Future<void> _margenEnCurso = Future.value();
   bool _layersReady = false;
   bool _styleFailed = false;
   int _mapGeneration = 0;
@@ -835,11 +840,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _currentBottomInset = bottomInset;
     if (_mapController == null || !mounted || kIsWeb) return;
 
+    final margen = _mapController!.updateContentInsets(
+      EdgeInsets.only(bottom: bottomInset),
+      animated,
+    );
+    _margenEnCurso = margen.catchError((_) {});
     try {
-      await _mapController!.updateContentInsets(
-        EdgeInsets.only(bottom: bottomInset),
-        animated,
-      );
+      await margen;
     } catch (e, st) {
       debugPrint('updateContentInsets failed: $e\n$st');
     }

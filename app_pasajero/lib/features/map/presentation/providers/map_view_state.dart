@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import '../utils/map_constants.dart';
@@ -45,6 +47,13 @@ class MapRecenterRequestNotifier extends StateNotifier<int> {
 
   void recenter() => state++;
 }
+
+/// El trozo del mapa que la guía deja a la vista, cuando lo que hay que
+/// mirar es el mapa mismo (el paso de los buses). Mientras está puesto, la
+/// cámara encuadra el punto de espera en el centro de ese trozo y no en el
+/// hueco entre la barra y la hoja: la tarjeta de la guía va encima del área
+/// y el pin centrado a la manera de siempre quedaba debajo de ella.
+final mapGuideFocusProvider = StateProvider<Rect?>((ref) => null);
 
 final mapRecenterRequestProvider =
     StateNotifierProvider<MapRecenterRequestNotifier, int>(
