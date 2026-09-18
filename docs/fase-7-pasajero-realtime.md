@@ -19,8 +19,10 @@ despues de una perdida de red, y evitar que eventos de una ruta afecten otra.
 - `bus:left` conserva su payload completo en lugar de perder `routeId`.
 - `bus:left` de otra ruta se ignora.
 - El mapa combina el flag backend `isGhostBus` con el fallback temporal local.
-- `BusPosition.fromJson` acepta timestamp ISO o epoch INTEGER.
-- `BusPosition.fromJson` acepta `isGhost` y el nombre legacy `isGhostBus`.
+- `BusPosition.tryParse` exige timestamp ISO y descarta la posicion (null) si
+  falta identidad o coordenada, si la fecha no se entiende o no cuadra, o si
+  rumbo o velocidad no son finitos.
+- `BusPosition.tryParse` lee el nombre canonico `isGhost`.
 - `BusPosition.toJson` utiliza el nombre canonico `isGhost`.
 
 ## Flujo De Reconexion

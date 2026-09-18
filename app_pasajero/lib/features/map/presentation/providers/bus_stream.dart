@@ -7,8 +7,6 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../domain/repositories/realtime_repository.dart';
 
-import 'bus_parsing.dart';
-
 Stream<List<BusPosition>> buildRoutePositionsStream(
   RealtimeRepository service,
   Set<String> routeIds,
@@ -74,7 +72,7 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
         } catch (_) {
           continue;
         }
-        final pos = safeBusPosition(json);
+        final pos = BusPosition.tryParse(json);
         if (pos == null) continue;
         final previa = previas[pos.busId];
         positions[pos.busId] = reemplaza(pos, previa) ? pos : previa!;
@@ -84,7 +82,7 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
   });
 
   final liveSub = service.busPositionStream.listen((json) {
-    final pos = safeBusPosition(json);
+    final pos = BusPosition.tryParse(json);
     if (pos == null) return;
     if (!belongsTo(pos.routeId)) return;
     if (!reemplaza(pos, positions[pos.busId])) return;
@@ -141,7 +139,7 @@ Stream<List<BusPosition>> buildRoutePositionsStream(
       } catch (_) {
         return;
       }
-      final pos = safeBusPosition(json);
+      final pos = BusPosition.tryParse(json);
       // La posición tiene que ser la del bus que el evento dice y de una ruta
       // de este stream. Si no, quedaba guardada con la llave de otro bus, o
       // pintaba en esta ruta un bus que va por otra. Y no puede ser más

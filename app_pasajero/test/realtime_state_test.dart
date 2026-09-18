@@ -98,7 +98,7 @@ Map<String, dynamic> positionJson(
       'heading': 0,
       'speedKmh': 30,
       // Ahora: una posición en vivo con fecha de hace meses ya no se acepta
-      // (bus_parsing.dart), y aquí todas hacen de buses en vivo.
+      // (`BusPosition.tryParse`), y aquí todas hacen de buses en vivo.
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'isGhost': isGhost,
     };

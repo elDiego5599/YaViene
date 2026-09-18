@@ -38,25 +38,53 @@ class BusPosition extends Equatable {
     this.capturedAt,
   });
 
-  /// Lanza [FormatException] si al JSON le falta identidad o coordenada.
-  /// Antes rellenaba con ceros y un mensaje sin `lat` producía un bus en
-  /// (0, 0) —golfo de Guinea— que el mapa pintaba tan campante. Quien lea de
-  /// la red debe envolver esto: `safeBusPosition` en el pasajero ya lo hace.
-  factory BusPosition.fromJson(Map<String, dynamic> json) {
-    final rawTimestamp = json['timestamp'];
-    final parsedTimestamp = rawTimestamp is num
-        ? DateTime.fromMillisecondsSinceEpoch(rawTimestamp.toInt())
-        : DateTime.tryParse(rawTimestamp as String? ?? '') ?? DateTime.now();
-
-    final busId = (json['busId'] as String?)?.trim();
-    final routeId = (json['routeId'] as String?)?.trim();
-    if (busId == null || busId.isEmpty || routeId == null || routeId.isEmpty) {
-      throw const FormatException('posición sin busId/routeId');
+  /// Lee una posición que llega por la red, o null si no se puede creer.
+  ///
+  /// Es la única puerta de entrada: un evento malformado no tumba a quien
+  /// escucha el socket, y lo que no pasa aquí no llega al mapa. Rechaza:
+  ///
+  /// - identidad o coordenada ausentes, o fuera de rango: rellenar con ceros
+  ///   ponía el bus en (0, 0), en el golfo de Guinea;
+  /// - rumbo o velocidad no finitos, que giran el icono a ninguna parte;
+  /// - una fecha que falta o no se entiende: volverla «ahora» hacía pasar
+  ///   por recién reportado un bus con horas de silencio;
+  /// - una fecha del futuro más allá de la holgura del reloj;
+  /// - una posición en vivo más vieja de lo que el servidor da por viva. Las
+  ///   de un bus sin señal no tienen tope: su fecha vieja es justo lo que se
+  ///   enseña («Sin señal · hace 2 h»).
+  static BusPosition? tryParse(Map<String, dynamic> json) {
+    try {
+      return _leer(json);
+    } on FormatException {
+      return null;
+    } on TypeError {
+      // Un campo con el tipo equivocado (`lat` como texto, `busId` como
+      // número) lanza al hacer el `as`: tampoco es una posición.
+      return null;
     }
+  }
+
+  /// El `timestamp` lo pone el servidor al recibir la posición, y el reloj
+  /// del teléfono no es el suyo: puede ir unos minutos corrido si alguien lo
+  /// puso a mano. Diez minutos de holgura cubren eso sin dejar pasar una
+  /// fecha que no tiene sentido.
+  static const Duration _holguraDeReloj = Duration(minutes: 10);
+
+  /// Lo más vieja que puede llegar una posición que el servidor todavía da
+  /// por viva: a los 5 min sin publicar el bus pasa a «sin señal»
+  /// (`GHOST_MS` en el backend) y el barrido que lo marca corre cada 10 s.
+  static const Duration _vidaEnVivo = Duration(minutes: 5, seconds: 10);
+
+  static BusPosition _leer(Map<String, dynamic> json) {
     final lat = (json['lat'] as num?)?.toDouble();
     final lon = (json['lon'] as num?)?.toDouble();
     if (lat == null || lon == null) {
       throw const FormatException('posición sin lat/lon');
+    }
+    final busId = (json['busId'] as String?)?.trim();
+    final routeId = (json['routeId'] as String?)?.trim();
+    if (busId == null || busId.isEmpty || routeId == null || routeId.isEmpty) {
+      throw const FormatException('posición sin busId/routeId');
     }
     if (!lat.isFinite ||
         !lon.isFinite ||
@@ -66,18 +94,37 @@ class BusPosition extends Equatable {
         lon > 180) {
       throw const FormatException('posición fuera de rango');
     }
-
+    final heading = (json['heading'] as num?)?.toDouble();
+    final speedKmh = (json['speedKmh'] as num?)?.toDouble() ?? 0.0;
+    if ((heading != null && !heading.isFinite) || !speedKmh.isFinite) {
+      throw const FormatException('rumbo o velocidad no finitos');
+    }
+    final timestamp = DateTime.tryParse(json['timestamp'] as String? ?? '');
+    if (timestamp == null) {
+      throw const FormatException('posición sin fecha válida');
+    }
+    final isGhost = json['isGhost'] as bool? ?? false;
+    final ahora = DateTime.now();
+    if (timestamp.difference(ahora) > _holguraDeReloj) {
+      throw const FormatException('posición con fecha del futuro');
+    }
+    if (!isGhost &&
+        ahora.difference(timestamp) > _vidaEnVivo + _holguraDeReloj) {
+      throw const FormatException('posición en vivo demasiado vieja');
+    }
     return BusPosition(
       busId: busId,
       routeId: routeId,
       lat: lat,
       lon: lon,
-      heading: (json['heading'] as num?)?.toDouble(),
-      speedKmh: (json['speedKmh'] as num?)?.toDouble() ?? 0.0,
+      // Sin rumbo queda null: rellenarlo con 0 giraba el bus hacia el norte.
+      heading: heading,
+      speedKmh: speedKmh,
       sentido: json['sentido'] as String?,
-      timestamp: parsedTimestamp,
-      isGhostBus:
-          (json['isGhostBus'] as bool?) ?? (json['isGhost'] as bool?) ?? false,
+      timestamp: timestamp,
+      isGhostBus: isGhost,
+      // La captura del equipo es lo que ordena las posiciones de un bus
+      // ([esMasNueva]); sin leerla la última en llegar ganaba.
       sequence: (json['sequence'] as num?)?.toInt(),
       capturedAt: (json['capturedAt'] as num?)?.toInt(),
     );
