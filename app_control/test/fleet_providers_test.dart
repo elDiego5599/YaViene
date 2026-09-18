@@ -24,9 +24,22 @@ class _FakeFleetApi extends FleetApi {
   /// Cuántas veces se pidió la flota por REST.
   int pedidas = 0;
 
+  Completer<void>? _aviso;
+  int _meta = 0;
+
+  /// Se completa en cuanto la flota se haya pedido [cuantas] veces en total.
+  /// Esperar por reloj hacía la prueba dependiente de la máquina: con la
+  /// suite entera corriendo, el temporizador de 20 ms no cabía en 70 ms.
+  Future<void> alLlegarA(int cuantas) {
+    if (pedidas >= cuantas) return Future<void>.value();
+    _meta = cuantas;
+    return (_aviso = Completer<void>()).future;
+  }
+
   @override
   Future<List<FleetBus>> fetchPositions(String token) async {
     pedidas++;
+    if (pedidas >= _meta && !(_aviso?.isCompleted ?? true)) _aviso!.complete();
     if (throwsSessionExpired) throw const SessionExpiredException();
     return positions ?? const [];
   }
@@ -233,7 +246,7 @@ void main() {
       await _vaciar();
       final alArrancar = api.pedidas;
 
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+      await api.alLlegarA(alArrancar + 3).timeout(const Duration(seconds: 5));
 
       expect(api.pedidas, greaterThan(alArrancar + 1),
           reason: 'el panel tiene que resincronizarse solo, sin tocar «Recargar»');
@@ -249,11 +262,13 @@ void main() {
           socket: socket, resincronizarCada: const Duration(milliseconds: 20));
       final notifier = container.read(fleetProvider.notifier)..start();
       await _vaciar();
+      final alArrancar = api.pedidas;
       notifier.state = notifier.state.copyWith(buses: {
         'B-1': const FleetBus(busId: 'B-1', companyId: 'c-1', visible: true, online: true),
       });
 
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+      await api.alLlegarA(alArrancar + 1).timeout(const Duration(seconds: 5));
+      await _vaciar();
 
       expect(notifier.state.buses['B-1']!.visible, false);
     });
@@ -283,7 +298,9 @@ void main() {
       notifier.stop();
       final alParar = api.pedidas;
 
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+      // Aquí sí se espera por reloj: lo que se afirma es que no pasa nada, y
+      // son diez vueltas del temporizador de resincronización.
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(api.pedidas, alParar,
           reason: 'con la sesión cerrada no se piden datos con un token muerto');
@@ -299,7 +316,8 @@ void main() {
       expect(notifier.state.sessionExpired, true);
       final alExpirar = api.pedidas;
 
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+      // Diez vueltas del temporizador: si alguna insistiera, se vería.
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       expect(api.pedidas, alExpirar);
     });

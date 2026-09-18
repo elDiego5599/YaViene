@@ -93,4 +93,43 @@ void main() {
     expect(fabrica.sockets('fleet:batch'), isEmpty);
     expect(fabrica.gestores('reconnect_attempt'), isEmpty);
   });
+
+  // La sala de flota vive en el socket, no en el token: un socket que
+  // reconecta entra de nuevo sin sala y deja de recibir `fleet:batch`,
+  // `bus:position` y todo lo demás. Si el panel no vuelve a pedir la sala en
+  // cada conexión —no solo en la primera— el operador se queda mirando una
+  // lista congelada con el indicador en verde, que es peor que verlo en rojo.
+  test('el panel vuelve a pedir la sala de flota en cada reconexión', () async {
+    final fabrica = _Fabrica();
+    final servicio = FleetSocketService(
+      baseUrl: 'http://127.0.0.1:59202',
+      token: 'tok',
+      crearSocket: fabrica.crear,
+    )..connect();
+    final socket = fabrica.creados.single;
+    final conexion = <bool>[];
+    final escucha = servicio.connectionStream.listen(conexion.add);
+
+    // Sin transporte, lo que el panel emite se queda en la cola de salida del
+    // socket: ahí se ve qué pidió y cuántas veces.
+    for (var vuelta = 1; vuelta <= 100; vuelta++) {
+      socket.emitReserved('connect', null);
+      socket.emitReserved('disconnect', 'transport close');
+    }
+    await pumpEventQueue();
+
+    expect(_suscripciones(socket), 100, reason: 'una por conexión, ni una menos');
+    // Y ni el socket ni sus oyentes se multiplican por el camino.
+    expect(fabrica.creados, hasLength(1));
+    expect(conexion.where((c) => c).length, 100);
+    expect(conexion.where((c) => !c).length, 100);
+
+    await escucha.cancel();
+    servicio.dispose();
+  });
 }
+
+/// Cuántas veces pidió el socket la sala de flota, leyendo su cola de salida.
+int _suscripciones(io.Socket socket) => socket.sendBuffer
+    .where((p) => p is Map && p['data'] is List && (p['data'] as List).first == 'subscribe:fleet')
+    .length;
