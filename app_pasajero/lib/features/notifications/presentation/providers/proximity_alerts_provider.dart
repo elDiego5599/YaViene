@@ -31,12 +31,20 @@ typedef BusNearNotifier = Future<bool> Function({
 /// del usuario (GPS o pin). Cada bus notifica por separado y solo una vez por
 /// acercamiento.
 class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
-  ProximityAlertsNotifier(this._ref, {BusNearNotifier? notify})
-      : _notify = notify ?? _defaultNotify,
+  ProximityAlertsNotifier(
+    this._ref, {
+    BusNearNotifier? notify,
+    DateTime Function()? ahora,
+  })  : _notify = notify ?? _defaultNotify,
+        _ahora = ahora ?? DateTime.now,
         super({});
 
   final Ref _ref;
   final BusNearNotifier _notify;
+
+  /// Reloj con el que se decide si un aviso venció (inyectable en tests:
+  /// esperar tres horas de verdad no es una prueba).
+  final DateTime Function() _ahora;
   Timer? _timer;
 
   /// Ruta a la que pertenece cada bus con aviso armado. Necesaria para que el
@@ -217,6 +225,21 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     super.dispose();
   }
 
+  /// Retira los avisos que pasaron su [vidaDeUnAviso] sin sonar: el caso
+  /// típico es un bus que se fue al patio, donde lo ocultan, y no volvió.
+  /// Se van igual que uno desactivado a mano: fuera de los activos, sin
+  /// suscripción y fuera del historial.
+  void _vencer(Set<String> alerts) {
+    final ahora = _ahora();
+    for (final e in _ref.read(alertHistoryProvider)) {
+      if (!alerts.contains(e.busId) || !avisoVencido(e, ahora)) continue;
+      _ref.read(activeAlertsProvider.notifier).deactivateAlert(e.busId);
+      disarmAlert(e.busId);
+      _ref.read(alertHistoryProvider.notifier).remove(e.busId);
+      if (state.contains(e.busId)) state = {...state}..remove(e.busId);
+    }
+  }
+
   /// Hay un barrido en curso. `Timer.periodic` dispara cada 5 s sin esperar
   /// a que el anterior termine, y el barrido espera a que cada notificación
   /// se muestre: el primer aviso en iOS se queda esperando a que la persona
@@ -243,6 +266,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       if (state.isNotEmpty) state = {};
       return;
     }
+    _vencer(alerts);
     final location = _ref.read(userLocationProvider);
     // Referencia por defecto: la ubicación actual (GPS o pin). Un aviso armado
     // con pin manual usa SU snapshot (_alertRefs) aunque la ubicación actual
@@ -253,7 +277,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
     final rearm = <String>{};
     final fire = <String, int>{};
-    for (final busId in alerts) {
+    for (final busId in _ref.read(activeAlertsProvider)) {
       // Preferir la ruta registrada o la del historial. El último fallback
       // conserva compatibilidad con un aviso efímero armado por un consumidor
       // antiguo que solo marcó activeAlerts; durante logout está bloqueado por

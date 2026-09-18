@@ -260,22 +260,36 @@ void main() {
       expect(historial.every((e) => e.sentAt != null), isTrue);
     });
 
-    test('un aviso activo nunca se purga, aunque sea viejo', () async {
-      final viejoActivo = entrada('A-9', diasAtras: 120)..['sentAt'] = null;
+    // Recién armado: esperando.
+    Map<String, dynamic> activo(String busId,
+            {Duration hace = Duration.zero}) =>
+        entrada(busId, diasAtras: 0)
+          ..['createdAt'] = DateTime.now().subtract(hace).toIso8601String()
+          ..['sentAt'] = null;
+
+    test('un aviso activo no cede su lugar al tope de 50', () async {
       final historial = await cargar([
-        viejoActivo,
+        activo('A-9'),
         for (var i = 0; i < 70; i++) entrada('B-$i', diasAtras: 1),
       ]);
       expect(historial.length, 50);
       expect(historial.map((e) => e.busId), contains('A-9'));
     });
 
+    // El bus se fue al patio y no volvió: el aviso vence y no se re-arma.
+    test('un aviso activo que pasó su vida sin sonar se cae', () async {
+      final historial = await cargar([
+        activo('A-1', hace: vidaDeUnAviso - const Duration(minutes: 5)),
+        activo('A-2', hace: vidaDeUnAviso + const Duration(minutes: 5)),
+      ]);
+      expect(historial.map((e) => e.busId), ['A-1']);
+    });
+
     // Antes una sola entrada rota vaciaba el historial entero, y con él los
     // avisos activos que no habían sonado.
     test('una entrada rota se cae sola y el disco queda saneado', () async {
-      final activo = entrada('A-1', diasAtras: 1)..['sentAt'] = null;
       final historial = await cargar([
-        activo,
+        activo('A-1'),
         entrada('A-2', diasAtras: 2)..['createdAt'] = 'ayer por la tarde',
         entrada('A-3', diasAtras: 2)..['busId'] = 42,
         entrada('A-4', diasAtras: 2)..['busId'] = '  ',

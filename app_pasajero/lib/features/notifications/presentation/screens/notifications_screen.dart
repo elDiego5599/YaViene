@@ -437,7 +437,12 @@ class _AlertTile extends StatelessWidget {
         ? 'Notificación enviada · ${_formatTime(entry.sentAt!)}'
         : distanceMeters != null
             ? 'Está a $distanceMeters m de tu ubicación · esperando aviso'
-            : 'Esperando señal del bus';
+            // Sin posición del bus puede ser que se fue al patio, donde lo
+            // ocultan y nadie sabe cuándo vuelve. El aviso no espera para
+            // siempre (vence a las `vidaDeUnAviso` de armado): se dice hasta
+            // cuándo, para que nadie cuente con él pasada esa hora.
+            : 'Esperando señal del bus · el aviso sigue hasta las '
+                '${_hora(entry.createdAt.add(vidaDeUnAviso))}';
 
     // La fila entera, dicha de un tirón: el punto medio del separador se
     // pronuncia, y el guion de la placa no dice qué es cada mitad.
@@ -635,7 +640,11 @@ String _formatTime(DateTime d) {
     'nov',
     'dic',
   ];
+  return '${d.day} ${months[d.month - 1]} · ${_hora(d)}';
+}
+
+String _hora(DateTime d) {
   final h = d.hour.toString().padLeft(2, '0');
   final m = d.minute.toString().padLeft(2, '0');
-  return '${d.day} ${months[d.month - 1]} · $h:$m';
+  return '$h:$m';
 }

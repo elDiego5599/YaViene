@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -494,5 +495,79 @@ void main() {
     final alerts = container.read(proximityAlertsProvider.notifier);
     expect(alerts.anchorFor('A-1'), (6.2442, -75.5812));
     expect(alerts.anchorFor('A-2'), (6.35, -75.55));
+  });
+
+  // Un bus que se va a descansar al patio se oculta del mapa y nadie sabe
+  // cuándo vuelve. El aviso no se perdía: se quedaba armado sin fecha y
+  // podía sonar al día siguiente, cuando la persona ya no está esperando.
+  group('un aviso que no llega a sonar vence', () {
+    ProviderContainer conReloj(DateTime Function() ahora) {
+      final c = ProviderContainer(overrides: [
+        userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+        // El bus no está en la calle: oculto en el patio.
+        busPositionsSourceProvider.overrideWith(
+          (ref, routeId) => Stream.value(const <BusPosition>[]),
+        ),
+        proximityAlertsProvider.overrideWith((ref) {
+          return ProximityAlertsNotifier(
+            ref,
+            ahora: ahora,
+            notify: (
+                {required String busId,
+                String? routeName,
+                String? routeId,
+                required int distanceMeters}) async {
+              fired.add((busId: busId, distanceMeters: distanceMeters));
+              return true;
+            },
+          );
+        }),
+      ]);
+      addTearDown(c.dispose);
+      (c.read(userLocationProvider.notifier) as _TestUserLocation)
+          .set(userHere);
+      return c;
+    }
+
+    test('pasada su vida, sale de los activos y del historial', () async {
+      var ahora = DateTime.now();
+      final c = conReloj(() => ahora);
+      c.read(selectedRouteProvider.notifier).select(route());
+      c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+      c.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+
+      ahora = ahora.add(vidaDeUnAviso - const Duration(minutes: 1));
+      await c.read(proximityAlertsProvider.notifier).check();
+      expect(c.read(activeAlertsProvider), {'A-1'},
+          reason: 'antes de vencer el aviso sigue esperando');
+
+      ahora = ahora.add(const Duration(minutes: 2));
+      await c.read(proximityAlertsProvider.notifier).check();
+      expect(c.read(activeAlertsProvider), isEmpty);
+      expect(c.read(alertHistoryProvider), isEmpty);
+      expect(fired, isEmpty);
+    });
+
+    test('al reabrir la app no se re-arma uno vencido', () async {
+      final viejo =
+          DateTime.now().subtract(vidaDeUnAviso + const Duration(minutes: 5));
+      SharedPreferences.setMockInitialValues({
+        'alert_history': jsonEncode([
+          {
+            'busId': 'A-1',
+            'routeId': 'R1',
+            'routeName': 'Ruta 1',
+            'createdAt': viejo.toIso8601String(),
+            'sentAt': null,
+          },
+        ]),
+      });
+      final c = conReloj(DateTime.now);
+
+      await c.read(proximityAlertsProvider.notifier).restore();
+
+      expect(c.read(activeAlertsProvider), isEmpty);
+      expect(c.read(alertHistoryProvider), isEmpty);
+    });
   });
 }

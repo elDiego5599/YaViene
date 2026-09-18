@@ -117,6 +117,26 @@ void main() {
     expect(container.read(alertHistoryProvider), isEmpty);
   });
 
+  // El bus se fue al patio, donde lo ocultan: la fila no puede quedarse
+  // diciendo solo «esperando señal», como si fuera a volver en cualquier
+  // momento. Dice hasta qué hora sigue en pie el aviso.
+  testWidgets('sin señal del bus, dice hasta qué hora espera el aviso',
+      (tester) async {
+    final container = await pumpScreen(tester, const []);
+    arm(container, 'A-1');
+    await tester.pump();
+
+    final vence = container.read(alertHistoryProvider).single.createdAt.add(
+          vidaDeUnAviso,
+        );
+    final hora = '${vence.hour.toString().padLeft(2, '0')}:'
+        '${vence.minute.toString().padLeft(2, '0')}';
+    expect(
+      find.text('Esperando señal del bus · el aviso sigue hasta las $hora'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('un aviso enviado se muestra como historial con su fecha',
       (tester) async {
     final container = await pumpScreen(tester, [bus('A-1')]);

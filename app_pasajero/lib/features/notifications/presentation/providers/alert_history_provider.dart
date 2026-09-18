@@ -156,14 +156,33 @@ Future<String?> _migrarPorCuenta(SharedPreferences prefs) async {
 /// armado un aviso alguna vez, guardadas enteras en SharedPreferences y
 /// releídas en cada arranque. Con una flota real eso son cientos de entradas
 /// que nadie va a mirar. Se conservan las 50 más recientes de los últimos 30
-/// días; los avisos todavía activos nunca se purgan, porque este archivo es
-/// además su única persistencia y borrarlos los desarmaría en silencio.
+/// días; los avisos todavía activos no se purgan mientras no venzan, porque
+/// este archivo es además su única persistencia y borrarlos los desarmaría.
 const int _maxEntradas = 50;
 const Duration _vidaDelHistorial = Duration(days: 30);
 
+/// Cuánto espera un aviso a que su bus llegue antes de darse por vencido.
+///
+/// Un bus que termina la jornada se va al patio, allí lo ocultan del mapa y
+/// nadie sabe cuándo vuelve a salir. Sin fecha, su aviso se quedaba armado y
+/// podía sonar a la mañana siguiente, cuando la persona ya no espera nada:
+/// un aviso es para esta espera, no para la de mañana. Tres horas cubren con
+/// margen una vuelta completa de cualquier ruta del piloto (hora y media a
+/// dos horas y media en hora pico); si el bus no volvió en ese tiempo, es que
+/// no está dando vueltas. El aviso vencido se borra como uno desactivado a
+/// mano, que es lo que la persona habría hecho de haberse acordado.
+const Duration vidaDeUnAviso = Duration(hours: 3);
+
+/// El aviso sigue sin sonar y ya pasó su [vidaDeUnAviso].
+bool avisoVencido(AlertHistoryEntry e, DateTime ahora) =>
+    !e.sent && ahora.difference(e.createdAt) > vidaDeUnAviso;
+
 List<AlertHistoryEntry> _purgar(List<AlertHistoryEntry> entradas) {
-  final limite = DateTime.now().subtract(_vidaDelHistorial);
-  final activas = entradas.where((e) => !e.sent).toList();
+  final ahora = DateTime.now();
+  final limite = ahora.subtract(_vidaDelHistorial);
+  // Un activo vencido tampoco se guarda: al reabrir la app no se re-arma.
+  final activas =
+      entradas.where((e) => !e.sent && !avisoVencido(e, ahora)).toList();
   final enviadas = entradas
       .where((e) => e.sent && e.sentAt!.isAfter(limite))
       .toList()
