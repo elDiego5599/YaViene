@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/app_drawer.dart';
 
 void main() {
@@ -167,5 +168,28 @@ void main() {
     final routeText = tester.widget<Text>(find.text(longName));
     expect(routeText.maxLines, 1);
     expect(routeText.overflow, TextOverflow.ellipsis);
+  });
+
+  testWidgets('el menú lleva a los documentos y a la versión instalada',
+      (tester) async {
+    await pumpDrawer(tester);
+    await openDrawer(tester);
+
+    // Sin cuenta, el menú es el único sitio estable donde volver a leer lo
+    // que se aceptó en la bienvenida.
+    expect(find.text('Privacidad'), findsOneWidget);
+    expect(find.text('Términos'), findsOneWidget);
+    expect(find.text('Acerca de'), findsOneWidget);
+  });
+
+  testWidgets('"Acerca de" dice qué versión está instalada', (tester) async {
+    await pumpDrawer(tester);
+    await openDrawer(tester);
+
+    await tester.tap(find.text('Acerca de'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.textContaining(kAppVersion), findsWidgets);
   });
 }

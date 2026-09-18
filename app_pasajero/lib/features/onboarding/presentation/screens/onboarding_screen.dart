@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../../core/widgets/live_route_backdrop.dart';
+import '../../../legal/legal_acceptance.dart';
+import '../../../legal/legal_docs.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../onboarding_flow.dart';
 
@@ -19,22 +22,40 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _requesting = false;
 
+  /// Si el usuario ya dijo que sí a la privacidad y a los términos.
+  ///
+  /// Empieza en falso siempre, también para quien ya aceptó una versión
+  /// anterior: si la app lo trajo hasta aquí es porque falta su sí, y una
+  /// casilla que sale marcada sola no es un sí de nadie.
+  bool _accepted = false;
+
   Future<void> _allowLocation() async {
     setState(() => _requesting = true);
     // useGps pide el permiso sí o sí: el usuario tocó "Permitir ubicación".
     await ref.read(userLocationProvider.notifier).useGps();
     if (!mounted) return;
     setState(() => _requesting = false);
-    await markOnboardingSeen();
+    await _guardarPaso();
     if (!mounted) return;
     unawaited(goToHome(context));
   }
 
   Future<void> _skip() async {
-    await markOnboardingSeen();
+    await _guardarPaso();
     if (!mounted) return;
     unawaited(goToHome(context));
   }
+
+  /// La aceptación se guarda ANTES de la marca de "bienvenida vista": si el
+  /// teléfono se apaga entre las dos, lo que queda escrito es un sí sin
+  /// pantalla vista —vuelve a salir la bienvenida— y no una pantalla vista
+  /// sin sí, que dejaría pasar al mapa sin haber aceptado nada.
+  Future<void> _guardarPaso() async {
+    await acceptLegal();
+    await markOnboardingSeen();
+  }
+
+  void _abrir(LegalDoc doc) => context.push('/legal/${doc.id}');
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +92,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               // px de nada debajo de "Ahora no" —el bloque
                               // vacío más grande de la pantalla— y dejaban
                               // el contenido apelmazado arriba.
-                              padding: const EdgeInsets.fromLTRB(28, 30, 28, 0),
+                              padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
                               // Misma superficie que las hojas del mapa:
                               // arena. La bienvenida va justo antes del mapa
                               // y el salto de blanco a arena se veía.
@@ -127,7 +148,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
-                                    const SizedBox(height: 28),
+                                    const SizedBox(height: 22),
                                     // Los tres beneficios se revelan uno detrás
                                     // de otro, y solo con fundido: la hoja ya
                                     // sube entera, y dos movimientos encajados
@@ -143,7 +164,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.34,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 22),
+                                    const SizedBox(height: 12),
                                     entra(
                                       const _BenefitRow(
                                         // El recorrido, no el cronómetro: lo
@@ -159,7 +180,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.42,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 22),
+                                    const SizedBox(height: 12),
                                     entra(
                                       const _BenefitRow(
                                         icon:
@@ -171,7 +192,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.5,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 30),
+                                    const SizedBox(height: 18),
+                                    entra(
+                                      _AceptaLegales(
+                                        aceptado: _accepted,
+                                        onCambia: (valor) =>
+                                            setState(() => _accepted = valor),
+                                        onAbrir: _abrir,
+                                      ),
+                                      start: 0.58,
+                                      begin: Offset.zero,
+                                    ),
+                                    const SizedBox(height: 14),
                                     SizedBox(
                                       width: double.infinity,
                                       height: 56,
@@ -185,8 +217,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                                 AppRadius.pill),
                                           ),
                                         ),
-                                        onPressed:
-                                            _requesting ? null : _allowLocation,
+                                        // Los dos botones salen apagados
+                                        // hasta que la casilla se marque:
+                                        // el sí es un toque del usuario, no
+                                        // una letra chica que dice "al
+                                        // continuar aceptas".
+                                        onPressed: _requesting || !_accepted
+                                            ? null
+                                            : _allowLocation,
                                         child: _requesting
                                             ? const IndicadorCarga(
                                                 color: Colors.white,
@@ -206,7 +244,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     SizedBox(
                                       width: double.infinity,
                                       child: TextButton(
-                                        onPressed: _skip,
+                                        onPressed: _accepted ? _skip : null,
                                         child: Text(
                                           'Ahora no',
                                           style: AppTextStyles.etiqueta,
@@ -287,6 +325,127 @@ class _BenefitRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// La casilla del sí, con los dos documentos a un toque.
+///
+/// La casilla y su frase van juntas para quien no ve la pantalla: leída
+/// suelta, «casilla sin marcar» no dice qué se acepta. Los dos documentos
+/// se anuncian aparte, cada uno como botón con su nombre, porque hay que
+/// poder leerlos ANTES de aceptar y esta pantalla es la única puerta: el
+/// menú donde también están queda al otro lado.
+class _AceptaLegales extends StatelessWidget {
+  final bool aceptado;
+  final ValueChanged<bool> onCambia;
+  final void Function(LegalDoc doc) onAbrir;
+
+  const _AceptaLegales({
+    required this.aceptado,
+    required this.onCambia,
+    required this.onAbrir,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final letra = AppTextStyles.pie.copyWith(color: AppColors.textSecondary);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          checked: aceptado,
+          label: 'He leído y acepto la privacidad y los términos de uso',
+          onTap: () => onCambia(!aceptado),
+          excludeSemantics: true,
+          child: GestureDetector(
+            onTap: () => onCambia(!aceptado),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              // El blanco alrededor de la casilla es lo que le da tamaño de
+              // dedo sin ocupar una fila entera: 24 de casilla dentro de 44.
+              padding: const EdgeInsets.only(right: 10, bottom: 10),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  key: const ValueKey('legal_accept'),
+                  value: aceptado,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  activeColor: AppColors.primary,
+                  side: BorderSide(
+                    color: AppColors.textSecondary.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
+                  onChanged: (valor) => onCambia(valor ?? false),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          // La frase se escribe en trozos y no como un párrafo con enlaces
+          // dentro: un `TextSpan` tocable no se anuncia como botón y no
+          // tiene blanco propio donde caiga el dedo.
+          child: Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('He leído y acepto la', style: letra),
+              _Enlace(
+                key: const ValueKey('legal_link_privacidad'),
+                texto: 'privacidad',
+                onTap: () => onAbrir(legalPrivacidad),
+              ),
+              Text('y los', style: letra),
+              _Enlace(
+                key: const ValueKey('legal_link_terminos'),
+                texto: 'términos de uso',
+                onTap: () => onAbrir(legalTerminos),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Un documento, a un toque. Verde y subrayado: en una hoja de puro texto
+/// gris, el color solo no basta para decir que algo se toca.
+class _Enlace extends StatelessWidget {
+  final String texto;
+  final VoidCallback onTap;
+
+  const _Enlace({super.key, required this.texto, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: texto,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          // Poco blanco vertical: el enlace va dentro de la frase y un
+          // relleno mayor separaría las líneas del párrafo.
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Text(
+            texto,
+            style: AppTextStyles.pie.copyWith(
+              color: AppColors.primaryAccessible,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.primaryAccessible,
+            ),
+          ),
+        ),
       ),
     );
   }

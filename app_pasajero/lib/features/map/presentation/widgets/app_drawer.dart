@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/app_info.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/live_route_backdrop.dart';
+import '../../../legal/legal_docs.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/tracking_providers.dart';
@@ -137,6 +140,40 @@ class AppDrawerState extends ConsumerState<AppDrawer>
           end: Offset.zero,
         ).animate(animation),
         child: child,
+      ),
+    );
+  }
+
+  /// Qué versión está instalada, dicho en una ventana propia y no con
+  /// `showAboutDialog`: esa trae sus botones en inglés mientras la app no
+  /// cargue las traducciones de Material, y abre una lista de licencias
+  /// entera —también en inglés— desde el menú de un pasajero.
+  Future<void> _acercaDe(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Ya Viene'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Versión $kAppVersion', style: AppTextStyles.cuerpoFuerte),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Piloto en Barranquilla. Las posiciones salen del GPS que va '
+              'instalado en cada bus.',
+              style: AppTextStyles.cuerpo.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }
@@ -334,6 +371,33 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                       ),
                     ]),
                     0.16,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  // Segundo grupo, y no tres filas más en el primero: lo de
+                  // arriba es lo que el pasajero usa (sus avisos, la guía);
+                  // esto es lo que consulta de vez en cuando. Sin cuenta,
+                  // este menú es el único sitio estable donde volver a leer
+                  // lo que se aceptó en la bienvenida.
+                  _staggered(
+                    _grupo([
+                      DrawerItem(
+                        icon: Icons.lock_outline_rounded,
+                        title: 'Privacidad',
+                        onTap: () =>
+                            context.push(legalPath(legalPrivacidad.id)),
+                      ),
+                      DrawerItem(
+                        icon: Icons.description_outlined,
+                        title: 'Términos',
+                        onTap: () => context.push(legalPath(legalTerminos.id)),
+                      ),
+                      DrawerItem(
+                        icon: Icons.info_outline_rounded,
+                        title: 'Acerca de',
+                        onTap: () => _acercaDe(context),
+                      ),
+                    ]),
+                    0.20,
                   ),
                   const SizedBox(height: 26),
                   // Los créditos del mapa viven aquí desde que la "i" azul de

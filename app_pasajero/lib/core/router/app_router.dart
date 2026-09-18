@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/legal/legal_docs.dart';
+import '../../features/legal/presentation/screens/legal_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -16,7 +18,14 @@ abstract class AppRoutes {
   static const String notifications = '/notifications';
   static const String routeDetail = '/route/:routeId';
   static const String alertSettings = '/alerts';
+
+  /// Privacidad y términos, uno por documento: `/legal/privacidad`.
+  static const String legal = '/legal/:doc';
 }
+
+/// El camino de un documento legal, para no escribirlo a mano en cada sitio
+/// que lo abre (la bienvenida y el menú).
+String legalPath(String docId) => '/legal/$docId';
 
 // Sin cuenta ni redirect: el pasajero entra directo (D3). El backend nunca
 // usó la sesión para nada —el mapa, los buses y los avisos no dependen de
@@ -40,6 +49,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.map,
         name: 'map',
         builder: (context, state) => const MapScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.legal,
+        name: 'legal',
+        builder: (context, state) {
+          final doc = legalDocById(state.pathParameters['doc']);
+          // Un documento inventado no pinta una pantalla en blanco con una
+          // barra sin título: sale por donde sale cualquier ruta que no
+          // existe.
+          return doc == null ? const _NotFoundScreen() : LegalScreen(doc: doc);
+        },
       ),
       GoRoute(
         path: AppRoutes.notifications,
