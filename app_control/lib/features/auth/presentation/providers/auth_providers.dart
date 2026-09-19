@@ -40,8 +40,8 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier({required this.api, FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage(),
-        super(const AuthState());
+    : _storage = storage ?? const FlutterSecureStorage(),
+      super(const AuthState());
 
   static const _kToken = 'auth_token';
   static const _kCompanyId = 'auth_company_id';
@@ -123,9 +123,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     // Guardar la sesión es una comodidad para el próximo arranque, no un
-    // requisito para entrar. El almacén cifrado lo pone el sistema
-    // (Credenciales de Windows, Llavero en macOS) y puede negarse por
-    // permisos o por política de la máquina.
+    // requisito para entrar. El almacén cifrado lo pone el sistema (en
+    // Windows un archivo cifrado con la clave del usuario, en macOS el
+    // Llavero) y puede negarse por permisos o por política de la máquina.
     //
     // Antes estas tres escrituras estaban dentro del mismo try que la
     // llamada de red, y su `catch` decía "No se pudo conectar con el

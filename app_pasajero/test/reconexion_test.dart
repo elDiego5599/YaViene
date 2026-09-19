@@ -105,10 +105,11 @@ void main() {
     // Sin transporte, lo que la app emite se queda en la cola de salida del
     // socket: ahí se ve qué pidió y cuántas veces.
     for (var vuelta = 1; vuelta <= 100; vuelta++) {
-      // 'connect' y 'disconnect' son eventos reservados: el paquete los
-      // reparte entre los oyentes del socket en vez de mandarlos al servidor.
-      socket.emit('connect');
-      socket.emit('disconnect', 'transport close');
+      // 'connect' y 'disconnect' son eventos reservados: `emit` los
+      // rechaza, y el paquete los reparte con `emitReserved`, que es lo que
+      // hace él mismo al conectar y al cerrarse el transporte.
+      socket.emitReserved('connect');
+      socket.emitReserved('disconnect', 'transport close');
     }
     await pumpEventQueue();
 

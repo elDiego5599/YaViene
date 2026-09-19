@@ -105,8 +105,12 @@ class _SocketFalso extends Fake implements sio.Socket {
           if (evento.first == 'subscribe:route') evento[1]! as String,
       ];
 
+  /// Desde socket_io_client 3, `on` devuelve con qué darse de baja.
   @override
-  void on(String event, handler) => (_oyentes[event] ??= []).add(handler);
+  dynamic Function() on(String event, handler) {
+    (_oyentes[event] ??= []).add(handler);
+    return () => _oyentes[event]?.remove(handler);
+  }
 
   @override
   void emit(String event, [dynamic data]) => emitidos.add([event, data]);
@@ -232,8 +236,7 @@ void main() {
     await _cerrar(tester, app);
   });
 
-  testWidgets(
-      'los dos caídos → sigue reintentando sin crear sockets en bucle',
+  testWidgets('los dos caídos → sigue reintentando sin crear sockets en bucle',
       (tester) async {
     final red = _Red({principal, respaldo});
     final app = _app(red);

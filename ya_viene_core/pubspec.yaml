@@ -18,7 +18,7 @@ dev_dependencies:
     sdk: flutter
   # analysis_options.yaml incluye su flutter.yaml: sin declararlo aquí el
   # análisis del core depende de que otro paquete lo haya bajado antes.
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
 # ── Importante: El core no debe depender de MapLibre, Mapbox o MQTT directamente.
 # Es estrictamente para modelos de dominio puros y el sistema de diseño visual.

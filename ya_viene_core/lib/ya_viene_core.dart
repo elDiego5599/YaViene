@@ -1,4 +1,4 @@
-library ya_viene_core;
+library;
 
 // --- Models (capa de datos) ---
 export 'core/models/bus_position.dart';
