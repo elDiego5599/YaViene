@@ -74,6 +74,15 @@ class YaVieneControlApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,
+      // El tamaño de letra del sistema se respeta hasta 2×, como en el
+      // pasajero. Windows deja subirlo más (225 %), y ahí la fila de un bus
+      // no desborda pero el nombre del conductor queda en 47 de sus 462
+      // puntos: solo se leen los puntos suspensivos
+      // (test/escalado_texto_test.dart).
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 2.0,
+        child: child!,
+      ),
     );
   }
 }
