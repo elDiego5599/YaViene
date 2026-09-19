@@ -145,7 +145,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return true;
   }
 
+  /// Primero el servidor revoca el token y luego se borra aquí. Si el
+  /// servidor no contesta, se sale igual: `AuthApi.logout` no lanza.
   Future<void> logout() async {
+    final token = state.session?.token;
+    if (token != null) await api.logout(token);
     await _clearStored();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }

@@ -405,21 +405,28 @@ class DashboardHeader extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 14),
-          OutlinedButton.icon(
-            onPressed: onLogout,
-            icon: const Icon(Icons.logout, size: 15),
-            label: const Text('Salir'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              side: const BorderSide(color: AppColors.borderStrong),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
+          // Salir revoca el token en el servidor, y eso corta todas las
+          // sesiones de la cuenta (`AuthApi.logout`): quien tenga el panel
+          // abierto con el mismo usuario en otro equipo vuelve a pedir la
+          // clave. Que se lea antes de pulsar, no que se descubra después.
+          Tooltip(
+            message: 'Cierra la sesión en todos los equipos con esta cuenta',
+            child: OutlinedButton.icon(
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout, size: 15),
+              label: const Text('Salir'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                side: const BorderSide(color: AppColors.borderStrong),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                textStyle: AppType.ui(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-              textStyle: AppType.ui(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
           ),
         ],

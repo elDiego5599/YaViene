@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,6 +21,9 @@ class _FakeAuthApi extends AuthApi {
   final bool? validateResult;
   final Object? validateThrows;
 
+  /// Los tokens con los que se pidió cerrar sesión en el servidor.
+  final List<String> cierres = [];
+
   @override
   Future<AuthSession> login(String username, String password) async {
     if (loginError != null) throw loginError!;
@@ -29,6 +35,9 @@ class _FakeAuthApi extends AuthApi {
     if (validateThrows != null) throw validateThrows!;
     return validateResult!;
   }
+
+  @override
+  Future<void> logout(String token) async => cierres.add(token);
 }
 
 class _FakeSecureStorage extends FlutterSecureStorage {
@@ -245,5 +254,106 @@ void main() {
     await notifier.logout();
 
     expect(notifier.state.status, AuthStatus.unauthenticated);
+  });
+
+  // Cerrar sesión solo en el equipo dejaba vivo el token para quien lo
+  // hubiera copiado: ahora el servidor lo revoca y luego se borra aquí.
+  test('logout pide al servidor revocar el token y borra la sesión', () async {
+    final storage = _FakeSecureStorage({
+      'auth_token': 't-1',
+      'auth_company_id': 'c-1',
+      'auth_company_name': 'Empresa 1',
+    });
+    final api = _FakeAuthApi(loginResult: session);
+    final notifier = AuthNotifier(api: api, storage: storage);
+    await notifier.login('admin', 'clave-buena');
+
+    await notifier.logout();
+
+    expect(api.cierres, ['t-1']);
+    expect(notifier.state.status, AuthStatus.unauthenticated);
+    expect(await storage.read(key: 'auth_token'), null);
+  });
+
+  test('logout sin sesión no llama al servidor', () async {
+    final api = _FakeAuthApi();
+    final notifier = AuthNotifier(api: api, storage: _FakeSecureStorage());
+
+    await notifier.logout();
+
+    expect(api.cierres, isEmpty);
+    expect(notifier.state.status, AuthStatus.unauthenticated);
+  });
+
+  group('AuthApi.logout contra un servidor', () {
+    late HttpServer servidor;
+    final pedidos = <String>[];
+    var estado = HttpStatus.noContent;
+
+    setUp(() async {
+      pedidos.clear();
+      estado = HttpStatus.noContent;
+      servidor = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      servidor.listen((req) async {
+        pedidos.add(
+          '${req.method} ${req.uri.path} '
+          '${req.headers.value(HttpHeaders.authorizationHeader)}',
+        );
+        req.response.statusCode = estado;
+        if (estado != HttpStatus.noContent) {
+          req.response.headers.contentType = ContentType.json;
+          req.response.write(
+            jsonEncode({
+              'error': {'code': 'X'},
+            }),
+          );
+        }
+        await req.response.close();
+      });
+    });
+
+    tearDown(() => servidor.close(force: true));
+
+    String base() => 'http://127.0.0.1:${servidor.port}';
+
+    test('manda POST /api/fleet/logout con el token', () async {
+      await AuthApi(baseUrl: base()).logout('t-1');
+
+      expect(pedidos, ['POST /api/fleet/logout Bearer t-1']);
+    });
+
+    // Un token que el servidor ya no reconoce (caducado, contraseña
+    // cambiada) no tiene nada que revocar: la sesión local se borra igual.
+    test('un 401 no lanza', () async {
+      estado = HttpStatus.unauthorized;
+
+      await AuthApi(baseUrl: base()).logout('t-1');
+
+      expect(pedidos, hasLength(1));
+    });
+
+    // Un servidor que acepta y no contesta es la red que se cuelga: la
+    // salida no espera los 8 s del cliente.
+    test('un servidor mudo no retiene más de 3 s', () async {
+      final mudo = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final abiertos = <Socket>[];
+      mudo.listen(abiertos.add);
+      final reloj = Stopwatch()..start();
+
+      await AuthApi(baseUrl: 'http://127.0.0.1:${mudo.port}').logout('t-1');
+
+      expect(reloj.elapsed, lessThan(const Duration(seconds: 4)));
+      for (final s in abiertos) {
+        s.destroy();
+      }
+      await mudo.close();
+    });
+
+    test('sin servidor no lanza', () async {
+      final puerto = servidor.port;
+      await servidor.close(force: true);
+
+      await AuthApi(baseUrl: 'http://127.0.0.1:$puerto').logout('t-1');
+    });
   });
 }

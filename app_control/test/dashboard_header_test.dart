@@ -92,4 +92,23 @@ void main() {
 
     expect(find.text('Conectado al respaldo'), findsOneWidget);
   });
+
+  // Salir revoca el token en el servidor para todas las sesiones de la
+  // cuenta (T3.10): el botón lo dice antes de pulsarlo.
+  testWidgets('Salir avisa de que cierra la sesión en todos los equipos',
+      (tester) async {
+    await _montar(
+      tester,
+      () => BackendUrl(principal, principal: principal, respaldo: respaldo),
+    );
+
+    expect(
+      find.ancestor(of: find.text('Salir'), matching: find.byType(Tooltip)),
+      findsOneWidget,
+    );
+    expect(
+      find.byTooltip('Cierra la sesión en todos los equipos con esta cuenta'),
+      findsOneWidget,
+    );
+  });
 }

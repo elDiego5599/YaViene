@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../domain/auth_session.dart';
 
@@ -75,8 +76,28 @@ class AuthApi {
     }
   }
 
-  Future<void> logout() async {
-    // Los tokens de admin son estateless; solo se descartan en el cliente.
+  /// Pide al servidor que revoque [token]. Borrarlo solo en este equipo lo
+  /// dejaba vivo hasta que caducara (8 h) para quien lo hubiera copiado.
+  ///
+  /// Revoca todas las sesiones de la cuenta, no solo esta: el servidor sube
+  /// la versión de la credencial, como al cambiar la contraseña, y cualquier
+  /// otro equipo abierto con el mismo usuario vuelve a pedir la clave.
+  ///
+  /// No lanza nunca: sin red, o con un token que el servidor ya no reconoce,
+  /// cerrar sesión en este equipo tiene que funcionar igual. Espera como
+  /// mucho 3 s y no los 8 del cliente: quien pulsa «salir» sin red no tiene
+  /// por qué quedarse mirando el tablero.
+  Future<void> logout(String token) async {
+    try {
+      await _dio
+          .post<void>(
+            '/api/fleet/logout',
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+          )
+          .timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint('El servidor no confirmó el cierre de sesión: $e');
+    }
   }
 }
 
