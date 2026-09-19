@@ -1,18 +1,30 @@
 name: Ya Viene CI
 
 on:
-  # `prueba` es donde se trabaja: sin esto, lo que se sube ahí no pasaba
-  # por ninguna prueba hasta llegar a main.
+  # Solo main. Se trabaja en `prueba` y cada commit sube a las dos ramas a
+  # la vez: con las dos aquí, el mismo commit se probaba dos veces y se
+  # pagaban dos veces los minutos, que en un repo privado tienen cuota.
   push:
-    branches: [main, prueba]
+    branches: [main]
   pull_request:
     branches: [main]
+  # Las compilaciones corren aquí y a mano, no en cada push (ver abajo).
+  # Martes 06:41 en Barranquilla (11:41 UTC), fuera de la hora en punto.
+  schedule:
+    - cron: '41 11 * * 2'
+  workflow_dispatch:
 
 # El token de la corrida se le presta a código de terceros, así que va con lo
 # mínimo: ningún job de aquí escribe en el repositorio. Sin este bloque iba
 # con los permisos por omisión, que incluyen escritura.
 permissions:
   contents: read
+
+# Si llega un commit nuevo a la misma rama mientras la corrida anterior
+# sigue, la vieja se cancela: su resultado ya no le importa a nadie.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Cada acción va clavada al commit y no a la etiqueta: una etiqueta se mueve
 # sin avisar y con ella cambia el código de terceros que corre con ese token.
@@ -34,6 +46,9 @@ jobs:
   # o del PR, no el árbol: no tiene modo sin git. Necesita el historial
   # completo, y los falsos positivos ya revisados van en .gitleaksignore.
   secretos:
+    # La corrida semanal no trae commits nuevos que mirar; el barrido
+    # completo de la semana va en secretos.yml.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -45,7 +60,9 @@ jobs:
           GITLEAKS_VERSION: 8.30.1
 
   flutter:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
@@ -107,7 +124,16 @@ jobs:
   # Cuesta: el repo es privado, y ahí GitHub descuenta el minuto de macOS por
   # 10 y el de Windows por 2 de la cuota. El `timeout-minutes` de cada job es
   # el tope de ese gasto si una compilación se queda colgada.
+  #
+  # Por eso no corren en cada push: una corrida con las tres costaba unos 90
+  # minutos de cuota, 70 de ellos el job de Apple, y la cuota se acabó. El
+  # APK, el iOS y el macOS ya se compilan en el Mac del dueño con cada cambio
+  # de app (regla del proyecto), así que Apple queda solo a mano, desde la
+  # pestaña Actions. Android y Windows corren además una vez por semana:
+  # Windows es el único sitio donde se arma el panel de escritorio de la
+  # empresa, y así un fallo ahí no pasa más de siete días sin verse.
   compilar-apple:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -137,6 +163,7 @@ jobs:
           flutter build macos
 
   compilar-android:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -166,6 +193,7 @@ jobs:
           flutter build apk --dart-define=BACKEND_URL=https://ejemplo.invalid
 
   compilar-windows:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: windows-latest
     timeout-minutes: 45
     # bash, no pwsh: con pwsh un ejecutable que devuelve error no corta el
