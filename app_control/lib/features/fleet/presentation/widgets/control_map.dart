@@ -63,42 +63,47 @@ class _ControlMapState extends ConsumerState<ControlMap> {
 
     return Stack(
       children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: const LatLng(10.9639, -74.7964),
-            initialZoom: 12,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        // El lector de pantalla anuncia el mapa por su nombre; los buses de
+        // adentro dicen su placa y su estado.
+        Semantics(
+          label: 'Mapa de la flota',
+          child: FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: const LatLng(10.9639, -74.7964),
+              initialZoom: 12,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onPositionChanged: (camera, hasGesture) {
+                if ((camera.zoom - _zoom).abs() > 0.05) {
+                  setState(() => _zoom = camera.zoom);
+                }
+              },
             ),
-            onPositionChanged: (camera, hasGesture) {
-              if ((camera.zoom - _zoom).abs() > 0.05) {
-                setState(() => _zoom = camera.zoom);
-              }
-            },
+            children: [
+              // Mapa de OpenStreetMap: agua azul, parques verdes, vías cálidas,
+              // la misma familia de colores que ve el pasajero, en vez del gris
+              // apagado con el que el panel parecía otro producto.
+              //
+              // El pasajero usa el estilo Voyager de CARTO, y sería lo ideal
+              // aquí también, pero CARTO ya solo entrega sus teselas
+              // rasterizadas —las únicas que flutter_map sabe pintar— con una
+              // marca de agua "API KEY REQUIRED" atravesada encima. Allá no se
+              // nota porque el mapa es vectorial y esas teselas siguen limpias.
+              // Para igualar el estilo exacto en escritorio haría falta pintar
+              // vectores, y el único paquete que lo hace todavía está en beta:
+              // no es algo que se meta a días de una presentación.
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                // OSM no sirve teselas @2x y devuelve 404 si se le piden: sin
+                // esto el mapa sale en blanco en cualquier pantalla densa.
+                retinaMode: false,
+                userAgentPackageName: 'co.yaviene.control',
+              ),
+              MarkerLayer(markers: markers),
+            ],
           ),
-          children: [
-            // Mapa de OpenStreetMap: agua azul, parques verdes, vías cálidas,
-            // la misma familia de colores que ve el pasajero, en vez del gris
-            // apagado con el que el panel parecía otro producto.
-            //
-            // El pasajero usa el estilo Voyager de CARTO, y sería lo ideal
-            // aquí también, pero CARTO ya solo entrega sus teselas
-            // rasterizadas —las únicas que flutter_map sabe pintar— con una
-            // marca de agua "API KEY REQUIRED" atravesada encima. Allá no se
-            // nota porque el mapa es vectorial y esas teselas siguen limpias.
-            // Para igualar el estilo exacto en escritorio haría falta pintar
-            // vectores, y el único paquete que lo hace todavía está en beta:
-            // no es algo que se meta a días de una presentación.
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              // OSM no sirve teselas @2x y devuelve 404 si se le piden: sin
-              // esto el mapa sale en blanco en cualquier pantalla densa.
-              retinaMode: false,
-              userAgentPackageName: 'co.yaviene.control',
-            ),
-            MarkerLayer(markers: markers),
-          ],
         ),
         // OpenStreetMap pide el crédito a la vista. Va discreto, en la
         // esquina contraria a la leyenda.

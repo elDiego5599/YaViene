@@ -191,6 +191,9 @@ class _BusDialogState extends ConsumerState<BusDialog> {
             ),
             const SizedBox(height: 8),
             TextField(
+              // Al abrir, el foco va a la placa: con teclado o lector de
+              // pantalla se empieza a escribir sin buscar el campo.
+              autofocus: true,
               controller: _placaController,
               textCapitalization: TextCapitalization.characters,
               style: AppType.mono(

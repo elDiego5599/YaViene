@@ -86,105 +86,116 @@ class FleetListTile extends StatelessWidget {
               // pantalla de 1440 o menos, el ícono de estado quedaba pintado
               // encima del chip. Ahora la placa va entera y el que cede es el
               // chip, que con una ruta elegida arriba repite su pestaña.
+              //
+              // Un lector de pantalla oye la fila como una frase
+              // ([_frase]) en vez de los pedazos que se ven: el nombre del
+              // ícono suelto, y el chip de la ruta, que en una lista
+              // angosta ni se pinta.
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, hueco) => Row(
-                    children: [
-                      ConstrainedBox(
-                        // Ni la placa ni el nombre del conductor pasan del
-                        // hueco; sin este tope empujarían la fila hacia afuera.
-                        constraints: BoxConstraints(maxWidth: hueco.maxWidth),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Si la placa no cabe a su tamaño, que con la
-                            // ventana maximizada no pasa ni a 1280 pero sí
-                            // achicándola a mano, se achica lo justo: cortada
-                            // ya no diría qué bus es.
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
+                child: Semantics(
+                  label: _frase(estado),
+                  selected: selected,
+                  child: ExcludeSemantics(
+                    child: LayoutBuilder(
+                      builder: (context, hueco) => Row(
+                        children: [
+                          ConstrainedBox(
+                            // Ni la placa ni el nombre del conductor pasan del
+                            // hueco; sin este tope empujarían la fila hacia afuera.
+                            constraints: BoxConstraints(maxWidth: hueco.maxWidth),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Si la placa no cabe a su tamaño, que con la
+                                // ventana maximizada no pasa ni a 1280 pero sí
+                                // achicándola a mano, se achica lo justo: cortada
+                                // ya no diría qué bus es.
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        bus.placa.isEmpty ? bus.busId : bus.placa,
+                                        style: AppType.ui(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textPrimary,
+                                          letterSpacing: 0.4,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Era un punto de 6 px: cuatro situaciones
+                                      // distintas con la misma forma, y quien no
+                                      // separa verde de ámbar veía cuatro filas
+                                      // idénticas. El ícono dice cuál es sin leer
+                                      // el color, y el tooltip lo explica con
+                                      // palabras (antes solo conocía dos casos).
+                                      Tooltip(
+                                        message: _explicacion(estado),
+                                        child: Icon(
+                                          estado.icono,
+                                          size: 14,
+                                          color: estado.color,
+                                          semanticLabel: estado.rotulo,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                if (bus.driverName != null)
                                   Text(
-                                    bus.placa.isEmpty ? bus.busId : bus.placa,
+                                    bus.driverName!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: AppType.ui(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: 0.4,
+                                      fontSize: 11.5,
+                                      color: AppColors.textSecondary,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  // Era un punto de 6 px: cuatro situaciones
-                                  // distintas con la misma forma, y quien no
-                                  // separa verde de ámbar veía cuatro filas
-                                  // idénticas. El ícono dice cuál es sin leer
-                                  // el color, y el tooltip lo explica con
-                                  // palabras (antes solo conocía dos casos).
-                                  Tooltip(
-                                    message: _explicacion(estado),
-                                    child: Icon(
-                                      estado.icono,
-                                      size: 14,
-                                      color: estado.color,
-                                      semanticLabel: estado.rotulo,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            if (bus.driverName != null)
-                              Text(
-                                bus.driverName!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppType.ui(
-                                  fontSize: 11.5,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (routeName != null &&
-                          hueco.maxWidth >= _huecoParaRuta)
-                        Expanded(
-                          child: Padding(
-                            // El aire antes del lápiz va con el chip: en una
-                            // fila sin chip lo aprovecha la placa.
-                            padding: const EdgeInsets.only(right: 6),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.navy.withValues(alpha: 0.06),
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.pill),
-                                ),
-                                child: Text(
-                                  routeName!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppType.ui(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.navy,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
+                              ],
                             ),
                           ),
-                        ),
-                    ],
+                          if (routeName != null &&
+                              hueco.maxWidth >= _huecoParaRuta)
+                            Expanded(
+                              child: Padding(
+                                // El aire antes del lápiz va con el chip: en una
+                                // fila sin chip lo aprovecha la placa.
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          AppColors.navy.withValues(alpha: 0.06),
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.pill),
+                                    ),
+                                    child: Text(
+                                      routeName!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppType.ui(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.navy,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -225,13 +236,16 @@ class FleetListTile extends StatelessWidget {
                           ),
                         ),
                   const SizedBox(height: 2),
-                  Text(
-                    bus.visible ? 'PERMITIDO' : 'OCULTO',
-                    style: AppType.ui(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: bus.visible ? AppColors.online : AppColors.hidden,
+                  // El interruptor ya dice su estado y su tooltip lo explica.
+                  ExcludeSemantics(
+                    child: Text(
+                      bus.visible ? 'PERMITIDO' : 'OCULTO',
+                      style: AppType.ui(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: bus.visible ? AppColors.online : AppColors.hidden,
+                      ),
                     ),
                   ),
                 ],
@@ -243,6 +257,15 @@ class FleetListTile extends StatelessWidget {
     );
     return Opacity(opacity: bus.online ? 1 : 0.7, child: card);
   }
+
+  /// La fila dicha en voz alta: «Placa ABC-123, En línea, ruta Tcherassi,
+  /// conductor …». La ruta va aunque su chip no quepa.
+  String _frase(BusEstado estado) => [
+        bus.placa.isEmpty ? 'Bus ${bus.busId}' : 'Placa ${bus.placa}',
+        estado.rotulo,
+        if (routeName != null) 'ruta $routeName',
+        if (bus.driverName != null) 'conductor ${bus.driverName}',
+      ].join(', ');
 
   /// Qué significa el estado, en la frase que el operador necesita: qué pasa
   /// y si tiene que hacer algo.

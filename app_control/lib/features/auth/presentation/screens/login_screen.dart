@@ -193,7 +193,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     size: 20,
                                     color: AppColors.textMuted,
                                   ),
-                                  tooltip: _obscurePassword ? 'Mostrar' : 'Ocultar',
+                                  // Quien no ve la pantalla oye solo el
+                                  // tooltip: «Mostrar» a secas no dice qué.
+                                  tooltip: _obscurePassword
+                                      ? 'Mostrar contraseña'
+                                      : 'Ocultar contraseña',
                                 ),
                               ),
                             ],

@@ -38,7 +38,15 @@ abstract class AppColors {
 
   static const Color textPrimary = core.AppColors.textPrimary;
   static const Color textSecondary = core.AppColors.textSecondary;
-  static const Color textMuted = core.AppColors.textDisabled;
+
+  /// Rótulos, pistas, pies y los íconos de apoyo. Es el mismo gris que el
+  /// pasajero usa para eso, porque es el más claro que pasa el 4,5:1 sobre
+  /// la arena del fondo y sobre el blanco de las tarjetas;
+  /// [core.AppColors.textDisabled] se queda en 2,4:1 y no se lee en un
+  /// proyector ni con la vista cansada (test/accesibilidad_panel_test.dart).
+  /// Lo que lo separa del texto de al lado es el tamaño, el peso y el
+  /// espaciado, no un gris más pálido.
+  static const Color textMuted = core.AppColors.textSecondary;
 
   /*
     Los cuatro estados de un bus. Eran dos colores para cuatro palabras:
