@@ -1,0 +1,14 @@
+{
+  "busId": "BUS-ABC123",
+  "routeId": "R-101",
+  "lat": 10.9878,
+  "lon": -74.7889,
+  "heading": 90,
+  "speedKmh": 25,
+  "sentido": "ida",
+  "timestamp": "2026-01-01T00:00:00.000Z",
+  "capturedAt": 1767225600000,
+  "receivedAt": 1767225600000,
+  "sequence": 1,
+  "isGhost": false
+}

@@ -1,0 +1,43 @@
+{
+  "companyId": "EMP-01",
+  "buses": [
+    {
+      "busId": "BUS-ABC123",
+      "companyId": "EMP-01",
+      "routeId": "R-101",
+      "placa": "ABC123",
+      "interno": "001",
+      "driverName": "Conductor 1",
+      "visible": true,
+      "online": true,
+      "lat": 10.988,
+      "lon": -74.7887,
+      "heading": 90,
+      "speedKmh": 25,
+      "sentido": "ida",
+      "capturedAt": 1767225600000,
+      "receivedAt": 1767225600000,
+      "sequence": 2,
+      "isGhost": false
+    },
+    {
+      "busId": "BUS-DEF456",
+      "companyId": "EMP-01",
+      "routeId": "R-101",
+      "placa": "DEF456",
+      "interno": "002",
+      "driverName": "Conductor 2",
+      "visible": true,
+      "online": true,
+      "lat": 10.989,
+      "lon": -74.79,
+      "heading": 90,
+      "speedKmh": 25,
+      "sentido": "ida",
+      "capturedAt": 1767225600000,
+      "receivedAt": 1767225600000,
+      "sequence": 1,
+      "isGhost": false
+    }
+  ]
+}

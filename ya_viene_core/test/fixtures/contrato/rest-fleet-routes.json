@@ -1,0 +1,53 @@
+{
+  "companyId": "EMP-01",
+  "routes": [
+    {
+      "routeId": "R-101",
+      "name": "B18 Tcherassi",
+      "terminalA": "Ciudad Mallorquín",
+      "terminalB": "La Playa",
+      "total": 2,
+      "online": 2
+    },
+    {
+      "routeId": "R-102",
+      "name": "C11 Silencio",
+      "terminalA": "Nevada",
+      "terminalB": "El Silencio",
+      "total": 0,
+      "online": 0
+    },
+    {
+      "routeId": "R-103",
+      "name": "C12 Vivero Paraíso",
+      "terminalA": "Vía 40",
+      "terminalB": "Paraíso",
+      "total": 0,
+      "online": 0
+    },
+    {
+      "routeId": "R-104",
+      "name": "C13 Carrera 50 Paraíso",
+      "terminalA": "Nevada (Soledad)",
+      "terminalB": "Calle 76 (Vía 40)",
+      "total": 0,
+      "online": 0
+    },
+    {
+      "routeId": "R-105",
+      "name": "C14 Carrera 54 Uninorte",
+      "terminalA": "Granabastos",
+      "terminalB": "Uninorte",
+      "total": 0,
+      "online": 0
+    },
+    {
+      "routeId": "R-106",
+      "name": "C16 Calle 72 Uninorte",
+      "terminalA": "Granabastos",
+      "terminalB": "Uninorte",
+      "total": 0,
+      "online": 0
+    }
+  ]
+}

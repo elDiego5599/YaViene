@@ -1,0 +1,22 @@
+{
+  "busId": "BUS-ABC123",
+  "routeId": "R-101",
+  "eventId": "<eventId>",
+  "position": {
+    "busId": "BUS-ABC123",
+    "routeId": "R-101",
+    "lat": 10.988,
+    "lon": -74.7887,
+    "heading": 90,
+    "speedKmh": 25,
+    "sentido": "ida",
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "capturedAt": 1767225600000,
+    "receivedAt": 1767225600000,
+    "sequence": 2,
+    "driverPhone": "3990000001",
+    "companyId": "EMP-01",
+    "isGhost": false,
+    "visible": true
+  }
+}

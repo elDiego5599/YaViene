@@ -1,0 +1,19 @@
+{
+  "busId": "BUS-XYZ987",
+  "companyId": "EMP-01",
+  "routeId": "R-102",
+  "placa": "XYZ987",
+  "interno": "77",
+  "driverName": null,
+  "visible": false,
+  "online": false,
+  "lat": null,
+  "lon": null,
+  "heading": null,
+  "speedKmh": 0,
+  "sentido": null,
+  "capturedAt": null,
+  "receivedAt": null,
+  "sequence": null,
+  "isGhost": false
+}
