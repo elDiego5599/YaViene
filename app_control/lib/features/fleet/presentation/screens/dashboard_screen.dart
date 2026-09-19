@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +29,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with WidgetsBindingObserver {
   final _searchController = TextEditingController();
+  final _searchFocus = FocusNode(debugLabel: 'buscar');
   String _query = '';
   bool _refreshing = false;
   ProviderSubscription<bool>? _sessionExpiredSub;
@@ -82,6 +85,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     WidgetsBinding.instance.removeObserver(this);
     _sessionExpiredSub?.close();
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -204,17 +208,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     final buses = fleet.buscar(_query);
 
+    // Teclado: el panel es de escritorio. Tab va por secciones, de arriba
+    // abajo y de izquierda a derecha: cabecera, barra, filtros de ruta, la
+    // lista (botones, pestañas y cada bus con su lápiz y su interruptor
+    // antes del siguiente) y el mapa. La política por omisión ordena por
+    // filas de pantalla, y como las de la lista no se alinean con las del
+    // mapa, saltaba de pestañas a buses a lápices sin orden. Cmd+F (Ctrl+F
+    // fuera de macOS) lleva a la búsqueda, como en cualquier programa de
+    // escritorio (test/teclado_panel_test.dart).
+    final buscar = SingleActivator(
+      LogicalKeyboardKey.keyF,
+      meta: defaultTargetPlatform == TargetPlatform.macOS,
+      control: defaultTargetPlatform != TargetPlatform.macOS,
+    );
+    return CallbackShortcuts(
+      bindings: {buscar: _searchFocus.requestFocus},
+      child: FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: _cuerpo(fleet, buses),
+      ),
+    );
+  }
+
+  Widget _cuerpo(FleetState fleet, List<FleetBus> buses) {
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DashboardHeader(
+          _seccion(1, DashboardHeader(
             connection: fleet.connection,
             onLogout: _logout,
-          ),
-          _TopBar(
+          )),
+          _seccion(2, _TopBar(
             refreshing: _refreshing,
             searchController: _searchController,
+            searchFocus: _searchFocus,
             onSearchChanged: (v) => setState(() => _query = v),
             onRefresh: _refresh,
             onToggleAllVisibility: () {
@@ -223,15 +251,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             },
             allBusesVisible: fleet.buses.isNotEmpty &&
                 fleet.buses.values.every((b) => b.visible),
-          ),
-          if (fleet.error != null) _ErrorBanner(message: fleet.error!),
+          )),
+          if (fleet.error != null)
+            _seccion(3, _ErrorBanner(message: fleet.error!)),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _RouteFilters(
+            child: _seccion(4, _RouteFilters(
               fleet: fleet,
               onSelect: (routeId) =>
                   ref.read(fleetProvider.notifier).setRouteFilter(routeId),
-            ),
+            )),
           ),
           Expanded(
             child: Padding(
@@ -241,7 +270,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 children: [
                   Expanded(
                     flex: 1,
-                    child: _FleetPanel(
+                    child: _seccion(5, _FleetPanel(
                       buses: buses,
                       fleet: fleet,
                       onAddBus: () => _showBusDialog(),
@@ -250,12 +279,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       onStatusFilter: (filter) => ref
                           .read(fleetProvider.notifier)
                           .setStatusFilter(filter),
-                    ),
+                    )),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 3,
-                    child: Stack(
+                    child: _seccion(6, Stack(
                       children: [
                         const Positioned.fill(child: ControlMap()),
                         if (fleet.selectedBus != null)
@@ -286,7 +315,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             ),
                           ),
                       ],
-                    ),
+                    )),
                   ),
                 ],
               ),
@@ -297,6 +326,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 }
+
+/// Una parada de Tab en el orden del dashboard: todo lo de dentro se
+/// recorre antes de pasar a la siguiente, en el orden en que se construye.
+Widget _seccion(double orden, Widget child) => FocusTraversalOrder(
+      order: NumericFocusOrder(orden),
+      child: FocusTraversalGroup(
+        policy: WidgetOrderTraversalPolicy(),
+        child: child,
+      ),
+    );
 
 /// La cabecera del panel. Pública solo para probarla sin montar el mapa.
 @visibleForTesting
@@ -439,6 +478,7 @@ class _TopBar extends StatefulWidget {
   const _TopBar({
     required this.refreshing,
     required this.searchController,
+    required this.searchFocus,
     required this.onSearchChanged,
     required this.onRefresh,
     required this.onToggleAllVisibility,
@@ -447,6 +487,7 @@ class _TopBar extends StatefulWidget {
 
   final bool refreshing;
   final TextEditingController searchController;
+  final FocusNode searchFocus;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onRefresh;
   final VoidCallback onToggleAllVisibility;
@@ -494,15 +535,26 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
           const Spacer(),
           SizedBox(
             width: 260,
-            child: TextField(
-              controller: widget.searchController,
-              onChanged: widget.onSearchChanged,
-              style: AppType.ui(fontSize: 13.5),
-              decoration: const InputDecoration(
-                hintText: 'Buscar placa, ruta o conductor…',
-                prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
-                fillColor: AppColors.surface,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            // Esc vacía la búsqueda y deja el foco en ella, para escribir
+            // otra sin volver a buscarla.
+            child: CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.escape): () {
+                  widget.searchController.clear();
+                  widget.onSearchChanged('');
+                },
+              },
+              child: TextField(
+                controller: widget.searchController,
+                focusNode: widget.searchFocus,
+                onChanged: widget.onSearchChanged,
+                style: AppType.ui(fontSize: 13.5),
+                decoration: const InputDecoration(
+                  hintText: 'Buscar placa, ruta o conductor…',
+                  prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
+                  fillColor: AppColors.surface,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
               ),
             ),
           ),
