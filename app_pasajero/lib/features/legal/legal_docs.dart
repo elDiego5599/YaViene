@@ -49,12 +49,16 @@ class LegalDoc {
 /// Sube cuando cambie algo de fondo —qué se guarda, qué viaja, qué se
 /// promete—, no cuando se corrija una coma: cada subida vuelve a poner la
 /// bienvenida delante de todo el mundo.
-const int kLegalVersion = 1;
+// Sube a 2 el 19 de septiembre de 2026: la privacidad pasa a decir qué
+// ocurre cuando sales de la app —que el seguimiento sigue pero la ubicación
+// no— y eso es parte de lo que se promete, así que el sí que se dio sobre el
+// texto anterior no vale para este.
+const int kLegalVersion = 2;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '15 de septiembre de 2026',
+  updated: '19 de septiembre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
@@ -79,6 +83,14 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'mientras lo ves moverse, y cuando entra en un kilómetro a la redonda '
       'lanza una notificación local —la crea el teléfono, no la manda un '
       'servidor—. La app no usa ningún servicio de mensajería push.',
+    ),
+    LegalBlock.p(
+      'Cuando sales de la app, en Android el seguimiento sigue vivo —verás '
+      'una notificación fija que lo dice— pero tu ubicación deja de '
+      'actualizarse: la app pide el permiso de ubicación «solo mientras la '
+      'uso» y no el de segundo plano, así que la distancia se mide contra el '
+      'último punto que conoció, o contra el punto de espera que hayas '
+      'marcado a mano. En iPhone el aviso solo suena con la app abierta.',
     ),
     LegalBlock.heading('Sin analítica, sin rastreo, sin publicidad'),
     LegalBlock.p(
