@@ -79,7 +79,7 @@ jobs:
         run: |
           flutter pub get
           flutter analyze --fatal-infos lib test
-          flutter test
+          flutter test --coverage
 
       # Las pruebas de oro (`@Tags(['goldens'])`) no corren en la CI, en
       # ninguna de sus máquinas. Las 34 fotos se tomaron en el Mac del dueño:
@@ -94,14 +94,21 @@ jobs:
         run: |
           flutter pub get
           flutter analyze --fatal-infos lib test
-          flutter test --exclude-tags goldens
+          flutter test --coverage --exclude-tags goldens
 
       - name: Analyze and test control
         working-directory: app_control
         run: |
           flutter pub get
           flutter analyze --fatal-infos lib test
-          flutter test
+          flutter test --coverage
+
+      # Trinquete de cobertura (T8.7). No vuelve a correr las pruebas: lee el
+      # lcov que acaban de dejar los tres pasos de arriba. Los umbrales están
+      # en el propio script, son la cobertura del día que se puso y sólo
+      # suben; quien los baje tiene que decir en el commit por qué.
+      - name: Trinquete de cobertura
+        run: tool/cobertura.sh --sin-correr
 
       # Informe, no barrera: pub no tiene un audit como npm y una versión
       # nueva no es una vulnerabilidad. Queda en el log para la revisión

@@ -19,6 +19,9 @@ modificaciones.md
 app_pasajero/android/app/google-services.json
 app_pasajero/ios/Runner/GoogleService-Info.plist
 
+# Informes de cobertura (T8.7): se generan en cada corrida.
+**/coverage/
+
 # Salida transitoria de un golden que falló: se regenera sola.
 **/test/golden/failures/
 
