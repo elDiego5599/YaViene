@@ -121,6 +121,76 @@ jobs:
             (cd "$app" && flutter pub outdated --no-dev-dependencies)
           done
 
+  # Panel contra un backend de verdad (T8.6). `socket_fleet_test.dart` es la
+  # única prueba que habla con el servidor por socket, y sin cuenta con qué
+  # entrar se salta sola: pasa en verde sin probar nada. Este job levanta un
+  # backend de usar y tirar —base temporal, puerto propio, usuario y clave
+  # inventados en la corrida— y la hace correr de verdad.
+  #
+  # Va a mano porque necesita el código del backend, que vive en otro
+  # repositorio privado: el token de la corrida no llega hasta allá. Mientras
+  # no exista el secreto BACKEND_REPO_TOKEN —un token del dueño con permiso
+  # de sólo lectura sobre YaVieneBackend— el job avisa y se queda quieto en
+  # vez de fallar. La prueba se corre igual en el Mac del dueño con
+  # `tool/prueba-socket-panel.sh`, que es lo mismo que corre aquí.
+  socket-panel:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Ver si hay con qué traer el backend
+        id: llave
+        env:
+          TOKEN: ${{ secrets.BACKEND_REPO_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "Falta el secreto BACKEND_REPO_TOKEN (lectura de YaVieneBackend);"
+            echo "sin él este job no puede traer el backend. No se corre nada."
+            echo "hay=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "hay=si" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.llave.outputs.hay == 'si'
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      # Al lado, que es donde el script lo busca por omisión.
+      - if: steps.llave.outputs.hay == 'si'
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: ElDiego5599/YaVieneBackend
+          ref: main
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: YaVieneBackend
+          persist-credentials: false
+
+      - if: steps.llave.outputs.hay == 'si'
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '22'
+
+      - if: steps.llave.outputs.hay == 'si'
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.4
+          cache: true
+
+      - if: steps.llave.outputs.hay == 'si'
+        name: Dependencias del backend
+        working-directory: YaVieneBackend
+        run: npm ci
+
+      # El script se inventa el usuario, la clave y los secretos de la
+      # corrida: la cuenta de prueba del dueño no entra aquí.
+      - if: steps.llave.outputs.hay == 'si'
+        name: Socket del panel contra backend temporal
+        env:
+          YAVIENE_BACKEND: ${{ github.workspace }}/YaVieneBackend
+        run: |
+          cd app_control && flutter pub get && cd ..
+          tool/prueba-socket-panel.sh
+
   # Compilar es la única prueba de que lo que se entrega arranca: `flutter
   # test` no pasa por Gradle, Xcode ni MSBuild, así que un plugin roto, una
   # firma mal puesta o un SDK que sube su mínimo solo se ven al construir
