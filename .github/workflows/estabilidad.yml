@@ -1,0 +1,121 @@
+name: Ya Viene — estabilidad
+
+# Una prueba que falla una vez de cada veinte no se ve: se repite la corrida,
+# sale verde y nadie vuelve a mirarla. Con el tiempo esas pruebas se dejan de
+# creer, y el día que una avisa de algo real tampoco se le hace caso. Esto
+# corre las suites de los tres paquetes diez veces seguidas y, si una sola
+# vuelta se cae, abre un issue con la vuelta y el final del log.
+#
+# El plan lo pedía nocturno. Va semanal porque la cuota de Actions del repo
+# privado se acabó (2026-09-19) y treinta corridas de `flutter test` no son
+# baratas; para volver a lo nocturno se cambia el `cron` a '23 8 * * *'. A
+# mano se lanza cuando se quiera, y ahí se elige cuántas vueltas.
+#
+# Las pruebas de oro no entran, igual que en la CI: sus fotos se tomaron en
+# el Mac del dueño y en Linux fallan las 34 siempre, que no es intermitencia.
+on:
+  workflow_dispatch:
+    inputs:
+      vueltas:
+        description: Cuántas veces correr las tres suites
+        default: '10'
+  schedule:
+    # Jueves 03:23 en Barranquilla (08:23 UTC), fuera de la hora en punto.
+    - cron: '23 8 * * 4'
+
+# Lectura del repositorio, y escritura solo de issues: es lo único que este
+# workflow crea, y lo crea con el token de la propia corrida.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  repetir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.4
+          cache: true
+
+      - name: Dependencias
+        run: |
+          for paquete in ya_viene_core app_pasajero app_control; do
+            (cd "$paquete" && flutter pub get)
+          done
+
+      # Sin `set -e` en el bucle a propósito: una vuelta roja no puede cortar
+      # las que faltan, porque lo que se quiere saber es cuántas de diez.
+      - name: Vueltas a las tres suites
+        id: vueltas
+        env:
+          VUELTAS: ${{ github.event.inputs.vueltas || '10' }}
+        run: |
+          fallos=0
+          rojas=""
+          for i in $(seq 1 "$VUELTAS"); do
+            echo "::group::vuelta $i de $VUELTAS"
+            malo=0
+            (cd ya_viene_core && flutter test) > "vuelta-$i-core.log" 2>&1 || malo=1
+            (cd app_pasajero && flutter test --exclude-tags goldens) \
+              > "vuelta-$i-pasajero.log" 2>&1 || malo=1
+            (cd app_control && flutter test) > "vuelta-$i-panel.log" 2>&1 || malo=1
+            if [ "$malo" -eq 0 ]; then
+              echo "vuelta $i verde"
+            else
+              fallos=$((fallos + 1))
+              rojas="$rojas $i"
+              echo "vuelta $i ROJA"
+              for log in "vuelta-$i-core.log" "vuelta-$i-pasajero.log" "vuelta-$i-panel.log"; do
+                echo "--- $log"
+                tail -40 "$log"
+              done
+            fi
+            echo "::endgroup::"
+          done
+          {
+            echo "fallos=$fallos"
+            echo "rojas=$rojas"
+            echo "vueltas=$VUELTAS"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$fallos" -gt 0 ]; then
+            {
+              echo "### Intermitentes"
+              echo "$fallos de $VUELTAS vueltas rojas:$rojas"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      # Un issue por temporada, no uno por corrida: si ya hay uno abierto con
+      # este título, se le añade un comentario. `gh` viene en el runner.
+      - name: Abrir o comentar el issue
+        if: failure() && steps.vueltas.outputs.fallos != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FALLOS: ${{ steps.vueltas.outputs.fallos }}
+          ROJAS: ${{ steps.vueltas.outputs.rojas }}
+          VUELTAS: ${{ steps.vueltas.outputs.vueltas }}
+        run: |
+          titulo="Prueba intermitente en las apps"
+          enlace="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          # Con printf y no con un texto a varias líneas: la sangría del YAML
+          # se colaría en el issue y diez espacios delante son un bloque de
+          # código en Markdown.
+          cuerpo="$(printf '%s\n\n%s\n\n%s\n' \
+            "$FALLOS de $VUELTAS vueltas rojas (vueltas:$ROJAS)." \
+            "El log de cada vuelta roja está en la corrida: $enlace" \
+            "Una prueba que falla a veces oculta una condición de carrera de verdad tan a menudo como es un fallo de la prueba. Hasta saber cuál de las dos es, no se cierra.")"
+          numero="$(gh issue list --state open --search "in:title \"$titulo\"" \
+            --json number --jq '.[0].number // empty')"
+          if [ -n "$numero" ]; then
+            gh issue comment "$numero" --body "$cuerpo"
+          else
+            gh issue create --title "$titulo" --body "$cuerpo"
+          fi
