@@ -17,6 +17,7 @@
     "driverPhone": "3990000001",
     "companyId": "EMP-01",
     "isGhost": false,
-    "visible": true
+    "visible": true,
+    "emittedAt": 1767225600000
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../config.dart';
 import '../domain/fleet_bus.dart';
@@ -18,7 +19,8 @@ class FleetSocketService {
     required this.baseUrl,
     required this.token,
     this._crearSocket = io.io,
-  });
+    MedidorLatencia? medidor,
+  }) : _medidor = medidor ?? MedidorLatencia.compartido;
 
   /// El backend actual (`backendUrlProvider`). Antes era
   /// `AppConfig.backendUrl`, fijo: si el túnel no contestaba y el panel
@@ -26,6 +28,10 @@ class FleetSocketService {
   final String baseUrl;
   final String token;
   final FleetIoSocketFactory _crearSocket;
+
+  /// Apunta cuánto tardó en llegar cada bus (T7.6). Solo en memoria: nada de
+  /// esto sale del equipo.
+  final MedidorLatencia _medidor;
 
   io.Socket? _socket;
 
@@ -123,8 +129,11 @@ class FleetSocketService {
         debugPrint('[fleet-socket] fleet:batch recibido');
         final buses = (data['buses'] as List)
             .whereType<Map>()
-            .map((b) => FleetBus.fromJson(Map<String, dynamic>.from(b)))
-            .toList();
+            .map(Map<String, dynamic>.from)
+            .map((b) {
+          _medidor.registrar(b);
+          return FleetBus.fromJson(b);
+        }).toList();
         emit(_busBatchController, buses);
       } catch (e) {
         debugPrint('[fleet-socket] Error parsing fleet:batch: $e');
@@ -134,10 +143,9 @@ class FleetSocketService {
     socket.on('bus:position', (data) {
       try {
         if (data is! Map) return;
-        emit(
-          _busPositionController,
-          FleetBus.fromJson(Map<String, dynamic>.from(data)),
-        );
+        final bus = Map<String, dynamic>.from(data);
+        _medidor.registrar(bus);
+        emit(_busPositionController, FleetBus.fromJson(bus));
       } catch (e) {
         debugPrint('[fleet-socket] Error parsing bus:position: $e');
       }
@@ -156,10 +164,9 @@ class FleetSocketService {
         debugPrint('[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}');
         final position = data['position'];
         if (position is Map) {
-          emit(
-            _busVisibleController,
-            FleetBus.fromJson(Map<String, dynamic>.from(position)),
-          );
+          final bus = Map<String, dynamic>.from(position);
+          _medidor.registrar(bus);
+          emit(_busVisibleController, FleetBus.fromJson(bus));
         } else {
           emit(
             _busVisibleController,

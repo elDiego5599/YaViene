@@ -31,12 +31,18 @@ class RealtimeService implements RealtimeRepository {
     this._backendUrl, {
     BackendSupervisor? supervisor,
     RealtimeSocketFactory crearSocket = io.io,
+    MedidorLatencia? medidor,
   })  : _supervisor = supervisor,
-        _crearSocket = crearSocket;
+        _crearSocket = crearSocket,
+        _medidor = medidor ?? MedidorLatencia.compartido;
 
   String _backendUrl;
   final BackendSupervisor? _supervisor;
   final RealtimeSocketFactory _crearSocket;
+
+  /// Apunta cuánto tardó en llegar cada posición (T7.6). Se queda en la
+  /// memoria del teléfono: no se manda a ninguna parte.
+  final MedidorLatencia _medidor;
 
   io.Socket? _socket;
   final _subscriptions = <String>{};
@@ -179,7 +185,9 @@ class RealtimeService implements RealtimeRepository {
 
     _socket!.on('bus:position', (data) {
       final event = _asMap(data);
-      if (event != null) _emit(_busPositionController, event);
+      if (event == null) return;
+      _medidor.registrar(event);
+      _emit(_busPositionController, event);
     });
     _socket!.on('positions:update', (data) {
       final update = _asMap(data);
@@ -190,6 +198,7 @@ class RealtimeService implements RealtimeRepository {
           if (bus is Map) {
             final position = _asMap(bus);
             if (position != null) {
+              _medidor.registrar(position);
               _emit(_busPositionController, position);
             }
           }
@@ -198,7 +207,15 @@ class RealtimeService implements RealtimeRepository {
     });
     _socket!.on('positions:batch', (data) {
       final batch = _asMap(data);
-      if (batch != null) _emit(_batchPositionController, batch);
+      if (batch == null) return;
+      final buses = batch['buses'];
+      if (buses is List) {
+        for (final bus in buses) {
+          final position = _asMap(bus);
+          if (position != null) _medidor.registrar(position);
+        }
+      }
+      _emit(_batchPositionController, batch);
     });
     _socket!.on('bus:left', (data) {
       final event = _asMap(data);
@@ -210,7 +227,10 @@ class RealtimeService implements RealtimeRepository {
     });
     _socket!.on('bus:visible', (data) {
       final event = _asMap(data);
-      if (event != null) _emit(_busVisibleController, event);
+      if (event == null) return;
+      final position = _asMap(event['position']);
+      if (position != null) _medidor.registrar(position);
+      _emit(_busVisibleController, event);
     });
     _socket!.on('bus:removed', (data) {
       final event = _asMap(data);

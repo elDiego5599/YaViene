@@ -13,7 +13,8 @@
       "capturedAt": 1767225600000,
       "receivedAt": 1767225600000,
       "sequence": 2,
-      "isGhost": false
+      "isGhost": false,
+      "emittedAt": 1767225600000
     },
     {
       "busId": "BUS-DEF456",
@@ -27,7 +28,8 @@
       "capturedAt": 1767225600000,
       "receivedAt": 1767225600000,
       "sequence": 1,
-      "isGhost": false
+      "isGhost": false,
+      "emittedAt": 1767225600000
     }
   ]
 }

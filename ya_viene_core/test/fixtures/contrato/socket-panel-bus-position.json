@@ -12,5 +12,6 @@
   "sequence": 1,
   "driverPhone": "3990000001",
   "companyId": "EMP-01",
-  "isGhost": false
+  "isGhost": false,
+  "emittedAt": 1767225600000
 }

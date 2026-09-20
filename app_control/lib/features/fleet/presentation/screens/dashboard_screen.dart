@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show enRespaldoProvider;
+import 'package:ya_viene_core/shared/widgets/recuadro_latencia.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/widgets/clock_widget.dart';
@@ -287,6 +288,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: _seccion(6, Stack(
                       children: [
                         const Positioned.fill(child: ControlMap()),
+                        // T7.6: lo que tarda una posición en llegar del bus
+                        // a esta pantalla. Solo en depuración: `kDebugMode`
+                        // lo quita del árbol en release.
+                        if (kDebugMode)
+                          const Positioned(
+                            left: 16,
+                            bottom: 16,
+                            child: RecuadroLatencia(),
+                          ),
                         if (fleet.selectedBus != null)
                           Positioned(
                             right: 16,

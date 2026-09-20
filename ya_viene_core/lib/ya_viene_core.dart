@@ -12,6 +12,9 @@ export 'core/models/route_trajectory.dart';
 export 'core/network/backend_resolver.dart';
 export 'core/network/backend_supervisor.dart';
 
+// --- Observabilidad ---
+export 'core/observability/medidor_latencia.dart';
+
 // --- Providers (capa de estado) ---
 export 'core/providers/app_providers.dart';
 export 'core/providers/map_providers.dart';
