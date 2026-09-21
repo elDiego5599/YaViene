@@ -57,7 +57,11 @@ class LegalScreen extends StatelessWidget {
               Text(
                 'Actualizado el ${doc.updated}',
                 style: AppTextStyles.etiqueta.copyWith(
-                  color: AppColors.textDisabled,
+                  // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre la
+                  // arena y no pasa AA. Se usa `textSecondary`, el mismo
+                  // token con el que el panel arregló sus rótulos en T6.1,
+                  // no un gris nuevo.
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

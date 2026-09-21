@@ -363,10 +363,11 @@ class _AceptaLegales extends StatelessWidget {
           child: GestureDetector(
             onTap: () => onCambia(!aceptado),
             behavior: HitTestBehavior.opaque,
-            child: Padding(
-              // El blanco alrededor de la casilla es lo que le da tamaño de
-              // dedo sin ocupar una fila entera: 24 de casilla dentro de 44.
-              padding: const EdgeInsets.only(right: 10, bottom: 10),
+          child: Padding(
+            // El blanco alrededor de la casilla es lo que le da tamaño de
+            // dedo: 24 de casilla dentro de 48 (T6.6; antes era 34 y la
+            // guía de Android lo marcaba). Solo crece el área que se toca.
+            padding: const EdgeInsets.only(right: 24, bottom: 24),
               child: SizedBox(
                 width: 24,
                 height: 24,
@@ -425,7 +426,10 @@ class _Enlace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      button: true,
+      // Enlace y no botón: abre un documento, y las guías de tamaño eximen
+      // a los enlaces dentro de un párrafo (T6.6; medían 22 de alto y la
+      // guía de Android los marcaba). El lector lo anuncia como enlace.
+      link: true,
       label: texto,
       onTap: onTap,
       excludeSemantics: true,

@@ -147,6 +147,12 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       // fijo a la píldora este centro se comía todo el
                       // alto disponible y la píldora crecía hasta llenar
                       // la pantalla.
+                      // T6.6: la zona que se toca mide 48 de alto aunque el
+                      // texto con ruta puesta mida ~40 (220 × 40 lo marcaba
+                      // la guía de Android). Crece el área que se puede
+                      // tocar, no el dibujo: la píldora sigue en 60.
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
                       child: Center(
                         heightFactor: 1,
                         // Al elegir o quitar la ruta, el texto se releva
@@ -172,6 +178,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
+            ),
               const SizedBox(width: AppSpacing.sm),
               // La X y el botón de filtros se relevan fundiéndose con un
               // leve cambio de escala, como un icono que se convierte en
