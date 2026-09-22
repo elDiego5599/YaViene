@@ -4,6 +4,8 @@
   "routeId": "R-102",
   "placa": "XYZ987",
   "interno": "003",
+  "tipologia": "SENCILLO",
+  "capacidad": 30,
   "driverName": null,
   "visible": false,
   "online": false,
