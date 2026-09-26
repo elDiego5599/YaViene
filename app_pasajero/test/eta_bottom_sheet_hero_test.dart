@@ -223,11 +223,27 @@ void main() {
     await tester.pump();
     expect(find.text('El bus ya está cerca'), findsOneWidget);
 
+    // El icono es el que delata el estado real del latch: mientras el
+    // umbral de rearme sea 1500 m la campana sigue apagada. Un umbral
+    // torcido (p. ej. 500 m) encendería la campana aquí aunque el texto
+    // de la métrica no cambie.
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(
+      find.byIcon(Icons.notifications_off_rounded),
+      findsOneWidget,
+      reason: 'a los 1100 m el botón sigue bloqueado (histéresis)',
+    );
+    expect(find.byIcon(Icons.notifications_active_rounded), findsNothing);
+
     // 1600 m: se alejó más de 1500 m → recién ahí se desbloquea.
     controller.add([busAt(0.014373)]);
     await tester.pump();
     await tester.pump();
     expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget,
+        reason: 'pasados los 1500 m la campana se reactiva');
+    expect(find.byIcon(Icons.notifications_off_rounded), findsNothing);
   });
 
   testWidgets('máximo 2 avisos activos: el tercero muestra el mensaje',

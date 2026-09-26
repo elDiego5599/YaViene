@@ -229,7 +229,7 @@ class _FieldSkeletonState extends State<_FieldSkeleton>
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Row(
                 children: [
-                  Icon(widget.icon, size: 20, color: AppColors.textDisabled),
+                  Icon(widget.icon, size: 20, color: AppColors.textSecondary),
                   const SizedBox(width: AppSpacing.sm),
                   Container(
                     width: 136,

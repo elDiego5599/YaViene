@@ -189,10 +189,11 @@ class SelectionChip extends StatelessWidget {
             vertical: AppSpacing.sm + 2,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.surface,
+            color: isSelected ? AppColors.primaryAccessible : AppColors.surface,
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.divider,
+              color:
+                  isSelected ? AppColors.primaryAccessible : AppColors.divider,
               width: 1.2,
             ),
             boxShadow: isSelected ? AppShadows.soft : null,

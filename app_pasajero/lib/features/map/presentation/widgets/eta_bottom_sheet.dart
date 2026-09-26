@@ -744,7 +744,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           const SizedBox(height: AppSpacing.xs),
           Text("$busLabel · conserva su última posición",
               style: AppTextStyles.etiqueta
-                  .copyWith(color: AppColors.textDisabled)),
+                  .copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.lg),
           Padding(
             padding:
@@ -1009,10 +1009,10 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
   @override
   Widget build(BuildContext context) {
     final backgroundColor = widget.blocked
-        ? AppColors.textDisabled
+        ? AppColors.textSecondary
         : widget.isActive
             ? const Color(0xFF065F46)
-            : AppColors.primary;
+            : AppColors.primaryAccessible;
 
     return Semantics(
       button: true,

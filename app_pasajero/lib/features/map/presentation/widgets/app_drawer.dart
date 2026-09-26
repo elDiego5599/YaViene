@@ -291,7 +291,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: AppSpacing.sm, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary,
+                                      color: AppColors.primaryAccessible,
                                       borderRadius:
                                           BorderRadius.circular(AppRadius.pill),
                                     ),

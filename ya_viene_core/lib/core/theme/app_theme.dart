@@ -420,7 +420,7 @@ abstract class AppTheme {
           color: AppColors.textSecondary,
         ),
         hintStyle: AppTextStyles.cuerpo.copyWith(
-          color: AppColors.textDisabled,
+          color: AppColors.textSecondary,
         ),
       ),
 

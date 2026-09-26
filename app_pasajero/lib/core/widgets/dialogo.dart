@@ -123,7 +123,7 @@ class Dialogo extends StatelessWidget {
                         onPressed: principal.alPulsar,
                         style: FilledButton.styleFrom(
                           textStyle: AppTextStyles.boton,
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: AppColors.primaryAccessible,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppRadius.lg),

@@ -112,7 +112,7 @@ class _Bloque extends StatelessWidget {
                   child: Text(
                     '·',
                     style: AppTextStyles.cuerpo.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.primaryAccessible,
                     ),
                   ),
                 ),

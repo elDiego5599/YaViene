@@ -123,4 +123,34 @@ void main() {
       expect(tema.behavior, SnackBarBehavior.floating);
     });
   });
+
+  group('los botones con letra blanca', () {
+    test('el par de los CTAs verdes y el del bloqueado', () {
+      // El verde de marca a secas da 3,1:1 con blanco y no alcanza: los
+      // CTAs van sobre la variante accesible, y el bloqueado sobre el
+      // mismo gris con el que el panel pinta «Ocultar».
+      esperaAlMenos(Colors.white, AppColors.primaryAccessible, 4.5,
+          'el CTA verde');
+      esperaAlMenos(Colors.white, AppColors.textSecondary, 4.5,
+          'el CTA bloqueado');
+    });
+  });
+
+  group('la pista de los campos', () {
+    test('se lee sobre el relleno de fondo', () {
+      final hint = AppTheme.lightTheme.inputDecorationTheme.hintStyle;
+      expect(hint?.color, isNotNull);
+      esperaAlMenos(hint!.color!, AppColors.background, 4.5, 'la pista');
+    });
+  });
+
+  group('los grises apagados sobre la tinta del drawer', () {
+    test('el gris pálido es el que lee ahí, no el gris de papel', () {
+      // El drawer es fondo oscuro: aquí `textSecondary` bajaría a 3,4:1 y
+      // el que vale es `textDisabled`. Si algún día se «arregla» este
+      // gris por el de papel, esta prueba avisa.
+      esperaAlMenos(
+          AppColors.textDisabled, AppColors.ink, 4.5, '«RUTA ACTIVA»');
+    });
+  });
 }

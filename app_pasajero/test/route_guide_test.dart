@@ -6,6 +6,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/route_selector_sheet.dart';
 
+import 'helpers/contraste.dart';
+
 void main() {
   const company = Company(id: 'EMP-01', name: 'Sobusa');
   const route = RouteInfo(
@@ -128,6 +130,20 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(guide.state.step, MapGuideStep.launchBuses);
     expect(find.text('Ver buses en vivo'), findsOneWidget);
+
+    // Con ruta elegida el CTA se pinta en verde de marca con letra
+    // blanca: el par tiene que resolver a 4,5:1 o el color vuelve a ser
+    // el de marca a secas (3,1:1).
+    final launch = find.ancestor(
+      of: find.text('Ver buses en vivo'),
+      matching: find.byType(ElevatedButton),
+    );
+    expect(launch, findsOneWidget);
+    exigeContraste(
+      contraste(letraDe(tester, launch), fondoDeBoton(tester, launch)),
+      4.5,
+      'el botón «Ver buses en vivo»',
+    );
   });
 
   testWidgets('Saltar guía detiene la guía pero deja el selector abierto',

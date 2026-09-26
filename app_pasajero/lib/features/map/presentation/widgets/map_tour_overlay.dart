@@ -414,7 +414,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       Text(
                         '/${widget.stepCount}',
                         style: AppTextStyles.etiqueta.copyWith(
-                          color: AppColors.textDisabled,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -445,7 +445,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                   onPressed: widget.onPrimary,
                   style: FilledButton.styleFrom(
                     textStyle: AppTextStyles.boton,
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.primaryAccessible,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -460,7 +460,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 child: Text(
                   'Toca el área iluminada para continuar',
                   style: AppTextStyles.etiqueta.copyWith(
-                    color: AppColors.primary,
+                    color: AppColors.primaryAccessible,
                   ),
                 ),
               ),

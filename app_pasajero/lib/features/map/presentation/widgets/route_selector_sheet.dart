@@ -974,7 +974,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       key: widget.launchBusesGuideKey,
       onPressed: action,
       style: ElevatedButton.styleFrom(
-        backgroundColor: listo ? AppColors.primary : AppColors.primaryDeep,
+        backgroundColor:
+            listo ? AppColors.primaryAccessible : AppColors.primaryDeep,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(
@@ -1182,7 +1183,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           trailing: selected
               ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
               : const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textDisabled),
+                  color: AppColors.textSecondary),
           onTap: onTap,
         ),
       ),
@@ -1425,8 +1426,9 @@ class _SelectorTileState extends State<_SelectorTile>
                     ),
                     child: Icon(
                       widget.icon,
-                      color:
-                          isActive ? AppColors.primary : AppColors.textDisabled,
+                      color: isActive
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
                       size: 22,
                     ),
                   ),
@@ -1443,7 +1445,7 @@ class _SelectorTileState extends State<_SelectorTile>
                           style: AppTextStyles.subtitulo.copyWith(
                             color: isActive
                                 ? AppColors.textPrimary
-                                : AppColors.textDisabled,
+                                : AppColors.textSecondary,
                           ),
                         ),
                         if (hint != null || widget.subtitle != null) ...[
@@ -1467,7 +1469,7 @@ class _SelectorTileState extends State<_SelectorTile>
                   const Icon(
                     Icons.chevron_right_rounded,
                     size: 20,
-                    color: AppColors.textDisabled,
+                    color: AppColors.textSecondary,
                   ),
                 ],
               ),

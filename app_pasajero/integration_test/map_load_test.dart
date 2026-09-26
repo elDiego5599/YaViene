@@ -36,6 +36,11 @@ void main() {
     );
     expect(find.text('Iniciar con Google'), findsNothing);
     if (find.text('Ahora no').evaluate().isNotEmpty) {
+      // Desde a3971ac los dos botones de la bienvenida están apagados hasta
+      // marcar la casilla de privacidad/términos: primero se acepta, después
+      // «Ahora no». Sin la casilla el toque es muerto y el mapa nunca abre.
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(find.text('Ahora no'));
     }
 
@@ -71,7 +76,15 @@ void main() {
     // Paso 1: el tile de empresa abre su lista. Antes esta prueba tocaba
     // "Selecciona una empresa" estando todavía en la vista principal: era
     // copy del botón muerto que la hoja tenía antes del rediseño, y hoy
-    // ese texto solo existe dentro de la lista.
+    // ese texto solo existe dentro de la lista. El tile en sí es
+    // `companiesAsync.when`: con la petición todavía en vuelo es un
+    // placeholder sin el texto, así que hay que esperar a que cargue.
+    await _waitUntil(
+      tester,
+      () => find.text('Empresa').evaluate().isNotEmpty,
+      timeout: const Duration(seconds: 20),
+      message: 'no apareció el tile de empresa (¿la petición no cargó?)',
+    );
     await tester.tap(find.text('Empresa'));
     await _waitUntil(
       tester,
@@ -88,13 +101,17 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('Ruta'));
+    // Desde 0ad4ce2 el tile de la lista separa el código del nombre: el
+    // badge dice «B18» y el título es «Tcherassi». El nombre completo
+    // «B18 Tcherassi» solo está en la tarjeta de la vista principal ya
+    // elegida, así que aquí se busca por el título visible.
     await _waitUntil(
       tester,
-      () => find.text('B18 Tcherassi').evaluate().isNotEmpty,
+      () => find.text('Tcherassi').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
       message: 'no cargaron las rutas',
     );
-    await tester.tap(find.text('B18 Tcherassi'));
+    await tester.tap(find.text('Tcherassi'));
     await _waitUntil(
       tester,
       () => find.text('Ruta activa').evaluate().isNotEmpty,

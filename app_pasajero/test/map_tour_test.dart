@@ -7,6 +7,8 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/user_locat
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_tour_overlay.dart';
 
+import 'helpers/contraste.dart';
+
 class _FakeLocation extends StateNotifier<UserLocationState>
     implements UserLocationNotifier {
   _FakeLocation()
@@ -453,7 +455,15 @@ void main() {
         onPrimary: () => primary = true,
       );
 
-      await tester.tap(find.byKey(const ValueKey('guide_primary')));
+      // El CTA de la guía se pinta a mano y su nodo lleva
+      // `excludeSemantics`: ninguna guía de contraste lo alcanza.
+      final boton = find.byKey(const ValueKey('guide_primary'));
+      exigeContraste(
+        contraste(letraDe(tester, boton), fondoDeBoton(tester, boton)),
+        4.5,
+        'el CTA primario de la guía',
+      );
+      await tester.tap(boton);
       expect(primary, isTrue);
       await tester.tap(find.byKey(const ValueKey('guide_skip')));
       expect(skipped, isTrue);

@@ -49,7 +49,7 @@ class MapStylePlaceholder extends StatelessWidget {
                         const Icon(
                           Icons.directions_bus_rounded,
                           size: 44,
-                          color: AppColors.textDisabled,
+                          color: AppColors.textSecondary,
                         ),
                         const SizedBox(height: 12),
                         Text(

@@ -149,7 +149,7 @@ class _SelectAction extends ConsumerWidget {
       style: TextButton.styleFrom(
         textStyle: AppTextStyles.etiqueta,
         foregroundColor: selecting ? AppColors.error : AppColors.primaryDeep,
-        disabledForegroundColor: AppColors.textDisabled,
+        disabledForegroundColor: AppColors.textSecondary,
       ),
       child: Text(selecting ? 'Borrar todas' : 'Seleccionar'),
     );
@@ -287,7 +287,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                         foregroundColor: Colors.white,
                         elevation: 0,
                         disabledBackgroundColor: AppColors.divider,
-                        disabledForegroundColor: AppColors.textDisabled,
+                        disabledForegroundColor: AppColors.textBody,
                         shape: RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(AppRadius.pill),
@@ -469,7 +469,7 @@ class _AlertTile extends StatelessWidget {
             ? Text(
                 'Enviado',
                 style: AppTextStyles.etiqueta.copyWith(
-                  color: AppColors.textDisabled,
+                  color: AppColors.textSecondary,
                 ),
               )
             // Rojo de error para algo que se deshace en un toque desde el
