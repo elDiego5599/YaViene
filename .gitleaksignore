@@ -1,16 +1,34 @@
-# Hallazgos del historial revisados uno por uno (T3.12). Cada huella va con
-# su motivo. Formato: commit:archivo:regla:línea.
+# Hallazgos del historial revisados uno por uno (T3.12 / N-GITLEAKS). Cada
+# huella va con su motivo. Formato: commit:archivo:regla:línea.
 #
-# Hoy los dos ejemplos siguen en los docs, pero en el árbol se silencian en
-# su propia línea con `gitleaks:allow`. Las huellas cubren los commits viejos,
-# que ya no se pueden marcar.
+# Los dos ejemplos siguen en los docs, pero en el árbol se silencian en su
+# propia línea con `gitleaks:allow`; estas huellas cubren los commits en los
+# que el ejemplo se escribió, cuyo snapshot no lleva el marcador.
+#
+# Alcance de la corrida (local ≠ CI): hay tres lecturas distintas del mismo
+# árbol. La acción `secretos` de cada push solo mira el rango del push; el
+# barrido semanal (`secretos.yml`, `fetch-depth: 0`) recorre todas las refs
+# del clone —que nunca trae `refs/original/*`— más el árbol en modo dir; y
+# `gitleaks git .` aquí (local) barre todas las refs de ESTA copia. Las
+# copias pre-reescritura que vivían en `refs/original/*` (huellas 7d64a22…
+# y 6ad2e57…, el mismo par de ejemplos con commit distinto) se sacaron de
+# la copia local con respaldo en
+# `../backup-refs-original-yavienegit-2026-09-26/`: duplicaban historia y
+# hacían que esta corrida local encontrara el ejemplo dos veces.
+#
+# Nota sobre el modo `dir` en local: barre el directorio entero, incluidos
+# los archivos que git ignora a propósito (key.properties,
+# google-services.json, .dart_tool, .claude/worktrees), así que en esta
+# copia marca esos artefactos locales — no es un hallazgo del repositorio.
+# El `dir` de la CI corre sobre un checkout con solo lo rastreado y sale
+# limpio, igual que el `dir` de un clone fresco.
 
 # Motivo: ejemplo de documentación, no un secreto. `CLAVE_ADMIN` es un
-# marcador en un curl de muestra contra localhost (commit 826e3e0, «limita la
-# frecuencia de seguimiento y documenta operaciones»).
+# marcador en un curl de muestra contra localhost (commit 826e3e0, «limita
+# la frecuencia de seguimiento y documenta operaciones»).
 826e3e0624aa21acb753f432e72045a9361c766a:docs/fase-8-rendimiento-observabilidad.md:curl-auth-header:27
 
 # Motivo: ejemplo de documentación, no un secreto.
-# `una-clave-administrativa-local` es un marcador en un curl de muestra contra
-# localhost (commit 1eb4779, «login autenticado del conductor»).
+# `una-clave-administrativa-local` es un marcador en un curl de muestra
+# contra localhost (commit 1eb4779, «login autenticado del conductor»).
 1eb477918f8e768ca536261443eb983aaaf1b4f9:docs/fase-2-seguridad.md:curl-auth-header:53
