@@ -43,7 +43,7 @@ MapGuideCopy guideCopyFor(
         title: 'Aviso ya activado',
         message: 'Este bus ya tiene un aviso activo: te avisaremos cuando '
             'esté cerca.',
-        icon: Icons.notifications_active_rounded,
+        icon: Icons.notifications_active_outlined,
         primaryLabel: 'Continuar',
       );
     }
@@ -52,7 +52,7 @@ MapGuideCopy guideCopyFor(
         title: 'Ya tienes 2 avisos activos',
         message: 'Desactiva uno o espera a que termine para activar otro. '
             'Recuerda no cerrar la aplicación ni salirte de la guía.',
-        icon: Icons.notifications_off_rounded,
+        icon: Icons.notifications_off_outlined,
         primaryLabel: 'Continuar',
       );
     }
@@ -65,7 +65,7 @@ MapGuideCopy guideCopyFor(
         message: 'Ningún bus de esta ruta se acercará a tu punto de espera, '
             'así que el aviso no sonaría. Mueve tu punto o elige otra ruta '
             'cuando termines la guía.',
-        icon: Icons.wrong_location_rounded,
+        icon: Icons.wrong_location_outlined,
         primaryLabel: 'Continuar',
       );
     }
@@ -74,7 +74,7 @@ MapGuideCopy guideCopyFor(
         title: 'Elige otro bus',
         message: 'Este bus no admite un aviso porque no tiene señal o ya está '
             'demasiado cerca. Selecciona otro bus en el mapa.',
-        icon: Icons.swap_horiz_rounded,
+        icon: Icons.swap_horiz_outlined,
         primaryLabel: 'Elegir otro bus',
       );
     }
@@ -89,26 +89,26 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         title: 'Fija tu punto de espera',
         message: 'La app necesita saber desde dónde esperas. Toca el mapa para '
             'poner un punto; también puedes usar el GPS.',
-        icon: Icons.location_on_rounded,
+        icon: Icons.location_on_outlined,
       );
     case MapGuideStep.search:
       return const MapGuideCopy(
         title: 'Empieza aquí',
         message: 'Toca la barra blanca de arriba para buscar una empresa y una '
             'ruta.',
-        icon: Icons.search_rounded,
+        icon: Icons.search_outlined,
       );
     case MapGuideStep.company:
       return const MapGuideCopy(
         title: 'Elige una empresa',
         message: 'Primero selecciona la empresa de transporte que buscas.',
-        icon: Icons.business_rounded,
+        icon: Icons.business_outlined,
       );
     case MapGuideStep.route:
       return const MapGuideCopy(
         title: 'Elige tu ruta',
         message: 'Después selecciona la ruta y revisa sus terminales.',
-        icon: Icons.alt_route_rounded,
+        icon: Icons.alt_route_outlined,
       );
     case MapGuideStep.launchBuses:
       return const MapGuideCopy(
@@ -116,7 +116,7 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         message:
             'Cuando la ruta esté lista, pulsa este botón para ver sus buses '
             'en el mapa.',
-        icon: Icons.play_arrow_rounded,
+        icon: Icons.play_arrow_outlined,
       );
     case MapGuideStep.buses:
       return const MapGuideCopy(
@@ -126,7 +126,7 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         message:
             'Estos iconos representan los buses en vivo. Toca uno para ver '
             'a qué distancia está.',
-        icon: Icons.directions_bus_rounded,
+        icon: Icons.directions_bus_outlined,
       );
     case MapGuideStep.distance:
       return const MapGuideCopy(
@@ -135,7 +135,7 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
             'Aquí verás a qué distancia está el bus de tu punto de espera.',
         // El paso se llama "Mira la distancia" y el texto habla de metros:
         // el cronómetro que había aquí prometía minutos.
-        icon: Icons.route_rounded,
+        icon: Icons.route_outlined,
         primaryLabel: 'Continuar',
       );
     case MapGuideStep.alert:
@@ -145,7 +145,7 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         // ve el aviso del sistema no necesita que le digan qué sistema es.
         message: 'Pulsa este botón para recibir una notificación cuando el bus '
             'esté cerca. Si el teléfono te pide permiso, elige Permitir.',
-        icon: Icons.notifications_active_rounded,
+        icon: Icons.notifications_active_outlined,
       );
     case MapGuideStep.background:
       return const MapGuideCopy(
@@ -153,7 +153,7 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         message: 'Puedes cambiar de aplicación y hacer otra cosa: Ya Viene '
             'seguirá pendiente del bus. Lo único que lo corta es cerrar la '
             'app del todo.',
-        icon: Icons.smartphone_rounded,
+        icon: Icons.smartphone_outlined,
         primaryLabel: 'Finalizar guía',
       );
   }

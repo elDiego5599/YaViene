@@ -65,7 +65,7 @@ void main() {
       objetivo: const Rect.fromLTWH(16, 60, 358, 60),
       titulo: 'Elige tu ruta',
       mensaje: 'Toca aquí para buscar la empresa y la ruta que esperas.',
-      icono: Icons.search_rounded,
+      icono: Icons.search_outlined,
       paso: 2,
     );
     await coincideConOro(tester, 'guia_arriba');
@@ -78,7 +78,7 @@ void main() {
       objetivo: const Rect.fromLTWH(16, 620, 358, 160),
       titulo: 'Avísame cuando esté cerca',
       mensaje: 'Te llega una notificación cuando el bus esté a 1 km.',
-      icono: Icons.notifications_active_rounded,
+      icono: Icons.notifications_active_outlined,
       paso: 6,
       etiquetaPrimaria: 'Entendido',
       conAtras: true,

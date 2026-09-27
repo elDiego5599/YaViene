@@ -62,7 +62,7 @@ class NotificationsScreen extends ConsumerWidget {
           // rótulo puesto—, es un icono a secas: sin esto se anuncia
           // «botón» y nada más.
           icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
+            Icons.arrow_back_ios_new_outlined,
             size: 20,
             semanticLabel: 'Volver',
           ),
@@ -512,8 +512,8 @@ class _AlertTile extends StatelessWidget {
           child: ExcludeSemantics(
             child: Icon(
               sent
-                  ? Icons.notifications_active_rounded
-                  : Icons.directions_bus_filled_rounded,
+                  ? Icons.notifications_active_outlined
+                  : Icons.directions_bus_filled_outlined,
               // El glifo va en la variante accesible: sobre su propio
               // tinte, el color de relleno se queda en 2,8:1 y la norma
               // pide 3:1 hasta para un icono.
@@ -598,7 +598,7 @@ class _EmptyState extends StatelessWidget {
               // La campana repite en dibujo el título que va debajo.
               child: const ExcludeSemantics(
                 child: Icon(
-                  Icons.notifications_none_rounded,
+                  Icons.notifications_none_outlined,
                   color: AppColors.primary,
                   size: 36,
                 ),

@@ -53,17 +53,21 @@ class Dialogo extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360),
-          // Elevación, sombra, radio y filo son los de la tarjeta de la guía
+          // Bandeja, núcleo, radio y filo son los de la tarjeta de la guía
           // (`map_tour_overlay.dart`): las dos flotan sobre el mismo velo.
-          child: Material(
-            color: Colors.white,
-            elevation: 16,
-            shadowColor: const Color(0x6614274E),
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            clipBehavior: Clip.antiAlias,
+          child: Container(
+            key: const ValueKey('dialogo_ventana'),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0x1AFFFFFF),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: const Color(0x24FFFFFF)),
+              boxShadow: AppShadows.floating,
+            ),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.card),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: AppColors.hairline),
               ),
               child: SingleChildScrollView(

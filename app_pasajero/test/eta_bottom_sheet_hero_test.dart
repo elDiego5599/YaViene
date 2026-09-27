@@ -229,11 +229,11 @@ void main() {
     // de la métrica no cambie.
     await tester.pump(const Duration(milliseconds: 400));
     expect(
-      find.byIcon(Icons.notifications_off_rounded),
+      find.byIcon(Icons.notifications_off_outlined),
       findsOneWidget,
       reason: 'a los 1100 m el botón sigue bloqueado (histéresis)',
     );
-    expect(find.byIcon(Icons.notifications_active_rounded), findsNothing);
+    expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
 
     // 1600 m: se alejó más de 1500 m → recién ahí se desbloquea.
     controller.add([busAt(0.014373)]);
@@ -241,9 +241,9 @@ void main() {
     await tester.pump();
     expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget,
+    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget,
         reason: 'pasados los 1500 m la campana se reactiva');
-    expect(find.byIcon(Icons.notifications_off_rounded), findsNothing);
+    expect(find.byIcon(Icons.notifications_off_outlined), findsNothing);
   });
 
   testWidgets('máximo 2 avisos activos: el tercero muestra el mensaje',

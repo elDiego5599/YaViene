@@ -107,7 +107,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                             : Colors.transparent,
                       ),
                       child: const Icon(
-                        Icons.menu_rounded,
+                        Icons.menu_outlined,
                         color: AppColors.primaryDeep,
                         size: 22,
                       ),
@@ -347,7 +347,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       key: const ValueKey('pill-quitar-ruta'),
       iconColor: AppColors.textSecondary,
       filled: true,
-      icon: Icons.close_rounded,
+      icon: Icons.close_outlined,
       semanticLabel: 'Quitar ruta activa',
       onTap: () {
         HapticFeedback.mediumImpact();
@@ -388,7 +388,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     return _buildActionButton(
       key: const ValueKey('pill-filtro'),
       iconColor: AppColors.primaryDeep,
-      icon: Icons.tune_rounded,
+      icon: Icons.tune_outlined,
       semanticLabel: 'Cambiar ruta',
       onTap: () {
         HapticFeedback.lightImpact();

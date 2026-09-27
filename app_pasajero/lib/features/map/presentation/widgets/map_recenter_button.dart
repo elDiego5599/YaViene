@@ -67,7 +67,7 @@ class MapRecenterButton extends ConsumerWidget {
                       ref.read(mapRecenterRequestProvider.notifier).recenter(),
                   child: const Center(
                     child: Icon(
-                      Icons.my_location_rounded,
+                      Icons.my_location_outlined,
                       size: 22,
                       color: AppColors.primaryAccessible,
                     ),

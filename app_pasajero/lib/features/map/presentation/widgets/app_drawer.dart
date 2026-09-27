@@ -249,7 +249,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                   onPressed: () => Navigator.pop(context),
                                   padding: EdgeInsets.zero,
                                   icon: Icon(
-                                    Icons.close_rounded,
+                                    Icons.close_outlined,
                                     color: AppColors.textOnInk
                                         .withValues(alpha: 0.75),
                                     size: 20,
@@ -271,7 +271,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                       _staggered(
                         _grupo([
                           DrawerItem(
-                            icon: Icons.notifications_none_rounded,
+                            icon: Icons.notifications_none_outlined,
                             title: 'Avisos',
                             // La pastilla verde es un número sin frase: dicho
                             // solo, "2" detrás de "Avisos" no dice de qué.
@@ -282,7 +282,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                     : 'Avisos, ${activeAlerts.length} activos',
                             trailing: activeAlerts.isEmpty
                                 ? Icon(
-                                    Icons.chevron_right_rounded,
+                                    Icons.chevron_right_outlined,
                                     color: AppColors.textOnInk
                                         .withValues(alpha: 0.3),
                                     size: 20,
@@ -310,7 +310,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                             },
                           ),
                           DrawerItem(
-                            icon: Icons.help_outline_rounded,
+                            icon: Icons.help_outline_outlined,
                             title: 'Ver guía de uso',
                             onTap: () async {
                               // F8: reiniciar la guía borra la ruta/bus activos
@@ -325,7 +325,7 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                                 final confirmed = await mostrarDialogo<bool>(
                                   context,
                                   (dialogContext) => Dialogo(
-                                    icono: Icons.restart_alt_rounded,
+                                    icono: Icons.restart_alt_outlined,
                                     titulo: '¿Reiniciar la guía?',
                                     mensaje:
                                         'Vas a perder la ruta y el bus que '
@@ -503,7 +503,7 @@ class ActiveRouteCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'RUTA ACTIVA',
+              'Ruta activa',
               style: AppTextStyles.etiqueta.copyWith(
                 letterSpacing: 1.2,
                 color: AppColors.textDisabled,

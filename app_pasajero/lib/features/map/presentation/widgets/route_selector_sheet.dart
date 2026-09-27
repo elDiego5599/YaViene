@@ -134,6 +134,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     }
     return _llegada!;
   }
+
   double _altoTarjeta = 0;
 
   /// La salida ya empezó: el diálogo se cierra al terminar la animación y
@@ -612,8 +613,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           // «mapa.» solo en la segunda.
           Text(
             'Dos pasos y ves los buses moviéndose.',
-            style: AppTextStyles.cuerpo
-                .copyWith(color: AppColors.textSecondary),
+            style:
+                AppTextStyles.cuerpo.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 22),
           // Los dos pasos van colgados de una misma línea, con su nodo
@@ -639,7 +640,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 dicho: selectedCompany == null
                     ? 'Empresa. Con cuál viajas'
                     : 'Empresa: ${selectedCompany.name}',
-                icon: Icons.business_rounded,
+                icon: Icons.business_outlined,
                 isActive: selectedCompany != null,
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -669,7 +670,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                     ),
                     TextButton.icon(
                       onPressed: () => ref.invalidate(companiesProvider),
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      icon: const Icon(Icons.refresh_outlined, size: 16),
                       label: const Text('Reintentar'),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
@@ -691,7 +692,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               title: selectedRoute?.name ?? 'Ruta',
               subtitle: _routeSubtitle(selectedRoute) ??
                   (selectedRoute != null ? null : 'Cuál esperas'),
-              icon: Icons.alt_route_rounded,
+              icon: Icons.alt_route_outlined,
               isActive: selectedRoute != null,
               dicho: selectedRoute == null
                   ? 'Ruta. Cuál esperas'
@@ -823,7 +824,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           else
             ...companies.map((company) {
               return _compactTile(
-                icon: Icons.business_rounded,
+                icon: Icons.business_outlined,
                 iconColor: Colors.white,
                 iconBackground: _companyColor(company.id),
                 // V2: insignia de iniciales con color determinístico — se
@@ -895,27 +896,27 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               // exactamente lo que el pasajero busca en el parabrisas.
               final codigo = _routeCode(route.name);
               return _compactTile(
-                  icon: Icons.alt_route_rounded,
-                  iconColor: AppColors.primary,
-                  iconBackground: AppColors.primaryTint,
-                  badgeInitials: codigo?.code,
-                  // Verde oscuro sobre el verde claro de la insignia: la
-                  // empresa lleva tinta sólida y letra blanca, la ruta va
-                  // en voz más baja. Son dos niveles, no dos etiquetas.
-                  badgeColor: AppColors.primaryAccessible,
-                  title: codigo?.rest ?? route.name,
-                  subtitle: _routeSubtitle(route) ?? 'Tiempo real',
-                  dicho: '${route.name}${_terminalesDichos(route)}',
-                  selected: selectedRoute?.id == route.id,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    ref.read(selectedRouteProvider.notifier).select(route);
-                    ref
-                        .read(mapGuideProvider.notifier)
-                        .complete(MapGuideStep.route);
-                    _irA(_RouteView.main);
-                  },
-                );
+                icon: Icons.alt_route_outlined,
+                iconColor: AppColors.primary,
+                iconBackground: AppColors.primaryTint,
+                badgeInitials: codigo?.code,
+                // Verde oscuro sobre el verde claro de la insignia: la
+                // empresa lleva tinta sólida y letra blanca, la ruta va
+                // en voz más baja. Son dos niveles, no dos etiquetas.
+                badgeColor: AppColors.primaryAccessible,
+                title: codigo?.rest ?? route.name,
+                subtitle: _routeSubtitle(route) ?? 'Tiempo real',
+                dicho: '${route.name}${_terminalesDichos(route)}',
+                selected: selectedRoute?.id == route.id,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  ref.read(selectedRouteProvider.notifier).select(route);
+                  ref
+                      .read(mapGuideProvider.notifier)
+                      .complete(MapGuideStep.route);
+                  _irA(_RouteView.main);
+                },
+              );
             }),
         ],
       ),
@@ -993,6 +994,23 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               style: AppTextStyles.boton.copyWith(color: Colors.white),
             ),
           ),
+          // Botón-en-botón: la flecha en su círculo propio, como los
+          // primarios de la landing. Los tres rótulos avanzan (elegir /
+          // ver), así que la flecha vale en los tres.
+          const SizedBox(width: 10),
+          Container(
+            width: 30,
+            height: 30,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0x2EFFFFFF),
+            ),
+            child: const Icon(
+              Icons.arrow_forward_outlined,
+              color: Colors.white,
+              size: 17,
+            ),
+          ),
         ],
       ),
     );
@@ -1064,7 +1082,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 const SizedBox(height: 8),
                 TextButton.icon(
                   onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  icon: const Icon(Icons.refresh_outlined, size: 18),
                   label: const Text('Reintentar'),
                 ),
               ],
@@ -1084,7 +1102,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             // `tooltip` no basta: viaja en su propio campo, aparte del
             // rótulo, y no todos los lectores lo dicen.
             icon: const Icon(
-              Icons.arrow_back_rounded,
+              Icons.arrow_back_outlined,
               color: AppColors.primaryDeep,
               semanticLabel: 'Volver',
             ),
@@ -1182,7 +1200,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 ),
           trailing: selected
               ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
-              : const Icon(Icons.chevron_right_rounded,
+              : const Icon(Icons.chevron_right_outlined,
                   color: AppColors.textSecondary),
           onTap: onTap,
         ),
@@ -1467,7 +1485,7 @@ class _SelectorTileState extends State<_SelectorTile>
                     ),
                   ),
                   const Icon(
-                    Icons.chevron_right_rounded,
+                    Icons.chevron_right_outlined,
                     size: 20,
                     color: AppColors.textSecondary,
                   ),
@@ -1525,7 +1543,8 @@ class _StepRail extends StatelessWidget {
               ),
             ),
             child: done
-                ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                ? const Icon(Icons.check_outlined,
+                    size: 13, color: Colors.white)
                 : current
                     ? Center(
                         child: Container(

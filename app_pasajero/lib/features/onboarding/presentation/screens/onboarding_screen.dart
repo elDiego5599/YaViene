@@ -95,14 +95,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
                               // Misma superficie que las hojas del mapa:
                               // arena. La bienvenida va justo antes del mapa
-                              // y el salto de blanco a arena se veía.
-                              decoration: const BoxDecoration(
+                              // y el salto de blanco a arena se veía. Sin
+                              // `const` en la decoración: la sombra del
+                              // sistema es `final` (los hijos sí van const).
+                              decoration: BoxDecoration(
                                 // El pliegue por donde la hoja se separa de
                                 // la noche recoge la luz: blanco cálido que
                                 // cae a arena en el primer quinto. Con el
                                 // relleno plano, ese borde era una línea
                                 // muerta y la hoja parecía pegada encima.
-                                gradient: LinearGradient(
+                                gradient: const LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
@@ -111,17 +113,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   ],
                                   stops: [0.0, 0.20],
                                 ),
-                                borderRadius: BorderRadius.only(
+                                borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(AppRadius.sheet),
                                   topRight: Radius.circular(AppRadius.sheet),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0x3305080F),
-                                    blurRadius: 44,
-                                    offset: Offset(0, -16),
-                                  ),
-                                ],
+                                // Sombra del sistema (tinta al 8 %/4 %) en vez
+                                // del negro al 20 %: el labio flota igual sin
+                                // el pegote oscuro sobre la arena.
+                                boxShadow: AppShadows.floating,
                               ),
                               child: SafeArea(
                                 top: false,
@@ -155,8 +154,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     // se leen como un temblor.
                                     entra(
                                       const _BenefitRow(
-                                        icon:
-                                            Icons.directions_bus_filled_rounded,
+                                        icon: Icons
+                                            .directions_bus_filled_outlined,
                                         title: 'Buses en vivo',
                                         detail: 'Ves dónde va el tuyo, no '
                                             'dónde debería ir',
@@ -172,7 +171,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         // minutos. «Cuánto falta» se lee como
                                         // tiempo y prometía justo lo que la
                                         // app no calcula.
-                                        icon: Icons.route_rounded,
+                                        icon: Icons.route_outlined,
                                         title: 'A qué distancia viene',
                                         detail: 'Calculado con la posición '
                                             'real del bus',
@@ -184,7 +183,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     entra(
                                       const _BenefitRow(
                                         icon:
-                                            Icons.notifications_active_rounded,
+                                            Icons.notifications_active_outlined,
                                         title: 'Aviso antes de que llegue',
                                         detail: 'Suena cuando se acerca a tu '
                                             'punto de espera',

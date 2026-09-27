@@ -47,7 +47,7 @@ class MapStylePlaceholder extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.directions_bus_rounded,
+                          Icons.directions_bus_outlined,
                           size: 44,
                           color: AppColors.textSecondary,
                         ),
@@ -104,7 +104,7 @@ class MapStyleFailedBanner extends StatelessWidget {
                 // La nube tachada es la frase dibujada: dicha aparte no
                 // añade nada a «No se pudo cargar el mapa».
                 const ExcludeSemantics(
-                  child: Icon(Icons.cloud_off_rounded, color: AppColors.coral),
+                  child: Icon(Icons.cloud_off_outlined, color: AppColors.coral),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

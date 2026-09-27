@@ -76,7 +76,7 @@ void main() {
       mostrarDialogo<bool>(
         ctx,
         (d) => Dialogo(
-          icono: Icons.restart_alt_rounded,
+          icono: Icons.restart_alt_outlined,
           titulo: '¿Reiniciar la guía?',
           mensaje: 'Vas a perder la ruta.',
           delicado: false,
@@ -283,7 +283,7 @@ void main() {
                 target: const Rect.fromLTWH(160, 260, 100, 64),
                 title: 'Empieza aquí',
                 message: 'Toca la zona iluminada para continuar.',
-                icon: Icons.search_rounded,
+                icon: Icons.search_outlined,
                 stepIndex: 1,
                 stepCount: 8,
                 onSkip: () {},
@@ -365,12 +365,12 @@ void main() {
 
     // Los rótulos apagados del drawer van sobre la tinta: ahí el gris
     // pálido lee (y alguien que lo cambie a gris de papel la rompe).
-    final rutaActiva = find.text('RUTA ACTIVA');
+    final rutaActiva = find.text('Ruta activa');
     expect(rutaActiva, findsOneWidget);
     exigeContraste(
       contraste(letraDe(tester, rutaActiva), AppColors.ink),
       4.5,
-      '«RUTA ACTIVA» sobre la tinta',
+      '«Ruta activa» sobre la tinta',
     );
     final terminal = find.text('Mallorquín');
     expect(terminal, findsOneWidget);

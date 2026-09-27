@@ -54,13 +54,13 @@ void main() {
     expect(opacidad(tester), 1);
     expect(container.read(mapRecenterRequestProvider), 0);
 
-    await tester.tap(find.byIcon(Icons.my_location_rounded));
+    await tester.tap(find.byIcon(Icons.my_location_outlined));
     await tester.pump();
     expect(container.read(mapRecenterRequestProvider), 1);
 
     // Dos toques seguidos son dos viajes: entre uno y otro el usuario pudo
     // haber arrastrado el mapa, así que el contador tiene que avanzar.
-    await tester.tap(find.byIcon(Icons.my_location_rounded));
+    await tester.tap(find.byIcon(Icons.my_location_outlined));
     await tester.pump();
     expect(container.read(mapRecenterRequestProvider), 2);
   });
@@ -76,7 +76,7 @@ void main() {
     await pump(tester, container);
     expect(opacidad(tester), 0);
 
-    await tester.tap(find.byIcon(Icons.my_location_rounded),
+    await tester.tap(find.byIcon(Icons.my_location_outlined),
         warnIfMissed: false);
     await tester.pump();
     expect(container.read(mapRecenterRequestProvider), 0);

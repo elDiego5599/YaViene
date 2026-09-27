@@ -18,7 +18,7 @@ void main() {
     return () => mostrarDialogo<bool>(
           ctx,
           (d) => Dialogo(
-            icono: Icons.restart_alt_rounded,
+            icono: Icons.restart_alt_outlined,
             titulo: '¿Reiniciar la guía?',
             mensaje: 'Vas a perder la ruta.',
             delicado: true,
@@ -43,11 +43,11 @@ void main() {
     final secundaria = tester.getRect(find.text('Cancelar'));
     expect(principal.center.dy, lessThan(secundaria.center.dy));
     final boton = tester.getRect(find.byType(FilledButton));
-    final ventana = tester.getRect(find
-        .descendant(of: find.byType(Dialogo), matching: find.byType(Material))
-        .first);
-    // 20 de relleno a cada lado y el filo de 1.
-    expect(boton.width, closeTo(ventana.width - 40 - 2, 1));
+    // La ventana es la bandeja (antes se buscaba el Material, que ya no
+    // existe): 6 de bandeja + 20 de relleno a cada lado y los dos filos
+    // de 1 (bandeja y núcleo).
+    final ventana = tester.getRect(find.byKey(const ValueKey('dialogo_ventana')));
+    expect(boton.width, closeTo(ventana.width - 12 - 40 - 4, 1));
 
     await tester.tap(find.text('Reiniciar guía'));
     await tester.pumpAndSettle();

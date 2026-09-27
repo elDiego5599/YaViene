@@ -139,8 +139,14 @@ void main() {
       matching: find.byType(ElevatedButton),
     );
     expect(launch, findsOneWidget);
+    // La letra es el texto, no el icono: la flecha en su círculo pinta su
+    // propio RichText y el helper espera uno solo.
+    final launchTexto = find.descendant(
+      of: launch,
+      matching: find.text('Ver buses en vivo'),
+    );
     exigeContraste(
-      contraste(letraDe(tester, launch), fondoDeBoton(tester, launch)),
+      contraste(letraDe(tester, launchTexto), fondoDeBoton(tester, launch)),
       4.5,
       'el botón «Ver buses en vivo»',
     );

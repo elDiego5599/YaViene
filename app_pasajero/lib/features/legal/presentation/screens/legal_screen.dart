@@ -33,7 +33,7 @@ class LegalScreen extends StatelessWidget {
         ),
         leading: IconButton(
           icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
+            Icons.arrow_back_ios_new_outlined,
             size: 20,
             semanticLabel: 'Volver',
           ),

@@ -547,8 +547,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                             ],
                           ),
                         ),
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(
+                        transitionBuilder: (child, animation) => FadeTransition(
                           opacity: animation,
                           child: SlideTransition(
                             position: Tween<Offset>(
@@ -597,13 +596,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // mientras NO hay pin, o sea desaparecía justo cuando se volvía
       // cierta. Vive en la píldora de estado, junto al pin.
       subtitle = 'Ahí ponemos tu punto de espera y medimos desde él';
-      icon = Icons.touch_app_rounded;
+      icon = Icons.touch_app_outlined;
     } else if (route == null) {
       stateKey = 'empty-no-route';
       title = 'Escoge empresa y ruta';
       subtitle = 'Para ver los buses, toca la barra de arriba y elige '
           'la empresa y su ruta';
-      icon = Icons.route_rounded;
+      icon = Icons.route_outlined;
     } else if (buses.isEmpty && routeTooFar) {
       // El caso más confuso de todos: el mapa está vacío no porque no haya
       // buses, sino porque la ruta entera pasa lejos. Decirlo evita que el
@@ -613,18 +612,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       subtitle = 'Lo más que se acerca su recorrido son '
           '${kmLabel(routeDistance)} de tu punto. '
           'Mueve tu punto de espera o elige otra ruta';
-      icon = Icons.wrong_location_rounded;
+      icon = Icons.wrong_location_outlined;
     } else if (buses.isEmpty) {
       stateKey = 'empty-no-buses';
       title = 'No hay buses en el mapa';
       subtitle =
           'Cuando un bus de esta ruta transmita posición, aparecerá aquí';
-      icon = Icons.directions_bus_rounded;
+      icon = Icons.directions_bus_outlined;
     } else {
       stateKey = 'empty-pick-bus';
       title = 'Toca un bus en el mapa';
       subtitle = 'Selecciona un bus para darle seguimiento';
-      icon = Icons.touch_app_rounded;
+      icon = Icons.touch_app_outlined;
     }
 
     return KeyedSubtree(
@@ -701,8 +700,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // vuelve a este bus, el número es el del pin anterior: decir "de ti"
     // ahí confundía, porque parece la distancia al pin nuevo. Menos de un
     // metro de diferencia es el mismo pin.
-    final ancla =
-        ref.read(proximityAlertsProvider.notifier).anchorFor(busId);
+    final ancla = ref.read(proximityAlertsProvider.notifier).anchorFor(busId);
     final desdePinAnterior = isActive &&
         ancla != null &&
         (!locationState.hasPosition ||
@@ -736,7 +734,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       return Column(
         children: [
           const SizedBox(height: 10),
-          const Icon(Icons.wifi_off_rounded, color: AppColors.coral, size: 56),
+          const Icon(Icons.wifi_off_outlined, color: AppColors.coral, size: 56),
           const SizedBox(height: 10),
           Text(staleLabel,
               style:
@@ -1043,8 +1041,8 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
           scale: _isPressed ? 0.96 : 1,
           duration: AppMotion.instante,
           // V6: el rebote se reserva para el CTA principal de la app — el
-          // resto de los botones se queda con easeOutCubic.
-          curve: Curves.easeOutBack,
+          // resto de los botones se queda con la entrada enfatizada.
+          curve: AppMotion.curvaEntrada,
           child: AnimatedContainer(
             duration: AppMotion.normal,
             curve: AppMotion.curvaEntrada,
@@ -1069,14 +1067,26 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
                 key: ValueKey('${widget.isActive}-${widget.blocked}'),
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    widget.blocked
-                        ? Icons.notifications_off_rounded
-                        : widget.isActive
-                            ? Icons.check_circle_rounded
-                            : Icons.notifications_active_rounded,
-                    color: Colors.white,
-                    size: 22,
+                  // Botón-en-botón: el icono vive en su propio círculo
+                  // blanco translúcido, a ras del texto —igual que los
+                  // primarios de la landing. El botón no se mueve; el
+                  // círculo es lo que se lee como control.
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x2EFFFFFF),
+                    ),
+                    child: Icon(
+                      widget.blocked
+                          ? Icons.notifications_off_outlined
+                          : widget.isActive
+                              ? Icons.check_circle_rounded
+                              : Icons.notifications_active_outlined,
+                      color: Colors.white,
+                      size: 17,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Flexible(
