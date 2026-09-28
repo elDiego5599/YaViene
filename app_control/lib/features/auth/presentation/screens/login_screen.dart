@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -54,6 +57,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// equipo baja bajo el formulario.
   static const _anchoPartido = 760.0;
 
+  /// Con la letra del sistema por encima de 1,3× el texto del panel ya no
+  /// cabe antes de la curva sin partirse palabra por palabra: la tarjeta se
+  /// apila como en una ventana angosta.
+  static const _escalaPartida = 1.3;
+
   @override
   void dispose() {
     _usernameController.dispose();
@@ -93,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 940),
+            constraints: const BoxConstraints(maxWidth: 1040),
             // La tarjeta entra subiendo 16 pt mientras aparece. Quien pidió
             // menos movimiento al sistema la ve ya puesta.
             child: TweenAnimationBuilder<double>(
@@ -142,7 +150,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           color: AppColors.surface,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth < _anchoPartido) {
+              final partido =
+                  constraints.maxWidth >= _anchoPartido &&
+                  MediaQuery.textScalerOf(context).scale(1) <= _escalaPartida;
+              if (!partido) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -150,33 +161,69 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       padding: const EdgeInsets.fromLTRB(36, 40, 36, 36),
                       child: _formulario(),
                     ),
-                    _PanelEquipo(curva: 0, onEscribir: _escribirAlEquipo),
+                    CustomPaint(
+                      key: const ValueKey('fondo-equipo'),
+                      painter: const _FondoEquipoPintor(partido: false),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(36, 40, 36, 44),
+                        child: _PanelEquipo(onEscribir: _escribirAlEquipo),
+                      ),
+                    ),
                   ],
                 );
               }
+              // El texto del panel no pasa del 40 % de la tarjeta: a la
+              // altura del botón y del número, que es donde el filo ya se
+              // metió, sigue quedando aire antes de la curva
+              // (login_screen_test.dart lo mide en cada tamaño).
+              final anchoTexto = math.min(
+                constraints.maxWidth * 0.40 - 52,
+                340.0,
+              );
               // Las dos mitades miden lo que la más alta; nunca menos de
-              // 560, que es lo que la tarjeta pide para respirar.
+              // 600, que con 1040 de ancho es la proporción de la imagen de
+              // referencia (≈ 0,6).
               return IntrinsicHeight(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 560),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        flex: 11,
-                        child: _PanelEquipo(
-                          curva: 64,
-                          onEscribir: _escribirAlEquipo,
+                  constraints: const BoxConstraints(minHeight: 600),
+                  child: CustomPaint(
+                    key: const ValueKey('fondo-equipo'),
+                    painter: const _FondoEquipoPintor(partido: true),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 56 % para el lado del equipo: el filo arranca
+                        // arriba en el 52 %, y el formulario empieza
+                        // después, sin que la curva lo toque.
+                        Expanded(
+                          flex: 56,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(52, 56, 0, 56),
+                            // Un poco por encima del centro: abajo el filo
+                            // se mete más y el texto necesita el ancho de
+                            // arriba.
+                            child: Align(
+                              alignment: const Alignment(-1, -0.15),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: anchoTexto,
+                                ),
+                                child: _PanelEquipo(
+                                  onEscribir: _escribirAlEquipo,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 13,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(40, 48, 56, 48),
-                          child: Center(child: _formulario()),
+                        Expanded(
+                          flex: 44,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 48, 56, 48),
+                            child: Center(child: _formulario()),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -304,13 +351,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           height: 54,
           child: FilledButton(
             onPressed: auth.loading ? null : _submit,
-            // Tinta, como el panel de al lado: la tarjeta se lee con dos
-            // colores y el verde queda para lo que significa en el panel,
-            // un bus transmitiendo.
+            // El azul con que arranca el degradado de al lado, no la tinta
+            // #0B1628, que el dueño vio muy oscura: la tarjeta se lee en un
+            // solo azul. El blanco encima queda en 12,7:1.
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.navy,
+              backgroundColor: FondoEquipo.azul,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.navy.withValues(alpha: 0.5),
+              disabledBackgroundColor: FondoEquipo.azul.withValues(alpha: 0.5),
               shape: const StadiumBorder(),
               textStyle: AppType.ui(
                 fontSize: 12,
@@ -354,110 +401,79 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       border: capsula,
       enabledBorder: capsula,
       focusedBorder: capsula.copyWith(
-        borderSide: const BorderSide(color: AppColors.navy, width: 1.4),
+        borderSide: const BorderSide(color: FondoEquipo.azul, width: 1.4),
       ),
     );
   }
 }
 
-/// La mitad de tinta: para quien no puede entrar. [curva] es cuánto se mete
-/// el filo derecho al bajar; 0 cuando el panel va debajo del formulario.
+/// Lo que va sobre el degradado: para quien no puede entrar.
 class _PanelEquipo extends StatelessWidget {
-  const _PanelEquipo({required this.curva, required this.onEscribir});
+  const _PanelEquipo({required this.onEscribir});
 
-  final double curva;
   final VoidCallback onEscribir;
 
   @override
   Widget build(BuildContext context) {
-    final contenido = DecoratedBox(
-      // El color va aparte del resplandor: en una misma BoxDecoration el
-      // degradado tapa el color, y la tinta se volvería transparente.
-      decoration: const BoxDecoration(color: AppColors.navy),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          // Un resplandor verde abajo a la izquierda, casi imperceptible: la
-          // marca asoma sin pintar la tinta de verde.
-          gradient: RadialGradient(
-            center: const Alignment(-1, 1),
-            radius: 1.2,
-            colors: [
-              AppColors.online.withValues(alpha: 0.22),
-              AppColors.navy.withValues(alpha: 0),
-            ],
+    // Blanco casi entero y no a media opacidad: el degradado llega al
+    // verde de la marca, y un gris claro encima ya no daría 4,5:1
+    // (login_screen_test.dart mide cada texto contra su color de fondo).
+    return Column(
+      key: const ValueKey('panel-equipo'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
           ),
-        ),
-        child: CustomPaint(
-          painter: const _DotGridPainter(),
-          child: Padding(
-            // El filo curvo se come hasta [curva] pt a la derecha: el texto
-            // se aparta eso más su margen.
-            padding: EdgeInsets.fromLTRB(44, 48, 44 + curva, 48),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Text(
-                    'SOPORTE',
-                    style: AppType.ui(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.4,
-                      color: Colors.white.withValues(alpha: 0.82),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  '¿Olvidaste tu contraseña?',
-                  style: AppType.ui(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                    height: 1.15,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Nuestro equipo restablece el acceso de tu empresa. '
-                  'Escríbenos y lo resolvemos contigo.',
-                  style: AppType.ui(
-                    fontSize: 14,
-                    height: 1.55,
-                    color: Colors.white.withValues(alpha: 0.74),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                _BotonEquipo(onPressed: onEscribir),
-                const SizedBox(height: 16),
-                Text(
-                  'WhatsApp ${LoginScreen.telefonoEquipo}',
-                  style: AppType.mono(
-                    fontSize: 12,
-                    letterSpacing: 0.4,
-                    color: Colors.white.withValues(alpha: 0.62),
-                  ),
-                ),
-              ],
+          child: Text(
+            'SOPORTE',
+            style: AppType.ui(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2.4,
+              color: Colors.white.withValues(alpha: 0.92),
             ),
           ),
         ),
-      ),
+        const SizedBox(height: 22),
+        Text(
+          '¿Olvidaste tu contraseña?',
+          style: AppType.ui(
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            height: 1.15,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Nuestro equipo restablece el acceso de tu empresa. '
+          'Escríbenos y lo resolvemos contigo.',
+          style: AppType.ui(
+            fontSize: 14,
+            height: 1.55,
+            color: Colors.white.withValues(alpha: 0.94),
+          ),
+        ),
+        const SizedBox(height: 30),
+        _BotonEquipo(onPressed: onEscribir),
+        const SizedBox(height: 16),
+        Text(
+          'WhatsApp ${LoginScreen.telefonoEquipo}',
+          style: AppType.mono(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.4,
+            color: Colors.white.withValues(alpha: 0.94),
+          ),
+        ),
+      ],
     );
-    if (curva == 0) return contenido;
-    return ClipPath(clipper: _FiloCurvo(curva), child: contenido);
   }
 }
 
@@ -540,43 +556,103 @@ class _BotonEquipoState extends State<_BotonEquipo> {
   }
 }
 
-/// El filo derecho del panel baja en S: arranca en la esquina de arriba y
-/// termina [curva] pt adentro, como una página que se levanta.
-class _FiloCurvo extends CustomClipper<Path> {
-  const _FiloCurvo(this.curva);
+/// El fondo del lado del equipo, con sus cuentas a la vista para que las
+/// pruebas midan lo mismo que se pinta.
+///
+/// El color es el degradado del «404» de la web (`error-404.css`: #17325F
+/// arriba, #00A859 abajo). El azul de arriba es también el de la parte alta
+/// del menú lateral del pasajero (`live_route_backdrop.dart`): más claro y
+/// más vivo que la tinta #0B1628 que llevaba el panel, que se veía apagada.
+abstract final class FondoEquipo {
+  static const azul = Color(0xFF17325F);
+  static const verde = Color(0xFF00A859);
 
-  final double curva;
+  /// El filo, como en la imagen de referencia del dueño: arriba corta la
+  /// tarjeta en el 52 % de su ancho, baja casi vertical y abajo se abre
+  /// hasta el 29 %. Es un arco que cae con la potencia 2,4 de la altura:
+  /// medido sobre la referencia, a media altura va en el 49 % y a tres
+  /// cuartos en el 42 %.
+  static const filoArriba = 0.52;
+  static const filoAbajo = 0.29;
 
-  @override
-  Path getClip(Size size) {
-    final w = size.width;
-    final h = size.height;
-    return Path()
-      ..moveTo(0, 0)
-      ..lineTo(w, 0)
-      ..cubicTo(w - curva * 1.5, h * 0.4, w, h * 0.62, w - curva, h)
-      ..lineTo(0, h)
-      ..close();
+  /// Dónde cae el filo, en puntos desde la izquierda, a la altura [y] de
+  /// una tarjeta de tamaño [tarjeta].
+  static double filo(Size tarjeta, double y) {
+    final t = (y / tarjeta.height).clamp(0.0, 1.0);
+    return tarjeta.width *
+        (filoArriba - (filoArriba - filoAbajo) * math.pow(t, 2.4));
   }
 
-  @override
-  bool shouldReclip(_FiloCurvo oldClipper) => oldClipper.curva != curva;
+  /// Los dos extremos del degradado. En el 404 corre de arriba abajo; aquí
+  /// va en diagonal, de la esquina de arriba a la izquierda hacia el filo,
+  /// para que el verde caiga junto a la curva y el texto, que va a la
+  /// izquierda, se quede sobre el tramo azul donde el blanco se lee. El eje
+  /// termina un 20 % por debajo de la tarjeta: con la letra a 1,3× el
+  /// número de WhatsApp baja hasta el tramo verde y, con el eje justo en el
+  /// borde, quedaba en 4,0:1 (login_screen_test.dart pide 4,5). Apilado, la
+  /// franja es ancha y baja: el eje llega al doble de su alto y el verde
+  /// solo asoma en la esquina, por la misma razón con el cuerpo del texto.
+  static (Offset, Offset) eje(Size lienzo, {required bool partido}) => partido
+      ? (Offset.zero, Offset(lienzo.width * filoArriba, lienzo.height * 1.2))
+      : (Offset.zero, Offset(lienzo.width * 0.5, lienzo.height * 2));
+
+  /// El color del degradado en el punto [p] del lienzo.
+  static Color colorEn(Offset p, Size lienzo, {required bool partido}) {
+    final (a, b) = eje(lienzo, partido: partido);
+    final d = b - a;
+    final q = p - a;
+    final t = ((q.dx * d.dx + q.dy * d.dy) / d.distanceSquared).clamp(0.0, 1.0);
+    return Color.lerp(azul, verde, t)!;
+  }
 }
 
-class _DotGridPainter extends CustomPainter {
-  const _DotGridPainter();
+class _FondoEquipoPintor extends CustomPainter {
+  const _FondoEquipoPintor({required this.partido});
+
+  final bool partido;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.06);
-    const spacing = 28.0;
-    for (double x = spacing / 2; x < size.width; x += spacing) {
-      for (double y = spacing / 2; y < size.height; y += spacing) {
-        canvas.drawCircle(Offset(x, y), 1.0, paint);
+    final forma = Path();
+    if (partido) {
+      // El arco se traza en tramos de 4 pt: a esa escala la curva no deja
+      // ver ningún quiebre.
+      forma.moveTo(0, 0);
+      final tramos = math.max(24, size.height ~/ 4);
+      for (var i = 0; i <= tramos; i++) {
+        final y = size.height * i / tramos;
+        forma.lineTo(FondoEquipo.filo(size, y), y);
+      }
+      forma
+        ..lineTo(0, size.height)
+        ..close();
+    } else {
+      forma.addRect(Offset.zero & size);
+    }
+    final (a, b) = FondoEquipo.eje(size, partido: partido);
+    canvas.drawPath(
+      forma,
+      Paint()
+        ..isAntiAlias = true
+        ..shader = ui.Gradient.linear(a, b, const [
+          FondoEquipo.azul,
+          FondoEquipo.verde,
+        ]),
+    );
+    // La trama de puntos, solo dentro del color.
+    canvas.save();
+    canvas.clipPath(forma);
+    final punto = Paint()..color = Colors.white.withValues(alpha: 0.07);
+    const paso = 28.0;
+    for (double x = paso / 2; x < size.width; x += paso) {
+      for (double y = paso / 2; y < size.height; y += paso) {
+        canvas.drawCircle(Offset(x, y), 1.0, punto);
       }
     }
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(_FondoEquipoPintor oldDelegate) =>
+      oldDelegate.partido != partido;
 }
