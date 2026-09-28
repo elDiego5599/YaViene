@@ -12,7 +12,6 @@ import 'package:ya_viene_pasajero/features/notifications/presentation/providers/
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
 
-import 'helpers/contraste.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
@@ -149,26 +148,13 @@ void main() {
     await tester.pump();
 
     expect(find.text('Ruta 1 - A-1'), findsOneWidget);
-    expect(find.text('Enviado'), findsOneWidget);
     expect(find.textContaining('Notificación enviada'), findsOneWidget);
     expect(find.text('Desactivar'), findsNothing);
-
-    // El estado «Enviado» va en gris apagado sobre la tarjeta blanca y la
-    // arena de la pantalla: con el gris de deshabilitado no llega a 4,5:1.
-    final enviado = tester.widget<Text>(find.text('Enviado'));
-    final color = enviado.style?.color;
-    expect(color, isNotNull, reason: '«Enviado» va pintado con color propio');
-    for (final fondo in [
-      AppColors.surface,
-      AppColors.arena,
-      AppColors.background,
-    ]) {
-      exigeContraste(
-        contraste(color!, fondo),
-        4.5,
-        '«Enviado» sobre ${fondo.toARGB32().toRadixString(16)}',
-      );
-    }
+    // «Enviado» a la derecha repetía, en gris y más chico, lo que la línea
+    // de debajo del nombre ya dice con fecha y hora. Lo enviado ya no tiene
+    // nada que hacer: la fila se queda sin acción, como una celda de iOS
+    // que solo informa.
+    expect(find.text('Enviado'), findsNothing);
   });
 
   testWidgets('borrar avisos seleccionados desactiva los activos',

@@ -453,7 +453,10 @@ class _AlertTile extends StatelessWidget {
     );
     final dicha = '$dichoBus. ${subtitle.replaceAll(' · ', ', ')}';
 
-    final accion = selecting
+    // Un aviso ya enviado no lleva acción: «Enviado» a la derecha repetía
+    // lo que el subtítulo dice con fecha y hora, y una fila que solo
+    // informa, en iOS, no lleva nada a la derecha.
+    final Widget? accion = selecting
         ? Semantics(
             // Una casilla suelta se anuncia «casilla, sin marcar»: sin el
             // nombre del bus, no se sabe cuál se está marcando.
@@ -466,12 +469,7 @@ class _AlertTile extends StatelessWidget {
             ),
           )
         : sent
-            ? Text(
-                'Enviado',
-                style: AppTextStyles.etiqueta.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              )
+            ? null
             // Rojo de error para algo que se deshace en un toque desde el
             // mapa. El rojo queda para "Borrar todas", que sí borra.
             : Semantics(
@@ -546,7 +544,7 @@ class _AlertTile extends StatelessWidget {
             ),
           ),
         ),
-        if (!accionAbajo) ...[
+        if (accion != null && !accionAbajo) ...[
           const SizedBox(width: 12),
           accion,
         ],
@@ -563,7 +561,7 @@ class _AlertTile extends StatelessWidget {
           width: selected ? 1.5 : 1.0,
         ),
       ),
-      child: accionAbajo
+      child: accion != null && accionAbajo
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
