@@ -267,6 +267,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               fleet: fleet,
               onSelect: (routeId) =>
                   ref.read(fleetProvider.notifier).setRouteFilter(routeId),
+              onAddRoute: _showRouteDialog,
             )),
           ),
           Expanded(
@@ -281,7 +282,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       buses: buses,
                       fleet: fleet,
                       onAddBus: () => _showBusDialog(),
-                      onAddRoute: _showRouteDialog,
                       onEditBus: (bus) => _showBusDialog(bus: bus),
                       onStatusFilter: (filter) => ref
                           .read(fleetProvider.notifier)
@@ -661,10 +661,12 @@ class _RouteFilters extends StatefulWidget {
   const _RouteFilters({
     required this.fleet,
     required this.onSelect,
+    required this.onAddRoute,
   });
 
   final FleetState fleet;
   final ValueChanged<String?> onSelect;
+  final VoidCallback onAddRoute;
 
   @override
   State<_RouteFilters> createState() => _RouteFiltersState();
@@ -682,6 +684,46 @@ class _RouteFiltersState extends State<_RouteFilters> {
   @override
   Widget build(BuildContext context) {
     final fleet = widget.fleet;
+    // «Agregar ruta» vive al final de las rutas y no en la cabecera de la
+    // lista de buses: ahí compartía fila con «BUSES» y «Agregar bus» en un
+    // cuarto de la pantalla, que a 1440 son 349 px para unos 376 de
+    // botones, y el verde salía cortado contra el borde. Aquí tiene todo el
+    // ancho, queda junto a lo que crea, y el orden de Tab no cambia: venía
+    // justo después de la última ruta. Tiene el alto y la forma de las
+    // píldoras de ruta (33 = los 42 de la fila menos los 9 de abajo que
+    // deja la barra de desplazamiento).
+    final agregar = Padding(
+      padding: const EdgeInsets.only(left: 12, bottom: 9),
+      child: OutlinedButton.icon(
+        onPressed: widget.onAddRoute,
+        icon: const Icon(Icons.add_road, size: 16),
+        label: const Text('Agregar ruta'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textSecondary,
+          side: const BorderSide(color: AppColors.borderStrong),
+          shape: const StadiumBorder(),
+          minimumSize: const Size(0, 33),
+          fixedSize: const Size.fromHeight(33),
+          textStyle: AppType.ui(fontSize: 11.5, fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+        ),
+      ),
+    );
+    // Dos paradas de Tab con número: las píldoras se construyen al
+    // desplazarse, después del botón, y por orden de construcción Tab
+    // llegaba a «Agregar ruta» antes que a las rutas.
+    return FocusTraversalGroup(
+      policy: OrderedTraversalPolicy(),
+      child: Row(
+        children: [
+          Expanded(child: _seccion(1, _rutas(fleet))),
+          _seccion(2, agregar),
+        ],
+      ),
+    );
+  }
+
+  Widget _rutas(FleetState fleet) {
     return Listener(
       onPointerSignal: (event) {
         if (event is PointerScrollEvent && _controller.hasClients) {
@@ -770,7 +812,6 @@ class _FleetPanel extends ConsumerWidget {
     required this.buses,
     required this.fleet,
     required this.onAddBus,
-    required this.onAddRoute,
     required this.onEditBus,
     required this.onStatusFilter,
   });
@@ -778,7 +819,6 @@ class _FleetPanel extends ConsumerWidget {
   final List<FleetBus> buses;
   final FleetState fleet;
   final VoidCallback onAddBus;
-  final VoidCallback onAddRoute;
   final ValueChanged<FleetBus> onEditBus;
   final ValueChanged<FleetStatusFilter> onStatusFilter;
 
@@ -824,27 +864,6 @@ class _FleetPanel extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: onAddRoute,
-                  icon: const Icon(Icons.add_road, size: 16),
-                  label: const Text('Agregar ruta'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: AppColors.borderStrong),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    textStyle: AppType.ui(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 FilledButton.icon(
                   onPressed: onAddBus,
                   icon: const Icon(Icons.add, size: 17),
@@ -946,16 +965,24 @@ class _StatusTabs extends StatelessWidget {
       (FleetStatusFilter.hidden, 'Ocultos', fleet.hiddenBuses),
       (FleetStatusFilter.offline, 'Sin Señal', fleet.offlineBuses),
     ];
+    // Un control segmentado: las cuatro se reparten la fila por igual en
+    // vez de ir cada una a su ancho. A su ancho sumaban unos 337 px y la
+    // lista es un cuarto de la pantalla —330 a 1366, 309 a 1280—, así que
+    // «Sin Señal» salía cortada contra el borde. Repartidas, a 1440 se ven
+    // casi igual que antes (llenaban 313 de 325), y si una no cabe encoge
+    // su letra lo justo ([_StatusTab]) en vez de salirse.
     return Row(
       children: [
-        for (final (filter, label, count) in tabs) ...[
-          _StatusTab(
-            label: label,
-            count: count,
-            active: fleet.statusFilter == filter,
-            onTap: () => onSelect(filter),
+        for (final (i, (filter, label, count)) in tabs.indexed) ...[
+          if (i > 0) const SizedBox(width: 4),
+          Expanded(
+            child: _StatusTab(
+              label: label,
+              count: count,
+              active: fleet.statusFilter == filter,
+              onTap: () => onSelect(filter),
+            ),
           ),
-          const SizedBox(width: 6),
         ],
       ],
     );
@@ -984,29 +1011,35 @@ class _StatusTab extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: AppType.ui(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: active ? Colors.white : AppColors.textSecondary,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          // Centrada en su cuarto de fila y, si no le alcanza —ventana
+          // achicada a mano o letra del sistema grande—, encogida lo justo:
+          // cortada, «Sin Se…» ya no diría qué filtra.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: AppType.ui(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: active ? Colors.white : AppColors.textSecondary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                '$count',
-                style: AppType.ui(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: active ? Colors.white70 : AppColors.textMuted,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                const SizedBox(width: 5),
+                Text(
+                  '$count',
+                  style: AppType.ui(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: active ? Colors.white70 : AppColors.textMuted,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
