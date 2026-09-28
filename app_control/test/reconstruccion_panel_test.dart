@@ -25,6 +25,7 @@ import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
 import 'package:ya_viene_control/features/fleet/presentation/screens/dashboard_screen.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/fleet_list_tile.dart';
+import 'package:ya_viene_control/features/fleet/presentation/widgets/velocidad_bus.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
 
@@ -202,9 +203,10 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  // La ficha del bus seleccionado dice cuándo se supo de él y a qué iba
-  // (`UltimoReporte`). Eso cambia con cada posición, así que va en su propio
-  // pedazo: la posición lo actualiza a él y la lista sigue sin rehacerse.
+  // La ficha del bus seleccionado dice a qué va (`VelocidadBus`) y cuándo se
+  // supo de él (`UltimoReporte`). Eso cambia con cada posición, así que va en
+  // su propio pedazo: la posición lo actualiza a él y la lista sigue sin
+  // rehacerse.
   testWidgets('la ficha del bus seleccionado sigue su último reporte',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
@@ -240,7 +242,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Último reporte ahora · 32 km/h'), findsOneWidget);
+    final ficha = find.byType(VelocidadBus);
+    expect(find.descendant(of: ficha, matching: find.text('32')), findsOneWidget);
+    expect(find.text('Último reporte ahora'), findsOneWidget);
     expect(identical(_tarjetas(tester)['B-1'], antes['B-1']), isTrue,
         reason: 'la lista sigue sin rehacerse');
 
@@ -253,6 +257,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Último reporte ahora'), findsOneWidget);
+    expect(find.descendant(of: ficha, matching: find.text('32')), findsNothing);
+    expect(find.descendant(of: ficha, matching: find.text('—')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     container.dispose();

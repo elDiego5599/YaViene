@@ -1,6 +1,7 @@
 // La ficha del bus seleccionado decía su estado —«En línea», «Inactivo»—
 // pero no cuándo se supo de él. Para una empresa, «En línea» sin hora es
-// una promesa; «Último reporte ahora · 32 km/h» es un dato. Si el bus se
+// una promesa; «Último reporte ahora» es un dato. (La velocidad iba aquí
+// detrás; ahora tiene su cifra propia en la ficha: velocidad_bus_test.dart.) Si el bus se
 // calla, la cuenta sube sola: el operador ve que se calló antes de que el
 // servidor lo marque inactivo a los 90 s.
 import 'package:flutter/material.dart';
@@ -15,13 +16,11 @@ void main() {
   Future<void> montar(
     WidgetTester tester, {
     required int? reportadoEn,
-    double? velocidad,
   }) => tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
         body: UltimoReporte(
           reportadoEn: reportadoEn,
-          velocidadKmh: velocidad,
           reloj: () => ahora,
         ),
       ),
@@ -30,15 +29,9 @@ void main() {
 
   setUp(() => ahora = base);
 
-  testWidgets('un bus que acaba de reportar: «ahora» y su velocidad', (
-    tester,
-  ) async {
-    await montar(
-      tester,
-      reportadoEn: ms(const Duration(milliseconds: 800)),
-      velocidad: 31.6,
-    );
-    expect(find.text('Último reporte ahora · 32 km/h'), findsOneWidget);
+  testWidgets('un bus que acaba de reportar: «ahora»', (tester) async {
+    await montar(tester, reportadoEn: ms(const Duration(milliseconds: 800)));
+    expect(find.text('Último reporte ahora'), findsOneWidget);
   });
 
   testWidgets('en segundos, minutos, horas y días', (tester) async {
@@ -62,7 +55,7 @@ void main() {
   );
 
   testWidgets('sin reportes lo dice, y no cuenta', (tester) async {
-    await montar(tester, reportadoEn: null, velocidad: 20);
+    await montar(tester, reportadoEn: null);
     expect(find.text('Sin reportes todavía'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     expect(find.text('Sin reportes todavía'), findsOneWidget);

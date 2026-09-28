@@ -20,6 +20,7 @@ import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
 import '../widgets/route_dialog.dart';
 import '../widgets/ultimo_reporte.dart';
+import '../widgets/velocidad_bus.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -1124,26 +1125,43 @@ class _SelectedBusCard extends StatelessWidget {
               ],
             ),
           ],
-          const SizedBox(height: 10),
-          // Cambia con cada posición, y la ficha no (R-27): este pedazo se
-          // suscribe solo a la hora y la velocidad de su bus. La velocidad,
-          // solo en línea; la de un bus callado es de hace rato.
-          Consumer(
-            builder: (context, ref, _) {
-              final (reportadoEn, velocidad) = ref.watch(
-                fleetProvider.select((s) {
-                  final vivo = s.buses[bus.busId];
-                  return (
-                    vivo?.receivedAt ?? vivo?.capturedAt,
-                    vivo?.speedKmh,
-                  );
-                }),
-              );
-              return UltimoReporte(
-                reportadoEn: reportadoEn,
-                velocidadKmh: estado == BusEstado.enLinea ? velocidad : null,
-              );
-            },
+          const SizedBox(height: 12),
+          // Lo vivo del bus, en su bandeja: la velocidad en grande y, debajo,
+          // cuándo se supo de él. Cambia con cada posición y la ficha no
+          // (R-27): este pedazo se suscribe solo a la hora y la velocidad de
+          // su bus. La velocidad, solo en línea; la de un bus callado es de
+          // hace rato y ya no dice nada.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Consumer(
+              builder: (context, ref, _) {
+                final (reportadoEn, velocidad) = ref.watch(
+                  fleetProvider.select((s) {
+                    final vivo = s.buses[bus.busId];
+                    return (
+                      vivo?.receivedAt ?? vivo?.capturedAt,
+                      vivo?.speedKmh,
+                    );
+                  }),
+                );
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    VelocidadBus(
+                      kmh: estado == BusEstado.enLinea ? velocidad : null,
+                    ),
+                    const SizedBox(height: 8),
+                    UltimoReporte(reportadoEn: reportadoEn),
+                  ],
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           Row(
