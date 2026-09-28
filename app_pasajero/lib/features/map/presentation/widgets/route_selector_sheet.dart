@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
 import '../providers/map_guide_copy.dart';
@@ -798,61 +799,77 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     );
   }
 
+  /// Cuándo arranca la fila [i] dentro del grupo de entrada de la lista.
+  ///
+  /// Las filas llegan una detrás de otra —la lista se asienta, no aparece
+  /// de golpe dentro del empuje lateral—, a 0,08 del grupo cada una (45 ms,
+  /// casi el `AppMotion.escalon`). El escalón se topa en la sexta: de ahí
+  /// para abajo la fila está fuera de la tarjeta o casi, y hacerla esperar
+  /// más solo retrasaría la lista.
+  static double _escalonFila(int i) => math.min(i, 5) * 0.08;
+
   Widget _buildCompanyList(BuildContext context) {
     final companiesAsync = ref.watch(companiesProvider);
     final selectedCompany = ref.watch(selectedCompanyProvider);
     return companiesAsync.when(
-      data: (companies) => ListView(
-        key: widget.companyChoiceGuideKey,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
-        // Se mide por su contenido para poder quedarse en el centro cuando
-        // sobra caja; si no cabe, ocupa el alto entero y se desplaza igual.
-        shrinkWrap: true,
-        children: [
-          if (companies.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
-              child: Text(
-                'Sin empresas disponibles',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.cuerpoFuerte
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-            )
-          else
-            ...companies.map((company) {
-              return _compactTile(
-                icon: Icons.business_outlined,
-                iconColor: Colors.white,
-                iconBackground: _companyColor(company.id),
-                // V2: insignia de iniciales con color determinístico — se
-                // reconoce la fila antes de leer el nombre, como en Bolt.
-                badgeInitials: _companyInitials(company.name),
-                title: company.name,
-                subtitle: null,
-                // La insignia son las iniciales del nombre que va justo
-                // al lado: dichas, es el mismo dato deletreado antes de
-                // decirlo entero.
-                dicho: company.name,
-                selected: selectedCompany?.id == company.id,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  final alreadySelected =
-                      ref.read(selectedCompanyProvider)?.id == company.id;
-                  ref.read(selectedCompanyProvider.notifier).select(company);
-                  if (!alreadySelected) {
-                    ref.read(selectedRouteProvider.notifier).clear();
-                  }
-                  ref
-                      .read(mapGuideProvider.notifier)
-                      .complete(MapGuideStep.company);
-                  _irA(_RouteView.main);
-                },
-              );
-            }),
-        ],
+      data: (companies) => ScreenEntrance(
+        builder: (context, entra) => ListView(
+          key: widget.companyChoiceGuideKey,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
+          // Se mide por su contenido para poder quedarse en el centro cuando
+          // sobra caja; si no cabe, ocupa el alto entero y se desplaza igual.
+          shrinkWrap: true,
+          children: [
+            if (companies.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+                child: Text(
+                  'Sin empresas disponibles',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.cuerpoFuerte
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+              )
+            else
+              ...companies.indexed.map((fila) {
+                final (i, company) = fila;
+                return entra(
+                    start: _escalonFila(i),
+                    _compactTile(
+                      icon: Icons.business_outlined,
+                      iconColor: Colors.white,
+                      iconBackground: _companyColor(company.id),
+                      // V2: insignia de iniciales con color determinístico — se
+                      // reconoce la fila antes de leer el nombre, como en Bolt.
+                      badgeInitials: _companyInitials(company.name),
+                      title: company.name,
+                      subtitle: null,
+                      // La insignia son las iniciales del nombre que va justo
+                      // al lado: dichas, es el mismo dato deletreado antes de
+                      // decirlo entero.
+                      dicho: company.name,
+                      selected: selectedCompany?.id == company.id,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        final alreadySelected =
+                            ref.read(selectedCompanyProvider)?.id == company.id;
+                        ref
+                            .read(selectedCompanyProvider.notifier)
+                            .select(company);
+                        if (!alreadySelected) {
+                          ref.read(selectedRouteProvider.notifier).clear();
+                        }
+                        ref
+                            .read(mapGuideProvider.notifier)
+                            .complete(MapGuideStep.company);
+                        _irA(_RouteView.main);
+                      },
+                    ));
+              }),
+          ],
+        ),
       ),
       loading: () => _listPlaceholder(
         key: widget.companyChoiceGuideKey,
@@ -871,54 +888,59 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     final selectedRoute = ref.watch(selectedRouteProvider);
     final routesAsync = ref.watch(routesByCompanyProvider(selectedCompany.id));
     return routesAsync.when(
-      data: (routes) => ListView(
-        key: widget.routeChoiceGuideKey,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
-        shrinkWrap: true,
-        children: [
-          if (routes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
-              child: Text(
-                'Esta empresa no tiene rutas aún',
-                textAlign: TextAlign.center,
-                style: AppTextStyles.cuerpoFuerte
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-            )
-          else
-            ...routes.map((route) {
-              // El código va en la insignia y el nombre se queda con lo
-              // suyo. Seis rutas con el mismo icono verde son seis filas
-              // que solo se distinguen leyendo; «B18», «C11», «C16» es
-              // exactamente lo que el pasajero busca en el parabrisas.
-              final codigo = _routeCode(route.name);
-              return _compactTile(
-                icon: Icons.alt_route_outlined,
-                iconColor: AppColors.primary,
-                iconBackground: AppColors.primaryTint,
-                badgeInitials: codigo?.code,
-                // Verde oscuro sobre el verde claro de la insignia: la
-                // empresa lleva tinta sólida y letra blanca, la ruta va
-                // en voz más baja. Son dos niveles, no dos etiquetas.
-                badgeColor: AppColors.primaryAccessible,
-                title: codigo?.rest ?? route.name,
-                subtitle: _routeSubtitle(route) ?? 'Tiempo real',
-                dicho: '${route.name}${_terminalesDichos(route)}',
-                selected: selectedRoute?.id == route.id,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  ref.read(selectedRouteProvider.notifier).select(route);
-                  ref
-                      .read(mapGuideProvider.notifier)
-                      .complete(MapGuideStep.route);
-                  _irA(_RouteView.main);
-                },
-              );
-            }),
-        ],
+      data: (routes) => ScreenEntrance(
+        builder: (context, entra) => ListView(
+          key: widget.routeChoiceGuideKey,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
+          shrinkWrap: true,
+          children: [
+            if (routes.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
+                child: Text(
+                  'Esta empresa no tiene rutas aún',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.cuerpoFuerte
+                      .copyWith(color: AppColors.textSecondary),
+                ),
+              )
+            else
+              ...routes.indexed.map((fila) {
+                final (i, route) = fila;
+                // El código va en la insignia y el nombre se queda con lo
+                // suyo. Seis rutas con el mismo icono verde son seis filas
+                // que solo se distinguen leyendo; «B18», «C11», «C16» es
+                // exactamente lo que el pasajero busca en el parabrisas.
+                final codigo = _routeCode(route.name);
+                return entra(
+                    start: _escalonFila(i),
+                    _compactTile(
+                      icon: Icons.alt_route_outlined,
+                      iconColor: AppColors.primary,
+                      iconBackground: AppColors.primaryTint,
+                      badgeInitials: codigo?.code,
+                      // Verde oscuro sobre el verde claro de la insignia: la
+                      // empresa lleva tinta sólida y letra blanca, la ruta va
+                      // en voz más baja. Son dos niveles, no dos etiquetas.
+                      badgeColor: AppColors.primaryAccessible,
+                      title: codigo?.rest ?? route.name,
+                      subtitle: _routeSubtitle(route) ?? 'Tiempo real',
+                      dicho: '${route.name}${_terminalesDichos(route)}',
+                      selected: selectedRoute?.id == route.id,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(selectedRouteProvider.notifier).select(route);
+                        ref
+                            .read(mapGuideProvider.notifier)
+                            .complete(MapGuideStep.route);
+                        _irA(_RouteView.main);
+                      },
+                    ));
+              }),
+          ],
+        ),
       ),
       loading: () => _listPlaceholder(
         key: widget.routeChoiceGuideKey,
