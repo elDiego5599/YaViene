@@ -44,7 +44,7 @@ void main() {
       seleccionados: const {},
     );
 
-    expect(acciones.single.etiqueta, 'Seguir el bus B-042, a 5.6 km de ti');
+    expect(acciones.single.etiqueta, 'Seguir el bus B-042, a 5,6 km de ti');
   });
 
   test('el bus ya seguido ofrece soltarlo, no seguirlo otra vez', () {

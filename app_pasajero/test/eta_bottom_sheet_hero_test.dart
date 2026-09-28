@@ -119,11 +119,11 @@ void main() {
     expect(find.text('m de ti'), findsNothing);
   });
 
-  testWidgets('hero card: métrica en kilómetros (2.2 km de ti)',
+  testWidgets('hero card: métrica en kilómetros (2,2 km de ti)',
       (tester) async {
     await pumpHero(tester, [busAt(0.02)]);
 
-    expect(find.text('2.2'), findsOneWidget);
+    expect(find.text('2,2'), findsOneWidget);
     expect(find.text('km de ti'), findsOneWidget);
   });
 

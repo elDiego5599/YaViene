@@ -51,12 +51,16 @@ String? validateAlertActivation({
   return null;
 }
 
-/// Mismo formato que la métrica grande de la hoja ("3.4 km"), sin decimal a
-/// partir de 10 km, donde el decimal ya no dice nada.
+/// Mismo formato que la métrica grande de la hoja ("3,4 km"), sin decimal a
+/// partir de 10 km, donde el decimal ya no dice nada. Con coma, como se
+/// escribe el decimal en español y como lo dice la voz (_metricSpoken).
+/// La landing escribe igual.
 ///
 /// Público porque el estado vacío de la hoja dice lo mismo con otras
 /// palabras: las dos pantallas tienen que cantar la misma distancia.
 String kmLabel(double meters) {
   final km = meters / 1000;
-  return km >= 10 ? '${km.round()} km' : '${km.toStringAsFixed(1)} km';
+  return km >= 10
+      ? '${km.round()} km'
+      : '${km.toStringAsFixed(1).replaceAll('.', ',')} km';
 }

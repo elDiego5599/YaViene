@@ -50,7 +50,7 @@ void main() {
         () {
       expect(validate(routeDistanceMeters: 3400),
           contains('Esta ruta no pasa cerca de ti'));
-      expect(validate(routeDistanceMeters: 3400), contains('3.4 km'));
+      expect(validate(routeDistanceMeters: 3400), contains('3,4 km'));
     });
 
     // El bug que reportó el usuario: el recorrido rozaba el anillo verde de

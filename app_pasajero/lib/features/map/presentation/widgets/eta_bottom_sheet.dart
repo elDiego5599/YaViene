@@ -940,10 +940,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 
   /// Divide la distancia en número grande + unidad: ("850", "m de ti") o
-  /// ("1.4", "km de tu pin anterior").
+  /// ("1,4", "km de tu pin anterior"). Coma decimal, como [kmLabel].
   (String, String) _metricParts(double meters, String referencia) {
     if (meters < 1000) return (meters.round().toString(), "m $referencia");
-    final km = (meters / 1000).toStringAsFixed(1);
+    final km = (meters / 1000).toStringAsFixed(1).replaceAll('.', ',');
     return (km, "km $referencia");
   }
 

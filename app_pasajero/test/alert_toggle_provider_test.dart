@@ -158,7 +158,7 @@ void main() {
 
     expect(result.outcome, AlertToggleOutcome.rejected);
     expect(result.message, contains('no pasa cerca de ti'));
-    expect(result.message, contains('1.5 km'));
+    expect(result.message, contains('1,5 km'));
     expect(container.read(activeAlertsProvider), isEmpty);
   });
 
