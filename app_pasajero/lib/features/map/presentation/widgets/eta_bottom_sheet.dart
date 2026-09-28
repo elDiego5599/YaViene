@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/widgets/cifra_viva.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
@@ -860,20 +861,25 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   tween: ColorTween(end: stripColor),
                   duration: AppMotion.duracion(context, AppMotion.pausado),
                   curve: AppMotion.curvaCambio,
-                  builder: (context, color, _) => Text(
-                    metricText,
-                    key: widget.metricKey,
-                    textAlign: TextAlign.center,
-                    // El número es `dato`, el rol que existe para él. Cuando
-                    // en su sitio va una palabra —"Sin señal", "Llegando"—
-                    // no cabe a 64 ni tendría sentido en w200: pasa a
-                    // `display`, que es el otro rol grande, y ocupa el mismo
-                    // hueco.
-                    style: (isNumberMetric
-                            ? AppTextStyles.dato
-                            : AppTextStyles.display)
-                        .copyWith(color: color),
-                  ),
+                  // El número es `dato`, el rol que existe para él. Cuando
+                  // en su sitio va una palabra —"Sin señal", "Llegando"— no
+                  // cabe a 64 ni tendría sentido en w200: pasa a `display`,
+                  // que es el otro rol grande, y ocupa el mismo hueco.
+                  // El número gira cifra a cifra con cada posición nueva
+                  // (`CifraViva`); la palabra no tiene cifras y va quieta.
+                  builder: (context, color, _) => isNumberMetric
+                      ? CifraViva(
+                          metricText,
+                          key: widget.metricKey,
+                          valor: distance,
+                          style: AppTextStyles.dato.copyWith(color: color),
+                        )
+                      : Text(
+                          metricText,
+                          key: widget.metricKey,
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.display.copyWith(color: color),
+                        ),
                 ),
                 if (metricUnit != null) ...[
                   const SizedBox(height: 6),
