@@ -19,6 +19,15 @@ class RecuadroLatencia extends StatefulWidget {
     this.cada = const Duration(seconds: 1),
   });
 
+  /// Si las pantallas lo ponen: en depuración, y solo cuando se pide al
+  /// compilar con `--dart-define=YA_VIENE_LATENCIA=true`.
+  ///
+  /// Depuración sola no bastaba: es también la compilación que se enseña en
+  /// el simulador, y ahí el recuadro negro tapaba el mapa y la leyenda de la
+  /// app del pasajero. Lo mide [MedidorLatencia] igual, se vea o no.
+  static const bool pedido =
+      kDebugMode && bool.fromEnvironment('YA_VIENE_LATENCIA');
+
   /// De dónde salen los números. Por omisión el de toda la app.
   final MedidorLatencia? medidor;
 

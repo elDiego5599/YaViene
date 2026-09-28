@@ -10,6 +10,13 @@ Future<void> _pintar(WidgetTester tester, MedidorLatencia medidor) =>
     );
 
 void main() {
+  // Una compilación de depuración es también la que se enseña en el
+  // simulador, y ahí el recuadro negro tapaba el mapa y su leyenda. Sale
+  // solo si se pide al compilar: `--dart-define=YA_VIENE_LATENCIA=true`.
+  test('sin pedirlo al compilar no va en pantalla', () {
+    expect(RecuadroLatencia.pedido, isFalse);
+  });
+
   testWidgets('sin muestras lo dice en vez de enseñar números vacíos',
       (tester) async {
     await _pintar(tester, MedidorLatencia());

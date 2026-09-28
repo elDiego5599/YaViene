@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -295,9 +295,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       children: [
                         const Positioned.fill(child: ControlMap()),
                         // T7.6: lo que tarda una posición en llegar del bus
-                        // a esta pantalla. Solo en depuración: `kDebugMode`
-                        // lo quita del árbol en release.
-                        if (kDebugMode)
+                        // a esta pantalla. Solo en depuración y si se pide
+                        // al compilar (`RecuadroLatencia.pedido`).
+                        if (RecuadroLatencia.pedido)
                           const Positioned(
                             left: 16,
                             bottom: 16,
@@ -836,34 +836,50 @@ class _FleetPanel extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
-            child: Row(
+            // `Wrap` y no `Row`: con la letra del sistema a 2× la lista, un
+            // cuarto de la ventana, no tiene sitio para «BUSES», la cuenta y
+            // «Agregar bus» juntos —se salía 74 px a 1200—. Si no caben, el
+            // botón baja a su propia línea con el nombre entero, en vez de
+            // cortarse o quedarse en un «+» mudo. Cuando caben, `spaceBetween`
+            // lo deja contra el borde derecho, como el `Spacer` de antes
+            // (panel_angosto_test.dart).
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  'BUSES',
-                  style: AppType.ui(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.navy.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Text(
-                    '${buses.length}',
-                    style: AppType.ui(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.navy,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'BUSES',
+                      style: AppType.ui(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.navy.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                      ),
+                      child: Text(
+                        '${buses.length}',
+                        style: AppType.ui(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
                 FilledButton.icon(
                   onPressed: onAddBus,
                   icon: const Icon(Icons.add, size: 17),

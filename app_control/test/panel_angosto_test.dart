@@ -73,10 +73,16 @@ Future<void> _cargarFuentes() async {
   }
 }
 
-/// Monta el dashboard a [tam], lo revisa y lo desmonta. Si algo se
-/// desborda, Flutter lo reporta como excepción.
-Future<void> _revisarA(WidgetTester tester, Size tam) async {
+/// Monta el dashboard a [tam] con la letra a [escala], lo revisa y lo
+/// desmonta. Si algo se desborda, Flutter lo reporta como excepción.
+Future<void> _revisarA(
+  WidgetTester tester,
+  Size tam, {
+  double escala = 1,
+}) async {
+  final donde = '${tam.width.toInt()} px a $escala×';
   await tester.binding.setSurfaceSize(tam);
+  tester.platformDispatcher.textScaleFactorTestValue = escala;
   final container = ProviderContainer(
     overrides: [
       backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
@@ -95,18 +101,22 @@ Future<void> _revisarA(WidgetTester tester, Size tam) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
 
-  expect(tester.takeException(), isNull, reason: '${tam.width.toInt()} px');
+  expect(tester.takeException(), isNull, reason: donde);
+  // Ni el recuadro de latencia de depuración, que se pide al compilar
+  // (ver `RecuadroLatencia.pedido`) y si no, tapa el mapa.
+  expect(find.text('latencia (depuración)'), findsNothing);
   for (final accion in ['Agregar ruta', 'Agregar bus']) {
     expect(
       find.bySemanticsLabel(accion),
       findsOneWidget,
-      reason: '«$accion» a ${tam.width.toInt()} px',
+      reason: '«$accion» a $donde',
     );
   }
 
   await tester.pumpWidget(const SizedBox());
   container.dispose();
   await tester.pump(const Duration(seconds: 2));
+  tester.platformDispatcher.clearTextScaleFactorTestValue();
 }
 
 void main() {
@@ -121,5 +131,23 @@ void main() {
       await _revisarA(tester, Size(ancho, 800));
       semantica.dispose();
     });
+  }
+
+  // Con la letra del sistema grande. `main.dart` la recorta a 2×
+  // (escalado_texto_test.dart), y ahí ya estaba probada la cabecera sola,
+  // no el panel entero: las pestañas de estado, «Agregar ruta» al final de
+  // las rutas y la ficha del bus son de después. A 1366, un portátil
+  // corriente, y a 1200, la ventana más chica que se cuida.
+  for (final escala in const [1.5, 2.0]) {
+    for (final ancho in const [1366.0, 1200.0]) {
+      testWidgets('a ${ancho.toInt()} px y letra a $escala× nada se desborda',
+          (tester) async {
+        final semantica = tester.ensureSemantics();
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _revisarA(tester, Size(ancho, 800), escala: escala);
+        semantica.dispose();
+      });
+    }
   }
 }

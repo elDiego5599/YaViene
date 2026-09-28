@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -494,9 +493,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
           // T7.6: lo que tarda una posición en llegar, en el hueco que queda
-          // entre la cabecera y la hoja. Solo en depuración: `kDebugMode` lo
-          // quita del árbol en release, donde el recuadro tampoco se dibuja.
-          if (kDebugMode)
+          // entre la cabecera y la hoja. Solo en depuración y si se pide al
+          // compilar (`RecuadroLatencia.pedido`): en release ni está en el
+          // árbol, donde el recuadro tampoco se dibuja.
+          if (RecuadroLatencia.pedido)
             const Positioned.fill(
               child: SafeArea(
                 child: Align(
