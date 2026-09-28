@@ -19,6 +19,7 @@ import '../widgets/bus_dialog.dart';
 import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
 import '../widgets/route_dialog.dart';
+import '../widgets/ultimo_reporte.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -1123,6 +1124,27 @@ class _SelectedBusCard extends StatelessWidget {
               ],
             ),
           ],
+          const SizedBox(height: 10),
+          // Cambia con cada posición, y la ficha no (R-27): este pedazo se
+          // suscribe solo a la hora y la velocidad de su bus. La velocidad,
+          // solo en línea; la de un bus callado es de hace rato.
+          Consumer(
+            builder: (context, ref, _) {
+              final (reportadoEn, velocidad) = ref.watch(
+                fleetProvider.select((s) {
+                  final vivo = s.buses[bus.busId];
+                  return (
+                    vivo?.receivedAt ?? vivo?.capturedAt,
+                    vivo?.speedKmh,
+                  );
+                }),
+              );
+              return UltimoReporte(
+                reportadoEn: reportadoEn,
+                velocidadKmh: estado == BusEstado.enLinea ? velocidad : null,
+              );
+            },
+          ),
           const SizedBox(height: 12),
           Row(
             children: [

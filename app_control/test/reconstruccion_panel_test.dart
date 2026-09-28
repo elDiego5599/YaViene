@@ -201,4 +201,61 @@ void main() {
     container.dispose();
     await tester.pump(const Duration(seconds: 2));
   });
+
+  // La ficha del bus seleccionado dice cuándo se supo de él y a qué iba
+  // (`UltimoReporte`). Eso cambia con cada posición, así que va en su propio
+  // pedazo: la posición lo actualiza a él y la lista sigue sin rehacerse.
+  testWidgets('la ficha del bus seleccionado sigue su último reporte',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    late _FakeSocket socket;
+    final container = ProviderContainer(
+      overrides: [
+        backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
+        fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: _FakeFleetApi())),
+        fleetSocketFactoryProvider.overrideWithValue((_) => socket = _FakeSocket()),
+      ],
+    );
+    container.read(authProvider.notifier).state = const AuthState(
+      status: AuthStatus.authenticated,
+      session: AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Empresa 1'),
+    );
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    container.read(fleetProvider.notifier).selectBus('B-1');
+    await tester.pump();
+    final antes = _tarjetas(tester);
+
+    socket.posiciones.add(FleetBus(
+      busId: 'B-1', companyId: 'c-1', routeId: 'R-1', visible: true,
+      online: true, lat: 11.01, lon: -74.7, speedKmh: 32, capturedAt: 2000,
+      receivedAt: DateTime.now().millisecondsSinceEpoch,
+    ));
+    // Como arriba: el evento entra en un cuadro y se pinta en el siguiente.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Último reporte ahora · 32 km/h'), findsOneWidget);
+    expect(identical(_tarjetas(tester)['B-1'], antes['B-1']), isTrue,
+        reason: 'la lista sigue sin rehacerse');
+
+    // Callado: la ficha lo dice y la velocidad vieja ya no se enseña.
+    socket.posiciones.add(FleetBus(
+      busId: 'B-1', companyId: 'c-1', routeId: 'R-1', visible: true,
+      online: true, lat: 11.01, lon: -74.7, speedKmh: 32, capturedAt: 3000,
+      receivedAt: DateTime.now().millisecondsSinceEpoch, isGhost: true,
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Último reporte ahora'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    container.dispose();
+    await tester.pump(const Duration(seconds: 2));
+  });
 }
