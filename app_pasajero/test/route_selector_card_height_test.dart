@@ -7,21 +7,13 @@ import 'package:ya_viene_pasajero/core/widgets/sheet_top_border.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/route_selector_sheet.dart';
 
-/// La tarjeta del selector no crece entre sus tres vistas, y no se queda
-/// vacía.
+/// La tarjeta del selector no cambia de tamaño entre sus tres vistas.
 ///
-/// Las listas de empresa y de ruta se dibujan con la altura medida de la
-/// vista principal como tope. Esa medida salía del `Column` interior, o sea
-/// sin el relleno de 16 arriba y 24 abajo que la vista principal tiene
+/// Las listas de empresa y de ruta se dibujan como `SizedBox` con la altura
+/// medida de la vista principal. Esa medida salía del `Column` interior, o
+/// sea sin el relleno de 16 arriba y 24 abajo que la vista principal tiene
 /// alrededor: la tarjeta se encogía 40 px al entrar a elegir y volvía a
-/// crecer al salir. Con una lista larga, entre las tres vistas solo cambia
-/// el contenido.
-///
-/// Pero ese alto fijo era también el piso: con una sola empresa —la flota de
-/// hoy— la hoja seguía midiendo lo de la vista principal y debajo de la
-/// única fila quedaban unos 200 px de arena vacía. Ahora una lista corta se
-/// queda con su alto y la hoja baja hasta ella, como la hoja de pago de iOS
-/// entre un paso y otro.
+/// crecer al salir. Entre las tres vistas solo debe cambiar el contenido.
 void main() {
   const companies = [Company(id: 'EMP-01', name: 'Sobusa')];
   const routes = [
@@ -50,7 +42,7 @@ void main() {
     return tester.getSize(tarjeta).height;
   }
 
-  Future<void> abrir(WidgetTester tester, List<Company> empresas) async {
+  Future<void> abrir(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final guide = MapGuideNotifier();
     await guide.initialize(
@@ -62,7 +54,7 @@ void main() {
     );
     container = ProviderContainer(overrides: [
       mapGuideProvider.overrideWith((ref) => guide),
-      companiesProvider.overrideWith((ref) async => empresas),
+      companiesProvider.overrideWith((ref) async => companies),
       routesByCompanyProvider.overrideWith((ref, id) async => routes),
     ]);
     addTearDown(container.dispose);
@@ -93,29 +85,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Lo que queda de hoja debajo de la última fila de la lista.
-  double sobraDebajo(WidgetTester tester) {
-    final tarjeta = find.byWidgetPredicate(
-      (w) =>
-          w is Material &&
-          w.shape ==
-              const SheetTopBorder(
-                side: BorderSide(color: AppColors.hairline),
-              ),
-    );
-    return tester.getRect(tarjeta).bottom -
-        tester
-            .getRect(find
-                .descendant(
-                  of: find.byType(ListView),
-                  matching: find.byType(InkWell),
-                )
-                .last)
-            .bottom;
-  }
-
-  testWidgets('con una sola empresa la hoja no se queda vacía', (tester) async {
-    await abrir(tester, companies);
+  testWidgets('la tarjeta mide igual en las tres vistas', (tester) async {
+    await abrir(tester);
 
     final principal = altoTarjeta(tester);
     expect(principal, greaterThan(0));
@@ -123,10 +94,7 @@ void main() {
     await tester.tap(find.text('Empresa'));
     await tester.pumpAndSettle();
     expect(find.text('Elige empresa'), findsOneWidget);
-    expect(altoTarjeta(tester), lessThan(principal));
-    // Debajo de la fila, su separación con la siguiente (8), el fundido de
-    // la lista (16) y el margen de la hoja (24). Nada más.
-    expect(sobraDebajo(tester), lessThanOrEqualTo(48 + 1));
+    expect(altoTarjeta(tester), principal);
 
     await tester.tap(find.text('Sobusa'));
     await tester.pumpAndSettle();
@@ -135,24 +103,30 @@ void main() {
     await tester.tap(find.text('Ruta'));
     await tester.pumpAndSettle();
     expect(find.text('Elige ruta'), findsOneWidget);
-    expect(altoTarjeta(tester), lessThan(principal));
-    expect(sobraDebajo(tester), lessThanOrEqualTo(48 + 1));
-
-    await tester.tap(find.byIcon(Icons.arrow_back_outlined));
-    await tester.pumpAndSettle();
     expect(altoTarjeta(tester), principal);
   });
 
-  testWidgets('con muchas empresas la lista no pasa del alto principal',
+  // Con una sola empresa la hoja se queda en su alto (arriba) y la fila de
+  // empresa es la misma tarjeta que se acaba de tocar: si midiera menos,
+  // flotaría arriba como una etiqueta en una hoja vacía.
+  testWidgets('la fila de empresa y la de ruta miden como la tarjeta del paso',
       (tester) async {
-    await abrir(tester, [
-      for (var i = 0; i < 12; i++) Company(id: 'EMP-$i', name: 'Empresa $i'),
-    ]);
+    await abrir(tester);
 
-    final principal = altoTarjeta(tester);
+    Size tarjetaDe(String texto, Type tipo) => tester.getSize(find
+        .ancestor(of: find.text(texto), matching: find.byType(tipo))
+        .first);
+
+    final paso = tarjetaDe('Empresa', AnimatedContainer);
+
     await tester.tap(find.text('Empresa'));
     await tester.pumpAndSettle();
-    expect(find.text('Elige empresa'), findsOneWidget);
-    expect(altoTarjeta(tester), principal);
+    expect(tarjetaDe('Sobusa', InkWell).height, paso.height);
+
+    await tester.tap(find.text('Sobusa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ruta'));
+    await tester.pumpAndSettle();
+    expect(tarjetaDe('Ruta 106', InkWell).height, paso.height);
   });
 }
