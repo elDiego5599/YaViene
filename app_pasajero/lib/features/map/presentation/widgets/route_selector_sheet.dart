@@ -1125,7 +1125,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             // rótulo, y no todos los lectores lo dicen.
             icon: const Icon(
               Icons.arrow_back_outlined,
-              color: AppColors.acento,
+              color: AppColors.primaryDeep,
               semanticLabel: 'Volver',
             ),
             tooltip: 'Volver',

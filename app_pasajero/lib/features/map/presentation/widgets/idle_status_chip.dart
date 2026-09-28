@@ -59,7 +59,7 @@ class IdleStatusChip extends ConsumerWidget {
             Text(
               config.label,
               style: AppTextStyles.etiqueta.copyWith(
-                color: AppColors.acento,
+                color: AppColors.primaryDeep,
               ),
             ),
           ],

@@ -107,7 +107,7 @@ class _SelectionSegment<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? AppColors.acento : AppColors.textSecondary;
+    final color = isSelected ? AppColors.primaryDeep : AppColors.textSecondary;
 
     return Semantics(
       button: true,

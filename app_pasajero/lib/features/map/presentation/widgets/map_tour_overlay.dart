@@ -408,7 +408,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                         fontSize: 25,
                         fontWeight: FontWeight.w200,
                         letterSpacing: -0.8,
-                        color: AppColors.acento,
+                        color: AppColors.primaryDeep,
                       ),
                     ),
                     Text(

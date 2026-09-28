@@ -82,7 +82,7 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
         AnimatedDefaultTextStyle(
           duration: AppMotion.rapido,
           style: AppTextStyles.label.copyWith(
-            color: _isActive ? AppColors.acento : AppColors.textSecondary,
+            color: _isActive ? AppColors.primaryDeep : AppColors.textSecondary,
           ),
           child: Text(widget.label),
         ),
@@ -111,7 +111,7 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
                 Icons.keyboard_arrow_down_rounded,
                 size: 22,
                 color:
-                    _isActive ? AppColors.acento : AppColors.textSecondary,
+                    _isActive ? AppColors.primaryDeep : AppColors.textSecondary,
               ),
             ),
             style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
@@ -127,7 +127,7 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
               prefixIcon: Icon(
                 widget.icon,
                 size: 20,
-                color: _isActive ? AppColors.acento : AppColors.primary,
+                color: _isActive ? AppColors.primaryDeep : AppColors.primary,
               ),
               hintText: widget.hint,
             ),
@@ -295,7 +295,7 @@ class _FieldError extends StatelessWidget {
                   child: Text(
                     'Reintentar',
                     style: AppTextStyles.label.copyWith(
-                      color: AppColors.acento,
+                      color: AppColors.primaryDeep,
                     ),
                   ),
                 ),

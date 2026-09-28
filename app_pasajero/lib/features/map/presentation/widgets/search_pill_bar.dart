@@ -109,7 +109,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       ),
                       child: const Icon(
                         Icons.menu_outlined,
-                        color: AppColors.acento,
+                        color: AppColors.primaryDeep,
                         size: 22,
                       ),
                     ),
@@ -361,7 +361,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   Widget _buildFilterButton() {
     return _buildActionButton(
       key: const ValueKey('pill-filtro'),
-      iconColor: AppColors.acento,
+      iconColor: AppColors.primaryDeep,
       icon: Icons.tune_outlined,
       semanticLabel: 'Cambiar ruta',
       onTap: () {

@@ -29,14 +29,12 @@ abstract class AppColors {
   /// Azul eléctrico: la ruta activa del usuario y su métrica.
   static const Color electricBlue = Color(0xFF2563EB);
 
-  /// El azul de los controles: botones, íconos de acción, bordes de foco,
-  /// lo seleccionado y la cifra grande. Antes era [primaryDeep], que el
-  /// dueño vio apagado; eligió el eléctrico para que la app se vea viva
-  /// (2026-09-28). Blanco encima da 5,2:1 y él como texto sobre la arena,
-  /// 4,8:1: pasa AA en los dos (test/contraste_test.dart). Las sombras,
-  /// los velos y las superficies de tinta se quedan en la tinta: ahí el
-  /// azul claro no oscurece.
-  static const Color acento = electricBlue;
+  /// El fondo de los botones llenos. Antes era [primaryDeep], que el
+  /// dueño vio apagado; el eléctrico le pareció feo y eligió este
+  /// intermedio (2026-09-28), solo para botones: íconos, texto, bordes de
+  /// foco y la cifra grande siguen en [primaryDeep]. Blanco encima da
+  /// 7,1:1 (test/contraste_test.dart).
+  static const Color acento = Color(0xFF1E56A8);
 
   /// Tinta profunda: fondos "hero" de splash, login, onboarding y el drawer.
   static const Color ink = Color(0xFF0B1628);
@@ -201,7 +199,7 @@ abstract class AppTextStyles {
     fontWeight: FontWeight.w200,
     height: 0.9,
     letterSpacing: -2.0,
-    color: AppColors.acento,
+    color: AppColors.primaryDeep,
   );
 
   /// Lo primero que se lee de una pantalla. Uno por pantalla.
@@ -337,7 +335,7 @@ abstract class AppTextStyles {
     fontWeight: FontWeight.w200,
     height: 0.9,
     letterSpacing: -3.0,
-    color: AppColors.acento,
+    color: AppColors.primaryDeep,
   );
 }
 
@@ -375,7 +373,7 @@ abstract class AppTheme {
         // Avisos son `subtitulo` y estaban empatadas con él. Es además el
         // tamaño que Material le da por defecto a una barra.
         titleTextStyle: AppTextStyles.titulo,
-        iconTheme: const IconThemeData(color: AppColors.acento, size: 24),
+        iconTheme: const IconThemeData(color: AppColors.primaryDeep, size: 24),
       ),
 
       // F11: sin esto, un TextButton sin minimumSize propio cae en los 40dp
@@ -386,7 +384,7 @@ abstract class AppTheme {
       // en el morado de fábrica de Material 3, que no es un color de esta app.
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.acento,
+          foregroundColor: AppColors.primaryDeep,
           minimumSize: const Size(0, 44),
           tapTargetSize: MaterialTapTargetSize.padded,
         ),
@@ -423,7 +421,7 @@ abstract class AppTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           borderSide:
-              const BorderSide(color: AppColors.acento, width: 2.0),
+              const BorderSide(color: AppColors.primaryDeep, width: 2.0),
         ),
         labelStyle: AppTextStyles.cuerpo.copyWith(
           color: AppColors.textSecondary,

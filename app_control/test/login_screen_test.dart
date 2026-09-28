@@ -311,13 +311,16 @@ void main() {
     expect(_contraste(Colors.white, fondo), greaterThanOrEqualTo(4.5));
   });
 
-  test('el azul del panel es el eléctrico del pasajero; el login, el 404', () {
-    // La tinta #0B1628 y luego #17325F el dueño los vio muy oscuros: el
-    // panel va en el acento del sistema (#2563EB, la opción E), el mismo
-    // de los controles del pasajero. El fondo del login conserva el
-    // degradado del 404, que es el que el dueño pidió ahí.
-    expect(AppColors.navy, const Color(0xFF2563EB));
-    expect(AppColors.navy, core.AppColors.acento);
+  test('el panel va en #17325F y sus botones en el azul del pasajero', () {
+    // La tinta #0B1628 el dueño la vio muy oscura: el panel va en #17325F,
+    // lo alto del menú del pasajero. El fondo de los botones llenos va en
+    // el azul de los botones del sistema (#1E56A8, la opción D); el
+    // eléctrico #2563EB le pareció feo. El login conserva el 404.
+    expect(AppColors.navy, const Color(0xFF17325F));
+    expect(AppColors.boton, core.AppColors.acento);
+    expect(AppColors.boton, const Color(0xFF1E56A8));
+    final estilo = AppTheme.light.filledButtonTheme.style!;
+    expect(estilo.backgroundColor!.resolve({}), AppColors.boton);
     expect(FondoEquipo.azul, const Color(0xFF17325F));
   });
 

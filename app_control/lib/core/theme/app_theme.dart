@@ -33,13 +33,18 @@ abstract class AppColors {
   /// No está en el sistema porque el pasajero no tiene formularios así.
   static const Color borderStrong = Color(0xFFD8DBE0);
 
-  /// El azul de la consola: botones, pestañas activas, íconos y bordes de
-  /// foco. Era la tinta del sistema (#0B1628) y después #17325F, y el dueño
-  /// vio los dos muy oscuros, sin vida; es el acento del sistema (#2563EB,
-  /// la opción E que eligió), el mismo de los controles del pasajero. Con
-  /// él el blanco encima queda en 5,2:1 y como letra sobre la arena, 4,8:1:
-  /// los dos pasan el 4,5:1 del texto chico.
-  static const Color navy = core.AppColors.acento;
+  /// El azul de la consola: pestañas activas, íconos y bordes de foco.
+  /// Era la tinta del sistema (#0B1628) y el dueño la vio muy oscura, sin
+  /// vida; este es el azul de lo alto del menú lateral del pasajero
+  /// (`LiveRouteBackdrop`), el mismo con que arranca el degradado del 404
+  /// de la web. Con él el blanco encima queda en 12,7:1 y como letra sobre
+  /// blanco o arena sigue por encima de 11:1.
+  static const Color navy = Color(0xFF17325F);
+
+  /// El fondo de los botones llenos: el mismo azul de los botones del
+  /// pasajero (#1E56A8), que el dueño eligió solo para botones. Blanco
+  /// encima da 7,1:1.
+  static const Color boton = core.AppColors.acento;
   static const Color navyRaised = core.AppColors.primaryDeep;
 
   static const Color textPrimary = core.AppColors.textPrimary;
@@ -231,7 +236,7 @@ abstract class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.navy,
+          backgroundColor: AppColors.boton,
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
