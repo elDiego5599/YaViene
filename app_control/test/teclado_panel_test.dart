@@ -279,4 +279,21 @@ void main() {
     expect(find.byType(Dialog), findsNothing);
     await _desmontar(tester);
   }, variant: _escritorio);
+
+  // Lo activo lleno —el filtro de ruta y la pestaña de estado elegidos— va
+  // en el azul de los botones del pasajero (#1E56A8), no en el #17325F de
+  // los íconos: el dueño vio el mismo azul en la app y otro en el panel.
+  testWidgets('el filtro y la pestaña activos van en el azul de los botones',
+      (tester) async {
+    await _montar(tester);
+    Color? relleno(String texto) => tester
+        .widget<Material>(find
+            .ancestor(of: find.text(texto), matching: find.byType(Material))
+            .first)
+        .color;
+    expect(relleno('Tcherassi (2)'), AppColors.boton);
+    expect(relleno('Todos'), AppColors.boton);
+    expect(relleno('En Línea'), isNot(AppColors.boton));
+    await _desmontar(tester);
+  });
 }

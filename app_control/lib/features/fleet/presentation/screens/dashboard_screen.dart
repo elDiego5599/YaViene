@@ -779,7 +779,7 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: active ? AppColors.navy : AppColors.surface,
+      color: active ? AppColors.boton : AppColors.surface,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: InkWell(
         onTap: onTap,
@@ -790,7 +790,7 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
-              color: active ? AppColors.navy : AppColors.borderStrong,
+              color: active ? AppColors.boton : AppColors.borderStrong,
             ),
           ),
           child: Text(
@@ -1021,7 +1021,7 @@ class _StatusTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: active ? AppColors.navy : Colors.transparent,
+      color: active ? AppColors.boton : Colors.transparent,
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         onTap: onTap,

@@ -33,7 +33,7 @@ abstract class AppColors {
   /// No está en el sistema porque el pasajero no tiene formularios así.
   static const Color borderStrong = Color(0xFFD8DBE0);
 
-  /// El azul de la consola: pestañas activas, íconos y bordes de foco.
+  /// El azul de la consola: íconos, texto y bordes de foco.
   /// Era la tinta del sistema (#0B1628) y el dueño la vio muy oscura, sin
   /// vida; este es el azul de lo alto del menú lateral del pasajero
   /// (`LiveRouteBackdrop`), el mismo con que arranca el degradado del 404
@@ -41,9 +41,11 @@ abstract class AppColors {
   /// blanco o arena sigue por encima de 11:1.
   static const Color navy = Color(0xFF17325F);
 
-  /// El fondo de los botones llenos: el mismo azul de los botones del
-  /// pasajero (#1E56A8), que el dueño eligió solo para botones. Blanco
-  /// encima da 7,1:1.
+  /// El fondo de lo que va lleno —botones, el filtro de ruta y la pestaña
+  /// de estado activos—: el mismo azul de los botones del pasajero
+  /// (#1E56A8). El dueño lo eligió solo para eso, no para íconos, y vio
+  /// que el panel pintaba lo activo en [navy] y parecía otro azul
+  /// (2026-09-28). Blanco encima da 7,1:1.
   static const Color boton = core.AppColors.acento;
   static const Color navyRaised = core.AppColors.primaryDeep;
 
