@@ -536,48 +536,66 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                       ),
                     ),
                   ),
-                  // Las vistas se cruzan de lado sin cambiar el alto de la
-                  // tarjeta: lo único que se mueve en vertical es la hoja
-                  // entera, y de eso se encarga el desplazamiento de fuera.
-                  AnimatedSwitcher(
-                    duration: AppMotion.duracion(context, AppMotion.normal),
-                    switchInCurve: AppMotion.curvaEntrada,
-                    switchOutCurve: AppMotion.curvaSalida,
-                    // Empuje lateral, como una pila de navegación: lo
-                    // que entra llega del lado hacia el que vamos y lo
-                    // que sale se va por el contrario. Antes las dos
-                    // vistas venían del mismo lado con un desplazamiento
-                    // de 0.04 —imperceptible—, así que entrar y volver se
-                    // veían idénticos: solo un parpadeo.
-                    transitionBuilder: (child, animation) {
-                      final entra = (child.key as ValueKey?)?.value == _view;
-                      final lado = _haciaDentro ? 1.0 : -1.0;
-                      final desde = (entra ? lado : -lado) *
-                          (AppMotion.reducido(context) ? 0.0 : 0.18);
-                      final slide = Tween<Offset>(
-                        begin: Offset(desde, 0),
-                        end: Offset.zero,
-                      ).animate(animation);
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(position: slide, child: child),
-                      );
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey(_view),
-                      child: switch (_view) {
-                        _RouteView.main => _buildMainView(context),
-                        _RouteView.companies => _buildListView(
-                            title: 'Elige empresa',
-                            onBack: () => _irA(_RouteView.main),
-                            builder: (_) => _buildCompanyList(context),
-                          ),
-                        _RouteView.routes => _buildListView(
-                            title: 'Elige ruta',
-                            onBack: () => _irA(_RouteView.main),
-                            builder: (_) => _buildRouteList(context),
-                          ),
+                  // Las vistas se cruzan de lado y la hoja toma el alto de la
+                  // que entra mientras tanto, no después: la que sale va
+                  // colgada del borde de arriba y no cuenta para el tamaño.
+                  // Con el alto de la más alta durante el cruce, la hoja
+                  // bajaba en un segundo tiempo, ya con la lista quieta.
+                  _altoAnimado(
+                    context,
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.duracion(context, AppMotion.normal),
+                      switchInCurve: AppMotion.curvaEntrada,
+                      switchOutCurve: AppMotion.curvaSalida,
+                      // Empuje lateral, como una pila de navegación: lo
+                      // que entra llega del lado hacia el que vamos y lo
+                      // que sale se va por el contrario. Antes las dos
+                      // vistas venían del mismo lado con un desplazamiento
+                      // de 0.04 —imperceptible—, así que entrar y volver se
+                      // veían idénticos: solo un parpadeo.
+                      layoutBuilder: (actual, anteriores) => Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          for (final anterior in anteriores)
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: anterior,
+                            ),
+                          if (actual != null) actual,
+                        ],
+                      ),
+                      transitionBuilder: (child, animation) {
+                        final entra = (child.key as ValueKey?)?.value == _view;
+                        final lado = _haciaDentro ? 1.0 : -1.0;
+                        final desde = (entra ? lado : -lado) *
+                            (AppMotion.reducido(context) ? 0.0 : 0.18);
+                        final slide = Tween<Offset>(
+                          begin: Offset(desde, 0),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(position: slide, child: child),
+                        );
                       },
+                      child: KeyedSubtree(
+                        key: ValueKey(_view),
+                        child: switch (_view) {
+                          _RouteView.main => _buildMainView(context),
+                          _RouteView.companies => _buildListView(
+                              title: 'Elige empresa',
+                              onBack: () => _irA(_RouteView.main),
+                              builder: (_) => _buildCompanyList(context),
+                            ),
+                          _RouteView.routes => _buildListView(
+                              title: 'Elige ruta',
+                              onBack: () => _irA(_RouteView.main),
+                              builder: (_) => _buildRouteList(context),
+                            ),
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -589,6 +607,21 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     );
   }
 
+  /// La hoja cambia de alto con [child] a la par del cruce de vistas.
+  ///
+  /// Con movimiento reducido el alto salta: `AnimatedSize` con duración cero
+  /// termina su animación dentro de su propio layout y Flutter lo tumba
+  /// («mutated in its own performLayout»).
+  Widget _altoAnimado(BuildContext context, {required Widget child}) {
+    if (AppMotion.reducido(context)) return child;
+    return AnimatedSize(
+      duration: AppMotion.duracion(context, AppMotion.normal),
+      curve: AppMotion.curvaEntrada,
+      alignment: Alignment.topCenter,
+      child: child,
+    );
+  }
+
   Widget _buildMainView(BuildContext context) {
     final selectedCompany = ref.watch(selectedCompanyProvider);
     final selectedRoute = ref.watch(selectedRouteProvider);
@@ -596,11 +629,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
 
     return Padding(
       // La medida va en el Padding, no en la Column: las listas de empresa
-      // y de ruta se dibujan como `SizedBox(height: _cardHeight)` con su
-      // propio relleno dentro, así que midiendo solo el contenido salían
-      // 40 px más bajas (16 arriba + 24 abajo) y la tarjeta se encogía al
-      // entrar a elegir y volvía a crecer al salir. Entre las tres vistas
-      // solo debe cambiar el contenido.
+      // y de ruta usan `_cardHeight` de tope con su propio relleno dentro,
+      // así que midiendo solo el contenido salían 40 px más bajas (16
+      // arriba + 24 abajo) y la tarjeta se encogía al entrar a una lista
+      // larga y volvía a crecer al salir.
       key: _mainCardKey,
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -723,14 +755,17 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     required VoidCallback onBack,
     required Widget Function(BuildContext) builder,
   }) {
+    // El alto de la vista principal es el tope, no el piso. Una lista larga
+    // lo llena y se desplaza; una corta se queda con lo suyo y la hoja baja
+    // hasta ella. Con el alto fijo, la única empresa de la flota quedaba
+    // arriba de 200 px de arena vacía (route_selector_card_height_test).
     final height = _cardHeight ?? _fallbackCardHeight;
-    return SizedBox(
-      height: height,
-      width: double.infinity,
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: height),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
-          mainAxisSize: MainAxisSize.max,
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _headerRow(title: title, onBack: onBack),
@@ -740,7 +775,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             // el borde de la hoja: se desvanecen. Antes una fila a medio
             // salir quedaba partida por la mitad justo debajo del título y
             // parecía que se metía por detrás de él.
-            Expanded(child: _listaConDesvanecido(builder(context))),
+            Flexible(child: _listaConDesvanecido(builder(context))),
           ],
         ),
       ),
@@ -771,16 +806,22 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   Widget _listaConDesvanecido(Widget lista) {
     final conTinta = Material(
       type: MaterialType.transparency,
-      child: Align(alignment: Alignment.topCenter, child: lista),
+      // `heightFactor: 1`: la caja mide lo que la lista, no todo el tope.
+      child: Align(
+        alignment: Alignment.topCenter,
+        heightFactor: 1,
+        child: lista,
+      ),
     );
     return LayoutBuilder(
       builder: (context, constraints) {
         final alto = constraints.maxHeight;
         if (!alto.isFinite || alto <= 48) return ClipRect(child: conTinta);
-        final fundido = (_fundidoLista / alto).clamp(0.0, 0.2);
         return ClipRect(
           child: ShaderMask(
             blendMode: BlendMode.dstIn,
+            // Sobre el alto pintado, que en una lista corta es menos que el
+            // tope que llega en las restricciones.
             shaderCallback: (rect) => LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -790,7 +831,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 Colors.black,
                 Colors.transparent,
               ],
-              stops: [0.0, fundido, 1 - fundido, 1.0],
+              stops: () {
+                final fundido = (_fundidoLista / rect.height).clamp(0.0, 0.2);
+                return [0.0, fundido, 1 - fundido, 1.0];
+              }(),
             ).createShader(rect),
             child: conTinta,
           ),
