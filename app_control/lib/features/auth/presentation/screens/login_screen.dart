@@ -351,13 +351,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           height: 54,
           child: FilledButton(
             onPressed: auth.loading ? null : _submit,
-            // El azul con que arranca el degradado de al lado, no la tinta
-            // #0B1628, que el dueño vio muy oscura: la tarjeta se lee en un
-            // solo azul. El blanco encima queda en 12,7:1.
+            // Verde, como donde termina el degradado de al lado: el azul ya
+            // es el panel, y el botón es lo que se toca. Es la variante
+            // accesible (#047857) y no el verde de marca, porque la letra
+            // blanca de 12 pt sobre #00A859 queda en 3,1:1; sobre esta, 5,5.
             style: FilledButton.styleFrom(
-              backgroundColor: FondoEquipo.azul,
+              backgroundColor: AppColors.online,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: FondoEquipo.azul.withValues(alpha: 0.5),
+              disabledBackgroundColor: AppColors.online.withValues(alpha: 0.5),
               shape: const StadiumBorder(),
               textStyle: AppType.ui(
                 fontSize: 12,
@@ -564,7 +565,7 @@ class _BotonEquipoState extends State<_BotonEquipo> {
 /// del menú lateral del pasajero (`live_route_backdrop.dart`): más claro y
 /// más vivo que la tinta #0B1628 que llevaba el panel, que se veía apagada.
 abstract final class FondoEquipo {
-  static const azul = Color(0xFF17325F);
+  static const azul = AppColors.navy;
   static const verde = Color(0xFF00A859);
 
   /// El filo, como en la imagen de referencia del dueño: arriba corta la

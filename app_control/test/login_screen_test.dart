@@ -294,6 +294,29 @@ void main() {
     }
   });
 
+  testWidgets('«INGRESAR» es verde y su letra blanca pasa 4,5:1', (
+    tester,
+  ) async {
+    await _montar(tester);
+
+    final boton = tester.widget<FilledButton>(
+      find.ancestor(
+        of: find.text('INGRESAR'),
+        matching: find.byType(FilledButton),
+      ),
+    );
+    final fondo = boton.style!.backgroundColor!.resolve({})!;
+    expect(fondo, AppColors.online);
+    expect(_contraste(Colors.white, fondo), greaterThanOrEqualTo(4.5));
+  });
+
+  test('el azul del panel es el claro del menú del pasajero, no la tinta', () {
+    // #17325F, lo alto del menú lateral del pasajero y el arranque del
+    // degradado del 404. La tinta #0B1628 el dueño la vio muy oscura.
+    expect(AppColors.navy, const Color(0xFF17325F));
+    expect(FondoEquipo.azul, AppColors.navy);
+  });
+
   testWidgets('la contraseña se muestra y se oculta con su botón', (
     tester,
   ) async {
