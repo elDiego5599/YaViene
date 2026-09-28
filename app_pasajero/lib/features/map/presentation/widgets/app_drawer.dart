@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -566,56 +568,98 @@ class TerminalsLine extends StatelessWidget {
       );
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: Text(
-            a,
+    // Punto, trazo y punto: 4 + 22 + 4.
+    const linea = 30.0;
+    return LayoutBuilder(
+      builder: (context, restricciones) {
+        // Cada punta mide lo suyo. Con dos Flexible se partían el ancho
+        // mitad y mitad aunque cupieran enteras: B18 salía «Ciudad
+        // Mallor… — La Playa» con sitio de sobra después de «La Playa».
+        // Si no caben las dos, la corta queda entera y la larga se lleva
+        // el resto; si las dos pasan de la mitad, mitad y mitad.
+        final escala = MediaQuery.textScalerOf(context);
+        double natural(String texto) {
+          final pintor = TextPainter(
+            text: TextSpan(text: texto, style: textStyle),
+            textDirection: Directionality.of(context),
+            textScaler: escala,
             maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
-            style: textStyle,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        // Línea de ida y vuelta: punto → trazo → punto, todo en verde.
-        Row(
-          mainAxisSize: MainAxisSize.min,
+          )..layout();
+          // Hacia arriba: con el ancho exacto, un redondeo la cortaba.
+          final ancho = pintor.width.ceilToDouble();
+          pintor.dispose();
+          return ancho;
+        }
+
+        final libre = math.max(
+          0.0,
+          restricciones.maxWidth - linea - AppSpacing.sm * 2,
+        );
+        final anchoA = natural(a);
+        final anchoB = natural(b);
+        final mitad = libre / 2;
+        final (topeA, topeB) = anchoA + anchoB <= libre
+            ? (anchoA, anchoB)
+            : anchoA <= mitad
+                ? (anchoA, libre - anchoA)
+                : anchoB <= mitad
+                    ? (libre - anchoB, anchoB)
+                    : (mitad, mitad);
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 4,
-              height: 4,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: topeA),
+              child: Text(
+                a,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: textStyle,
               ),
             ),
-            Container(
-              width: 22,
-              height: 2,
-              color: AppColors.primary.withValues(alpha: 0.4),
+            const SizedBox(width: AppSpacing.sm),
+            // Línea de ida y vuelta: punto → trazo → punto, todo en verde.
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 22,
+                  height: 2,
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                ),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ),
-            Container(
-              width: 4,
-              height: 4,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
+            const SizedBox(width: AppSpacing.sm),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: topeB),
+              child: Text(
+                b,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textStyle,
               ),
             ),
           ],
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Flexible(
-          child: Text(
-            b,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textStyle,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
