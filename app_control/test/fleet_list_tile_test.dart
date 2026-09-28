@@ -1,9 +1,11 @@
 // La fila de un bus en la lista del panel.
 //
-// Con una ruta de nombre largo («Vivero Paraíso») la fila no cabía: el chip
-// de la ruta no cedía nada, la placa quedaba en un hueco más angosto que
-// ella misma y su ícono de estado se pintaba encima del chip. En una
-// ventana de 1440 pasaba con cualquier ruta.
+// La fila llevaba, además de la placa, un chip con la ruta y un segundo
+// renglón con el conductor. El chip no cabía casi nunca: en 1440 ni se
+// pintaba y en 1600 salía cortado («Vivero Pa…»), y el nombre del
+// conductor de la flota de ejemplo («Conductor 3001») no le decía nada al
+// operador. El dueño pidió quitar los dos: la fila es la placa y su estado,
+// y la ruta ya la dice la pestaña elegida arriba.
 //
 // Estas pruebas miden con la tipografía de verdad. Con Ahem, la de cajas
 // que usa `flutter test` si no se le da otra, cada letra es un cuadrado y
@@ -64,6 +66,9 @@ const _placaMasAncha = 'WWW-000';
 
 const _rutaCorta = 'Tcherassi';
 const _rutaLarga = 'Vivero Paraíso';
+
+/// Como llegan los de la flota de ejemplo.
+const _conductor = 'Conductor 3001';
 
 Future<void> _montar(
   WidgetTester tester, {
@@ -135,88 +140,39 @@ void main() {
   setUpAll(_cargarFuentes);
 
   for (final ancho in _anchos) {
-    for (final ruta in [_rutaCorta, _rutaLarga, null]) {
-      for (final placa in _placas) {
-        testWidgets(
-            'a ${ancho.toStringAsFixed(0)} con ${ruta ?? 'ninguna ruta'} '
-            'y $placa nada se monta', (tester) async {
-          await _montar(tester, ancho: ancho, placa: placa, ruta: ruta);
+    for (final placa in _placas) {
+      testWidgets(
+          'a ${ancho.toStringAsFixed(0)} con $placa la fila es la placa y su '
+          'estado, sin ruta ni conductor', (tester) async {
+        await _montar(
+          tester,
+          ancho: ancho,
+          placa: placa,
+          ruta: _rutaLarga,
+          conductor: _conductor,
+        );
 
-          expect(tester.takeException(), isNull, reason: 'la fila se desborda');
-          expect(
-            _entero(_parrafo(tester, placa)),
-            isTrue,
-            reason: 'la placa se cortó',
-          );
+        expect(tester.takeException(), isNull, reason: 'la fila se desborda');
+        expect(
+          _entero(_parrafo(tester, placa)),
+          isTrue,
+          reason: 'la placa se cortó',
+        );
+        expect(find.text(_rutaLarga), findsNothing,
+            reason: 'volvió el chip de la ruta');
+        expect(find.text(_conductor), findsNothing,
+            reason: 'volvió el renglón del conductor');
 
-          final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
-          final lapiz = tester.getRect(find.byType(IconButton));
-          final chip = find.text(ruta ?? '');
-          if (ruta != null && chip.evaluate().isNotEmpty) {
-            final caja = tester.getRect(
-              find.ancestor(of: chip, matching: find.byType(Container)).first,
-            );
-            expect(icono.right, lessThanOrEqualTo(caja.left + _holgura),
-                reason: 'el ícono de estado quedó encima del chip');
-            expect(caja.right, lessThanOrEqualTo(lapiz.left + _holgura),
-                reason: 'el chip quedó encima del lápiz');
-          } else {
-            expect(icono.right, lessThanOrEqualTo(lapiz.left + _holgura),
-                reason: 'el ícono de estado quedó encima del lápiz');
-          }
-        }, variant: _escritorio);
-      }
+        final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
+        final lapiz = tester.getRect(find.byType(IconButton));
+        expect(icono.right, lessThanOrEqualTo(lapiz.left + _holgura),
+            reason: 'el ícono de estado quedó encima del lápiz');
+      }, variant: _escritorio);
     }
   }
 
-  testWidgets('con una ruta larga se corta el nombre de la ruta, no la placa',
-      (tester) async {
-    await _montar(tester, ancho: _fila(1600), placa: 'WNP-659', ruta: _rutaLarga);
-
-    expect(tester.takeException(), isNull);
-    expect(_entero(_parrafo(tester, 'WNP-659')), isTrue);
-    expect(_entero(_parrafo(tester, _rutaLarga)), isFalse);
-  }, variant: _escritorio);
-
-  testWidgets('con espacio de sobra la ruta se lee entera', (tester) async {
-    await _montar(tester, ancho: _fila(1600), placa: 'WNP-659', ruta: _rutaCorta);
-
-    expect(_entero(_parrafo(tester, _rutaCorta)), isTrue);
-  }, variant: _escritorio);
-
-  // A 1440 a la placa angosta le sobraría para «Tche…», pero a la ancha no:
-  // o todas las filas llevan chip o ninguna, y la lista no se ve salteada.
-  for (final placa in _placas) {
-    testWidgets('a 1440 no hay chip de ruta, tampoco con $placa',
-        (tester) async {
-      await _montar(tester, ancho: _fila(1440), placa: placa, ruta: _rutaCorta);
-
-      expect(tester.takeException(), isNull);
-      expect(find.text(_rutaCorta), findsNothing);
-    }, variant: _escritorio);
-  }
-
-  // 1536 es una pantalla de 1920 con Windows al 125 %.
-  testWidgets('desde 1536 el chip vuelve, aunque sea cortado', (tester) async {
-    await _montar(tester, ancho: _fila(1536), placa: 'WNP-659', ruta: _rutaLarga);
-
-    expect(tester.takeException(), isNull);
-    expect(find.text(_rutaLarga), findsOneWidget);
-  }, variant: _escritorio);
-
-  // Y en cuanto vuelve, con la placa más ancha del tablero, la ruta de
-  // nombre corto se lee entera: si volviera solo para mostrarse cortada no
-  // valdría la pena.
-  testWidgets('a 1536 el chip vuelve con la ruta entera', (tester) async {
-    await _montar(tester, ancho: _fila(1536), placa: 'WNP-659', ruta: _rutaCorta);
-
-    expect(tester.takeException(), isNull);
-    expect(_entero(_parrafo(tester, _rutaCorta)), isTrue);
-  }, variant: _escritorio);
-
   // Con la ventana maximizada la placa nunca se achica, ni la más ancha
-  // posible en la pantalla más chica: para eso el chip se va antes y le deja
-  // también el aire que lo separaba del lápiz.
+  // posible en la pantalla más chica.
   for (final ruta in [_rutaLarga, null]) {
     testWidgets(
         'a 1280 la placa más ancha va a su tamaño, '
@@ -263,19 +219,4 @@ void main() {
           reason: 'el ícono de estado quedó encima del lápiz');
     }, variant: _escritorio);
   }
-
-  testWidgets('un conductor de nombre largo no empuja la fila', (tester) async {
-    await _montar(
-      tester,
-      ancho: _fila(1440),
-      placa: 'KJT-704',
-      ruta: _rutaCorta,
-      conductor: 'María Fernanda Villalobos Castañeda',
-    );
-
-    expect(tester.takeException(), isNull);
-    final nombre = _parrafo(tester, 'María Fernanda Villalobos Castañeda');
-    expect(_entero(nombre), isFalse);
-    expect(nombre.size.height, lessThan(20), reason: 'va en un solo renglón');
-  }, variant: _escritorio);
 }

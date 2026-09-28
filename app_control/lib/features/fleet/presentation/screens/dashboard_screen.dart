@@ -605,7 +605,7 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
                 onChanged: widget.onSearchChanged,
                 style: AppType.ui(fontSize: 13.5),
                 decoration: const InputDecoration(
-                  hintText: 'Buscar placa, ruta o conductor…',
+                  hintText: 'Buscar placa o ruta…',
                   prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
                   fillColor: AppColors.surface,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1157,22 +1157,12 @@ class _SelectedBusCard extends StatelessWidget {
               ),
             ],
           ),
-          if (routeName != null || bus.driverName != null) ...[
+          // La ruta, entera: en la fila de la lista ya no va. El conductor
+          // tampoco va aquí: el de la flota de ejemplo, «Conductor 3001», no
+          // le decía nada al operador.
+          if (routeName != null) ...[
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (routeName != null)
-                  _infoChip(icon: Icons.route, label: routeName!, color: AppColors.navy),
-                if (bus.driverName != null)
-                  _infoChip(
-                    icon: Icons.person_outline,
-                    label: bus.driverName!,
-                    color: AppColors.textSecondary,
-                  ),
-              ],
-            ),
+            _infoChip(icon: Icons.route, label: routeName!, color: AppColors.navy),
           ],
           const SizedBox(height: 12),
           // Lo vivo del bus, en su bandeja: la velocidad en grande y, debajo,

@@ -434,7 +434,9 @@ void main() {
       expect(notifier.state.buses['B-1']!.sequence, 100);
       expect(notifier.state.buscar('abc1').map((b) => b.busId), ['B-1']);
       expect(notifier.state.buscar('0457').map((b) => b.busId), ['B-1']);
-      expect(notifier.state.buscar('carlos').map((b) => b.busId), ['B-1']);
+      // El conductor ya no se ve en el panel, así que tampoco se busca por
+      // él: un resultado que no dice por qué salió confunde.
+      expect(notifier.state.buscar('carlos'), isEmpty);
     });
 
     // Los mensajes no llegan en orden: el socket reconecta, el REST vuelve

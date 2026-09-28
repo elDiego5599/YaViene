@@ -11,7 +11,7 @@
 // Se monta el dashboard entero desde 1600 hasta 1200, el ancho más chico
 // que ya cuida fleet_list_tile_test.dart, y se pide lo que pide cualquier
 // ventana: que nada se desborde, y que «Agregar ruta» y «Agregar bus» sigan
-// ahí con ese nombre. Con la tipografía de la app, como
+// ahí con ese nombre. Y lo mismo con la ficha de un bus abierta. Con la tipografía de la app, como
 // teclado_panel_test.dart: con la de pruebas los anchos no son los reales.
 import 'dart:convert';
 
@@ -112,6 +112,14 @@ Future<void> _revisarA(
       reason: '«$accion» a $donde',
     );
   }
+
+  // Con un bus abierto en su ficha, que se monta encima del mapa. Ni la
+  // ficha ni la fila dicen el conductor: el de la flota de ejemplo
+  // («Conductor 3001») no le decía nada al operador y el dueño lo quitó.
+  container.read(fleetProvider.notifier).selectBus('B-1');
+  await tester.pump();
+  expect(tester.takeException(), isNull, reason: 'ficha a $donde');
+  expect(find.textContaining('Ana Pérez'), findsNothing, reason: donde);
 
   await tester.pumpWidget(const SizedBox());
   container.dispose();

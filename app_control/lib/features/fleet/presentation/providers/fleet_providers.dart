@@ -70,7 +70,8 @@ class FleetState {
       : buses.values.where((b) => b.routeId == routeFilter).toList();
 
   /// [fleetList] filtrada por lo que el operador escribe en el buscador del
-  /// dashboard: placa, número de bus, interno, ruta o conductor.
+  /// dashboard: placa, número de bus, interno o ruta. El conductor no: ya no
+  /// se ve en el panel, y un resultado que no dice por qué salió confunde.
   List<FleetBus> buscar(String query) {
     if (query.isEmpty) return fleetList;
     final q = query.toLowerCase();
@@ -80,8 +81,7 @@ class FleetState {
           b.busId.replaceFirst('BUS-', '').toLowerCase().contains(q) ||
           b.interno.toLowerCase().contains(q) ||
           (b.routeId?.toLowerCase().contains(q) ?? false) ||
-          nombreRuta.toLowerCase().contains(q) ||
-          (b.driverName?.toLowerCase().contains(q) ?? false);
+          nombreRuta.toLowerCase().contains(q);
     }).toList();
   }
 

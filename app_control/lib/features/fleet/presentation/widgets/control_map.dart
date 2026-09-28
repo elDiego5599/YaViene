@@ -14,6 +14,31 @@ import '../providers/fleet_providers.dart';
 class ControlMap extends ConsumerStatefulWidget {
   const ControlMap({super.key});
 
+  /// Hasta dónde se deja llevar el centro del mapa: un cuadrado de 60 km de
+  /// lado sobre el mismo centro que el del pasajero (10.977, -74.8143).
+  ///
+  /// Antes no había límite: se alejaba hasta el planeta entero y se
+  /// arrastraba hasta Bogotá, y cada gesto bajaba teselas de sitios donde no
+  /// anda un solo bus. El pasajero tiene 41 km; aquí va más holgado porque
+  /// el operador mira la flota entera y un bus que se sale de su ruta —hacia
+  /// Puerto Colombia, Tubará o Sabanagrande— tiene que seguir a la vista.
+  ///
+  /// Medio lado de 30 km: 30 / 110.574 = 0.2713° de latitud, y
+  /// 30 / (111.320 · cos 10.977°) = 30 / 109.28 = 0.2745° de longitud.
+  /// test/control_map_area_test.dart comprueba que sale cuadrado en km.
+  static final area = LatLngBounds(
+    const LatLng(10.7057, -75.0888),
+    const LatLng(11.2483, -74.5398),
+  );
+
+  /// A zoom 11 una ventana de 1200 pt abarca unos 90 km: el área entera
+  /// cabe con margen. Más lejos solo se ven pueblos sin buses (el pasajero,
+  /// en un teléfono, para en 11.4).
+  static const double zoomMinimo = 11;
+
+  /// Igual que el pasajero: más cerca OSM ya no tiene teselas y las estira.
+  static const double zoomMaximo = 18.5;
+
   @override
   ConsumerState<ControlMap> createState() => _ControlMapState();
 }
@@ -72,6 +97,15 @@ class _ControlMapState extends ConsumerState<ControlMap> {
             options: MapOptions(
               initialCenter: const LatLng(10.9639, -74.7964),
               initialZoom: 12,
+              minZoom: ControlMap.zoomMinimo,
+              maxZoom: ControlMap.zoomMaximo,
+              // Se limita el centro y no la vista entera: con `contain`, una
+              // ventana más ancha que el área no tendría cámara válida y el
+              // mapa se quedaría quieto. Así el borde puede asomar fuera del
+              // cuadrado, pero la cámara siempre vuelve a la ciudad.
+              cameraConstraint: CameraConstraint.containCenter(
+                bounds: ControlMap.area,
+              ),
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),

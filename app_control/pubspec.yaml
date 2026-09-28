@@ -47,6 +47,9 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   window_manager: ^0.5.2
   flutter_svg: ^2.0.10
+  # Abre el WhatsApp del equipo desde «¿Olvidaste tu contraseña?» del login:
+  # el panel no restablece contraseñas solo, las restablece el equipo.
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
