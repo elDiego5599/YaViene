@@ -225,9 +225,21 @@ void main() {
   // suscripción sale de la base, el respaldo va atrás. La captura del equipo
   // es lo que decide cuál es la posición de un bus (T2.5).
   group('ninguna posición más vieja retrocede un bus', () {
-    // Las posiciones en vivo salen agrupadas cada 200 ms.
-    Future<void> esperarVivo() =>
-        Future<void>.delayed(const Duration(milliseconds: 250));
+    // Las posiciones en vivo salen agrupadas cada 200 ms. Con la máquina
+    // cargada (la suite entera, un build al lado) el lote sale tarde y una
+    // espera fija de 250 ms leía el estado antes del primer lote: se espera
+    // a que el provider publique algo nuevo, hasta 5 s, y luego un lote
+    // más, por si lo enviado quedó repartido en dos.
+    Future<void> esperarVivo() async {
+      final antes = container.read(busPositionsSourceProvider('R-101'));
+      final limite = DateTime.now().add(const Duration(seconds: 5));
+      while (identical(
+              container.read(busPositionsSourceProvider('R-101')), antes) &&
+          DateTime.now().isBefore(limite)) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
 
     late int t0;
     setUp(() => t0 = DateTime.now().millisecondsSinceEpoch);
