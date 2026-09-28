@@ -25,6 +25,7 @@ import 'package:ya_viene_control/core/theme/app_theme.dart';
 import 'package:ya_viene_control/features/auth/presentation/screens/login_screen.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
+import 'package:ya_viene_core/core/theme/app_theme.dart' as core;
 
 Future<void> _cargarFuentes() async {
   final manifiesto =
@@ -310,11 +311,14 @@ void main() {
     expect(_contraste(Colors.white, fondo), greaterThanOrEqualTo(4.5));
   });
 
-  test('el azul del panel es el claro del menú del pasajero, no la tinta', () {
-    // #17325F, lo alto del menú lateral del pasajero y el arranque del
-    // degradado del 404. La tinta #0B1628 el dueño la vio muy oscura.
-    expect(AppColors.navy, const Color(0xFF17325F));
-    expect(FondoEquipo.azul, AppColors.navy);
+  test('el azul del panel es el eléctrico del pasajero; el login, el 404', () {
+    // La tinta #0B1628 y luego #17325F el dueño los vio muy oscuros: el
+    // panel va en el acento del sistema (#2563EB, la opción E), el mismo
+    // de los controles del pasajero. El fondo del login conserva el
+    // degradado del 404, que es el que el dueño pidió ahí.
+    expect(AppColors.navy, const Color(0xFF2563EB));
+    expect(AppColors.navy, core.AppColors.acento);
+    expect(FondoEquipo.azul, const Color(0xFF17325F));
   });
 
   testWidgets('la contraseña se muestra y se oculta con su botón', (

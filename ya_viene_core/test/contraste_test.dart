@@ -136,6 +136,44 @@ void main() {
     });
   });
 
+  group('el acento azul (#2563EB, prueba del dueño)', () {
+    // La tinta #14274E en botones, íconos y bordes de foco se veía apagada;
+    // el dueño eligió el azul eléctrico (la opción E) para que la app se
+    // vea viva. Este es el par con el que se lee.
+    test('es el azul eléctrico', () {
+      expect(AppColors.acento, AppColors.electricBlue);
+      expect(AppColors.acento, const Color(0xFF2563EB));
+    });
+
+    test('el tema lo pone en los controles y en el dato', () {
+      final tema = AppTheme.lightTheme;
+      final estados = <WidgetState>{};
+      expect(
+          tema.elevatedButtonTheme.style!.backgroundColor!.resolve(estados),
+          AppColors.acento);
+      expect(tema.textButtonTheme.style!.foregroundColor!.resolve(estados),
+          AppColors.acento);
+      final foco = tema.inputDecorationTheme.focusedBorder!
+          as OutlineInputBorder;
+      expect(foco.borderSide.color, AppColors.acento);
+      expect(tema.appBarTheme.iconTheme!.color, AppColors.acento);
+      expect(AppTextStyles.dato.color, AppColors.acento);
+      expect(AppTextStyles.etaNumber.color, AppColors.acento);
+    });
+
+    test('la letra blanca del botón y el azul como texto se leen', () {
+      esperaAlMenos(Colors.white, AppColors.acento, 4.5, 'el botón azul');
+      for (final fondo in [
+        AppColors.surface,
+        AppColors.arena,
+        AppColors.background,
+        AppColors.surfaceMuted,
+      ]) {
+        esperaAlMenos(AppColors.acento, fondo, 4.5, 'el azul como texto');
+      }
+    });
+  });
+
   group('la pista de los campos', () {
     test('se lee sobre el relleno de fondo', () {
       final hint = AppTheme.lightTheme.inputDecorationTheme.hintStyle;

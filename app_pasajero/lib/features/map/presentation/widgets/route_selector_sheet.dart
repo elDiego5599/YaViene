@@ -998,7 +998,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       onPressed: action,
       style: ElevatedButton.styleFrom(
         backgroundColor:
-            listo ? AppColors.primaryAccessible : AppColors.primaryDeep,
+            listo ? AppColors.primaryAccessible : AppColors.acento,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(
@@ -1125,7 +1125,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             // rótulo, y no todos los lectores lo dicen.
             icon: const Icon(
               Icons.arrow_back_outlined,
-              color: AppColors.primaryDeep,
+              color: AppColors.acento,
               semanticLabel: 'Volver',
             ),
             tooltip: 'Volver',

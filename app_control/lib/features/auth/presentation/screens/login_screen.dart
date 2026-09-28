@@ -561,11 +561,13 @@ class _BotonEquipoState extends State<_BotonEquipo> {
 /// pruebas midan lo mismo que se pinta.
 ///
 /// El color es el degradado del «404» de la web (`error-404.css`: #17325F
-/// arriba, #00A859 abajo). El azul de arriba es también el de la parte alta
-/// del menú lateral del pasajero (`live_route_backdrop.dart`): más claro y
-/// más vivo que la tinta #0B1628 que llevaba el panel, que se veía apagada.
+/// arriba, #00A859 abajo), que es el que el dueño pidió aquí. El azul de
+/// arriba es también el de la parte alta del menú lateral del pasajero
+/// (`live_route_backdrop.dart`). No sigue a [AppColors.navy]: con el
+/// eléctrico arriba el blanco del panel caería por debajo del 4,5:1 donde
+/// el degradado ya va hacia el verde.
 abstract final class FondoEquipo {
-  static const azul = AppColors.navy;
+  static const azul = Color(0xFF17325F);
   static const verde = Color(0xFF00A859);
 
   /// El filo, como en la imagen de referencia del dueño: arriba corta la

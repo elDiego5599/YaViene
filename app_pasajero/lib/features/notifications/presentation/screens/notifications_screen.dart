@@ -148,7 +148,7 @@ class _SelectAction extends ConsumerWidget {
       },
       style: TextButton.styleFrom(
         textStyle: AppTextStyles.etiqueta,
-        foregroundColor: selecting ? AppColors.error : AppColors.primaryDeep,
+        foregroundColor: selecting ? AppColors.error : AppColors.acento,
         disabledForegroundColor: AppColors.textSecondary,
       ),
       child: Text(selecting ? 'Borrar todas' : 'Seleccionar'),
@@ -464,7 +464,7 @@ class _AlertTile extends StatelessWidget {
             child: Checkbox(
               value: selected,
               onChanged: (_) => onToggleSelect(),
-              activeColor: AppColors.primaryDeep,
+              activeColor: AppColors.acento,
               visualDensity: VisualDensity.compact,
             ),
           )
@@ -483,7 +483,7 @@ class _AlertTile extends StatelessWidget {
                   onPressed: onDisable,
                   style: TextButton.styleFrom(
                     textStyle: AppTextStyles.etiqueta,
-                    foregroundColor: AppColors.primaryDeep,
+                    foregroundColor: AppColors.acento,
                   ),
                   child: const Text('Desactivar'),
                 ),
@@ -557,7 +557,7 @@ class _AlertTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: selected ? AppColors.primaryDeep : AppColors.divider,
+          color: selected ? AppColors.acento : AppColors.divider,
           width: selected ? 1.5 : 1.0,
         ),
       ),

@@ -34,12 +34,12 @@ abstract class AppColors {
   static const Color borderStrong = Color(0xFFD8DBE0);
 
   /// El azul de la consola: botones, pestañas activas, íconos y bordes de
-  /// foco. Era la tinta del sistema (#0B1628) y el dueño la vio muy oscura,
-  /// sin vida; este es el azul de lo alto del menú lateral del pasajero
-  /// (`LiveRouteBackdrop`), el mismo con que arranca el degradado del 404
-  /// de la web. Con él el blanco encima queda en 12,7:1 y como letra sobre
-  /// blanco o arena sigue por encima de 11:1.
-  static const Color navy = Color(0xFF17325F);
+  /// foco. Era la tinta del sistema (#0B1628) y después #17325F, y el dueño
+  /// vio los dos muy oscuros, sin vida; es el acento del sistema (#2563EB,
+  /// la opción E que eligió), el mismo de los controles del pasajero. Con
+  /// él el blanco encima queda en 5,2:1 y como letra sobre la arena, 4,8:1:
+  /// los dos pasan el 4,5:1 del texto chico.
+  static const Color navy = core.AppColors.acento;
   static const Color navyRaised = core.AppColors.primaryDeep;
 
   static const Color textPrimary = core.AppColors.textPrimary;
