@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/widgets/latido.dart';
 import '../providers/map_view_state.dart';
 import 'route_selector_sheet.dart';
 
@@ -215,34 +216,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
       key: ValueKey(nombre),
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 5),
-            // F4: primaryAccessible sí llega a 4.5:1 sobre blanco a este
-            // tamaño; primary a secas se queda en ~3.1:1.
-            // Flexible: con el texto al 300 % la etiqueta sola ya no cabe
-            // en la píldora y tiene que poder recortarse.
-            Flexible(
-              child: Text(
-                'Ruta activa',
-                style: AppTextStyles.pie.copyWith(
-                  color: AppColors.primaryAccessible,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        const EtiquetaRutaActiva(),
         const SizedBox(height: 1),
         Text(
           nombre,
@@ -394,6 +368,86 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
         HapticFeedback.lightImpact();
         _openSelector();
       },
+    );
+  }
+}
+
+/// «Ruta activa» con un destello: la etiqueta va en esmeralda hondo y una
+/// franja de luz la cruza de izquierda a derecha, como el brillo que pasa
+/// por un metal. Dice que la ruta está viva sin dibujar nada más: ni punto
+/// (el dueño lo quitó), ni chapa, ni halo alrededor.
+///
+/// Segunda versión (dueño, 2026-09-27: «se ve estático»). La primera iba de
+/// #065F46 a #038750 cada 6 s: la franja brillaba 2,1 veces la tinta y en
+/// 12 px el ojo no la veía pasar. El pico no puede aclararse más sin bajar
+/// de 4,5:1, así que ahora la tinta es más honda (#064E3B) y el pico es el
+/// verde de marca oscurecido justo hasta 4,5 (#008846): 3,1 veces más luz,
+/// con el tono de la marca. Va en w600 —más letra por donde pase la luz— y
+/// vuelve cada 3 s.
+///
+/// Cruza y descansa en vez de correr sin parar (ver [Latido]).
+class EtiquetaRutaActiva extends StatelessWidget {
+  const EtiquetaRutaActiva({super.key});
+
+  /// Lo que tarda la luz en cruzar.
+  static const pasadaDura = Duration(milliseconds: 1600);
+
+  /// El descanso entre pasadas.
+  static const pausa = Duration(milliseconds: 1400);
+
+  /// La tinta en reposo: 9,7:1 sobre blanco.
+  static const tinta = Color(0xFF064E3B);
+
+  /// Lo más claro de la franja: el verde de marca (#00A859) oscurecido hasta
+  /// donde el texto aún da 4,56:1 (F4 pide 4,5). El de marca a secas se
+  /// queda en 3,1 y ya no se lee.
+  static const destello = Color(0xFF008846);
+
+  /// Velocidad de la luz: arranca y frena suave, pero cruza casi pareja —
+  /// una `easeInOut` la dejaba medio latido quieta en los bordes, fuera del
+  /// texto, y el cruce de verdad duraba un suspiro.
+  static const _curva = Cubic(0.45, 0, 0.55, 1);
+
+  /// El degradado en el punto `t` (0 → 1) de la pasada. La franja entra y
+  /// sale por fuera del texto, así que en 0 y en 1 todo es tinta.
+  static LinearGradient pasada(double t) {
+    const medioAncho = 0.3;
+    final centro = -medioAncho + (1 + 2 * medioAncho) * t;
+    double tope(double x) => x.clamp(0.0, 1.0);
+    return LinearGradient(
+      colors: const [tinta, destello, tinta],
+      stops: [
+        tope(centro - medioAncho),
+        tope(centro),
+        tope(centro + medioAncho),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Latido(
+      dura: pasadaDura,
+      pausa: pausa,
+      // Una línea con puntos suspensivos: con el texto al 300 % la
+      // etiqueta sola ya no cabe en la píldora y tiene que recortarse.
+      child: Text(
+        'Ruta activa',
+        style: AppTextStyles.pie.copyWith(
+          color: tinta,
+          fontWeight: FontWeight.w600,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+      ),
+      builder: (context, t, quieto, texto) => ShaderMask(
+        // srcIn: el degradado pinta solo donde hay letra.
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (caja) =>
+            pasada(_curva.transform(t)).createShader(caja),
+        child: texto,
+      ),
     );
   }
 }

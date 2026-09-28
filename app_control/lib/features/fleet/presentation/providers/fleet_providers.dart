@@ -232,7 +232,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
     }));
     _subs.add(socket.busPositionStream.listen((bus) {
       final previous = state.buses[bus.busId];
-      debugPrint('[fleet] bus:position ${bus.busId} lat=${bus.lat} lon=${bus.lon}');
       // La misma regla que getFleetPositions en el backend (fleet_admin.ts):
       // en línea es haber reportado y no ser fantasma. Antes se marcaba
       // `true` siempre, y un evento fantasma dejaba el bus «En línea» hasta

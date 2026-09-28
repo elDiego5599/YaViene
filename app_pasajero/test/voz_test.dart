@@ -593,7 +593,7 @@ void main() {
   });
 
   group('la entrada', () {
-    testWidgets('cada razón se oye entera, no en dos mitades', (tester) async {
+    testWidgets('cada razón se oye una vez, y solo la promesa', (tester) async {
       SharedPreferences.setMockInitialValues({});
       fijarPantalla(tester);
       await tester.pumpWidget(
@@ -604,21 +604,15 @@ void main() {
 
       final manija = tester.ensureSemantics();
 
-      // Promesa y letra chica se anuncian juntas: sueltas, la segunda
-      // llega sin saber de qué habla.
-      expect(
-        find.bySemanticsLabel(
-          'Buses en vivo. Ves dónde va el tuyo, no dónde debería ir',
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.bySemanticsLabel(
-          'Aviso antes de que llegue. Suena cuando se acerca a tu punto '
-          'de espera',
-        ),
-        findsOneWidget,
-      );
+      // Desde 2026-09-27 cada razón es una sola línea: el glifo es
+      // decorado y no se anuncia, y la promesa se oye tal cual, una vez.
+      for (final razon in [
+        'Buses en vivo',
+        'A qué distancia viene',
+        'Aviso antes de que llegue',
+      ]) {
+        expect(find.bySemanticsLabel(razon), findsOneWidget, reason: razon);
+      }
 
       manija.dispose();
     });

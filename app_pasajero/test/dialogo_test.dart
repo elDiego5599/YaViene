@@ -46,12 +46,39 @@ void main() {
     // La ventana es la bandeja (antes se buscaba el Material, que ya no
     // existe): 6 de bandeja + 20 de relleno a cada lado y los dos filos
     // de 1 (bandeja y núcleo).
-    final ventana = tester.getRect(find.byKey(const ValueKey('dialogo_ventana')));
+    final ventana =
+        tester.getRect(find.byKey(const ValueKey('dialogo_ventana')));
     expect(boton.width, closeTo(ventana.width - 12 - 40 - 4, 1));
 
     await tester.tap(find.text('Reiniciar guía'));
     await tester.pumpAndSettle();
     expect(await resultado, isTrue);
+  });
+
+  testWidgets('el núcleo recorta lo que se desplaza a su radio',
+      (tester) async {
+    // Con el `Material` de antes, `Clip.antiAlias` lo hacía solo. Con dos
+    // `Container`, el `SingleChildScrollView` pintaba sus esquinas rectas
+    // por encima del radio del núcleo al desplazarse (R-15).
+    final abre = await abrir(tester);
+    abre();
+    await tester.pumpAndSettle();
+
+    final recorte = find.ancestor(
+      of: find.byType(SingleChildScrollView),
+      matching: find.byType(ClipRRect),
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('dialogo_ventana')),
+        matching: recorte,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<ClipRRect>(recorte).borderRadius,
+      BorderRadius.circular(AppRadius.lg),
+    );
   });
 
   testWidgets('tocar fuera cierra sin aceptar', (tester) async {

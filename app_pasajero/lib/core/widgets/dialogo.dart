@@ -53,8 +53,12 @@ class Dialogo extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360),
-          // Bandeja, núcleo, radio y filo son los de la tarjeta de la guía
-          // (`map_tour_overlay.dart`): las dos flotan sobre el mismo velo.
+          // La silueta es la de la tarjeta de la guía (`map_tour_overlay.
+          // dart`): las dos flotan sobre el mismo velo, con el radio `card`
+          // por fuera, la sombra del sistema y el blanco con `hairline`. La
+          // bandeja de 6 —un filo claro que separa la ventana del velo sin
+          // sombra negra— es solo del diálogo: la guía no la lleva porque
+          // se coloca al píxel y 12 de más la desplazaban.
           child: Container(
             key: const ValueKey('dialogo_ventana'),
             padding: const EdgeInsets.all(6),
@@ -64,96 +68,103 @@ class Dialogo extends StatelessWidget {
               border: Border.all(color: const Color(0x24FFFFFF)),
               boxShadow: AppShadows.floating,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.hairline),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // El cuadro de icono de la guía (38, radio md, verde al
-                    // 12 %) crecido a 48: allí va al lado del título y aquí
-                    // va solo, encima, y a 38 se perdía en el blanco. El
-                    // radio se queda en md y no crece con el cuadro: los
-                    // radios salen de la escala, no se inventan.
-                    ExcludeSemantics(
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: tinta.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        child: Icon(icono, color: tinta, size: 26),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        titulo,
-                        style: AppTextStyles.subtitulo,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    if (detalle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        detalle!,
-                        style: AppTextStyles.etiqueta.copyWith(
-                          color: AppColors.primaryAccessible,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      mensaje,
-                      style: AppTextStyles.cuerpo.copyWith(
-                        color: AppColors.textBody,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    // El botón principal de la guía, tal cual.
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: FilledButton(
-                        onPressed: principal.alPulsar,
-                        style: FilledButton.styleFrom(
-                          textStyle: AppTextStyles.boton,
-                          backgroundColor: AppColors.primaryAccessible,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
+            // El recorte que el `Material` de antes daba con
+            // `Clip.antiAlias`: sin él, lo que se desplaza pinta sus esquinas
+            // rectas por encima del radio del núcleo (R-15).
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // El cuadro de icono de la guía (38, radio md, verde al
+                      // 12 %) crecido a 48: allí va al lado del título y aquí
+                      // va solo, encima, y a 38 se perdía en el blanco. El
+                      // radio se queda en md y no crece con el cuadro: los
+                      // radios salen de la escala, no se inventan.
+                      ExcludeSemantics(
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: tinta.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
+                          child: Icon(icono, color: tinta, size: 26),
                         ),
-                        child: Text(principal.texto),
                       ),
-                    ),
-                    if (secundaria != null) ...[
-                      const SizedBox(height: AppSpacing.xs),
+                      const SizedBox(height: 14),
+                      Semantics(
+                        header: true,
+                        child: Text(
+                          titulo,
+                          style: AppTextStyles.subtitulo,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      if (detalle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          detalle!,
+                          style: AppTextStyles.etiqueta.copyWith(
+                            color: AppColors.primaryAccessible,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        mensaje,
+                        style: AppTextStyles.cuerpo.copyWith(
+                          color: AppColors.textBody,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      // El botón principal de la guía, tal cual.
                       SizedBox(
                         width: double.infinity,
-                        child: TextButton(
-                          onPressed: secundaria!.alPulsar,
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.textSecondary,
+                        height: 48,
+                        child: FilledButton(
+                          onPressed: principal.alPulsar,
+                          style: FilledButton.styleFrom(
                             textStyle: AppTextStyles.boton,
+                            backgroundColor: AppColors.primaryAccessible,
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppRadius.lg),
                             ),
                           ),
-                          child: Text(secundaria!.texto),
+                          child: Text(principal.texto),
                         ),
                       ),
+                      if (secundaria != null) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: secundaria!.alPulsar,
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                              textStyle: AppTextStyles.boton,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.lg),
+                              ),
+                            ),
+                            child: Text(secundaria!.texto),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

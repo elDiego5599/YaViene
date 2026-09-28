@@ -205,7 +205,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final fleet = ref.watch(fleetProvider);
+    // Solo lo que el dashboard pinta: una posición que únicamente mueve al
+    // bus en el mapa no reconstruye la lista (el mapa escucha aparte). Antes
+    // cada `bus:position` —doce buses, uno por segundo— rehacía el dashboard
+    // entero con todas sus tarjetas (R-27, N-PERF1).
+    final fleet = ref.watch(fleetProvider.select(_VistaDashboard.new)).estado;
 
     final buses = fleet.buscar(_query);
 
@@ -335,6 +339,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ),
     );
   }
+}
+
+/// El estado de la flota visto por el dashboard: dos vistas son iguales si
+/// el dashboard las pinta igual. [estado] puede traer posiciones viejas —el
+/// `select` se queda con la vista anterior mientras sea igual—, así que aquí
+/// nada lee lat, lon ni velocidad: eso es del mapa.
+class _VistaDashboard {
+  const _VistaDashboard(this.estado);
+
+  final FleetState estado;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! _VistaDashboard) return false;
+    final a = estado;
+    final b = other.estado;
+    if (identical(a, b)) return true;
+    if (a.connection != b.connection ||
+        a.error != b.error ||
+        a.selectedBusId != b.selectedBusId ||
+        a.routeFilter != b.routeFilter ||
+        a.statusFilter != b.statusFilter ||
+        a.sessionExpired != b.sessionExpired ||
+        // `copyWith` conserva la misma lista y el mismo conjunto si no
+        // cambian, y los reemplaza enteros cuando cambian.
+        !identical(a.routes, b.routes) ||
+        !identical(a.updating, b.updating) ||
+        a.buses.length != b.buses.length) {
+      return false;
+    }
+    for (final MapEntry(key: id, value: bus) in a.buses.entries) {
+      final otro = b.buses[id];
+      if (otro == null || !bus.mismaFicha(otro)) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(estado.connection, estado.buses.length);
 }
 
 /// Una parada de Tab en el orden del dashboard: todo lo de dentro se

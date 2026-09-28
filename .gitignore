@@ -29,3 +29,6 @@ app_pasajero/ios/Runner/GoogleService-Info.plist
 # notas de trabajo del dueño —rutas locales, cuentas, atajos— y no tienen
 # por qué viajar al remoto.
 CLAUDE.md
+
+# Grafo local de graphify: caché de búsqueda que se regenera, no es del repo.
+graphify-out/

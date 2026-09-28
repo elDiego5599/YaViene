@@ -117,10 +117,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   topLeft: Radius.circular(AppRadius.sheet),
                                   topRight: Radius.circular(AppRadius.sheet),
                                 ),
-                                // Sombra del sistema (tinta al 8 %/4 %) en vez
-                                // del negro al 20 %: el labio flota igual sin
-                                // el pegote oscuro sobre la arena.
-                                boxShadow: AppShadows.floating,
+                                // Hacia arriba: la hoja está abajo y la sombra
+                                // que la despega cae sobre la noche.
+                                // `AppShadows.floating` es la de una tarjeta
+                                // sobre el suelo —hacia abajo— y aquí se
+                                // perdía bajo el filo de la pantalla (R-14).
+                                // Tinta al 8 %, como la del sistema, y no el
+                                // negro al 20 % de antes: sin pegote oscuro.
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryDeep
+                                        .withValues(alpha: 0.08),
+                                    blurRadius: 32,
+                                    offset: const Offset(0, -12),
+                                  ),
+                                ],
                               ),
                               child: SafeArea(
                                 top: false,
@@ -134,22 +145,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Pocas palabras y grandes (el dueño,
+                                    // 2026-09-27: «mucho texto y todo se ve
+                                    // pequeño»). Se fueron el subtítulo y la
+                                    // letra chica de cada razón: decían otra
+                                    // vez lo que el título y las razones ya
+                                    // dicen, y para que cupiera todo, todo
+                                    // iba a 12 y 15.
                                     Text(
                                       'Activa tu ubicación',
-                                      style: AppTextStyles.titulo,
+                                      style: AppTextStyles.display,
                                     ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Así sabemos qué buses vienen hacia ti '
-                                      'y te avisamos antes de que llegue '
-                                      'el tuyo.',
-                                      style: AppTextStyles.cuerpo.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 22),
-                                    // Los tres beneficios se revelan uno detrás
-                                    // de otro, y solo con fundido: la hoja ya
+                                    const SizedBox(height: 24),
+                                    // Las tres razones se revelan una detrás
+                                    // de otra, y solo con fundido: la hoja ya
                                     // sube entera, y dos movimientos encajados
                                     // se leen como un temblor.
                                     entra(
@@ -157,13 +166,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         icon: Icons
                                             .directions_bus_filled_outlined,
                                         title: 'Buses en vivo',
-                                        detail: 'Ves dónde va el tuyo, no '
-                                            'dónde debería ir',
                                       ),
                                       start: 0.34,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 18),
                                     entra(
                                       const _BenefitRow(
                                         // El recorrido, no el cronómetro: lo
@@ -173,25 +180,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                         // app no calcula.
                                         icon: Icons.route_outlined,
                                         title: 'A qué distancia viene',
-                                        detail: 'Calculado con la posición '
-                                            'real del bus',
                                       ),
                                       start: 0.42,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 18),
                                     entra(
                                       const _BenefitRow(
                                         icon:
                                             Icons.notifications_active_outlined,
                                         title: 'Aviso antes de que llegue',
-                                        detail: 'Suena cuando se acerca a tu '
-                                            'punto de espera',
                                       ),
                                       start: 0.5,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 18),
+                                    const SizedBox(height: 28),
                                     entra(
                                       _AceptaLegales(
                                         aceptado: _accepted,
@@ -202,7 +205,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       start: 0.58,
                                       begin: Offset.zero,
                                     ),
-                                    const SizedBox(height: 14),
+                                    const SizedBox(height: 18),
                                     SizedBox(
                                       width: double.infinity,
                                       height: 56,
@@ -244,9 +247,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       width: double.infinity,
                                       child: TextButton(
                                         onPressed: _accepted ? _skip : null,
+                                        // A la medida del cuerpo y no de una
+                                        // etiqueta: es la otra salida de la
+                                        // pantalla, no una nota al margen.
                                         child: Text(
                                           'Ahora no',
-                                          style: AppTextStyles.etiqueta,
+                                          style: AppTextStyles.cuerpoFuerte
+                                              .copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -270,61 +279,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-/// Una razón para dar el permiso: glifo, promesa y su letra chica.
+/// Una razón para dar el permiso: el glifo y la promesa, en una línea.
 ///
-/// Antes era un cuadrado verde de 56 con el icono dentro y tres palabras
-/// al lado. Tres cuadrados apilados pesaban más que lo que decían —y lo
-/// que decían no bastaba: "Esperas exactas" promete una exactitud que
-/// nadie puede dar. Ahora el glifo va suelto, como en las pantallas de
-/// permiso de iOS, y cada fila explica en una línea qué gana el usuario
-/// y de dónde sale el dato.
+/// Empezó como un cuadrado verde de 56 con tres palabras al lado; luego el
+/// glifo quedó suelto, como en las pantallas de permiso de iOS, con una
+/// línea de letra chica debajo. Esa letra chica sobraba: la promesa ya se
+/// entiende sola y, con ella, la fila tenía que ir a 15 y 12 para caber.
+/// Sin ella, la promesa va a la medida de un encabezado de fila.
+///
+/// Sin `Semantics` propio: el glifo es decorado —`Icon` sin
+/// `semanticLabel` no se anuncia— y el lector lee la promesa y nada más.
 class _BenefitRow extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String detail;
 
-  const _BenefitRow({
-    required this.icon,
-    required this.title,
-    required this.detail,
-  });
+  const _BenefitRow({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      // Promesa y letra chica son una sola cosa: separadas hay que pasar
-      // dos veces por cada fila, y la segunda mitad —de dónde sale el
-      // dato— llega suelta, sin saber de qué promesa habla.
-      label: '$title. $detail',
-      excludeSemantics: true,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Ancho fijo para que los tres títulos arranquen en la misma
-          // columna aunque los glifos midan distinto.
-          SizedBox(
-            width: 30,
-            child: Icon(icon, color: AppColors.primary, size: 26),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.cuerpoFuerte,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  detail,
-                  style: AppTextStyles.pie,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        // Ancho fijo para que los tres títulos arranquen en la misma
+        // columna aunque los glifos midan distinto. 28 de glifo junto a
+        // 18 de letra: el icono llega a la altura de la línea sin pasarla.
+        SizedBox(
+          width: 32,
+          child: Icon(icon, color: AppColors.primary, size: 28),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(title, style: AppTextStyles.subtitulo),
+        ),
+      ],
     );
   }
 }
@@ -349,7 +335,10 @@ class _AceptaLegales extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final letra = AppTextStyles.pie.copyWith(color: AppColors.textSecondary);
+    // A la medida del cuerpo, no de la letra chica: es lo único que la
+    // pantalla pide leer antes de dejar pasar, y a 12 se leía como un pie
+    // de página que se salta.
+    final letra = AppTextStyles.cuerpo.copyWith(color: AppColors.textSecondary);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,11 +351,11 @@ class _AceptaLegales extends StatelessWidget {
           child: GestureDetector(
             onTap: () => onCambia(!aceptado),
             behavior: HitTestBehavior.opaque,
-          child: Padding(
-            // El blanco alrededor de la casilla es lo que le da tamaño de
-            // dedo: 24 de casilla dentro de 48 (T6.6; antes era 34 y la
-            // guía de Android lo marcaba). Solo crece el área que se toca.
-            padding: const EdgeInsets.only(right: 24, bottom: 24),
+            child: Padding(
+              // El blanco alrededor de la casilla es lo que le da tamaño de
+              // dedo: 24 de casilla dentro de 48 (T6.6; antes era 34 y la
+              // guía de Android lo marcaba). Solo crece el área que se toca.
+              padding: const EdgeInsets.only(right: 24, bottom: 24),
               child: SizedBox(
                 width: 24,
                 height: 24,
@@ -441,7 +430,8 @@ class _Enlace extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Text(
             texto,
-            style: AppTextStyles.pie.copyWith(
+            // La misma medida que la frase en la que va.
+            style: AppTextStyles.cuerpo.copyWith(
               color: AppColors.primaryAccessible,
               fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,

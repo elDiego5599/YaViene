@@ -101,4 +101,109 @@ void main() {
     expect(find.bySemanticsLabel('Ruta activa: Ruta 106'), findsOneWidget);
     handle.dispose();
   });
+
+  testWidgets('«Ruta activa» va sola, sin punto delante', (tester) async {
+    // Decisión del dueño (2026-09-27): el punto verde a la izquierda
+    // sobraba; el verde de la etiqueta ya dice que hay ruta puesta.
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(selectedRouteProvider, (_, __) {});
+    container.read(selectedRouteProvider.notifier).select(
+          const RouteInfo(id: 'R-106', name: 'Ruta 106', companyId: 'EMP-01'),
+        );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SearchPillBar(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final etiqueta = tester.getRect(find.text('Ruta activa'));
+    final puntos = find.descendant(
+      of: find.byType(SearchPillBar),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration! as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    for (final punto in puntos.evaluate()) {
+      final r = tester.getRect(find.byWidget(punto.widget));
+      // Los botones de los lados también son círculos, de 48: el punto
+      // era de 6. Se mira solo lo que es del tamaño de un punto.
+      if (r.width > 12) continue;
+      expect(r.bottom <= etiqueta.top || r.top >= etiqueta.bottom, isTrue,
+          reason: 'hay un círculo en la línea de «Ruta activa»: $r');
+    }
+    // Sin nada al lado, la etiqueta queda centrada en la píldora.
+    final pill = tester.getRect(find.byType(SearchPillBar));
+    expect((etiqueta.center.dx - pill.center.dx).abs(), lessThan(1));
+  });
+
+  group('«Ruta activa» con destello', () {
+    Future<void> montar(WidgetTester tester, {bool reducido = false}) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.listen(selectedRouteProvider, (_, __) {});
+      container.read(selectedRouteProvider.notifier).select(
+            const RouteInfo(id: 'R-106', name: 'Ruta 106', companyId: 'EMP-01'),
+          );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: MediaQuery(
+              data: MediaQueryData(disableAnimations: reducido),
+              child: const Scaffold(
+                body: Align(
+                  alignment: Alignment.topCenter,
+                  child: SearchPillBar(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Finder mascara() => find.ancestor(
+          of: find.text('Ruta activa'),
+          matching: find.byType(ShaderMask),
+        );
+
+    testWidgets('la luz cruza, descansa sin pintar cuadros y vuelve',
+        (tester) async {
+      const pasada = EtiquetaRutaActiva.pasadaDura;
+      const pausa = EtiquetaRutaActiva.pausa;
+      await montar(tester);
+      expect(mascara(), findsOneWidget, reason: 'la etiqueta no brilla');
+      await tester.pump(pasada ~/ 2);
+      expect(tester.binding.hasScheduledFrame, isTrue,
+          reason: 'a mitad de la pasada la luz sigue moviéndose');
+      await tester.pump(pasada ~/ 2 + const Duration(milliseconds: 50));
+      await tester.pump(pausa ~/ 2);
+      // Descansando no hay cuadros pendientes: el mapa no se recompone.
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      await tester.pump(pausa ~/ 2 + pasada ~/ 4);
+      expect(tester.binding.hasScheduledFrame, isTrue,
+          reason: 'tras el descanso la luz vuelve a cruzar');
+    });
+
+    testWidgets('con el movimiento reducido se queda quieta', (tester) async {
+      await montar(tester, reducido: true);
+      await tester.pump(const Duration(milliseconds: 1000));
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      expect(find.text('Ruta activa'), findsOneWidget);
+    });
+  });
 }

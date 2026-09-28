@@ -29,7 +29,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Paquete provisional: Play no acepta `com.example.*` e iOS ya usa
+        // `com.yaviene.yaviene`. Cambiarlo exige registrar el paquete y su
+        // SHA-1 en Firebase (dueño) y deja sin actualización la APK instalada;
+        // va en la T5.7 del plan de remediación.
         applicationId = "com.example.ya_viene_pasajero"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

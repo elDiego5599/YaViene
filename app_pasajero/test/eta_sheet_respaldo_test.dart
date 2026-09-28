@@ -116,4 +116,22 @@ void main() {
     expect(find.text('Toca un bus en el mapa').hitTestable(), findsNothing);
     expect(find.text('Conectado al respaldo').hitTestable(), findsOneWidget);
   });
+
+  testWidgets('«Toca un bus en el mapa» lleva el bus del mapa, no la mano',
+      (tester) async {
+    // El dueño (2026-09-27): la mano de Material «no me gusta nada». El
+    // dibujo es el mismo bus que se toca en el mapa.
+    await _montar(tester, enRespaldo: false);
+    final vacio = find.byKey(const ValueKey('empty-pick-bus'));
+    expect(
+      find.descendant(
+          of: vacio, matching: find.byIcon(Icons.touch_app_outlined)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+          of: vacio, matching: find.byKey(const ValueKey('sena-tocar-bus'))),
+      findsOneWidget,
+    );
+  });
 }

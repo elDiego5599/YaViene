@@ -18,6 +18,7 @@ import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 import 'alert_guards.dart' show kmLabel;
 import 'map_recenter_button.dart';
+import 'sena_tocar_bus.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
@@ -589,6 +590,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final String title;
     final String subtitle;
     final IconData icon;
+    Widget? dibujo;
     if (!hasPosition) {
       stateKey = 'empty-no-position';
       title = 'Toca el mapa para indicar dónde estás';
@@ -624,6 +626,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       title = 'Toca un bus en el mapa';
       subtitle = 'Selecciona un bus para darle seguimiento';
       icon = Icons.touch_app_outlined;
+      // El bus del mapa con su toque, en vez de la mano (dueño,
+      // 2026-09-27). Es el estado que más se ve: el que queda con la ruta
+      // puesta y los buses en el mapa.
+      dibujo = const SenaTocarBus(key: ValueKey('sena-tocar-bus'));
     }
 
     return KeyedSubtree(
@@ -651,7 +657,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     borderRadius: BorderRadius.circular(AppRadius.lg),
                     border: Border.all(color: AppColors.hairline),
                   ),
-                  child: Icon(icon, color: AppColors.textSecondary, size: 26),
+                  child: dibujo ??
+                      Icon(icon, color: AppColors.textSecondary, size: 26),
                 ),
               ),
               const SizedBox(height: 14),
@@ -752,11 +759,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               onBlockedChanged: widget.onGuideAlertBlocked,
               isActive: isActive,
               blocked: isActive ? false : blocked,
-              label: isActive
-                  ? "Aviso activado"
-                  : ghostBlocked
-                      ? "Bus sin señal"
-                      : "Avisarme cuando esté cerca",
+              // Esta rama es la del bus sin señal (`_staleLabel` solo existe
+              // para un bus fantasma), así que sin aviso puesto el botón
+              // siempre está bloqueado por la señal: no hay tercer rótulo.
+              label: isActive ? "Aviso activado" : "Bus sin señal",
               onPressed: () => _toggleAlert(busId),
             ),
           ),
@@ -1040,8 +1046,10 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
         child: AnimatedScale(
           scale: _isPressed ? 0.96 : 1,
           duration: AppMotion.instante,
-          // V6: el rebote se reserva para el CTA principal de la app — el
-          // resto de los botones se queda con la entrada enfatizada.
+          // Sin rebote, aunque este es el botón principal de la app: el
+          // drawer y la guía ya quitaron el suyo (`easeOutBack` se pasa de
+          // tamaño y vuelve), y aquí baja al 96 % y regresa con la misma
+          // curva de entrada que el resto.
           curve: AppMotion.curvaEntrada,
           child: AnimatedContainer(
             duration: AppMotion.normal,

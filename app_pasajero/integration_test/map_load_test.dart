@@ -30,7 +30,7 @@ void main() {
       tester,
       () =>
           find.text('Ahora no').evaluate().isNotEmpty ||
-          find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty,
+          find.byIcon(Icons.menu_outlined).evaluate().isNotEmpty,
       timeout: const Duration(seconds: 60),
       message: 'ni bienvenida ni mapa tras el arranque',
     );
@@ -47,7 +47,7 @@ void main() {
     // 2) El mapa con su menú, y el placeholder que debe fundirse.
     await _waitUntil(
       tester,
-      () => find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty,
+      () => find.byIcon(Icons.menu_outlined).evaluate().isNotEmpty,
       timeout: const Duration(seconds: 45),
       message: 'no apareció el menú del mapa',
     );
@@ -133,7 +133,7 @@ void main() {
 
     // 4) Drawer → Avisos → volver: el back regresa AL DRAWER abierto (no al
     //    mapa), porque el drawer no se cierra antes de navegar.
-    await tester.tap(find.byIcon(Icons.menu_rounded));
+    await tester.tap(find.byIcon(Icons.menu_outlined));
     await _waitUntil(
       tester,
       () => find.text('Avisos').evaluate().isNotEmpty,
@@ -149,7 +149,7 @@ void main() {
       timeout: const Duration(seconds: 15),
       message: 'la pantalla de notificaciones no abrió',
     );
-    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_outlined));
     await _waitUntil(
       tester,
       () => find.text('Avisos').evaluate().isNotEmpty,
@@ -162,8 +162,8 @@ void main() {
     await _waitUntil(
       tester,
       () =>
-          find.byIcon(Icons.menu_rounded).evaluate().isNotEmpty &&
-          tester.getCenter(find.byIcon(Icons.menu_rounded)).dx > 30,
+          find.byIcon(Icons.menu_outlined).evaluate().isNotEmpty &&
+          tester.getCenter(find.byIcon(Icons.menu_outlined)).dx > 30,
       timeout: const Duration(seconds: 15),
       message: 'la X no cerró el drawer',
     );

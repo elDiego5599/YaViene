@@ -60,6 +60,22 @@ class FleetBus {
   final int? sequence;
   final bool isGhost;
 
+  /// Si [otro] se pinta igual en la lista y en la ficha del bus: todo menos
+  /// la posición (lat, lon, rumbo, velocidad, horas y secuencia), que solo
+  /// pinta el mapa. El dashboard se reconstruye cuando esto cambia y no con
+  /// cada `bus:position` (R-27). Un campo nuevo que la lista o la ficha
+  /// enseñen tiene que entrar aquí, o la pantalla se queda con el viejo.
+  bool mismaFicha(FleetBus otro) =>
+      busId == otro.busId &&
+      companyId == otro.companyId &&
+      placa == otro.placa &&
+      interno == otro.interno &&
+      driverName == otro.driverName &&
+      routeId == otro.routeId &&
+      visible == otro.visible &&
+      online == otro.online &&
+      isGhost == otro.isGhost;
+
   FleetBus copyWith({
     String? placa,
     String? interno,

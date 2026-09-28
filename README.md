@@ -25,8 +25,8 @@ en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
 3. **Pasajero**: ve los buses moviéndose en el mapa, toca uno para ver qué tan
    lejos está de su ubicación, y puede activar un aviso: cuando el bus esté a
    1 km, la app le notifica (la notificación funciona con la app en segundo
-   plano). ETA (tiempo de llegada) está pendiente: por ahora se muestra
-   distancia y estado.
+   plano). La app muestra distancia y estado, no tiempo de llegada: es una
+   decisión de producto (una ETA sin datos de tráfico fiables engañaría).
 
 ## Stack
 
