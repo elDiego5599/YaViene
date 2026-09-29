@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -314,32 +315,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         plataforma: Theme.of(context).platform,
       );
 
-  /// Las acciones que el mapa ofrece a un lector de pantalla: una por bus
-  /// de la ruta, con su placa y a cuánto está. El texto y el motivo están en
-  /// `utils/bus_semantics.dart`; aquí sólo se conectan con la selección.
-  Map<CustomSemanticsAction, VoidCallback> _accionesDeBuses(
-      RouteInfo? selectedRoute) {
-    if (selectedRoute == null) return const {};
-    final buses =
-        ref.watch(busPositionsSourceProvider(selectedRoute.id)).value ??
-            const <BusPosition>[];
-    if (buses.isEmpty) return const {};
-
-    final location = ref.watch(userLocationProvider);
-    final acciones = accionesDeBuses(
-      buses: buses,
-      userLat: location.hasPosition ? location.lat : null,
-      userLon: location.hasPosition ? location.lon : null,
-      seleccionados: ref.watch(selectedBusesProvider),
-    );
-    return {
-      for (final accion in acciones)
-        CustomSemanticsAction(label: accion.etiqueta): () {
-          ref.read(selectedBusesProvider.notifier).toggleBus(accion.busId);
-        },
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
@@ -386,8 +361,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         !alertLimitReached &&
         !routeTooFar;
 
-    final accionesDeBuses = _accionesDeBuses(selectedRoute);
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
@@ -398,23 +371,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Semantics(
-              // El mapa es una vista nativa: no aporta nada al árbol de
-              // semántica, así que con VoiceOver la mitad de la pantalla
-              // es un hueco mudo. No se puede fingir que se lee —los
-              // buses son puntos en un dibujo—, pero sí decir qué es y
-              // dónde está lo mismo dicho con palabras: la distancia vive
-              // en la hoja de abajo.
-              label: selectedRoute == null
-                  ? 'Mapa. Elige tu ruta arriba para ver sus buses'
-                  : accionesDeBuses.isEmpty
-                      ? 'Mapa con los buses de ${selectedRoute.name}. '
-                          'La distancia se lee en la tarjeta de abajo'
-                      : 'Mapa con ${accionesDeBuses.length} buses de '
-                          '${selectedRoute.name}. Elige uno en las acciones '
-                          'disponibles; la distancia se lee en la tarjeta '
-                          'de abajo',
-              customSemanticsActions: accionesDeBuses,
+            // Lo que el lector de pantalla oye del mapa va aparte: mira las
+            // posiciones y la ubicación, que cambian cada poco, y no debe
+            // arrastrar a toda la pantalla con ellas.
+            child: _MapaConVoz(
+              ruta: selectedRoute,
               child: MapWidget(
                 key: _mapKey,
                 routeId: selectedRoute?.id,
@@ -539,4 +500,87 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ),
     );
   }
+}
+
+/// El mapa tal como lo oye un lector de pantalla.
+///
+/// El mapa es una vista nativa: no aporta nada al árbol de semántica, así
+/// que con VoiceOver la mitad de la pantalla es un hueco mudo. No se puede
+/// fingir que se lee —los buses son puntos en un dibujo—, pero sí decir qué
+/// es y dónde está lo mismo dicho con palabras: la distancia vive en la hoja
+/// de abajo. Y se ofrece una acción por bus de la ruta, con su placa y a
+/// cuánto está (el texto y el motivo, en `utils/bus_semantics.dart`).
+///
+/// Vive aparte de [MapScreen] porque mira las posiciones de la ruta, que
+/// llegan hasta cada 200 ms, y la ubicación, que cambia con cada lectura del
+/// GPS. Dentro de la pantalla, cada una rehacía el Scaffold entero: la
+/// cabecera, la hoja, la guía y el mapa (auditoría 2026-09, H5). Aquí se
+/// rehace solo este envoltorio, y solo cuando cambia lo que se dice; el
+/// [child] llega hecho y conserva su identidad.
+class _MapaConVoz extends ConsumerWidget {
+  const _MapaConVoz({required this.ruta, required this.child});
+
+  final RouteInfo? ruta;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ruta = this.ruta;
+    final acciones =
+        ruta == null ? const <AccionDeBus>[] : _acciones(ref, ruta);
+    return Semantics(
+      label: ruta == null
+          ? 'Mapa. Elige tu ruta arriba para ver sus buses'
+          : acciones.isEmpty
+              ? 'Mapa con los buses de ${ruta.name}. '
+                  'La distancia se lee en la tarjeta de abajo'
+              : 'Mapa con ${acciones.length} buses de ${ruta.name}. Elige '
+                  'uno en las acciones disponibles; la distancia se lee en '
+                  'la tarjeta de abajo',
+      customSemanticsActions: {
+        for (final accion in acciones)
+          CustomSemanticsAction(label: accion.etiqueta): () {
+            ref.read(selectedBusesProvider.notifier).toggleBus(accion.busId);
+          },
+      },
+      child: child,
+    );
+  }
+
+  /// Las acciones de los buses, mirando con `select` solo lo que cambia su
+  /// texto: el punto de espera (no el resto del estado de la ubicación) y
+  /// las frases armadas con las posiciones (una foto que no cambia ninguna
+  /// no despierta a nadie).
+  List<AccionDeBus> _acciones(WidgetRef ref, RouteInfo ruta) {
+    final punto = ref.watch(userLocationProvider.select(
+      (l) => l.hasPosition ? (l.lat!, l.lon!) : null,
+    ));
+    final seleccionados = ref.watch(selectedBusesProvider);
+    return ref
+        .watch(busPositionsSourceProvider(ruta.id).select(
+          (posiciones) => _Acciones(accionesDeBuses(
+            buses: posiciones.value ?? const <BusPosition>[],
+            userLat: punto?.$1,
+            userLon: punto?.$2,
+            seleccionados: seleccionados,
+          )),
+        ))
+        .lista;
+  }
+}
+
+/// Una lista de acciones que se compara por lo que dice: `select` solo
+/// avisa cuando el valor nuevo es distinto del anterior.
+@immutable
+class _Acciones {
+  const _Acciones(this.lista);
+
+  final List<AccionDeBus> lista;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Acciones && listEquals(other.lista, lista);
+
+  @override
+  int get hashCode => Object.hashAll(lista);
 }
