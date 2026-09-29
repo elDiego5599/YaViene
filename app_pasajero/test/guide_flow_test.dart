@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_guide_copy.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
@@ -80,6 +81,34 @@ void main() {
         expect(copy.title, isNotEmpty);
         expect(copy.message, isNotEmpty);
       }
+    });
+  });
+
+  // En iPhone el aviso solo suena con la app abierta: no hay
+  // `UIBackgroundModes` ni push. El último paso decía «Ya Viene seguirá
+  // pendiente del bus» en todas partes, y quien le hacía caso en un iPhone
+  // cambiaba de app y perdía el bus (auditoría 2026-09, H3).
+  group('el paso de segundo plano según el teléfono', () {
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    test('en iPhone pide dejar la app abierta', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final copy = mapGuideCopy(MapGuideStep.background);
+      expect(copy.title, 'Deja Ya Viene abierta');
+      expect(copy.message, contains('solo suena con Ya Viene abierta'));
+      expect(copy.message, isNot(contains('seguirá pendiente')));
+      expect(copy.message, isNot(contains('cambiar de aplicación')));
+    });
+
+    test('en Android no cambia', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final copy = mapGuideCopy(MapGuideStep.background);
+      expect(copy.title, 'Sigue con lo tuyo');
+      expect(
+        copy.message,
+        'Puedes cambiar de aplicación y hacer otra cosa: Ya Viene seguirá '
+        'pendiente del bus. Lo único que lo corta es cerrar la app del todo.',
+      );
     });
   });
 }

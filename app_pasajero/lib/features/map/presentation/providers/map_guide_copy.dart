@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'map_tour_provider.dart';
@@ -36,6 +37,7 @@ MapGuideCopy guideCopyFor(
   required bool limitReached,
   required bool isBlocked,
   bool routeTooFar = false,
+  TargetPlatform? plataforma,
 }) {
   if (step == MapGuideStep.alert) {
     if (hasActiveAlert) {
@@ -79,10 +81,12 @@ MapGuideCopy guideCopyFor(
       );
     }
   }
-  return mapGuideCopy(step);
+  return mapGuideCopy(step, plataforma: plataforma);
 }
 
-MapGuideCopy mapGuideCopy(MapGuideStep step) {
+/// [plataforma] decide el último paso (iPhone no avisa con la app en el
+/// fondo); por defecto, la del teléfono.
+MapGuideCopy mapGuideCopy(MapGuideStep step, {TargetPlatform? plataforma}) {
   switch (step) {
     case MapGuideStep.location:
       return const MapGuideCopy(
@@ -148,6 +152,21 @@ MapGuideCopy mapGuideCopy(MapGuideStep step) {
         icon: Icons.notifications_active_outlined,
       );
     case MapGuideStep.background:
+      // En iPhone el aviso solo suena con la app abierta: la app no declara
+      // `UIBackgroundModes` y no hay push, así que iOS la suspende al
+      // cambiar de app o bloquear el teléfono. Prometer que «seguirá
+      // pendiente» hacía perder el bus (auditoría 2026-09, H3). Lo mismo
+      // dicen Notificaciones y la privacidad.
+      if ((plataforma ?? defaultTargetPlatform) == TargetPlatform.iOS) {
+        return const MapGuideCopy(
+          title: 'Deja Ya Viene abierta',
+          message: 'En iPhone el aviso solo suena con Ya Viene abierta y la '
+              'pantalla encendida. Si cambias de aplicación o bloqueas el '
+              'teléfono, no te llegará.',
+          icon: Icons.smartphone_outlined,
+          primaryLabel: 'Finalizar guía',
+        );
+      }
       return const MapGuideCopy(
         title: 'Sigue con lo tuyo',
         message: 'Puedes cambiar de aplicación y hacer otra cosa: Ya Viene '

@@ -311,6 +311,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         limitReached: alertLimitReached,
         isBlocked: _alertBlocked,
         routeTooFar: routeTooFar,
+        plataforma: Theme.of(context).platform,
       );
 
   /// Las acciones que el mapa ofrece a un lector de pantalla: una por bus

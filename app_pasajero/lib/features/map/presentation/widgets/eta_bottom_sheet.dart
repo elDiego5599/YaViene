@@ -819,9 +819,13 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     }
 
     // Con el aviso activo, el detalle explica que se puede cambiar de app,
-    // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre.
+    // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre. En
+    // iPhone no se puede ni cambiar de app: iOS suspende la app y el aviso
+    // no suena (auditoría 2026-09, H3).
     final stateDetail = isActive
-        ? "Puedes cambiar de aplicación; no cierres Ya Viene del todo"
+        ? Theme.of(context).platform == TargetPlatform.iOS
+            ? "Deja Ya Viene abierta y la pantalla encendida"
+            : "Puedes cambiar de aplicación; no cierres Ya Viene del todo"
         : !locationState.hasPosition
             ? "Toca el mapa para indicar dónde estás"
             : routeTooFar
