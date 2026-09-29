@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -57,6 +58,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// encendida: entonces usuario y clave llegan ya puestos.
   bool _recordar = false;
 
+  /// La clave del campo vino del almacén y nadie la ha tocado. Mientras sea
+  /// así el ojo no la enseña: en un equipo de oficina, después de «Salir»,
+  /// un clic dejaba leer la clave de la flota a quien pasara (auditoría
+  /// 2026-09, H4). Sigue en el campo solo para que INGRESAR la mande.
+  bool _claveDelAlmacen = false;
+
   /// Por debajo de este ancho de tarjeta las dos mitades no caben lado a
   /// lado con aire (el formulario pide ~380 y el panel ~340), y el panel del
   /// equipo baja bajo el formulario.
@@ -86,7 +93,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     _usernameController.text = recordadas.usuario;
     _passwordController.text = recordadas.clave;
-    setState(() => _recordar = true);
+    setState(() {
+      _recordar = true;
+      _claveDelAlmacen = true;
+      // Si el ojo se abrió antes de que el almacén contestara, se cierra:
+      // la clave recordada entra siempre en puntos.
+      _obscurePassword = true;
+    });
+  }
+
+  /// Lo recordado no se edita, se reemplaza: la primera tecla sobre la clave
+  /// del almacén deja en el campo solo lo que se acaba de escribir (y un
+  /// borrado lo deja vacío). Si se pudiera borrar una letra o añadir otra y
+  /// quedara el resto, el ojo mostraría la clave casi entera.
+  ///
+  /// Lo escrito es el tramo entre donde empezaba la selección de antes y
+  /// donde quedó el cursor: vale para teclear al final o en medio, para
+  /// pegar sobre una selección y para borrar (el tramo sale vacío).
+  TextEditingValue _reemplazarRecordada(
+    TextEditingValue antes,
+    TextEditingValue ahora,
+  ) {
+    if (!_claveDelAlmacen || antes.text == ahora.text) return ahora;
+    final desde = antes.selection.isValid
+        ? antes.selection.start
+        : antes.text.length;
+    final hasta = ahora.selection.isValid
+        ? ahora.selection.end
+        : ahora.text.length;
+    final escrito = hasta > desde && hasta <= ahora.text.length
+        ? ahora.text.substring(desde, hasta)
+        : '';
+    // Los formateadores corren cuando el teclado cambia el campo, nunca
+    // durante un build: aquí se puede redibujar el ojo.
+    setState(() => _claveDelAlmacen = false);
+    return TextEditingValue(
+      text: escrito,
+      selection: TextSelection.collapsed(offset: escrito.length),
+    );
   }
 
   @override
@@ -331,13 +375,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         TextField(
           controller: _passwordController,
           obscureText: _obscurePassword,
+          inputFormatters: [
+            TextInputFormatter.withFunction(_reemplazarRecordada),
+          ],
           style: AppType.ui(fontSize: 14, fontWeight: FontWeight.w500),
           decoration: _campo('Contraseña', Icons.lock_outline).copyWith(
             suffixIcon: Padding(
               padding: const EdgeInsets.only(right: 6),
               child: IconButton(
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+                // Con la clave del almacén el ojo queda apagado: solo muestra
+                // lo que se tecleó en esta sesión.
+                onPressed: _claveDelAlmacen
+                    ? null
+                    : () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_outlined
@@ -347,7 +398,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 // Quien no ve la pantalla oye solo el tooltip: «Mostrar» a
                 // secas no dice qué.
-                tooltip: _obscurePassword
+                tooltip: _claveDelAlmacen
+                    ? 'La contraseña recordada no se muestra'
+                    : _obscurePassword
                     ? 'Mostrar contraseña'
                     : 'Ocultar contraseña',
               ),

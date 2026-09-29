@@ -110,6 +110,16 @@ Future<void> _montar(
 String _texto(WidgetTester tester, int campo) =>
     tester.widget<TextField>(find.byType(TextField).at(campo)).controller!.text;
 
+/// Si el campo de la clave está en puntos.
+bool _oculta(WidgetTester tester) => tester
+    .widget<EditableText>(
+      find.descendant(
+        of: find.byType(TextField).at(1),
+        matching: find.byType(EditableText),
+      ),
+    )
+    .obscureText;
+
 bool _casilla(WidgetTester tester) =>
     tester.widget<Checkbox>(find.byType(Checkbox)).value!;
 
@@ -162,6 +172,93 @@ void main() {
     expect(api.ingresos, [('operador', 'clave-de-prueba')]);
     expect(storage.valores['recordar_usuario'], 'operador');
     expect(storage.valores['recordar_clave'], 'clave-de-prueba');
+  });
+
+  // La clave recordada viaja del almacén al campo para que INGRESAR la
+  // mande, pero el ojo no la enseña: en un equipo de oficina, después de
+  // «Salir», cualquiera podía leer la clave de la flota con un clic
+  // (auditoría 2026-09, H4). El ojo solo muestra lo tecleado aquí.
+  testWidgets('el ojo no revela la clave recordada', (tester) async {
+    final api = _FakeAuthApi();
+    await _montar(
+      tester,
+      api,
+      _FakeSecureStorage({
+        'recordar_usuario': 'operador',
+        'recordar_clave': 'clave-de-prueba',
+      }),
+    );
+
+    await tester.tap(find.byType(IconButton));
+    await tester.pump();
+    expect(_oculta(tester), isTrue);
+    expect(
+      find.byTooltip('La contraseña recordada no se muestra'),
+      findsOneWidget,
+    );
+
+    // Sin tocarla, INGRESAR entra con ella: «Recordar contraseña» sigue.
+    await tester.tap(find.text('INGRESAR'));
+    await tester.pumpAndSettle();
+    expect(api.ingresos, [('operador', 'clave-de-prueba')]);
+  });
+
+  testWidgets('teclear sobre la clave recordada la reemplaza y el ojo muestra '
+      'solo lo nuevo', (tester) async {
+    await _montar(
+      tester,
+      _FakeAuthApi(),
+      _FakeSecureStorage({
+        'recordar_usuario': 'operador',
+        'recordar_clave': 'clave-de-prueba',
+      }),
+    );
+    final campo = find.byType(TextField).at(1);
+    await tester.showKeyboard(campo);
+    await tester.pump();
+
+    // Una letra al final, como la escribe el teclado: el valor de antes con
+    // el cursor al final, más la letra.
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'clave-de-pruebaX',
+        selection: TextSelection.collapsed(offset: 16),
+      ),
+    );
+    await tester.pump();
+    expect(_texto(tester, 1), 'X');
+
+    await tester.tap(find.byType(IconButton));
+    await tester.pump();
+    expect(_oculta(tester), isFalse);
+    expect(find.byTooltip('Ocultar contraseña'), findsOneWidget);
+  });
+
+  testWidgets('borrar sobre la clave recordada la vacía entera', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      _FakeAuthApi(),
+      _FakeSecureStorage({
+        'recordar_usuario': 'operador',
+        'recordar_clave': 'clave-de-prueba',
+      }),
+    );
+    final campo = find.byType(TextField).at(1);
+    await tester.showKeyboard(campo);
+    await tester.pump();
+
+    // Un toque en medio y retroceso: sin esta regla quedaba «clave-e-prueba»
+    // y el ojo la mostraba casi entera.
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'clave-e-prueba',
+        selection: TextSelection.collapsed(offset: 6),
+      ),
+    );
+    await tester.pump();
+    expect(_texto(tester, 1), isEmpty);
   });
 
   testWidgets('se oye como una casilla con su nombre', (tester) async {
