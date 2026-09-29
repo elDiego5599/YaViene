@@ -7,13 +7,20 @@
 //
 // Se corren las cuatro guías de Flutter juntas porque cazan cosas distintas:
 // `labeledTapTargetGuideline` caza el botón de ícono sin nombre —el lector
-// dice «botón» y ya—, `textContrastGuideline` el gris que se lee bien en el
+// dice «botón» y ya—, la de contraste el gris que se lee bien en el
 // monitor del que lo eligió y no al sol, y las dos de tamaño el objetivo de
 // 30 puntos que se falla tres de cada cuatro veces con el pulgar.
 //
 // Con la tipografía de la app cargada, como hace el panel: el contraste lo
 // mide el marco pintando de verdad, y con la letra por defecto del motor de
 // pruebas mediría otra cosa que la que el usuario ve.
+//
+// El contraste va con `guiaContraste` (ya_viene_pruebas) y no con
+// `textContrastGuideline`: la de Flutter fotografía a un píxel por punto y
+// en Linux, donde la letra la dibuja otro rasterizador, medía el borde
+// suavizado de las viñetas legales (1,11:1) en vez de su color (#475569,
+// 7,0:1 sobre arena). La nuestra fotografía a tres y mide igual en el Mac
+// y en Linux.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -43,6 +50,7 @@ import 'package:ya_viene_pasajero/features/notifications/presentation/'
     'screens/notifications_screen.dart';
 import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
     'onboarding_screen.dart';
+import 'package:ya_viene_pruebas/contraste.dart';
 
 import 'golden/golden_harness.dart';
 
@@ -110,7 +118,7 @@ Future<void> _cargarFuentes() async {
 /// iOS 44, y la app se publica en las dos tiendas.
 Future<void> _guias(WidgetTester tester) async {
   await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-  await expectLater(tester, meetsGuideline(textContrastGuideline));
+  await expectLater(tester, meetsGuideline(guiaContraste));
   await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
   await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
 }

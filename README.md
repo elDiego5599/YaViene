@@ -12,6 +12,7 @@ en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
 | `app_pasajero` | App Flutter del pasajero: mapa con los buses en vivo, pin del usuario (GPS o toque manual), detalle de proximidad y aviso a 1 km con notificación local. |
 | `app_control` | Panel de control de escritorio (macOS y Windows): ve el estado de la flota y administra las empresas. |
 | `ya_viene_core` | Lógica compartida entre las apps (tipos, distancia, utilidades). |
+| `ya_viene_pruebas` | Guías de prueba compartidas (contraste); solo como `dev_dependency`. |
 | `build-demo.sh` | Compila e instala las apps de la demo con un solo comando. |
 | `check-demo.sh` | Comprueba en 20 segundos que la demo esté viva antes de presentar. |
 

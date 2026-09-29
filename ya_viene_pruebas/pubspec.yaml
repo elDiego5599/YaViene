@@ -1,0 +1,21 @@
+name: ya_viene_pruebas
+description: >-
+  Utilidades de prueba compartidas por el pasajero y el panel. Solo se usa
+  desde dev_dependencies: nada de aquí llega a una app compilada.
+version: 1.0.0
+publish_to: "none"
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Va en dependencies y no en dev porque lo que exporta este paquete son
+  # guías de flutter_test. Por eso mismo el paquete solo entra a las apps
+  # como dev_dependency.
+  flutter_test:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0

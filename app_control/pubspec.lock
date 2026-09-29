@@ -892,6 +892,13 @@ packages:
       relative: true
     source: path
     version: "1.0.0"
+  ya_viene_pruebas:
+    dependency: "direct dev"
+    description:
+      path: "../ya_viene_pruebas"
+      relative: true
+    source: path
+    version: "1.0.0"
   yaml:
     dependency: transitive
     description:

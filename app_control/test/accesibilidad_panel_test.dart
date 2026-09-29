@@ -10,6 +10,9 @@
 // Las guías de Flutter revisan cada pantalla: todo lo que se toca tiene
 // nombre y todo texto tiene contraste. Se corren con la tipografía de la app,
 // como teclado_panel_test.dart.
+// El contraste, con `guiaContraste` (ya_viene_pruebas): la de Flutter mide a
+// un píxel por punto y en Linux tomaba por color de «CONTROL DE FLOTA» su
+// borde suavizado (#858EA0, 3,29:1) y no #5E6B82 (5,4:1).
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -30,6 +33,7 @@ import 'package:ya_viene_control/features/fleet/presentation/screens/dashboard_s
 import 'package:ya_viene_control/main.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
+import 'package:ya_viene_pruebas/contraste.dart';
 
 class _FakeFleetApi extends FleetApi {
   _FakeFleetApi() : super(baseUrl: 'http://localhost:3000');
@@ -125,7 +129,7 @@ Future<void> _cargarFuentes() async {
 /// Todo lo que se toca tiene nombre, y todo texto se lee sobre su fondo.
 Future<void> _guias(WidgetTester tester) async {
   await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-  await expectLater(tester, meetsGuideline(textContrastGuideline));
+  await expectLater(tester, meetsGuideline(guiaContraste));
 }
 
 void main() {

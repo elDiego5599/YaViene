@@ -81,6 +81,16 @@ jobs:
           flutter analyze --fatal-infos lib test
           flutter test --coverage
 
+      # Guías de prueba compartidas por las dos apps (la de contraste a tres
+      # píxeles por punto). No llega a ninguna app compilada, pero sus propias
+      # pruebas son las que dicen que mide lo mismo que la de Flutter.
+      - name: Test and analyze pruebas
+        working-directory: ya_viene_pruebas
+        run: |
+          flutter pub get
+          flutter analyze --fatal-infos lib test
+          flutter test
+
       # Las pruebas de oro (`@Tags(['goldens'])`) no corren en la CI, en
       # ninguna de sus máquinas. Las 34 fotos se tomaron en el Mac del dueño:
       # en Linux fallaban las 34 y en el macOS de GitHub fallan 19 de 34, sin

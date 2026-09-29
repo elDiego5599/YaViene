@@ -58,6 +58,9 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  # Guías de prueba compartidas por las dos apps (la de contraste).
+  ya_viene_pruebas:
+    path: ../ya_viene_pruebas
   flutter_lints: ^6.0.0
 
 flutter:

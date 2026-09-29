@@ -55,6 +55,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   http: ^1.2.0
+  # Guías de prueba compartidas por las dos apps (la de contraste).
+  ya_viene_pruebas:
+    path: ../ya_viene_pruebas
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
