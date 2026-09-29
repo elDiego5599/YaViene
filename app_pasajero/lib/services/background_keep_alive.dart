@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kIsWeb, visibleForTesting;
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Mantiene el proceso vivo con la app en segundo plano. Sin esto, Android
 /// suspende la app al salir de ella: el socket de posiciones muere a los
@@ -17,7 +19,8 @@ class BackgroundKeepAlive {
 
   /// Inicia el servicio (idempotente). Solo aplica en Android: en iOS el
   /// sistema operativo no permite ejecución continua y el aviso depende de
-  /// la app abierta.
+  /// la app abierta. Solo se llama con un aviso armado: sin avisos no hay
+  /// nada que seguir en el fondo.
   static Future<void> start() async {
     if (!_isAndroid) return;
     final service = FlutterBackgroundService();
@@ -86,21 +89,63 @@ class BackgroundKeepAlive {
     }
   }
 
+  /// Le dice al servicio que la app sigue viva. Si el servicio ya no corre
+  /// (se paró solo porque las señales se retrasaron), lo vuelve a encender:
+  /// quien late es la app, y la app solo late con avisos armados.
+  static Future<void> latido() async {
+    if (!_isAndroid) return;
+    try {
+      final service = FlutterBackgroundService();
+      if (await service.isRunning()) {
+        service.invoke('latido');
+      } else {
+        await start();
+      }
+    } catch (error) {
+      debugPrint('no se pudo avisar al seguimiento en segundo plano: $error');
+    }
+  }
+
   static bool get _isAndroid => !kIsWeb && Platform.isAndroid;
 }
+
+/// Cuánto espera el servicio una señal de la app antes de pararse solo:
+/// tres latidos (`cadaLatido`, 20 s) y un margen.
+const sinLatidoMaximo = Duration(seconds: 65);
 
 /// Callback del servicio: corre en un aislado propio y mantiene vivo el
 /// proceso; un timer liviano evita que el aislado del servicio muera.
 @pragma('vm:entry-point')
-Future<void> _onStart(ServiceInstance service) async {
-  Timer? timer;
-  if (service is AndroidServiceInstance) {
-    service.on('stopService').listen((_) {
-      timer?.cancel();
-      service.stopSelf();
-    });
+Future<void> _onStart(ServiceInstance service) => atenderServicio(service);
+
+/// Lo que hace el servicio en su aislado.
+///
+/// El plugin revive el servicio con su perro guardián cada vez que el
+/// sistema lo para sin un `stopService` explícito; también al quitar la app
+/// de recientes. El servicio renacido corre sin la app —sin socket y sin
+/// avisos—, con la notificación fija puesta y nada que seguir. Por eso
+/// espera las señales de vida de la app, y si en [sinLatidoMaximo] no llega
+/// ninguna se para él mismo con `stopSelf`: esa es la parada explícita que
+/// el perro guardián respeta (auditoría 2026-09, H1).
+@visibleForTesting
+Future<void> atenderServicio(ServiceInstance service) async {
+  Timer? refresco;
+  Timer? plazo;
+  void parar() {
+    refresco?.cancel();
+    plazo?.cancel();
+    service.stopSelf();
   }
-  timer = Timer.periodic(const Duration(seconds: 60), (_) async {
+
+  void esperarLatido() {
+    plazo?.cancel();
+    plazo = Timer(sinLatidoMaximo, parar);
+  }
+
+  service.on('stopService').listen((_) => parar());
+  service.on('latido').listen((_) => esperarLatido());
+  esperarLatido();
+  refresco = Timer.periodic(const Duration(seconds: 60), (_) async {
     if (service is AndroidServiceInstance) {
       await service.setForegroundNotificationInfo(
         title: 'Ya Viene',
@@ -109,3 +154,27 @@ Future<void> _onStart(ServiceInstance service) async {
     }
   });
 }
+
+/// El servicio de fondo visto desde la app (inyectable en tests). Quien
+/// decide cuándo encenderlo es `seguimientoSegundoPlanoProvider`.
+abstract class ServicioDeFondo {
+  Future<void> encender();
+  Future<void> apagar();
+  Future<void> latido();
+}
+
+class _ServicioAndroid implements ServicioDeFondo {
+  const _ServicioAndroid();
+
+  @override
+  Future<void> encender() => BackgroundKeepAlive.start();
+
+  @override
+  Future<void> apagar() => BackgroundKeepAlive.stop();
+
+  @override
+  Future<void> latido() => BackgroundKeepAlive.latido();
+}
+
+final servicioDeFondoProvider =
+    Provider<ServicioDeFondo>((ref) => const _ServicioAndroid());

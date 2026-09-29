@@ -37,12 +37,16 @@
         </activity>
         <!-- Servicio de segundo plano: se vuelve a declarar para fijar el
              foregroundServiceType (Android 14+ revienta sin él) sobre la
-             declaración del plugin flutter_background_service_android. -->
+             declaración del plugin flutter_background_service_android.
+             stopWithTask="true": quitar la app de recientes lo para. Si el
+             perro guardián del plugin lo revive sin la app, el servicio se
+             para solo al no recibir sus señales de vida
+             (background_keep_alive.dart, auditoría 2026-09, H1). -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync"
-            android:stopWithTask="false"
+            android:stopWithTask="true"
             tools:replace="android:exported"/>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

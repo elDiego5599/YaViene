@@ -18,5 +18,5 @@ Future<void> resetTransientState(WidgetRef ref) async {
   ref.read(proximityAlertsProvider.notifier).clear();
   ref.read(proximityAlertsProvider.notifier).stop();
   ref.read(realtimeServiceProvider).disconnect();
-  BackgroundKeepAlive.stop();
+  ref.read(servicioDeFondoProvider).apagar();
 }

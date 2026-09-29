@@ -5,13 +5,13 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../../../services/background_keep_alive.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/realtime_providers.dart';
 import '../providers/route_reach_provider.dart';
+import '../providers/seguimiento_segundo_plano.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/bus_semantics.dart';
@@ -103,7 +103,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       ref.read(userLocationProvider.notifier).initialize();
       ref.read(proximityAlertsProvider.notifier).restore();
       ref.read(proximityAlertsProvider.notifier).start();
-      BackgroundKeepAlive.start();
+      // El servicio de fondo lo encienden y apagan los avisos armados: sin
+      // aviso no hay nada que seguir con la app en el fondo.
+      ref.read(seguimientoSegundoPlanoProvider);
     });
   }
 
