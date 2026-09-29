@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
@@ -205,5 +206,58 @@ void main() {
       expect(tester.binding.hasScheduledFrame, isFalse);
       expect(find.text('Ruta activa'), findsOneWidget);
     });
+  });
+
+  // ACC-01: la píldora cambiaba de texto al elegir o quitar la ruta, pero
+  // el lector de pantalla solo lo decía si el foco pasaba por ella. Quien
+  // elige la ruta en el selector y vuelve al mapa no se enteraba.
+  testWidgets('al elegir o quitar la ruta, el lector lo anuncia una vez',
+      (tester) async {
+    final anuncios = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<dynamic>(
+      SystemChannels.accessibility,
+      (mensaje) async {
+        final mapa = mensaje as Map<Object?, Object?>;
+        if (mapa['type'] == 'announce') {
+          anuncios.add((mapa['data']! as Map<Object?, Object?>)['message']!
+              as String);
+        }
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<dynamic>(
+            SystemChannels.accessibility, null));
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(selectedRouteProvider, (_, __) {});
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SearchPillBar(),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(anuncios, isEmpty, reason: 'abrir el mapa no anuncia nada');
+
+    const ruta = RouteInfo(id: 'R-106', name: 'Ruta 106', companyId: 'EMP-01');
+    container.read(selectedRouteProvider.notifier).select(ruta);
+    await tester.pumpAndSettle();
+    expect(anuncios, ['Ruta activa: Ruta 106']);
+
+    // La misma ruta otra vez no es un cambio: no se repite.
+    container.read(selectedRouteProvider.notifier).select(ruta);
+    await tester.pumpAndSettle();
+    expect(anuncios, hasLength(1));
+
+    container.read(selectedRouteProvider.notifier).clear();
+    await tester.pumpAndSettle();
+    expect(anuncios, ['Ruta activa: Ruta 106', 'Sin ruta activa']);
   });
 }

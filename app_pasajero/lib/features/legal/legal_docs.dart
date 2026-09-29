@@ -166,16 +166,31 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'nada más tuyo. Escríbenos por WhatsApp al 300 443 8626 y la '
       'borramos.',
     ),
+    // Ley 1581 de 2012 y Decreto 1377 de 2013: quién responde, cómo se le
+    // escribe y qué puede pedir el titular. Mismo texto que
+    // `privacidad.html#responsable` y `#derechos` en la web. Sin cédula a
+    // propósito: la ley pide identificar al responsable, no publicarla.
+    // No sube `kLegalVersion`: informa, no cambia qué se recoge.
+    LegalBlock.heading('Quién responde por tus datos'),
+    LegalBlock.p(
+      'El responsable es Diego Alejandro Angarita Silvera, en Barranquilla, '
+      'Colombia. Correo diegoangarita930@gmail.com, WhatsApp 300 443 8626.',
+    ),
+    LegalBlock.heading('Tus derechos'),
+    LegalBlock.p(
+      'Por la Ley 1581 de 2012 puedes saber qué datos tuyos tenemos y para '
+      'qué los usamos, pedir que los corrijamos o los borremos y retirar el '
+      'permiso que nos diste. Pídelo por correo o por WhatsApp: una consulta '
+      'la respondemos en máximo 10 días hábiles y un reclamo en máximo 15. '
+      'Si después de reclamarnos no quedas conforme, puedes acudir a la '
+      'Superintendencia de Industria y Comercio.',
+    ),
     LegalBlock.heading('Cambios'),
     LegalBlock.p(
       'Si algo de esto cambia, cambia también este texto y su fecha, y la '
       'app te lo vuelve a mostrar. Ya Viene está en pruebas y todavía '
       'crece; lo que no va a cambiar es la parte de arriba: tu ubicación se '
       'queda en tu teléfono.',
-    ),
-    LegalBlock.heading('Contacto'),
-    LegalBlock.p(
-      '¿Alguna duda con esto? Escríbenos por WhatsApp al 300 443 8626.',
     ),
   ],
 );

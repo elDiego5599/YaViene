@@ -90,6 +90,47 @@ void main() {
     });
   });
 
+  // Ley 1581 de 2012 y Decreto 1377 de 2013: la política nombra quién
+  // responde, cómo se le escribe y qué puede pedir el titular. Es el
+  // mismo texto de `privacidad.html#responsable` y `#derechos` en la web.
+  group('la privacidad cumple lo de la Ley 1581', () {
+    final entero = legalPrivacidad.blocks.map((b) => b.text).join(' ');
+    final titulos = legalPrivacidad.blocks
+        .where((b) => b.kind == LegalBlockKind.heading)
+        .map((b) => b.text)
+        .toList();
+
+    test('dice quién responde y cómo escribirle', () {
+      expect(titulos, contains('Quién responde por tus datos'));
+      expect(entero, contains('Diego Alejandro Angarita Silvera'));
+      expect(entero, contains('Barranquilla'));
+      expect(entero, contains('diegoangarita930@gmail.com'));
+    });
+
+    test('sin cédula: ningún número largo que no sea el WhatsApp', () {
+      final largos = RegExp(r'\d[\d .]{6,}\d')
+          .allMatches(entero)
+          .map((m) => m.group(0))
+          .where((n) => n != '300 443 8626');
+      expect(largos, isEmpty);
+    });
+
+    test('dice qué puede pedir, en cuánto se responde y a quién acudir', () {
+      expect(titulos, contains('Tus derechos'));
+      expect(entero, contains('Ley 1581 de 2012'));
+      expect(entero, contains('10 días hábiles'));
+      expect(entero, contains('máximo 15'));
+      expect(entero, contains('Superintendencia de Industria y Comercio'));
+    });
+
+    test('van antes de «Cambios», como en la web', () {
+      expect(titulos.indexOf('Tus derechos'),
+          lessThan(titulos.indexOf('Cambios')));
+      expect(titulos.indexOf('Quién responde por tus datos'),
+          lessThan(titulos.indexOf('Tus derechos')));
+    });
+  });
+
   test('la versión que dice "Acerca de" es la que se compila', () {
     // Sin `package_info_plus`: un plugin entero para una cadena que ya está
     // escrita en el pubspec. La constante se escribe a mano y esta prueba

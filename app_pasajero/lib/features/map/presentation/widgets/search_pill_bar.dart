@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
@@ -55,6 +56,18 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     // La hoja de abajo también abre el selector («Escoge empresa y ruta»):
     // lo pide, y se abre aquí como desde la lupa.
     ref.listen<int>(pedirSelectorProvider, (_, __) => _openSelector());
+    // ACC-01: el texto de la píldora cambia, pero el lector solo lo lee si
+    // el foco pasa por aquí. Quien eligió la ruta en el selector y volvió
+    // al mapa no se enteraba de que quedó puesta: se le dice una vez, y
+    // solo si de verdad cambió.
+    ref.listen<RouteInfo?>(selectedRouteProvider, (antes, ahora) {
+      if (antes?.id == ahora?.id) return;
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        ahora != null ? 'Ruta activa: ${ahora.name}' : 'Sin ruta activa',
+        TextDirection.ltr,
+      );
+    });
 
     return SafeArea(
       bottom: false,
