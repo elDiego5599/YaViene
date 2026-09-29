@@ -35,14 +35,19 @@ class AlertHistoryEntry {
 
   bool get sent => sentAt != null;
 
-  AlertHistoryEntry copyWith({DateTime? sentAt}) => AlertHistoryEntry(
+  AlertHistoryEntry copyWith({
+    DateTime? sentAt,
+    double? refLat,
+    double? refLon,
+  }) =>
+      AlertHistoryEntry(
         busId: busId,
         routeId: routeId,
         routeName: routeName,
         createdAt: createdAt,
         sentAt: sentAt ?? this.sentAt,
-        refLat: refLat,
-        refLon: refLon,
+        refLat: refLat ?? this.refLat,
+        refLon: refLon ?? this.refLon,
       );
 
   Map<String, dynamic> toJson() => {
@@ -225,6 +230,17 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       next[index] = entry;
       state = next;
     }
+    _save();
+  }
+
+  /// Fija el punto desde el que mide un aviso que medía en vivo. No es
+  /// `upsert`: ese renueva la fecha, y la fecha decide cuándo vence.
+  void fijarAncla(String busId, double lat, double lon) {
+    final index = state.indexWhere((e) => e.busId == busId);
+    if (index == -1) return;
+    final next = [...state];
+    next[index] = state[index].copyWith(refLat: lat, refLon: lon);
+    state = next;
     _save();
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/ventana.dart';
 import '../../domain/fleet_bus.dart';
 import '../../domain/fleet_route.dart';
 import '../providers/fleet_providers.dart';
@@ -88,49 +89,15 @@ class _BusDialogState extends ConsumerState<BusDialog> {
   }
 
   Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-        title: Text(
-          'Eliminar bus',
-          style: AppType.ui(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          '¿Eliminar ${widget.bus!.placa.isEmpty ? widget.bus!.busId : widget.bus!.placa} '
-          'de la flota? Los pasajeros dejarán de verlo de inmediato. Esta acción '
-          'no se puede deshacer.',
-          style: AppType.ui(fontSize: 13.5, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              textStyle: AppType.ui(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
-            ),
-            child: const Text('ELIMINAR'),
-          ),
-        ],
-      ),
+    final bus = widget.bus!;
+    final confirmed = await confirmarBorrado(
+      context,
+      titulo: 'Eliminar bus',
+      mensaje: '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la '
+          'flota? Los pasajeros dejarán de verlo de inmediato. Esta acción no '
+          'se puede deshacer.',
     );
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       Navigator.of(context).pop();
       widget.onDelete?.call();
     }
@@ -145,175 +112,129 @@ class _BusDialogState extends ConsumerState<BusDialog> {
         ? _routeId
         : (sortedRoutes.isNotEmpty ? sortedRoutes.first.routeId : null);
 
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-      title: Row(
+    return Ventana(
+      icono: _isEdit ? Icons.edit_outlined : Icons.directions_bus,
+      titulo: _isEdit ? 'Editar bus' : 'Nuevo bus',
+      secundaria: VentanaAccion(
+        'Cancelar',
+        _saving ? null : () => Navigator.of(context).pop(),
+      ),
+      principal: VentanaAccion(
+        _isEdit ? 'GUARDAR' : 'AGREGAR',
+        _save,
+        cargando: _saving,
+      ),
+      contenido: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: AppColors.navy.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              _isEdit ? Icons.edit_outlined : Icons.directions_bus,
-              size: 18,
-              color: AppColors.navy,
-            ),
-          ),
-          const SizedBox(width: 12),
           Text(
-            _isEdit ? 'Editar bus' : 'Nuevo bus',
+            'PLACA',
             style: AppType.ui(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+              color: AppColors.textSecondary,
             ),
           ),
+          const SizedBox(height: 8),
+          TextField(
+            // Al abrir, el foco va a la placa: con teclado o lector de
+            // pantalla se empieza a escribir sin buscar el campo.
+            autofocus: true,
+            controller: _placaController,
+            textCapitalization: TextCapitalization.characters,
+            style: AppType.mono(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
+            decoration: const InputDecoration(hintText: 'ABC123'),
+            onSubmitted: (_) => _save(),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'RUTA',
+            style: AppType.ui(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String?>(
+            initialValue: selectedRouteId,
+            isExpanded: true,
+            decoration: const InputDecoration(),
+            // El menú que se despliega era el de fábrica: gris azulado del
+            // tema semilla y esquinas de 4. Va en el blanco y el radio de
+            // los campos, que es lo que es: la lista del campo abierta.
+            dropdownColor: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            items: sortedRoutes.isEmpty
+                ? null
+                : [
+                    ...sortedRoutes.map(
+                      (FleetRoute route) => DropdownMenuItem<String?>(
+                        value: route.routeId,
+                        child: Text(route.name),
+                      ),
+                    ),
+                  ],
+            onChanged: (value) => setState(() => _routeId = value),
+          ),
+          if (sortedRoutes.isEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'No hay rutas. Crea una primero con "Agregar ruta".',
+              style: AppType.ui(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.danger,
+              ),
+            ),
+          ],
+          if (_error != null) ...[
+            const SizedBox(height: 14),
+            Text(
+              _error!,
+              style: AppType.ui(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.danger,
+              ),
+            ),
+          ],
+          if (_isEdit) ...[
+            const SizedBox(height: 20),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : _confirmDelete,
+                icon: const Icon(Icons.delete_outline, size: 17),
+                label: const Text('Eliminar bus de la flota'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.danger,
+                  side: BorderSide(
+                    color: AppColors.danger.withValues(alpha: 0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  textStyle: AppType.ui(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'PLACA',
-              style: AppType.ui(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              // Al abrir, el foco va a la placa: con teclado o lector de
-              // pantalla se empieza a escribir sin buscar el campo.
-              autofocus: true,
-              controller: _placaController,
-              textCapitalization: TextCapitalization.characters,
-              style: AppType.mono(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-              ),
-              decoration: const InputDecoration(hintText: 'ABC123'),
-              onSubmitted: (_) => _save(),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'RUTA',
-              style: AppType.ui(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 2,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String?>(
-              initialValue: selectedRouteId,
-              isExpanded: true,
-              decoration: const InputDecoration(),
-              items: sortedRoutes.isEmpty
-                  ? null
-                  : [
-                      ...sortedRoutes.map(
-                        (FleetRoute route) => DropdownMenuItem<String?>(
-                          value: route.routeId,
-                          child: Text(route.name),
-                        ),
-                      ),
-                    ],
-              onChanged: (value) => setState(() => _routeId = value),
-            ),
-            if (sortedRoutes.isEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'No hay rutas. Crea una primero con "Agregar ruta".',
-                style: AppType.ui(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.danger,
-                ),
-              ),
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: 14),
-              Text(
-                _error!,
-                style: AppType.ui(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.danger,
-                ),
-              ),
-            ],
-            if (_isEdit) ...[
-              const SizedBox(height: 20),
-              const Divider(height: 1),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _saving ? null : _confirmDelete,
-                  icon: const Icon(Icons.delete_outline, size: 17),
-                  label: const Text('Eliminar bus de la flota'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                    side: BorderSide(
-                      color: AppColors.danger.withValues(alpha: 0.5),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    textStyle: AppType.ui(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.online,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            textStyle: AppType.ui(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          child: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(_isEdit ? 'GUARDAR' : 'AGREGAR'),
-        ),
-      ],
     );
   }
 }

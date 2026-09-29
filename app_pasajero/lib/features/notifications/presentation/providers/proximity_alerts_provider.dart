@@ -37,7 +37,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     DateTime Function()? ahora,
   })  : _notify = notify ?? _defaultNotify,
         _ahora = ahora ?? DateTime.now,
-        super({});
+        super({}) {
+    _ref.listen<UserLocationState>(userLocationProvider, _alMoverUbicacion);
+  }
 
   final Ref _ref;
   final BusNearNotifier _notify;
@@ -145,6 +147,27 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     return location.mode == UserLocationMode.manual && location.hasPosition
         ? (location.lat!, location.lon!)
         : null;
+  }
+
+  /// Un aviso armado con GPS no tiene ancla: mide desde la persona, que se
+  /// mueve con él. Pero al poner o arrastrar el pin, «en vivo» pasaba a ser
+  /// el pin y el aviso se mudaba con él (lo vio el dueño, 2026-09-28). Al
+  /// pasar de GPS a pin, esos avisos se quedan donde estaba el GPS. Solo en
+  /// ese paso: GPS → «ubicando» es el mismo GPS volviendo a leer.
+  void _alMoverUbicacion(UserLocationState? antes, UserLocationState ahora) {
+    if (antes == null ||
+        antes.mode != UserLocationMode.gps ||
+        !antes.hasPosition ||
+        ahora.mode != UserLocationMode.manual) {
+      return;
+    }
+    final donde = (antes.lat!, antes.lon!);
+    final historial = _ref.read(alertHistoryProvider.notifier);
+    for (final busId in _alertRoutes.keys) {
+      if (_alertRefs[busId] != null) continue;
+      _alertRefs[busId] = donde;
+      historial.fijarAncla(busId, donde.$1, donde.$2);
+    }
   }
 
   /// Ancla de un aviso armado, para que la pantalla mida la distancia desde

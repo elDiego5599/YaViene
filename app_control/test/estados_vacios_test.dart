@@ -261,7 +261,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('INICIAR SESIÓN'), findsOneWidget);
 
     await _desmontar(tester);
   });

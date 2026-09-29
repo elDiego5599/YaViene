@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/core/widgets/ventana.dart';
 import 'package:ya_viene_control/features/auth/presentation/screens/login_screen.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
@@ -280,6 +281,14 @@ void main() {
 
     expect(find.textContaining('No se pudo abrir WhatsApp'), findsOneWidget);
     expect(find.textContaining('+57 300 443 8626'), findsWidgets);
+    // En la tarjeta del panel, no en la barra de fábrica.
+    expect(
+      find.descendant(
+        of: find.byType(AvisoPanel),
+        matching: find.textContaining('No se pudo abrir WhatsApp'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('ningún texto de la pantalla lleva emojis', (tester) async {

@@ -52,6 +52,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   @override
   Widget build(BuildContext context) {
     final selectedRoute = ref.watch(selectedRouteProvider);
+    // La hoja de abajo también abre el selector («Escoge empresa y ruta»):
+    // lo pide, y se abre aquí como desde la lupa.
+    ref.listen<int>(pedirSelectorProvider, (_, __) => _openSelector());
 
     return SafeArea(
       bottom: false,

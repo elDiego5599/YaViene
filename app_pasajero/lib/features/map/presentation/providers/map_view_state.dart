@@ -16,6 +16,12 @@ final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
 final routeSelectorOpenProvider =
     StateProvider.autoDispose<bool>((ref) => false);
 
+/// Alguien fuera de la píldora pide abrir el selector de ruta: cada pedido
+/// sube el número. Lo abre la píldora, que es la dueña del selector y de sus
+/// guías; así no hay dos maneras de abrirlo. Lo pide «Escoge empresa y
+/// ruta» en la hoja (dueño, 2026-09-28: la gente tocaba ahí).
+final pedirSelectorProvider = StateProvider.autoDispose<int>((ref) => 0);
+
 /// F7: si la superposición "Preparando tu mapa…" sigue visible, el resto de
 /// la pantalla no debe amontonar sus propios indicadores de carga (ubicación,
 /// conexión) encima — un solo estado coordinado en vez de tres sueltos.

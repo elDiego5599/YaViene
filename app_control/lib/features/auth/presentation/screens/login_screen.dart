@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/ventana.dart';
 import '../providers/auth_providers.dart';
 
 /// Abre un enlace fuera del panel (el navegador o la app que lo atienda).
@@ -107,18 +108,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _escribirAlEquipo() async {
-    final messenger = ScaffoldMessenger.of(context);
     final abierto = await ref.read(abrirEnlaceProvider)(
       LoginScreen.contactoEquipo,
     );
-    if (abierto) return;
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text(
-          'No se pudo abrir WhatsApp. Escríbenos al '
-          '${LoginScreen.telefonoEquipo}.',
-        ),
-      ),
+    if (abierto || !mounted) return;
+    mostrarAvisoPanel(
+      context,
+      'No se pudo abrir WhatsApp. Escríbenos al '
+      '${LoginScreen.telefonoEquipo}.',
+      icono: Icons.chat_bubble_outline_rounded,
     );
   }
 

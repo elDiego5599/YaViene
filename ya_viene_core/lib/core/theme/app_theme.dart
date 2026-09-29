@@ -484,6 +484,24 @@ abstract class AppTheme {
         ),
       ),
 
+      // El globo de ayuda que sale al dejar el dedo sobre un botón de icono
+      // («Volver», «Cerrar menú») era el gris de fábrica con esquinas de 4.
+      // Va en la tinta del menú con su texto claro, como los avisos, y con
+      // el radio chico del sistema: es una etiqueta, no una tarjeta.
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.ink,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: AppSpacing.sm,
+        ),
+        textStyle: AppTextStyles.etiqueta.copyWith(
+          color: AppColors.textOnInk,
+        ),
+      ),
+
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         modalBackgroundColor: AppColors.surface,

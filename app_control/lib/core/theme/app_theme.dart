@@ -266,6 +266,24 @@ abstract class AppTheme {
         ),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
+      // El globo de ayuda de los botones de icono —«Editar bus», «Renombrar
+      // ruta»— salía en el gris de fábrica con esquinas de 4, lo único del
+      // panel que no era del panel. Va en el azul de la consola, con el
+      // radio chico del sistema y la letra de la marca: el blanco encima da
+      // 12,7:1. 10×6 por dentro es el aire de una píldora de una línea.
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.navy,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          boxShadow: AppColors.softShadow,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        textStyle: AppType.ui(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
       cardTheme: const CardThemeData(
         color: AppColors.surface,
         surfaceTintColor: Colors.transparent,

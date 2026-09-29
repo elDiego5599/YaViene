@@ -7,7 +7,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/cifra_viva.dart';
+import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
@@ -165,28 +167,39 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 
   /// Activa/desactiva la alerta de un bus. La regla de negocio vive en
-  /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico y
-  /// snackbar.
+  /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico,
+  /// aviso o ventana.
   Future<void> _toggleAlert(String busId) async {
     final result = await ref.read(alertToggleProvider).toggle(busId);
     if (!mounted) return;
     if (result.needsHaptic) HapticFeedback.mediumImpact();
     final message = result.message;
     if (message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(message),
-      ));
+      mostrarAviso(context, message);
       return;
     }
     if (result.outcome == AlertToggleOutcome.permissionDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content:
-            Text('Activa las notificaciones para recibir el aviso del bus'),
-        action: SnackBarAction(
-          label: 'Ajustes',
-          onPressed: openAppSettings,
+      // Es una pregunta con salida —ir a Ajustes o dejarlo—, así que va en
+      // la ventana de la app y no en un aviso que se va solo: en la barra
+      // de abajo, «Ajustes» era una palabra verde que desaparecía a los
+      // cuatro segundos.
+      await mostrarDialogo<void>(
+        context,
+        (dialogContext) => Dialogo(
+          icono: Icons.notifications_off_outlined,
+          titulo: 'Activa las notificaciones',
+          mensaje: 'Sin ellas, el aviso no puede sonar cuando el bus se '
+              'acerque. Actívalas para Ya Viene en los Ajustes.',
+          principal: DialogoAccion('Abrir Ajustes', () {
+            Navigator.of(dialogContext).pop();
+            openAppSettings();
+          }),
+          secundaria: DialogoAccion(
+            'Ahora no',
+            () => Navigator.of(dialogContext).pop(),
+          ),
         ),
-      ));
+      );
     }
   }
 
@@ -603,8 +616,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     } else if (route == null) {
       stateKey = 'empty-no-route';
       title = 'Escoge empresa y ruta';
-      subtitle = 'Para ver los buses, toca la barra de arriba y elige '
-          'la empresa y su ruta';
+      // «Aquí» y no «la barra de arriba»: el bloque entero abre el
+      // selector, porque ahí es donde la gente tocaba (dueño, 2026-09-28).
+      subtitle = 'Toca aquí para elegir la empresa y su ruta';
       icon = Icons.route_outlined;
     } else if (buses.isEmpty && routeTooFar) {
       // El caso más confuso de todos: el mapa está vacío no porque no haya
@@ -633,6 +647,55 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       dibujo = const SenaTocarBus(key: ValueKey('sena-tocar-bus'));
     }
 
+    // Sin ruta, el bloque entero abre el selector: la gente tocaba el
+    // ícono esperando que pasara algo (dueño, 2026-09-28).
+    final abreSelector = stateKey == 'empty-no-route';
+
+    final contenido = Column(
+      children: [
+        // El icono va en su medallón, como los de los tiles del selector y
+        // el de la píldora de ubicación: suelto sobre la arena era un glifo
+        // gris flotando en el hueco más grande de la pantalla. No dice nada
+        // que no diga el título, así que en voz alta no existe.
+        //
+        // Cuando abre el selector, el medallón va en el verde claro de la
+        // marca y el ícono en su verde legible (el de los botones): el gris
+        // se lee como adorno, el verde como algo que se toca.
+        ExcludeSemantics(
+          child: Container(
+            key: abreSelector ? const ValueKey('escoge-ruta-icono') : null,
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: abreSelector ? AppColors.primaryTint : AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: dibujo ??
+                Icon(
+                  icon,
+                  color: abreSelector
+                      ? AppColors.primaryAccessible
+                      : AppColors.textSecondary,
+                  size: 26,
+                ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          title,
+          style: AppTextStyles.subtitulo,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          subtitle,
+          style: AppTextStyles.cuerpo.copyWith(color: AppColors.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+
     return KeyedSubtree(
       key: ValueKey(stateKey),
       child: Padding(
@@ -641,43 +704,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         // Título y frase son una sola cosa: "No hay buses en el mapa" y
         // el porqué. Sueltos, hay que deslizar dos veces para enterarse
         // de por qué la hoja está vacía.
-        child: MergeSemantics(
-          child: Column(
-            children: [
-              // El icono va en su medallón, como los de los tiles del
-              // selector y el de la píldora de ubicación: suelto sobre la
-              // arena era un glifo gris flotando en el hueco más grande de
-              // la pantalla. No dice nada que no diga el título, así que en
-              // voz alta no existe.
-              ExcludeSemantics(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    border: Border.all(color: AppColors.hairline),
-                  ),
-                  child: dibujo ??
-                      Icon(icon, color: AppColors.textSecondary, size: 26),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                style: AppTextStyles.subtitulo,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                subtitle,
-                style: AppTextStyles.cuerpo
-                    .copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+        child: abreSelector
+            ? _EstadoTocable(
+                key: const ValueKey('empty-no-route-boton'),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(pedirSelectorProvider.notifier).state++;
+                },
+                child: contenido,
+              )
+            : MergeSemantics(child: contenido),
       ),
     );
   }
@@ -1136,4 +1172,49 @@ String? _staleLabel(BusPosition? bus) {
   if (minutes < 60) return 'Sin señal · hace $minutes min';
   final hours = minutes ~/ 60;
   return 'Sin señal · hace $hours h';
+}
+
+/// Un estado vacío que además es un botón: se anuncia como uno (título y
+/// frase juntos, como los demás estados) y se hunde un poco al tocarlo, como
+/// las tarjetas del selector, para que el dedo sepa que acertó.
+class _EstadoTocable extends StatefulWidget {
+  const _EstadoTocable({super.key, required this.onTap, required this.child});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_EstadoTocable> createState() => _EstadoTocableState();
+}
+
+class _EstadoTocableState extends State<_EstadoTocable> {
+  bool _hundido = false;
+
+  void _hundir(bool valor) {
+    if (_hundido != valor) setState(() => _hundido = valor);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (_) => _hundir(true),
+          onTapUp: (_) => _hundir(false),
+          onTapCancel: () => _hundir(false),
+          onTap: widget.onTap,
+          // 0.975: lo mismo que se hunden las tarjetas del selector, al
+          // que este bloque lleva; con su tiempo y su curva.
+          child: AnimatedScale(
+            scale: _hundido ? 0.975 : 1,
+            duration: AppMotion.duracion(context, AppMotion.instante),
+            curve: AppMotion.curvaEntrada,
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
 }

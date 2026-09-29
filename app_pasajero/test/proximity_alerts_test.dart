@@ -350,6 +350,59 @@ void main() {
     expect(fired.single.busId, 'A-1');
   });
 
+  // Lo que vio el dueño en el teléfono (2026-09-28): con GPS se arma el
+  // aviso y después se arrastra el pin a otro sitio. El aviso armado con GPS
+  // no tenía ancla (mide en vivo) y «en vivo» pasaba a ser el pin: el aviso
+  // se mudaba con él. Al pasar a pin, se queda donde estaba el GPS.
+  test('arrastrar el pin NO mueve un aviso armado con GPS', () async {
+    final notifier =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    final alerts = container.read(proximityAlertsProvider.notifier);
+    alerts.armAlert('A-1', 'R1');
+    expect(alerts.anchorFor('A-1'), isNull, reason: 'con GPS mide en vivo');
+
+    // Pin a ~12 km del bus: si el aviso midiera desde ahí no sonaría.
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.35,
+      lon: -75.55,
+      updatedAt: DateTime.now(),
+    ));
+
+    expect(alerts.anchorFor('A-1'), (6.2442, -75.5812));
+    // Y queda escrito: al reabrir la app sigue en el mismo punto.
+    final entrada = container.read(alertHistoryProvider).single;
+    expect((entrada.refLat, entrada.refLon), (6.2442, -75.5812));
+
+    await alerts.check();
+    expect(fired, hasLength(1), reason: 'mide desde donde estaba el GPS');
+  });
+
+  test('el GPS que se mueve sigue arrastrando el aviso armado con GPS',
+      () async {
+    final notifier =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    final alerts = container.read(proximityAlertsProvider.notifier);
+    alerts.armAlert('A-1', 'R1');
+
+    // Con GPS, el punto de espera es la persona: si camina, el aviso va con
+    // ella. Solo el pin manual lo fija.
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.gps,
+      lat: 6.35,
+      lon: -75.55,
+      updatedAt: DateTime.now(),
+    ));
+
+    expect(alerts.anchorFor('A-1'), isNull);
+    await alerts.check();
+    expect(fired, isEmpty);
+  });
+
   test('el aviso mide en la ruta del bus aunque la pantalla muestre otra',
       () async {
     // Bus A-2 pertenece a R2, pero la ruta seleccionada es R1: el aviso debe

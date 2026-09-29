@@ -10,6 +10,7 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
 import 'package:ya_viene_core/shared/widgets/recuadro_latencia.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/ventana.dart';
 import '../../../../shared/widgets/clock_widget.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/fleet_bus.dart';
@@ -45,24 +46,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       (previous, expired) {
         if (!expired || !mounted) return;
         ref.read(fleetProvider.notifier).acknowledgeSessionExpired();
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Tu sesión expiró'),
-            content: const Text(
-              'La sesión del administrador venció o fue revocada. '
-              'Vuelve a iniciar sesión para continuar.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(dialogContext).pop();
-                  await _logout();
-                },
-                child: const Text('Iniciar sesión'),
-              ),
-            ],
+        // Sin salida por fuera: con la sesión vencida el tablero ya no
+        // puede hacer nada, y cerrarla con Esc dejaba al operador mirando
+        // datos que no se iban a actualizar.
+        mostrarVentana<void>(
+          context,
+          cerrable: false,
+          (dialogContext) => Ventana(
+            icono: Icons.lock_clock_outlined,
+            titulo: 'Tu sesión expiró',
+            mensaje: 'La sesión del administrador venció o fue revocada. '
+                'Vuelve a iniciar sesión para continuar.',
+            principal: VentanaAccion('INICIAR SESIÓN', () async {
+              Navigator.of(dialogContext).pop();
+              await _logout();
+            }),
           ),
         );
       },
@@ -116,23 +114,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   void _showBusDialog({FleetBus? bus}) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => BusDialog(
+    mostrarVentana<void>(
+      context,
+      (dialogContext) => BusDialog(
         bus: bus,
         onDelete: bus == null
             ? null
             : () async {
-                final messenger = ScaffoldMessenger.of(context);
                 try {
                   await ref.read(fleetProvider.notifier).removeBus(bus.busId);
                 } catch (_) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('No se pudo eliminar el bus.'),
-                      backgroundColor: AppColors.danger,
-                    ),
-                  );
+                  if (mounted) {
+                    mostrarAvisoPanel(context, 'No se pudo eliminar el bus.');
+                  }
                 }
               },
       ),
@@ -140,67 +134,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   void _showRouteDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (_) => const RouteDialog(),
-    );
+    mostrarVentana<void>(context, (_) => const RouteDialog());
   }
 
   Future<void> _confirmDeleteSelected(FleetBus bus) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-        title: Text(
-          'Eliminar bus',
-          style: AppType.ui(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la flota? '
-          'Los pasajeros dejarán de verlo de inmediato. Esta acción no se puede '
-          'deshacer.',
-          style: AppType.ui(fontSize: 13.5, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              textStyle: AppType.ui(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
-            ),
-            child: const Text('ELIMINAR'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmarBorrado(
+      context,
+      titulo: 'Eliminar bus',
+      mensaje: '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la '
+          'flota? Los pasajeros dejarán de verlo de inmediato. Esta acción no '
+          'se puede deshacer.',
     );
-    if (confirmed == true) {
+    if (confirmed) {
       try {
         await ref.read(fleetProvider.notifier).removeBus(bus.busId);
       } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudo eliminar el bus.'),
-              backgroundColor: AppColors.danger,
-            ),
-          );
-        }
+        if (mounted) mostrarAvisoPanel(context, 'No se pudo eliminar el bus.');
       }
     }
   }

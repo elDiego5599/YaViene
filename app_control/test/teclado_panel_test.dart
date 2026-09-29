@@ -23,6 +23,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/core/widgets/ventana.dart';
 import 'package:ya_viene_control/features/auth/domain/auth_session.dart';
 import 'package:ya_viene_control/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
@@ -273,10 +274,10 @@ void main() {
     }
     expect(_foco(), 'Agregar bus');
     await _tecla(tester, LogicalKeyboardKey.enter);
-    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(Ventana), findsOneWidget);
 
     await _tecla(tester, LogicalKeyboardKey.escape);
-    expect(find.byType(Dialog), findsNothing);
+    expect(find.byType(Ventana), findsNothing);
     await _desmontar(tester);
   }, variant: _escritorio);
 
