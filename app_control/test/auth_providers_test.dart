@@ -437,4 +437,17 @@ void main() {
       );
     });
   });
+
+  // En el Mac la app va firmada «ad hoc» (sin equipo de Apple): el llavero
+  // de protección de datos le responde -34018 (falta el derecho
+  // keychain-access-groups) y nada se guardaba —ni la sesión ni la clave
+  // recordada—. El llavero clásico del inicio de sesión sí la deja.
+  test('en macOS guarda en el llavero clásico, no en el de protección', () {
+    // Lo que viaja al plugin nativo.
+    expect(
+      AuthNotifier.almacenDelSistema.mOptions
+          .toMap()['usesDataProtectionKeychain'],
+      'false',
+    );
+  });
 }

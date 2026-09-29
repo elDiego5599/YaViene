@@ -40,8 +40,17 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier({required this.api, FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage(),
+    : _storage = storage ?? almacenDelSistema,
       super(const AuthState());
+
+  /// Llavero en macOS, archivo cifrado en Windows. En el Mac, el llavero
+  /// clásico: la app va firmada «ad hoc» (sin equipo de Apple) y el de
+  /// protección de datos exige el derecho keychain-access-groups, que esa
+  /// firma no puede llevar; sin él respondía -34018 y la sesión y la clave
+  /// recordada nunca quedaban guardadas.
+  static const almacenDelSistema = FlutterSecureStorage(
+    mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+  );
 
   static const _kToken = 'auth_token';
   static const _kCompanyId = 'auth_company_id';
