@@ -356,4 +356,85 @@ void main() {
       await AuthApi(baseUrl: 'http://127.0.0.1:$puerto').logout('t-1');
     });
   });
+
+  // «Recordar contraseña» (pedido del dueño, 2026-09-28): usuario y clave
+  // van al almacén cifrado del sistema —el Llavero en macOS, el archivo
+  // cifrado con la clave del usuario en Windows—, nunca a un archivo plano.
+  // Los valores de aquí son de prueba.
+  group('recordar contraseña', () {
+    test('con la casilla, guarda usuario y clave y los devuelve', () async {
+      final storage = _FakeSecureStorage();
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+
+      await notifier.login('operador', 'clave-de-prueba', recordar: true);
+
+      final recordadas = await notifier.credencialesRecordadas();
+      expect(recordadas?.usuario, 'operador');
+      expect(recordadas?.clave, 'clave-de-prueba');
+    });
+
+    test('sin la casilla, olvida lo que hubiera', () async {
+      final storage = _FakeSecureStorage({
+        'recordar_usuario': 'operador',
+        'recordar_clave': 'clave-vieja',
+      });
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+
+      await notifier.login('operador', 'clave-de-prueba');
+
+      expect(await notifier.credencialesRecordadas(), isNull);
+      expect(await storage.read(key: 'recordar_clave'), isNull);
+    });
+
+    test('un ingreso rechazado no toca lo recordado', () async {
+      final storage = _FakeSecureStorage({
+        'recordar_usuario': 'operador',
+        'recordar_clave': 'clave-buena',
+      });
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(
+          loginError: const AuthApiException('Usuario o contraseña incorrectos.'),
+        ),
+        storage: storage,
+      );
+
+      await notifier.login('operador', 'clave-mala');
+
+      expect((await notifier.credencialesRecordadas())?.clave, 'clave-buena');
+    });
+
+    test('salir no olvida la contraseña: para eso se recordó', () async {
+      final storage = _FakeSecureStorage();
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+      await notifier.login('operador', 'clave-de-prueba', recordar: true);
+
+      await notifier.logout();
+
+      expect(await storage.read(key: 'auth_token'), isNull);
+      expect((await notifier.credencialesRecordadas())?.usuario, 'operador');
+    });
+
+    test('si el almacén se niega, no hay nada recordado y se entra igual', () async {
+      final storage = _FakeSecureStorage()..falla = true;
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+
+      expect(await notifier.credencialesRecordadas(), isNull);
+      expect(
+        await notifier.login('operador', 'clave-de-prueba', recordar: true),
+        isTrue,
+      );
+    });
+  });
 }

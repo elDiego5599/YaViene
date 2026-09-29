@@ -52,6 +52,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  /// «Recordar contraseña». Apagada salvo que el último ingreso la dejara
+  /// encendida: entonces usuario y clave llegan ya puestos.
+  bool _recordar = false;
+
   /// Por debajo de este ancho de tarjeta las dos mitades no caben lado a
   /// lado con aire (el formulario pide ~380 y el panel ~340), y el panel del
   /// equipo baja bajo el formulario.
@@ -63,6 +67,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   static const _escalaPartida = 1.3;
 
   @override
+  void initState() {
+    super.initState();
+    _cargarRecordadas();
+  }
+
+  Future<void> _cargarRecordadas() async {
+    final recordadas = await ref
+        .read(authProvider.notifier)
+        .credencialesRecordadas();
+    // Si ya se empezó a escribir mientras el almacén contestaba, no se pisa.
+    if (recordadas == null ||
+        !mounted ||
+        _usernameController.text.isNotEmpty ||
+        _passwordController.text.isNotEmpty) {
+      return;
+    }
+    _usernameController.text = recordadas.usuario;
+    _passwordController.text = recordadas.clave;
+    setState(() => _recordar = true);
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
@@ -72,7 +98,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     final ok = await ref
         .read(authProvider.notifier)
-        .login(_usernameController.text.trim(), _passwordController.text);
+        .login(
+          _usernameController.text.trim(),
+          _passwordController.text,
+          recordar: _recordar,
+        );
     if (ok && mounted) context.go('/dashboard');
   }
 
@@ -327,6 +357,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           onSubmitted: (_) => _submit(),
         ),
+        const SizedBox(height: 12),
+        _casillaRecordar(),
         // El renglón del error guarda su alto aunque esté vacío, para que el
         // botón no salte al aparecer; con la letra grande crece lo que haga
         // falta.
@@ -379,6 +411,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// La casilla va bajo el candado del campo: 12 de margen + la mitad de
+  /// sus 32 (compacta) = 28, el centro del ícono (18 + 19 / 2). El rótulo
+  /// arranca en 12 + 32 + 3 = 47, donde arranca el texto del campo
+  /// (18 + 19 + 10). Verde como INGRESAR, que va justo debajo; la marca
+  /// blanca encima da 5,5:1. El rótulo también la marca, y el lector de
+  /// pantalla oye una sola pieza: «Recordar contraseña, casilla».
+  Widget _casillaRecordar() {
+    void alternar() => setState(() => _recordar = !_recordar);
+    return MergeSemantics(
+      child: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Row(
+          children: [
+            Checkbox(
+              value: _recordar,
+              onChanged: (_) => alternar(),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              activeColor: AppColors.online,
+              side: const BorderSide(color: AppColors.textMuted, width: 1.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+            const SizedBox(width: 3),
+            Flexible(
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: alternar,
+                  child: Text(
+                    'Recordar contraseña',
+                    style: AppType.ui(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

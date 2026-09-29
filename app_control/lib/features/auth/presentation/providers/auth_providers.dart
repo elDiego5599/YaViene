@@ -47,6 +47,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static const _kCompanyId = 'auth_company_id';
   static const _kCompanyName = 'auth_company_name';
 
+  /// «Recordar contraseña»: usuario y clave, en el mismo almacén cifrado
+  /// que la sesión y nunca en un archivo plano. Salir no los borra —para eso
+  /// se recordaron—; los borra entrar con la casilla apagada.
+  static const _kRecUsuario = 'recordar_usuario';
+  static const _kRecClave = 'recordar_clave';
+
   /// A qué backend van el login y la validación. Puede cambiar con el panel
   /// abierto (`BackendSupervisor`): el provider la cambia aquí en vez de
   /// rehacer el notifier, que dejaba la sesión en «desconocida» y sacaba al
@@ -104,7 +110,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String username, String password) async {
+  /// Lo que se recordó en el último ingreso con la casilla encendida, o
+  /// null. Si el almacén no se deja leer, es null y se escribe a mano.
+  Future<({String usuario, String clave})?> credencialesRecordadas() async {
+    try {
+      final usuario = await _storage.read(key: _kRecUsuario);
+      final clave = await _storage.read(key: _kRecClave);
+      if (usuario == null || clave == null) return null;
+      return (usuario: usuario, clave: clave);
+    } catch (e) {
+      debugPrint('No se pudo leer la contraseña recordada: $e');
+      return null;
+    }
+  }
+
+  Future<bool> login(
+    String username,
+    String password, {
+    bool recordar = false,
+  }) async {
     state = state.copyWith(loading: true, error: null);
 
     final AuthSession session;
@@ -139,6 +163,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.write(key: _kCompanyName, value: session.companyName);
     } catch (e) {
       debugPrint('Se entró, pero no se pudo guardar la sesión: $e');
+    }
+    // Solo tras un ingreso aceptado: una clave rechazada no se recuerda ni
+    // borra la buena. Y, como la sesión, si el almacén se niega se entra
+    // igual.
+    try {
+      if (recordar) {
+        await _storage.write(key: _kRecUsuario, value: username);
+        await _storage.write(key: _kRecClave, value: password);
+      } else {
+        await _storage.delete(key: _kRecUsuario);
+        await _storage.delete(key: _kRecClave);
+      }
+    } catch (e) {
+      debugPrint('Se entró, pero no se pudo recordar la contraseña: $e');
     }
 
     state = AuthState(status: AuthStatus.authenticated, session: session);
