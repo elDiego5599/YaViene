@@ -22,7 +22,7 @@ o no se marca ☑. El plan usa `[YA]`, `[BLOQUEADA: X]`, `[DUEÑO]`,
 `[FECHA: pitch]` y `[CONTINUO]` (ver su §0.4). Lo honesto se queda: la
 etiqueta «Simulación», la flota demo y `empty-pick-bus`.
 
-## Estado (al 2026-09-27)
+## Estado (al 2026-09-29)
 
 **Tres documentos en la raíz del workspace (fuera de los repos), los tres
 para leer al arrancar en frío**: `/Users/diegoangarita/YaViene/plan-remediacion.md`
@@ -35,29 +35,39 @@ T6.7). La evidencia congelada de tareas cerradas y los prompts de proceso
 (prompt de la auditoría, inventario J) viven en `archivo/`. El estado
 diario y las reglas de trabajo están en `AGENTS.md`.
 
-- **NO es monorepo**: `YaViene/YaViene` (Flutter, rama `prueba-diseno`),
-  `YaVieneBackend` (rama `prueba`), `YaVieneWeb` (rama `prueba-diseno`). Remotos
+- **NO es monorepo**: `YaViene/YaViene` (Flutter, rama `diseno-21st`),
+  `YaVieneBackend` (rama `prueba`), `YaVieneWeb` (rama `diseno-21st`). Remotos
   `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
-- **`main` al día en el remoto** (pedido del dueño, 2026-09-28): app
-  `99c0a07`, web `6acb895` y backend `a1fc70f`, los tres por avance rápido
-  desde `diseno-21st` / `prueba`. Los 21 archivos sueltos del backend eran
+- **`main` al día en el remoto** (2026-09-29, tarde): app `ed52e56`, web
+  `572be9c` y backend `f62d3b1` (más el commit de este `CLAUDE.md` encima),
+  los tres por avance rápido desde `diseno-21st` / `prueba`. Traen la
+  revisión del 2026-09-29 (`reporte-revision-2026-09-29.md`): P1-2 sin
+  falso verde y la suite inmune a `YA_VIENE_EXPUESTO`/`NODE_ENV` (backend),
+  `start-test.sh` borrado, responsable y derechos de la Ley 1581 en la
+  privacidad (web y app, sin subir `kLegalVersion`) con la autorización
+  del formulario de empresas, ACC-01 (el lector anuncia la ruta) y las dos
+  E2E inestables arregladas. Antes, la misma mañana: app `74bf864`, web
+  `33338f9` y backend `1171b57` (ronda «auditoría 2026-09» de la nube y
+  privacidad v3). Antes (2026-09-28): app `99c0a07`, web `6acb895` y backend `a1fc70f`. Los 21 archivos sueltos del backend eran
   T3.4 + T9.3 y las pruebas R-05/06/07 del lote 3, cerradas en el plan pero
   nunca commiteadas: revisadas (200/200, también con la siembra en 0; 8
   rojas con el `src` viejo) y subidas (`83a93f1`, `1055885`, `a1fc70f`).
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-09-27, lote 4 sobre `prueba-diseno`)**: web
-  `npm run typecheck` limpio (3 configs) y **115 en Vitest**; Playwright
-  **81 pasadas + 3 saltadas, dos corridas** (lote 4); presupuestos dist 749,1/797
-  (94 %), JavaScript 64,0/66 (**97 %**), CSS 115,0/117 (**98 %**) y primera
-  visita 488,3/560 (87 %) — JS y CSS casi sin margen: todo cambio web mide
-  antes de sumar. Cobertura con el trinquete (última medida sobre
-  `79ae3a6`): 91,13 / 71,23 / 94,28 / 94,31. Antes de correr Playwright, matar el puerto:
+- **Verificación (2026-09-29, sobre `main`)**: **1.438 pruebas** en total
+  (1.416 pasan + 22 saltadas). Web: `npm run typecheck` limpio (3 configs),
+  **281 en Vitest** con el trinquete de cobertura en 98 / 90 / 100 / 99
+  (`vite.config.ts`); Playwright **145 pasadas + 21 saltadas**
+  (estables: `movimiento.spec.ts` y `isla.spec.ts` pasaron 40 de 40 con 5
+  hilos); presupuestos dist
+  759,1/797 (95 %), JavaScript 59,3/66 (90 %), CSS 117,1/121 (**97 %**) y
+  primera visita 484,9/560 (87 %) — el CSS casi sin margen: todo cambio web
+  mide antes de sumar. Antes de correr Playwright, matar el puerto:
   `lsof -ti tcp:4174 | xargs -r kill -9` — un servidor viejo sirve una
   build vieja y las pruebas mienten.
-- **Backend**: 200 pruebas en verde (2026-09-27, lote 3; también con `YA_VIENE_SEED_DEMO=0` en el entorno: `tests/entorno.ts` fija la siembra) con `npm test`, `npx tsc --noEmit`
+- **Backend**: 239 pruebas en verde (2026-09-29; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
   limpio. Las pruebas usan bases temporales y puertos propios; el backend
   vivo y ngrok no se tocan.
 - **Documentación del backend** en `YaVieneBackend/docs/`: `arquitectura.md`
@@ -109,11 +119,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
   el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
   (`99c0a07`).
-  Cifras ahí (2026-09-29): pasajero 402, panel 240 + 1 saltada, core 71,
-  Vitest 165, Playwright 113 + 11 saltadas (`movimiento.spec.ts:89` falla
-  ~1 de 5 desde antes); presupuestos JS 65,8/66 (100 %),
-  CSS 117,0/121 (97 %), primera visita 498,5/560.
-- **Flutter**: core 67, panel 174 + 1 saltada, pasajero 374 (2026-09-27, lote 4 + pedidos del dueño). Analyze: línea
+- **Flutter** (2026-09-29): core 71, panel 247 + 1 saltada, pasajero 433. Analyze: línea
   base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres
   (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
   `--comprobar`) tras `npm run contrato:actualizar` en el backend. El
@@ -121,10 +127,10 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
 
 ## Reglas del usuario (no negociables, resumen)
-1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; no usar `start-test.sh` (cloudflared). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa («Tu bus está cerca de ti»); app CON ruta+placa — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar".
+1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; nada de cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en `archivo/`). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa («Tu bus está cerca de ti»); app CON ruta+placa — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar".
 
 ## Verificación web (tras cada cambio)
-`npm run typecheck` + `npm test` (**115**) + Playwright sin pageerror (**81 + 3 saltadas**, última corrida 2026-09-27, lote 4, sobre `prueba-diseno`) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
+`npm run typecheck` + `npm test` (**281**) + Playwright sin pageerror (**145 + 21 saltadas**, última corrida 2026-09-29, sobre `main`) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
 
 ## Búsqueda de código
 - **`grep` está aliasado a `ugrep`: no usarlo.** Usar `tgrep "patrón" <ruta> --no-index` (instalado en `~/.cargo/bin`, v1.0.5, en PATH).
