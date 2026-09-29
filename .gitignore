@@ -25,10 +25,5 @@ app_pasajero/ios/Runner/GoogleService-Info.plist
 # Salida transitoria de un golden que falló: se regenera sola.
 **/test/golden/failures/
 
-# Las instrucciones de Claude para este repo se quedan en la máquina: son
-# notas de trabajo del dueño —rutas locales, cuentas, atajos— y no tienen
-# por qué viajar al remoto.
-CLAUDE.md
-
 # Grafo local de graphify: caché de búsqueda que se regenera, no es del repo.
 graphify-out/
