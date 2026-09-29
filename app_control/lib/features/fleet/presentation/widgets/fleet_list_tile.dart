@@ -41,30 +41,36 @@ class FleetListTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.lg),
+        // Plana: la fila era una tarjeta con borde dentro de la tarjeta con
+        // borde de la lista, y los bordes apilados se leían como ruido. Solo
+        // la elegida lleva marco. El de las demás sigue ahí, transparente,
+        // para que elegir una fila no la mueva un píxel.
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: selected
                   ? AppColors.selection.withValues(alpha: 0.45)
-                  : AppColors.border,
+                  : Colors.transparent,
             ),
           ),
           child: Row(
             children: [
               // El recuadro sigue siendo un bus: dice qué es esta fila. Lo que
               // dice en qué situación está es el ícono de al lado del nombre.
+              // 36, el recuadro de la ficha del bus: sin el borde de la
+              // tarjeta alrededor, el de 40 pesaba más que la placa.
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: estado.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(
                   Icons.directions_bus,
-                  size: 20,
+                  size: 19,
                   color: estado.color,
                 ),
               ),
@@ -161,13 +167,17 @@ class FleetListTile extends StatelessWidget {
                         ),
                   const SizedBox(height: 2),
                   // El interruptor ya dice su estado y su tooltip lo explica.
+                  // A 9 y no a 8, que en un proyector no se leía; el
+                  // espaciado baja de 1,2 a 0,8 para que «PERMITIDO» mida
+                  // casi lo mismo y no le quite sitio a la placa
+                  // (fleet_list_tile_test.dart).
                   ExcludeSemantics(
                     child: Text(
                       bus.visible ? 'PERMITIDO' : 'OCULTO',
                       style: AppType.ui(
-                        fontSize: 8,
+                        fontSize: 9,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
+                        letterSpacing: 0.8,
                         color: bus.visible ? AppColors.online : AppColors.hidden,
                       ),
                     ),

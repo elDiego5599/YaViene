@@ -291,46 +291,59 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 3,
-                    child: _seccion(6, Stack(
-                      children: [
-                        const Positioned.fill(child: ControlMap()),
-                        // T7.6: lo que tarda una posición en llegar del bus
-                        // a esta pantalla. Solo en depuración y si se pide
-                        // al compilar (`RecuadroLatencia.pedido`).
-                        if (RecuadroLatencia.pedido)
-                          const Positioned(
-                            left: 16,
-                            bottom: 16,
-                            child: RecuadroLatencia(),
-                          ),
-                        if (fleet.selectedBus != null)
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: _SelectedBusCard(
-                              bus: fleet.selectedBus!,
-                              routeName: fleet.routeName(
-                                fleet.selectedBus!.routeId,
+                    // Con las esquinas de la lista (lg): era el único bloque
+                    // de la pantalla con esquinas rectas. El filo va encima
+                    // de las teselas para que el recorte no lo corte.
+                    child: _seccion(6, ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      child: DecoratedBox(
+                        position: DecorationPosition.foreground,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Stack(
+                          children: [
+                            const Positioned.fill(child: ControlMap()),
+                            // T7.6: lo que tarda una posición en llegar del bus
+                            // a esta pantalla. Solo en depuración y si se pide
+                            // al compilar (`RecuadroLatencia.pedido`).
+                            if (RecuadroLatencia.pedido)
+                              const Positioned(
+                                left: 16,
+                                bottom: 16,
+                                child: RecuadroLatencia(),
                               ),
-                              updating: fleet.updating.contains(
-                                fleet.selectedBus!.busId,
-                              ),
-                              onToggle: (visible) => ref
-                                  .read(fleetProvider.notifier)
-                                  .toggleVisibility(
-                                    fleet.selectedBus!.busId,
-                                    visible,
+                            if (fleet.selectedBus != null)
+                              Positioned(
+                                right: 16,
+                                bottom: 16,
+                                child: _SelectedBusCard(
+                                  bus: fleet.selectedBus!,
+                                  routeName: fleet.routeName(
+                                    fleet.selectedBus!.routeId,
                                   ),
-                              onEdit: () =>
-                                  _showBusDialog(bus: fleet.selectedBus),
-                              onDelete: () =>
-                                  _confirmDeleteSelected(fleet.selectedBus!),
-                              onClose: () => ref
-                                  .read(fleetProvider.notifier)
-                                  .selectBus(null),
-                            ),
-                          ),
-                      ],
+                                  updating: fleet.updating.contains(
+                                    fleet.selectedBus!.busId,
+                                  ),
+                                  onToggle: (visible) => ref
+                                      .read(fleetProvider.notifier)
+                                      .toggleVisibility(
+                                        fleet.selectedBus!.busId,
+                                        visible,
+                                      ),
+                                  onEdit: () =>
+                                      _showBusDialog(bus: fleet.selectedBus),
+                                  onDelete: () =>
+                                      _confirmDeleteSelected(fleet.selectedBus!),
+                                  onClose: () => ref
+                                      .read(fleetProvider.notifier)
+                                      .selectBus(null),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     )),
                   ),
                 ],
@@ -572,6 +585,19 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Los botones de la barra: 40 de lado, que con los 3 de relleno y el filo
+  /// de la barra dan los 48 del buscador; radio sm, que es md menos esos 3
+  /// + 1, para que las esquinas vayan paralelas a las de la barra. Sin el
+  /// blanco táctil de 48 que Material añade en móvil: en escritorio ya no lo
+  /// lleva, y así la barra mide lo mismo en cualquier plataforma.
+  static final _botonDeBarra = IconButton.styleFrom(
+    fixedSize: const Size(40, 40),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -588,62 +614,87 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
             ),
           ),
           const Spacer(),
-          SizedBox(
-            width: 260,
-            // Esc vacía la búsqueda y deja el foco en ella, para escribir
-            // otra sin volver a buscarla.
-            child: CallbackShortcuts(
-              bindings: {
-                const SingleActivator(LogicalKeyboardKey.escape): () {
-                  widget.searchController.clear();
-                  widget.onSearchChanged('');
-                },
-              },
-              child: TextField(
-                controller: widget.searchController,
-                focusNode: widget.searchFocus,
-                onChanged: widget.onSearchChanged,
-                style: AppType.ui(fontSize: 13.5),
-                decoration: const InputDecoration(
-                  hintText: 'Buscar placa o ruta…',
-                  prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
-                  fillColor: AppColors.surface,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          // El buscador y la barra de la flota, del mismo alto: la barra se
+          // estira a lo que mida el campo (IntrinsicHeight), así que si la
+          // letra crece los dos crecen juntos.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                  SizedBox(
+                    width: 260,
+                    // Esc vacía la búsqueda y deja el foco en ella, para escribir
+                    // otra sin volver a buscarla.
+                    child: CallbackShortcuts(
+                      bindings: {
+                        const SingleActivator(LogicalKeyboardKey.escape): () {
+                          widget.searchController.clear();
+                          widget.onSearchChanged('');
+                        },
+                      },
+                      child: TextField(
+                        controller: widget.searchController,
+                        focusNode: widget.searchFocus,
+                        onChanged: widget.onSearchChanged,
+                        style: AppType.ui(fontSize: 13.5),
+                        decoration: const InputDecoration(
+                          hintText: 'Buscar placa o ruta…',
+                          prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
+                          fillColor: AppColors.surface,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 10),
+                // Una barra y no dos círculos sueltos junto a un buscador
+                // rectangular: mismo filo y mismo radio que el campo, como la
+                // barra de herramientas de una ventana de macOS.
+                Container(
+                  key: const ValueKey('barra-flota'),
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.borderStrong),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: widget.refreshing ? null : widget.onRefresh,
+                        icon: RotationTransition(
+                          turns: _spin,
+                          child: const Icon(
+                            Icons.refresh,
+                            size: 20,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        tooltip: 'Actualizar flota',
+                        style: _botonDeBarra,
+                      ),
+                      // 7 = 3 de aire, el filo y 3 de aire; a media altura
+                      // para que separe sin partir la barra en dos.
+                      const VerticalDivider(width: 7, indent: 10, endIndent: 10),
+                      IconButton(
+                        onPressed: widget.onToggleAllVisibility,
+                        icon: Icon(
+                          widget.allBusesVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        tooltip: widget.allBusesVisible
+                            ? 'Ocultar todos los buses'
+                            : 'Mostrar todos los buses',
+                        style: _botonDeBarra,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            onPressed: widget.refreshing ? null : widget.onRefresh,
-            icon: RotationTransition(
-              turns: _spin,
-              child: const Icon(
-                Icons.refresh,
-                size: 20,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            tooltip: 'Actualizar flota',
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              side: const BorderSide(color: AppColors.border),
-            ),
-          ),
-          const SizedBox(width: 10),
-          IconButton(
-            onPressed: widget.onToggleAllVisibility,
-            icon: Icon(
-              widget.allBusesVisible ? Icons.visibility_off : Icons.visibility,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-            tooltip: widget.allBusesVisible
-                ? 'Ocultar todos los buses'
-                : 'Mostrar todos los buses',
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-              side: const BorderSide(color: AppColors.border),
+              ],
             ),
           ),
           const SizedBox(width: 14),
@@ -884,20 +935,25 @@ class _FleetPanel extends ConsumerWidget {
                   onPressed: onAddBus,
                   icon: const Icon(Icons.add, size: 17),
                   label: const Text('Agregar bus'),
+                  // 36 de alto y no los 52 que hereda del tema, que son los
+                  // de «INGRESAR»: encabeza una lista, no es la acción de la
+                  // pantalla. Y sin el espaciado de las mayúsculas, que en
+                  // «Agregar bus» separaba las letras sin razón.
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.online,
                     foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 36),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     textStyle: AppType.ui(
                       fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
-                      vertical: 9,
+                      vertical: 8,
                     ),
                   ),
                 ),
@@ -912,10 +968,8 @@ class _FleetPanel extends ConsumerWidget {
               onSelect: onStatusFilter,
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
-            child: Divider(height: 1),
-          ),
+          // Sin filo debajo: el carril de las pestañas ya cierra la cabecera.
+          const SizedBox(height: 4),
           Expanded(
             child: buses.isEmpty
                 ? Center(
@@ -928,9 +982,17 @@ class _FleetPanel extends ConsumerWidget {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                     itemCount: buses.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    // Las filas ya no son tarjetas: las separa un filo que
+                    // arranca donde arranca la placa (1 de borde + 12 de
+                    // relleno + 36 del recuadro + 12 de aire), como en las
+                    // listas de macOS. 9 de alto: 4 de aire a cada lado.
+                    separatorBuilder: (_, _) => const Divider(
+                      height: 9,
+                      indent: 61,
+                      endIndent: 10,
+                    ),
                     itemBuilder: (context, index) {
                       final bus = buses[index];
                       return FleetListTile(
@@ -987,20 +1049,33 @@ class _StatusTabs extends StatelessWidget {
     // «Sin Señal» salía cortada contra el borde. Repartidas, a 1440 se ven
     // casi igual que antes (llenaban 313 de 325), y si una no cabe encoge
     // su letra lo justo ([_StatusTab]) en vez de salirse.
-    return Row(
-      children: [
-        for (final (i, (filter, label, count)) in tabs.indexed) ...[
-          if (i > 0) const SizedBox(width: 4),
-          Expanded(
-            child: _StatusTab(
-              label: label,
-              count: count,
-              active: fleet.statusFilter == filter,
-              onTap: () => onSelect(filter),
+    //
+    // Y van en su carril, como el control segmentado de macOS: sueltas
+    // sobre el blanco, las tres apagadas no se leían como opciones de lo
+    // mismo. El carril se come 3 por lado y el hueco entre pestañas baja de
+    // 4 a 2, así que a cada pestaña le queda lo mismo que antes.
+    return Container(
+      key: const ValueKey('carril-estados'),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        children: [
+          for (final (i, (filter, label, count)) in tabs.indexed) ...[
+            if (i > 0) const SizedBox(width: 2),
+            Expanded(
+              child: _StatusTab(
+                label: label,
+                count: count,
+                active: fleet.statusFilter == filter,
+                onTap: () => onSelect(filter),
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -1081,6 +1156,14 @@ class _SelectedBusCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onClose;
+
+  /// Lápiz y papelera: cuadrados del alto de «Ocultar» (40) y con su radio.
+  /// Eran círculos junto a un botón rectangular y la fila se leía como tres
+  /// piezas sueltas.
+  static const _boton = Size(40, 40);
+  static final _forma = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(AppRadius.md),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -1220,10 +1303,12 @@ class _SelectedBusCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
+                    // Como «Agregar bus»: sin el espaciado de las
+                    // mayúsculas, que la palabra no lleva.
                     textStyle: AppType.ui(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                     minimumSize: const Size(0, 40),
                   ),
@@ -1237,6 +1322,8 @@ class _SelectedBusCard extends StatelessWidget {
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.surfaceRaised,
                   side: const BorderSide(color: AppColors.border),
+                  fixedSize: _boton,
+                  shape: _forma,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1251,6 +1338,8 @@ class _SelectedBusCard extends StatelessWidget {
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.danger.withValues(alpha: 0.08),
                   side: BorderSide(color: AppColors.danger.withValues(alpha: 0.25)),
+                  fixedSize: _boton,
+                  shape: _forma,
                 ),
               ),
             ],

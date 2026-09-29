@@ -16,6 +16,14 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 
+/// Lo más chica que se deja la ventana. 1200 de ancho es lo más angosto que
+/// se cuida (panel_angosto_test.dart): la lista es un cuarto de la ventana y
+/// por debajo la placa se encogía hasta no leerse —a 1024, unos 8 px—. 700
+/// de alto es lo que deja un portátil de 1366×768 con la barra de tareas de
+/// Windows y el título de la ventana, así que la ventana cabe en cualquier
+/// pantalla en que el panel se lee (estilo_panel_test.dart).
+const ventanaMinima = Size(1200, 700);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -32,6 +40,7 @@ Future<void> main() async {
       await windowManager.ensureInitialized();
       const windowOptions = WindowOptions(
         size: Size(1600, 900),
+        minimumSize: ventanaMinima,
         center: true,
         title: 'Ya Viene Control',
       );
