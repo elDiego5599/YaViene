@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  El tráfico en claro (HTTP) queda prohibido para todo el mundo salvo el
-  backend local en desarrollo: el backend real siempre es HTTPS (túnel de
-  ngrok) y no hay razón para permitirle texto plano al resto.
+  Política de red de lo que va a los teléfonos (release y profile): solo
+  HTTPS, sin excepciones. El backend real siempre es HTTPS (túnel de ngrok,
+  Fly de respaldo) y en un teléfono de verdad «localhost» o 10.0.2.2 no son
+  el backend sino cualquier cosa que escuche en ese puerto.
+
+  La excepción para el backend local en desarrollo vive en
+  src/debug/res/xml/network_security_config.xml: Gradle la sobrepone a esta
+  solo en la variante debug. test/plataforma_config_test.dart vigila las dos.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false">
@@ -10,8 +15,4 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain>
-    </domain-config>
 </network-security-config>

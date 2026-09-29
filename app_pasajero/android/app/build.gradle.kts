@@ -66,6 +66,15 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // R8: ofusca y poda el código y recorta los recursos sin uso. El
+            // plugin de Flutter ya lo prende en release (y le suma sus reglas
+            // de ProGuard); se escribe aquí para que quede a la vista y para
+            // que plataforma_config_test.dart lo sostenga si algún día el
+            // plugin cambia de parecer. `flutter build --no-shrink` no tiene
+            // efecto desde hace años; solo los componentes diferidos (que no
+            // usamos) lo apagan.
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

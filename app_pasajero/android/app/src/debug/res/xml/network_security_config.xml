@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Solo en la variante debug (Gradle sobrepone este archivo al de src/main):
+  HTTP permitido hacia el backend local para desarrollar sin túnel —
+  localhost y 10.0.2.2, que es el Mac visto desde el emulador de Android—.
+  Todo lo demás sigue siendo solo HTTPS, igual que en release.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
