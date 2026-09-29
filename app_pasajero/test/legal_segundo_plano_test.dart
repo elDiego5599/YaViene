@@ -53,12 +53,30 @@ void main() {
       expect(manifiesto, contains('android:foregroundServiceType="dataSync"'));
     });
 
+    test('dice que cerrar la app del todo detiene el seguimiento', () {
+      // Desde la auditoría 2026-09 (H1) el servicio solo vive con un aviso
+      // armado y muere con la tarea (`stopWithTask="true"`): el texto que
+      // prometía seguimiento con la app cerrada dejó de ser cierto.
+      final texto = textoDe(legalPrivacidad);
+      expect(texto, contains('sin cerrarla y tienes un aviso activo'));
+      expect(
+        texto,
+        contains('Si cierras la app del todo, el seguimiento se detiene'),
+      );
+      expect(texto, isNot(contains('aunque cierres la app')));
+      final manifiesto =
+          File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+      expect(manifiesto, contains('android:stopWithTask="true"'));
+      expect(legalPrivacidad.updated, '29 de septiembre de 2026');
+    });
+
     test('el sí que se dio sobre el texto viejo no vale para este', () {
       // El documento cambió lo que promete, así que la bienvenida vuelve a
       // preguntar. Si alguien edita el texto y deja la versión quieta, esto
       // no lo caza; lo que caza es que la versión no se quede en la de antes
       // de esta tarea.
-      expect(kLegalVersion, greaterThanOrEqualTo(2));
+      // 3: la app cerrada del todo ya no sigue (29 de septiembre de 2026).
+      expect(kLegalVersion, greaterThanOrEqualTo(3));
     });
   });
 }

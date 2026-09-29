@@ -53,12 +53,15 @@ class LegalDoc {
 // ocurre cuando sales de la app —que el seguimiento sigue pero la ubicación
 // no— y eso es parte de lo que se promete, así que el sí que se dio sobre el
 // texto anterior no vale para este.
-const int kLegalVersion = 2;
+// Sube a 3 el 29 de septiembre de 2026: el seguimiento de Android ya no
+// sigue con la app cerrada del todo, solo con la app en el fondo y un aviso
+// armado (auditoría 2026-09, H1). Lo prometido cambió otra vez.
+const int kLegalVersion = 3;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '19 de septiembre de 2026',
+  updated: '29 de septiembre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
@@ -85,12 +88,15 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'servidor—. La app no usa ningún servicio de mensajería push.',
     ),
     LegalBlock.p(
-      'Cuando sales de la app, en Android el seguimiento sigue vivo —verás '
-      'una notificación fija que lo dice— pero tu ubicación deja de '
-      'actualizarse: la app pide el permiso de ubicación «solo mientras la '
-      'uso» y no el de segundo plano, así que la distancia se mide contra el '
-      'último punto que conoció, o contra el punto de espera que hayas '
-      'marcado a mano. En iPhone el aviso solo suena con la app abierta.',
+      'Cuando sales de la app sin cerrarla y tienes un aviso activo, en '
+      'Android el seguimiento sigue vivo —verás una notificación fija que lo '
+      'dice— pero tu ubicación deja de actualizarse: la app pide el permiso '
+      'de ubicación «solo mientras la uso» y no el de segundo plano, así que '
+      'la distancia se mide contra el último punto que conoció, o contra el '
+      'punto de espera que hayas marcado a mano. Si cierras la app del todo, '
+      'el seguimiento se detiene y la notificación desaparece: el aviso queda '
+      'guardado y vuelve a vigilar cuando abres la app otra vez. En iPhone el '
+      'aviso solo suena con la app abierta.',
     ),
     LegalBlock.heading('Sin analítica, sin rastreo, sin publicidad'),
     LegalBlock.p(
@@ -109,8 +115,8 @@ const LegalDoc legalPrivacidad = LegalDoc(
     LegalBlock.bullet(
       'Tus avisos. Por cada bus al que le activaste uno: el bus, la ruta, '
       'cuándo lo activaste, cuándo sonó y, si lo activaste sobre un punto '
-      'marcado a mano, ese punto. Es lo que deja que un aviso siga vivo '
-      'aunque cierres la app. Se guardan los 50 más recientes de los '
+      'marcado a mano, ese punto. Es lo que deja que un aviso siga armado '
+      'cuando vuelves a abrir la app. Se guardan los 50 más recientes de los '
       'últimos 30 días; los que todavía no han sonado se quedan hasta que '
       'suenen o los quites. Los borras todos desde Avisos.',
     ),
