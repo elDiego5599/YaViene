@@ -16,6 +16,7 @@ import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
 import '../utils/camera_fit.dart';
 import '../utils/map_constants.dart' show MapConstants;
+import 'estilo_ruta.dart';
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
@@ -151,6 +152,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   bool _haloPulseOut = false;
 
   static const _kRouteSourceId = 'route-source';
+  static const _kRouteCasingLayerId = 'route-casing';
   static const _kRouteLayerId = 'route-line';
   static const _kStopsFijaSourceId = 'stops-fija-source';
   static const _kStopsFijaLayerId = 'stops-fija-layer';
@@ -162,7 +164,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   /// Capas consideradas "el bus" al tocar: solo el ícono. El halo de selección
   /// NO cuenta: es grande y como los buses van sobre la ruta, tapar pines
-  /// cerca de la línea azul era casi imposible con el halo en la detección.
+  /// cerca de la línea verde era casi imposible con el halo en la detección.
   static const _kBusHitLayers = ['bus-layer'];
   static const _kBusIconId = 'bus-icon-active';
   static const _kBusGhostIconId = 'bus-icon-ghost';
@@ -563,42 +565,21 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     await _mapController!.addSource(
         _kRouteSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
+    // La orla va primero, debajo: es lo que despega la línea de las calles.
     await _mapController!.addLineLayer(
-        _kRouteSourceId,
-        _kRouteLayerId,
-        const LineLayerProperties(
-          lineColor: '#2563EB',
-          lineWidth: 4.0,
-          lineOpacity: 0.9,
-          lineCap: "round",
-          lineJoin: "round",
-        ));
+        _kRouteSourceId, _kRouteCasingLayerId, EstiloRuta.orla);
+    await _mapController!.addLineLayer(
+        _kRouteSourceId, _kRouteLayerId, EstiloRuta.linea);
 
     await _mapController!.addSource(
         _kStopsFijaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
     await _mapController!.addCircleLayer(
-        _kStopsFijaSourceId,
-        _kStopsFijaLayerId,
-        const CircleLayerProperties(
-          circleRadius: 7.0,
-          circleColor: '#FFFFFF',
-          circleStrokeWidth: 2.5,
-          circleStrokeColor: '#2563EB',
-        ));
+        _kStopsFijaSourceId, _kStopsFijaLayerId, EstiloRuta.paradaFija);
 
     await _mapController!.addSource(_kStopsInformalSourceId,
         const GeojsonSourceProperties(data: emptyGeoJson));
-    await _mapController!.addCircleLayer(
-        _kStopsInformalSourceId,
-        _kStopsInformalLayerId,
-        const CircleLayerProperties(
-          circleRadius: 30.0,
-          circleColor: '#2563EB',
-          circleOpacity: 0.12,
-          circleStrokeWidth: 1.5,
-          circleStrokeColor: '#2563EB',
-          circleStrokeOpacity: 0.3,
-        ));
+    await _mapController!.addCircleLayer(_kStopsInformalSourceId,
+        _kStopsInformalLayerId, EstiloRuta.paradaInformal);
 
     await _mapController!.addSource(
         _kBusSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
