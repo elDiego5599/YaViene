@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
@@ -26,6 +27,14 @@ typedef BusNearNotifier = Future<bool> Function({
   required int distanceMeters,
 });
 
+/// Si el teléfono puede enseñar un aviso ahora (inyectable en tests).
+typedef PermisoDeAvisos = Future<bool> Function();
+
+/// Hay avisos armados que no pueden sonar porque las notificaciones de la
+/// app están apagadas. Lo pone el barrido cuando un aviso no se pudo
+/// mostrar y lo lee la hoja del mapa para decirlo (auditoría 2026-09, H2).
+final avisosSinPermisoProvider = StateProvider<bool>((ref) => false);
+
 /// Vigila el bus con alerta activa (selección única) y dispara una notificación
 /// local cuando entra al radio de [alertRadiusMeters] de la ubicación
 /// del usuario (GPS o pin). Cada bus notifica por separado y solo una vez por
@@ -34,8 +43,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   ProximityAlertsNotifier(
     this._ref, {
     BusNearNotifier? notify,
+    PermisoDeAvisos? permiso,
     DateTime Function()? ahora,
   })  : _notify = notify ?? _defaultNotify,
+        _permiso = permiso ?? BusNotificationService.puedeAvisar,
         _ahora = ahora ?? DateTime.now,
         super({}) {
     _ref.listen<UserLocationState>(userLocationProvider, _alMoverUbicacion);
@@ -43,6 +54,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   final Ref _ref;
   final BusNearNotifier _notify;
+  final PermisoDeAvisos _permiso;
 
   /// Reloj con el que se decide si un aviso venció (inyectable en tests:
   /// esperar tres horas de verdad no es una prueba).
@@ -126,6 +138,27 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     } finally {
       _monitoringPaused = false;
     }
+    // Al abrir la app con avisos armados se mira si pueden sonar: el
+    // permiso se pudo quitar en Ajustes mientras la app estaba cerrada.
+    if (_ref.read(activeAlertsProvider).isNotEmpty) {
+      _anotarPermiso(await _preguntarPermiso());
+    }
+  }
+
+  /// Pregunta al sistema; `null` si no contesta (sin plugin, o un error del
+  /// canal): no saber no cambia lo que la hoja ya dice.
+  Future<bool?> _preguntarPermiso() async {
+    try {
+      return await _permiso();
+    } catch (e) {
+      debugPrint('no se pudo leer el permiso de notificaciones: $e');
+      return null;
+    }
+  }
+
+  void _anotarPermiso(bool? concedido) {
+    if (!mounted || concedido == null) return;
+    _ref.read(avisosSinPermisoProvider.notifier).state = !concedido;
   }
 
   /// Registra la ruta del bus al armar el aviso y suscribe posiciones de esa
@@ -343,6 +376,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       // —armado, activo y sin marcar— y el barrido de dentro de cinco
       // segundos lo vuelve a intentar mientras el bus siga dentro del radio.
       final enviados = <String>{};
+      var fallidos = 0;
       for (final entry in fire.entries) {
         // Nombre de ruta y placa del bus para el texto de la notificación.
         String? routeName;
@@ -358,7 +392,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           routeId: _alertRoutes[entry.key],
           distanceMeters: entry.value,
         );
-        if (!mostrado) continue;
+        if (!mounted) return;
+        if (!mostrado) {
+          fallidos++;
+          continue;
+        }
         enviados.add(entry.key);
         // El aviso ya se envió: pasa a "enviado" en el historial, sale de la
         // lista de alertas activas (visible en la pantalla de
@@ -367,6 +405,14 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         _ref.read(activeAlertsProvider.notifier).deactivateAlert(entry.key);
         disarmAlert(entry.key);
       }
+      // Uno que sonó prueba que hay permiso. Si ninguno sonó se pregunta,
+      // para que la hoja diga por qué el aviso no llega.
+      if (enviados.isNotEmpty) {
+        _anotarPermiso(true);
+      } else if (fallidos > 0) {
+        _anotarPermiso(await _preguntarPermiso());
+      }
+      if (!mounted) return;
       if (enviados.isNotEmpty) {
         state = {...state, ...enviados}..removeAll(rearm);
       } else if (rearm.isNotEmpty) {

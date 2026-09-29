@@ -57,6 +57,27 @@ class BusNotificationService {
     return true;
   }
 
+  /// Si un aviso se vería ahora: el permiso general dado y, en Android, el
+  /// canal «Alertas de buses» sin apagar. Se puede apagar solo esa categoría
+  /// en Ajustes con el permiso general intacto, y entonces Android descarta
+  /// el aviso igual de callado.
+  static Future<bool> puedeAvisar() async {
+    if (!await areNotificationsEnabled()) return false;
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return true;
+    try {
+      final canales = await android.getNotificationChannels();
+      for (final canal in canales ?? const <AndroidNotificationChannel>[]) {
+        if (canal.id == _channelId) return canal.importance != Importance.none;
+      }
+    } catch (e) {
+      // Sin la lista de canales no se sabe; el permiso general ya dijo que sí.
+      debugPrint('no se pudo leer el canal de avisos: $e');
+    }
+    return true;
+  }
+
   /// Pide el permiso de notificaciones (Android 13+) en el momento en que el
   /// usuario activa la alerta, no al abrir la app.
   static Future<bool> requestPermission() async {
@@ -81,13 +102,14 @@ class BusNotificationService {
 
   /// Notificación diferenciada por bus: id hash estable entre ejecuciones.
   ///
-  /// Devuelve si el aviso llegó a mostrarse. Antes esto se tragaba el fallo
-  /// y devolvía lo mismo en los dos casos, así que quien llamaba daba el
-  /// aviso por enviado igual: el bus salía de la lista de avisos activos y
-  /// se marcaba como notificado en el historial sin que en el teléfono
-  /// hubiera aparecido nada. El permiso revocado desde ajustes es el caso
-  /// normal, y es justo el que dejaba al pasajero esperando un aviso que ya
-  /// no podía llegar.
+  /// Devuelve si el aviso llegó a mostrarse; si no, quien llama no lo da
+  /// por enviado: el bus sigue en la lista de avisos activos y el barrido
+  /// lo reintenta.
+  ///
+  /// Con el permiso revocado desde Ajustes, `show` no falla: ni Android ni
+  /// iOS lanzan un error, el sistema descarta la notificación callado. Por
+  /// eso se pregunta antes ([puedeAvisar]) en vez de fiarse de que `show`
+  /// terminara bien (auditoría 2026-09, H2).
   static Future<bool> notifyBusNear({
     required String busId,
     String? routeName,
@@ -100,6 +122,7 @@ class BusNotificationService {
       routeId: routeId,
     );
     try {
+      if (!await puedeAvisar()) return false;
       await _plugin.show(
         id: _stableNotificationId(busId),
         title: '$etiqueta está cerca de ti',

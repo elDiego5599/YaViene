@@ -256,8 +256,25 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     });
   }
 
+  /// Lo que dice la hoja cuando un aviso armado no pudo sonar porque las
+  /// notificaciones de la app están apagadas.
+  static const avisoSinPermiso = 'Las notificaciones de Ya Viene están '
+      'apagadas: tu aviso sigue activo, pero no puede sonar. Actívalas en '
+      'Ajustes.';
+
   @override
   Widget build(BuildContext context) {
+    // Una vez por tanda: el barrido lo reintenta cada cinco segundos y la
+    // tarjeta no se repite mientras siga igual.
+    ref.listen<bool>(avisosSinPermisoProvider, (antes, ahora) {
+      if (ahora && antes != true) {
+        mostrarAviso(
+          context,
+          avisoSinPermiso,
+          icono: Icons.notifications_off_outlined,
+        );
+      }
+    });
     final selectedRoute = ref.watch(selectedRouteProvider);
     final selectedBuses = ref.watch(selectedBusesProvider);
 
@@ -671,8 +688,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppColors.hairline),
             ),
-            child: dibujo ??
-                Icon(icon, color: AppColors.textSecondary, size: 26),
+            child:
+                dibujo ?? Icon(icon, color: AppColors.textSecondary, size: 26),
           ),
         ),
         const SizedBox(height: 14),
