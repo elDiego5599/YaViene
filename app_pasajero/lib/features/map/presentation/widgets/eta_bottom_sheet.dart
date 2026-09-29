@@ -658,27 +658,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         // gris flotando en el hueco más grande de la pantalla. No dice nada
         // que no diga el título, así que en voz alta no existe.
         //
-        // Cuando abre el selector, el medallón va en el verde claro de la
-        // marca y el ícono en su verde legible (el de los botones): el gris
-        // se lee como adorno, el verde como algo que se toca.
+        // También cuando abre el selector va en su gris: el verde se probó y
+        // no gustó (dueño, 2026-09-29). Lo tocable lo dicen «Toca aquí» y
+        // el hundido al tocar.
         ExcludeSemantics(
           child: Container(
             key: abreSelector ? const ValueKey('escoge-ruta-icono') : null,
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: abreSelector ? AppColors.primaryTint : AppColors.surface,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppColors.hairline),
             ),
             child: dibujo ??
-                Icon(
-                  icon,
-                  color: abreSelector
-                      ? AppColors.primaryAccessible
-                      : AppColors.textSecondary,
-                  size: 26,
-                ),
+                Icon(icon, color: AppColors.textSecondary, size: 26),
           ),
         ),
         const SizedBox(height: 14),

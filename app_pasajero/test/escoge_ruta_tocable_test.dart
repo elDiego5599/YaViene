@@ -89,6 +89,23 @@ void main() {
     expect(container.read(routeSelectorOpenProvider), isTrue);
   });
 
+  // El ícono conserva su gris de estado vacío: el verde no gustó (dueño,
+  // 2026-09-29). Lo tocable lo dicen la frase «Toca aquí» y el hundido.
+  testWidgets('el ícono va en el gris de los demás estados, no en verde', (
+    tester,
+  ) async {
+    await montar(tester);
+
+    final medallon = find.byKey(const ValueKey('escoge-ruta-icono'));
+    final caja =
+        tester.widget<Container>(medallon).decoration! as BoxDecoration;
+    expect(caja.color, AppColors.surface);
+    final icono = tester.widget<Icon>(
+      find.descendant(of: medallon, matching: find.byType(Icon)),
+    );
+    expect(icono.color, AppColors.textSecondary);
+  });
+
   testWidgets('el título y la frase también lo abren', (tester) async {
     await montar(tester);
 
