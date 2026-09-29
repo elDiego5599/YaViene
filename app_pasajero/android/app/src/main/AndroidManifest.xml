@@ -47,7 +47,7 @@
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="true"
-            tools:replace="android:exported"/>
+            tools:replace="android:exported,android:stopWithTask"/>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

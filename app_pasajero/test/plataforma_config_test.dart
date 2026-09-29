@@ -46,6 +46,21 @@ void main() {
       expect(release, isNot(matches(RegExp(r'isJniDebuggable\s*=\s*true'))));
     });
 
+    test('el servicio de fondo se para con la tarea y el merger lo acepta',
+        () {
+      // El plugin declara el mismo servicio con stopWithTask="false": sin
+      // nombrarlo en tools:replace, el merger de manifiestos tumba la APK.
+      // Linux sin SDK de Android no lo ve; esta prueba sí.
+      final servicio = RegExp(
+        r'<service[^>]*BackgroundService[^>]*>',
+      ).firstMatch(_sinComentariosXml(_leer('$main/AndroidManifest.xml')))!
+          .group(0)!;
+      expect(servicio, contains('android:stopWithTask="true"'));
+      final reemplaza =
+          RegExp(r'tools:replace="([^"]*)"').firstMatch(servicio)!.group(1)!;
+      expect(reemplaza.split(','), contains('android:stopWithTask'));
+    });
+
     test('R8 (minify y recorte de recursos) activo en release', () {
       // El plugin de Flutter ya lo prende por defecto, pero en silencio y
       // apagable con `-Pshrink=false`; escrito aquí queda a la vista y esta
