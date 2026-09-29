@@ -25,6 +25,10 @@ const _grisMalo = Color(0xFF94A3B8);
 /// 3,45:1 sobre blanco: pasa como texto grande (3:1) y no como normal (4,5:1).
 const _grisGrande = Color(0xFF8A8A8A);
 
+/// Un gris claro de relleno, 1,6:1 sobre blanco: si se midiera como color
+/// del texto, reprobaría.
+const _bloque = Color(0xFFCCCCCC);
+
 Future<void> _pintar(
   WidgetTester tester,
   Color color, {
@@ -81,7 +85,11 @@ void main() {
       (tester) async {
     final semantica = tester.ensureSemantics();
     await _pintar(tester, _grisMalo);
-    await expectLater(tester, doesNotMeetGuideline(guiaContraste));
+    // Una guía que aprobara todo caería aquí. Y no basta con que repruebe:
+    // tiene que haber medido el gris de verdad sobre el blanco, 2,56:1.
+    final evaluacion = await guiaContraste.evaluate(tester);
+    expect(evaluacion.passed, isFalse);
+    expect(evaluacion.reason, contains('but found 2.56'));
     semantica.dispose();
   });
 
@@ -102,6 +110,44 @@ void main() {
     // a la pantalla ya es un gris pálido, y eso es lo que se mide.
     await _pintar(tester, _grisBueno, velo: 0.6);
     await expectLater(tester, doesNotMeetGuideline(guiaContraste));
+    semantica.dispose();
+  });
+
+  testWidgets('mide la caja del texto entera y nada fuera de ella',
+      (tester) async {
+    final semantica = tester.ensureSemantics();
+    // Un texto bueno con un bloque gris claro arriba a la izquierda, a más
+    // de cuatro puntos de su caja: no es del texto y no cuenta. Si la caja
+    // se llevara mal a la foto (una esquina en puntos y la otra en
+    // píxeles, o sin escalar), la muestra caería en el bloque y el gris
+    // claro pasaría por el color del texto.
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          backgroundColor: _blanco,
+          body: Stack(
+            children: [
+              Positioned(
+                left: 40,
+                top: 40,
+                width: 340,
+                height: 240,
+                child: ColoredBox(color: _bloque),
+              ),
+              Positioned(
+                left: 400,
+                top: 300,
+                child: Text(
+                  'Ya viene',
+                  style: TextStyle(color: _grisBueno, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await expectLater(tester, meetsGuideline(guiaContraste));
     semantica.dispose();
   });
 

@@ -139,17 +139,12 @@ void main() {
     // contraste que se mediría ahí no es el que nadie llega a leer. No vale
     // `pumpAndSettle`: el fondo de la bienvenida anima en bucle.
     await tester.pump(const Duration(milliseconds: 1500));
-    // Sin `textContrastGuideline` a propósito: reporta 1,32 en el enlace
-    // «términos de uso» y es un falso positivo comprobado. El color real es
-    // #047857 (`AppColors.primaryAccessible`) sobre arena #FAF6F0, que
-    // calculado da ≈5,1:1 y pasa AA; las opacidades de los `FadeTransition`
-    // están todas en 1.0, así que no es la animación. Lo que falla es la
-    // guía: muestrea los píxeles pintados y en un texto de 12 px casi todo
-    // lo que promedia es borde suavizado, un gris que nadie pinta. El nodo
-    // se excluye aquí y no en el widget para no esconderlo del lector.
-    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
-    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
-    await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
+    // Antes esta pantalla no medía contraste: la guía de Flutter, a un
+    // píxel por punto, medía el borde suavizado del enlace «términos de uso»
+    // (1,32:1) y no su color, #047857 sobre arena (≈5,1:1). `guiaContraste`
+    // fotografía a tres y lo mide entero: pasa las cuatro guías como las
+    // demás pantallas.
+    await _guias(tester);
     semantica.dispose();
   });
 
