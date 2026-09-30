@@ -219,8 +219,8 @@ void main() {
       (mensaje) async {
         final mapa = mensaje as Map<Object?, Object?>;
         if (mapa['type'] == 'announce') {
-          anuncios.add((mapa['data']! as Map<Object?, Object?>)['message']!
-              as String);
+          anuncios.add(
+              (mapa['data']! as Map<Object?, Object?>)['message']! as String);
         }
       },
     );
@@ -251,8 +251,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(anuncios, ['Ruta activa: Ruta 106']);
 
-    // La misma ruta otra vez no es un cambio: no se repite.
-    container.read(selectedRouteProvider.notifier).select(ruta);
+    // La misma ruta otra vez no es un cambio: no se repite. Una copia nueva
+    // (lo que llega al recargar el catálogo), no la misma instancia: con
+    // `ruta` el proveedor ni avisa y la guarda por id no se probaría.
+    final otraVez =
+        RouteInfo(id: ruta.id, name: ruta.name, companyId: ruta.companyId);
+    expect(identical(otraVez, ruta), isFalse);
+    container.read(selectedRouteProvider.notifier).select(otraVez);
     await tester.pumpAndSettle();
     expect(anuncios, hasLength(1));
 

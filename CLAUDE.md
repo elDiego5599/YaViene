@@ -56,10 +56,13 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-09-29, sobre `main`)**: **1.438 pruebas** en total
-  (1.416 pasan + 22 saltadas). Web: `npm run typecheck` limpio (3 configs),
-  **281 en Vitest** con el trinquete de cobertura en 98 / 90 / 100 / 99
-  (`vite.config.ts`); Playwright **145 pasadas + 21 saltadas**
+- **Verificación (2026-09-30, sobre `main`)**: **1.451 pruebas** en total
+  (1.429 pasan + 22 saltadas), contando las 7 de `ya_viene_pruebas`; aparte,
+  las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
+  `npm run typecheck` limpio (3 configs), **286 en Vitest** y el trinquete de
+  cobertura 98 / 90 / 100 / 99 (`vite.config.ts`) **en verde** con
+  98,8 / 92,2 / 100 / 99,9 (estuvo en rojo desde `33338f9` hasta el
+  2026-09-30: `npm test` no lo mide, `npm run test:cobertura` sí); Playwright **145 pasadas + 21 saltadas**
   (estables: `movimiento.spec.ts` y `isla.spec.ts` pasaron 40 de 40 con 5
   hilos); presupuestos dist
   759,1/797 (95 %), JavaScript 59,3/66 (90 %), CSS 117,1/121 (**97 %**) y
@@ -67,7 +70,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   mide antes de sumar. Antes de correr Playwright, matar el puerto:
   `lsof -ti tcp:4174 | xargs -r kill -9` — un servidor viejo sirve una
   build vieja y las pruebas mienten.
-- **Backend**: 239 pruebas en verde (2026-09-29; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
+- **Backend**: 240 pruebas en verde (2026-09-30; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
   limpio. Las pruebas usan bases temporales y puertos propios; el backend
   vivo y ngrok no se tocan.
 - **Documentación del backend** en `YaVieneBackend/docs/`: `arquitectura.md`
@@ -130,7 +133,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
 1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; nada de cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en `archivo/`). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa («Tu bus está cerca de ti»); app CON ruta+placa — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar".
 
 ## Verificación web (tras cada cambio)
-`npm run typecheck` + `npm test` (**281**) + Playwright sin pageerror (**145 + 21 saltadas**, última corrida 2026-09-29, sobre `main`) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
+`npm run typecheck` + `npm test` (**286**) + `npm run test:cobertura` + Playwright sin pageerror (**145 + 21 saltadas**, última corrida 2026-09-30) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
 
 ## Búsqueda de código
 - **`grep` está aliasado a `ugrep`: no usarlo.** Usar `tgrep "patrón" <ruta> --no-index` (instalado en `~/.cargo/bin`, v1.0.5, en PATH).
