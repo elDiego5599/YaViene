@@ -255,11 +255,16 @@ class _FlatBusPainter extends CustomPainter {
     );
 
     if (estado == BusEstado.enLinea) {
-      canvas.drawShadow(
-        ui.Path()..addRRect(capsule.shift(Offset(0, h * 0.05))),
-        baseColor.withValues(alpha: 0.45),
-        h * 0.12,
-        false,
+      // La misma sombra de contacto del pasajero (`map_markers.dart`): gris
+      // y centrada. El marcador gira con el rumbo, y la de antes —del color
+      // del estado y corrida hacia abajo del dibujo— quedaba detrás del bus
+      // como una estela (dueño, 2026-09-30). El desenfoque es h × 0,04,
+      // la misma proporción que 2,4 sobre los 60 de la cápsula de allá.
+      canvas.drawRRect(
+        capsule,
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.24)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.04),
       );
     }
 

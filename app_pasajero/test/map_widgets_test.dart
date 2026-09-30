@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,50 @@ void main() {
       expect(active.length, greaterThan(100));
       expect(ghost.length, greaterThan(100));
       expect(active, isNot(equals(ghost)));
+    });
+
+    test('la sombra del bus es neutra y pareja: no deja estela al girar',
+        () async {
+      // El ícono gira con el rumbo (`iconRotationAlignment: 'map'`): una
+      // sombra corrida hacia «abajo» del dibujo queda detrás o delante del
+      // bus según a dónde vaya, y si además es de su color se lee como una
+      // estela roja (dueño, 2026-09-30). Tiene que ser gris y centrada.
+      final bytes =
+          await createFlatTransitMarker(AppColors.busActive, isGhost: false);
+      final codec = await ui.instantiateImageCodec(bytes);
+      final imagen = (await codec.getNextFrame()).image;
+      final datos = (await imagen.toByteData())!;
+      // 96 × 96, la cápsula de 32 × 60 centrada: de 32 a 64 y de 18 a 78.
+      // La fila 18 − d cubre la franja entre d − 1 y d del borde de arriba;
+      // su espejo abajo es la 77 + d (y a la derecha, la columna 63 + d).
+      (int, int, int, int) pixel(int x, int y) {
+        final i = (y * imagen.width + x) * 4;
+        return (
+          datos.getUint8(i),
+          datos.getUint8(i + 1),
+          datos.getUint8(i + 2),
+          datos.getUint8(i + 3),
+        );
+      }
+
+      for (final d in [2, 3, 4]) {
+        final arriba = pixel(48, 18 - d);
+        final abajo = pixel(48, 77 + d);
+        final izquierda = pixel(32 - d, 48);
+        final derecha = pixel(63 + d, 48);
+        // Pareja: lo mismo por los cuatro lados.
+        expect((arriba.$4 - abajo.$4).abs(), lessThanOrEqualTo(2),
+            reason: 'a $d del borde, arriba $arriba y abajo $abajo');
+        expect((izquierda.$4 - derecha.$4).abs(), lessThanOrEqualTo(2));
+        // Neutra: sin el rojo del bus.
+        for (final p in [arriba, abajo, izquierda, derecha]) {
+          if (p.$4 == 0) continue;
+          expect((p.$1 - p.$2).abs(), lessThanOrEqualTo(8),
+              reason: 'a $d del borde la sombra lleva color: $p');
+        }
+      }
+      // Y existe: el bus se despega del mapa.
+      expect(pixel(48, 81).$4, greaterThan(0));
     });
   });
 

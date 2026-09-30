@@ -36,6 +36,14 @@ abstract class AppColors {
   /// 7,1:1 (test/contraste_test.dart).
   static const Color acento = Color(0xFF1E56A8);
 
+  /// El amarillo de la placa del bus en la hoja de distancia: el que el
+  /// pasajero reconoce en la calle, así la placa de la pantalla se coteja
+  /// de un vistazo con la del bus que llega (dueño, 2026-09-30). Solo para
+  /// la placa, con letra [textPrimary] encima (12,0:1) y un filo del mismo
+  /// color que la recorta de la arena, contra la que el amarillo solo da
+  /// 1,4:1 (ya_viene_core/test/contraste_test.dart).
+  static const Color placa = Color(0xFFF7D117);
+
   /// Tinta profunda: fondos "hero" de splash, login, onboarding y el drawer.
   static const Color ink = Color(0xFF0B1628);
 
@@ -116,6 +124,10 @@ abstract class AppSpacing {
 }
 
 abstract class AppRadius {
+  /// La placa del bus en la hoja: una lámina con las esquinas apenas
+  /// romas, como la de la calle. Con [sm] (8) sobre sus 21 de alto se
+  /// volvía píldora y dejaba de parecer placa.
+  static const double xs = 6.0;
   static const double sm = 8.0;
   static const double md = 12.0;
   static const double lg = 16.0;

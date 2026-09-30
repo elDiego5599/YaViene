@@ -822,21 +822,35 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre. En
     // iPhone no se puede ni cambiar de app: iOS suspende la app y el aviso
     // no suena (auditoría 2026-09, H3).
-    final stateDetail = isActive
+    //
+    // El detalle va en una nota con su ícono (diseño «A», dueño 2026-09-30)
+    // y no en un párrafo gris suelto bajo el número: el ícono dice de un
+    // vistazo de qué va —coral si algo impide el aviso, verde si el aviso
+    // está puesto, tinta si solo falta un paso— y el texto se queda corto.
+    // La ruta lejos decía antes «…el aviso no sonaría. Mueve tu punto o
+    // elige otra ruta»; el botón ya dice «Esta ruta no pasa cerca», así que
+    // la nota solo cuenta qué hacer.
+    final _Nota? stateDetail = isActive
         ? Theme.of(context).platform == TargetPlatform.iOS
-            ? "Deja Ya Viene abierta y la pantalla encendida"
-            : "Puedes cambiar de aplicación; no cierres Ya Viene del todo"
+            ? const _Nota.aviso(Icons.smartphone_outlined,
+                "Deja Ya Viene abierta y la pantalla encendida")
+            : const _Nota.aviso(Icons.info_outline_rounded,
+                "Puedes cambiar de aplicación; no cierres Ya Viene del todo")
         : !locationState.hasPosition
-            ? "Toca el mapa para indicar dónde estás"
+            ? const _Nota.paso(Icons.touch_app_outlined,
+                "Toca el mapa para indicar dónde estás")
             : routeTooFar
-                ? "El recorrido de esta ruta no pasa cerca de tu punto: el "
-                    "aviso no sonaría. Mueve tu punto o elige otra ruta"
+                ? const _Nota.impide(
+                    Icons.wrong_location_outlined,
+                    "La ruta no pasa cerca de tu punto. Muévelo o elige "
+                    "otra ruta.")
                 : distance == null
-                    ? "Buscando la posición del bus…"
+                    ? const _Nota.paso(Icons.location_searching_rounded,
+                        "Buscando la posición del bus…")
                     : null;
 
-    // Estado → color de la franja y de la métrica grande (número o palabra).
-    Color stripColor;
+    // Estado → color de la métrica grande (número o palabra).
+    Color colorCifra;
     String metricText = '';
     String? metricUnit;
     // Lo que se lee en voz alta. Cuando la métrica es una palabra
@@ -847,17 +861,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // una palabra de 28 en peso 800, y `textDisabled` daba 2,4:1 sobre
       // la arena. Este da 4,4:1 y sigue siendo el gris apagado que le
       // toca a un estado sin dato.
-      stripColor = AppColors.textSecondary;
+      colorCifra = AppColors.textSecondary;
       metricText = "Sin tu ubicación";
       metricSpoken = metricText;
     } else if (distance == null) {
-      stripColor = AppColors.textSecondary;
+      colorCifra = AppColors.textSecondary;
       metricText = "Calculando";
       metricSpoken = metricText;
     } else {
       // V1: el número hero carga la urgencia en su propio color, en vez de
       // quedarse siempre en el mismo azul — lejos, acercándose o ya casi.
-      stripColor = _urgencyColor(distance);
+      colorCifra = _urgencyColor(distance);
       final parts = _metricParts(distance, referencia);
       metricText = parts.$1;
       metricUnit = parts.$2;
@@ -872,87 +886,127 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Franja fina de estado: el color de la identidad en cada estado.
-          // Cuando el bus se acerca y cambia de tramo, el color pasa de uno
-          // a otro en vez de saltar.
-          AnimatedContainer(
-            duration: AppMotion.duracion(context, AppMotion.pausado),
-            curve: AppMotion.curvaCambio,
-            height: 4,
+          // Sin franja de color arriba (diseño «A», dueño 2026-09-30): el
+          // número ya lleva la urgencia en su color y la franja la repetía.
+          // Los 18 que la separaban del título pasan a 12: sin franja, el
+          // asa de la hoja queda justo encima y no hace falta más aire.
+          const SizedBox(height: 12),
+          // Quién es y cuánto falta, en una tarjeta con marco (prueba del
+          // dueño, 2026-09-30): blanca con el filo de las tarjetas del
+          // selector, sin sombra por lo mismo que ellas —sobre la arena una
+          // sombra azulada se lee como banda gris—. [AppRadius.card] y no
+          // `lg`: mide casi 200 de alto, y 16 en una caja así se ve recto.
+          // La nota y el botón van fuera: son lo que la app dice y lo que
+          // se hace, no lo que se mira.
+          Container(
+            key: const ValueKey('hoja-tarjeta'),
+            width: double.infinity,
+            // 14 arriba y 18 abajo: la unidad de 15 no trae aire propio
+            // debajo, y con 14 quedaba más pegada al marco que la placa.
+            padding: const EdgeInsets.only(top: 14, bottom: 18),
             decoration: BoxDecoration(
-              color: stripColor,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: AppColors.hairline),
             ),
-          ),
-          const SizedBox(height: 18),
-          // Identidad del bus: "Bus SQA223" (ver `busTitulo`). Encabeza la
-          // tarjeta, así que va en `subtitulo` —negro y en negrita—, no en
-          // la etiqueta gris de 13 que se perdía encima del número.
-          Text(
-            busTitulo,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.subtitulo,
-          ),
-          const SizedBox(height: 10),
-          // Métrica principal: número grande que respira, o el estado en
-          // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
-          // TextStyle base) en vez de un literal duplicado.
-          // El número y su unidad son dos bloques —64 y 15— y en voz alta
-          // se leerían como "850" y luego "m de ti", con una pausa en
-          // medio y la unidad abreviada. Aquí se dicen en una sola frase.
-          Semantics(
-            label: metricSpoken,
-            excludeSemantics: true,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // El color del número acompaña al de la franja, al mismo
-                // paso: los dos dicen lo mismo y cambian juntos.
-                TweenAnimationBuilder<Color?>(
-                  tween: ColorTween(end: stripColor),
-                  duration: AppMotion.duracion(context, AppMotion.pausado),
-                  curve: AppMotion.curvaCambio,
-                  // El número es `dato`, el rol que existe para él. Cuando
-                  // en su sitio va una palabra —"Sin señal", "Llegando"— no
-                  // cabe a 64 ni tendría sentido en w200: pasa a `display`,
-                  // que es el otro rol grande, y ocupa el mismo hueco.
-                  // El número gira cifra a cifra con cada posición nueva
-                  // (`CifraViva`); la palabra no tiene cifras y va quieta.
-                  builder: (context, color, _) => isNumberMetric
-                      ? CifraViva(
-                          metricText,
-                          key: widget.metricKey,
-                          valor: distance,
-                          style: AppTextStyles.dato.copyWith(color: color),
-                        )
-                      : Text(
-                          metricText,
-                          key: widget.metricKey,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.display.copyWith(color: color),
+                // Identidad del bus: «BUS» en versalitas y la placa como placa
+                // (ver `_Placa`). Lo que el pasajero coteja con el bus que
+                // llega es la placa, y así se reconoce antes de leerla. Leído
+                // es una sola frase, «Bus SQA223», igual que antes.
+                Semantics(
+                  label: busTitulo,
+                  excludeSemantics: true,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // `pie` en versalitas abiertas: rotula, no compite con la
+                      // placa. El 1,4 de espaciado es el de las versalitas del
+                      // menú («RUTA ACTIVA», 1,2) un punto más abierto, porque
+                      // aquí van tres letras solas y a 12 en vez de 13.
+                      Text(
+                        'BUS',
+                        style: AppTextStyles.pie.copyWith(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.4,
                         ),
-                ),
-                if (metricUnit != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    metricUnit,
-                    key: widget.metricUnitKey,
-                    style: AppTextStyles.cuerpoFuerte
-                        .copyWith(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(width: 10),
+                      _Placa(busPlaca(busId)),
+                    ],
                   ),
-                ],
+                ),
+                // El filo que separa quién es de cuánto falta. 10 debajo de la
+                // placa y 14 hasta el número: el número de 64 trae su propio
+                // aire por arriba (alto de línea 0,9), así que 14 se ve como
+                // 10.
+                const SizedBox(height: 10),
+                Container(
+                  key: const ValueKey('hoja-filo'),
+                  height: 1,
+                  color: AppColors.hairline,
+                ),
+                const SizedBox(height: 14),
+                // Métrica principal: número grande que respira, o el estado en
+                // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
+                // TextStyle base) en vez de un literal duplicado.
+                // El número y su unidad son dos bloques —64 y 15— y en voz alta
+                // se leerían como "850" y luego "m de ti", con una pausa en
+                // medio y la unidad abreviada. Aquí se dicen en una sola frase.
+                Semantics(
+                  label: metricSpoken,
+                  excludeSemantics: true,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // El color del número pasa de un tramo al otro en vez de
+                      // saltar cuando el bus se acerca.
+                      TweenAnimationBuilder<Color?>(
+                        tween: ColorTween(end: colorCifra),
+                        duration:
+                            AppMotion.duracion(context, AppMotion.pausado),
+                        curve: AppMotion.curvaCambio,
+                        // El número es `dato`, el rol que existe para él.
+                        // Cuando en su sitio va una palabra —"Sin señal",
+                        // "Llegando"— no cabe a 64 ni tendría sentido en w200:
+                        // pasa a `display`, que es el otro rol grande, y ocupa
+                        // el mismo hueco. El número gira cifra a cifra con cada
+                        // posición nueva (`CifraViva`); la palabra no tiene
+                        // cifras y va quieta.
+                        builder: (context, color, _) => isNumberMetric
+                            ? CifraViva(
+                                metricText,
+                                key: widget.metricKey,
+                                valor: distance,
+                                style:
+                                    AppTextStyles.dato.copyWith(color: color),
+                              )
+                            : Text(
+                                metricText,
+                                key: widget.metricKey,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.display
+                                    .copyWith(color: color),
+                              ),
+                      ),
+                      if (metricUnit != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          metricUnit,
+                          key: widget.metricUnitKey,
+                          style: AppTextStyles.cuerpoFuerte
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          if (stateDetail != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              stateDetail,
-              style: AppTextStyles.cuerpoFuerte
-                  .copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          _NotaAnimada(stateDetail),
           const SizedBox(height: 18),
           _StickyAlertButton(
             key: widget.alertKey,
@@ -1012,6 +1066,175 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     if (meters < 300) return AppColors.coralAccessible;
     if (meters < alertRadiusMeters) return AppColors.warningAccessible;
     return AppColors.primaryAccessible;
+  }
+}
+
+/// Lo que la hoja explica bajo la distancia: un ícono y una frase.
+///
+/// El tono lo decide el constructor, no quien la pinta, para que la misma
+/// clase de situación lleve siempre el mismo color.
+class _Nota {
+  /// Algo impide el aviso (la ruta no pasa cerca): el coral del semáforo.
+  const _Nota.impide(this.icono, this.texto)
+      : fondo = AppColors.coralLight,
+        tinta = AppColors.coralAccessible;
+
+  /// El aviso está puesto y esto es cómo cuidarlo: el verde de la marca.
+  const _Nota.aviso(this.icono, this.texto)
+      : fondo = AppColors.primaryTint,
+        tinta = AppColors.primaryAccessible;
+
+  /// Solo falta un paso o un dato: la tinta, sin alarma.
+  const _Nota.paso(this.icono, this.texto)
+      : fondo = AppColors.surfaceMuted,
+        tinta = AppColors.primaryDeep;
+
+  final IconData icono;
+  final String texto;
+  final Color fondo;
+  final Color tinta;
+}
+
+/// La nota entra, sale o cambia sin salto.
+///
+/// Al llevar el pin hasta la ruta, la nota «La ruta no pasa cerca…»
+/// desaparecía de un cuadro al siguiente y el botón subía de golpe (dueño,
+/// 2026-09-30). Ahora el hueco se cierra con la misma curva y duración con
+/// las que la hoja cambia de alto, y la nota se funde mientras tanto: lo
+/// que el ojo sigue es el botón, y el botón se desliza.
+class _NotaAnimada extends StatelessWidget {
+  const _NotaAnimada(this.nota);
+
+  final _Nota? nota;
+
+  @override
+  Widget build(BuildContext context) {
+    final duracion = AppMotion.duracion(context, AppMotion.pausado);
+    final nota = this.nota;
+    return AnimatedSize(
+      duration: duracion,
+      curve: AppMotion.curvaCambio,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: duracion,
+        // El mismo fundido encadenado que el contenido de la hoja: la nota
+        // vieja se apaga en el primer 40 % y la nueva entra desde el 30 %,
+        // para que dos frases no se lean una encima de la otra.
+        switchInCurve:
+            const Interval(0.3, 1, curve: AppMotion.curvaEntrada),
+        switchOutCurve:
+            const Interval(0.6, 1, curve: AppMotion.curvaSalida),
+        // Lo que sale no cuenta en el alto: así el hueco viaja directo al
+        // de la nota nueva (o a cero) en vez de esperar a que la vieja
+        // termine de irse.
+        layoutBuilder: (actual, anteriores) => Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            for (final anterior in anteriores)
+              Positioned(top: 0, left: 0, right: 0, child: anterior),
+            if (actual != null) actual,
+          ],
+        ),
+        child: nota == null
+            ? const SizedBox(
+                key: ValueKey('hoja-sin-nota'), width: double.infinity)
+            : Padding(
+                key: ValueKey(nota.texto),
+                // 14 entre la tarjeta y la nota; viaja con ella, así que sin
+                // nota tampoco queda aire de más.
+                padding: const EdgeInsets.only(top: 14),
+                child: _NotaHoja(nota),
+              ),
+      ),
+    );
+  }
+}
+
+/// La nota blanca con su ícono en baldosa (diseño «A», dueño 2026-09-30).
+///
+/// Blanca sobre la arena de la hoja y con el filo de siempre: se despega
+/// sin sombra, como las filas del selector. 16 de radio (`AppRadius.lg`)
+/// para que case con el botón de abajo; 10×12 de relleno para que la
+/// baldosa de 30 quede a la misma distancia del borde por arriba y por la
+/// izquierda una vez sumado el aire de la línea.
+class _NotaHoja extends StatelessWidget {
+  const _NotaHoja(this.nota);
+
+  final _Nota nota;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('hoja-nota'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: [
+          // Baldosa de 30 con el glifo de 18: el mismo par tinte/tinta de
+          // los medallones de los estados vacíos, que ya pasa los 3:1
+          // (ya_viene_core/test/contraste_test.dart). El ícono no se lee:
+          // la frase de al lado ya lo dice todo.
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: nota.fondo,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(nota.icono, size: 18, color: nota.tinta),
+          ),
+          const SizedBox(width: 10),
+          // `pie` (12) en el gris de cuerpo y no en el secundario: es letra
+          // chica, y la nota solo sirve si se lee a la primera.
+          Expanded(
+            child: Text(
+              nota.texto,
+              style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// La placa del bus, pintada como placa: amarilla, letra negra y filo
+/// negro (dueño, 2026-09-30; el porqué del amarillo en [AppColors.placa]).
+class _Placa extends StatelessWidget {
+  const _Placa(this.placa);
+
+  final String placa;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('hoja-placa'),
+      // 2×8: la letra de 13 respira lo justo, como en la lámina de verdad,
+      // donde los caracteres llenan casi todo el alto.
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.placa,
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        // 1,5 y no 1: con 1 el filo se perdía contra el amarillo en una
+        // pantalla con brillo alto, que es como se usa en la calle.
+        border: Border.all(color: AppColors.textPrimary, width: 1.5),
+      ),
+      // `etiqueta` en 700 con 1,5 de espaciado: las letras de placa van
+      // separadas y en bloque, no apretadas como un título.
+      child: Text(
+        placa,
+        style: AppTextStyles.etiqueta.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.5,
+          color: AppColors.textPrimary,
+        ),
+      ),
+    );
   }
 }
 

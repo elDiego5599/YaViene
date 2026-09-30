@@ -124,11 +124,19 @@ Future<Uint8List> createFlatTransitMarker(
   );
 
   if (!isGhost) {
-    canvas.drawShadow(
-      Path()..addRRect(capsule.shift(const Offset(0, 3))),
-      baseColor.withValues(alpha: 0.45),
-      7.0,
-      false,
+    // Sombra de contacto: gris, corta y centrada, la de un objeto que se
+    // posa sobre el mapa. Antes era del color del bus y corrida 3 hacia
+    // abajo, y como el ícono gira con el rumbo (`iconRotationAlignment:
+    // 'map'`), ese «abajo» quedaba detrás del bus según a dónde fuera: una
+    // estela roja que al dueño le pareció rarísima (2026-09-30). Centrada
+    // no tiene dirección, así que gire como gire el bus se ve igual. El
+    // desenfoque de 2,4 (h × 0,04) despega la cápsula sin ensuciar la
+    // calle; a 1,254 de escala son 3 puntos en pantalla.
+    canvas.drawRRect(
+      capsule,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.24)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, h * 0.04),
     );
   }
 

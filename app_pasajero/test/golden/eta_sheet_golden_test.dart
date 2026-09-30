@@ -133,6 +133,10 @@ void main() {
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
+    // La nota cambia con su propio `AnimatedSize` y la hoja sigue ese alto
+    // un fotograma después (16 ms en el teléfono); con saltos de 400 ese
+    // fotograma es el segundo salto entero.
+    await tester.pump(const Duration(milliseconds: 400));
     await coincideConOro(tester, 'hoja_con_aviso');
   });
 

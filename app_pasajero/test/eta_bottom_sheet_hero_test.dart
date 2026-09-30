@@ -84,8 +84,9 @@ void main() {
       (tester) async {
     await pumpHero(tester, [busAt(0.007645)]);
 
-    // Encima de la distancia, "Bus" y la placa: la ruta ya está elegida.
-    expect(find.text('Bus A-1'), findsOneWidget);
+    // Encima de la distancia, «BUS» y la placa: la ruta ya está elegida.
+    expect(find.text('BUS'), findsOneWidget);
+    expect(find.text('A-1'), findsOneWidget);
     expect(find.text('Ruta 1 - A-1'), findsNothing);
     expect(find.text('850'), findsOneWidget,
         reason: 'el número es la métrica principal del hero');
@@ -166,7 +167,7 @@ void main() {
     expect(find.text('Toca el mapa para indicar dónde estás'), findsOneWidget);
   });
 
-  testWidgets('hero card: con aviso activo la franja pasa a verde',
+  testWidgets('hero card: con aviso activo, la nota dice cómo cuidarlo',
       (tester) async {
     final container = await pumpHero(tester, [busAt(0.02)]);
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');

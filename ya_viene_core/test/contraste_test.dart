@@ -166,6 +166,24 @@ void main() {
     });
   });
 
+  group('la placa amarilla de la hoja (dueño, 2026-09-30)', () {
+    test('la letra negra se lee sobre el amarillo', () {
+      // La placa lleva 13 en negrita: vara de texto normal, y la pasa de
+      // sobra (12,0:1).
+      esperaAlMenos(AppColors.textPrimary, AppColors.placa, 4.5,
+          'la letra de la placa');
+    });
+
+    test('el filo oscuro es el que la despega de la arena', () {
+      // El amarillo solo da 1,4:1 contra la arena: sin el filo de
+      // [AppColors.textPrimary] la placa sería una mancha sin borde. El
+      // filo sí llega a los 3:1 de un control que dice algo.
+      expect(contraste(AppColors.placa, AppColors.arena), lessThan(3.0));
+      esperaAlMenos(AppColors.textPrimary, AppColors.arena, 3.0,
+          'el filo de la placa');
+    });
+  });
+
   group('la pista de los campos', () {
     test('se lee sobre el relleno de fondo', () {
       final hint = AppTheme.lightTheme.inputDecorationTheme.hintStyle;

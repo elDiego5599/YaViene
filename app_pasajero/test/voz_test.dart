@@ -268,7 +268,9 @@ void main() {
         fijarPantalla(tester);
         await montarHoja(tester, desfase: 0.007645);
 
-        expect(find.text('Bus A-1'), findsOneWidget);
+        // En pantalla son dos piezas —«BUS» y la placa—; leído, una frase.
+        expect(find.text('BUS'), findsOneWidget);
+        expect(find.text('A-1'), findsOneWidget);
         expect(find.bySemanticsLabel('Bus A-1'), findsOneWidget);
       });
     });

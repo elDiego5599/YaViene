@@ -113,13 +113,15 @@ class _PintorToque extends CustomPainter {
       ..translate(centro.dx, centro.dy)
       ..scale(escala);
 
-    // Sombra del color del bus, como en el mapa; más baja, porque el bus
-    // está apoyado en la hoja y no flotando sobre las calles.
-    canvas.drawShadow(
-      Path()..addRRect(capsula.shift(Offset(0, alto * 0.05))),
-      AppColors.busActive.withValues(alpha: 0.45),
-      3,
-      false,
+    // La sombra de contacto del mapa (`map_markers.dart`): gris, centrada
+    // y en la misma proporción, 2,4 sobre 60 de alto. Antes era del color
+    // del bus, y en el mapa esa sombra se leía como una estela (dueño,
+    // 2026-09-30): la seña enseña el bus tal como se ve allá.
+    canvas.drawRRect(
+      capsula,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.24)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, alto * 0.04),
     );
     canvas.drawRRect(
       capsula,
