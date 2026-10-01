@@ -33,8 +33,9 @@ class _BusDialogState extends ConsumerState<BusDialog> {
     final routes = ref.read(fleetProvider).routes;
     if (_routeId == null || !routes.any((r) => r.routeId == _routeId)) {
       if (routes.isNotEmpty) {
-        final sorted = [...routes]
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        final sorted = [
+          ...routes,
+        ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         _routeId = sorted.first.routeId;
       }
     }
@@ -66,16 +67,17 @@ class _BusDialogState extends ConsumerState<BusDialog> {
     });
     try {
       if (_isEdit) {
-        await ref.read(fleetProvider.notifier).editBus(
+        await ref
+            .read(fleetProvider.notifier)
+            .editBus(
               widget.bus!.busId,
               placa: placa,
               routeId: effectiveRouteId,
             );
       } else {
-        await ref.read(fleetProvider.notifier).addBus(
-              placa: placa,
-              routeId: effectiveRouteId,
-            );
+        await ref
+            .read(fleetProvider.notifier)
+            .addBus(placa: placa, routeId: effectiveRouteId);
       }
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -93,7 +95,8 @@ class _BusDialogState extends ConsumerState<BusDialog> {
     final confirmed = await confirmarBorrado(
       context,
       titulo: 'Eliminar bus',
-      mensaje: '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la '
+      mensaje:
+          '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la '
           'flota? Los pasajeros dejarán de verlo de inmediato. Esta acción no '
           'se puede deshacer.',
     );

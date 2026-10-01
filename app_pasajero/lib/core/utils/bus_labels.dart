@@ -1,6 +1,7 @@
-/// Placa legible de un bus. Los buses reales se registran con el id
-/// `BUS-<placa>` (el backend deriva el id desde la placa); los buses demo
-/// (B-042, B-055) ya llevan su placa/interno como id.
+/// Placa legible de un bus. Los buses se registran con el id `BUS-<placa>`
+/// (el backend deriva el id desde la placa), también los de la flota demo
+/// desde el 2026-09-30 (BUS-WGV705). Un id que no sale de una placa —un
+/// equipo dado de alta a mano— se enseña tal cual.
 String busPlaca(String busId) {
   final value = busId.trim();
   final placa = value.startsWith('BUS-') ? value.substring(4) : value;
@@ -9,8 +10,9 @@ String busPlaca(String busId) {
       : placa;
 }
 
-/// El nombre de la ruta, o su id si no llegó nombre.
-String? _ruta(String? routeName, String? routeId) {
+/// El nombre de la ruta, o su id si no llegó nombre. El centro de avisos
+/// la escribe sola, encima de la placa blanca.
+String? rutaLegible(String? routeName, String? routeId) {
   final preferido = routeName?.trim();
   if (preferido != null && preferido.isNotEmpty) return preferido;
   final alterno = routeId?.trim();
@@ -18,7 +20,7 @@ String? _ruta(String? routeName, String? routeId) {
 }
 
 /// Etiqueta "ruta - placa" para notificaciones e historial: en vez de
-/// "Bus B-042" el usuario ve el NOMBRE de la ruta y la placa, p. ej.
+/// "Bus BUS-WGV705" el usuario ve el NOMBRE de la ruta y la placa, p. ej.
 /// "Calle 72 - Uninorte - SQA223".
 String routePlateLabel({
   required String busId,
@@ -26,7 +28,7 @@ String routePlateLabel({
   String? routeId,
 }) {
   final placa = busPlaca(busId);
-  final route = _ruta(routeName, routeId);
+  final route = rutaLegible(routeName, routeId);
   if (route == null) return placa;
   return placa.isEmpty ? route : '$route - $placa';
 }
@@ -42,7 +44,7 @@ String routePlateSpoken({
   String? routeId,
 }) {
   final placa = busPlaca(busId);
-  final route = _ruta(routeName, routeId);
+  final route = rutaLegible(routeName, routeId);
   if (route == null) return placa.isEmpty ? '' : 'Bus $placa';
   return placa.isEmpty ? route : '$route, bus $placa';
 }

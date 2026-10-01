@@ -36,20 +36,33 @@ class _FakeFleetApi extends FleetApi {
 
   @override
   Future<List<FleetBus>> fetchPositions(String token) async => const [
-        FleetBus(
-          busId: 'B-1', companyId: 'c-1', routeId: 'R-1', placa: 'ABC-123',
-          driverName: 'Ana Pérez', visible: true, online: true,
-          lat: 10.98, lon: -74.8,
-        ),
-        FleetBus(
-          busId: 'B-2', companyId: 'c-1', routeId: 'R-1', placa: 'XYZ-987',
-          visible: true, online: true, lat: 10.99, lon: -74.81,
-        ),
-      ];
+    FleetBus(
+      busId: 'B-1',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'ABC123',
+      driverName: 'Ana Pérez',
+      visible: true,
+      online: true,
+      lat: 10.98,
+      lon: -74.8,
+    ),
+    FleetBus(
+      busId: 'B-2',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'XYZ987',
+      visible: true,
+      online: true,
+      lat: 10.99,
+      lon: -74.81,
+    ),
+  ];
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async =>
-      const [FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2)];
+  Future<List<FleetRoute>> fetchRoutes(String token) async => const [
+    FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2),
+  ];
 }
 
 class _FakeSocket extends FleetSocketService {
@@ -60,9 +73,9 @@ class _FakeSocket extends FleetSocketService {
 }
 
 Future<void> _cargarFuentes() async {
-  final manifiesto = json.decode(
-    await rootBundle.loadString('FontManifest.json'),
-  ) as List<dynamic>;
+  final manifiesto =
+      json.decode(await rootBundle.loadString('FontManifest.json'))
+          as List<dynamic>;
   for (final entrada in manifiesto.cast<Map<String, dynamic>>()) {
     final cargador = FontLoader(entrada['family'] as String);
     final fuentes = (entrada['fonts'] as List).cast<Map<String, dynamic>>();
@@ -85,8 +98,12 @@ Future<void> _revisarA(
   tester.platformDispatcher.textScaleFactorTestValue = escala;
   final container = ProviderContainer(
     overrides: [
-      backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
-      fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: _FakeFleetApi())),
+      backendUrlProvider.overrideWith(
+        () => BackendUrl.fija('http://localhost:3000'),
+      ),
+      fleetProvider.overrideWith(
+        (ref) => FleetNotifier(ref, api: _FakeFleetApi()),
+      ),
       fleetSocketFactoryProvider.overrideWithValue((_) => _FakeSocket()),
     ],
   );
@@ -94,10 +111,12 @@ Future<void> _revisarA(
     status: AuthStatus.authenticated,
     session: AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Sobusa'),
   );
-  await tester.pumpWidget(UncontrolledProviderScope(
-    container: container,
-    child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
-  ));
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
+    ),
+  );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
 
@@ -148,8 +167,9 @@ void main() {
   // corriente, y a 1200, la ventana más chica que se cuida.
   for (final escala in const [1.5, 2.0]) {
     for (final ancho in const [1366.0, 1200.0]) {
-      testWidgets('a ${ancho.toInt()} px y letra a $escala× nada se desborda',
-          (tester) async {
+      testWidgets('a ${ancho.toInt()} px y letra a $escala× nada se desborda', (
+        tester,
+      ) async {
         final semantica = tester.ensureSemantics();
         addTearDown(() => tester.binding.setSurfaceSize(null));
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);

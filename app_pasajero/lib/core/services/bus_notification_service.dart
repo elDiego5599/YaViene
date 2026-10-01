@@ -5,7 +5,7 @@ import '../utils/bus_labels.dart';
 /// Notificaciones locales de proximidad de buses (sin servidor).
 ///
 /// Cada bus con alerta activa tiene su propio aviso (id estable por bus):
-/// título "Calle 72 - Uninorte - B-042 está cerca de ti" y cuerpo
+/// título "Calle 72 - Uninorte - WGV705 está cerca de ti" y cuerpo
 /// "Está a 430 m de tu ubicación".
 class BusNotificationService {
   BusNotificationService._();

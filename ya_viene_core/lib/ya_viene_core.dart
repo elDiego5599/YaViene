@@ -11,6 +11,7 @@ export 'core/models/route_trajectory.dart';
 // --- Red ---
 export 'core/network/backend_resolver.dart';
 export 'core/network/backend_supervisor.dart';
+export 'core/network/fallo_red.dart';
 
 // --- Observabilidad ---
 export 'core/observability/medidor_latencia.dart';
@@ -23,6 +24,7 @@ export 'core/providers/providers.dart';
 // --- Theme ---
 export 'core/theme/app_motion.dart';
 export 'core/theme/app_theme.dart';
+export 'core/theme/estilo_mapa.dart';
 
 // --- Widgets compartidos ---
 export 'shared/widgets/widgets.dart';

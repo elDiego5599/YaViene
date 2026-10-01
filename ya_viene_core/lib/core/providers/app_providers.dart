@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/company.dart';
 import '../models/route_info.dart';
 import '../network/backend_resolver.dart';
+import '../network/fallo_red.dart';
 
 /// La dirección del backend la pone la app que usa este paquete, no el
 /// paquete. Antes cada lado leía por su cuenta el `--dart-define` y no
@@ -79,9 +80,10 @@ Future<List<T>> _getJsonList<T>(
   final response = await http
       .get(Uri.parse('$backendUrl$path'))
       .timeout(const Duration(seconds: 8));
-  if (response.statusCode != 200) {
-    throw Exception('Error al cargar datos (${response.statusCode})');
-  }
+  // Con su estado y su tipo, para que quien lo muestre sepa decir si fue
+  // el servidor (`clasificarFallo`); un `Exception` con texto no se deja
+  // distinguir sin leer la frase.
+  if (response.statusCode != 200) throw RespuestaFallida(response.statusCode);
   final data = jsonDecode(response.body);
   if (data is! List) throw const FormatException('Respuesta inesperada');
   return data

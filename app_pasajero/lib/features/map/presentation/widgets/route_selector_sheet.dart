@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/widgets/aviso_fallo.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
@@ -660,25 +661,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                   semanticsLabel: 'Cargando empresas',
                 ),
               ),
-              error: (_, __) => _tilePlaceholder(
+              error: (error, _) => _tilePlaceholder(
                 key: widget.companyGuideKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Error al cargar empresas',
-                      style: AppTextStyles.pie,
-                    ),
-                    TextButton.icon(
-                      onPressed: () => ref.invalidate(companiesProvider),
-                      icon: const Icon(Icons.refresh_outlined, size: 16),
-                      label: const Text('Reintentar'),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                  ],
+                child: AvisoFallo(
+                  compacto: true,
+                  error: error,
+                  que: 'las empresas',
+                  onReintentar: () => ref.refresh(companiesProvider.future),
                 ),
               ),
             ),
@@ -874,10 +863,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       loading: () => _listPlaceholder(
         key: widget.companyChoiceGuideKey,
       ),
-      error: (_, __) => _listPlaceholder(
+      error: (error, _) => _listPlaceholder(
         key: widget.companyChoiceGuideKey,
-        message: 'Error al cargar empresas',
-        onRetry: () => ref.invalidate(companiesProvider),
+        fallo: AvisoFallo(
+          error: error,
+          que: 'las empresas',
+          onReintentar: () => ref.refresh(companiesProvider.future),
+        ),
       ),
     );
   }
@@ -945,11 +937,14 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       loading: () => _listPlaceholder(
         key: widget.routeChoiceGuideKey,
       ),
-      error: (_, __) => _listPlaceholder(
+      error: (error, _) => _listPlaceholder(
         key: widget.routeChoiceGuideKey,
-        message: 'Error al cargar las rutas',
-        onRetry: () => ref.invalidate(
-          routesByCompanyProvider(selectedCompany.id),
+        fallo: AvisoFallo(
+          error: error,
+          que: 'las rutas',
+          onReintentar: () => ref.refresh(
+            routesByCompanyProvider(selectedCompany.id).future,
+          ),
         ),
       ),
     );
@@ -997,8 +992,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       key: widget.launchBusesGuideKey,
       onPressed: action,
       style: ElevatedButton.styleFrom(
-        backgroundColor:
-            listo ? AppColors.primaryAccessible : AppColors.acento,
+        backgroundColor: listo ? AppColors.primaryAccessible : AppColors.acento,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(
@@ -1087,28 +1081,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// Estado de carga/error de las listas secundarias. Mantiene la key del
   /// objetivo de la guía para que el overlay nunca desaparezca mientras el
   /// usuario espera (y no pueda salirse tocando el back u otro botón).
-  Widget _listPlaceholder({Key? key, String? message, VoidCallback? onRetry}) {
+  Widget _listPlaceholder({Key? key, Widget? fallo}) {
     return Center(
       key: key,
-      child: message == null
-          ? const IndicadorCarga(size: 34, semanticsLabel: 'Cargando')
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.cuerpoFuerte
-                      .copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh_outlined, size: 18),
-                  label: const Text('Reintentar'),
-                ),
-              ],
-            ),
+      child:
+          fallo ?? const IndicadorCarga(size: 34, semanticsLabel: 'Cargando'),
     );
   }
 

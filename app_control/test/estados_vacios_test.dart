@@ -35,21 +35,31 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
 /// están en `app_pasajero/test/estados_vacios_test.dart` y
 /// `YaVieneWeb/tests/estados-vacios.test.ts`.
 class _FakeFleetApi extends FleetApi {
-  _FakeFleetApi({
-    List<FleetBus>? buses,
-    List<FleetRoute>? rutas,
-  })  : buses = buses ?? _flota,
-        rutas = rutas ?? _rutas,
-        super(baseUrl: 'http://localhost:3000');
+  _FakeFleetApi({List<FleetBus>? buses, List<FleetRoute>? rutas})
+    : buses = buses ?? _flota,
+      rutas = rutas ?? _rutas,
+      super(baseUrl: 'http://localhost:3000');
 
   static const _flota = <FleetBus>[
     FleetBus(
-      busId: 'B-1', companyId: 'c-1', routeId: 'R-1', placa: 'ABC-123',
-      visible: true, online: true, lat: 10.98, lon: -74.8,
+      busId: 'B-1',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'ABC123',
+      visible: true,
+      online: true,
+      lat: 10.98,
+      lon: -74.8,
     ),
     FleetBus(
-      busId: 'B-2', companyId: 'c-1', routeId: 'R-1', placa: 'XYZ-987',
-      visible: true, online: true, lat: 10.99, lon: -74.81,
+      busId: 'B-2',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'XYZ987',
+      visible: true,
+      online: true,
+      lat: 10.99,
+      lon: -74.81,
     ),
   ];
 
@@ -114,11 +124,10 @@ Future<(ProviderContainer, _FakeFleetApi)> _montar(
   final fake = api ?? _FakeFleetApi();
   final container = ProviderContainer(
     overrides: [
-      backendUrlProvider
-          .overrideWith(() => BackendUrl.fija('http://localhost:3000')),
-      fleetProvider.overrideWith(
-        (ref) => FleetNotifier(ref, api: fake),
+      backendUrlProvider.overrideWith(
+        () => BackendUrl.fija('http://localhost:3000'),
       ),
+      fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: fake)),
       fleetSocketFactoryProvider.overrideWithValue((_) => _FakeSocket()),
     ],
   );
@@ -134,10 +143,7 @@ Future<(ProviderContainer, _FakeFleetApi)> _montar(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: const DashboardScreen(),
-      ),
+      child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
     ),
   );
   await tester.pump();
@@ -157,12 +163,13 @@ void main() {
   // desbordes rompen los taps; con las fuentes reales, no. Mismo truco
   // que `teclado_panel_test.dart`.
   setUpAll(() async {
-    final manifiesto = json.decode(
-      await rootBundle.loadString('FontManifest.json'),
-    ) as List<dynamic>;
+    final manifiesto =
+        json.decode(await rootBundle.loadString('FontManifest.json'))
+            as List<dynamic>;
     for (final entrada in manifiesto.cast<Map<String, dynamic>>()) {
       final cargador = FontLoader(entrada['family'] as String);
-      for (final fuente in (entrada['fonts'] as List).cast<Map<String, dynamic>>()) {
+      for (final fuente
+          in (entrada['fonts'] as List).cast<Map<String, dynamic>>()) {
         cargador.addFont(rootBundle.load(fuente['asset'] as String));
       }
       await cargador.load();
@@ -176,10 +183,13 @@ void main() {
   ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final container = ProviderContainer(overrides: [
-      backendUrlProvider
-          .overrideWith(() => BackendUrl.fija('http://localhost:3000')),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        backendUrlProvider.overrideWith(
+          () => BackendUrl.fija('http://localhost:3000'),
+        ),
+      ],
+    );
     addTearDown(container.dispose);
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -187,10 +197,7 @@ void main() {
         child: MaterialApp(
           theme: AppTheme.light,
           home: Scaffold(
-            body: DashboardHeader(
-              connection: conexion,
-              onLogout: () {},
-            ),
+            body: DashboardHeader(connection: conexion, onLogout: () {}),
           ),
         ),
       ),
@@ -213,8 +220,9 @@ void main() {
   });
 
   // ── Lista: huecos de las pestañas ───────────────────────────────────
-  testWidgets('una pestaña sin buses dice que no hay buses, con su copy',
-      (tester) async {
+  testWidgets('una pestaña sin buses dice que no hay buses, con su copy', (
+    tester,
+  ) async {
     await _montar(tester);
 
     // Con la flota de partida (dos buses en línea y visibles) las
@@ -244,8 +252,9 @@ void main() {
   });
 
   // ── Sesión expirada ─────────────────────────────────────────────────
-  testWidgets('una sesión revocada levanta su diálogo, con su botón',
-      (tester) async {
+  testWidgets('una sesión revocada levanta su diálogo, con su botón', (
+    tester,
+  ) async {
     final (container, api) = await _montar(tester);
 
     api.expirar = true;
@@ -262,6 +271,30 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('INICIAR SESIÓN'), findsOneWidget);
+
+    await _desmontar(tester);
+  });
+
+  testWidgets('varias respuestas de sesión muerta levantan un solo aviso', (
+    tester,
+  ) async {
+    // El dueño lo encontró así (2026-09-30): el panel abierto mucho rato
+    // apiló cinco «Tu sesión expiró» y hubo que cerrarlos uno a uno. Cada
+    // pedido que volvía con 401 —flota, rutas, la resincronización, una
+    // acción— levantaba otro encima del anterior.
+    final (container, api) = await _montar(tester);
+
+    api.expirar = true;
+    final notifier = container.read(fleetProvider.notifier);
+    await Future.wait([notifier.refresh(), notifier.refreshRoutes()]);
+    await tester.pump();
+    await notifier.refresh();
+    await tester.pump();
+    await notifier.refreshRoutes();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Tu sesión expiró'), findsOneWidget);
 
     await _desmontar(tester);
   });

@@ -13,19 +13,14 @@ void main() {
   final base = DateTime(2026, 9, 27, 10);
   int ms(Duration antes) => base.subtract(antes).millisecondsSinceEpoch;
 
-  Future<void> montar(
-    WidgetTester tester, {
-    required int? reportadoEn,
-  }) => tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: UltimoReporte(
-          reportadoEn: reportadoEn,
-          reloj: () => ahora,
+  Future<void> montar(WidgetTester tester, {required int? reportadoEn}) =>
+      tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UltimoReporte(reportadoEn: reportadoEn, reloj: () => ahora),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 
   setUp(() => ahora = base);
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/providers/red_provider.dart';
 import 'package:ya_viene_pasajero/features/map/domain/repositories/realtime_repository.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
@@ -185,8 +186,7 @@ void main() {
 
   test(
       'el batch no filtra su basura: los buses malformados se ignoran '
-      'sin tumbar la suscripción',
-      () async {
+      'sin tumbar la suscripción', () async {
     final fake = FakeRealtimeRepository();
     final container = containerWith(fake);
     final positions = container.listen<AsyncValue<List<BusPosition>>>(
@@ -217,8 +217,7 @@ void main() {
 
   test(
       'ráfaga de posiciones en vivo produce una sola actualización '
-      '(debounce 200ms)',
-      () async {
+      '(debounce 200ms)', () async {
     final fake = FakeRealtimeRepository();
     final container = containerWith(fake);
     var emissions = 0;
@@ -264,9 +263,16 @@ void main() {
 
   testWidgets(
       'el chip de estado sigue la conexión: desconectado, '
-      'reconectando y en línea',
-      (tester) async {
+      'reconectando, recuperada y en línea', (tester) async {
     final fake = FakeRealtimeRepository();
+    // El evento del socket llega durante el cuadro; la píldora se
+    // redibuja en el siguiente.
+    Future<void> emitir(ConnectionStatus estado) async {
+      fake.emitConnection(estado);
+      await tester.pump();
+      await tester.pump();
+    }
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [realtimeServiceProvider.overrideWithValue(fake)],
@@ -276,17 +282,77 @@ void main() {
       ),
     );
 
-    fake.emitConnection(ConnectionStatus.disconnected);
-    await tester.pump();
-    expect(find.text('Sin conexión al servidor'), findsOneWidget);
+    // El primer intento del arranque todavía no es «re»conectar.
+    await emitir(ConnectionStatus.reconnecting);
+    expect(find.text('Conectando…'), findsOneWidget);
 
-    fake.emitConnection(ConnectionStatus.reconnecting);
-    await tester.pump();
-    expect(find.text('Reconectando...'), findsOneWidget);
+    // Y el primer «conectado» no es una recuperación: no hubo corte.
+    await emitir(ConnectionStatus.connected);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Conexión recuperada'), findsNothing);
 
-    fake.emitConnection(ConnectionStatus.connected);
+    await emitir(ConnectionStatus.disconnected);
+    expect(find.text('Sin conexión con el servidor'), findsOneWidget);
+    expect(find.text('Seguimos intentando'), findsOneWidget);
+
+    await emitir(ConnectionStatus.reconnecting);
+    expect(find.text('Reconectando…'), findsOneWidget);
+
+    await emitir(ConnectionStatus.connected);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Sin conexión con el servidor'), findsNothing);
+    expect(find.text('Reconectando…'), findsNothing);
+    // Avisa que volvió, y se va solo.
+    expect(find.text('Conexión recuperada'), findsOneWidget);
+    await tester.pump(kConexionRecuperada);
+    await tester.pumpAndSettle();
+    expect(find.text('Conexión recuperada'), findsNothing);
+  });
+
+  testWidgets(
+      'sin red en el teléfono dice «Sin internet», no culpa al '
+      'servidor', (tester) async {
+    final fake = FakeRealtimeRepository();
+    // El evento del socket llega durante el cuadro; la píldora se
+    // redibuja en el siguiente.
+    Future<void> emitir(ConnectionStatus estado) async {
+      fake.emitConnection(estado);
+      await tester.pump();
+      await tester.pump();
+    }
+
+    final redes = StreamController<bool>();
+    addTearDown(redes.close);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          realtimeServiceProvider.overrideWithValue(fake),
+          hayRedProvider.overrideWith((ref) => redes.stream),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: IdleStatusChip()),
+        ),
+      ),
+    );
+    redes.add(true);
+    await emitir(ConnectionStatus.connected);
+
+    // El socket aún no se entera (espera su latido); el sistema sí.
+    redes.add(false);
     await tester.pump();
-    expect(find.text('Sin conexión al servidor'), findsNothing);
-    expect(find.text('Reconectando...'), findsNothing);
+    await tester.pump();
+    expect(find.text('Sin internet'), findsOneWidget);
+    expect(find.text('Los buses vuelven cuando haya señal'), findsOneWidget);
+
+    await emitir(ConnectionStatus.disconnected);
+    expect(find.text('Sin internet'), findsOneWidget);
+    expect(find.text('Sin conexión con el servidor'), findsNothing);
+
+    redes.add(true);
+    await emitir(ConnectionStatus.connected);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Conexión recuperada'), findsOneWidget);
+    await tester.pump(kConexionRecuperada);
+    await tester.pumpAndSettle();
   });
 }

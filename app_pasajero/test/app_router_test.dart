@@ -22,13 +22,14 @@ void main() {
       ),
       // La notificación de verdad no tiene canal en un test.
       proximityAlertsProvider.overrideWith(
-        (ref) => ProximityAlertsNotifier(ref, notify: ({
-          required String busId,
-          String? routeName,
-          String? routeId,
-          required int distanceMeters,
-        }) async =>
-            true),
+        (ref) => ProximityAlertsNotifier(ref,
+            notify: ({
+              required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters,
+            }) async =>
+                true),
       ),
     ]);
     addTearDown(container.dispose);

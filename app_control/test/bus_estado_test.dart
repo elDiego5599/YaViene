@@ -36,14 +36,13 @@ FleetBus _bus({
   bool visible = true,
   bool online = true,
   bool isGhost = false,
-}) =>
-    FleetBus(
-      busId: 'B-1',
-      companyId: 'c-1',
-      visible: visible,
-      online: online,
-      isGhost: isGhost,
-    );
+}) => FleetBus(
+  busId: 'B-1',
+  companyId: 'c-1',
+  visible: visible,
+  online: online,
+  isGhost: isGhost,
+);
 
 void main() {
   test('cada estado se lee con un color distinto', () {
@@ -86,7 +85,10 @@ void main() {
 
   test('un bus se clasifica igual mire quien lo mire', () {
     expect(BusEstado.de(_bus()), BusEstado.enLinea);
-    expect(BusEstado.de(_bus(isGhost: true, online: false)), BusEstado.inactivo);
+    expect(
+      BusEstado.de(_bus(isGhost: true, online: false)),
+      BusEstado.inactivo,
+    );
     expect(BusEstado.de(_bus(online: false)), BusEstado.sinSenal);
     expect(BusEstado.de(_bus(visible: false)), BusEstado.oculto);
   });

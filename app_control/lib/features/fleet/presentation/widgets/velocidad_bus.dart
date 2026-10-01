@@ -27,9 +27,7 @@ class VelocidadBus extends StatelessWidget {
     // Cambia con cada posición: pinta en su propia capa.
     return RepaintBoundary(
       child: Semantics(
-        label: cifra == null
-            ? 'Velocidad: sin dato'
-            : 'Velocidad: $cifra km/h',
+        label: cifra == null ? 'Velocidad: sin dato' : 'Velocidad: $cifra km/h',
         excludeSemantics: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -166,21 +166,31 @@ void main() {
     });
   });
 
-  group('la placa amarilla de la hoja (dueño, 2026-09-30)', () {
-    test('la letra negra se lee sobre el amarillo', () {
+  group('la placa blanca del bus (dueño, 2026-09-30)', () {
+    test('es blanca, como las placas del servicio público', () {
+      // Primero fue amarilla, la de los particulares; los buses llevan la
+      // placa blanca y el pasajero coteja la de la pantalla con esa.
+      expect(AppColors.placa, const Color(0xFFFFFFFF));
+    });
+
+    test('la letra negra se lee sobre el blanco', () {
       // La placa lleva 13 en negrita: vara de texto normal, y la pasa de
-      // sobra (12,0:1).
+      // sobra.
       esperaAlMenos(AppColors.textPrimary, AppColors.placa, 4.5,
           'la letra de la placa');
     });
 
-    test('el filo oscuro es el que la despega de la arena', () {
-      // El amarillo solo da 1,4:1 contra la arena: sin el filo de
-      // [AppColors.textPrimary] la placa sería una mancha sin borde. El
-      // filo sí llega a los 3:1 de un control que dice algo.
+    test('el filo oscuro es el que la despega de la arena y de la tarjeta',
+        () {
+      // El blanco apenas se distingue de la arena y nada del fondo de la
+      // tarjeta de avisos: sin el filo de [AppColors.textPrimary] la placa
+      // sería letra suelta. El filo sí llega a los 3:1 de un control que
+      // dice algo.
       expect(contraste(AppColors.placa, AppColors.arena), lessThan(3.0));
       esperaAlMenos(AppColors.textPrimary, AppColors.arena, 3.0,
           'el filo de la placa');
+      esperaAlMenos(AppColors.textPrimary, AppColors.surface, 3.0,
+          'el filo de la placa en la tarjeta');
     });
   });
 

@@ -40,12 +40,24 @@ class _FakeFleetApi extends FleetApi {
 
   final flota = <FleetBus>[
     const FleetBus(
-      busId: 'B-1', companyId: 'c-1', routeId: 'R-1', placa: 'ABC-123',
-      visible: true, online: true, lat: 10.98, lon: -74.8,
+      busId: 'B-1',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'ABC123',
+      visible: true,
+      online: true,
+      lat: 10.98,
+      lon: -74.8,
     ),
     const FleetBus(
-      busId: 'B-2', companyId: 'c-1', routeId: 'R-1', placa: 'XYZ-987',
-      visible: true, online: true, lat: 10.99, lon: -74.81,
+      busId: 'B-2',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'XYZ987',
+      visible: true,
+      online: true,
+      lat: 10.99,
+      lon: -74.81,
     ),
   ];
 
@@ -53,8 +65,9 @@ class _FakeFleetApi extends FleetApi {
   Future<List<FleetBus>> fetchPositions(String token) async => [...flota];
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async =>
-      const [FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2)];
+  Future<List<FleetRoute>> fetchRoutes(String token) async => const [
+    FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2),
+  ];
 }
 
 class _FakeSocket extends FleetSocketService {
@@ -88,20 +101,30 @@ Future<void> _montar(WidgetTester tester) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final container = ProviderContainer(
     overrides: [
-      backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
-      fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: _FakeFleetApi())),
+      backendUrlProvider.overrideWith(
+        () => BackendUrl.fija('http://localhost:3000'),
+      ),
+      fleetProvider.overrideWith(
+        (ref) => FleetNotifier(ref, api: _FakeFleetApi()),
+      ),
       fleetSocketFactoryProvider.overrideWithValue((_) => _FakeSocket()),
     ],
   );
   container.read(authProvider.notifier).state = const AuthState(
     status: AuthStatus.authenticated,
-    session: AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Empresa 1'),
+    session: AuthSession(
+      token: 'tok',
+      companyId: 'c-1',
+      companyName: 'Empresa 1',
+    ),
   );
   _contenedor = container;
-  await tester.pumpWidget(UncontrolledProviderScope(
-    container: container,
-    child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
-  ));
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
+    ),
+  );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 100));
 }
@@ -113,9 +136,9 @@ Future<void> _desmontar(WidgetTester tester) async {
 }
 
 Future<void> _cargarFuentes() async {
-  final manifiesto = json.decode(
-    await rootBundle.loadString('FontManifest.json'),
-  ) as List<dynamic>;
+  final manifiesto =
+      json.decode(await rootBundle.loadString('FontManifest.json'))
+          as List<dynamic>;
   for (final entrada in manifiesto.cast<Map<String, dynamic>>()) {
     final cargador = FontLoader(entrada['family'] as String);
     final fuentes = (entrada['fonts'] as List).cast<Map<String, dynamic>>();
@@ -143,19 +166,20 @@ void main() {
     cache = Directory.systemTemp.createTempSync('panel-a11y-');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('plugins.flutter.io/path_provider'),
-      (_) async => cache.path,
-    );
+          const MethodChannel('plugins.flutter.io/path_provider'),
+          (_) async => cache.path,
+        );
   });
   tearDownAll(() => cache.deleteSync(recursive: true));
 
-  testWidgets('el dashboard: cada bus se lee entero y el mapa tiene nombre',
-      (tester) async {
+  testWidgets('el dashboard: cada bus se lee entero y el mapa tiene nombre', (
+    tester,
+  ) async {
     final semantica = tester.ensureSemantics();
     await _montar(tester);
 
     expect(
-      find.bySemanticsLabel('Placa ABC-123, En línea, ruta Tcherassi'),
+      find.bySemanticsLabel('Placa ABC123, En línea, ruta Tcherassi'),
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Mapa de la flota'), findsOneWidget);
@@ -181,8 +205,9 @@ void main() {
     semantica.dispose();
   });
 
-  testWidgets('los diálogos de rutas y de editar bus pasan las guías',
-      (tester) async {
+  testWidgets('los diálogos de rutas y de editar bus pasan las guías', (
+    tester,
+  ) async {
     final semantica = tester.ensureSemantics();
     await _montar(tester);
 
@@ -202,18 +227,22 @@ void main() {
     semantica.dispose();
   });
 
-  testWidgets('el login dice qué muestra el ojo y se lee sobre la arena',
-      (tester) async {
+  testWidgets('el login dice qué muestra el ojo y se lee sobre la arena', (
+    tester,
+  ) async {
     final semantica = tester.ensureSemantics();
     await tester.binding.setSurfaceSize(const Size(1366, 768));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        backendUrlProvider.overrideWith(
-            () => BackendUrl.fija('http://localhost:3000')),
-      ],
-      child: const YaVieneControlApp(),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          backendUrlProvider.overrideWith(
+            () => BackendUrl.fija('http://localhost:3000'),
+          ),
+        ],
+        child: const YaVieneControlApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Mostrar contraseña'), findsOneWidget);

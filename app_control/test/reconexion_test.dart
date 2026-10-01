@@ -34,20 +34,19 @@ class _Fabrica {
 
   /// Los sockets distintos que siguen con algún oyente de [evento].
   Set<io.Socket> sockets(String evento) => {
-        for (final socket in creados)
-          if (socket.hasListeners(evento)) socket,
-      };
+    for (final socket in creados)
+      if (socket.hasListeners(evento)) socket,
+  };
 
   /// Los `Manager` distintos que siguen con algún oyente de [evento].
   Set<Object> gestores(String evento) => {
-        for (final socket in creados)
-          if (socket.io.hasListeners(evento)) socket.io,
-      };
+    for (final socket in creados)
+      if (socket.io.hasListeners(evento)) socket.io,
+  };
 }
 
 void main() {
-  test(
-      'tras 100 entradas solo hay un socket, con el token de la última, y un '
+  test('tras 100 entradas solo hay un socket, con el token de la última, y un '
       'oyente por evento', () async {
     final fabrica = _Fabrica();
     // Lo que hace `FleetNotifier.start()` en cada entrada: suelta el servicio
@@ -118,7 +117,11 @@ void main() {
     }
     await pumpEventQueue();
 
-    expect(_suscripciones(socket), 100, reason: 'una por conexión, ni una menos');
+    expect(
+      _suscripciones(socket),
+      100,
+      reason: 'una por conexión, ni una menos',
+    );
     // Y ni el socket ni sus oyentes se multiplican por el camino.
     expect(fabrica.creados, hasLength(1));
     expect(conexion.where((c) => c).length, 100);
@@ -131,5 +134,10 @@ void main() {
 
 /// Cuántas veces pidió el socket la sala de flota, leyendo su cola de salida.
 int _suscripciones(io.Socket socket) => socket.sendBuffer
-    .where((p) => p is Map && p['data'] is List && (p['data'] as List).first == 'subscribe:fleet')
+    .where(
+      (p) =>
+          p is Map &&
+          p['data'] is List &&
+          (p['data'] as List).first == 'subscribe:fleet',
+    )
     .length;

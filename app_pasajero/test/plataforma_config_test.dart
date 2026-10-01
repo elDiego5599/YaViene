@@ -46,14 +46,14 @@ void main() {
       expect(release, isNot(matches(RegExp(r'isJniDebuggable\s*=\s*true'))));
     });
 
-    test('el servicio de fondo se para con la tarea y el merger lo acepta',
-        () {
+    test('el servicio de fondo se para con la tarea y el merger lo acepta', () {
       // El plugin declara el mismo servicio con stopWithTask="false": sin
       // nombrarlo en tools:replace, el merger de manifiestos tumba la APK.
       // Linux sin SDK de Android no lo ve; esta prueba sí.
       final servicio = RegExp(
         r'<service[^>]*BackgroundService[^>]*>',
-      ).firstMatch(_sinComentariosXml(_leer('$main/AndroidManifest.xml')))!
+      )
+          .firstMatch(_sinComentariosXml(_leer('$main/AndroidManifest.xml')))!
           .group(0)!;
       expect(servicio, contains('android:stopWithTask="true"'));
       final reemplaza =
@@ -78,7 +78,8 @@ void main() {
     test('el manifiesto principal aplica la política de red', () {
       expect(
         _sinComentariosXml(_leer('$main/AndroidManifest.xml')),
-        contains('android:networkSecurityConfig="@xml/network_security_config"'),
+        contains(
+            'android:networkSecurityConfig="@xml/network_security_config"'),
       );
       expect(
         _sinComentariosXml(_leer('$main/AndroidManifest.xml')),
@@ -152,7 +153,8 @@ String _sinComentariosKts(String kts) => kts
 /// El cuerpo de `buildTypes { release { … } }`, contando llaves para no
 /// cortarse en el primer `}` interno (el `if` de la firma).
 String _bloqueRelease(String kts) {
-  final inicio = RegExp(r'buildTypes\s*\{[^{}]*?\brelease\s*\{').firstMatch(kts);
+  final inicio =
+      RegExp(r'buildTypes\s*\{[^{}]*?\brelease\s*\{').firstMatch(kts);
   expect(inicio, isNotNull, reason: 'no hay buildTypes { release { … } }');
   var nivel = 1;
   var i = inicio!.end;

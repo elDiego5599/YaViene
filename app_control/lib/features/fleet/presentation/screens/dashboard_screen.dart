@@ -44,8 +44,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     _sessionExpiredSub = ref.listenManual(
       fleetProvider.select((s) => s.sessionExpired),
       (previous, expired) {
+        // Solo el paso a vencida: la bandera ya no baja hasta cerrar
+        // sesión, así que esto pasa una vez por sesión.
         if (!expired || !mounted) return;
-        ref.read(fleetProvider.notifier).acknowledgeSessionExpired();
         // Sin salida por fuera: con la sesión vencida el tablero ya no
         // puede hacer nada, y cerrarla con Esc dejaba al operador mirando
         // datos que no se iban a actualizar.
@@ -55,7 +56,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           (dialogContext) => Ventana(
             icono: Icons.lock_clock_outlined,
             titulo: 'Tu sesión expiró',
-            mensaje: 'La sesión del administrador venció o fue revocada. '
+            mensaje:
+                'La sesión del administrador venció o fue revocada. '
                 'Vuelve a iniciar sesión para continuar.',
             principal: VentanaAccion('INICIAR SESIÓN', () async {
               Navigator.of(dialogContext).pop();
@@ -97,7 +99,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     try {
       await ref.read(fleetProvider.notifier).refresh();
     } finally {
-      final rest = const Duration(milliseconds: 700) - DateTime.now().difference(started);
+      final rest =
+          const Duration(milliseconds: 700) -
+          DateTime.now().difference(started);
       if (rest > Duration.zero) {
         await Future<void>.delayed(rest);
       }
@@ -141,7 +145,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final confirmed = await confirmarBorrado(
       context,
       titulo: 'Eliminar bus',
-      mensaje: '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la '
+      mensaje:
+          '¿Eliminar ${bus.placa.isEmpty ? bus.busId : bus.placa} de la '
           'flota? Los pasajeros dejarán de verlo de inmediato. Esta acción no '
           'se puede deshacer.',
     );
@@ -191,33 +196,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _seccion(1, DashboardHeader(
-            connection: fleet.connection,
-            onLogout: _logout,
-          )),
-          _seccion(2, _TopBar(
-            refreshing: _refreshing,
-            searchController: _searchController,
-            searchFocus: _searchFocus,
-            onSearchChanged: (v) => setState(() => _query = v),
-            onRefresh: _refresh,
-            onToggleAllVisibility: () {
-              final visible = !fleet.buses.values.every((b) => b.visible);
-              ref.read(fleetProvider.notifier).setAllVisibility(visible);
-            },
-            allBusesVisible: fleet.buses.isNotEmpty &&
-                fleet.buses.values.every((b) => b.visible),
-          )),
+          _seccion(
+            1,
+            DashboardHeader(connection: fleet.connection, onLogout: _logout),
+          ),
+          _seccion(
+            2,
+            _TopBar(
+              refreshing: _refreshing,
+              searchController: _searchController,
+              searchFocus: _searchFocus,
+              onSearchChanged: (v) => setState(() => _query = v),
+              onRefresh: _refresh,
+              onToggleAllVisibility: () {
+                final visible = !fleet.buses.values.every((b) => b.visible);
+                ref.read(fleetProvider.notifier).setAllVisibility(visible);
+              },
+              allBusesVisible:
+                  fleet.buses.isNotEmpty &&
+                  fleet.buses.values.every((b) => b.visible),
+            ),
+          ),
           if (fleet.error != null)
             _seccion(3, _ErrorBanner(message: fleet.error!)),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _seccion(4, _RouteFilters(
-              fleet: fleet,
-              onSelect: (routeId) =>
-                  ref.read(fleetProvider.notifier).setRouteFilter(routeId),
-              onAddRoute: _showRouteDialog,
-            )),
+            child: _seccion(
+              4,
+              _RouteFilters(
+                fleet: fleet,
+                onSelect: (routeId) =>
+                    ref.read(fleetProvider.notifier).setRouteFilter(routeId),
+                onAddRoute: _showRouteDialog,
+              ),
+            ),
           ),
           Expanded(
             child: Padding(
@@ -227,15 +239,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 children: [
                   Expanded(
                     flex: 1,
-                    child: _seccion(5, _FleetPanel(
-                      buses: buses,
-                      fleet: fleet,
-                      onAddBus: () => _showBusDialog(),
-                      onEditBus: (bus) => _showBusDialog(bus: bus),
-                      onStatusFilter: (filter) => ref
-                          .read(fleetProvider.notifier)
-                          .setStatusFilter(filter),
-                    )),
+                    child: _seccion(
+                      5,
+                      _FleetPanel(
+                        buses: buses,
+                        fleet: fleet,
+                        onAddBus: () => _showBusDialog(),
+                        onEditBus: (bus) => _showBusDialog(bus: bus),
+                        onStatusFilter: (filter) => ref
+                            .read(fleetProvider.notifier)
+                            .setStatusFilter(filter),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -243,57 +258,61 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     // Con las esquinas de la lista (lg): era el único bloque
                     // de la pantalla con esquinas rectas. El filo va encima
                     // de las teselas para que el recorte no lo corte.
-                    child: _seccion(6, ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      child: DecoratedBox(
-                        position: DecorationPosition.foreground,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Stack(
-                          children: [
-                            const Positioned.fill(child: ControlMap()),
-                            // T7.6: lo que tarda una posición en llegar del bus
-                            // a esta pantalla. Solo en depuración y si se pide
-                            // al compilar (`RecuadroLatencia.pedido`).
-                            if (RecuadroLatencia.pedido)
-                              const Positioned(
-                                left: 16,
-                                bottom: 16,
-                                child: RecuadroLatencia(),
-                              ),
-                            if (fleet.selectedBus != null)
-                              Positioned(
-                                right: 16,
-                                bottom: 16,
-                                child: _SelectedBusCard(
-                                  bus: fleet.selectedBus!,
-                                  routeName: fleet.routeName(
-                                    fleet.selectedBus!.routeId,
-                                  ),
-                                  updating: fleet.updating.contains(
-                                    fleet.selectedBus!.busId,
-                                  ),
-                                  onToggle: (visible) => ref
-                                      .read(fleetProvider.notifier)
-                                      .toggleVisibility(
-                                        fleet.selectedBus!.busId,
-                                        visible,
-                                      ),
-                                  onEdit: () =>
-                                      _showBusDialog(bus: fleet.selectedBus),
-                                  onDelete: () =>
-                                      _confirmDeleteSelected(fleet.selectedBus!),
-                                  onClose: () => ref
-                                      .read(fleetProvider.notifier)
-                                      .selectBus(null),
+                    child: _seccion(
+                      6,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        child: DecoratedBox(
+                          position: DecorationPosition.foreground,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Stack(
+                            children: [
+                              const Positioned.fill(child: ControlMap()),
+                              // T7.6: lo que tarda una posición en llegar del bus
+                              // a esta pantalla. Solo en depuración y si se pide
+                              // al compilar (`RecuadroLatencia.pedido`).
+                              if (RecuadroLatencia.pedido)
+                                const Positioned(
+                                  left: 16,
+                                  bottom: 16,
+                                  child: RecuadroLatencia(),
                                 ),
-                              ),
-                          ],
+                              if (fleet.selectedBus != null)
+                                Positioned(
+                                  right: 16,
+                                  bottom: 16,
+                                  child: _SelectedBusCard(
+                                    bus: fleet.selectedBus!,
+                                    routeName: fleet.routeName(
+                                      fleet.selectedBus!.routeId,
+                                    ),
+                                    updating: fleet.updating.contains(
+                                      fleet.selectedBus!.busId,
+                                    ),
+                                    onToggle: (visible) => ref
+                                        .read(fleetProvider.notifier)
+                                        .toggleVisibility(
+                                          fleet.selectedBus!.busId,
+                                          visible,
+                                        ),
+                                    onEdit: () =>
+                                        _showBusDialog(bus: fleet.selectedBus),
+                                    onDelete: () => _confirmDeleteSelected(
+                                      fleet.selectedBus!,
+                                    ),
+                                    onClose: () => ref
+                                        .read(fleetProvider.notifier)
+                                        .selectBus(null),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    )),
+                    ),
                   ),
                 ],
               ),
@@ -347,12 +366,12 @@ class _VistaDashboard {
 /// Una parada de Tab en el orden del dashboard: todo lo de dentro se
 /// recorre antes de pasar a la siguiente, en el orden en que se construye.
 Widget _seccion(double orden, Widget child) => FocusTraversalOrder(
-      order: NumericFocusOrder(orden),
-      child: FocusTraversalGroup(
-        policy: WidgetOrderTraversalPolicy(),
-        child: child,
-      ),
-    );
+  order: NumericFocusOrder(orden),
+  child: FocusTraversalGroup(
+    policy: WidgetOrderTraversalPolicy(),
+    child: child,
+  ),
+);
 
 /// La cabecera del panel. Pública solo para probarla sin montar el mapa.
 @visibleForTesting
@@ -446,7 +465,10 @@ class DashboardHeader extends ConsumerWidget {
                 Container(
                   width: 7,
                   height: 7,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 7),
                 Text(
@@ -481,7 +503,10 @@ class DashboardHeader extends ConsumerWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
             ),
           ),
@@ -570,31 +595,38 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                  SizedBox(
-                    width: 260,
-                    // Esc vacía la búsqueda y deja el foco en ella, para escribir
-                    // otra sin volver a buscarla.
-                    child: CallbackShortcuts(
-                      bindings: {
-                        const SingleActivator(LogicalKeyboardKey.escape): () {
-                          widget.searchController.clear();
-                          widget.onSearchChanged('');
-                        },
+                SizedBox(
+                  width: 260,
+                  // Esc vacía la búsqueda y deja el foco en ella, para escribir
+                  // otra sin volver a buscarla.
+                  child: CallbackShortcuts(
+                    bindings: {
+                      const SingleActivator(LogicalKeyboardKey.escape): () {
+                        widget.searchController.clear();
+                        widget.onSearchChanged('');
                       },
-                      child: TextField(
-                        controller: widget.searchController,
-                        focusNode: widget.searchFocus,
-                        onChanged: widget.onSearchChanged,
-                        style: AppType.ui(fontSize: 13.5),
-                        decoration: const InputDecoration(
-                          hintText: 'Buscar placa o ruta…',
-                          prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 19),
-                          fillColor: AppColors.surface,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    },
+                    child: TextField(
+                      controller: widget.searchController,
+                      focusNode: widget.searchFocus,
+                      onChanged: widget.onSearchChanged,
+                      style: AppType.ui(fontSize: 13.5),
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar placa o ruta…',
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: AppColors.textMuted,
+                          size: 19,
+                        ),
+                        fillColor: AppColors.surface,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
                       ),
                     ),
                   ),
+                ),
                 const SizedBox(width: 10),
                 // Una barra y no dos círculos sueltos junto a un buscador
                 // rectangular: mismo filo y mismo radio que el campo, como la
@@ -625,7 +657,11 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
                       ),
                       // 7 = 3 de aire, el filo y 3 de aire; a media altura
                       // para que separe sin partir la barra en dos.
-                      const VerticalDivider(width: 7, indent: 10, endIndent: 10),
+                      const VerticalDivider(
+                        width: 7,
+                        indent: 10,
+                        endIndent: 10,
+                      ),
                       IconButton(
                         onPressed: widget.onToggleAllVisibility,
                         icon: Icon(
@@ -727,8 +763,10 @@ class _RouteFiltersState extends State<_RouteFilters> {
     return Listener(
       onPointerSignal: (event) {
         if (event is PointerScrollEvent && _controller.hasClients) {
-          final next = (_controller.offset + event.scrollDelta.dy)
-              .clamp(0.0, _controller.position.maxScrollExtent);
+          final next = (_controller.offset + event.scrollDelta.dy).clamp(
+            0.0,
+            _controller.position.maxScrollExtent,
+          );
           if (next != _controller.offset) {
             _controller.jumpTo(next);
           }
@@ -863,8 +901,10 @@ class _FleetPanel extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.navy.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -912,10 +952,7 @@ class _FleetPanel extends ConsumerWidget {
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-            child: _StatusTabs(
-              fleet: fleet,
-              onSelect: onStatusFilter,
-            ),
+            child: _StatusTabs(fleet: fleet, onSelect: onStatusFilter),
           ),
           // Sin filo debajo: el carril de las pestañas ya cierra la cabecera.
           const SizedBox(height: 4),
@@ -937,11 +974,8 @@ class _FleetPanel extends ConsumerWidget {
                     // arranca donde arranca la placa (1 de borde + 12 de
                     // relleno + 36 del recuadro + 12 de aire), como en las
                     // listas de macOS. 9 de alto: 4 de aire a cada lado.
-                    separatorBuilder: (_, _) => const Divider(
-                      height: 9,
-                      indent: 61,
-                      endIndent: 10,
-                    ),
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 9, indent: 61, endIndent: 10),
                     itemBuilder: (context, index) {
                       final bus = buses[index];
                       return FleetListTile(
@@ -949,8 +983,9 @@ class _FleetPanel extends ConsumerWidget {
                         selected: fleet.selectedBusId == bus.busId,
                         updating: fleet.updating.contains(bus.busId),
                         routeName: fleet.routeName(bus.routeId),
-                        onTap: () =>
-                            ref.read(fleetProvider.notifier).selectBus(bus.busId),
+                        onTap: () => ref
+                            .read(fleetProvider.notifier)
+                            .selectBus(bus.busId),
                         onToggle: (visible) => ref
                             .read(fleetProvider.notifier)
                             .toggleVisibility(bus.busId, visible),
@@ -1182,7 +1217,11 @@ class _SelectedBusCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: AppColors.textMuted, size: 18),
+                icon: const Icon(
+                  Icons.close,
+                  color: AppColors.textMuted,
+                  size: 18,
+                ),
                 onPressed: onClose,
                 tooltip: 'Cerrar',
                 visualDensity: VisualDensity.compact,
@@ -1194,7 +1233,11 @@ class _SelectedBusCard extends StatelessWidget {
           // le decía nada al operador.
           if (routeName != null) ...[
             const SizedBox(height: 10),
-            _infoChip(icon: Icons.route, label: routeName!, color: AppColors.navy),
+            _infoChip(
+              icon: Icons.route,
+              label: routeName!,
+              color: AppColors.navy,
+            ),
           ],
           const SizedBox(height: 12),
           // Lo vivo del bus, en su bandeja: la velocidad en grande y, debajo,
@@ -1246,8 +1289,9 @@ class _SelectedBusCard extends StatelessWidget {
                   ),
                   label: Text(bus.visible ? 'Ocultar' : 'Mostrar'),
                   style: FilledButton.styleFrom(
-                    backgroundColor:
-                        bus.visible ? AppColors.hidden : AppColors.online,
+                    backgroundColor: bus.visible
+                        ? AppColors.hidden
+                        : AppColors.online,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1286,7 +1330,9 @@ class _SelectedBusCard extends StatelessWidget {
                 tooltip: 'Eliminar bus de la flota',
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.danger.withValues(alpha: 0.08),
-                  side: BorderSide(color: AppColors.danger.withValues(alpha: 0.25)),
+                  side: BorderSide(
+                    color: AppColors.danger.withValues(alpha: 0.25),
+                  ),
                   fixedSize: _boton,
                   shape: _forma,
                 ),

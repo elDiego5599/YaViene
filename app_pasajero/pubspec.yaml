@@ -34,6 +34,11 @@ dependencies:
   # NOTA: El pasajero SOLO consume via WebSocket (lectura). NO hay MQTT.
   # Tiempo real: las posiciones de los buses llegan del backend por Socket.IO.
   socket_io_client: ^3.1.6
+  # Si el teléfono tiene red. El socket tarda en enterarse de que se cayó el
+  # wifi (espera su latido) y una carga sin red falla igual que una con el
+  # servidor caído; esto lo sabe al instante y deja decir «Sin internet» en
+  # vez de culpar al servidor.
+  connectivity_plus: ^7.3.1
 
   # ── Local Storage ─────────────────────────────────────────────────────────────
   shared_preferences: ^2.3.1

@@ -423,9 +423,8 @@ class AvisoPanel extends StatelessWidget {
 /// (`duracionDeAviso`). 60 ms por letra es una lectura tranquila, los 2 s de
 /// base son lo que tarda el ojo en llegar abajo, el suelo de 4 s es el de
 /// Material y el techo de 10 s evita que un aviso largo tape la lista.
-Duration duracionDeAvisoPanel(String mensaje) => Duration(
-  milliseconds: (2000 + mensaje.length * 60).clamp(4000, 10000),
-);
+Duration duracionDeAvisoPanel(String mensaje) =>
+    Duration(milliseconds: (2000 + mensaje.length * 60).clamp(4000, 10000));
 
 /// Muestra un [AvisoPanel] abajo en el centro. Quita el que hubiera: dos
 /// fallos seguidos cuentan el último, no hacen cola.

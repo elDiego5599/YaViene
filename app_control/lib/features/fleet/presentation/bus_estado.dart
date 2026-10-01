@@ -35,26 +35,26 @@ enum BusEstado {
   }
 
   String get rotulo => switch (this) {
-        enLinea => 'En línea',
-        inactivo => 'Inactivo',
-        sinSenal => 'Sin señal',
-        oculto => 'Oculto',
-      };
+    enLinea => 'En línea',
+    inactivo => 'Inactivo',
+    sinSenal => 'Sin señal',
+    oculto => 'Oculto',
+  };
 
   Color get color => switch (this) {
-        enLinea => AppColors.online,
-        inactivo => AppColors.ghost,
-        sinSenal => AppColors.offline,
-        oculto => AppColors.hidden,
-      };
+    enLinea => AppColors.online,
+    inactivo => AppColors.ghost,
+    sinSenal => AppColors.offline,
+    oculto => AppColors.hidden,
+  };
 
   /// La segunda señal, la que no depende de distinguir colores. Los cuatro
   /// dicen lo mismo que el rótulo sin leerlo: emitiendo, en pausa, sin
   /// antena, tapado.
   IconData get icono => switch (this) {
-        enLinea => Icons.wifi_tethering,
-        inactivo => Icons.pause_circle_outline,
-        sinSenal => Icons.wifi_off,
-        oculto => Icons.visibility_off,
-      };
+    enLinea => Icons.wifi_tethering,
+    inactivo => Icons.pause_circle_outline,
+    sinSenal => Icons.wifi_off,
+    oculto => Icons.visibility_off,
+  };
 }

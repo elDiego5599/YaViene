@@ -36,13 +36,14 @@ abstract class AppColors {
   /// 7,1:1 (test/contraste_test.dart).
   static const Color acento = Color(0xFF1E56A8);
 
-  /// El amarillo de la placa del bus en la hoja de distancia: el que el
-  /// pasajero reconoce en la calle, así la placa de la pantalla se coteja
-  /// de un vistazo con la del bus que llega (dueño, 2026-09-30). Solo para
-  /// la placa, con letra [textPrimary] encima (12,0:1) y un filo del mismo
-  /// color que la recorta de la arena, contra la que el amarillo solo da
-  /// 1,4:1 (ya_viene_core/test/contraste_test.dart).
-  static const Color placa = Color(0xFFF7D117);
+  /// El blanco de la placa del bus: el de las placas del servicio
+  /// público, las que lleva el bus que llega, así la placa de la pantalla
+  /// se coteja de un vistazo con la de la calle (dueño, 2026-09-30; antes
+  /// fue el amarillo de los particulares). Solo para la placa, con letra
+  /// [textPrimary] encima y un filo del mismo color que la recorta de la
+  /// arena y de la tarjeta blanca, contra las que el blanco no se separa
+  /// (ya_viene_core/test/contraste_test.dart).
+  static const Color placa = Color(0xFFFFFFFF);
 
   /// Tinta profunda: fondos "hero" de splash, login, onboarding y el drawer.
   static const Color ink = Color(0xFF0B1628);

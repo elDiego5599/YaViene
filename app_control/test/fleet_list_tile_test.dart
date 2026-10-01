@@ -28,9 +28,9 @@ import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/fleet_list_tile.dart';
 
 Future<void> _cargarFuentes() async {
-  final manifiesto = json.decode(
-    await rootBundle.loadString('FontManifest.json'),
-  ) as List<dynamic>;
+  final manifiesto =
+      json.decode(await rootBundle.loadString('FontManifest.json'))
+          as List<dynamic>;
 
   for (final entrada in manifiesto.cast<Map<String, dynamic>>()) {
     final cargador = FontLoader(entrada['family'] as String);
@@ -58,11 +58,11 @@ double _fila(double pantalla) => (pantalla - 16 * 2 - 12) / 4 - 2 - 24;
 final _anchos = [_fila(1280), _fila(1440), _fila(1600)];
 
 /// La más ancha y la más angosta de las placas del tablero de ejemplo.
-const _placas = ['WNP-659', 'KJT-704'];
+const _placas = ['WNP659', 'KJT704'];
 
 /// La placa más ancha que puede haber: tres letras y tres números, las más
 /// anchas de la tipografía, con el guion que llevan las placas de antes.
-const _placaMasAncha = 'WWW-000';
+const _placaMasAncha = 'WWW000';
 
 const _rutaCorta = 'Tcherassi';
 const _rutaLarga = 'Vivero Paraíso';
@@ -118,9 +118,10 @@ Future<void> _montar(
 
 /// El panel solo se instala en escritorio (`app_control` es macOS y
 /// Windows), y ahí el lápiz y el interruptor miden lo mismo en las dos.
-const _escritorio = TargetPlatformVariant(
-  <TargetPlatform>{TargetPlatform.macOS, TargetPlatform.windows},
-);
+const _escritorio = TargetPlatformVariant(<TargetPlatform>{
+  TargetPlatform.macOS,
+  TargetPlatform.windows,
+});
 
 RenderParagraph _parrafo(WidgetTester tester, String texto) =>
     tester.renderObject<RenderParagraph>(find.text(texto));
@@ -142,40 +143,51 @@ void main() {
   for (final ancho in _anchos) {
     for (final placa in _placas) {
       testWidgets(
-          'a ${ancho.toStringAsFixed(0)} con $placa la fila es la placa y su '
-          'estado, sin ruta ni conductor', (tester) async {
-        await _montar(
-          tester,
-          ancho: ancho,
-          placa: placa,
-          ruta: _rutaLarga,
-          conductor: _conductor,
-        );
+        'a ${ancho.toStringAsFixed(0)} con $placa la fila es la placa y su '
+        'estado, sin ruta ni conductor',
+        (tester) async {
+          await _montar(
+            tester,
+            ancho: ancho,
+            placa: placa,
+            ruta: _rutaLarga,
+            conductor: _conductor,
+          );
 
-        expect(tester.takeException(), isNull, reason: 'la fila se desborda');
-        expect(
-          _entero(_parrafo(tester, placa)),
-          isTrue,
-          reason: 'la placa se cortó',
-        );
-        expect(find.text(_rutaLarga), findsNothing,
-            reason: 'volvió el chip de la ruta');
-        expect(find.text(_conductor), findsNothing,
-            reason: 'volvió el renglón del conductor');
+          expect(tester.takeException(), isNull, reason: 'la fila se desborda');
+          expect(
+            _entero(_parrafo(tester, placa)),
+            isTrue,
+            reason: 'la placa se cortó',
+          );
+          expect(
+            find.text(_rutaLarga),
+            findsNothing,
+            reason: 'volvió el chip de la ruta',
+          );
+          expect(
+            find.text(_conductor),
+            findsNothing,
+            reason: 'volvió el renglón del conductor',
+          );
 
-        final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
-        final lapiz = tester.getRect(find.byType(IconButton));
-        expect(icono.right, lessThanOrEqualTo(lapiz.left + _holgura),
-            reason: 'el ícono de estado quedó encima del lápiz');
-      }, variant: _escritorio);
+          final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
+          final lapiz = tester.getRect(find.byType(IconButton));
+          expect(
+            icono.right,
+            lessThanOrEqualTo(lapiz.left + _holgura),
+            reason: 'el ícono de estado quedó encima del lápiz',
+          );
+        },
+        variant: _escritorio,
+      );
     }
   }
 
   // Con la ventana maximizada la placa nunca se achica, ni la más ancha
   // posible en la pantalla más chica.
   for (final ruta in [_rutaLarga, null]) {
-    testWidgets(
-        'a 1280 la placa más ancha va a su tamaño, '
+    testWidgets('a 1280 la placa más ancha va a su tamaño, '
         'con ${ruta ?? 'ninguna ruta'}', (tester) async {
       await _montar(
         tester,
@@ -199,24 +211,32 @@ void main() {
   // cabe: ahí se achica lo justo, entera y sin salirse de la fila.
   for (final ruta in [_rutaCorta, null]) {
     testWidgets(
-        'con la ventana en 1200 la placa más ancha se achica sin salirse, '
-        'con ${ruta ?? 'ninguna ruta'}', (tester) async {
-      await _montar(
-        tester,
-        ancho: _fila(1200),
-        placa: _placaMasAncha,
-        ruta: ruta,
-      );
+      'con la ventana en 1200 la placa más ancha se achica sin salirse, '
+      'con ${ruta ?? 'ninguna ruta'}',
+      (tester) async {
+        await _montar(
+          tester,
+          ancho: _fila(1200),
+          placa: _placaMasAncha,
+          ruta: ruta,
+        );
 
-      expect(tester.takeException(), isNull, reason: 'la fila se desborda');
-      final placa = _parrafo(tester, _placaMasAncha);
-      expect(_entero(placa), isTrue, reason: 'la placa se cortó');
-      expect(tester.getRect(find.text(_placaMasAncha)).width,
-          lessThan(placa.size.width));
-      final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
-      final lapiz = tester.getRect(find.byType(IconButton));
-      expect(icono.right, lessThanOrEqualTo(lapiz.left + _holgura),
-          reason: 'el ícono de estado quedó encima del lápiz');
-    }, variant: _escritorio);
+        expect(tester.takeException(), isNull, reason: 'la fila se desborda');
+        final placa = _parrafo(tester, _placaMasAncha);
+        expect(_entero(placa), isTrue, reason: 'la placa se cortó');
+        expect(
+          tester.getRect(find.text(_placaMasAncha)).width,
+          lessThan(placa.size.width),
+        );
+        final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));
+        final lapiz = tester.getRect(find.byType(IconButton));
+        expect(
+          icono.right,
+          lessThanOrEqualTo(lapiz.left + _holgura),
+          reason: 'el ícono de estado quedó encima del lápiz',
+        );
+      },
+      variant: _escritorio,
+    );
   }
 }

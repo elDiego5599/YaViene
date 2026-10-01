@@ -78,8 +78,7 @@ void main() {
     expect(escalaDeLaX(tester), 1.0);
   });
 
-  testWidgets('con movimiento reducido la X nace en su tamaño',
-      (tester) async {
+  testWidgets('con movimiento reducido la X nace en su tamaño', (tester) async {
     await pumpDrawer(tester, sinAnimaciones: true);
     await abrirAMedias(tester);
     // Crecer es movimiento, y eso es lo que apaga «Reducir movimiento»: la

@@ -26,39 +26,44 @@ void main() {
     });
   });
 
-  test('DebugProfile.entitlements: lo de release más lo que pide flutter run',
-      () {
-    // allow-jit: el motor de Dart compila en caliente en debug.
-    // network.server: la herramienta de Flutter se conecta al servicio de la
-    // VM de Dart (depurador, recarga en caliente) que escucha en la app.
-    // Ninguno de los dos llega al .app de release.
-    expect(_derechos('$runner/DebugProfile.entitlements'), {
-      'com.apple.security.app-sandbox': true,
-      'com.apple.security.cs.allow-jit': true,
-      'com.apple.security.network.client': true,
-      'com.apple.security.network.server': true,
-    });
-  });
+  test(
+    'DebugProfile.entitlements: lo de release más lo que pide flutter run',
+    () {
+      // allow-jit: el motor de Dart compila en caliente en debug.
+      // network.server: la herramienta de Flutter se conecta al servicio de la
+      // VM de Dart (depurador, recarga en caliente) que escucha en la app.
+      // Ninguno de los dos llega al .app de release.
+      expect(_derechos('$runner/DebugProfile.entitlements'), {
+        'com.apple.security.app-sandbox': true,
+        'com.apple.security.cs.allow-jit': true,
+        'com.apple.security.network.client': true,
+        'com.apple.security.network.server': true,
+      });
+    },
+  );
 
-  test('la configuración Release del proyecto firma con Release.entitlements',
-      () {
-    // Si el proyecto de Xcode apuntara Release a DebugProfile, la prueba de
-    // arriba cuidaría un archivo que nadie usa.
-    final pbx = File('macos/Runner.xcodeproj/project.pbxproj')
-        .readAsStringSync();
-    final porConfiguracion = <String, String>{};
-    for (final m in RegExp(
-      r'CODE_SIGN_ENTITLEMENTS = ([^;]+);.*?\bname = (\w+);',
-      dotAll: true,
-    ).allMatches(pbx)) {
-      porConfiguracion[m.group(2)!] = m.group(1)!.trim();
-    }
-    expect(porConfiguracion, {
-      'Debug': 'Runner/DebugProfile.entitlements',
-      'Profile': 'Runner/DebugProfile.entitlements',
-      'Release': 'Runner/Release.entitlements',
-    });
-  });
+  test(
+    'la configuración Release del proyecto firma con Release.entitlements',
+    () {
+      // Si el proyecto de Xcode apuntara Release a DebugProfile, la prueba de
+      // arriba cuidaría un archivo que nadie usa.
+      final pbx = File(
+        'macos/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+      final porConfiguracion = <String, String>{};
+      for (final m in RegExp(
+        r'CODE_SIGN_ENTITLEMENTS = ([^;]+);.*?\bname = (\w+);',
+        dotAll: true,
+      ).allMatches(pbx)) {
+        porConfiguracion[m.group(2)!] = m.group(1)!.trim();
+      }
+      expect(porConfiguracion, {
+        'Debug': 'Runner/DebugProfile.entitlements',
+        'Profile': 'Runner/DebugProfile.entitlements',
+        'Release': 'Runner/Release.entitlements',
+      });
+    },
+  );
 
   test('Info.plist de macOS no abre ATS', () {
     // Igual que en el pasajero: el backend es HTTPS y una URL http debe
@@ -75,9 +80,10 @@ void main() {
 /// texto crudo, y así también rompe la igualdad exacta.
 Map<String, Object> _derechos(String ruta) {
   final plist = File(ruta).readAsStringSync();
-  final dict = RegExp(r'<plist[^>]*>\s*<dict>(.*)</dict>\s*</plist>',
-          dotAll: true)
-      .firstMatch(plist);
+  final dict = RegExp(
+    r'<plist[^>]*>\s*<dict>(.*)</dict>\s*</plist>',
+    dotAll: true,
+  ).firstMatch(plist);
   expect(dict, isNotNull, reason: '$ruta no es un plist con <dict>');
   final cuerpo = dict!.group(1)!;
   final derechos = <String, Object>{};

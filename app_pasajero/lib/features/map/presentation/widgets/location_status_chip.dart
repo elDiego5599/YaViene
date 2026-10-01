@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/widgets/pildora_estado.dart';
 import '../providers/pin_hint_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
@@ -29,15 +30,15 @@ class LocationStatusChip extends ConsumerWidget {
     final pinHint =
         ref.watch(pinDragLearnedProvider) ? null : 'Arrástralo para moverlo';
 
-    final _PillData? pill = switch (location.mode) {
-      UserLocationMode.locating => const _PillData(
+    final PildoraDatos? pill = switch (location.mode) {
+      UserLocationMode.locating => const PildoraDatos(
           key: 'locating',
           icon: Icons.my_location_outlined,
           iconColor: AppColors.primaryAccessible,
           text: 'Localizando tu ubicación…',
           tint: AppColors.primaryTint,
         ),
-      UserLocationMode.permanentDenied => _PillData(
+      UserLocationMode.permanentDenied => PildoraDatos(
           key: 'permanentDenied',
           icon: Icons.location_off_outlined,
           iconColor: AppColors.error,
@@ -50,7 +51,7 @@ class LocationStatusChip extends ConsumerWidget {
           onAction: () => openAppSettings(),
           tint: AppColors.errorLight,
         ),
-      UserLocationMode.denied => _PillData(
+      UserLocationMode.denied => PildoraDatos(
           key: 'denied',
           icon: Icons.location_disabled_outlined,
           iconColor: AppColors.coralAccessible,
@@ -60,7 +61,7 @@ class LocationStatusChip extends ConsumerWidget {
           onAction: () => notifier.useGps(),
           tint: AppColors.coralLight,
         ),
-      UserLocationMode.gpsFailed => _PillData(
+      UserLocationMode.gpsFailed => PildoraDatos(
           key: 'gpsFailed',
           icon: Icons.gps_off_outlined,
           iconColor: AppColors.coralAccessible,
@@ -96,11 +97,12 @@ class LocationStatusChip extends ConsumerWidget {
           child: SlideTransition(position: slide, child: child),
         );
       },
-      child: KeyedSubtree(key: ValueKey(pill.key), child: _Pill(data: pill)),
+      child: KeyedSubtree(
+          key: ValueKey(pill.key), child: PildoraEstado(data: pill)),
     );
   }
 
-  _PillData? _manualPill(
+  PildoraDatos? _manualPill(
     int? nearbyCount,
     UserLocationNotifier notifier,
     String? pinHint,
@@ -109,7 +111,7 @@ class LocationStatusChip extends ConsumerWidget {
     // identidad: sin esto el AnimatedSwitcher no cruzaría el cambio.
     final sufijo = pinHint == null ? '' : '-hint';
     if (nearbyCount == null) {
-      return _PillData(
+      return PildoraDatos(
         key: 'manual$sufijo',
         icon: Icons.location_on_outlined,
         iconColor: AppColors.primaryAccessible,
@@ -122,7 +124,7 @@ class LocationStatusChip extends ConsumerWidget {
       );
     }
     if (nearbyCount == 0) {
-      return _PillData(
+      return PildoraDatos(
         key: 'manual-empty$sufijo',
         icon: Icons.directions_bus_outlined,
         iconColor: AppColors.warningAccessible,
@@ -133,7 +135,7 @@ class LocationStatusChip extends ConsumerWidget {
         tint: AppColors.warningLight,
       );
     }
-    return _PillData(
+    return PildoraDatos(
       key: 'manual-near$sufijo',
       icon: Icons.location_on_outlined,
       iconColor: AppColors.primaryAccessible,
@@ -147,13 +149,13 @@ class LocationStatusChip extends ConsumerWidget {
     );
   }
 
-  _PillData? _gpsPill(UserLocationState location, int? nearbyCount,
+  PildoraDatos? _gpsPill(UserLocationState location, int? nearbyCount,
       UserLocationNotifier notifier) {
     // "Fijar": deja el pin clavado en la posición actual del GPS (útil cuando
     // el punto exacto de espera no es donde el GPS cree que estás). El pin se
     // puede arrastrar y el modo manual permite "Quitar" para volver al GPS.
-    _PillData withFix(_PillData data) => location.hasPosition
-        ? _PillData(
+    PildoraDatos withFix(PildoraDatos data) => location.hasPosition
+        ? PildoraDatos(
             key: '${data.key}-fix',
             icon: data.icon,
             iconColor: data.iconColor,
@@ -164,7 +166,7 @@ class LocationStatusChip extends ConsumerWidget {
           )
         : data;
     if (nearbyCount == null) {
-      return withFix(const _PillData(
+      return withFix(const PildoraDatos(
         key: 'gps',
         icon: Icons.my_location_outlined,
         iconColor: AppColors.primaryAccessible,
@@ -173,7 +175,7 @@ class LocationStatusChip extends ConsumerWidget {
       ));
     }
     if (nearbyCount == 0) {
-      return withFix(const _PillData(
+      return withFix(const PildoraDatos(
         key: 'gps-empty',
         icon: Icons.directions_bus_outlined,
         iconColor: AppColors.warningAccessible,
@@ -181,7 +183,7 @@ class LocationStatusChip extends ConsumerWidget {
         tint: AppColors.warningLight,
       ));
     }
-    return withFix(_PillData(
+    return withFix(PildoraDatos(
       key: 'gps-near',
       icon: Icons.my_location_outlined,
       iconColor: AppColors.primaryAccessible,
@@ -189,167 +191,5 @@ class LocationStatusChip extends ConsumerWidget {
           'bus${nearbyCount == 1 ? '' : 'es'} cerca',
       tint: AppColors.primaryTint,
     ));
-  }
-}
-
-class _PillData {
-  const _PillData({
-    required this.key,
-    required this.icon,
-    required this.iconColor,
-    required this.text,
-    required this.tint,
-    this.sub,
-    this.actionLabel,
-    this.onAction,
-    this.actionDanger = false,
-  });
-
-  final String key;
-  final IconData icon;
-  final Color iconColor;
-  final String text;
-
-  /// Segunda línea, más pequeña y en gris: enseña, no informa.
-  final String? sub;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  /// La acción solo deshace, no destruye: se pinta en gris en vez de verde.
-  ///
-  /// Estaba en rojo de error. Quitar el punto de espera no borra nada —se
-  /// vuelve al GPS y se puede volver a poner tocando el mapa— y el rojo
-  /// prometía una consecuencia que no existe; encima era la única alarma de
-  /// la pantalla de inicio. Mismo criterio que la X que quita la ruta activa
-  /// en la barra de búsqueda.
-  final bool actionDanger;
-  final Color tint;
-
-  /// La píldora entera, dicha en una frase.
-  ///
-  /// En pantalla son tres bloques —el rótulo, la pista en gris y el
-  /// botón— y sueltos se leerían como tres cosas sin relación, con el
-  /// punto medio del separador pronunciado en voz alta.
-  String get dicha {
-    final partes = <String>[
-      text.replaceAll(' · ', ', '),
-      if (sub != null) sub!,
-      if (actionLabel != null && onAction != null) actionLabel!,
-    ];
-    return partes.join('. ');
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.data});
-
-  final _PillData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      // La píldora entera es el botón: el rótulo no se toca por un lado y
-      // la acción por otro, el toque es el mismo en toda la superficie.
-      button: data.onAction != null,
-      label: data.dicha,
-      // `excludeSemantics` tapa el árbol de abajo, y con él la acción del
-      // InkWell; sin este toque la píldora se anunciaría como botón y el
-      // doble toque de VoiceOver no haría nada.
-      onTap: data.onAction,
-      excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          onTap: data.onAction,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 380),
-            padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
-            // Sombra corta y filo fino: una sombra larga sobre el mapa hace
-            // que la píldora flote como una nube; una corta la deja apoyada,
-            // que es lo que es.
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              border: Border.all(color: AppColors.hairline),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDeep.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: data.tint,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  // El glifo de 18 va en la variante accesible de su
-                  // color: sobre el tinte de su propio medallón, el color
-                  // de relleno se queda en 2,7-2,8:1 y la norma pide 3:1
-                  // hasta para un icono.
-                  child: Icon(data.icon, size: 18, color: data.iconColor),
-                ),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data.text,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
-                        softWrap: true,
-                        style: AppTextStyles.cuerpoFuerte,
-                      ),
-                      if (data.sub != null)
-                        Text(
-                          data.sub!,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: AppTextStyles.pie,
-                        ),
-                    ],
-                  ),
-                ),
-                if (data.actionLabel != null && data.onAction != null) ...[
-                  const SizedBox(width: 10),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: data.actionDanger
-                          ? AppColors.surfaceMuted
-                          // F4: primaryAccessible da 4.5:1 con texto blanco;
-                          // primary a secas se queda en ~3.1:1.
-                          : AppColors.primaryAccessible,
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      border: data.actionDanger
-                          ? Border.all(color: AppColors.hairline)
-                          : null,
-                    ),
-                    child: Text(
-                      data.actionLabel!,
-                      style: AppTextStyles.etiqueta.copyWith(
-                        color: data.actionDanger
-                            ? AppColors.textSecondary
-                            : Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

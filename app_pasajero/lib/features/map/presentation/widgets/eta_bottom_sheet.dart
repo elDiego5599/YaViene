@@ -10,6 +10,7 @@ import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/cifra_viva.dart';
 import '../../../../core/widgets/dialogo.dart';
+import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
@@ -934,7 +935,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                         ),
                       ),
                       const SizedBox(width: 10),
-                      _Placa(busPlaca(busId)),
+                      PlacaBus(
+                        busPlaca(busId),
+                        cajaKey: const ValueKey('hoja-placa'),
+                      ),
                     ],
                   ),
                 ),
@@ -1120,10 +1124,8 @@ class _NotaAnimada extends StatelessWidget {
         // El mismo fundido encadenado que el contenido de la hoja: la nota
         // vieja se apaga en el primer 40 % y la nueva entra desde el 30 %,
         // para que dos frases no se lean una encima de la otra.
-        switchInCurve:
-            const Interval(0.3, 1, curve: AppMotion.curvaEntrada),
-        switchOutCurve:
-            const Interval(0.6, 1, curve: AppMotion.curvaSalida),
+        switchInCurve: const Interval(0.3, 1, curve: AppMotion.curvaEntrada),
+        switchOutCurve: const Interval(0.6, 1, curve: AppMotion.curvaSalida),
         // Lo que sale no cuenta en el alto: así el hueco viaja directo al
         // de la nota nueva (o a cero) en vez de esperar a que la vieja
         // termine de irse.
@@ -1198,41 +1200,6 @@ class _NotaHoja extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// La placa del bus, pintada como placa: amarilla, letra negra y filo
-/// negro (dueño, 2026-09-30; el porqué del amarillo en [AppColors.placa]).
-class _Placa extends StatelessWidget {
-  const _Placa(this.placa);
-
-  final String placa;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('hoja-placa'),
-      // 2×8: la letra de 13 respira lo justo, como en la lámina de verdad,
-      // donde los caracteres llenan casi todo el alto.
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.placa,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        // 1,5 y no 1: con 1 el filo se perdía contra el amarillo en una
-        // pantalla con brillo alto, que es como se usa en la calle.
-        border: Border.all(color: AppColors.textPrimary, width: 1.5),
-      ),
-      // `etiqueta` en 700 con 1,5 de espaciado: las letras de placa van
-      // separadas y en bloque, no apretadas como un título.
-      child: Text(
-        placa,
-        style: AppTextStyles.etiqueta.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.5,
-          color: AppColors.textPrimary,
-        ),
       ),
     );
   }

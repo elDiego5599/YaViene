@@ -20,7 +20,8 @@ import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_widget.d
 import 'helpers/mapa.dart';
 
 void main() {
-  testWidgets('fotos de posiciones y lecturas del GPS no reconstruyen la '
+  testWidgets(
+      'fotos de posiciones y lecturas del GPS no reconstruyen la '
       'pantalla', (tester) async {
     final semantica = tester.ensureSemantics();
     final mapa = await MapaDePrueba.montar(tester);

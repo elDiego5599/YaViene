@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -5,11 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:ya_viene_core/core/theme/estilo_mapa.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
 import '../bus_estado.dart';
 import '../providers/fleet_providers.dart';
+
+/// El estilo del mapa, el mismo del pasajero ([kEstiloMapa]): se lee una
+/// vez por sesión —el JSON, la lista de teselas y los íconos de las
+/// ciudades— y las teselas se piden después, según la cámara.
+final estiloMapaProvider = FutureProvider<Style>(
+  (ref) => StyleReader(uri: kEstiloMapa).read(),
+);
 
 class ControlMap extends ConsumerStatefulWidget {
   const ControlMap({super.key});
@@ -36,8 +46,19 @@ class ControlMap extends ConsumerStatefulWidget {
   /// en un teléfono, para en 11.4).
   static const double zoomMinimo = 11;
 
-  /// Igual que el pasajero: más cerca OSM ya no tiene teselas y las estira.
+  /// Igual que el pasajero. CARTO da teselas hasta 14; de ahí en adelante
+  /// se agrandan los mismos vectores, sin pixelarse.
   static const double zoomMaximo = 18.5;
+
+  /// Si el estilo no llegó (el panel abrió sin red, o CARTO tardó), se
+  /// vuelve a pedir a los 10 s. Sin esto el mapa se quedaba en blanco
+  /// hasta reiniciar el panel, aunque la red ya hubiera vuelto.
+  static const Duration reintentoEstilo = Duration(seconds: 10);
+
+  /// El fondo de Voyager (su capa `background`, #fbf8f3): es lo que se ve
+  /// mientras llegan el estilo y las teselas, en vez del gris de
+  /// flutter_map, que hacía parecer roto el mapa por un segundo.
+  static const Color fondo = Color(0xFFFBF8F3);
 
   @override
   ConsumerState<ControlMap> createState() => _ControlMapState();
@@ -46,6 +67,7 @@ class ControlMap extends ConsumerStatefulWidget {
 class _ControlMapState extends ConsumerState<ControlMap> {
   final MapController _mapController = MapController();
   double _zoom = 12;
+  Timer? _reintento;
 
   // El marcador crece con el zoom, pero arranca más grande que antes (16 pt):
   // a zoom 12, que es como abre el panel, un bus medía 20 pt de lado y la
@@ -56,6 +78,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
 
   @override
   void dispose() {
+    _reintento?.cancel();
     _mapController.dispose();
     super.dispose();
   }
@@ -65,6 +88,14 @@ class _ControlMapState extends ConsumerState<ControlMap> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<Style>>(estiloMapaProvider, (_, estado) {
+      if (!estado.hasError || estado.isLoading) return;
+      _reintento?.cancel();
+      _reintento = Timer(ControlMap.reintentoEstilo, () {
+        if (mounted) ref.invalidate(estiloMapaProvider);
+      });
+    });
+    final estilo = ref.watch(estiloMapaProvider).valueOrNull;
     final fleet = ref.watch(fleetProvider);
     final size = _markerSize;
     final markers = fleet.fleetList
@@ -97,6 +128,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
             options: MapOptions(
               initialCenter: const LatLng(10.9639, -74.7964),
               initialZoom: 12,
+              backgroundColor: ControlMap.fondo,
               minZoom: ControlMap.zoomMinimo,
               maxZoom: ControlMap.zoomMaximo,
               // Se limita el centro y no la vista entera: con `contain`, una
@@ -116,36 +148,25 @@ class _ControlMapState extends ConsumerState<ControlMap> {
               },
             ),
             children: [
-              // Mapa de OpenStreetMap: agua azul, parques verdes, vías cálidas,
-              // la misma familia de colores que ve el pasajero, en vez del gris
-              // apagado con el que el panel parecía otro producto.
-              //
-              // El pasajero usa el estilo Voyager de CARTO, y sería lo ideal
-              // aquí también, pero CARTO ya solo entrega sus teselas
-              // rasterizadas —las únicas que flutter_map sabe pintar— con una
-              // marca de agua "API KEY REQUIRED" atravesada encima. Allá no se
-              // nota porque el mapa es vectorial y esas teselas siguen limpias.
-              // Para igualar el estilo exacto en escritorio haría falta pintar
-              // vectores, y el único paquete que lo hace todavía está en beta:
-              // no es algo que se meta a días de una presentación.
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                // OSM no sirve teselas @2x y devuelve 404 si se le piden: sin
-                // esto el mapa sale en blanco en cualquier pantalla densa.
-                retinaMode: false,
-                userAgentPackageName: 'co.yaviene.control',
-              ),
+              // El mismo mapa del pasajero: Voyager de CARTO, en vectores.
+              // Antes iban las teselas de OpenStreetMap, porque CARTO solo da
+              // sus rasterizadas —las que flutter_map pinta solo— con «API
+              // KEY REQUIRED» atravesado; las vectoriales siguen limpias y
+              // `vector_map_tiles` las pinta en escritorio (dueño,
+              // 2026-09-30; test/control_map_estilo_test.dart).
+              if (estilo != null)
+                VectorTileLayer(
+                  theme: estilo.theme,
+                  sprites: estilo.sprites,
+                  tileProviders: estilo.providers,
+                ),
               MarkerLayer(markers: markers),
             ],
           ),
         ),
-        // OpenStreetMap pide el crédito a la vista. Va discreto, en la
-        // esquina contraria a la leyenda.
-        const Positioned(
-          right: 8,
-          bottom: 4,
-          child: _Attribution(),
-        ),
+        // CARTO y OpenStreetMap piden el crédito a la vista. Va discreto, en
+        // la esquina contraria a la leyenda.
+        const Positioned(right: 8, bottom: 4, child: _Attribution()),
         Positioned(
           left: 18,
           bottom: 18,
@@ -172,7 +193,8 @@ class _ControlMapState extends ConsumerState<ControlMap> {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Semantics(
-          label: '${bus.placa.isEmpty ? bus.busId : bus.placa}: '
+          label:
+              '${bus.placa.isEmpty ? bus.busId : bus.placa}: '
               '${BusEstado.de(bus).rotulo}',
           child: Transform.rotate(
             // Un bus del que nunca llegó rumbo se pinta sin girar.
@@ -223,7 +245,8 @@ class _FlatBusPainter extends CustomPainter {
   final bool selected;
 
   /// Reportando: la cápsula va llena.
-  bool get _lleno => estado == BusEstado.enLinea || estado == BusEstado.inactivo;
+  bool get _lleno =>
+      estado == BusEstado.enLinea || estado == BusEstado.inactivo;
 
   /// Algo que mirar: el borde va punteado.
   bool get _punteado =>
@@ -351,11 +374,8 @@ class _Attribution extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        '© OpenStreetMap',
-        style: AppType.ui(
-          fontSize: 10,
-          color: AppColors.textMuted,
-        ),
+        '© CARTO © OpenStreetMap',
+        style: AppType.ui(fontSize: 10, color: AppColors.textMuted),
       ),
     );
   }

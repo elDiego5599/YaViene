@@ -76,7 +76,9 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
       return;
     }
     try {
-      await ref.read(fleetProvider.notifier).renameRoute(route.routeId, name: newName);
+      await ref
+          .read(fleetProvider.notifier)
+          .renameRoute(route.routeId, name: newName);
     } catch (_) {
       if (mounted) {
         setState(() => _error = 'No se pudo renombrar la ruta.');
@@ -88,7 +90,8 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
     final confirmed = await confirmarBorrado(
       context,
       titulo: 'Eliminar ruta',
-      mensaje: '¿Eliminar "${route.name}" del catálogo? Los buses que tengan '
+      mensaje:
+          '¿Eliminar "${route.name}" del catálogo? Los buses que tengan '
           'esta ruta asignada pasarán a la primera ruta restante.',
     );
     if (confirmed) {
@@ -239,7 +242,9 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.navy.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
+                                ),
                               ),
                               child: Text(
                                 '${route.total}',
@@ -325,10 +330,7 @@ class _VentanaRenombrarState extends State<_VentanaRenombrar> {
         decoration: const InputDecoration(hintText: 'Nuevo nombre'),
         onSubmitted: (_) => _guardar(),
       ),
-      secundaria: VentanaAccion(
-        'Cancelar',
-        () => Navigator.of(context).pop(),
-      ),
+      secundaria: VentanaAccion('Cancelar', () => Navigator.of(context).pop()),
       principal: VentanaAccion('GUARDAR', _guardar),
     );
   }

@@ -162,7 +162,8 @@ class FleetListTile extends StatelessWidget {
                           child: Switch(
                             value: bus.visible,
                             onChanged: (v) => onToggle(v),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
                   const SizedBox(height: 2),
@@ -178,7 +179,9 @@ class FleetListTile extends StatelessWidget {
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
-                        color: bus.visible ? AppColors.online : AppColors.hidden,
+                        color: bus.visible
+                            ? AppColors.online
+                            : AppColors.hidden,
                       ),
                     ),
                   ),
@@ -192,22 +195,22 @@ class FleetListTile extends StatelessWidget {
     return Opacity(opacity: bus.online ? 1 : 0.7, child: card);
   }
 
-  /// La fila dicha en voz alta: «Placa ABC-123, En línea, ruta Tcherassi».
+  /// La fila dicha en voz alta: «Placa ABC123, En línea, ruta Tcherassi».
   /// La ruta no se ve en la fila pero se dice: quien no ve la pantalla
   /// tampoco ve la pestaña de arriba.
   String _frase(BusEstado estado) => [
-        bus.placa.isEmpty ? 'Bus ${bus.busId}' : 'Placa ${bus.placa}',
-        estado.rotulo,
-        if (routeName != null) 'ruta $routeName',
-      ].join(', ');
+    bus.placa.isEmpty ? 'Bus ${bus.busId}' : 'Placa ${bus.placa}',
+    estado.rotulo,
+    if (routeName != null) 'ruta $routeName',
+  ].join(', ');
 
   /// Qué significa el estado, en la frase que el operador necesita: qué pasa
   /// y si tiene que hacer algo.
   String _explicacion(BusEstado estado) => switch (estado) {
-        BusEstado.enLinea => 'En línea: el bus está transmitiendo',
-        BusEstado.inactivo =>
-          'Inactivo: lleva más de 90 s sin reportar, pero el turno sigue abierto',
-        BusEstado.sinSenal => 'Sin señal: el bus no está transmitiendo',
-        BusEstado.oculto => 'Oculto: lo quitaste del mapa de los pasajeros',
-      };
+    BusEstado.enLinea => 'En línea: el bus está transmitiendo',
+    BusEstado.inactivo =>
+      'Inactivo: lleva más de 90 s sin reportar, pero el turno sigue abierto',
+    BusEstado.sinSenal => 'Sin señal: el bus no está transmitiendo',
+    BusEstado.oculto => 'Oculto: lo quitaste del mapa de los pasajeros',
+  };
 }

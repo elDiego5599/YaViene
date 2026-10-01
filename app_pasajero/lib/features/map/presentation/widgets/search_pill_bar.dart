@@ -168,34 +168,34 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                       // texto con ruta puesta mida ~40 (220 × 40 lo marcaba
                       // la guía de Android). Crece el área que se puede
                       // tocar, no el dibujo: la píldora sigue en 60.
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      child: Center(
-                        heightFactor: 1,
-                        // Al elegir o quitar la ruta, el texto se releva
-                        // fundiéndose en vez de cambiar de un cuadro al
-                        // siguiente: la píldora es lo primero que se mira,
-                        // y ahí un corte seco se lee como un parpadeo.
-                        child: AnimatedSwitcher(
-                          duration:
-                              AppMotion.duracion(context, AppMotion.normal),
-                          // Encadenado, como en la hoja de abajo: dos
-                          // nombres cruzados a la vez no se leen.
-                          switchInCurve: const Interval(0.3, 1,
-                              curve: AppMotion.curvaEntrada),
-                          switchOutCurve: const Interval(0.6, 1,
-                              curve: AppMotion.curvaSalida),
-                          transitionBuilder: _relevoDeTexto,
-                          child: selectedRoute != null
-                              ? _rutaActiva(selectedRoute.name)
-                              : _sinRuta(),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Center(
+                          heightFactor: 1,
+                          // Al elegir o quitar la ruta, el texto se releva
+                          // fundiéndose en vez de cambiar de un cuadro al
+                          // siguiente: la píldora es lo primero que se mira,
+                          // y ahí un corte seco se lee como un parpadeo.
+                          child: AnimatedSwitcher(
+                            duration:
+                                AppMotion.duracion(context, AppMotion.normal),
+                            // Encadenado, como en la hoja de abajo: dos
+                            // nombres cruzados a la vez no se leen.
+                            switchInCurve: const Interval(0.3, 1,
+                                curve: AppMotion.curvaEntrada),
+                            switchOutCurve: const Interval(0.6, 1,
+                                curve: AppMotion.curvaSalida),
+                            transitionBuilder: _relevoDeTexto,
+                            child: selectedRoute != null
+                                ? _rutaActiva(selectedRoute.name)
+                                : _sinRuta(),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
               const SizedBox(width: AppSpacing.sm),
               // La X y el botón de filtros se relevan fundiéndose con un
               // leve cambio de escala, como un icono que se convierte en

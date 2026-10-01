@@ -9,10 +9,8 @@ import '../domain/fleet_bus.dart';
 
 /// Cómo se abre un socket de `socket_io_client` con una URL y sus opciones.
 /// Existe para las pruebas: el panel usa `io.io`.
-typedef FleetIoSocketFactory = io.Socket Function(
-  String url,
-  Map<String, dynamic> opciones,
-);
+typedef FleetIoSocketFactory =
+    io.Socket Function(String url, Map<String, dynamic> opciones);
 
 class FleetSocketService {
   FleetSocketService({
@@ -119,8 +117,9 @@ class FleetSocketService {
       }
     });
     socket.onConnectError((_) => emit(_connectionController, false));
-    _soltarReconexion =
-        socket.onReconnectAttempt((_) => emit(_connectionController, false));
+    _soltarReconexion = socket.onReconnectAttempt(
+      (_) => emit(_connectionController, false),
+    );
     socket.on('error', (_) => emit(_connectionController, false));
 
     socket.on('fleet:batch', (data) {
@@ -131,9 +130,10 @@ class FleetSocketService {
             .whereType<Map>()
             .map(Map<String, dynamic>.from)
             .map((b) {
-          _medidor.registrar(b);
-          return FleetBus.fromJson(b);
-        }).toList();
+              _medidor.registrar(b);
+              return FleetBus.fromJson(b);
+            })
+            .toList();
         emit(_busBatchController, buses);
       } catch (e) {
         debugPrint('[fleet-socket] Error parsing fleet:batch: $e');
@@ -153,7 +153,9 @@ class FleetSocketService {
 
     socket.on('bus:hidden', (data) {
       if (data is Map && data['busId'] is String) {
-        debugPrint('[fleet-socket] bus:hidden ${data['busId']} event=${data['eventId']}');
+        debugPrint(
+          '[fleet-socket] bus:hidden ${data['busId']} event=${data['eventId']}',
+        );
         emit(_busHiddenController, data['busId'] as String);
       }
     });
@@ -161,7 +163,9 @@ class FleetSocketService {
     socket.on('bus:visible', (data) {
       try {
         if (data is! Map) return;
-        debugPrint('[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}');
+        debugPrint(
+          '[fleet-socket] bus:visible ${data['busId']} event=${data['eventId']}',
+        );
         final position = data['position'];
         if (position is Map) {
           final bus = Map<String, dynamic>.from(position);
@@ -186,7 +190,9 @@ class FleetSocketService {
 
     socket.on('bus:removed', (data) {
       if (data is Map && data['busId'] is String) {
-        debugPrint('[fleet-socket] bus:removed ${data['busId']} event=${data['eventId']}');
+        debugPrint(
+          '[fleet-socket] bus:removed ${data['busId']} event=${data['eventId']}',
+        );
         emit(_busRemovedController, data['busId'] as String);
       }
     });

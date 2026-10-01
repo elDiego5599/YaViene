@@ -32,21 +32,31 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
 /// nuevo sale rojo aquí, no en la mesa del dueño. El arnés es el de
 /// `estados_vacios_test.dart`.
 class _FakeFleetApi extends FleetApi {
-  _FakeFleetApi({
-    List<FleetBus>? buses,
-    List<FleetRoute>? rutas,
-  })  : buses = buses ?? _flota,
-        rutas = rutas ?? _rutas,
-        super(baseUrl: 'http://localhost:3000');
+  _FakeFleetApi({List<FleetBus>? buses, List<FleetRoute>? rutas})
+    : buses = buses ?? _flota,
+      rutas = rutas ?? _rutas,
+      super(baseUrl: 'http://localhost:3000');
 
   static const _flota = <FleetBus>[
     FleetBus(
-      busId: 'B-1', companyId: 'c-1', routeId: 'R-1', placa: 'ABC-123',
-      visible: true, online: true, lat: 10.98, lon: -74.8,
+      busId: 'B-1',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'ABC123',
+      visible: true,
+      online: true,
+      lat: 10.98,
+      lon: -74.8,
     ),
     FleetBus(
-      busId: 'B-2', companyId: 'c-1', routeId: 'R-1', placa: 'XYZ-987',
-      visible: true, online: true, lat: 10.99, lon: -74.81,
+      busId: 'B-2',
+      companyId: 'c-1',
+      routeId: 'R-1',
+      placa: 'XYZ987',
+      visible: true,
+      online: true,
+      lat: 10.99,
+      lon: -74.81,
     ),
   ];
 
@@ -117,11 +127,10 @@ Future<(ProviderContainer, _FakeFleetApi)> _montar(
   final fake = api ?? _FakeFleetApi();
   final container = ProviderContainer(
     overrides: [
-      backendUrlProvider
-          .overrideWith(() => BackendUrl.fija('http://localhost:3000')),
-      fleetProvider.overrideWith(
-        (ref) => FleetNotifier(ref, api: fake),
+      backendUrlProvider.overrideWith(
+        () => BackendUrl.fija('http://localhost:3000'),
       ),
+      fleetProvider.overrideWith((ref) => FleetNotifier(ref, api: fake)),
       fleetSocketFactoryProvider.overrideWithValue((_) => _FakeSocket()),
     ],
   );
@@ -137,10 +146,7 @@ Future<(ProviderContainer, _FakeFleetApi)> _montar(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: const DashboardScreen(),
-      ),
+      child: MaterialApp(theme: AppTheme.light, home: const DashboardScreen()),
     ),
   );
   await tester.pump();
@@ -157,12 +163,13 @@ Future<void> _desmontar(WidgetTester tester) async {
 
 void main() {
   setUpAll(() async {
-    final manifiesto = json.decode(
-      await rootBundle.loadString('FontManifest.json'),
-    ) as List<dynamic>;
+    final manifiesto =
+        json.decode(await rootBundle.loadString('FontManifest.json'))
+            as List<dynamic>;
     for (final entrada in manifiesto.cast<Map<String, dynamic>>()) {
       final cargador = FontLoader(entrada['family'] as String);
-      for (final fuente in (entrada['fonts'] as List).cast<Map<String, dynamic>>()) {
+      for (final fuente
+          in (entrada['fonts'] as List).cast<Map<String, dynamic>>()) {
         cargador.addFont(rootBundle.load(fuente['asset'] as String));
       }
       await cargador.load();
@@ -174,10 +181,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder ventana(String titulo) => find.ancestor(
-    of: find.text(titulo),
-    matching: find.byType(Ventana),
-  );
+  Finder ventana(String titulo) =>
+      find.ancestor(of: find.text(titulo), matching: find.byType(Ventana));
 
   testWidgets('la sesión revocada sale en la ventana del panel y solo se '
       'va con su botón', (tester) async {
@@ -200,8 +205,9 @@ void main() {
     await _desmontar(tester);
   });
 
-  testWidgets('Agregar bus abre la ventana del panel y Esc la cierra',
-      (tester) async {
+  testWidgets('Agregar bus abre la ventana del panel y Esc la cierra', (
+    tester,
+  ) async {
     await _montar(tester);
 
     await tester.tap(find.text('Agregar bus'));
@@ -304,25 +310,30 @@ void main() {
   // El globo del Tooltip también es un «pop up»: salía en el gris de
   // fábrica con esquinas de 4, lo único de la pantalla que no era de la
   // app.
-  testWidgets('el globo de ayuda va en el azul de la consola, no en el gris de fábrica',
-      (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: const Scaffold(
-          body: Center(child: Tooltip(message: 'Hola', child: Text('x'))),
+  testWidgets(
+    'el globo de ayuda va en el azul de la consola, no en el gris de fábrica',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: Center(
+              child: Tooltip(message: 'Hola', child: Text('x')),
+            ),
+          ),
         ),
-      ),
-    );
-    await tester.longPress(find.text('x'));
-    await tester.pumpAndSettle();
+      );
+      await tester.longPress(find.text('x'));
+      await tester.pumpAndSettle();
 
-    final globo = tester.widget<Container>(
-      find.ancestor(of: find.text('Hola'), matching: find.byType(Container))
-          .first,
-    );
-    final fondo = globo.decoration! as BoxDecoration;
-    expect(fondo.color, AppColors.navy);
-    expect(fondo.borderRadius, isNot(BorderRadius.circular(4)));
-  });
+      final globo = tester.widget<Container>(
+        find
+            .ancestor(of: find.text('Hola'), matching: find.byType(Container))
+            .first,
+      );
+      final fondo = globo.decoration! as BoxDecoration;
+      expect(fondo.color, AppColors.navy);
+      expect(fondo.borderRadius, isNot(BorderRadius.circular(4)));
+    },
+  );
 }

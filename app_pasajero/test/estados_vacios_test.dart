@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/providers/red_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
@@ -49,8 +53,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({'pin_drag_learned': true});
     final container = ProviderContainer(overrides: [
-      userLocationProvider
-          .overrideWith((ref) => _UbicacionFija(_estado(modo))),
+      userLocationProvider.overrideWith((ref) => _UbicacionFija(_estado(modo))),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(
@@ -64,7 +67,8 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('sin permiso de ubicación: el texto lo dice y ofrece '
+  testWidgets(
+      'sin permiso de ubicación: el texto lo dice y ofrece '
       'Reintentar', (tester) async {
     await montarChip(tester, UserLocationMode.denied);
 
@@ -80,7 +84,8 @@ void main() {
     expect(find.text('Abrir'), findsOneWidget);
   });
 
-  testWidgets('permiso concedido pero el GPS no fija: dice el fallo y '
+  testWidgets(
+      'permiso concedido pero el GPS no fija: dice el fallo y '
       'ofrece Reintentar', (tester) async {
     await montarChip(tester, UserLocationMode.gpsFailed);
 
@@ -138,25 +143,34 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('empresas caídas: el error se ve y Reintentar lo recupera',
-      (tester) async {
+  testWidgets(
+      'empresas caídas: el error dice su causa, Reintentar se ve '
+      'trabajar y lo recupera', (tester) async {
     var intentos = 0;
     await abrir(tester, [
       companiesProvider.overrideWith((ref) async {
         intentos++;
-        if (intentos == 1) throw Exception('caída del backend');
+        if (intentos == 1) throw const RespuestaFallida(502);
+        // La red de verdad tarda: es el rato en que el intento se ve.
+        await Future<void>.delayed(const Duration(milliseconds: 300));
         return [const Company(id: 'EMP-01', name: 'Sobusa')];
       }),
     ]);
 
-    expect(find.text('Error al cargar empresas'), findsOneWidget);
-    expect(find.text('Reintentar'), findsOneWidget);
+    // El túnel contestó sin backend detrás: no es la conexión del
+    // pasajero, y la fila lo dice en vez de un «Error» a secas.
+    expect(find.text('Falla en el servidor'), findsOneWidget);
+    expect(find.text('No cargaron las empresas'), findsOneWidget);
 
-    await tester.tap(find.text('Reintentar'));
+    await tester.tap(find.bySemanticsLabel(RegExp('Reintentar')));
+    await tester.pump();
+    // El intento se ve: antes Riverpod dejaba el error puesto mientras
+    // volvía a pedir y la fila no se movía (dueño, 2026-09-30).
+    expect(find.text('Reintentando…'), findsOneWidget);
     await tester.pumpAndSettle();
 
     expect(intentos, 2);
-    expect(find.text('Error al cargar empresas'), findsNothing);
+    expect(find.text('Falla en el servidor'), findsNothing);
     // El tile vuelve al suyo («Elegir empresa») y la lista, recién abierta,
     // sí trae la empresa que la segunda petición trajo.
     expect(find.text('Elegir empresa'), findsOneWidget);
@@ -166,7 +180,32 @@ void main() {
     expect(find.text('Sobusa'), findsOneWidget);
   });
 
-  testWidgets('rutas caídas: el error de la lista se ve con su '
+  testWidgets(
+      'empresas sin red: lo dice, y al volver la red reintenta '
+      'solo', (tester) async {
+    var intentos = 0;
+    final redes = StreamController<bool>();
+    addTearDown(redes.close);
+    await abrir(tester, [
+      hayRedProvider.overrideWith((ref) => redes.stream),
+      companiesProvider.overrideWith((ref) async {
+        intentos++;
+        if (intentos == 1) throw const SocketException('sin red');
+        return [const Company(id: 'EMP-01', name: 'Sobusa')];
+      }),
+    ]);
+    redes.add(false);
+    await tester.pump();
+    expect(find.text('Sin conexión'), findsOneWidget);
+
+    redes.add(true);
+    await tester.pumpAndSettle();
+    expect(intentos, 2);
+    expect(find.text('Elegir empresa'), findsOneWidget);
+  });
+
+  testWidgets(
+      'rutas caídas: el error de la lista se ve con su '
       'Reintentar', (tester) async {
     await abrir(tester, [
       companiesProvider.overrideWith((ref) async => [
@@ -184,7 +223,8 @@ void main() {
     await tester.tap(find.text('Ruta'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Error al cargar las rutas'), findsOneWidget);
+    expect(find.text('Falla en el servidor'), findsOneWidget);
+    expect(find.textContaining('No cargaron las rutas'), findsOneWidget);
     expect(find.text('Reintentar'), findsOneWidget);
   });
 

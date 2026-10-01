@@ -10,7 +10,7 @@ void main() {
   Map<String, dynamic> json(
           {Object? timestamp = _ahora, bool isGhost = false}) =>
       {
-        'busId': 'B-042',
+        'busId': 'BUS-WGV705',
         'routeId': 'R-101',
         'lat': 10.99,
         'lon': -74.80,

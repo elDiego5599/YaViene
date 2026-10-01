@@ -34,8 +34,7 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
-  final GlobalKey<AppDrawerState> _drawerKey =
-      GlobalKey<AppDrawerState>();
+  final GlobalKey<AppDrawerState> _drawerKey = GlobalKey<AppDrawerState>();
   final GlobalKey _mapKey = GlobalKey();
   final GlobalKey _pillKey = GlobalKey();
   final GlobalKey _searchActionKey = GlobalKey();

@@ -1,7 +1,7 @@
 // Hasta dónde llega el mapa del panel.
 //
 // No tenía límite: se podía alejar hasta ver el planeta y arrastrar hasta
-// Bogotá, y cada gesto pedía teselas de OpenStreetMap de sitios donde no hay
+// Bogotá, y cada gesto pedía teselas (entonces de OpenStreetMap; hoy de CARTO) de sitios donde no hay
 // un solo bus. Eso gasta red y cuadros, y el operador se pierde. Ahora el
 // centro de la cámara no sale de un cuadrado sobre el área metropolitana
 // y no se aleja más allá de verla entera.

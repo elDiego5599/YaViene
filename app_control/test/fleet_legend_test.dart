@@ -38,8 +38,9 @@ const _conteo = <BusEstado, int>{
 };
 
 void main() {
-  testWidgets('la leyenda nombra las cuatro situaciones, no tres',
-      (tester) async {
+  testWidgets('la leyenda nombra las cuatro situaciones, no tres', (
+    tester,
+  ) async {
     await _montar(tester, _conteo);
 
     for (final estado in BusEstado.values) {
@@ -66,8 +67,9 @@ void main() {
     expect(iconos.length, BusEstado.values.length);
   });
 
-  testWidgets('cada ícono va del color de su estado, y ninguno repite',
-      (tester) async {
+  testWidgets('cada ícono va del color de su estado, y ninguno repite', (
+    tester,
+  ) async {
     await _montar(tester, _conteo);
 
     final colores = <Color>{};
@@ -109,8 +111,9 @@ void main() {
     expect(find.text('0'), findsOneWidget);
   });
 
-  testWidgets('sin datos de un estado, ese renglón cuenta cero',
-      (tester) async {
+  testWidgets('sin datos de un estado, ese renglón cuenta cero', (
+    tester,
+  ) async {
     await _montar(tester, const {BusEstado.enLinea: 4});
 
     expect(find.text('Sin señal'), findsOneWidget);

@@ -163,7 +163,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final globo = tester.widget<Container>(
-      find.ancestor(of: find.text('Hola'), matching: find.byType(Container))
+      find
+          .ancestor(of: find.text('Hola'), matching: find.byType(Container))
           .first,
     );
     final fondo = globo.decoration! as BoxDecoration;

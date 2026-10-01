@@ -45,8 +45,7 @@ void main() {
   });
 
   group('la aceptación', () {
-    test('se guarda con la versión de los documentos que se aceptó',
-        () async {
+    test('se guarda con la versión de los documentos que se aceptó', () async {
       SharedPreferences.setMockInitialValues({});
       expect(await isLegalAccepted(), isFalse);
 
@@ -136,8 +135,8 @@ void main() {
     // escrita en el pubspec. La constante se escribe a mano y esta prueba
     // es la que no deja que se quede vieja.
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final linea = RegExp(r'^version:\s*(\S+)\s*$', multiLine: true)
-        .firstMatch(pubspec);
+    final linea =
+        RegExp(r'^version:\s*(\S+)\s*$', multiLine: true).firstMatch(pubspec);
     expect(linea, isNotNull, reason: 'el pubspec tiene que declarar version');
     expect(linea!.group(1), '$kAppVersion+$kAppBuild');
   });

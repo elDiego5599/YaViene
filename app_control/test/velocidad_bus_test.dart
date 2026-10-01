@@ -11,7 +11,9 @@ import 'package:ya_viene_control/features/fleet/presentation/widgets/velocidad_b
 
 void main() {
   Future<void> montar(WidgetTester tester, double? kmh) => tester.pumpWidget(
-    MaterialApp(home: Scaffold(body: VelocidadBus(kmh: kmh))),
+    MaterialApp(
+      home: Scaffold(body: VelocidadBus(kmh: kmh)),
+    ),
   );
 
   testWidgets('la cifra redondeada, grande, con su unidad aparte', (

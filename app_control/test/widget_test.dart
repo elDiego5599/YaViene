@@ -8,7 +8,9 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
 
 // En la app lo pone `main.dart` con lo que resolvió BackendResolver.
 final _conBackend = [
-  backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
+  backendUrlProvider.overrideWith(
+    () => BackendUrl.fija('http://localhost:3000'),
+  ),
 ];
 
 void main() {

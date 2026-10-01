@@ -113,9 +113,8 @@ void main() {
       (tester) async {
     await abrir(tester);
 
-    Size tarjetaDe(String texto, Type tipo) => tester.getSize(find
-        .ancestor(of: find.text(texto), matching: find.byType(tipo))
-        .first);
+    Size tarjetaDe(String texto, Type tipo) => tester.getSize(
+        find.ancestor(of: find.text(texto), matching: find.byType(tipo)).first);
 
     final paso = tarjetaDe('Empresa', AnimatedContainer);
 

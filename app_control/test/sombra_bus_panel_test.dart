@@ -35,17 +35,19 @@ class _FakeFleetApi extends FleetApi {
 /// Una flota quieta con un solo bus en línea.
 class _FlotaFija extends FleetNotifier {
   _FlotaFija(super.ref) : super(api: _FakeFleetApi()) {
-    state = const FleetState(buses: {
-      'B-1': FleetBus(
-        busId: 'B-1',
-        companyId: 'c-1',
-        visible: true,
-        online: true,
-        lat: 10.9639,
-        lon: -74.7964,
-        heading: 90,
-      ),
-    });
+    state = const FleetState(
+      buses: {
+        'B-1': FleetBus(
+          busId: 'B-1',
+          companyId: 'c-1',
+          visible: true,
+          online: true,
+          lat: 10.9639,
+          lon: -74.7964,
+          heading: 90,
+        ),
+      },
+    );
   }
 }
 
@@ -118,13 +120,19 @@ void main() {
       final abajo = pixel(60, 104 + d);
       final izquierda = pixel(36 - d, 60);
       final derecha = pixel(83 + d, 60);
-      expect((arriba.$4 - abajo.$4).abs(), lessThanOrEqualTo(2),
-          reason: 'a $d del borde, arriba $arriba y abajo $abajo');
+      expect(
+        (arriba.$4 - abajo.$4).abs(),
+        lessThanOrEqualTo(2),
+        reason: 'a $d del borde, arriba $arriba y abajo $abajo',
+      );
       expect((izquierda.$4 - derecha.$4).abs(), lessThanOrEqualTo(2));
       for (final p in [arriba, abajo, izquierda, derecha]) {
         if (p.$4 == 0) continue;
-        expect((p.$1 - p.$2).abs(), lessThanOrEqualTo(8),
-            reason: 'a $d del borde la sombra lleva color: $p');
+        expect(
+          (p.$1 - p.$2).abs(),
+          lessThanOrEqualTo(8),
+          reason: 'a $d del borde la sombra lleva color: $p',
+        );
       }
     }
     // Y existe: el bus se despega del mapa.

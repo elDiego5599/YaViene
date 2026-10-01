@@ -19,16 +19,23 @@ void main() {
     );
   });
 
-  test('los buses demo ya traen su placa/interno como id', () {
+  test('la flota demo también lleva placa de verdad', () {
+    expect(busPlaca('BUS-WGV705'), 'WGV705');
+    expect(busPlaca('BUS-WFK042'), 'WFK042');
+  });
+
+  test('un id que no sale de una placa se enseña tal cual', () {
     expect(busPlaca('B-042'), 'B-042');
-    expect(busPlaca('B-055'), 'B-055');
+    expect(busPlaca('BUS-GPS-7'), 'GPS-7');
   });
 
   test('la etiqueta es nombre de ruta - placa (ruta preferida)', () {
     expect(
       routePlateLabel(
-          busId: 'B-042', routeName: 'Calle 72 - Uninorte', routeId: 'R-106'),
-      'Calle 72 - Uninorte - B-042',
+          busId: 'BUS-WGV705',
+          routeName: 'Calle 72 - Uninorte',
+          routeId: 'R-106'),
+      'Calle 72 - Uninorte - WGV705',
     );
     expect(
       routePlateLabel(
@@ -40,14 +47,17 @@ void main() {
   });
 
   test('sin nombre de ruta cae al id de la ruta', () {
-    expect(routePlateLabel(busId: 'B-042', routeId: 'R-106'), 'R-106 - B-042');
     expect(
-      routePlateLabel(busId: 'B-042', routeName: '  ', routeId: 'R-106'),
-      'R-106 - B-042',
+      routePlateLabel(busId: 'BUS-WGV705', routeId: 'R-106'),
+      'R-106 - WGV705',
+    );
+    expect(
+      routePlateLabel(busId: 'BUS-WGV705', routeName: '  ', routeId: 'R-106'),
+      'R-106 - WGV705',
     );
   });
 
   test('sin ruta se queda solo la placa', () {
-    expect(routePlateLabel(busId: 'B-042'), 'B-042');
+    expect(routePlateLabel(busId: 'BUS-WGV705'), 'WGV705');
   });
 }

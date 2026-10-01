@@ -566,10 +566,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     await _mapController!.addSource(
         _kRouteSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
     // La orla va primero, debajo: es lo que despega la línea de las calles.
-    await _mapController!.addLineLayer(
-        _kRouteSourceId, _kRouteCasingLayerId, EstiloRuta.orla);
-    await _mapController!.addLineLayer(
-        _kRouteSourceId, _kRouteLayerId, EstiloRuta.linea);
+    await _mapController!
+        .addLineLayer(_kRouteSourceId, _kRouteCasingLayerId, EstiloRuta.orla);
+    await _mapController!
+        .addLineLayer(_kRouteSourceId, _kRouteLayerId, EstiloRuta.linea);
 
     await _mapController!.addSource(
         _kStopsFijaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
@@ -1120,11 +1120,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
               unawaited(_refreshPinScreenPos());
               unawaited(_refreshGuideBusTarget());
             },
-            // Estilo Voyager de CARTO: mapa alegre y colorido (agua azul,
-            // parques verdes, vías cálidas) como corresponde a Barranquilla.
-            // El azul de la ruta y los buses rojos resaltan sobre él.
-            styleString:
-                'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+            // Estilo Voyager de CARTO, el mismo del panel (`kEstiloMapa`).
+            // El verde de la ruta y los buses resaltan sobre él.
+            styleString: kEstiloMapa,
             // Abre en el plano más lejano que permite el mapa, centrado en
             // el área servida: la primera imagen es Malambo, Soledad y
             // Barranquilla a la vez, que es exactamente hasta dónde llega la

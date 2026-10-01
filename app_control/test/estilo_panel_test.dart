@@ -51,7 +51,7 @@ class _FakeFleetApi extends FleetApi {
       busId: 'B-1',
       companyId: 'c-1',
       routeId: 'R-1',
-      placa: 'ABC-123',
+      placa: 'ABC123',
       visible: true,
       online: true,
       lat: 10.98,
@@ -61,7 +61,7 @@ class _FakeFleetApi extends FleetApi {
       busId: 'B-2',
       companyId: 'c-1',
       routeId: 'R-1',
-      placa: 'XYZ-987',
+      placa: 'XYZ987',
       visible: false,
       online: true,
       lat: 10.99,
@@ -177,18 +177,18 @@ void main() {
   ) async {
     await _conPanel(tester, const Size(1440, 900), (container) async {
       expect(
-        _bordeDeFila(tester, 'ABC-123'),
+        _bordeDeFila(tester, 'ABC123'),
         isNull,
         reason: 'volvió la tarjeta dentro de la tarjeta',
       );
       container.read(fleetProvider.notifier).selectBus('B-1');
       await tester.pump();
       expect(
-        _bordeDeFila(tester, 'ABC-123'),
+        _bordeDeFila(tester, 'ABC123'),
         isNotNull,
         reason: 'la fila elegida se tiene que ver elegida',
       );
-      expect(_bordeDeFila(tester, 'XYZ-987'), isNull);
+      expect(_bordeDeFila(tester, 'XYZ987'), isNull);
     });
   });
 

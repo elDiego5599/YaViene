@@ -455,14 +455,12 @@ void main() {
             ),
           ),
         );
-        // El punto del chip late en bucle: `pumpAndSettle` no vuelve
-        // nunca de una animación que no termina.
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 400));
 
-        final nodo =
-            tester.getSemantics(find.bySemanticsLabel('Sin conexión al '
-                'servidor'));
+        final nodo = tester.getSemantics(find.bySemanticsLabel(
+          'Sin conexión con el servidor. Seguimos intentando',
+        ));
         // Nadie va a pasar el dedo buscándolo: aparece solo y tiene que
         // decirse solo.
         expect(nodo.flagsCollection.isLiveRegion, isTrue);
@@ -489,11 +487,14 @@ void main() {
             ),
           ),
         );
+        // Los puntos de espera del medallón giran en bucle:
+        // `pumpAndSettle` no vuelve nunca de una animación que no termina.
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 400));
 
-        expect(find.text('Reconectando...'), findsOneWidget);
-        expect(find.bySemanticsLabel('Reconectando'), findsOneWidget);
+        // Todavía no ha conectado nunca: es «Conectando», no «Re».
+        expect(find.text('Conectando…'), findsOneWidget);
+        expect(find.bySemanticsLabel('Conectando'), findsOneWidget);
       });
     });
   });

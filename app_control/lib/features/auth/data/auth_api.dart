@@ -8,12 +8,15 @@ class AuthApi {
   /// no `AppConfig.backendUrl`: si el túnel no contestó y el panel entró por
   /// el respaldo, el login tiene que ir al mismo sitio.
   AuthApi({required String baseUrl, Dio? dio})
-      : _dio = dio ??
-            Dio(BaseOptions(
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: baseUrl,
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 8),
-            ));
+            ),
+          );
 
   final Dio _dio;
 
@@ -36,7 +39,9 @@ class AuthApi {
     } on DioException catch (e) {
       switch (e.response?.statusCode) {
         case 429:
-          throw const AuthApiException('Demasiados intentos. Espera un momento.');
+          throw const AuthApiException(
+            'Demasiados intentos. Espera un momento.',
+          );
         case 401:
           throw const AuthApiException('Usuario o contraseña incorrectos.');
         default:
@@ -63,6 +68,7 @@ class AuthApi {
     }
     return 'El servidor respondió algo inesperado (${respuesta.statusCode}).';
   }
+
   Future<bool> validateSession(String token) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(

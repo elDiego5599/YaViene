@@ -32,14 +32,32 @@ const respaldo = 'https://ya-viene-backend.fly.dev';
 /// que cuenta `BackendResolver.esperaRespaldo`.
 const arranqueEnFrio = Duration(seconds: 8);
 
-const _sesion = AuthSession(token: 'tok', companyId: 'c-1', companyName: 'Empresa 1');
+const _sesion = AuthSession(
+  token: 'tok',
+  companyId: 'c-1',
+  companyName: 'Empresa 1',
+);
 
 /// La flota que devuelven los dos backends: es la misma empresa vista desde
 /// dos sitios. R-1 es la única ruta con buses reportando, así que el panel
 /// abre en ella.
 const _flota = [
-  FleetBus(busId: 'B-1', companyId: 'c-1', routeId: 'R-2', placa: 'ABC123', visible: true, online: false),
-  FleetBus(busId: 'B-2', companyId: 'c-1', routeId: 'R-1', placa: 'DEF456', visible: true, online: true),
+  FleetBus(
+    busId: 'B-1',
+    companyId: 'c-1',
+    routeId: 'R-2',
+    placa: 'ABC123',
+    visible: true,
+    online: false,
+  ),
+  FleetBus(
+    busId: 'B-2',
+    companyId: 'c-1',
+    routeId: 'R-1',
+    placa: 'DEF456',
+    visible: true,
+    online: true,
+  ),
 ];
 const _rutas = [
   FleetRoute(routeId: 'R-1', name: 'Ruta 1', total: 1, online: 1),
@@ -71,9 +89,9 @@ class _Red {
   var sondeos = 0;
 
   List<_SocketFalso> get abiertos => [
-        for (final socket in sockets)
-          if (!socket.cerrado) socket,
-      ];
+    for (final socket in sockets)
+      if (!socket.cerrado) socket,
+  ];
 
   _SocketFalso crearSocket(String url, Map<String, dynamic> opciones) {
     final socket = _SocketFalso(url, this);
@@ -239,20 +257,26 @@ Future<(ProviderContainer, FleetNotifier)> _abrir(
   WidgetTester tester,
   _Red red,
 ) async {
-  final panel = ProviderContainer(overrides: [
-    backendUrlProvider.overrideWith(() => BackendUrl(
+  final panel = ProviderContainer(
+    overrides: [
+      backendUrlProvider.overrideWith(
+        () => BackendUrl(
           principal,
           principal: principal,
           respaldo: respaldo,
           sonda: red.sonda,
-        )),
-    fleetIoSocketFactoryProvider.overrideWithValue(red.crearSocket),
-    fleetApiProvider.overrideWith(
-      (ref) => _ApiFalsa(ref.watch(backendUrlProvider), red),
-    ),
-  ]);
-  panel.read(authProvider.notifier).state =
-      const AuthState(status: AuthStatus.authenticated, session: _sesion);
+        ),
+      ),
+      fleetIoSocketFactoryProvider.overrideWithValue(red.crearSocket),
+      fleetApiProvider.overrideWith(
+        (ref) => _ApiFalsa(ref.watch(backendUrlProvider), red),
+      ),
+    ],
+  );
+  panel.read(authProvider.notifier).state = const AuthState(
+    status: AuthStatus.authenticated,
+    session: _sesion,
+  );
   final flota = panel.read(fleetProvider.notifier)..start();
   await tester.pump();
   return (panel, flota);
@@ -268,50 +292,53 @@ Future<void> _cerrar(WidgetTester tester, ProviderContainer panel) async {
 /// Lo que manda el backend en `bus:position` al panel: la posición, sin
 /// placa, interno ni conductor.
 Map<String, Object?> _posicion(String busId, {required int sequence}) => {
-      'busId': busId,
-      'companyId': 'c-1',
-      'routeId': 'R-2',
-      'lat': 10.98,
-      'lon': -74.8,
-      'heading': 90,
-      'speedKmh': 20,
-      'capturedAt': 1000 + sequence,
-      'receivedAt': 1000 + sequence,
-      'sequence': sequence,
-      'isGhost': false,
-    };
+  'busId': busId,
+  'companyId': 'c-1',
+  'routeId': 'R-2',
+  'lat': 10.98,
+  'lon': -74.8,
+  'heading': 90,
+  'speedKmh': 20,
+  'capturedAt': 1000 + sequence,
+  'receivedAt': 1000 + sequence,
+  'sequence': sequence,
+  'isGhost': false,
+};
 
 void main() {
   testWidgets(
-      'el túnel cae con el panel abierto → en ≤ 45 s la flota está en el '
-      'respaldo, resuscrita y recargada', (tester) async {
-    final red = _Red({principal, respaldo});
-    final (panel, _) = await _abrir(tester, red);
-    expect(panel.read(fleetProvider).connection, FleetConnection.connected);
-    expect(red.pedidos, [principal]);
+    'el túnel cae con el panel abierto → en ≤ 45 s la flota está en el '
+    'respaldo, resuscrita y recargada',
+    (tester) async {
+      final red = _Red({principal, respaldo});
+      final (panel, _) = await _abrir(tester, red);
+      expect(panel.read(fleetProvider).connection, FleetConnection.connected);
+      expect(red.pedidos, [principal]);
 
-    red.tumbar(principal);
-    // Antes de 30 s sin conexión no se mueve: podría ser un parpadeo.
-    await tester.pump(const Duration(seconds: 29));
-    expect(panel.read(backendUrlProvider), principal);
-    expect(red.sockets, hasLength(1));
+      red.tumbar(principal);
+      // Antes de 30 s sin conexión no se mueve: podría ser un parpadeo.
+      await tester.pump(const Duration(seconds: 29));
+      expect(panel.read(backendUrlProvider), principal);
+      expect(red.sockets, hasLength(1));
 
-    await tester.pump(const Duration(seconds: 16));
-    expect(panel.read(backendUrlProvider), respaldo);
-    final vivo = red.abiertos.single;
-    expect(vivo.url, respaldo);
-    expect(vivo.connected, isTrue);
-    expect(vivo.suscritoAFlota, isTrue);
-    expect(red.pedidos, [principal, respaldo]);
-    final estado = panel.read(fleetProvider);
-    expect(estado.connection, FleetConnection.connected);
-    expect(estado.error, isNull);
+      await tester.pump(const Duration(seconds: 16));
+      expect(panel.read(backendUrlProvider), respaldo);
+      final vivo = red.abiertos.single;
+      expect(vivo.url, respaldo);
+      expect(vivo.connected, isTrue);
+      expect(vivo.suscritoAFlota, isTrue);
+      expect(red.pedidos, [principal, respaldo]);
+      final estado = panel.read(fleetProvider);
+      expect(estado.connection, FleetConnection.connected);
+      expect(estado.error, isNull);
 
-    await _cerrar(tester, panel);
-  });
+      await _cerrar(tester, panel);
+    },
+  );
 
-  testWidgets('el túnel vuelve → el panel no se regresa hasta reiniciar',
-      (tester) async {
+  testWidgets('el túnel vuelve → el panel no se regresa hasta reiniciar', (
+    tester,
+  ) async {
     final red = _Red({principal, respaldo});
     final (panel, _) = await _abrir(tester, red);
     red.tumbar(principal);
@@ -336,138 +363,155 @@ void main() {
   });
 
   testWidgets(
-      'los dos caídos → sigue reintentando sin abrir sockets en bucle',
-      (tester) async {
-    final red = _Red({principal, respaldo});
-    final (panel, _) = await _abrir(tester, red);
+    'los dos caídos → sigue reintentando sin abrir sockets en bucle',
+    (tester) async {
+      final red = _Red({principal, respaldo});
+      final (panel, _) = await _abrir(tester, red);
 
-    red
-      ..tumbar(principal)
-      ..tumbar(respaldo);
-    for (var segundo = 0; segundo < 600; segundo++) {
-      await tester.pump(const Duration(seconds: 1));
-      expect(red.abiertos.length, lessThanOrEqualTo(1));
-    }
+      red
+        ..tumbar(principal)
+        ..tumbar(respaldo);
+      for (var segundo = 0; segundo < 600; segundo++) {
+        await tester.pump(const Duration(seconds: 1));
+        expect(red.abiertos.length, lessThanOrEqualTo(1));
+      }
 
-    // Con los dos caídos la elección da la principal, que es la que ya tiene:
-    // ningún socket nuevo, el mismo reintentando cada 15 s, y la pregunta
-    // repitiéndose sin amontonarse.
-    expect(red.sockets, hasLength(1));
-    expect(red.sockets.single.intentos, greaterThanOrEqualTo(30));
-    expect(red.sondeos, inInclusiveRange(10, 40));
-    expect(panel.read(backendUrlProvider), principal);
+      // Con los dos caídos la elección da la principal, que es la que ya tiene:
+      // ningún socket nuevo, el mismo reintentando cada 15 s, y la pregunta
+      // repitiéndose sin amontonarse.
+      expect(red.sockets, hasLength(1));
+      expect(red.sockets.single.intentos, greaterThanOrEqualTo(30));
+      expect(red.sondeos, inInclusiveRange(10, 40));
+      expect(panel.read(backendUrlProvider), principal);
 
-    red.revivir(principal);
-    await tester.pump();
-    expect(panel.read(fleetProvider).connection, FleetConnection.connected);
-    expect(red.sockets, hasLength(1));
+      red.revivir(principal);
+      await tester.pump();
+      expect(panel.read(fleetProvider).connection, FleetConnection.connected);
+      expect(red.sockets, hasLength(1));
 
-    await _cerrar(tester, panel);
-  });
-
-  testWidgets(
-      'cambiar de backend no cierra la sesión ni pierde la ruta y el bus '
-      'elegidos', (tester) async {
-    final red = _Red({principal, respaldo});
-    final (panel, flota) = await _abrir(tester, red);
-    // El panel abrió en R-1, la ruta con buses andando; el operador se pasó
-    // a R-2 y eligió un bus.
-    expect(panel.read(fleetProvider).routeFilter, 'R-1');
-    flota
-      ..setRouteFilter('R-2')
-      ..selectBus('B-1');
-
-    red.tumbar(principal);
-    final cambio = panel.read(backendUrlProvider.notifier).reResolver();
-    await tester.pump(const Duration(seconds: 11));
-    await cambio;
-    await tester.pump();
-
-    expect(panel.read(backendUrlProvider), respaldo);
-    expect(panel.read(fleetProvider.notifier), same(flota));
-    final auth = panel.read(authProvider);
-    expect(auth.status, AuthStatus.authenticated);
-    expect(auth.session?.token, 'tok');
-    // Si hay que volver a entrar, el login también va al respaldo.
-    expect(panel.read(authProvider.notifier).api.baseUrl, respaldo);
-    final estado = panel.read(fleetProvider);
-    expect(estado.routeFilter, 'R-2');
-    expect(estado.selectedBusId, 'B-1');
-
-    // El bus elegido sigue llegando en vivo, ahora por el socket del
-    // respaldo, sin perder lo que el REST sabía de él.
-    red.abiertos.single.recibir('bus:position', _posicion('B-1', sequence: 9));
-    await tester.pump();
-    final bus = panel.read(fleetProvider).selectedBus!;
-    expect(bus.sequence, 9);
-    expect(bus.online, isTrue);
-    expect(bus.placa, 'ABC123');
-
-    await _cerrar(tester, panel);
-  });
+      await _cerrar(tester, panel);
+    },
+  );
 
   testWidgets(
-      '401 en el respaldo → «Sesión expirada», que lleva al login, y no un '
-      'error genérico', (tester) async {
-    final red = _Red({principal, respaldo})..rechazanToken.add(respaldo);
-    final (panel, _) = await _abrir(tester, red);
+    'cambiar de backend no cierra la sesión ni pierde la ruta y el bus '
+    'elegidos',
+    (tester) async {
+      final red = _Red({principal, respaldo});
+      final (panel, flota) = await _abrir(tester, red);
+      // El panel abrió en R-1, la ruta con buses andando; el operador se pasó
+      // a R-2 y eligió un bus.
+      expect(panel.read(fleetProvider).routeFilter, 'R-1');
+      flota
+        ..setRouteFilter('R-2')
+        ..selectBus('B-1');
 
-    red.tumbar(principal);
-    await tester.pump(const Duration(seconds: 45));
+      red.tumbar(principal);
+      final cambio = panel.read(backendUrlProvider.notifier).reResolver();
+      await tester.pump(const Duration(seconds: 11));
+      await cambio;
+      await tester.pump();
 
-    expect(panel.read(backendUrlProvider), respaldo);
-    final estado = panel.read(fleetProvider);
-    // Es la bandera con la que el dashboard avisa «Tu sesión expiró» y manda
-    // a iniciar sesión (`dashboard_screen.dart`); ese login va al respaldo.
-    expect(estado.sessionExpired, isTrue);
-    expect(estado.error, isNull);
-    expect(estado.connection, FleetConnection.disconnected);
-    expect(panel.read(authProvider.notifier).api.baseUrl, respaldo);
-    // Ningún socket queda reintentando con una sesión que ya no vale.
-    expect(red.abiertos, isEmpty);
+      expect(panel.read(backendUrlProvider), respaldo);
+      expect(panel.read(fleetProvider.notifier), same(flota));
+      final auth = panel.read(authProvider);
+      expect(auth.status, AuthStatus.authenticated);
+      expect(auth.session?.token, 'tok');
+      // Si hay que volver a entrar, el login también va al respaldo.
+      expect(panel.read(authProvider.notifier).api.baseUrl, respaldo);
+      final estado = panel.read(fleetProvider);
+      expect(estado.routeFilter, 'R-2');
+      expect(estado.selectedBusId, 'B-1');
 
-    // Y nada sigue vigilando la conexión: no se vuelve a preguntar.
-    final sondeos = red.sondeos;
-    await tester.pump(const Duration(minutes: 10));
-    expect(red.sondeos, sondeos);
-    expect(red.sockets, hasLength(2));
+      // El bus elegido sigue llegando en vivo, ahora por el socket del
+      // respaldo, sin perder lo que el REST sabía de él.
+      red.abiertos.single.recibir(
+        'bus:position',
+        _posicion('B-1', sequence: 9),
+      );
+      await tester.pump();
+      final bus = panel.read(fleetProvider).selectedBus!;
+      expect(bus.sequence, 9);
+      expect(bus.online, isTrue);
+      expect(bus.placa, 'ABC123');
 
-    await _cerrar(tester, panel);
-  });
+      await _cerrar(tester, panel);
+    },
+  );
+
+  testWidgets(
+    '401 en el respaldo → «Sesión expirada», que lleva al login, y no un '
+    'error genérico',
+    (tester) async {
+      final red = _Red({principal, respaldo})..rechazanToken.add(respaldo);
+      final (panel, _) = await _abrir(tester, red);
+
+      red.tumbar(principal);
+      await tester.pump(const Duration(seconds: 45));
+
+      expect(panel.read(backendUrlProvider), respaldo);
+      final estado = panel.read(fleetProvider);
+      // Es la bandera con la que el dashboard avisa «Tu sesión expiró» y manda
+      // a iniciar sesión (`dashboard_screen.dart`); ese login va al respaldo.
+      expect(estado.sessionExpired, isTrue);
+      expect(estado.error, isNull);
+      expect(estado.connection, FleetConnection.disconnected);
+      expect(panel.read(authProvider.notifier).api.baseUrl, respaldo);
+      // Ningún socket queda reintentando con una sesión que ya no vale.
+      expect(red.abiertos, isEmpty);
+
+      // Y nada sigue vigilando la conexión: no se vuelve a preguntar.
+      final sondeos = red.sondeos;
+      await tester.pump(const Duration(minutes: 10));
+      expect(red.sondeos, sondeos);
+      expect(red.sockets, hasLength(2));
+
+      await _cerrar(tester, panel);
+    },
+  );
 
   // T2.11. Un reinicio del backend dura menos que la paciencia del
   // supervisor: el panel se queda donde estaba, el mismo socket vuelve con la
   // reconexión del paquete y tiene que pedir la flota otra vez él solo,
   // porque el backend recién arrancado no sabe quién seguía qué.
   testWidgets(
-      'el backend se reinicia → el mismo socket vuelve, pide la flota otra vez '
-      'y le llega el lote', (tester) async {
-    final red = _Red({principal, respaldo});
-    final (panel, _) = await _abrir(tester, red);
-    final socket = red.abiertos.single;
-    expect(socket.suscritoAFlota, isTrue);
-    socket.emitidos.clear();
+    'el backend se reinicia → el mismo socket vuelve, pide la flota otra vez '
+    'y le llega el lote',
+    (tester) async {
+      final red = _Red({principal, respaldo});
+      final (panel, _) = await _abrir(tester, red);
+      final socket = red.abiertos.single;
+      expect(socket.suscritoAFlota, isTrue);
+      socket.emitidos.clear();
 
-    red.tumbar(principal);
-    await tester.pump(const Duration(seconds: 5));
-    expect(panel.read(fleetProvider).connection, FleetConnection.disconnected);
-    red.revivir(principal);
-    await tester.pump();
+      red.tumbar(principal);
+      await tester.pump(const Duration(seconds: 5));
+      expect(
+        panel.read(fleetProvider).connection,
+        FleetConnection.disconnected,
+      );
+      red.revivir(principal);
+      await tester.pump();
 
-    expect(panel.read(fleetProvider).connection, FleetConnection.connected);
-    expect(red.sockets, [socket]);
-    expect(socket.suscritoAFlota, isTrue);
-    expect(panel.read(backendUrlProvider), principal);
+      expect(panel.read(fleetProvider).connection, FleetConnection.connected);
+      expect(red.sockets, [socket]);
+      expect(socket.suscritoAFlota, isTrue);
+      expect(panel.read(backendUrlProvider), principal);
 
-    // Lo que contesta el backend a `subscribe:fleet` (`socket/handler.ts`).
-    socket.recibir('fleet:batch', {
-      'buses': [
-        {..._posicion('B-1', sequence: 9), 'placa': 'ABC123', 'visible': true},
-      ],
-    });
-    await tester.pump();
-    expect(panel.read(fleetProvider).buses['B-1']?.sequence, 9);
+      // Lo que contesta el backend a `subscribe:fleet` (`socket/handler.ts`).
+      socket.recibir('fleet:batch', {
+        'buses': [
+          {
+            ..._posicion('B-1', sequence: 9),
+            'placa': 'ABC123',
+            'visible': true,
+          },
+        ],
+      });
+      await tester.pump();
+      expect(panel.read(fleetProvider).buses['B-1']?.sequence, 9);
 
-    await _cerrar(tester, panel);
-  });
+      await _cerrar(tester, panel);
+    },
+  );
 }

@@ -71,13 +71,13 @@ class _HistorialSembrado extends AlertHistoryNotifier {
   _HistorialSembrado() {
     state = [
       AlertHistoryEntry(
-        busId: 'B-042',
+        busId: 'BUS-WFK042',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 7, 40),
       ),
       AlertHistoryEntry(
-        busId: 'B-055',
+        busId: 'BUS-WGV705',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 6, 55),

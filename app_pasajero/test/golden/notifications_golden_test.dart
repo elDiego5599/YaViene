@@ -46,8 +46,7 @@ void main() {
   ) async {
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
-      alertHistoryProvider
-          .overrideWith((ref) => _HistorialSembrado(historial)),
+      alertHistoryProvider.overrideWith((ref) => _HistorialSembrado(historial)),
       busPositionsSourceProvider.overrideWith(
         (ref, routeId) => Stream.value(const <BusPosition>[]),
       ),
@@ -77,13 +76,13 @@ void main() {
     fijarPantalla(tester);
     await montar(tester, [
       AlertHistoryEntry(
-        busId: 'B-042',
+        busId: 'BUS-WFK042',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 7, 40),
       ),
       AlertHistoryEntry(
-        busId: 'B-055',
+        busId: 'BUS-WGV705',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 6, 55),

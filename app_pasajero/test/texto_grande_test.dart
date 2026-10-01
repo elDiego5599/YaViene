@@ -80,167 +80,167 @@ void main() {
 
   for (final escala in kEscalas) {
     group('texto al ${(escala * 100).round()}%', () {
-    testWidgets('bienvenida', (tester) async {
-      fijarPantalla(tester, escalaTexto: escala);
-      await tester.pumpWidget(
-        ProviderScope(child: marcoGoldenRuteado(const OnboardingScreen())),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 900));
-      sinDesbordes(tester, 'La bienvenida', escala);
-    });
+      testWidgets('bienvenida', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        await tester.pumpWidget(
+          ProviderScope(child: marcoGoldenRuteado(const OnboardingScreen())),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 900));
+        sinDesbordes(tester, 'La bienvenida', escala);
+      });
 
-    testWidgets('píldora de búsqueda con ruta', (tester) async {
-      fijarPantalla(tester, escalaTexto: escala);
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      container.listen(selectedRouteProvider, (_, __) {});
-      container.read(selectedRouteProvider.notifier).select(
-            const RouteInfo(
-              id: 'R-106',
-              name: 'Ruta 106 · Centro',
-              companyId: 'EMP-01',
-            ),
-          );
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: marcoGolden(
-            const ColoredBox(
-              color: Color(0xFFE8E6E1),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: SearchPillBar(),
+      testWidgets('píldora de búsqueda con ruta', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.listen(selectedRouteProvider, (_, __) {});
+        container.read(selectedRouteProvider.notifier).select(
+              const RouteInfo(
+                id: 'R-106',
+                name: 'Ruta 106 · Centro',
+                companyId: 'EMP-01',
               ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      sinDesbordes(tester, 'La píldora de búsqueda', escala);
-    });
-
-    testWidgets('selector de empresa y ruta', (tester) async {
-      fijarPantalla(tester, escalaTexto: escala);
-      final guia = MapGuideNotifier();
-      await guia.initialize(
-        hasLocation: true,
-        locationSettled: true,
-        hasRoute: false,
-        hasSelectedBus: false,
-        hasActiveAlert: false,
-      );
-      final container = ProviderContainer(overrides: [
-        mapGuideProvider.overrideWith((ref) => guia),
-        companiesProvider.overrideWith(
-          (ref) async => const [Company(id: 'EMP-01', name: 'Sobusa')],
-        ),
-        routesByCompanyProvider.overrideWith(
-          (ref, id) async => const [
-            RouteInfo(
-              id: 'R-106',
-              name: 'Ruta 106',
-              companyId: 'EMP-01',
-              terminalA: 'Terminal',
-              terminalB: 'Centro',
-            ),
-          ],
-        ),
-      ]);
-      addTearDown(container.dispose);
-      container.listen(selectedCompanyProvider, (_, __) {});
-      container.listen(selectedRouteProvider, (_, __) {});
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: marcoGolden(
-            Builder(
-              builder: (context) => Center(
-                child: TextButton(
-                  onPressed: () => RouteSelectorSheet.show(
-                    context,
-                    sheet: const RouteSelectorSheet(),
-                  ),
-                  child: const Text('abrir'),
+            );
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(
+              const ColoredBox(
+                color: Color(0xFFE8E6E1),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SearchPillBar(),
                 ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.tap(find.text('abrir'));
-      await tester.pumpAndSettle();
-      sinDesbordes(tester, 'El selector', escala);
-    });
+        );
+        await tester.pumpAndSettle();
+        sinDesbordes(tester, 'La píldora de búsqueda', escala);
+      });
 
-    testWidgets('hoja de distancia', (tester) async {
-      fijarPantalla(tester, escalaTexto: escala);
-      final container = ProviderContainer(overrides: [
-        userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
-        busPositionsSourceProvider.overrideWith(
-          (ref, routeId) => Stream.value([_bus(0.007645)]),
-        ),
-        routeTrajectoryProvider.overrideWith(
-          (ref, routeId) => RouteTrajectory(
-            routeId: routeId,
-            routeName: 'Ruta 1',
-            points: const [
-              GeoPoint(lat: _lat, lon: _lon - 0.05),
-              GeoPoint(lat: _lat, lon: _lon + 0.05),
+      testWidgets('selector de empresa y ruta', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        final guia = MapGuideNotifier();
+        await guia.initialize(
+          hasLocation: true,
+          locationSettled: true,
+          hasRoute: false,
+          hasSelectedBus: false,
+          hasActiveAlert: false,
+        );
+        final container = ProviderContainer(overrides: [
+          mapGuideProvider.overrideWith((ref) => guia),
+          companiesProvider.overrideWith(
+            (ref) async => const [Company(id: 'EMP-01', name: 'Sobusa')],
+          ),
+          routesByCompanyProvider.overrideWith(
+            (ref, id) async => const [
+              RouteInfo(
+                id: 'R-106',
+                name: 'Ruta 106',
+                companyId: 'EMP-01',
+                terminalA: 'Terminal',
+                terminalB: 'Centro',
+              ),
             ],
           ),
-        ),
-      ]);
-      addTearDown(container.dispose);
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: marcoGolden(
-            const ColoredBox(
-              color: Color(0xFFE8E6E1),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: EtaBottomSheet(),
+        ]);
+        addTearDown(container.dispose);
+        container.listen(selectedCompanyProvider, (_, __) {});
+        container.listen(selectedRouteProvider, (_, __) {});
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(
+              Builder(
+                builder: (context) => Center(
+                  child: TextButton(
+                    onPressed: () => RouteSelectorSheet.show(
+                      context,
+                      sheet: const RouteSelectorSheet(),
+                    ),
+                    child: const Text('abrir'),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
-      container.read(selectedRouteProvider.notifier).select(
-            const RouteInfo(id: 'R1', name: 'Ruta 1', companyId: 'C1'),
-          );
-      container.read(selectedBusesProvider.notifier).toggleBus('A-1');
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-      sinDesbordes(tester, 'La hoja de distancia', escala);
-    });
+        );
+        await tester.tap(find.text('abrir'));
+        await tester.pumpAndSettle();
+        sinDesbordes(tester, 'El selector', escala);
+      });
 
-    testWidgets('centro de avisos', (tester) async {
-      fijarPantalla(tester, escalaTexto: escala);
-      final container = ProviderContainer(overrides: [
-        userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
-        alertHistoryProvider.overrideWith((ref) => _HistorialSembrado()),
-        busPositionsSourceProvider.overrideWith(
-          (ref, routeId) => Stream.value(const <BusPosition>[]),
-        ),
-      ]);
-      addTearDown(container.dispose);
-      final sub =
-          container.listen<RouteInfo?>(selectedRouteProvider, (_, __) {});
-      addTearDown(sub.close);
-      container.read(selectedRouteProvider.notifier).select(
-            const RouteInfo(id: 'R1', name: 'Ruta 106', companyId: 'EMP-01'),
-          );
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: marcoGolden(const NotificationsScreen()),
-        ),
-      );
-      await tester.pumpAndSettle();
-      sinDesbordes(tester, 'El centro de avisos', escala);
-    });
+      testWidgets('hoja de distancia', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        final container = ProviderContainer(overrides: [
+          userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
+          busPositionsSourceProvider.overrideWith(
+            (ref, routeId) => Stream.value([_bus(0.007645)]),
+          ),
+          routeTrajectoryProvider.overrideWith(
+            (ref, routeId) => RouteTrajectory(
+              routeId: routeId,
+              routeName: 'Ruta 1',
+              points: const [
+                GeoPoint(lat: _lat, lon: _lon - 0.05),
+                GeoPoint(lat: _lat, lon: _lon + 0.05),
+              ],
+            ),
+          ),
+        ]);
+        addTearDown(container.dispose);
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(
+              const ColoredBox(
+                color: Color(0xFFE8E6E1),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: EtaBottomSheet(),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        container.read(selectedRouteProvider.notifier).select(
+              const RouteInfo(id: 'R1', name: 'Ruta 1', companyId: 'C1'),
+            );
+        container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        sinDesbordes(tester, 'La hoja de distancia', escala);
+      });
+
+      testWidgets('centro de avisos', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        final container = ProviderContainer(overrides: [
+          userLocationProvider.overrideWith((ref) => _UbicacionDePrueba()),
+          alertHistoryProvider.overrideWith((ref) => _HistorialSembrado()),
+          busPositionsSourceProvider.overrideWith(
+            (ref, routeId) => Stream.value(const <BusPosition>[]),
+          ),
+        ]);
+        addTearDown(container.dispose);
+        final sub =
+            container.listen<RouteInfo?>(selectedRouteProvider, (_, __) {});
+        addTearDown(sub.close);
+        container.read(selectedRouteProvider.notifier).select(
+              const RouteInfo(id: 'R1', name: 'Ruta 106', companyId: 'EMP-01'),
+            );
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(const NotificationsScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+        sinDesbordes(tester, 'El centro de avisos', escala);
+      });
     });
   }
 }
@@ -249,13 +249,13 @@ class _HistorialSembrado extends AlertHistoryNotifier {
   _HistorialSembrado() {
     state = [
       AlertHistoryEntry(
-        busId: 'B-042',
+        busId: 'BUS-WFK042',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 7, 40),
       ),
       AlertHistoryEntry(
-        busId: 'B-055',
+        busId: 'BUS-WGV705',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 6, 55),

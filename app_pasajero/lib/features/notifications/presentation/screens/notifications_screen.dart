@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/widgets/placa_bus.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
@@ -26,8 +27,9 @@ class NotificationsScreen extends ConsumerWidget {
             (value) => value.value ?? const <BusPosition>[],
           ));
 
-    // Orden editorial: primero los activos, luego los enviados. El orden de
-    // persistencia se conserva para que la selección sea estable.
+    // Orden editorial: primero los activos, luego los enviados (cada grupo
+    // con su encabezado, en `_HistoryList`). El orden de persistencia se
+    // conserva dentro de cada grupo para que la selección sea estable.
     final entries = [
       ...history.where((e) => !e.sent),
       ...history.where((e) => e.sent),
@@ -102,8 +104,14 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
-/// La línea que en iPhone dice cuándo suena el aviso. La web dice la misma
+/// La nota que en iPhone dice cuándo suena el aviso. La web dice la misma
 /// frase en el paso del aviso (`index.html`, paso 3).
+///
+/// Era una línea gris suelta bajo la barra, que se leía como un pie de
+/// página puesto arriba por error. Ahora es la misma nota que la hoja de
+/// distancia (`_NotaHoja` en `eta_bottom_sheet.dart`): tarjeta blanca con
+/// filo y baldosa de 30, para que una advertencia se vea igual en toda la
+/// app.
 class _SoloConLaAppAbierta extends StatelessWidget {
   const _SoloConLaAppAbierta();
 
@@ -111,10 +119,42 @@ class _SoloConLaAppAbierta extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.sm),
-      child: Text(
-        'En iPhone el aviso suena con la app abierta.',
-        textAlign: TextAlign.center,
-        style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          children: [
+            // El par tinte/tinta de los medallones, que ya pasa los 3:1. El
+            // glifo no se lee: la frase lo dice todo.
+            ExcludeSemantics(
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTint,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: const Icon(
+                  Icons.phone_iphone_outlined,
+                  size: 18,
+                  color: AppColors.primaryAccessible,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'En iPhone el aviso suena con la app abierta.',
+                style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -218,16 +258,31 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
     final selecting = selection.active;
     final selected = selection.selected;
 
+    // Lo que espera y lo que ya sonó iban en una sola lista, distinguidos
+    // solo por el color del medallón (dueño, 2026-09-30: «no se ve al nivel
+    // de la app»). Ahora van en dos grupos con su encabezado, como las
+    // secciones de una lista de Ajustes en iOS: se ve de un vistazo qué
+    // sigue en pie, y el lector de pantalla salta de grupo en grupo.
+    final esperando = entries.where((e) => !e.sent).toList();
+    final enviados = entries.where((e) => e.sent).toList();
+    final filas = <Object>[
+      if (esperando.isNotEmpty) ...['Esperando', ...esperando],
+      if (enviados.isNotEmpty) ...['Enviados', ...enviados],
+    ];
+
     return Column(
       children: [
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(
-                20, AppSpacing.sm, 20, AppSpacing.xl),
-            itemCount: entries.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+          child: ListView.builder(
+            padding:
+                const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.xl),
+            itemCount: filas.length,
             itemBuilder: (context, index) {
-              final entry = entries[index];
+              final fila = filas[index];
+              if (fila is String) {
+                return _Encabezado(fila, primero: index == 0);
+              }
+              final entry = fila as AlertHistoryEntry;
               final pos = positions.cast<BusPosition?>().firstWhere(
                     (p) => p?.busId == entry.busId,
                     orElse: () => null,
@@ -238,32 +293,41 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                               location.lat!, location.lon!, pos.lat, pos.lon)
                           .round()
                       : null;
-              return _TileEntrance(
-                key: ValueKey(entry.busId),
-                busId: entry.busId,
-                yaEntraron: _yaEntraron,
-                // El desfase se topa a los seis primeros: más allá, la
-                // espera del último se notaría más que el efecto.
-                orden: index.clamp(0, 5),
-                child: _AlertTile(
-                  entry: entry,
-                  routeName: entry.routeName ??
-                      (route?.id == entry.routeId ? route?.name : null),
-                  distanceMeters: distanceMeters,
-                  selecting: selecting,
-                  selected: selected.contains(entry.busId),
-                  onToggleSelect: () => ref
-                      .read(alertSelectionProvider.notifier)
-                      .toggle(entry.busId),
-                  onDisable: () {
-                    ref
-                        .read(activeAlertsProvider.notifier)
-                        .deactivateAlert(entry.busId);
-                    ref
-                        .read(proximityAlertsProvider.notifier)
-                        .disarmAlert(entry.busId);
-                    ref.read(alertHistoryProvider.notifier).remove(entry.busId);
-                  },
+              // El puesto entre los avisos, sin contar los encabezados: el
+              // escalón es entre tarjetas.
+              final orden = entries.indexOf(entry);
+              return Padding(
+                // 12 entre tarjetas, como antes el separador.
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TileEntrance(
+                  key: ValueKey(entry.busId),
+                  busId: entry.busId,
+                  yaEntraron: _yaEntraron,
+                  // El desfase se topa a los seis primeros: más allá, la
+                  // espera del último se notaría más que el efecto.
+                  orden: orden.clamp(0, 5),
+                  child: _AlertTile(
+                    entry: entry,
+                    routeName: entry.routeName ??
+                        (route?.id == entry.routeId ? route?.name : null),
+                    distanceMeters: distanceMeters,
+                    selecting: selecting,
+                    selected: selected.contains(entry.busId),
+                    onToggleSelect: () => ref
+                        .read(alertSelectionProvider.notifier)
+                        .toggle(entry.busId),
+                    onDisable: () {
+                      ref
+                          .read(activeAlertsProvider.notifier)
+                          .deactivateAlert(entry.busId);
+                      ref
+                          .read(proximityAlertsProvider.notifier)
+                          .disarmAlert(entry.busId);
+                      ref
+                          .read(alertHistoryProvider.notifier)
+                          .remove(entry.busId);
+                    },
+                  ),
                 ),
               );
             },
@@ -289,8 +353,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                         disabledBackgroundColor: AppColors.divider,
                         disabledForegroundColor: AppColors.textBody,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.pill),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                       ),
                       onPressed: selected.isEmpty
@@ -321,6 +384,43 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
               : const SizedBox(width: double.infinity),
         ),
       ],
+    );
+  }
+}
+
+/// El encabezado de un grupo de avisos: «Esperando» o «Enviados».
+///
+/// En `etiqueta` y en el gris secundario, como los rótulos de sección de
+/// iOS: ordena sin competir con el nombre de la ruta, que va en
+/// `subtitulo`. Es encabezado también para el lector de pantalla.
+class _Encabezado extends StatelessWidget {
+  const _Encabezado(this.texto, {required this.primero});
+
+  final String texto;
+
+  /// El primero va pegado a lo de arriba; el segundo se separa del grupo
+  /// anterior lo bastante para que se lea como otro grupo y no como otra
+  /// tarjeta.
+  final bool primero;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.xs,
+        primero ? AppSpacing.sm : AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.sm,
+      ),
+      child: Semantics(
+        header: true,
+        child: Text(
+          texto,
+          style: AppTextStyles.etiqueta.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -465,6 +565,13 @@ class _AlertTile extends StatelessWidget {
               value: selected,
               onChanged: (_) => onToggleSelect(),
               activeColor: AppColors.primaryDeep,
+              // Redonda, como la selección de Fotos o Mensajes: una casilla
+              // cuadrada junto a tarjetas redondeadas se veía de formulario.
+              shape: const CircleBorder(),
+              side: const BorderSide(
+                color: AppColors.textSecondary,
+                width: 1.5,
+              ),
               visualDensity: VisualDensity.compact,
             ),
           )
@@ -481,9 +588,20 @@ class _AlertTile extends StatelessWidget {
                 button: true,
                 child: TextButton(
                   onPressed: onDisable,
+                  // Píldora tonal: era texto suelto, que junto a una tarjeta
+                  // con placa y medallón no se leía como botón. Gris de
+                  // superficie y no verde: desactivar no es la acción
+                  // principal de la pantalla. El blanco sigue siendo de 48
+                  // (`padded`) aunque la píldora mida 36.
                   style: TextButton.styleFrom(
                     textStyle: AppTextStyles.etiqueta,
                     foregroundColor: AppColors.primaryDeep,
+                    backgroundColor: AppColors.surfaceMuted,
+                    side: const BorderSide(color: AppColors.hairline),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    minimumSize: const Size(0, 36),
+                    tapTargetSize: MaterialTapTargetSize.padded,
                   ),
                   child: const Text('Desactivar'),
                 ),
@@ -497,16 +615,27 @@ class _AlertTile extends StatelessWidget {
     // debajo de ese umbral la fila es exactamente la de antes.
     final accionAbajo = MediaQuery.textScalerOf(context).scale(10) > 15;
 
+    // El estado, con un glifo que lo dice de un vistazo: el bus ya tiene
+    // distancia, no da señal o el aviso ya sonó. El ámbar es solo para
+    // «sin señal», lo único que pide atención.
+    final (IconData iconoEstado, Color tintaEstado) = sent
+        ? (Icons.check_circle_outline, AppColors.primaryAccessible)
+        : distanceMeters != null
+            ? (Icons.near_me_outlined, AppColors.primaryAccessible)
+            : (Icons.schedule, AppColors.warningAccessible);
+
     final fila = Row(
       children: [
+        // Medallón de 44 (era 48 con radio de 16: casi un círculo que no
+        // llegaba a serlo). Verde mientras espera; en gris cuando ya sonó,
+        // porque lo enviado es historia y no debe pesar como lo vigente.
         Container(
-          width: 48,
-          height: 48,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: sent ? AppColors.warningLight : AppColors.primaryTint,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            color: sent ? AppColors.surfaceMuted : AppColors.primaryTint,
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          // El glifo dice lo mismo que el subtítulo: enviado o esperando.
           child: ExcludeSemantics(
             child: Icon(
               sent
@@ -516,9 +645,9 @@ class _AlertTile extends StatelessWidget {
               // tinte, el color de relleno se queda en 2,8:1 y la norma
               // pide 3:1 hasta para un icono.
               color: sent
-                  ? AppColors.warningAccessible
+                  ? AppColors.textSecondary
                   : AppColors.primaryAccessible,
-              size: 24,
+              size: 22,
             ),
           ),
         ),
@@ -527,19 +656,19 @@ class _AlertTile extends StatelessWidget {
           child: Semantics(
             label: dicha,
             excludeSemantics: true,
+            // La ruta escrita y, debajo, la placa en su lámina blanca: la
+            // misma de la hoja de distancia, para cotejarla con el bus que
+            // llega. Antes iban en una línea, «Ruta - WGV705», y la placa
+            // se perdía al final del nombre.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  routePlateLabel(
-                    busId: entry.busId,
-                    routeName: routeName,
-                    routeId: entry.routeId,
-                  ),
+                  rutaLegible(routeName, entry.routeId) ?? 'Bus',
                   style: AppTextStyles.subtitulo,
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(subtitle, style: AppTextStyles.pie),
+                const SizedBox(height: 6),
+                PlacaBus(busPlaca(entry.busId)),
               ],
             ),
           ),
@@ -551,26 +680,79 @@ class _AlertTile extends StatelessWidget {
       ],
     );
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: selected ? AppColors.primaryDeep : AppColors.divider,
-          width: selected ? 1.5 : 1.0,
+    // El estado en una franja arena dentro de la tarjeta: separa lo que el
+    // aviso es (ruta y placa) de cómo va. Ya se dice en `dicha`; aquí no se
+    // vuelve a leer.
+    final estado = ExcludeSemantics(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.arena,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Row(
+          children: [
+            Icon(iconoEstado, size: 16, color: tintaEstado),
+            const SizedBox(width: AppSpacing.sm),
+            // `pie` en el gris de cuerpo y no en el secundario: es letra
+            // chica y es lo que el pasajero vino a mirar.
+            Expanded(
+              child: Text(
+                subtitle,
+                style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+              ),
+            ),
+          ],
         ),
       ),
-      child: accion != null && accionAbajo
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                fila,
-                const SizedBox(height: AppSpacing.sm),
-                Align(alignment: Alignment.centerRight, child: accion),
+    );
+
+    final tarjeta = AnimatedContainer(
+      key: ValueKey('aviso-${entry.busId}'),
+      duration: AppMotion.duracion(context, AppMotion.rapido),
+      curve: AppMotion.curvaEntrada,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: selected ? AppColors.primaryDeep : AppColors.hairline,
+          width: selected ? 1.5 : 1.0,
+        ),
+        // Solo lo que espera se levanta del fondo, con la misma sombra
+        // tenue de las píldoras del mapa: lo enviado se queda plano.
+        boxShadow: sent
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.primaryDeep.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
               ],
-            )
-          : fila,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          fila,
+          const SizedBox(height: 12),
+          estado,
+          if (accion != null && accionAbajo) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Align(alignment: Alignment.centerRight, child: accion),
+          ],
+        ],
+      ),
+    );
+
+    // En modo selección se marca tocando la tarjeta entera, como en Fotos:
+    // la casilla sola es un blanco chico en una esquina. Para el lector de
+    // pantalla la casilla, con su nombre, sigue siendo el control.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      excludeFromSemantics: true,
+      onTap: selecting ? onToggleSelect : null,
+      child: tarjeta,
     );
   }
 }
@@ -581,30 +763,46 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 40),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // Medallón con aro: el tinte al 50 % alrededor y el disco lleno
+            // en el centro, separado por un filo blanco. Era un cuadrado
+            // redondeado de 72 sin más, más chico que todo lo que lo rodea.
             Container(
-              width: 72,
-              height: 72,
+              width: 112,
+              height: 112,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.primaryTint,
-                borderRadius: BorderRadius.circular(AppRadius.card),
+                shape: BoxShape.circle,
+                color: AppColors.primaryTint.withValues(alpha: 0.5),
               ),
-              // La campana repite en dibujo el título que va debajo.
-              child: const ExcludeSemantics(
-                child: Icon(
-                  Icons.notifications_none_outlined,
-                  color: AppColors.primary,
-                  size: 36,
+              child: Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryTint,
+                  border: Border.all(color: AppColors.surface, width: 4),
+                ),
+                // La campana repite en dibujo el título que va debajo. En la
+                // variante accesible: el verde de relleno sobre su propio
+                // tinte se queda por debajo del 3:1 que pide un icono.
+                child: const ExcludeSemantics(
+                  child: Icon(
+                    Icons.notifications_none_outlined,
+                    color: AppColors.primaryAccessible,
+                    size: 34,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'No tienes avisos activos',
+              textAlign: TextAlign.center,
               style: AppTextStyles.subtitulo,
             ),
             const SizedBox(height: AppSpacing.sm),

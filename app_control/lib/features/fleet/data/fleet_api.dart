@@ -8,21 +8,23 @@ class FleetApi {
   /// no `AppConfig.backendUrl`: si el túnel no contestó y el panel entró por
   /// el respaldo, la flota tiene que pedirse al mismo sitio.
   FleetApi({required String baseUrl, Dio? dio})
-      : _dio = dio ??
-            Dio(BaseOptions(
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: baseUrl,
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 8),
-            ));
+            ),
+          );
 
   final Dio _dio;
 
   /// A qué backend pregunta.
   String get baseUrl => _dio.options.baseUrl;
 
-  Options _auth(String token) => Options(
-        headers: {'Authorization': 'Bearer $token'},
-      );
+  Options _auth(String token) =>
+      Options(headers: {'Authorization': 'Bearer $token'});
 
   /// Convierte un 401 en una señal clara de "tu sesión expiró" para que la
   /// app cierre sesión con un aviso en vez de quedarse con errores genéricos.
@@ -38,10 +40,12 @@ class FleetApi {
   }
 
   Future<List<FleetBus>> fetchPositions(String token) async {
-    final response = await _guard(() => _dio.get<Map<String, dynamic>>(
-      '/api/fleet/positions',
-      options: _auth(token),
-    ));
+    final response = await _guard(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/fleet/positions',
+        options: _auth(token),
+      ),
+    );
     final buses = response.data!['buses'] as List<dynamic>;
     return buses
         .map((b) => FleetBus.fromJson(Map<String, dynamic>.from(b as Map)))
@@ -49,31 +53,41 @@ class FleetApi {
   }
 
   Future<List<FleetRoute>> fetchRoutes(String token) async {
-    final response = await _guard(() => _dio.get<Map<String, dynamic>>(
-      '/api/fleet/routes',
-      options: _auth(token),
-    ));
+    final response = await _guard(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/fleet/routes',
+        options: _auth(token),
+      ),
+    );
     final routes = response.data!['routes'] as List<dynamic>;
     return routes
         .map((r) => FleetRoute.fromJson(Map<String, dynamic>.from(r as Map)))
         .toList();
   }
 
-  Future<FleetBus> setVisibility(String token, String busId, bool visible) async {
-    final response = await _guard(() => _dio.post<Map<String, dynamic>>(
-      '/api/fleet/buses/$busId/visibility',
-      data: {'visible': visible},
-      options: _auth(token),
-    ));
+  Future<FleetBus> setVisibility(
+    String token,
+    String busId,
+    bool visible,
+  ) async {
+    final response = await _guard(
+      () => _dio.post<Map<String, dynamic>>(
+        '/api/fleet/buses/$busId/visibility',
+        data: {'visible': visible},
+        options: _auth(token),
+      ),
+    );
     return FleetBus.fromJson(response.data!);
   }
 
   Future<int> setAllVisibility(String token, bool visible) async {
-    final response = await _guard(() => _dio.post<Map<String, dynamic>>(
-      '/api/fleet/buses/visibility',
-      data: {'visible': visible},
-      options: _auth(token),
-    ));
+    final response = await _guard(
+      () => _dio.post<Map<String, dynamic>>(
+        '/api/fleet/buses/visibility',
+        data: {'visible': visible},
+        options: _auth(token),
+      ),
+    );
     return (response.data!['count'] as num).toInt();
   }
 
@@ -83,11 +97,17 @@ class FleetApi {
     String? routeId,
     String? interno,
   }) async {
-    final response = await _guard(() => _dio.post<Map<String, dynamic>>(
-      '/api/fleet/buses',
-      data: {'placa': placa, 'routeId': routeId ?? '', 'interno': interno ?? ''},
-      options: _auth(token),
-    ));
+    final response = await _guard(
+      () => _dio.post<Map<String, dynamic>>(
+        '/api/fleet/buses',
+        data: {
+          'placa': placa,
+          'routeId': routeId ?? '',
+          'interno': interno ?? '',
+        },
+        options: _auth(token),
+      ),
+    );
     return FleetBus.fromJson(response.data!);
   }
 
@@ -98,50 +118,56 @@ class FleetApi {
     String? routeId,
     String? interno,
   }) async {
-    final response = await _guard(() => _dio.patch<Map<String, dynamic>>(
-      '/api/fleet/buses/$busId',
-      data: {
-        'placa': ?placa,
-        'routeId': ?routeId,
-        'interno': ?interno,
-      },
-      options: _auth(token),
-    ));
+    final response = await _guard(
+      () => _dio.patch<Map<String, dynamic>>(
+        '/api/fleet/buses/$busId',
+        data: {'placa': ?placa, 'routeId': ?routeId, 'interno': ?interno},
+        options: _auth(token),
+      ),
+    );
     return FleetBus.fromJson(response.data!);
   }
 
   Future<FleetRoute> createRoute(String token, {required String name}) async {
-    final response = await _guard(() => _dio.post<Map<String, dynamic>>(
-      '/api/fleet/routes',
-      data: {'routeId': '', 'name': name},
-      options: _auth(token),
-    ));
+    final response = await _guard(
+      () => _dio.post<Map<String, dynamic>>(
+        '/api/fleet/routes',
+        data: {'routeId': '', 'name': name},
+        options: _auth(token),
+      ),
+    );
     return FleetRoute.fromJson(response.data!);
   }
 
-  Future<FleetRoute> renameRoute(String token, String routeId, {required String name}) async {
-    final response = await _guard(() => _dio.patch<Map<String, dynamic>>(
-      '/api/fleet/routes/$routeId',
-      data: {'name': name},
-      options: _auth(token),
-    ));
+  Future<FleetRoute> renameRoute(
+    String token,
+    String routeId, {
+    required String name,
+  }) async {
+    final response = await _guard(
+      () => _dio.patch<Map<String, dynamic>>(
+        '/api/fleet/routes/$routeId',
+        data: {'name': name},
+        options: _auth(token),
+      ),
+    );
     return FleetRoute.fromJson(response.data!);
   }
 
   Future<void> deleteRoute(String token, String routeId) async {
-    await _guard(() => _dio.delete<void>(
-      '/api/fleet/routes/$routeId',
-      options: _auth(token),
-    ));
+    await _guard(
+      () => _dio.delete<void>(
+        '/api/fleet/routes/$routeId',
+        options: _auth(token),
+      ),
+    );
   }
 
   Future<void> deleteBus(String token, String busId) async {
-    await _guard(() => _dio.delete<void>(
-      '/api/fleet/buses/$busId',
-      options: _auth(token),
-    ));
+    await _guard(
+      () => _dio.delete<void>('/api/fleet/buses/$busId', options: _auth(token)),
+    );
   }
-
 }
 
 /// La sesión del admin expiró o fue revocada (token inválido, 401).

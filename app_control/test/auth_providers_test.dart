@@ -399,7 +399,9 @@ void main() {
       });
       final notifier = AuthNotifier(
         api: _FakeAuthApi(
-          loginError: const AuthApiException('Usuario o contraseña incorrectos.'),
+          loginError: const AuthApiException(
+            'Usuario o contraseña incorrectos.',
+          ),
         ),
         storage: storage,
       );
@@ -423,19 +425,22 @@ void main() {
       expect((await notifier.credencialesRecordadas())?.usuario, 'operador');
     });
 
-    test('si el almacén se niega, no hay nada recordado y se entra igual', () async {
-      final storage = _FakeSecureStorage()..falla = true;
-      final notifier = AuthNotifier(
-        api: _FakeAuthApi(loginResult: session),
-        storage: storage,
-      );
+    test(
+      'si el almacén se niega, no hay nada recordado y se entra igual',
+      () async {
+        final storage = _FakeSecureStorage()..falla = true;
+        final notifier = AuthNotifier(
+          api: _FakeAuthApi(loginResult: session),
+          storage: storage,
+        );
 
-      expect(await notifier.credencialesRecordadas(), isNull);
-      expect(
-        await notifier.login('operador', 'clave-de-prueba', recordar: true),
-        isTrue,
-      );
-    });
+        expect(await notifier.credencialesRecordadas(), isNull);
+        expect(
+          await notifier.login('operador', 'clave-de-prueba', recordar: true),
+          isTrue,
+        );
+      },
+    );
   });
 
   // En el Mac la app va firmada «ad hoc» (sin equipo de Apple): el llavero

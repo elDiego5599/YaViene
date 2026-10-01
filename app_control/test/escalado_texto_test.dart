@@ -24,7 +24,9 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
 
 final _conBackend = [
-  backendUrlProvider.overrideWith(() => BackendUrl.fija('http://localhost:3000')),
+  backendUrlProvider.overrideWith(
+    () => BackendUrl.fija('http://localhost:3000'),
+  ),
 ];
 
 // Una pantalla de portátil corriente, no la del Mac donde se trabaja.
@@ -35,9 +37,9 @@ const _portatil = Size(1366, 768);
 final _fila = (_portatil.width - 16 * 2 - 12) / 4 - 2 - 24;
 
 Future<void> _cargarFuentes() async {
-  final manifiesto = json.decode(
-    await rootBundle.loadString('FontManifest.json'),
-  ) as List<dynamic>;
+  final manifiesto =
+      json.decode(await rootBundle.loadString('FontManifest.json'))
+          as List<dynamic>;
   for (final entrada in manifiesto.cast<Map<String, dynamic>>()) {
     final cargador = FontLoader(entrada['family'] as String);
     final fuentes = (entrada['fonts'] as List).cast<Map<String, dynamic>>();
@@ -51,8 +53,9 @@ Future<void> _cargarFuentes() async {
 void main() {
   setUpAll(_cargarFuentes);
 
-  testWidgets('el texto del sistema a 3× llega al panel recortado a 2×',
-      (tester) async {
+  testWidgets('el texto del sistema a 3× llega al panel recortado a 2×', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(_portatil);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     tester.platformDispatcher.textScaleFactorTestValue = 3.0;
@@ -83,8 +86,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a $escala× la cabecera del panel cabe sin desbordes',
-        (tester) async {
+    testWidgets('a $escala× la cabecera del panel cabe sin desbordes', (
+      tester,
+    ) async {
       await tester.binding.setSurfaceSize(_portatil);
       addTearDown(() => tester.binding.setSurfaceSize(null));
       tester.platformDispatcher.textScaleFactorTestValue = escala;
@@ -109,49 +113,53 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a $escala× la fila de un bus cabe sin desbordes',
-        (tester) async {
-      tester.platformDispatcher.textScaleFactorTestValue = escala;
-      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    testWidgets(
+      'a $escala× la fila de un bus cabe sin desbordes',
+      (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = escala;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: Scaffold(
-            body: ListView(
-              children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: SizedBox(
-                    width: _fila,
-                    child: FleetListTile(
-                      bus: const FleetBus(
-                        busId: 'WWW-000',
-                        companyId: 'empresa',
-                        placa: 'WWW-000',
-                        driverName: 'Conductor de nombre largo',
-                        visible: true,
-                        online: true,
-                        isGhost: false,
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: ListView(
+                children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: _fila,
+                      child: FleetListTile(
+                        bus: const FleetBus(
+                          busId: 'WWW000',
+                          companyId: 'empresa',
+                          placa: 'WWW000',
+                          driverName: 'Conductor de nombre largo',
+                          visible: true,
+                          online: true,
+                          isGhost: false,
+                        ),
+                        selected: false,
+                        updating: false,
+                        routeName: 'Vivero Paraíso',
+                        onTap: () {},
+                        onToggle: (_) {},
+                        onEdit: () {},
                       ),
-                      selected: false,
-                      updating: false,
-                      routeName: 'Vivero Paraíso',
-                      onTap: () {},
-                      onToggle: (_) {},
-                      onEdit: () {},
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(tester.takeException(), isNull);
-    }, variant: const TargetPlatformVariant(
-      <TargetPlatform>{TargetPlatform.macOS, TargetPlatform.windows},
-    ));
+        expect(tester.takeException(), isNull);
+      },
+      variant: const TargetPlatformVariant(<TargetPlatform>{
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+      }),
+    );
   }
 }

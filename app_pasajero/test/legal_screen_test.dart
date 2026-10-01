@@ -31,8 +31,7 @@ void main() {
     }
   });
 
-  testWidgets('el router lleva a cada documento por su camino',
-      (tester) async {
+  testWidgets('el router lleva a cada documento por su camino', (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final router = container.read(appRouterProvider);

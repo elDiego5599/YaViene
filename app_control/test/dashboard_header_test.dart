@@ -44,8 +44,9 @@ Future<ProviderContainer> _montar(
 }
 
 void main() {
-  testWidgets('en el túnel la cabecera no dice nada del respaldo',
-      (tester) async {
+  testWidgets('en el túnel la cabecera no dice nada del respaldo', (
+    tester,
+  ) async {
     await _montar(
       tester,
       () => BackendUrl(principal, principal: principal, respaldo: respaldo),
@@ -55,8 +56,9 @@ void main() {
     expect(find.text('Conectado al respaldo'), findsNothing);
   });
 
-  testWidgets('en el respaldo lo dice, al lado del estado de la conexión',
-      (tester) async {
+  testWidgets('en el respaldo lo dice, al lado del estado de la conexión', (
+    tester,
+  ) async {
     await _montar(
       tester,
       () => BackendUrl(respaldo, principal: principal, respaldo: respaldo),
@@ -74,29 +76,32 @@ void main() {
   });
 
   testWidgets(
-      'aparece sola cuando el panel se muda al respaldo con la cabecera a la '
-      'vista', (tester) async {
-    final panel = await _montar(
-      tester,
-      () => BackendUrl(
-        principal,
-        principal: principal,
-        respaldo: respaldo,
-        sonda: (url, espera) async => url == respaldo,
-      ),
-    );
-    expect(find.text('Conectado al respaldo'), findsNothing);
+    'aparece sola cuando el panel se muda al respaldo con la cabecera a la '
+    'vista',
+    (tester) async {
+      final panel = await _montar(
+        tester,
+        () => BackendUrl(
+          principal,
+          principal: principal,
+          respaldo: respaldo,
+          sonda: (url, espera) async => url == respaldo,
+        ),
+      );
+      expect(find.text('Conectado al respaldo'), findsNothing);
 
-    await panel.read(backendUrlProvider.notifier).reResolver();
-    await tester.pump();
+      await panel.read(backendUrlProvider.notifier).reResolver();
+      await tester.pump();
 
-    expect(find.text('Conectado al respaldo'), findsOneWidget);
-  });
+      expect(find.text('Conectado al respaldo'), findsOneWidget);
+    },
+  );
 
   // Salir revoca el token en el servidor para todas las sesiones de la
   // cuenta (T3.10): el botón lo dice antes de pulsarlo.
-  testWidgets('Salir avisa de que cierra la sesión en todos los equipos',
-      (tester) async {
+  testWidgets('Salir avisa de que cierra la sesión en todos los equipos', (
+    tester,
+  ) async {
     await _montar(
       tester,
       () => BackendUrl(principal, principal: principal, respaldo: respaldo),

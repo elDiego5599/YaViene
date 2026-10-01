@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/providers/red_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'realtime_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
@@ -86,14 +87,16 @@ void main() {
     await coincideConOro(tester, 'chip_ubicacion_manual_con_pista');
   });
 
-  for (final (estado, nombre) in const [
-    (ConnectionStatus.disconnected, 'sin_conexion'),
-    (ConnectionStatus.reconnecting, 'reconectando'),
+  for (final (red, estado, nombre) in const [
+    (true, ConnectionStatus.disconnected, 'sin_servidor'),
+    (true, ConnectionStatus.reconnecting, 'conectando'),
+    (false, ConnectionStatus.disconnected, 'sin_internet'),
   ]) {
     testWidgets('píldora de conexión · $nombre', (tester) async {
       fijarPantalla(tester);
       final container = ProviderContainer(overrides: [
         connectionStateProvider.overrideWith((ref) => Stream.value(estado)),
+        hayRedProvider.overrideWith((ref) => Stream.value(red)),
       ]);
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -107,11 +110,12 @@ void main() {
           ),
         ),
       );
-      // `PulsingDot` late para siempre: `pumpAndSettle` no terminaría nunca.
-      // Un salto fijo desde el arranque deja el punto en la misma fase en
-      // cada corrida.
+      // Los puntos de espera de «Conectando…» giran para siempre:
+      // `pumpAndSettle` no terminaría nunca. Un salto fijo desde el arranque
+      // los deja en la misma fase en cada corrida, y pasada la entrada de
+      // la píldora.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       await coincideConOro(tester, 'chip_conexion_$nombre');
     });
   }

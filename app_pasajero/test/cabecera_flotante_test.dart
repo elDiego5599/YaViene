@@ -18,10 +18,8 @@ Widget _host({required bool apartada, bool sinAnimaciones = false}) {
 double _opacidad(WidgetTester tester) =>
     tester.widget<FadeTransition>(find.byType(FadeTransition)).opacity.value;
 
-Offset _desplazamiento(WidgetTester tester) => tester
-    .widget<SlideTransition>(find.byType(SlideTransition))
-    .position
-    .value;
+Offset _desplazamiento(WidgetTester tester) =>
+    tester.widget<SlideTransition>(find.byType(SlideTransition)).position.value;
 
 void main() {
   testWidgets('con el selector cerrado la cabecera está en su sitio',

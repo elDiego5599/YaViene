@@ -11,21 +11,20 @@ Map<String, dynamic> _bus({
   required int capturado,
   required int emitido,
   String busId = 'BUS-ABC123',
-}) =>
-    {
-      'busId': busId,
-      'routeId': 'R-101',
-      'lat': 10.988,
-      'lon': -74.789,
-      'speedKmh': 20.0,
-      'heading': 90.0,
-      'timestamp': DateTime.now().toUtc().toIso8601String(),
-      'capturedAt': capturado,
-      'emittedAt': emitido,
-      'isGhost': false,
-      'visible': true,
-      'online': true,
-    };
+}) => {
+  'busId': busId,
+  'routeId': 'R-101',
+  'lat': 10.988,
+  'lon': -74.789,
+  'speedKmh': 20.0,
+  'heading': 90.0,
+  'timestamp': DateTime.now().toUtc().toIso8601String(),
+  'capturedAt': capturado,
+  'emittedAt': emitido,
+  'isGhost': false,
+  'visible': true,
+  'online': true,
+};
 
 void main() {
   test('cada bus que llega por el socket deja su muestra de latencia', () {
@@ -50,7 +49,11 @@ void main() {
         'companyId': 'EMP-01',
         'buses': [
           _bus(capturado: ahora - 900, emitido: ahora - 100),
-          _bus(capturado: ahora - 800, emitido: ahora - 50, busId: 'BUS-DEF456'),
+          _bus(
+            capturado: ahora - 800,
+            emitido: ahora - 50,
+            busId: 'BUS-DEF456',
+          ),
         ],
       },
     ]);

@@ -8,7 +8,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/user_locat
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
 
 /// La tarjeta del bus con el diseño que eligió el dueño (2026-09-30, «A»):
-/// «BUS» y la placa amarilla encabezan, un filo la separa de la distancia,
+/// «BUS» y la placa blanca encabezan, un filo la separa de la distancia,
 /// y lo que haya que explicar va en una nota con su ícono, no en un
 /// párrafo gris. La franja de color de arriba se fue: el número ya lleva
 /// la urgencia en su color.
@@ -68,7 +68,8 @@ void main() {
         lon: userLon,
       ),
     );
-    container.read(selectedRouteProvider.notifier)
+    container
+        .read(selectedRouteProvider.notifier)
         .select(const RouteInfo(id: 'R1', name: 'Ruta 1', companyId: 'C1'));
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     await tester.pump();
@@ -77,7 +78,7 @@ void main() {
     return container;
   }
 
-  testWidgets('la placa va en amarillo, con letra negra y filo oscuro',
+  testWidgets('la placa va en blanco, con letra negra y filo oscuro',
       (tester) async {
     await montar(tester, rutaCerca: true);
 
@@ -90,6 +91,7 @@ void main() {
     );
     final caja = tester.widget<Container>(placa).decoration! as BoxDecoration;
     expect(caja.color, AppColors.placa);
+    expect(caja.color, const Color(0xFFFFFFFF));
     expect((caja.border! as Border).top.color, AppColors.textPrimary);
     final letra = tester.widget<Text>(
       find.descendant(of: placa, matching: find.text('A-1')),
@@ -177,8 +179,8 @@ void main() {
     expect(find.textContaining('El recorrido de esta ruta'), findsNothing);
 
     final nota = find.byKey(const ValueKey('hoja-nota'));
-    expect(find.descendant(of: nota, matching: find.text(nueva)),
-        findsOneWidget);
+    expect(
+        find.descendant(of: nota, matching: find.text(nueva)), findsOneWidget);
     final icono = tester.widget<Icon>(
       find.descendant(of: nota, matching: find.byType(Icon)),
     );

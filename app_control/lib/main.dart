@@ -57,11 +57,13 @@ Future<void> main() async {
   final url = await backendUrl;
   final container = ProviderContainer(
     overrides: [
-      backendUrlProvider.overrideWith(() => BackendUrl(
-            url,
-            principal: AppConfig.backendUrl,
-            respaldo: AppConfig.fallbackBackendUrl,
-          )),
+      backendUrlProvider.overrideWith(
+        () => BackendUrl(
+          url,
+          principal: AppConfig.backendUrl,
+          respaldo: AppConfig.fallbackBackendUrl,
+        ),
+      ),
     ],
   );
   try {
@@ -69,7 +71,12 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('restoreSession falló en el arranque: $e');
   }
-  runApp(UncontrolledProviderScope(container: container, child: const YaVieneControlApp()));
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const YaVieneControlApp(),
+    ),
+  );
 }
 
 class YaVieneControlApp extends ConsumerWidget {
@@ -88,10 +95,8 @@ class YaVieneControlApp extends ConsumerWidget {
       // no desbordaba pero el nombre del conductor, que entonces llevaba,
       // quedaba en 47 de sus 462 puntos: solo se leían los puntos
       // suspensivos (test/escalado_texto_test.dart).
-      builder: (context, child) => MediaQuery.withClampedTextScaling(
-        maxScaleFactor: 2.0,
-        child: child!,
-      ),
+      builder: (context, child) =>
+          MediaQuery.withClampedTextScaling(maxScaleFactor: 2.0, child: child!),
     );
   }
 }

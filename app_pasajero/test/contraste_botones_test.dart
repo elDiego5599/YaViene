@@ -111,8 +111,7 @@ void main() {
         ),
         GoRoute(
           path: '/map',
-          builder: (context, state) =>
-              const Scaffold(body: Text('el mapa')),
+          builder: (context, state) => const Scaffold(body: Text('el mapa')),
         ),
       ],
     );
@@ -178,8 +177,7 @@ void main() {
         ),
       );
       await tester.pump();
-      (container.read(userLocationProvider.notifier) as _TestUserLocation)
-          .set(
+      (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
         const UserLocationState(
           mode: UserLocationMode.manual,
           lat: userLat,

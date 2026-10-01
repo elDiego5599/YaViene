@@ -6,12 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/placa_bus.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
-
 
 class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
@@ -21,10 +21,10 @@ void main() {
   const userLat = 6.2442;
   const userLon = -75.5812;
 
-  BusPosition bus(String id) => BusPosition(
+  BusPosition bus(String id, {double lat = userLat}) => BusPosition(
         busId: id,
         routeId: 'R1',
-        lat: userLat,
+        lat: lat,
         lon: userLon,
         heading: 0,
         speedKmh: 30,
@@ -51,13 +51,14 @@ void main() {
       // camino en que el aviso sí salió: se sustituye por uno que responde
       // que sí.
       proximityAlertsProvider.overrideWith(
-        (ref) => ProximityAlertsNotifier(ref, notify: ({
-          required String busId,
-          String? routeName,
-          String? routeId,
-          required int distanceMeters,
-        }) async =>
-            true),
+        (ref) => ProximityAlertsNotifier(ref,
+            notify: ({
+              required String busId,
+              String? routeName,
+              String? routeId,
+              required int distanceMeters,
+            }) async =>
+                true),
       ),
     ]);
     addTearDown(container.dispose);
@@ -95,6 +96,24 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  /// La tarjeta de un aviso. La ruta va escrita y la placa en su lámina
+  /// blanca (`PlacaBus`), como en la hoja de distancia: ya no van las dos
+  /// juntas en una sola línea con guion.
+  Finder aviso(String busId) => find.byKey(ValueKey('aviso-$busId'));
+
+  void expectAviso(String busId, {String ruta = 'Ruta 1'}) {
+    expect(aviso(busId), findsOneWidget);
+    expect(find.descendant(of: aviso(busId), matching: find.text(ruta)),
+        findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.descendant(of: aviso(busId), matching: find.byType(PlacaBus)),
+        matching: find.text(busId),
+      ),
+      findsOneWidget,
+    );
+  }
+
   testWidgets('estado vacío sin avisos ni historial', (tester) async {
     await pumpScreen(tester, const []);
 
@@ -107,13 +126,13 @@ void main() {
     arm(container, 'A-1');
     await tester.pump();
 
-    expect(find.text('Ruta 1 - A-1'), findsOneWidget);
+    expectAviso('A-1');
     expect(find.textContaining('esperando aviso'), findsOneWidget);
 
     await tester.tap(find.text('Desactivar'));
     await tester.pump();
 
-    expect(find.text('Ruta 1 - A-1'), findsNothing);
+    expect(aviso('A-1'), findsNothing);
     expect(container.read(activeAlertsProvider), isEmpty);
     expect(container.read(alertHistoryProvider), isEmpty);
   });
@@ -147,7 +166,7 @@ void main() {
     await container.read(proximityAlertsProvider.notifier).check();
     await tester.pump();
 
-    expect(find.text('Ruta 1 - A-1'), findsOneWidget);
+    expectAviso('A-1');
     expect(find.textContaining('Notificación enviada'), findsOneWidget);
     expect(find.text('Desactivar'), findsNothing);
     // «Enviado» a la derecha repetía, en gris y más chico, lo que la línea
@@ -174,8 +193,8 @@ void main() {
     await tester.tap(find.text('Borrar 1'));
     await tester.pump();
 
-    expect(find.text('Ruta 1 - A-1'), findsNothing);
-    expect(find.text('Ruta 1 - A-2'), findsOneWidget);
+    expect(aviso('A-1'), findsNothing);
+    expectAviso('A-2');
     expect(container.read(activeAlertsProvider), {'A-2'});
   });
 
@@ -211,7 +230,7 @@ void main() {
 
       arm(container, 'A-1');
       await tester.pump();
-      expect(find.text('Ruta 1 - A-1'), findsOneWidget);
+      expectAviso('A-1');
       expect(find.text(soloConLaAppAbierta), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -225,5 +244,83 @@ void main() {
     arm(container, 'A-1');
     await tester.pump();
     expect(find.text(soloConLaAppAbierta), findsNothing);
+  });
+
+  // Rediseño del centro de avisos (dueño, 2026-09-30: «la noto bastante
+  // fea y no se ve al nivel de la app»). Lo que espera y lo que ya sonó
+  // iban mezclados en una sola lista, distinguidos solo por el color del
+  // medallón.
+  testWidgets('los avisos van en dos grupos: esperando arriba, enviados abajo',
+      (tester) async {
+    // A-2 lejos (unos 5 km al norte): sigue esperando. A-1 encima: suena.
+    final container =
+        await pumpScreen(tester, [bus('A-1'), bus('A-2', lat: userLat + 0.05)]);
+    arm(container, 'A-1');
+    arm(container, 'A-2');
+    await tester.pump();
+    await container.read(proximityAlertsProvider.notifier).check();
+    await tester.pump();
+
+    final esperando = find.text('Esperando');
+    final enviados = find.text('Enviados');
+    expect(esperando, findsOneWidget);
+    expect(enviados, findsOneWidget);
+    double y(Finder f) => tester.getTopLeft(f).dy;
+    expect(y(esperando), lessThan(y(aviso('A-2'))));
+    expect(y(aviso('A-2')), lessThan(y(enviados)));
+    expect(y(enviados), lessThan(y(aviso('A-1'))));
+    // Los encabezados se anuncian como tales: el lector salta de grupo en
+    // grupo en vez de leer la lista entera.
+    final semantica = tester.ensureSemantics();
+    expect(tester.getSemantics(esperando),
+        isSemantics(label: 'Esperando', isHeader: true));
+    semantica.dispose();
+  });
+
+  testWidgets('sin avisos enviados no sale el grupo «Enviados»',
+      (tester) async {
+    final container = await pumpScreen(tester, const []);
+    arm(container, 'A-1');
+    await tester.pump();
+    expect(find.text('Esperando'), findsOneWidget);
+    expect(find.text('Enviados'), findsNothing);
+  });
+
+  testWidgets('en modo selección, tocar la tarjeta entera la marca',
+      (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
+    arm(container, 'A-1');
+    arm(container, 'A-2');
+    await tester.pump();
+    final ruta =
+        find.descendant(of: aviso('A-1'), matching: find.text('Ruta 1'));
+
+    // Fuera del modo selección tocar la tarjeta no hace nada.
+    await tester.tap(ruta);
+    await tester.pump();
+    expect(find.byType(Checkbox), findsNothing);
+
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pump(const Duration(milliseconds: 300));
+    // La casilla es un blanco de 48 a la derecha; tocar el nombre de la
+    // ruta, que es donde el dedo va, también marca.
+    await tester.tap(ruta);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Borrar 1'), findsOneWidget);
+
+    await tester.tap(ruta);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Selecciona avisos'), findsOneWidget);
+    expect(container.read(activeAlertsProvider), {'A-1', 'A-2'});
+  });
+
+  testWidgets('la campana del estado vacío pasa el 3:1 sobre su medallón',
+      (tester) async {
+    await pumpScreen(tester, const []);
+    // Iba en el verde de relleno sobre su propio tinte, por debajo de lo
+    // que la norma pide hasta para un icono.
+    final campana =
+        tester.widget<Icon>(find.byIcon(Icons.notifications_none_outlined));
+    expect(campana.color, AppColors.primaryAccessible);
   });
 }

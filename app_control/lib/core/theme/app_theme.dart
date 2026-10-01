@@ -113,9 +113,10 @@ abstract class AppColors {
   // qué estado lo decide `BusEstado`, que es el único sitio con esa regla.
   //
   // Lo que sí se queda es que el bus del mapa va en verde y no en el coral
-  // del pasajero: OpenStreetMap pinta las arterias en salmón, y el coral
-  // —que allá va sobre un mapa vectorial de calles blancas— se perdía encima
-  // de ellas.
+  // del pasajero. Nació porque OpenStreetMap pintaba las arterias en salmón
+  // y el coral se perdía encima; desde que el panel pinta el mismo Voyager
+  // del pasajero (2026-09-30) esa razón ya no está, pero el verde es el del
+  // estado «en línea», y así lo lee el operador.
 
   static List<BoxShadow> get softShadow => core.AppShadows.soft;
   static List<BoxShadow> get floatingShadow => core.AppShadows.floating;

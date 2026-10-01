@@ -48,10 +48,11 @@ ProviderContainer _container({
     proximityAlertsProvider.overrideWith((ref) {
       return ProximityAlertsNotifier(ref,
           notify: (
-              {required String busId,
-              String? routeName,
-              String? routeId,
-              required int distanceMeters}) async => true);
+                  {required String busId,
+                  String? routeName,
+                  String? routeId,
+                  required int distanceMeters}) async =>
+              true);
     }),
     alertToggleProvider.overrideWith((ref) => AlertToggleController(
           ref,

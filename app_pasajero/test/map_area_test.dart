@@ -8,14 +8,12 @@ const double _kmPorGradoLat = 110.574;
 
 /// Grados de longitud a kilómetros a la altura de Barranquilla, donde un
 /// grado mide menos que en el ecuador por el coseno de la latitud.
-double _kmPorGradoLon(double lat) =>
-    111.320 * math.cos(lat * math.pi / 180.0);
+double _kmPorGradoLon(double lat) => 111.320 * math.cos(lat * math.pi / 180.0);
 
 void main() {
   const altoKm =
       (MapConstants.areaNorteLat - MapConstants.areaSurLat) * _kmPorGradoLat;
-  const centroLat =
-      (MapConstants.areaNorteLat + MapConstants.areaSurLat) / 2;
+  const centroLat = (MapConstants.areaNorteLat + MapConstants.areaSurLat) / 2;
   final anchoKm = (MapConstants.areaEsteLon - MapConstants.areaOesteLon) *
       _kmPorGradoLon(centroLat);
 
@@ -60,10 +58,8 @@ void main() {
     // píxel abarca menos latitud cuanto más al norte.
     const altoPantallaPt = 956.0;
     final mundoPx = 512 * math.pow(2, MapConstants.zoomMinimo);
-    final latVisible = altoPantallaPt *
-        360 /
-        mundoPx /
-        math.cos(centroLat * math.pi / 180.0);
+    final latVisible =
+        altoPantallaPt * 360 / mundoPx / math.cos(centroLat * math.pi / 180.0);
 
     expect(latVisible,
         lessThanOrEqualTo(MapConstants.areaNorteLat - MapConstants.areaSurLat),
@@ -81,10 +77,8 @@ void main() {
     // teléfono alto, que es el que menos margen deja.
     const altoPantallaPt = 956.0;
     final mundoPx = 512 * math.pow(2, MapConstants.zoomMinimo);
-    final latVisible = altoPantallaPt *
-        360 /
-        mundoPx /
-        math.cos(centroLat * math.pi / 180.0);
+    final latVisible =
+        altoPantallaPt * 360 / mundoPx / math.cos(centroLat * math.pi / 180.0);
     final margenKm =
         (MapConstants.areaNorteLat - MapConstants.areaSurLat - latVisible) *
             _kmPorGradoLat;
