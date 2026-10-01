@@ -12,3 +12,10 @@ PRODUCT_BUNDLE_IDENTIFIER = co.yaviene.yaVieneControl
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 co.yaviene. All rights reserved.
+
+// La firma de este Mac, si existe (Firma.local.xcconfig, fuera de git). Sin
+// ella la app sale «ad hoc» y el llavero la trata como una app nueva en cada
+// build: pregunta la contraseña una vez por entrada cada vez que se compila
+// (dueño, 2026-09-30). Con un certificado de equipo la reconoce siempre.
+// Opcional para que la CI, que no tiene certificado, compile igual.
+#include? "Firma.local.xcconfig"
