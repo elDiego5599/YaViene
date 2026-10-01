@@ -61,7 +61,7 @@ PANEL DE CONTROL (macOS) ─socket└──────────┬───�
 - El beat de caos de la demo **mata el backend en vivo y el stack se
   arregla solo** (los buses reaparecen moviéndose en < 30 s).
 - Respaldos WAL diarios con verificación de integridad.
-- Pre-vuelo `check-demo.sh`: túnel, buses publicando y DB fresca en 20 s.
+- Pre-vuelo `check-demo.sh`: túnel (`/api/ready`), buses publicando y DB fresca en 20 s; en el Mac, launchd, corriente, sueño, copia de < 2 h y logs.
 
 ## Datos
 

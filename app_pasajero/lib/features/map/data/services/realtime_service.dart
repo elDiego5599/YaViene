@@ -45,6 +45,10 @@ class RealtimeService implements RealtimeRepository {
   final MedidorLatencia _medidor;
 
   io.Socket? _socket;
+
+  /// Donde se abre, reconecta y suelta el socket: se traga el doble cierre
+  /// del paquete cuando el backend corta (`zona_socket.dart`).
+  final _zona = zonaSocket();
   final _subscriptions = <String>{};
   final _connectionStateController =
       StreamController<ConnectionStatus>.broadcast();
@@ -138,7 +142,9 @@ class RealtimeService implements RealtimeRepository {
       _busRemovedController.stream;
 
   @override
-  void connect() {
+  void connect() => _zona.run(_conectar);
+
+  void _conectar() {
     _quiereConexion = true;
     if (_socket?.connected == true) return;
     _soltarSocket();
@@ -249,7 +255,7 @@ class RealtimeService implements RealtimeRepository {
     if (url == _backendUrl) return;
     _backendUrl = url;
     if (_disposed || !_quiereConexion) return;
-    _soltarSocket();
+    _zona.run(_soltarSocket);
     connect();
   }
 
@@ -268,7 +274,7 @@ class RealtimeService implements RealtimeRepository {
     _retryTimer?.cancel();
     _retryTimer = null;
     _subscriptions.clear();
-    _socket?.disconnect();
+    _zona.run(() => _socket?.disconnect());
   }
 
   @override
@@ -284,7 +290,7 @@ class RealtimeService implements RealtimeRepository {
     _retryTimer?.cancel();
     _retryTimer = null;
     _subscriptions.clear();
-    _soltarSocket();
+    _zona.run(_soltarSocket);
     _connectionStateController.close();
     _busPositionController.close();
     _batchPositionController.close();

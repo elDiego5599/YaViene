@@ -33,6 +33,10 @@ class FleetSocketService {
 
   io.Socket? _socket;
 
+  /// Donde se abre, reconecta y suelta el socket: se traga el doble cierre
+  /// del paquete cuando el backend corta (`zona_socket.dart`).
+  final _zona = zonaSocket();
+
   /// Suelta el `onReconnectAttempt` del socket actual. Ese oyente se cuelga
   /// del `Manager` del socket, no del socket, y su `dispose` no lo suelta.
   void Function()? _soltarReconexion;
@@ -68,7 +72,9 @@ class FleetSocketService {
     _socket = null;
   }
 
-  void connect() {
+  void connect() => _zona.run(_conectar);
+
+  void _conectar() {
     if (_socket?.connected == true) return;
     _soltarSocket();
 
@@ -201,7 +207,7 @@ class FleetSocketService {
   void dispose() {
     _retryTimer?.cancel();
     _retryTimer = null;
-    _soltarSocket();
+    _zona.run(_soltarSocket);
     _busBatchController.close();
     _busPositionController.close();
     _busHiddenController.close();

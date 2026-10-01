@@ -86,8 +86,10 @@ curl -fsS "$url/api/companies" >/dev/null
 
 # La cuenta se crea escribiendo en la base, no por HTTP: el limitador del
 # admin deja 20 altas por minuto y esto no es lo que se está probando.
-(cd "$backend" && YA_VIENE_DB_PATH="$base" \
-  node scripts/crear-admin-empresa.mjs "$empresa" "$usuario" "$contrasena" "Empresa de prueba") >/dev/null
+# La contraseña va por CLAVE_PANEL y «-» en su sitio: el script ya no la
+# acepta como argumento (quedaría a la vista en `ps`, P3-3).
+(cd "$backend" && YA_VIENE_DB_PATH="$base" CLAVE_PANEL="$contrasena" \
+  node scripts/crear-admin-empresa.mjs "$empresa" "$usuario" - "Empresa de prueba") >/dev/null
 
 token="$(curl -fsS -X POST "$url/api/admin/login" \
   -H 'Content-Type: application/json' \
@@ -97,11 +99,17 @@ token="$(curl -fsS -X POST "$url/api/admin/login" \
 # La flota demo va apagada (sus doce buses son de otra empresa y ensucian el
 # log), así que la empresa empieza sin buses y `fleet:batch` llegaría vacío.
 # Uno basta para lo que se prueba: que el panel entra con su token y recibe
-# la flota de su empresa.
+# la flota de su empresa. Va en una ruta del catálogo de la empresa (P1-2:
+# una ruta ajena da 404), y la empresa nueva empieza sin ninguna. R-901
+# porque el id de ruta es único entre empresas: R-101 ya es de otra (409).
+curl -fsS -X POST "$url/api/fleet/routes" \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $token" \
+  -d '{"routeId":"R-901","name":"Ruta de prueba"}' >/dev/null
 curl -fsS -X POST "$url/api/fleet/buses" \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $token" \
-  -d '{"placa":"ABC123","routeId":"R-101","interno":"1"}' >/dev/null
+  -d '{"placa":"ABC123","routeId":"R-901","interno":"1"}' >/dev/null
 
 cd "$raiz/app_control"
 flutter test test/socket_fleet_test.dart \

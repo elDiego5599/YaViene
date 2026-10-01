@@ -14,7 +14,7 @@ en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
 | `ya_viene_core` | Lógica compartida entre las apps (tipos, distancia, utilidades). |
 | `ya_viene_pruebas` | Guías de prueba compartidas (contraste); solo como `dev_dependency`. |
 | `build-demo.sh` | Compila e instala las apps de la demo con un solo comando. |
-| `check-demo.sh` | Comprueba en 20 segundos que la demo esté viva antes de presentar. |
+| `check-demo.sh` | Comprueba en 20 segundos que la demo esté viva antes de presentar, y en el Mac el tablero del día (launchd, corriente, sueño, copias, logs). |
 
 ## Cómo funciona
 

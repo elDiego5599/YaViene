@@ -12,6 +12,9 @@ dependencies:
   flutter_riverpod: ^2.5.1
   equatable: ^2.0.5
   http: ^1.2.0
+  # Solo por `WebSocketConnectionClosed` (zona_socket.dart). Ya llega a las
+  # dos apps de la mano de socket_io_client; aquí se nombra la versión.
+  web_socket: ^1.0.1
 
 dev_dependencies:
   flutter_test:

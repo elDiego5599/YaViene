@@ -109,7 +109,7 @@
 - (none)
 
 ## Next Move
-- §15.A sigue con **T6.8 (glosario único)** y **T6.10 (UX del pasajero)**; después T5.6, T7.7, T3.14, simulacros b/d de T10.5, AUD-24, T10.3. PENDIENTE de decisión del usuario: **pushear los commits locales** `919e693` (app) y `f59767c` (web) — pidió «solo commit, sin push».
+- **2026-10-01**: §15.A cerrada salvo AUD-24 (el aviso del KGP sale de `maplibre_gl`, que no se sube). Hechas: T5.6 (`127e4bb`), T6.8 (`0ad22f3`, web `cbebad1`), T3.14 (`6ea563c`), T7.7 y la parte web de T7.1 (web `6e7f63d`, Lighthouse móvil dentro en las cuatro páginas), simulacros b y d de T10.5 (`tool/simulacros.sh`, con `zonaSocket()` en core) y T10.3 (`check-demo.sh` por grupos). Lo que sigue es del dueño: plan §2 y §15.B.
 - Recordatorios si vuelve a pedir entrega: backend/túnel arriba; integral con `--dart-define=DISABLE_MAP_GUIDE=true` (reintentar si el 1º falla); `flutter build apk --release --dart-define=BACKEND_URL=...` → `~/Desktop/APKs/YaViene-Pasajero.apk` → `adb install -r` → `adb shell am start -n com.example.ya_viene_pasajero/.MainActivity`.
 
 ## Relevant Files

@@ -1,25 +1,45 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════
 #  Ya Viene — check-demo.sh (PRE-VUELO)
-#  Verifica en 20 segundos que todo lo crítico de la demo esté vivo:
-#   1. El túnel responde /api/health
-#   2. Los dos buses demo (B-042, B-055) están publicando y sus
-#      posiciones llegan frescas por el socket (lo mismo que ve la app)
-#   3. La base de datos está recibiendo posiciones
+#  Revisa en unos 20 segundos lo que el tablero del día pide (T10.3):
+#
+#   Servidor
+#   1. El túnel responde /api/ready (base y broker listos, no solo el proceso)
+#   2. Los buses de R-106 publican y llegan frescos por el socket, lo mismo
+#      que ve la app (la flota demo vive dentro del backend)
+#   3. La base guarda posiciones de R-106 de hace menos de 15 s
+#
+#   Este Mac (solo macOS; nada aquí cambia nada, todo es leer)
+#   4. Los cuatro servicios de launchd cargados: backend y túnel corriendo,
+#      rotación de logs y respaldo con su última salida en 0
+#   5. Enchufado a la corriente
+#   6. Sin dormirse: `sleep 0` en pmset o un caffeinate que lo impida
+#   7. Copia de la base de hace menos de 2 h (el respaldo corre cada hora)
+#   8. Logs por debajo de 50 MB (se rotan de madrugada al pasar de 10)
 #
 #  Uso:
 #    ./check-demo.sh
-#    ./check-demo.sh --url=https://otro-tunel     # si la URL cambió
+#    ./check-demo.sh --url=https://otro-tunel   # si la URL cambió
+#    ./check-demo.sh --sin-mac                  # solo el servidor (otro equipo)
+#    ./check-demo.sh --solo-mac                 # solo este Mac
+#
+#  Para las pruebas (`ya_viene_pruebas/test/check_demo_test.dart`), estas
+#  variables cambian dónde mira: URL, DB, RESPALDOS y LOGS.
+#  Sale con 0 si todo está bien, 1 si algo falla y 2 si se llamó mal.
 # ═══════════════════════════════════════════════════════════
 set -uo pipefail
 
 # El backend corre en el portátil y sale por un túnel de ngrok con dominio
-# reservado: el nombre no cambia entre reinicios. Misma URL por defecto que
-# build-demo.sh, para que los dos hablen del mismo sitio.
+# reservado: el nombre no cambia entre reinicios.
 URL="${URL:-https://occupy-shed-squatter.ngrok-free.dev}"
+SERVIDOR=1
+MAC=1
+[ "$(uname)" = "Darwin" ] || MAC=0
 for arg in "$@"; do
   case "$arg" in
     --url=*) URL="${arg#--url=}" ;;
+    --sin-mac) MAC=0 ;;
+    --solo-mac) SERVIDOR=0 ;;
     *) echo "Parámetro desconocido: $arg"; exit 2 ;;
   esac
 done
@@ -32,93 +52,157 @@ if [ -z "$BACKEND_DIR" ]; then
   echo "No encuentro la carpeta YaVieneBackend (¿moviste el script?)"
   exit 2
 fi
+DB="${DB:-$BACKEND_DIR/data/yaviene.db}"
+RESPALDOS="${RESPALDOS:-$(dirname "$DB")/backups}"
+LOGS="${LOGS:-$HOME/Library/Logs/YaViene}"
+RUTA="R-106"
 PASS=0
 FAIL=0
 
-ok()   { PASS=$((PASS+1)); echo "  ✔ $1"; }
-bad()  { FAIL=$((FAIL+1)); echo "  ✗ $1"; }
+ok()  { PASS=$((PASS+1)); echo "  ✔ $1"; }
+bad() { FAIL=$((FAIL+1)); echo "  ✗ $1"; }
 
 echo "══════════════════════════════════════════════"
 echo "  PRE-VUELO DE LA DEMO — $(date '+%H:%M:%S')"
-echo "  URL del túnel: $URL"
+[ "$SERVIDOR" = "1" ] && echo "  URL del túnel: $URL"
 echo "══════════════════════════════════════════════"
 
-# ── 1. Salud del backend vía el túnel ─────────────────────────
-echo ""
-echo "▶ [1/3] Backend alcanzable vía el túnel..."
-if HEALTH="$(curl -s --max-time 8 "$URL/api/health")" && echo "$HEALTH" | grep -q '"ok"'; then
-  UPTIME="$(echo "$HEALTH" | grep -o '"uptime":[0-9.]*' | cut -d: -f2 | cut -d. -f1)"
-  ok "Backend OK (uptime ${UPTIME}s)"
-else
-  bad "El túnel NO responde. Si el túnel se reinició, la URL cambió:"
-  bad "  reconstruye todo con: ./build-demo.sh --backend-url=URL_NUEVA"
+servidor() {
   echo ""
-  echo "Resultado: $FAIL fallo(s), $PASS ok"
-  exit 1
-fi
-
-# ── 2. Los buses demo publicando por el socket ────────────────
-echo ""
-echo "▶ [2/3] Buses demo publicando (socket R-106, lo mismo que ve la app)..."
-PROBE=$(
-  cd "$BACKEND_DIR" && node -e '
-    const io = require("socket.io-client");
-    const url = process.argv[1];
-    const s = io(url, { transports: ["websocket"], path: "/ws" });
-    const seen = new Map();
-    s.on("connect", () => s.emit("subscribe:route", "R-106"));
-    s.on("positions:update", (d) => { for (const b of d.buses || []) seen.set(b.busId, Date.now()); });
-    s.on("bus:position", (b) => { if (b) seen.set(b.busId, Date.now()); });
-    setTimeout(() => {
-      console.log(JSON.stringify({ buses: [...seen.entries()] }));
-      process.exit(0);
-    }, 7000);
-  ' "$URL"
-)
-if [ -z "$PROBE" ]; then
-  bad "No se pudo conectar al socket."
-else
-  BUSES="$(echo "$PROBE" | node -e 'const d=JSON.parse(require("fs").readFileSync(0));console.log(d.buses.map(([id])=>id).join(", "))')"
-  COUNT="$(echo "$PROBE" | node -e 'const d=JSON.parse(require("fs").readFileSync(0));console.log(d.buses.length)')"
-  if [ "$COUNT" -ge 2 ]; then
-    ok "Buses publicando: $BUSES"
+  echo "▶ Backend listo vía el túnel (/api/ready)..."
+  if curl -sf --max-time 8 "$URL/api/ready" >/dev/null; then
+    ok "Backend listo: base y broker contestan"
   else
-    bad "Solo se ven $COUNT bus(es): $BUSES (se esperan B-042 y B-055)."
-    bad "  Arráncalos en la máquina del backend, que sobrevivan a la terminal:"
-    bad "    cd YaVieneBackend && bash scripts/demo-buses.sh --fondo"
+    bad "El túnel o el backend NO están listos ($URL/api/ready)."
+    bad "  Mira backend.log y ngrok.log en $LOGS; el runbook dice qué hacer."
+    return
   fi
-fi
 
-# ── 3. Base de datos recibiendo posiciones ────────────────────
-echo ""
-echo "▶ [3/3] Base de datos fresca..."
-DB="$BACKEND_DIR/data/yaviene.db"
-if [ -f "$DB" ]; then
-  STALE=0
-  while IFS='|' read -r BUSID TS; do
-    AGE=$(( ($(date +%s) - TS/1000) ))
-    if [ "$AGE" -gt 15 ]; then
-      bad "Bús $BUSID: última posición hace ${AGE}s (se espera <15s)"
-      STALE=1
+  echo ""
+  echo "▶ Buses publicando (socket $RUTA, lo mismo que ve la app)..."
+  # Solo cuentan los que llegan mientras se escucha: la foto inicial
+  # (`positions:batch`) puede traer posiciones viejas de la base.
+  local buses
+  buses="$(cd "$BACKEND_DIR" && node -e '
+    const io = require("socket.io-client");
+    const [url, ruta] = process.argv.slice(1);
+    const s = io(url, { transports: ["websocket"], path: "/ws" });
+    const vistos = new Set();
+    s.on("connect", () => s.emit("subscribe:route", ruta));
+    s.on("positions:update", (d) => { for (const b of d.buses || []) vistos.add(b.busId); });
+    s.on("bus:position", (b) => { if (b) vistos.add(b.busId); });
+    setTimeout(() => { console.log([...vistos].sort().join(" ")); process.exit(0); }, 7000);
+  ' "$URL" "$RUTA" 2>/dev/null)"
+  local cuantos
+  cuantos="$(echo "$buses" | wc -w | tr -d " ")"
+  if [ "$cuantos" -ge 2 ]; then
+    ok "Buses publicando en $RUTA: $buses"
+  else
+    bad "Solo se ven $cuantos bus(es) en $RUTA (${buses:-ninguno}); se esperan 2."
+    bad "  La flota demo arranca con el backend: busca [FLOTA] en backend.log."
+  fi
+
+  echo ""
+  echo "▶ Base de datos fresca..."
+  if [ ! -f "$DB" ]; then
+    bad "No existe $DB (¿está corriendo el backend?)"
+    return
+  fi
+  local filas
+  filas="$(sqlite3 -readonly "$DB" "SELECT bus_id, timestamp FROM positions WHERE route_id='$RUTA';" 2>/dev/null)"
+  if [ -z "$filas" ]; then
+    bad "La base no tiene posiciones de $RUTA."
+    return
+  fi
+  local ahora bus ts edad
+  ahora="$(date +%s)"
+  while IFS='|' read -r bus ts; do
+    edad=$(( ahora - ts / 1000 ))
+    if [ "$edad" -gt 15 ]; then
+      bad "Bus $bus: última posición en la base hace ${edad} s (se espera < 15 s)"
     else
-      ok "Bús $BUSID: posición hace ${AGE}s"
+      ok "Bus $bus: posición en la base hace ${edad} s"
     fi
-  done <<< "$(sqlite3 "$DB" "SELECT bus_id, timestamp FROM positions WHERE route_id='R-106';" 2>/dev/null)"
-  [ "$STALE" = "0" ] && ok "DB recibiendo posiciones en tiempo real"
-else
-  bad "No existe $DB (¿está corriendo el backend?)"
-fi
+  done <<< "$filas"
+}
 
-# ── Resumen ───────────────────────────────────────────────────
+este_mac() {
+  echo ""
+  echo "▶ Servicios de launchd..."
+  local s info
+  for s in backend ngrok rotar-logs respaldo; do
+    if ! info="$(launchctl print "gui/$(id -u)/com.yaviene.$s" 2>/dev/null)"; then
+      bad "com.yaviene.$s no está cargado (runbook: «Que el Mac se levante solo»)"
+      continue
+    fi
+    case "$s" in
+      backend|ngrok)
+        if [[ "$info" == *"state = running"* ]]; then
+          ok "com.yaviene.$s corriendo"
+        else
+          bad "com.yaviene.$s cargado pero NO corriendo"
+        fi ;;
+      *)
+        # Los de intervalo pasan casi todo el tiempo parados: lo que dice si
+        # van bien es cómo terminó la última corrida.
+        if [[ "$info" == *"last exit code = 0"* || "$info" == *"(never exited)"* ]]; then
+          ok "com.yaviene.$s: última corrida sin error"
+        else
+          bad "com.yaviene.$s: la última corrida falló (mira $LOGS)"
+        fi ;;
+    esac
+  done
+
+  echo ""
+  echo "▶ Energía..."
+  if [[ "$(pmset -g batt | head -1)" == *"AC Power"* ]]; then
+    ok "Enchufado a la corriente"
+  else
+    bad "El Mac va con batería: macOS duerme disco y red aunque el proceso viva."
+  fi
+  local dormir
+  dormir="$(pmset -g | awk '$1 == "sleep" { print $2 }')"
+  if [ "${dormir:-1}" = "0" ]; then
+    ok "pmset: sleep 0"
+  elif pmset -g assertions | awk '$1 == "PreventUserIdleSystemSleep" && $2 == "1" { f = 1 } END { exit !f }'; then
+    ok "No se duerme: algo lo impide (caffeinate) aunque pmset diga sleep ${dormir}"
+  else
+    bad "El Mac se puede dormir (sleep ${dormir}): sudo pmset -a sleep 0, o caffeinate -dis"
+  fi
+
+  echo ""
+  echo "▶ Respaldo de la base..."
+  local copia
+  copia="$(find "$RESPALDOS" -maxdepth 1 -name 'yaviene-*.db' -mmin -120 2>/dev/null | head -1)"
+  if [ -n "$copia" ]; then
+    ok "Copia reciente: $(basename "$copia")"
+  else
+    bad "No hay copia de menos de 2 h en $RESPALDOS (mira respaldo.log)"
+  fi
+
+  echo ""
+  echo "▶ Logs..."
+  local grandes
+  grandes="$(find "$LOGS" -maxdepth 1 -name '*.log' -size +50M 2>/dev/null)"
+  if [ -n "$grandes" ]; then
+    bad "Logs de más de 50 MB (¿falla la rotación?): $(echo "$grandes" | xargs -n1 basename | tr '\n' ' ')"
+  else
+    ok "Logs por debajo de 50 MB"
+  fi
+}
+
+[ "$SERVIDOR" = "1" ] && servidor
+[ "$MAC" = "1" ] && este_mac
+
 echo ""
 echo "══════════════════════════════════════════════"
 if [ "$FAIL" = "0" ]; then
-  echo "  ✔ PRE-VUELO COMPLETO: todo listo para la demo"
+  echo "  ✔ PRE-VUELO COMPLETO: $PASS chequeos bien"
 else
   echo "  ✗ $FAIL chequeo(s) fallaron — revisa lo de arriba antes de empezar"
 fi
 echo "══════════════════════════════════════════════"
 echo ""
-echo "  (No automatizables: abre el panel y confirma 'En línea', y"
-echo "   abre el pasajero y confirma que ves los 2 buses moviéndose.)"
-exit "$([ "$FAIL" = "0" ] && echo 0 || echo 1)"
+echo "  (A mano: abrir el panel y ver «En línea», abrir el pasajero y ver"
+echo "   los buses moverse, y probar antes el punto de acceso del teléfono.)"
+[ "$FAIL" = "0" ]
