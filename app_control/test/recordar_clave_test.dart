@@ -5,6 +5,8 @@
 // abre con usuario y clave puestos y la casilla encendida, y INGRESAR le
 // dice al login si recordar o no. Dónde y cómo se guarda lo fija
 // auth_providers_test.dart. Los valores son de prueba.
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -170,8 +172,10 @@ void main() {
 
     expect(find.text('panel'), findsOneWidget);
     expect(api.ingresos, [('operador', 'clave-de-prueba')]);
-    expect(storage.valores['recordar_usuario'], 'operador');
-    expect(storage.valores['recordar_clave'], 'clave-de-prueba');
+    expect(jsonDecode(storage.valores['recordar']!), {
+      'usuario': 'operador',
+      'clave': 'clave-de-prueba',
+    });
   });
 
   // La clave recordada viaja del almacén al campo para que INGRESAR la

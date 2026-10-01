@@ -52,6 +52,11 @@ class _FakeSecureStorage extends FlutterSecureStorage {
   /// cubría porque este doble siempre respondía que sí.
   bool falla = false;
 
+  /// Cada vez que se tocó una entrada que existía, como `leer:clave`. En el
+  /// Mac es lo que cuenta: el llavero pregunta por entrada existente, no
+  /// por las que no están.
+  final List<String> accesos = [];
+
   @override
   Future<String?> read({
     required String key,
@@ -63,6 +68,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) async {
     if (falla) throw Exception('almacén del sistema no disponible');
+    if (_values.containsKey(key)) accesos.add('leer:$key');
     return _values[key];
   }
 
@@ -78,6 +84,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) async {
     if (falla) throw Exception('almacén del sistema no disponible');
+    if (_values.containsKey(key)) accesos.add('escribir:$key');
     if (value == null) {
       _values.remove(key);
     } else {
@@ -96,8 +103,11 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) async {
     if (falla) throw Exception('almacén del sistema no disponible');
+    if (_values.containsKey(key)) accesos.add('borrar:$key');
     _values.remove(key);
   }
+
+  Set<String> get claves => _values.keys.toSet();
 }
 
 void main() {
@@ -120,7 +130,7 @@ void main() {
     expect(notifier.state.status, AuthStatus.authenticated);
     expect(notifier.state.session?.token, 't-1');
     expect(notifier.state.error, null);
-    expect(await storage.read(key: 'auth_token'), 't-1');
+    expect(storage.claves, {'sesion'});
   });
 
   test(
@@ -441,6 +451,84 @@ void main() {
         );
       },
     );
+  });
+
+  // El dueño, 2026-09-30: «le di a guardar contraseña y cada vez que cierro
+  // sesión me toca poner la contraseña [del llavero] como 3 veces». El
+  // llavero del Mac pregunta por cada entrada, y eran cinco: token, id y
+  // nombre de la empresa, usuario y clave. Ahora son dos —la sesión y lo
+  // recordado— y lo recordado no se reescribe si no cambió.
+  group('el llavero se toca lo menos posible', () {
+    test('la sesión y lo recordado van en una entrada cada uno', () async {
+      final storage = _FakeSecureStorage();
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+
+      await notifier.login('operador', 'clave-de-prueba', recordar: true);
+
+      expect(storage.claves, {'sesion', 'recordar'});
+    });
+
+    test('salir y volver a entrar con la clave recordada la lee una vez y '
+        'no la reescribe', () async {
+      final storage = _FakeSecureStorage();
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+      await notifier.login('operador', 'clave-de-prueba', recordar: true);
+      await notifier.logout();
+      storage.accesos.clear();
+
+      // Lo que hace la pantalla de ingreso: rellena y manda.
+      final recordadas = await notifier.credencialesRecordadas();
+      await notifier.login(
+        recordadas!.usuario,
+        recordadas.clave,
+        recordar: true,
+      );
+
+      expect(storage.accesos, ['leer:recordar']);
+    });
+
+    test('si la clave cambió, sí la reescribe', () async {
+      final storage = _FakeSecureStorage();
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: session),
+        storage: storage,
+      );
+      await notifier.login('operador', 'clave-vieja', recordar: true);
+      await notifier.logout();
+      await notifier.credencialesRecordadas();
+
+      await notifier.login('operador', 'clave-nueva', recordar: true);
+
+      expect((await notifier.credencialesRecordadas())?.clave, 'clave-nueva');
+    });
+
+    test('lo guardado en las cinco entradas de antes se pasa a las dos y '
+        'las viejas se borran', () async {
+      final storage = _FakeSecureStorage({
+        'auth_token': 't-1',
+        'auth_company_id': 'c-1',
+        'auth_company_name': 'Empresa 1',
+        'recordar_usuario': 'operador',
+        'recordar_clave': 'clave-de-prueba',
+      });
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(validateResult: true),
+        storage: storage,
+      );
+
+      await notifier.restoreSession();
+      final recordadas = await notifier.credencialesRecordadas();
+
+      expect(notifier.state.session?.companyName, 'Empresa 1');
+      expect(recordadas?.clave, 'clave-de-prueba');
+      expect(storage.claves, {'sesion', 'recordar'});
+    });
   });
 
   // En el Mac la app va firmada «ad hoc» (sin equipo de Apple): el llavero

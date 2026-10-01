@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -52,15 +54,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
     mOptions: MacOsOptions(usesDataProtectionKeychain: false),
   );
 
-  static const _kToken = 'auth_token';
-  static const _kCompanyId = 'auth_company_id';
-  static const _kCompanyName = 'auth_company_name';
+  /// Dos entradas y no cinco: la sesión y lo recordado, cada una un JSON.
+  /// El llavero del Mac pregunta por entrada, y con cinco —token, id y
+  /// nombre de la empresa, usuario y clave— salir y volver a entrar pedía
+  /// la contraseña del llavero hasta tres veces (dueño, 2026-09-30). Van
+  /// aparte porque viven distinto: salir borra la sesión y deja lo
+  /// recordado.
+  static const _kSesion = 'sesion';
 
   /// «Recordar contraseña»: usuario y clave, en el mismo almacén cifrado
   /// que la sesión y nunca en un archivo plano. Salir no los borra —para eso
   /// se recordaron—; los borra entrar con la casilla apagada.
-  static const _kRecUsuario = 'recordar_usuario';
-  static const _kRecClave = 'recordar_clave';
+  static const _kRecordar = 'recordar';
+
+  /// Las cinco entradas de antes. Se leen solo si falta la nueva —leer una
+  /// que no está no hace preguntar al llavero— y, si estaban, se pasan a la
+  /// nueva y se borran. Así nadie pierde la sesión ni la clave recordada al
+  /// actualizar, y no queda una clave suelta en el llavero.
+  static const _kViejasSesion = [
+    'auth_token',
+    'auth_company_id',
+    'auth_company_name',
+  ];
+  static const _kViejasRecordar = ['recordar_usuario', 'recordar_clave'];
+
+  /// Lo último que se leyó o escribió en [_kRecordar] (null: no hay nada).
+  /// Volver a entrar con la clave recordada no la reescribe: en el Mac,
+  /// reescribir una entrada que dejó otro build vuelve a preguntar.
+  ({String usuario, String clave})? _recordadas;
+  bool _recordadasConocidas = false;
 
   /// A qué backend van el login y la validación. Puede cambiar con el panel
   /// abierto (`BackendSupervisor`): el provider la cambia aquí en vez de
@@ -74,9 +96,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? companyId;
     String? companyName;
     try {
-      token = await _storage.read(key: _kToken);
-      companyId = await _storage.read(key: _kCompanyId);
-      companyName = await _storage.read(key: _kCompanyName);
+      final guardada = await _leer(_kSesion, _kViejasSesion, (viejas) {
+        if (viejas.any((v) => v == null)) return null;
+        return {
+          'token': viejas[0]!,
+          'companyId': viejas[1]!,
+          'companyName': viejas[2]!,
+        };
+      });
+      token = guardada?['token'];
+      companyId = guardada?['companyId'];
+      companyName = guardada?['companyName'];
     } catch (e) {
       // Si el almacén del sistema no se deja leer, no hay sesión que
       // restaurar: se pide la clave y ya. Sin este catch la excepción subía
@@ -109,11 +139,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Lee la entrada [clave] como mapa de textos. Si no está, busca las
+  /// [viejas]: si [armar] las junta, las pasa a [clave] y las borra.
+  Future<Map<String, String>?> _leer(
+    String clave,
+    List<String> viejas,
+    Map<String, String>? Function(List<String?> viejas) armar,
+  ) async {
+    final texto = await _storage.read(key: clave);
+    if (texto != null) {
+      final mapa = jsonDecode(texto);
+      if (mapa is! Map) return null;
+      return mapa.map((k, v) => MapEntry('$k', '$v'));
+    }
+    final valores = [for (final v in viejas) await _storage.read(key: v)];
+    if (valores.every((v) => v == null)) return null;
+    final armado = armar(valores);
+    if (armado != null) {
+      await _storage.write(key: clave, value: jsonEncode(armado));
+    }
+    for (final v in viejas) {
+      await _storage.delete(key: v);
+    }
+    return armado;
+  }
+
   Future<void> _clearStored() async {
     try {
-      await _storage.delete(key: _kToken);
-      await _storage.delete(key: _kCompanyId);
-      await _storage.delete(key: _kCompanyName);
+      // Las viejas también: si el panel se actualizó con una sesión abierta
+      // y se salió sin pasar por el arranque, quedarían con un token vivo.
+      // Borrar una que no está no hace preguntar al llavero.
+      for (final clave in [_kSesion, ..._kViejasSesion]) {
+        await _storage.delete(key: clave);
+      }
     } catch (e) {
       debugPrint('No se pudo borrar la sesión guardada: $e');
     }
@@ -123,10 +181,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// null. Si el almacén no se deja leer, es null y se escribe a mano.
   Future<({String usuario, String clave})?> credencialesRecordadas() async {
     try {
-      final usuario = await _storage.read(key: _kRecUsuario);
-      final clave = await _storage.read(key: _kRecClave);
-      if (usuario == null || clave == null) return null;
-      return (usuario: usuario, clave: clave);
+      final guardadas = await _leer(_kRecordar, _kViejasRecordar, (viejas) {
+        if (viejas.any((v) => v == null)) return null;
+        return {'usuario': viejas[0]!, 'clave': viejas[1]!};
+      });
+      final usuario = guardadas?['usuario'];
+      final clave = guardadas?['clave'];
+      _recordadas = usuario == null || clave == null
+          ? null
+          : (usuario: usuario, clave: clave);
+      _recordadasConocidas = true;
+      return _recordadas;
     } catch (e) {
       debugPrint('No se pudo leer la contraseña recordada: $e');
       return null;
@@ -167,22 +232,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // falla, se entra igual y lo único que se pierde es no tener que volver
     // a escribir la clave en el próximo arranque.
     try {
-      await _storage.write(key: _kToken, value: session.token);
-      await _storage.write(key: _kCompanyId, value: session.companyId);
-      await _storage.write(key: _kCompanyName, value: session.companyName);
+      await _storage.write(
+        key: _kSesion,
+        value: jsonEncode({
+          'token': session.token,
+          'companyId': session.companyId,
+          'companyName': session.companyName,
+        }),
+      );
     } catch (e) {
       debugPrint('Se entró, pero no se pudo guardar la sesión: $e');
     }
     // Solo tras un ingreso aceptado: una clave rechazada no se recuerda ni
     // borra la buena. Y, como la sesión, si el almacén se niega se entra
     // igual.
+    final nuevas = recordar ? (usuario: username, clave: password) : null;
     try {
-      if (recordar) {
-        await _storage.write(key: _kRecUsuario, value: username);
-        await _storage.write(key: _kRecClave, value: password);
-      } else {
-        await _storage.delete(key: _kRecUsuario);
-        await _storage.delete(key: _kRecClave);
+      if (!_recordadasConocidas || nuevas != _recordadas) {
+        if (nuevas != null) {
+          await _storage.write(
+            key: _kRecordar,
+            value: jsonEncode({
+              'usuario': nuevas.usuario,
+              'clave': nuevas.clave,
+            }),
+          );
+        } else {
+          await _storage.delete(key: _kRecordar);
+          for (final v in _kViejasRecordar) {
+            await _storage.delete(key: v);
+          }
+        }
+        _recordadas = nuevas;
+        _recordadasConocidas = true;
       }
     } catch (e) {
       debugPrint('Se entró, pero no se pudo recordar la contraseña: $e');
