@@ -6,6 +6,7 @@ import '../../../../core/widgets/placa_bus.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
+import '../../../map/presentation/widgets/alert_guards.dart' show kmLabel;
 import '../providers/alert_history_provider.dart';
 import '../providers/proximity_alerts_provider.dart';
 
@@ -536,7 +537,7 @@ class _AlertTile extends StatelessWidget {
     final subtitle = sent
         ? 'Notificación enviada · ${_formatTime(entry.sentAt!)}'
         : distanceMeters != null
-            ? 'Está a $distanceMeters m de tu ubicación · esperando aviso'
+            ? 'Está a ${distanciaAviso(distanceMeters!)} $restoDistancia'
             // Sin posición del bus puede ser que se fue al patio, donde lo
             // ocultan y nadie sabe cuándo vuelve. El aviso no espera para
             // siempre (vence a las `vidaDeUnAviso` de armado): se dice hasta
@@ -697,10 +698,13 @@ class _AlertTile extends StatelessWidget {
             // `pie` en el gris de cuerpo y no en el secundario: es letra
             // chica y es lo que el pasajero vino a mirar.
             Expanded(
-              child: Text(
-                subtitle,
-                style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
-              ),
+              child: distanceMeters == null
+                  ? Text(
+                      subtitle,
+                      style:
+                          AppTextStyles.pie.copyWith(color: AppColors.textBody),
+                    )
+                  : _LineaDistancia(distanceMeters!),
             ),
           ],
         ),
@@ -843,4 +847,78 @@ String _hora(DateTime d) {
   final h = d.hour.toString().padLeft(2, '0');
   final m = d.minute.toString().padLeft(2, '0');
   return '$h:$m';
+}
+
+/// Lo que sigue a la cifra en la franja de un aviso que espera.
+const restoDistancia = 'de tu ubicación · esperando aviso';
+
+/// La distancia de un aviso: metros hasta 999 y luego como la hoja
+/// («3,4 km», «14 km»). En metros crudos, «14408 m» partía la franja en
+/// dos filas en un iPhone (dueño, 2026-10-01).
+String distanciaAviso(int metros) =>
+    metros < 1000 ? '$metros m' : kmLabel(metros.toDouble());
+
+/// «Está a 14 km de tu ubicación · esperando aviso», siempre en una fila.
+/// La cifra cambia con cada posición del bus: en un hueco de ancho fijo y
+/// con cifras tabulares, «9 m» y «14 km» miden lo mismo y el resto no se
+/// corre ni salta de fila. Si el teléfono es angosto, la fila entera se
+/// encoge (`scaleDown`); como su ancho no depende de la cifra, se encoge
+/// siempre igual.
+class _LineaDistancia extends StatelessWidget {
+  const _LineaDistancia(this.metros);
+
+  final int metros;
+
+  /// Los textos más anchos que da [distanciaAviso] en la ciudad (el área
+  /// metropolitana cabe en 41 km): el hueco mide como el mayor.
+  static const _masAnchos = ['000 m', '0,0 km', '00 km'];
+
+  @override
+  Widget build(BuildContext context) {
+    final estilo = AppTextStyles.pie.copyWith(
+      color: AppColors.textBody,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final negrita = estilo.copyWith(fontWeight: FontWeight.w700);
+    final cifra = distanciaAviso(metros);
+    final escala = MediaQuery.textScalerOf(context);
+    double ancho(String texto) {
+      final pintor = TextPainter(
+        text: TextSpan(text: texto, style: negrita),
+        textDirection: TextDirection.ltr,
+        textScaler: escala,
+      )..layout();
+      final w = pintor.width;
+      pintor.dispose();
+      return w;
+    }
+
+    // Más de 99 km no pasa en la ciudad; si pasa, el hueco crece y nada
+    // se corta.
+    final hueco = [cifra, ..._masAnchos].map(ancho).reduce(
+          (a, b) => a > b ? a : b,
+        );
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Está a ', style: estilo),
+          SizedBox(
+            key: const ValueKey('hueco-distancia'),
+            width: hueco.ceilToDouble(),
+            child: Text(
+              cifra,
+              style: negrita,
+              textAlign: TextAlign.end,
+              maxLines: 1,
+              softWrap: false,
+            ),
+          ),
+          Text(' $restoDistancia', style: estilo, maxLines: 1, softWrap: false),
+        ],
+      ),
+    );
+  }
 }

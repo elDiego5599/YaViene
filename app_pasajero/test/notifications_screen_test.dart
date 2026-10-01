@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +136,45 @@ void main() {
     expect(aviso('A-1'), findsNothing);
     expect(container.read(activeAlertsProvider), isEmpty);
     expect(container.read(alertHistoryProvider), isEmpty);
+  });
+
+  // «Está a 14408 m de tu ubicación · esperando aviso» partía la franja en
+  // dos filas en un iPhone, y cada cifra nueva corría el resto (dueño,
+  // 2026-10-01). En el teléfono más angosto, a 9 m y a 14 km, el resto
+  // queda en el mismo sitio y en una sola fila.
+  testWidgets('la distancia del aviso no corre el texto ni salta de fila',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    Future<Rect> resto(double lat, String cifra) async {
+      final container = await pumpScreen(tester, [bus('A-1', lat: lat)]);
+      arm(container, 'A-1');
+      await tester.pump();
+      expect(find.text(cifra), findsOneWidget);
+      final texto = find.text(' $restoDistancia');
+      final rect = tester.getRect(texto);
+      final linea = tester.renderObject<RenderParagraph>(
+        find.descendant(of: texto, matching: find.byType(RichText)),
+      );
+      expect(linea.didExceedMaxLines, isFalse);
+      await tester.pumpWidget(const SizedBox());
+      return rect;
+    }
+
+    final cerca = await resto(userLat + 0.00008, '9 m');
+    final lejos = await resto(userLat + 0.1296, '14 km');
+    expect(lejos, cerca);
+    // Una fila de `pie` (12 × 1,3), no dos.
+    expect(cerca.height, lessThan(20));
+  });
+
+  test('la distancia del aviso: metros hasta 999, luego kilómetros', () {
+    expect(distanciaAviso(9), '9 m');
+    expect(distanciaAviso(999), '999 m');
+    expect(distanciaAviso(1000), '1,0 km');
+    expect(distanciaAviso(14408), '14 km');
   });
 
   // El bus se fue al patio, donde lo ocultan: la fila no puede quedarse
