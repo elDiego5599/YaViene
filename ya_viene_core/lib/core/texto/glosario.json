@@ -1,0 +1,27 @@
+{
+  "_que": "Glosario único de Ya Viene (T6.8). Copia idéntica en YaVieneWeb/src/glosario.json: las pruebas de los dos repos comparan su hash y atan cada palabra al código que la pinta. Se cambia en los dos sitios a la vez.",
+  "estadosBus": {
+    "enLinea": "En línea",
+    "inactivo": "Inactivo",
+    "sinSenal": "Sin señal",
+    "oculto": "Oculto"
+  },
+  "terminos": {
+    "placa": "Placa",
+    "ruta": "Ruta",
+    "interno": "Interno",
+    "sentido": "Sentido",
+    "_nota": "«Interno» y «sentido» no se pintan hoy en ninguna pantalla (el interno solo se busca en el panel). Si llegan a mostrarse, con estas palabras y no con sinónimos («número», «dirección»)."
+  },
+  "distancia": {
+    "metros": "m",
+    "kilometros": "km",
+    "separadorDecimal": ",",
+    "_nota": "Distancia, nunca tiempo de llegada (regla 5). Menos de 1 km en metros enteros; desde 1 km con una cifra decimal y coma. En las frases (avisos, historial, voz) desde 10 km sin decimales; la cifra grande de la hoja guarda siempre su decimal."
+  },
+  "aviso": {
+    "landing": "Tu bus está cerca de ti",
+    "app": "{ruta} - {placa} está cerca de ti",
+    "_nota": "Distintos a propósito (regla 12): la landing no lleva placa; la app sí, con la ruta."
+  }
+}

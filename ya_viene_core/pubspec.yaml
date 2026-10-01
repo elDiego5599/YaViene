@@ -16,6 +16,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # Solo para el hash del glosario (glosario_test.dart); ya viene con el SDK.
+  crypto: ^3.0.3
   # analysis_options.yaml incluye su flutter.yaml: sin declararlo aquí el
   # análisis del core depende de que otro paquete lo haya bajado antes.
   flutter_lints: ^6.0.0

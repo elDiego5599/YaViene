@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/cifra_viva.dart';
 import '../../../../core/widgets/dialogo.dart';
@@ -20,7 +21,6 @@ import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
-import 'alert_guards.dart' show kmLabel;
 import 'map_recenter_button.dart';
 import 'sena_tocar_bus.dart';
 

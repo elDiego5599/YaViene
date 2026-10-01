@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
+import '../utils/distancia.dart';
 
 /// Notificaciones locales de proximidad de buses (sin servidor).
 ///
@@ -126,7 +127,7 @@ class BusNotificationService {
       await _plugin.show(
         id: _stableNotificationId(busId),
         title: '$etiqueta está cerca de ti',
-        body: 'Está a $distanceMeters m de tu ubicación',
+        body: 'Está a ${distanciaAviso(distanceMeters)} de tu ubicación',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,

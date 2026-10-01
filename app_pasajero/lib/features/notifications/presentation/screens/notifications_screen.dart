@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
-import '../../../map/presentation/widgets/alert_guards.dart' show kmLabel;
 import '../providers/alert_history_provider.dart';
 import '../providers/proximity_alerts_provider.dart';
 
@@ -852,11 +852,6 @@ String _hora(DateTime d) {
 /// Lo que sigue a la cifra en la franja de un aviso que espera.
 const restoDistancia = 'de tu ubicación · esperando aviso';
 
-/// La distancia de un aviso: metros hasta 999 y luego como la hoja
-/// («3,4 km», «14 km»). En metros crudos, «14408 m» partía la franja en
-/// dos filas en un iPhone (dueño, 2026-10-01).
-String distanciaAviso(int metros) =>
-    metros < 1000 ? '$metros m' : kmLabel(metros.toDouble());
 
 /// «Está a 14 km de tu ubicación · esperando aviso», siempre en una fila.
 /// La cifra cambia con cada posición del bus: en un hueco de ancho fijo y
