@@ -209,14 +209,22 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     }
   }
 
-  /// Reanuda una sesión GPS que quedó sin stream al volver del segundo plano.
-  /// No pide permiso ni cambia un pin manual: solo actúa si ya estábamos en
-  /// modo GPS y el permiso sigue concedido.
+  /// Reanuda una sesión GPS que quedó sin stream al volver del segundo plano,
+  /// o ubica si el permiso que faltaba se concedió en Ajustes mientras la app
+  /// estaba fuera (T5.6). No pide permiso ni cambia un pin manual.
   Future<void> resumeGpsIfNeeded() async {
+    // Sin permiso, la píldora manda a Ajustes; si el usuario lo concede allá
+    // y vuelve, la app tiene que enterarse sola: si no, seguía diciendo
+    // «bloqueada» y volvía a mandar a Ajustes.
+    final sinPermiso = state.mode == UserLocationMode.denied ||
+        state.mode == UserLocationMode.permanentDenied;
     // Si el stream sigue vivo no reinicializarlo al volver de un diálogo del
     // sistema (p. ej. permiso de notificaciones): ese reset pondría el estado
     // en `locating` y haría parecer que se perdió la ubicación.
-    if (state.mode != UserLocationMode.gps || _gpsSub != null) return;
+    if (!sinPermiso &&
+        (state.mode != UserLocationMode.gps || _gpsSub != null)) {
+      return;
+    }
     try {
       if (await _hasGpsPermission()) await _locate();
     } catch (e) {

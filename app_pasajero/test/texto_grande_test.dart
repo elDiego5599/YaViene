@@ -3,12 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
+import 'package:ya_viene_pasajero/features/legal/legal_docs.dart';
+import 'package:ya_viene_pasajero/features/legal/presentation/screens/'
+    'legal_screen.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'user_location_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
+    'app_drawer.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'eta_bottom_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
@@ -24,7 +30,7 @@ import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
 
 import 'golden/golden_harness.dart';
 
-/// El texto del sistema en grande, en las cinco superficies principales.
+/// El texto del sistema en grande, en las superficies de la app (T5.6).
 ///
 /// Una caja de alto fijo con letra dentro no avisa: se desborda en el
 /// teléfono de alguien, no en el CI. Estas pruebas la obligan a avisar
@@ -240,6 +246,81 @@ void main() {
         );
         await tester.pumpAndSettle();
         sinDesbordes(tester, 'El centro de avisos', escala);
+      });
+
+      testWidgets('documentos legales', (tester) async {
+        for (final doc in legalDocs) {
+          fijarPantalla(tester, escalaTexto: escala);
+          await tester.pumpWidget(marcoGolden(LegalScreen(doc: doc)));
+          await tester.pump();
+          sinDesbordes(tester, doc.title, escala);
+          expect(find.text(doc.title), findsOneWidget);
+        }
+      });
+
+      testWidgets('menú lateral con ruta activa', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.listen(selectedRouteProvider, (_, __) {});
+        container.read(selectedRouteProvider.notifier).select(
+              const RouteInfo(
+                id: 'R-106',
+                name: 'Ruta 106 · Centro',
+                companyId: 'EMP-01',
+                terminalA: 'Mallorquín',
+                terminalB: 'La Playa',
+              ),
+            );
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: marcoGolden(const Scaffold(drawer: AppDrawer())),
+          ),
+        );
+        tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 900));
+        sinDesbordes(tester, 'El menú', escala);
+        expect(find.text('Mallorquín'), findsOneWidget);
+      });
+
+      testWidgets('ventana de confirmación', (tester) async {
+        fijarPantalla(tester, escalaTexto: escala);
+        await tester.pumpWidget(
+          marcoGolden(
+            Builder(
+              builder: (context) => Center(
+                child: TextButton(
+                  onPressed: () => mostrarDialogo<void>(
+                    context,
+                    (d) => Dialogo(
+                      icono: Icons.restart_alt_outlined,
+                      titulo: '¿Reiniciar la guía?',
+                      mensaje: 'Vas a volver a ver los pasos desde el '
+                          'principio y se quita la ruta escogida.',
+                      delicado: true,
+                      principal: DialogoAccion(
+                        'Reiniciar guía',
+                        () => Navigator.pop(d),
+                      ),
+                      secundaria: DialogoAccion(
+                        'Cancelar',
+                        () => Navigator.pop(d),
+                      ),
+                    ),
+                  ),
+                  child: const Text('abrir'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('abrir'));
+        await tester.pumpAndSettle();
+        sinDesbordes(tester, 'La ventana', escala);
+        // A 300% no cabe entera: se desplaza, no se recorta.
+        expect(find.text('Cancelar', skipOffstage: false), findsOneWidget);
       });
     });
   }

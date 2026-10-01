@@ -21,6 +21,42 @@ void main() {
       final plist = _leer('ios/Runner/Info.plist');
       expect(plist, isNot(contains('NSAllowsArbitraryLoads')));
     });
+
+    test('el texto del permiso de ubicación dice lo mismo que la privacidad',
+        () {
+      // T5.6: lo que iOS muestra al pedir la ubicación es lo primero que se
+      // lee de la política. Dice los dos usos y que no sale del teléfono, con
+      // las palabras de `legal_docs.dart` (espejo de `privacidad.html`).
+      final plist = _leer('ios/Runner/Info.plist');
+      final texto = RegExp(
+        r'<key>NSLocationWhenInUseUsageDescription</key>\s*<string>([^<]+)',
+      ).firstMatch(plist)!.group(1)!;
+      final privacidad = _leer('lib/features/legal/legal_docs.dart');
+      for (final frase in [
+        'centrar el mapa',
+        'cuántos metros te separan del bus',
+        'no sale del teléfono',
+      ]) {
+        expect(texto, contains(frase));
+        expect(privacidad.replaceAll(RegExp(r"'\s*'"), ''), contains(frase));
+      }
+    });
+
+    test('el iPhone abre solo en vertical, como bloquea main.dart (T5.6)', () {
+      // `SystemChrome.setPreferredOrientations` llega cuando Flutter ya
+      // arrancó: antes, la pantalla de carga giraba con el teléfono acostado.
+      // El iPad (`~ipad`) conserva las cuatro: la multitarea las exige.
+      final plist = _leer('ios/Runner/Info.plist');
+      final iphone = RegExp(
+        r'<key>UISupportedInterfaceOrientations</key>\s*<array>(.*?)</array>',
+        dotAll: true,
+      ).firstMatch(plist)!.group(1)!;
+      final orientaciones = RegExp(r'<string>([^<]+)</string>')
+          .allMatches(iphone)
+          .map((m) => m.group(1))
+          .toList();
+      expect(orientaciones, ['UIInterfaceOrientationPortrait']);
+    });
   });
 
   group('Android', () {
@@ -38,6 +74,17 @@ void main() {
           reason: ruta,
         );
       }
+    });
+
+    test('la actividad abre solo en vertical, como bloquea main.dart (T5.6)',
+        () {
+      // Igual que en iOS: sin esto, la pantalla de carga gira antes de que
+      // Flutter fije la orientación. `sensorPortrait` deja las dos
+      // verticales, las mismas que `main.dart`.
+      final actividad = RegExp(r'<activity[^>]*\.MainActivity[^>]*>')
+          .firstMatch(_sinComentariosXml(_leer('$main/AndroidManifest.xml')))!
+          .group(0)!;
+      expect(actividad, contains('android:screenOrientation="sensorPortrait"'));
     });
 
     test('el release no se marca depurable en build.gradle.kts', () {
