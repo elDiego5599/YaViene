@@ -39,10 +39,15 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `YaVieneBackend` (rama `prueba`), `YaVieneWeb` (rama `diseno-21st`). Remotos
   `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
-- **`main` al día en el remoto** (2026-09-29, tarde): app `ed52e56`, web
-  `572be9c` y backend `f62d3b1` (más el commit de este `CLAUDE.md` encima),
-  los tres por avance rápido desde `diseno-21st` / `prueba`. Traen la
-  revisión del 2026-09-29 (`reporte-revision-2026-09-29.md`): P1-2 sin
+- **`main` al día en el remoto** (2026-10-01): app `05c5d79`, web `6e7f63d`
+  y backend `ad5254a` (más el commit de este `CLAUDE.md` encima), los tres
+  por avance rápido desde `diseno-21st` / `prueba`. Traen T5.6 (texto
+  grande y giro), T6.8 (glosario), T7.7 (Lighthouse móvil en presupuesto,
+  web), T7.1 en su parte web y con los números del backend, T10.5 b y d
+  (simulacros contra un backend temporal, `tool/simulacros.sh`, y
+  `zonaSocket()` en core) y T10.3 (`check-demo.sh` por grupos). Antes
+  (2026-09-29, tarde): app `ed52e56`, web `572be9c` y backend `f62d3b1`,
+  con la revisión del 2026-09-29 (`reporte-revision-2026-09-29.md`): P1-2 sin
   falso verde y la suite inmune a `YA_VIENE_EXPUESTO`/`NODE_ENV` (backend),
   `start-test.sh` borrado, responsable y derechos de la Ley 1581 en la
   privacidad (web y app, sin subir `kLegalVersion`) con la autorización
