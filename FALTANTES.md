@@ -40,6 +40,8 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   que mandarlo desde el servidor (FCM en Android, APNs en iPhone), y eso
   significa guardar un identificador del teléfono, que es un dato personal y
   entra en lo de la Ley 1581. Si dices que sí, lo armo.
+- **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
+  regla no se sube. Se queda así a menos que cambies esa regla.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
@@ -70,14 +72,9 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
-Poco, y lo que hay depende de otra cosa:
-
-- **Pruebas de punta a punta del panel de escritorio.** Se pueden armar;
-  hoy el panel se prueba por widgets y a mano.
-- **Los avisos con la app cerrada**, si decides que van.
-- **La espera creciente de la SIM**, cuando llegue el hardware.
-- **El aviso de Gradle que queda (AUD-24)** sale de `maplibre_gl`, que no se
-  sube. Se queda así a menos que cambies esa regla.
+Nada por ahora. Lo que queda depende de algo de arriba: los avisos con la
+app cerrada, de que digas que sí; la espera creciente de la SIM, del
+hardware; y el aviso de Gradle, de la regla de `maplibre_gl`.
 
 Ojo con la web: el CSS va en 117,8 de 121 KB y la carpeta `dist` en 770 de
 797. Cualquier cambio de la web se mide antes de sumarlo.

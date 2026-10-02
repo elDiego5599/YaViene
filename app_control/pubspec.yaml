@@ -55,6 +55,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # La prueba de punta a punta del panel (`integration_test/`), que corre
+  # `tool/e2e-panel.sh` contra un backend de usar y tirar.
+  integration_test:
+    sdk: flutter
   http: ^1.2.0
   # Arma un tema mínimo en las pruebas del mapa (`ThemeReader`), sin pedir
   # el estilo a CARTO. Ya llega con `vector_map_tiles`; aquí se fija la misma.
