@@ -16,8 +16,7 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **La respuesta del AMB a la PQRS (D2).** Mientras no llegue, está quieta
   toda la ingesta desde el GPS de verdad: recibir las posiciones del equipo
   del bus, autenticar cada equipo, las rutas nuevas (T4.1–T4.3, T4.5–T4.7 y
-  T11.1). Con el hardware ya en la mesa también toca cambiar el bloqueo de
-  una hora de la SIM por una espera que crezca de a poco.
+  T11.1).
 - **La cuota de GitHub Actions** (se agotó el 2026-09-19). Hasta que se
   renueve, la CI no arranca y lo verificado en local no se puede ver en
   verde allá (T1.8, T8.4 y la confirmación de T8.7–T8.9).
@@ -35,11 +34,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
-- **Avisos con la app cerrada.** Hoy el aviso solo llega con la app abierta
-  o en segundo plano; si la cierras del todo, no. Para que llegue igual hay
-  que mandarlo desde el servidor (FCM en Android, APNs en iPhone), y eso
-  significa guardar un identificador del teléfono, que es un dato personal y
-  entra en lo de la Ley 1581. Si dices que sí, lo armo.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
@@ -72,9 +66,9 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
-Nada por ahora. Lo que queda depende de algo de arriba: los avisos con la
-app cerrada, de que digas que sí; la espera creciente de la SIM, del
-hardware; y el aviso de Gradle, de la regla de `maplibre_gl`.
+- **Avisos con la app cerrada, solo en Android** (dijiste que sí el
+  2026-10-02): el servidor manda el aviso por FCM cuando la app ya no lo
+  puede mandar. En iPhone espera a la cuenta de Apple (99 USD al año).
 
 Ojo con la web: el CSS va en 117,8 de 121 KB y la carpeta `dist` en 770 de
 797. Cualquier cambio de la web se mide antes de sumarlo.

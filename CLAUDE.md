@@ -62,8 +62,8 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-10-02)**: **1.573 pruebas** en total
-  (1.540 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
+- **Verificación (2026-10-02)**: **1.575 pruebas** en total
+  (1.542 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
   corren con `tool/simulacros.sh`), contando las 11 de `ya_viene_pruebas`; aparte,
   las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
   `npm run typecheck` limpio (3 configs), **301 en Vitest** y el trinquete de
@@ -81,7 +81,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   al repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
   privacidad y términos 1,65; CLS 0, TBT ≤ 35 ms. `e2e/vitales.spec.ts`
   vigila el marcado que lo hace posible.
-- **Backend**: 245 pruebas en verde (2026-10-01; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
+- **Backend**: 247 pruebas en verde (2026-10-02; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
   limpio. Las pruebas usan bases temporales y puertos propios; el backend
   vivo y ngrok no se tocan.
 - **Documentación del backend** en `YaVieneBackend/docs/`: `arquitectura.md`
