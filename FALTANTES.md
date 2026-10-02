@@ -71,15 +71,10 @@ Necesitan un teléfono, una cuenta o estar presente.
 - **El video de respaldo del pitch** (T10.4), por si el día falla la red.
 - **Mirar el tráfico real un rato** para fijar el umbral de latencia de la
   alerta (T7.1).
-- **Encender los avisos con la app cerrada en el backend vivo** (D13). El
-  código ya está; falta la clave. En la consola de Firebase → Configuración
-  del proyecto → Cuentas de servicio → «Generar nueva clave privada», y el
-  JSON se guarda en `~/.config/yaviene/fcm-credenciales.json` con
-  `chmod 600` (no se manda por chat). Luego en `local.env`:
-  `YA_VIENE_FCM_CREDENCIALES=` con esa ruta. Con tu OK hago el `build` y el
-  reinicio. El paso a paso está en `YaVieneBackend/docs/runbook.md`.
-- **Probarlo en un Android de verdad**: armar un aviso, cerrar la app del
-  todo y esperar a que el bus llegue. Tiene que sonar la misma notificación
+- **Probar en un Android de verdad los avisos con la app cerrada** (D13; el
+  backend vivo ya tiene la clave de FCM desde el 2026-10-02): instalar la
+  APK nueva, armar un aviso, cerrar la app del todo y esperar a que el bus
+  llegue. Tiene que sonar la misma notificación
   de siempre, y `/api/metrics` contar un `push.enviados`.
 
 ## Lo que puedo hacer yo
