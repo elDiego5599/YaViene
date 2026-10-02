@@ -754,9 +754,24 @@ class _AlertTile extends StatelessWidget {
     // Un aviso ya enviado no lleva acción: «Enviado» a la derecha repetía
     // lo que el subtítulo dice con fecha y hora, y una fila que solo
     // informa, en iOS, no lleva nada a la derecha.
-    // Seleccionando no hay acción: la marca es el círculo de la izquierda.
+    // Seleccionando, la acción es el círculo de la marca, a la derecha
+    // donde estaba la casilla (dueño, 2026-10-02); entra creciendo.
     final Widget? accion = selecting
-        ? null
+        ? TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: AppMotion.duracion(context, AppMotion.normal),
+            curve: AppMotion.curvaEntrada,
+            builder: (context, t, circulo) => Opacity(
+              opacity: t,
+              child: Transform.scale(scale: 0.6 + 0.4 * t, child: circulo),
+            ),
+            child: _CirculoSeleccion(
+              key: ValueKey('circulo-${entry.id}'),
+              marcado: selected,
+              dicho: dichoBus,
+              alTocar: onToggleSelect,
+            ),
+          )
         : sent
             ? null
             // Rojo de error para algo que se deshace en un toque desde el
@@ -939,49 +954,11 @@ class _AlertTile extends StatelessWidget {
     // En modo selección se marca tocando la tarjeta entera, como en Fotos:
     // el círculo solo es un blanco chico. Para el lector de pantalla el
     // círculo, con su nombre, es el control.
-    //
-    // Al entrar en la selección la tarjeta se corre a la derecha y el
-    // círculo entra por la izquierda, como en Mail.
-    final duracion = AppMotion.duracion(context, AppMotion.normal);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       excludeFromSemantics: true,
       onTap: selecting ? onToggleSelect : null,
-      child: Stack(
-        children: [
-          AnimatedPadding(
-            duration: duracion,
-            curve: AppMotion.curvaCambio,
-            padding: EdgeInsets.only(left: selecting ? 40 : 0),
-            child: tarjeta,
-          ),
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: AnimatedSlide(
-              duration: duracion,
-              curve: AppMotion.curvaCambio,
-              offset: selecting ? Offset.zero : const Offset(-1, 0),
-              child: AnimatedOpacity(
-                duration: duracion,
-                curve: AppMotion.curvaCambio,
-                opacity: selecting ? 1 : 0,
-                child: selecting
-                    ? Center(
-                        child: _CirculoSeleccion(
-                          key: ValueKey('circulo-${entry.id}'),
-                          marcado: selected,
-                          dicho: dichoBus,
-                          alTocar: onToggleSelect,
-                        ),
-                      )
-                    : const SizedBox(width: 28),
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: tarjeta,
     );
   }
 }

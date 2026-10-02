@@ -384,7 +384,7 @@ void main() {
 
     await tester.tap(find.text('Seleccionar'));
     await tester.pump(const Duration(milliseconds: 300));
-    // El círculo es un blanco chico a la izquierda; tocar el nombre de la
+    // El círculo es un blanco chico a la derecha; tocar el nombre de la
     // ruta, que es donde el dedo va, también marca.
     await tester.tap(ruta);
     await tester.pump(const Duration(milliseconds: 300));
@@ -615,9 +615,10 @@ void main() {
   });
 
   // Dueño (2026-10-02): «no me gusta cómo se seleccionan ni el chulito».
-  // Era la casilla de Material a la derecha y un borde grueso. Ahora, como
-  // en Mail o Fotos: entra un círculo por la izquierda y, marcado, se
-  // llena con el chulito blanco; el lector lo anuncia como casilla.
+  // Era la casilla de Material y un borde grueso. Ahora, en el mismo sitio
+  // a la derecha («donde estaba antes»), un círculo como el de Mail o Fotos
+  // que, marcado, se llena con el chulito blanco; el lector lo anuncia como
+  // casilla.
   testWidgets('seleccionar usa el círculo propio, no la casilla de Material',
       (tester) async {
     final semantica = tester.ensureSemantics();
@@ -632,7 +633,7 @@ void main() {
     expect(circulo('A-1'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsNothing);
     final x = tester.getTopLeft(circulo('A-1')).dx;
-    expect(x, lessThan(tester.getTopLeft(aviso('A-1')).dx));
+    expect(x, greaterThan(tester.getCenter(aviso('A-1')).dx));
 
     await tester.tap(circulo('A-1'));
     await asentar(tester);
