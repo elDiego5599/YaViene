@@ -1,0 +1,99 @@
+# Lo que falta
+
+Al 2026-10-02. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
+está hecho y en `main` de los tres repos. Lo que queda está repartido según
+de quién depende. Cuando algo se cierre, se borra de aquí; cuando aparezca
+algo nuevo, se apunta en su grupo.
+
+El detalle de cada tarea (dónde, qué cambia, cómo se prueba) sigue en las
+fichas de `plan-remediacion.md` (§4), en la raíz del workspace. Los nombres
+tipo T4.1 o D2 son los de ese plan.
+
+## Esperando a alguien de afuera
+
+Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
+
+- **La respuesta del AMB a la PQRS (D2).** Mientras no llegue, está quieta
+  toda la ingesta desde el GPS de verdad: recibir las posiciones del equipo
+  del bus, autenticar cada equipo, las rutas nuevas (T4.1–T4.3, T4.5–T4.7 y
+  T11.1). Con el hardware ya en la mesa también toca cambiar el bloqueo de
+  una hora de la SIM por una espera que crezca de a poco.
+- **La cuota de GitHub Actions** (se agotó el 2026-09-19). Hasta que se
+  renueve, la CI no arranca y lo verificado en local no se puede ver en
+  verde allá (T1.8, T8.4 y la confirmación de T8.7–T8.9).
+- **El secreto `BACKEND_REPO_TOKEN`** en el repo. Sin él, la CI no puede
+  vigilar sola el contrato entre la app y el backend ni el socket del panel
+  (T8.5 paso 3 y T8.6).
+- **La cuenta de monitoreo** (T10.2). Lo que se usa ya está decidido (D10);
+  falta crear la cuenta para enterarse de que el backend se cayó sin tener
+  que mirarlo.
+- **La consola de Firebase** (T3.13): borrar lo que quedó de las cuentas
+  viejas del pasajero, con tu sesión.
+- **Las cuentas de las tiendas** (T5.7), para subir las fichas.
+
+## Lo que tienes que decidir tú
+
+- **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
+  una clave; si es OSM, se queda como está y se cierra.
+- **Avisos con la app cerrada.** Hoy el aviso solo llega con la app abierta
+  o en segundo plano; si la cierras del todo, no. Para que llegue igual hay
+  que mandarlo desde el servidor (FCM en Android, APNs en iPhone), y eso
+  significa guardar un identificador del teléfono, que es un dato personal y
+  entra en lo de la Ley 1581. Si dices que sí, lo armo.
+- **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
+- **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
+  aceptar las políticas, las tarjetas y sus textos). La aplazaste a
+  propósito; queda aquí para cuando quieras abrirla.
+- **La Ley 1581 con un abogado** (T3.15). Son seis puntos pendientes. No
+  frena la demo, pero tiene que estar resuelto antes de recoger datos reales
+  de empresas o de pasajeros.
+
+## Lo que tienes que hacer tú
+
+Necesitan un teléfono, una cuenta o estar presente.
+
+- **Android 15** (T5.5): correr la app en un emulador de Android 15 y
+  declarar el tipo de servicio en Play Console.
+- **La matriz de teléfonos** (T5.8): probar en los teléfonos de verdad.
+- **Rendimiento en un teléfono físico** (T7.4, T7.5 y T7.9): perfilar con
+  DevTools, hacer cien cambios de ruta mirando la memoria y dejar una hora
+  corriendo con carga mirando el `heap`.
+- **Batería** (T7.8): una hora con la app siguiendo un bus.
+- **Lectores de pantalla**, con el guion al lado: TalkBack, VoiceOver en el
+  iPhone y en el Mac, y el Narrador de Windows.
+- **El panel en un Windows de verdad**: que la contraseña guardada funcione
+  y que vaya fluido.
+- **Las fichas de las tiendas** (T5.7): textos, capturas y video.
+- **El video de respaldo del pitch** (T10.4), por si el día falla la red.
+- **Mirar el tráfico real un rato** para fijar el umbral de latencia de la
+  alerta (T7.1).
+
+## Lo que puedo hacer yo
+
+Poco, y lo que hay depende de otra cosa:
+
+- **Pruebas de punta a punta del panel de escritorio.** Se pueden armar;
+  hoy el panel se prueba por widgets y a mano.
+- **Los avisos con la app cerrada**, si decides que van.
+- **La espera creciente de la SIM**, cuando llegue el hardware.
+- **El aviso de Gradle que queda (AUD-24)** sale de `maplibre_gl`, que no se
+  sube. Se queda así a menos que cambies esa regla.
+
+Ojo con la web: el CSS va en 117,8 de 121 KB y la carpeta `dist` en 770 de
+797. Cualquier cambio de la web se mide antes de sumarlo.
+
+## El día antes y el día del pitch
+
+1. **El día anterior, no antes**: desplegar el respaldo en Fly y cargarle
+   los datos (T2.3 y T2.4).
+2. **Con Fly arriba**: matar ngrok tres veces y cronometrar que el pasajero
+   y el panel se pasan solos al respaldo en 45 s o menos (simulacro a de
+   T10.5).
+3. **El repaso del día anterior, el día mismo y lo de después** (T10.6,
+   T10.7 y T10.8). `check-demo.sh` revisa todo lo que se puede revisar solo.
+
+## Después
+
+Una **auditoría con ojos frescos**, en una sesión nueva sin este contexto, con
+el prompt de `archivo/prompt-revision.md` (en la raíz del workspace). Si
+encuentra algo grave, entra aquí antes de dar el plan por cerrado.

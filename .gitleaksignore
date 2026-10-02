@@ -1,9 +1,10 @@
 # Hallazgos del historial revisados uno por uno (T3.12 / N-GITLEAKS). Cada
 # huella va con su motivo. Formato: commit:archivo:regla:línea.
 #
-# Los dos ejemplos siguen en los docs, pero en el árbol se silencian en su
-# propia línea con `gitleaks:allow`; estas huellas cubren los commits en los
-# que el ejemplo se escribió, cuyo snapshot no lleva el marcador.
+# Los dos ejemplos vivían en `docs/fase-2` y `docs/fase-8`, borrados del
+# árbol el 2026-10-02; estas huellas cubren los commits en los que el
+# ejemplo se escribió, que siguen en la historia y que el barrido `git`
+# recorre.
 #
 # Alcance de la corrida (local ≠ CI): hay tres lecturas distintas del mismo
 # árbol. La acción `secretos` de cada push solo mira el rango del push; el

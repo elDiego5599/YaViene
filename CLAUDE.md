@@ -22,17 +22,18 @@ o no se marca ☑. El plan usa `[YA]`, `[BLOQUEADA: X]`, `[DUEÑO]`,
 `[FECHA: pitch]` y `[CONTINUO]` (ver su §0.4). Lo honesto se queda: la
 etiqueta «Simulación», la flota demo y `empty-pick-bus`.
 
-## Estado (al 2026-10-01)
+## Estado (al 2026-10-02)
 
-**Tres documentos en la raíz del workspace (fuera de los repos), los tres
-para leer al arrancar en frío**: `/Users/diegoangarita/YaViene/plan-remediacion.md`
-(el plan de remediación: tablero en su §0.6, qué hacer en su §15),
-`reporte-auditoria-2026-09-25.md` (la auditoría que ordena el plan; la
-revisión del 2026-09-27 está en `reporte-auditoria-2026-09-27.md` y su
-lista de re-verificación por lotes en `reverificacion-lotes.md`) e
-`inventario-estados.md` (los estados vacíos/error de los 3 productos,
-T6.7). La evidencia congelada de tareas cerradas y los prompts de proceso
-(prompt de la auditoría, inventario J) viven en `archivo/`. El estado
+**Para arrancar en frío, primero `FALTANTES.md`** (raíz del workspace;
+vive en `YaViene/FALTANTES.md` y en la raíz hay un enlace): lo que queda,
+separado en lo que espera a terceros, lo que decide el dueño, lo que hace el
+dueño, lo que puedo hacer yo y el día del pitch. Cuando algo se cierra, se
+borra de ahí. El detalle de cada tarea sigue en las fichas de
+`plan-remediacion.md` (§4; raíz, sin versionar) y los estados vacíos/error
+de los 3 productos en `inventario-estados.md` (T6.7). En `archivo/` queda
+el prompt de la auditoría de ojos frescos y `build-demo.sh`. Los reportes y
+las revisiones, los prompts viejos y los `docs/` de agosto se borraron el
+2026-10-02 (los rastreados siguen en la historia de git). El estado
 diario y las reglas de trabajo están en `AGENTS.md`.
 
 - **NO es monorepo**: `YaViene/YaViene` (Flutter, rama `diseno-21st`),
@@ -47,7 +48,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   (simulacros contra un backend temporal, `tool/simulacros.sh`, y
   `zonaSocket()` en core) y T10.3 (`check-demo.sh` por grupos). Antes
   (2026-09-29, tarde): app `ed52e56`, web `572be9c` y backend `f62d3b1`,
-  con la revisión del 2026-09-29 (`reporte-revision-2026-09-29.md`): P1-2 sin
+  con la revisión del 2026-09-29: P1-2 sin
   falso verde y la suite inmune a `YA_VIENE_EXPUESTO`/`NODE_ENV` (backend),
   `start-test.sh` borrado, responsable y derechos de la Ley 1581 en la
   privacidad (web y app, sin subir `kLegalVersion`) con la autorización
