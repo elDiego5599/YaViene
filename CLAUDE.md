@@ -61,8 +61,8 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-10-02)**: **1.567 pruebas** en total
-  (1.534 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
+- **Verificación (2026-10-02)**: **1.571 pruebas** en total
+  (1.538 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
   corren con `tool/simulacros.sh`), contando las 11 de `ya_viene_pruebas`; aparte,
   las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
   `npm run typecheck` limpio (3 configs), **301 en Vitest** y el trinquete de
@@ -132,7 +132,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
   el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
   (`99c0a07`).
-- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 481 + 1, pruebas 11. Analyze: línea
+- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 485 + 1, pruebas 11. Analyze: línea
   base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres
   (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
   `--comprobar`) tras `npm run contrato:actualizar` en el backend. El

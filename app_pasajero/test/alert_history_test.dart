@@ -105,6 +105,29 @@ void main() {
     expect(c.read(alertHistoryProvider), hasLength(1));
   });
 
+  // Lo vio el dueño (2026-10-02): con una entrada por bus, volver a armar
+  // el bus que ya había sonado reemplazaba el enviado por el nuevo, y el
+  // aviso de antes desaparecía de la lista. Uno por bus es solo para los
+  // que esperan; lo que sonó es historia y se queda.
+  test('re-armar un bus que ya sonó no borra el enviado', () async {
+    final c = buildContainer();
+    addTearDown(c.dispose);
+    final avisos = c.read(proximityAlertsProvider.notifier);
+
+    arm(c, 'A-1');
+    await drain();
+    await avisos.check();
+    arm(c, 'A-1');
+
+    expect(c.read(alertHistoryProvider).map((e) => e.sent), [true, false]);
+    // Y al sonar otra vez se marca el nuevo, no el viejo: quedan dos.
+    await avisos.check();
+    final historial = c.read(alertHistoryProvider);
+    expect(historial.map((e) => e.sent), [true, true]);
+    expect(historial[0].sentAt!.isAfter(historial[1].sentAt!), isFalse);
+    expect(historial.map((e) => e.id).toSet(), hasLength(2));
+  });
+
   test('el disparo pasa la entrada a "enviado"', () async {
     final c = buildContainer();
     addTearDown(c.dispose);

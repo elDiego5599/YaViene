@@ -110,6 +110,7 @@
 
 ## Next Move
 - **2026-10-02**: avisos del pasajero (dueño, clase de frontend): «Borrar N»/«Borrar todas» preguntan antes (`Dialogo` delicado), todo borrado —también «Desactivar»— deja «Deshacer» en la `AvisoTarjeta` (`reponer` + `rearmar`, respeta el tope de 2) y la campana de lo enviado va en verde.
+- **2026-10-02**: avisos que «se perdían» (dueño): el historial guardaba una entrada por bus y re-armar un bus que ya sonó borraba el enviado. Ahora activa hay una por bus y enviadas todas (`AlertHistoryEntry.id` = bus@fecha; `remove` solo quita la activa, `quitar(ids)` borra por entrada, `reponer` devuelve lo repuesto). La selección marca entradas, tiene «Cancelar» en lugar de la flecha y es `autoDispose` (se olvida al salir).
 - **2026-10-01**: §15.A cerrada salvo AUD-24 (el aviso del KGP sale de `maplibre_gl`, que no se sube). Hechas: T5.6 (`127e4bb`), T6.8 (`0ad22f3`, web `cbebad1`), T3.14 (`6ea563c`), T7.7 y la parte web de T7.1 (web `6e7f63d`, Lighthouse móvil dentro en las cuatro páginas), simulacros b y d de T10.5 (`tool/simulacros.sh`, con `zonaSocket()` en core) y T10.3 (`check-demo.sh` por grupos). Lo que sigue es del dueño: plan §2 y §15.B.
 - Recordatorios si vuelve a pedir entrega: backend/túnel arriba; integral con `--dart-define=DISABLE_MAP_GUIDE=true` (reintentar si el 1º falla); `flutter build apk --release --dart-define=BACKEND_URL=...` → `~/Desktop/APKs/YaViene-Pasajero.apk` → `adb install -r` → `adb shell am start -n com.example.ya_viene_pasajero/.MainActivity`.
 

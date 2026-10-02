@@ -38,6 +38,7 @@ class NotificationsScreen extends ConsumerWidget {
       ...history.where((e) => !e.sent),
       ...history.where((e) => e.sent),
     ].toList();
+    final selecting = ref.watch(alertSelectionProvider).active;
 
     return Scaffold(
       // Era un gris azulado suelto (#F8FAFC). Las tarjetas son blancas y
@@ -63,19 +64,34 @@ class NotificationsScreen extends ConsumerWidget {
           maxScaleFactor: 1.3,
           child: const Text('Avisos'),
         ),
-        leading: IconButton(
-          // La flecha de la barra no es la de Material —que trae su
-          // rótulo puesto—, es un icono a secas: sin esto se anuncia
-          // «botón» y nada más.
-          icon: const Icon(
-            Icons.arrow_back_ios_new_outlined,
-            size: 20,
-            semanticLabel: 'Volver',
-          ),
-          tooltip: 'Volver',
-          color: AppColors.textPrimary,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        // Seleccionando, la flecha cede su sitio a «Cancelar»: antes no
+        // había cómo salir de la selección sin borrar (dueño, 2026-10-02).
+        leadingWidth: selecting ? 104 : null,
+        leading: selecting
+            ? MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: TextButton(
+                  onPressed: ref.read(alertSelectionProvider.notifier).clear,
+                  style: TextButton.styleFrom(
+                    textStyle: AppTextStyles.etiqueta,
+                    foregroundColor: AppColors.primaryDeep,
+                  ),
+                  child: const Text('Cancelar'),
+                ),
+              )
+            : IconButton(
+                // La flecha de la barra no es la de Material —que trae su
+                // rótulo puesto—, es un icono a secas: sin esto se anuncia
+                // «botón» y nada más.
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_outlined,
+                  size: 20,
+                  semanticLabel: 'Volver',
+                ),
+                tooltip: 'Volver',
+                color: AppColors.textPrimary,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
         actions: entries.isEmpty
             ? null
             : [
@@ -168,8 +184,8 @@ class _SoloConLaAppAbierta extends StatelessWidget {
 /// Borrar de a muchos es fácil de tocar sin querer y se lleva avisos que
 /// están esperando: un sí explícito, como en el panel con los buses.
 Future<void> _borrarConfirmando(
-    BuildContext context, WidgetRef ref, Set<String> busIds) async {
-  final n = busIds.length;
+    BuildContext context, WidgetRef ref, Set<String> ids) async {
+  final n = ids.length;
   final si = await mostrarDialogo<bool>(
     context,
     (ctx) => Dialogo(
@@ -184,26 +200,28 @@ Future<void> _borrarConfirmando(
   );
   if (si != true || !context.mounted) return;
   ref.read(alertSelectionProvider.notifier).clear();
-  _borrar(
-      context, ref, busIds, n == 1 ? 'Aviso borrado' : '$n avisos borrados');
+  _borrar(context, ref, ids, n == 1 ? 'Aviso borrado' : '$n avisos borrados');
 }
 
-/// Borra [busIds] —los que esperan se desactivan y dejan de vigilarse— y
-/// deja abajo la tarjeta con «Deshacer», que los devuelve como estaban:
-/// en su sitio, con su fecha y su ancla, y vigilando otra vez los que
-/// esperaban. Los notificadores se leen antes: si la pantalla se cierra,
-/// el «Deshacer» sigue sirviendo.
+/// Borra las entradas [ids] (ver [AlertHistoryEntry.id]) —las que esperan
+/// se desactivan y dejan de vigilarse— y deja abajo la tarjeta con
+/// «Deshacer», que las devuelve como estaban: en su sitio, con su fecha y
+/// su ancla, y vigilando otra vez las que esperaban. Los notificadores se
+/// leen antes: si la pantalla se cierra, el «Deshacer» sigue sirviendo.
 void _borrar(
-    BuildContext context, WidgetRef ref, Set<String> busIds, String hecho) {
+    BuildContext context, WidgetRef ref, Set<String> ids, String hecho) {
   final historial = ref.read(alertHistoryProvider.notifier);
   final activos = ref.read(activeAlertsProvider.notifier);
   final vigilancia = ref.read(proximityAlertsProvider.notifier);
   final antes = ref.read(alertHistoryProvider);
-  for (final busId in busIds) {
-    activos.deactivateAlert(busId);
-    vigilancia.disarmAlert(busId);
-    historial.remove(busId);
+  // Solo se desarma el bus de la que espera: borrar un enviado no apaga el
+  // aviso que ese mismo bus tenga armado ahora.
+  for (final e in antes) {
+    if (e.sent || !ids.contains(e.id)) continue;
+    activos.deactivateAlert(e.busId);
+    vigilancia.disarmAlert(e.busId);
   }
+  historial.quitar(ids);
   mostrarAviso(
     context,
     hecho,
@@ -211,14 +229,12 @@ void _borrar(
     accion: (
       'Deshacer',
       (contexto) {
-        historial.reponer(antes);
         var sinCupo = false;
-        for (final e in antes) {
-          if (e.sent || !busIds.contains(e.busId)) continue;
+        for (final e in historial.reponer(antes)) {
           // Entre tanto se armaron otros dos: este no cabe y no se queda
           // en «Esperando» sin vigilar.
-          if (!vigilancia.rearmar(e)) {
-            historial.remove(e.busId);
+          if (!e.sent && !vigilancia.rearmar(e)) {
+            historial.quitar({e.id});
             sinCupo = true;
           }
         }
@@ -242,7 +258,7 @@ class _SelectAction extends ConsumerWidget {
         if (selecting) {
           // Borrar todo: los activos se desactivan, el historial se limpia.
           _borrarConfirmando(context, ref,
-              {for (final e in ref.read(alertHistoryProvider)) e.busId});
+              {for (final e in ref.read(alertHistoryProvider)) e.id});
         } else {
           ref.read(alertSelectionProvider.notifier).enter();
         }
@@ -257,7 +273,8 @@ class _SelectAction extends ConsumerWidget {
   }
 }
 
-/// Estado del modo selección: activo o no, y el conjunto de busIds marcados.
+/// Estado del modo selección: activo o no, y las entradas marcadas (por
+/// [AlertHistoryEntry.id]: el mismo bus puede estar enviado y esperando).
 class _SelectionState {
   final bool active;
   final Set<String> selected;
@@ -270,17 +287,19 @@ class _SelectionNotifier extends StateNotifier<_SelectionState> {
 
   void enter() => state = const _SelectionState(true, {});
 
-  void toggle(String busId) {
+  void toggle(String id) {
     final next = {...state.selected};
-    if (!next.add(busId)) next.remove(busId);
+    if (!next.add(id)) next.remove(id);
     state = _SelectionState(true, next);
   }
 
   void clear() => state = const _SelectionState(false, {});
 }
 
+/// `autoDispose`: al salir de la pantalla la selección se olvida. Antes
+/// seguía puesta al volver a entrar (dueño, 2026-10-02).
 final alertSelectionProvider =
-    StateNotifierProvider<_SelectionNotifier, _SelectionState>(
+    StateNotifierProvider.autoDispose<_SelectionNotifier, _SelectionState>(
         (ref) => _SelectionNotifier());
 
 class _HistoryList extends ConsumerStatefulWidget {
@@ -361,8 +380,8 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                 // 12 entre tarjetas, como antes el separador.
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _TileEntrance(
-                  key: ValueKey(entry.busId),
-                  busId: entry.busId,
+                  key: ValueKey(entry.id),
+                  id: entry.id,
                   yaEntraron: _yaEntraron,
                   // El desfase se topa a los seis primeros: más allá, la
                   // espera del último se notaría más que el efecto.
@@ -373,14 +392,14 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                         (route?.id == entry.routeId ? route?.name : null),
                     distanceMeters: distanceMeters,
                     selecting: selecting,
-                    selected: selected.contains(entry.busId),
+                    selected: selected.contains(entry.id),
                     onToggleSelect: () => ref
                         .read(alertSelectionProvider.notifier)
-                        .toggle(entry.busId),
+                        .toggle(entry.id),
                     // Uno solo, a la vista y con su botón: no pregunta,
                     // pero se puede deshacer.
-                    onDisable: () => _borrar(
-                        context, ref, {entry.busId}, 'Aviso desactivado'),
+                    onDisable: () =>
+                        _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
                   ),
                 ),
               );
@@ -474,7 +493,7 @@ class _TileEntrance extends StatefulWidget {
   /// Puesto en la lista, para escalonar la entrada.
   final int orden;
 
-  final String busId;
+  final String id;
 
   /// Compartido con la lista: quién ya entró y no debe volver a hacerlo.
   final Set<String> yaEntraron;
@@ -483,7 +502,7 @@ class _TileEntrance extends StatefulWidget {
     super.key,
     required this.child,
     required this.orden,
-    required this.busId,
+    required this.id,
     required this.yaEntraron,
   });
 
@@ -520,7 +539,7 @@ class _TileEntranceState extends State<_TileEntrance>
         curve: AppMotion.curvaEntrada,
       ),
     );
-    if (widget.yaEntraron.add(widget.busId)) {
+    if (widget.yaEntraron.add(widget.id)) {
       _controller.forward();
     } else {
       // Ya entró antes: se muestra puesto, sin repetir la entrada.
@@ -752,7 +771,7 @@ class _AlertTile extends StatelessWidget {
     );
 
     final tarjeta = AnimatedContainer(
-      key: ValueKey('aviso-${entry.busId}'),
+      key: ValueKey('aviso-${entry.id}'),
       duration: AppMotion.duracion(context, AppMotion.rapido),
       curve: AppMotion.curvaEntrada,
       padding: const EdgeInsets.all(AppSpacing.md),

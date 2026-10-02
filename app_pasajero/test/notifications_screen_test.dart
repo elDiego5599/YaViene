@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
+import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/core/widgets/placa_bus.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
@@ -101,7 +102,12 @@ void main() {
   /// La tarjeta de un aviso. La ruta va escrita y la placa en su lámina
   /// blanca (`PlacaBus`), como en la hoja de distancia: ya no van las dos
   /// juntas en una sola línea con guion.
-  Finder aviso(String busId) => find.byKey(ValueKey('aviso-$busId'));
+  ///
+  /// La llave es la de la entrada (`bus@fecha`), no la del bus: el mismo bus
+  /// puede salir en «Enviados» y otra vez en «Esperando».
+  Finder aviso(String busId) => find.byWidgetPredicate((w) =>
+      w.key is ValueKey<String> &&
+      (w.key! as ValueKey<String>).value.startsWith('aviso-$busId@'));
 
   /// Acepta la ventana de «¿Borrar…?» que sale antes de borrar.
   Future<void> confirmar(WidgetTester tester, String titulo) async {
@@ -395,7 +401,9 @@ void main() {
     await tester.tap(find.text('Borrar todas'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('¿Borrar este aviso?'), findsOneWidget);
-    await tester.tap(find.text('Cancelar'));
+    // El «Cancelar» del diálogo, no el de la barra.
+    await tester.tap(find.descendant(
+        of: find.byType(Dialogo), matching: find.text('Cancelar')));
     await tester.pump(const Duration(milliseconds: 500));
 
     expectAviso('A-1');
@@ -487,5 +495,69 @@ void main() {
     final campana =
         tester.widget<Icon>(find.byIcon(Icons.notifications_active_outlined));
     expect(campana.color, AppColors.primaryAccessible);
+  });
+
+  testWidgets('el bus que ya sonó y se volvió a armar sale en los dos grupos',
+      (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    await container.read(proximityAlertsProvider.notifier).check();
+    arm(container, 'A-1');
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(aviso('A-1'), findsNWidgets(2));
+    expect(find.text('Esperando'), findsOneWidget);
+    expect(find.text('Enviados'), findsOneWidget);
+
+    // Desactivar el que espera deja el que sonó.
+    await tester.tap(find.text('Desactivar'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(aviso('A-1'), findsOneWidget);
+    expect(container.read(alertHistoryProvider).single.sent, isTrue);
+  });
+
+  // Dueño (2026-10-02): al entrar en «Seleccionar» no había cómo salir sin
+  // borrar, y la selección seguía puesta al volver a la pantalla.
+  testWidgets('«Cancelar» sale de la selección sin borrar', (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(aviso('A-1'));
+    await tester.pump();
+    await tester.tap(find.text('Cancelar'));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Seleccionar'), findsOneWidget);
+    expect(find.text('Borrar todas'), findsNothing);
+    expect(find.byTooltip('Volver'), findsOneWidget);
+    expectAviso('A-1');
+  });
+
+  testWidgets('salir de avisos y volver no deja la selección puesta',
+      (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Borrar todas'), findsOneWidget);
+
+    Future<void> mostrar(Widget pantalla) => tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(home: pantalla),
+          ),
+        );
+    await mostrar(const SizedBox());
+    await tester.pump();
+    await mostrar(const NotificationsScreen());
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Seleccionar'), findsOneWidget);
+    expect(find.text('Borrar todas'), findsNothing);
   });
 }

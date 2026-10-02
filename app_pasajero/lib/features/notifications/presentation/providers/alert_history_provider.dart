@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Una entrada por bus en el historial: `activo` (armado, esperando el aviso)
-/// o `enviado` (la notificación ya se disparó). El historial es además la
+/// Una entrada del historial: `activo` (armado, esperando el aviso) o
+/// `enviado` (la notificación ya se disparó). Activa hay a lo sumo una por
+/// bus; enviadas, las que hayan sonado: volver a armar un bus que ya avisó
+/// no borra el aviso de antes (dueño, 2026-10-02). El historial es además la
 /// única fuente de persistencia de los avisos activos: al reabrir la app se
 /// re-arman las entradas que no han enviado su notificación.
 class AlertHistoryEntry {
@@ -34,6 +36,9 @@ class AlertHistoryEntry {
   });
 
   bool get sent => sentAt != null;
+
+  /// Quién es esta entrada, entre varias del mismo bus.
+  String get id => '$busId@${createdAt.microsecondsSinceEpoch}';
 
   AlertHistoryEntry copyWith({
     DateTime? sentAt,
@@ -206,7 +211,11 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
 
   Future<void> _saveQueue = Future<void>.value();
 
-  /// Armar un aviso crea (o renueva) su registro en estado activo.
+  /// La entrada que espera de [busId], o -1.
+  int _activa(String busId) =>
+      state.indexWhere((e) => e.busId == busId && !e.sent);
+
+  /// Armar un aviso crea (o renueva) el registro activo del bus.
   void upsert(
     String busId, {
     required String routeId,
@@ -222,7 +231,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       refLat: refLat,
       refLon: refLon,
     );
-    final index = state.indexWhere((e) => e.busId == busId);
+    final index = _activa(busId);
     if (index == -1) {
       state = [...state, entry];
     } else {
@@ -236,7 +245,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
   /// Fija el punto desde el que mide un aviso que medía en vivo. No es
   /// `upsert`: ese renueva la fecha, y la fecha decide cuándo vence.
   void fijarAncla(String busId, double lat, double lon) {
-    final index = state.indexWhere((e) => e.busId == busId);
+    final index = _activa(busId);
     if (index == -1) return;
     final next = [...state];
     next[index] = state[index].copyWith(refLat: lat, refLon: lon);
@@ -246,7 +255,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
 
   /// El aviso disparó: el registro pasa a "enviado" con su fecha.
   void markSent(String busId) {
-    final index = state.indexWhere((e) => e.busId == busId);
+    final index = _activa(busId);
     if (index == -1) return;
     final next = [...state];
     next[index] = state[index].copyWith(sentAt: DateTime.now());
@@ -254,24 +263,47 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     _save();
   }
 
-  /// Desactivación manual (nunca notificó): el registro desaparece.
+  /// Desactivación manual o vencimiento (nunca notificó): el registro
+  /// activo del bus desaparece; lo que ya sonó se queda.
   void remove(String busId) {
-    final next = state.where((e) => e.busId != busId).toList();
+    final index = _activa(busId);
+    if (index == -1) return;
+    state = [...state]..removeAt(index);
+    _save();
+  }
+
+  /// Borra del historial las entradas [ids] (ver [AlertHistoryEntry.id]).
+  void quitar(Set<String> ids) {
+    final next = state.where((e) => !ids.contains(e.id)).toList();
     if (next.length == state.length) return;
     state = next;
     _save();
   }
 
   /// «Deshacer» de un borrado: devuelve las entradas de [antes] que ya no
-  /// están, en su sitio y con sus fechas. Lo que cambió entre tanto (un
-  /// aviso nuevo, uno que sonó) gana a la copia vieja.
-  void reponer(List<AlertHistoryEntry> antes) {
-    final ahora = {for (final e in state) e.busId: e};
-    state = [
-      for (final e in antes) ahora.remove(e.busId) ?? e,
-      ...ahora.values
-    ];
+  /// están, en su sitio y con sus fechas, y dice cuáles repuso. Lo que
+  /// cambió entre tanto gana a la copia vieja: una que sonó sigue enviada,
+  /// y un activo viejo no vuelve si su bus ya tiene otro armado.
+  List<AlertHistoryEntry> reponer(List<AlertHistoryEntry> antes) {
+    final ahora = {for (final e in state) e.id: e};
+    final esperando = {
+      for (final e in state)
+        if (!e.sent) e.busId
+    };
+    final repuestas = <AlertHistoryEntry>[];
+    final next = <AlertHistoryEntry>[];
+    for (final e in antes) {
+      final actual = ahora.remove(e.id);
+      if (actual != null) {
+        next.add(actual);
+      } else if (e.sent || esperando.add(e.busId)) {
+        next.add(e);
+        repuestas.add(e);
+      }
+    }
+    state = [...next, ...ahora.values];
     _save();
+    return repuestas;
   }
 
   void clearAll() {

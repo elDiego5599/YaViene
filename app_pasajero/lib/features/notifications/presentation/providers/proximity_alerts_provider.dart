@@ -390,7 +390,8 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         // Nombre de ruta y placa del bus para el texto de la notificación.
         String? routeName;
         for (final e in _ref.read(alertHistoryProvider)) {
-          if (e.busId == entry.key) {
+          // El que espera: un enviado del mismo bus puede ser de otra ruta.
+          if (e.busId == entry.key && !e.sent) {
             routeName = e.routeName;
             break;
           }
