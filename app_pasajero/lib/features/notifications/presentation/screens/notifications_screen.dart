@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
@@ -108,15 +109,23 @@ class NotificationsScreen extends ConsumerWidget {
           // dos estados, no al fondo de una lista que puede no verse entera.
           if (Theme.of(context).platform == TargetPlatform.iOS)
             const _SoloConLaAppAbierta(),
+          // Al borrar el último, la lista se apaga y el estado vacío
+          // aparece en su lugar; antes era un corte seco.
           Expanded(
-            child: entries.isEmpty
-                ? const _EmptyState()
-                : _HistoryList(
-                    entries: entries,
-                    positions: positions,
-                    location: location,
-                    route: route,
-                  ),
+            child: AnimatedSwitcher(
+              duration: AppMotion.duracion(context, AppMotion.normal),
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaSalida,
+              child: entries.isEmpty
+                  ? const _EmptyState(key: ValueKey('vacio'))
+                  : _HistoryList(
+                      key: const ValueKey('lista'),
+                      entries: entries,
+                      positions: positions,
+                      location: location,
+                      route: route,
+                    ),
+            ),
           ),
         ],
       ),
@@ -309,6 +318,7 @@ class _HistoryList extends ConsumerStatefulWidget {
   final RouteInfo? route;
 
   const _HistoryList({
+    super.key,
     required this.entries,
     required this.positions,
     required this.location,
@@ -328,9 +338,34 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
   /// cargando otra vez algo que ya estaba ahí.
   final Set<String> _yaEntraron = {};
 
+  /// Los que se acaban de borrar o desactivar, con el puesto que tenían,
+  /// mientras se despiden (ver [_Salida]).
+  final Map<String, (AlertHistoryEntry, int)> _saliendo = {};
+
+  @override
+  void didUpdateWidget(_HistoryList old) {
+    super.didUpdateWidget(old);
+    final quedan = {for (final e in widget.entries) e.id};
+    // Volvió («Deshacer») mientras se iba: deja de irse.
+    _saliendo.removeWhere((id, _) => quedan.contains(id));
+    if (AppMotion.reducido(context)) return;
+    for (final (i, e) in old.entries.indexed) {
+      if (quedan.contains(e.id)) continue;
+      _saliendo.putIfAbsent(e.id, () => (e, i));
+      // Si vuelve, que vuelva a entrar.
+      _yaEntraron.remove(e.id);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final entries = widget.entries;
+    // Los que se van, en el puesto que tenían: así nada salta mientras se
+    // despiden.
+    final entries = [...widget.entries];
+    for (final (e, i) in _saliendo.values.toList()
+      ..sort((a, b) => a.$2.compareTo(b.$2))) {
+      entries.insert(i.clamp(0, entries.length), e);
+    }
     final positions = widget.positions;
     final location = widget.location;
     final route = widget.route;
@@ -345,9 +380,15 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
     // sigue en pie, y el lector de pantalla salta de grupo en grupo.
     final esperando = entries.where((e) => !e.sent).toList();
     final enviados = entries.where((e) => e.sent).toList();
+    // Un grupo que solo tiene tarjetas yéndose se va con ellas: su
+    // encabezado viaja dentro de la primera (ver abajo).
+    bool vivo(List<AlertHistoryEntry> grupo) =>
+        grupo.any((e) => !_saliendo.containsKey(e.id));
     final filas = <Object>[
-      if (esperando.isNotEmpty) ...['Esperando', ...esperando],
-      if (enviados.isNotEmpty) ...['Enviados', ...enviados],
+      if (vivo(esperando)) 'Esperando',
+      ...esperando,
+      if (vivo(enviados)) 'Enviados',
+      ...enviados,
     ];
 
     return Column(
@@ -363,6 +404,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                 return _Encabezado(fila, primero: index == 0);
               }
               final entry = fila as AlertHistoryEntry;
+              final seVa = _saliendo.containsKey(entry.id);
               final pos = positions.cast<BusPosition?>().firstWhere(
                     (p) => p?.busId == entry.busId,
                     orElse: () => null,
@@ -376,6 +418,44 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
               // El puesto entre los avisos, sin contar los encabezados: el
               // escalón es entre tarjetas.
               final orden = entries.indexOf(entry);
+              final tile = _AlertTile(
+                entry: entry,
+                routeName: entry.routeName ??
+                    (route?.id == entry.routeId ? route?.name : null),
+                distanceMeters: distanceMeters,
+                selecting: selecting && !seVa,
+                selected: selected.contains(entry.id),
+                onToggleSelect: () {
+                  HapticFeedback.selectionClick();
+                  ref.read(alertSelectionProvider.notifier).toggle(entry.id);
+                },
+                // Uno solo, a la vista y con su botón: no pregunta,
+                // pero se puede deshacer.
+                onDisable: () =>
+                    _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
+              );
+              if (seVa) {
+                final grupo = entry.sent ? enviados : esperando;
+                final primeraDelGrupo = !vivo(grupo) && grupo.first == entry;
+                return _Salida(
+                  key: ValueKey('sale-${entry.id}'),
+                  alTerminar: () => setState(() => _saliendo.remove(entry.id)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (primeraDelGrupo)
+                        _Encabezado(
+                          entry.sent ? 'Enviados' : 'Esperando',
+                          primero: index == 0,
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: tile,
+                      ),
+                    ],
+                  ),
+                );
+              }
               return Padding(
                 // 12 entre tarjetas, como antes el separador.
                 padding: const EdgeInsets.only(bottom: 12),
@@ -386,21 +466,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                   // El desfase se topa a los seis primeros: más allá, la
                   // espera del último se notaría más que el efecto.
                   orden: orden.clamp(0, 5),
-                  child: _AlertTile(
-                    entry: entry,
-                    routeName: entry.routeName ??
-                        (route?.id == entry.routeId ? route?.name : null),
-                    distanceMeters: distanceMeters,
-                    selecting: selecting,
-                    selected: selected.contains(entry.id),
-                    onToggleSelect: () => ref
-                        .read(alertSelectionProvider.notifier)
-                        .toggle(entry.id),
-                    // Uno solo, a la vista y con su botón: no pregunta,
-                    // pero se puede deshacer.
-                    onDisable: () =>
-                        _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
-                  ),
+                  child: tile,
                 ),
               );
             },
@@ -571,6 +637,78 @@ class _TileEntranceState extends State<_TileEntrance>
   }
 }
 
+/// La despedida de una tarjeta borrada o desactivada.
+///
+/// Antes se iba de golpe y lo de abajo saltaba a su sitio (dueño,
+/// 2026-10-02: «no me gusta nada»). Ahora, como una fila que se borra en
+/// iOS: primero se corre un poco a la izquierda y se apaga, y ya apagada
+/// su hueco se cierra, de modo que lo de abajo sube sin salto. Mientras
+/// tanto no se toca ni se lee: ya no está en el historial.
+class _Salida extends StatefulWidget {
+  const _Salida({super.key, required this.child, required this.alTerminar});
+
+  final Widget child;
+  final VoidCallback alTerminar;
+
+  @override
+  State<_Salida> createState() => _SalidaState();
+}
+
+class _SalidaState extends State<_Salida> with SingleTickerProviderStateMixin {
+  // 460 ms: el apagado (0–55 %) y el cierre del hueco (35–100 %) se
+  // solapan un poco para que no se lean como dos pasos.
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 460),
+  )
+    ..addStatusListener((estado) {
+      if (estado == AnimationStatus.completed) widget.alTerminar();
+    })
+    ..forward();
+
+  late final CurvedAnimation _apagado = CurvedAnimation(
+    parent: _c,
+    curve: const Interval(0, 0.55, curve: AppMotion.curvaSalida),
+  );
+  late final CurvedAnimation _cierre = CurvedAnimation(
+    parent: _c,
+    curve: const Interval(0.35, 1, curve: AppMotion.curvaCambio),
+  );
+
+  @override
+  void dispose() {
+    _apagado.dispose();
+    _cierre.dispose();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        child: SizeTransition(
+          sizeFactor: ReverseAnimation(_cierre),
+          alignment: Alignment.topCenter,
+          child: FadeTransition(
+            opacity: ReverseAnimation(_apagado),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset.zero,
+                end: const Offset(-0.12, 0),
+              ).animate(_apagado),
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 1, end: 0.97).animate(_apagado),
+                child: widget.child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AlertTile extends StatelessWidget {
   final AlertHistoryEntry entry;
   final String? routeName;
@@ -616,25 +754,9 @@ class _AlertTile extends StatelessWidget {
     // Un aviso ya enviado no lleva acción: «Enviado» a la derecha repetía
     // lo que el subtítulo dice con fecha y hora, y una fila que solo
     // informa, en iOS, no lleva nada a la derecha.
+    // Seleccionando no hay acción: la marca es el círculo de la izquierda.
     final Widget? accion = selecting
-        ? Semantics(
-            // Una casilla suelta se anuncia «casilla, sin marcar»: sin el
-            // nombre del bus, no se sabe cuál se está marcando.
-            label: dichoBus,
-            child: Checkbox(
-              value: selected,
-              onChanged: (_) => onToggleSelect(),
-              activeColor: AppColors.primaryDeep,
-              // Redonda, como la selección de Fotos o Mensajes: una casilla
-              // cuadrada junto a tarjetas redondeadas se veía de formulario.
-              shape: const CircleBorder(),
-              side: const BorderSide(
-                color: AppColors.textSecondary,
-                width: 1.5,
-              ),
-              visualDensity: VisualDensity.compact,
-            ),
-          )
+        ? null
         : sent
             ? null
             // Rojo de error para algo que se deshace en un toque desde el
@@ -776,11 +898,17 @@ class _AlertTile extends StatelessWidget {
       curve: AppMotion.curvaEntrada,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        // Marcada, un velo del azul del círculo y su filo fino: el borde
+        // grueso de 1,5 en tinta se leía como error de formulario.
+        color: selected && selecting
+            ? Color.alphaBlend(
+                AppColors.acento.withValues(alpha: 0.06), AppColors.surface)
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: selected ? AppColors.primaryDeep : AppColors.hairline,
-          width: selected ? 1.5 : 1.0,
+          color: selected && selecting
+              ? AppColors.acento.withValues(alpha: 0.45)
+              : AppColors.hairline,
         ),
         // Solo lo que espera se levanta del fondo, con la misma sombra
         // tenue de las píldoras del mapa: lo enviado se queda plano.
@@ -809,19 +937,117 @@ class _AlertTile extends StatelessWidget {
     );
 
     // En modo selección se marca tocando la tarjeta entera, como en Fotos:
-    // la casilla sola es un blanco chico en una esquina. Para el lector de
-    // pantalla la casilla, con su nombre, sigue siendo el control.
+    // el círculo solo es un blanco chico. Para el lector de pantalla el
+    // círculo, con su nombre, es el control.
+    //
+    // Al entrar en la selección la tarjeta se corre a la derecha y el
+    // círculo entra por la izquierda, como en Mail.
+    final duracion = AppMotion.duracion(context, AppMotion.normal);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       excludeFromSemantics: true,
       onTap: selecting ? onToggleSelect : null,
-      child: tarjeta,
+      child: Stack(
+        children: [
+          AnimatedPadding(
+            duration: duracion,
+            curve: AppMotion.curvaCambio,
+            padding: EdgeInsets.only(left: selecting ? 40 : 0),
+            child: tarjeta,
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: AnimatedSlide(
+              duration: duracion,
+              curve: AppMotion.curvaCambio,
+              offset: selecting ? Offset.zero : const Offset(-1, 0),
+              child: AnimatedOpacity(
+                duration: duracion,
+                curve: AppMotion.curvaCambio,
+                opacity: selecting ? 1 : 0,
+                child: selecting
+                    ? Center(
+                        child: _CirculoSeleccion(
+                          key: ValueKey('circulo-${entry.id}'),
+                          marcado: selected,
+                          dicho: dichoBus,
+                          alTocar: onToggleSelect,
+                        ),
+                      )
+                    : const SizedBox(width: 28),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// La marca de selección: un círculo con filo que, marcado, se llena del
+/// azul de los botones llenos con el chulito blanco y grueso, como en Mail
+/// o Fotos. Era la casilla de Material, con su chulito fino dibujado a
+/// trazo (dueño, 2026-10-02: «no me gusta el chulito ese»).
+class _CirculoSeleccion extends StatelessWidget {
+  const _CirculoSeleccion({
+    super.key,
+    required this.marcado,
+    required this.dicho,
+    required this.alTocar,
+  });
+
+  final bool marcado;
+
+  /// Ruta y placa: una casilla suelta se anuncia «casilla, sin marcar» y
+  /// no se sabe cuál se está marcando.
+  final String dicho;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final duracion = AppMotion.duracion(context, AppMotion.rapido);
+    return Semantics(
+      container: true,
+      checked: marcado,
+      label: dicho,
+      onTap: alTocar,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: alTocar,
+        child: AnimatedContainer(
+          duration: duracion,
+          curve: AppMotion.curvaEntrada,
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: marcado ? AppColors.acento : AppColors.surface,
+            // Sin marcar, el filo en el gris secundario: sobre arena, el
+            // de las tarjetas (hairline) no se ve.
+            border: Border.all(
+              color: marcado ? AppColors.acento : AppColors.textSecondary,
+              width: 1.5,
+            ),
+          ),
+          // El chulito entra con un rebote corto, como en iOS.
+          child: AnimatedScale(
+            duration: duracion,
+            curve: marcado ? Curves.easeOutBack : AppMotion.curvaSalida,
+            scale: marcado ? 1 : 0,
+            child: marcado
+                ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
+                : const SizedBox.shrink(),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {

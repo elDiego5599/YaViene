@@ -109,6 +109,20 @@ void main() {
       w.key is ValueKey<String> &&
       (w.key! as ValueKey<String>).value.startsWith('aviso-$busId@'));
 
+  /// El círculo de selección de la tarjeta de [busId].
+  Finder circulo(String busId) => find.byWidgetPredicate((w) =>
+      w.key is ValueKey<String> &&
+      (w.key! as ValueKey<String>).value.startsWith('circulo-$busId@'));
+
+  /// Deja terminar una animación: arranca en el cuadro siguiente al cambio
+  /// (un `pump(d)` solo la deja quieta) y la despedida de una tarjeta se
+  /// cierra en otro más.
+  Future<void> asentar(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+  }
+
   /// Acepta la ventana de «¿Borrar…?» que sale antes de borrar.
   Future<void> confirmar(WidgetTester tester, String titulo) async {
     expect(find.text(titulo), findsOneWidget);
@@ -153,6 +167,8 @@ void main() {
 
     await tester.tap(find.text('Desactivar'));
     await tester.pump();
+    // Se despide (ver «se despide antes de irse»), y después no está.
+    await asentar(tester);
 
     expect(aviso('A-1'), findsNothing);
     expect(container.read(activeAlertsProvider), isEmpty);
@@ -248,12 +264,13 @@ void main() {
     await tester.pump();
     // Deja terminar la entrada de la barra inferior (AnimatedSize).
     await tester.pump(const Duration(milliseconds: 300));
-    // Selecciona solo A-1 (el checkbox de su fila).
-    await tester.tap(find.byType(Checkbox).first);
+    // Selecciona solo A-1 (el círculo de su fila).
+    await tester.tap(circulo('A-1'));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Borrar 1'));
     await tester.pump(const Duration(milliseconds: 500));
     await confirmar(tester, '¿Borrar este aviso?');
+    await asentar(tester);
 
     expect(aviso('A-1'), findsNothing);
     expectAviso('A-2');
@@ -335,6 +352,8 @@ void main() {
     // Los encabezados se anuncian como tales: el lector salta de grupo en
     // grupo en vez de leer la lista entera.
     final semantica = tester.ensureSemantics();
+    // La lista acaba de reemplazar al estado vacío: que termine de entrar.
+    await asentar(tester);
     expect(tester.getSemantics(esperando),
         isSemantics(label: 'Esperando', isHeader: true));
     semantica.dispose();
@@ -361,11 +380,11 @@ void main() {
     // Fuera del modo selección tocar la tarjeta no hace nada.
     await tester.tap(ruta);
     await tester.pump();
-    expect(find.byType(Checkbox), findsNothing);
+    expect(find.text('Borrar 1'), findsNothing);
 
     await tester.tap(find.text('Seleccionar'));
     await tester.pump(const Duration(milliseconds: 300));
-    // La casilla es un blanco de 48 a la derecha; tocar el nombre de la
+    // El círculo es un blanco chico a la izquierda; tocar el nombre de la
     // ruta, que es donde el dedo va, también marca.
     await tester.tap(ruta);
     await tester.pump(const Duration(milliseconds: 300));
@@ -420,7 +439,7 @@ void main() {
     final antes = container.read(alertHistoryProvider).single;
 
     await tester.tap(find.text('Desactivar'));
-    await tester.pump();
+    await asentar(tester);
     expect(aviso('A-1'), findsNothing);
     expect(find.text('Aviso desactivado'), findsOneWidget);
 
@@ -512,7 +531,7 @@ void main() {
 
     // Desactivar el que espera deja el que sonó.
     await tester.tap(find.text('Desactivar'));
-    await tester.pump(const Duration(milliseconds: 500));
+    await asentar(tester);
     expect(aviso('A-1'), findsOneWidget);
     expect(container.read(alertHistoryProvider).single.sent, isTrue);
   });
@@ -559,5 +578,78 @@ void main() {
 
     expect(find.text('Seleccionar'), findsOneWidget);
     expect(find.text('Borrar todas'), findsNothing);
+  });
+
+  // Dueño (2026-10-02): «la animación de desactivar o borrar no me gusta
+  // nada». La tarjeta desaparecía de golpe y lo de abajo saltaba a su
+  // sitio. Ahora se despide —se corre, se apaga y su hueco se cierra— y
+  // mientras tanto no se puede tocar ni la lee el lector.
+  testWidgets('al desactivar, la tarjeta se despide antes de irse',
+      (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
+    arm(container, 'A-1');
+    arm(container, 'A-2');
+    await tester.pump(const Duration(milliseconds: 800));
+    final abajo = tester.getTopLeft(aviso('A-2')).dy;
+
+    await tester.tap(find.text('Desactivar').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(aviso('A-1'), findsOneWidget, reason: 'aún se está yendo');
+    expect(container.read(alertHistoryProvider).map((e) => e.busId), ['A-2']);
+    expect(find.text('Desactivar'), findsNWidgets(2));
+    final opacidad = tester
+        .widgetList<FadeTransition>(find.ancestor(
+            of: aviso('A-1'), matching: find.byType(FadeTransition)))
+        .map((f) => f.opacity.value)
+        .reduce((a, b) => a * b);
+    expect(opacidad, lessThan(1));
+    // El de abajo sube sin salto: a medio camino todavía no llegó.
+    await tester.pump(const Duration(milliseconds: 180));
+    final medio = tester.getTopLeft(aviso('A-2')).dy;
+    expect(medio, lessThanOrEqualTo(abajo));
+
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(aviso('A-1'), findsNothing);
+    expect(tester.getTopLeft(aviso('A-2')).dy, lessThan(medio));
+  });
+
+  // Dueño (2026-10-02): «no me gusta cómo se seleccionan ni el chulito».
+  // Era la casilla de Material a la derecha y un borde grueso. Ahora, como
+  // en Mail o Fotos: entra un círculo por la izquierda y, marcado, se
+  // llena con el chulito blanco; el lector lo anuncia como casilla.
+  testWidgets('seleccionar usa el círculo propio, no la casilla de Material',
+      (tester) async {
+    final semantica = tester.ensureSemantics();
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    expect(circulo('A-1'), findsNothing);
+
+    await tester.tap(find.text('Seleccionar'));
+    await asentar(tester);
+    expect(find.byType(Checkbox), findsNothing);
+    expect(circulo('A-1'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsNothing);
+    final x = tester.getTopLeft(circulo('A-1')).dx;
+    expect(x, lessThan(tester.getTopLeft(aviso('A-1')).dx));
+
+    await tester.tap(circulo('A-1'));
+    await asentar(tester);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(
+      tester.getSemantics(circulo('A-1')),
+      matchesSemantics(
+        label: 'Ruta 1, bus A-1',
+        hasCheckedState: true,
+        isChecked: true,
+        hasTapAction: true,
+      ),
+    );
+
+    await tester.tap(find.text('Cancelar'));
+    await asentar(tester);
+    expect(circulo('A-1'), findsNothing);
+    semantica.dispose();
   });
 }
