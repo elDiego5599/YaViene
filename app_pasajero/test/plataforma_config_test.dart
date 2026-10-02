@@ -57,6 +57,20 @@ void main() {
           .toList();
       expect(orientaciones, ['UIInterfaceOrientationPortrait']);
     });
+
+    test('el mínimo de iOS es 15, el que pide Firebase', () {
+      // firebase_core y firebase_messaging (los avisos con la app cerrada,
+      // D13) exigen iOS 15 desde Xcode, aunque en iPhone todavía no se usan:
+      // con 13 la app no compila. Las tres configuraciones del proyecto y el
+      // Podfile dicen lo mismo.
+      final proyecto = _leer('ios/Runner.xcodeproj/project.pbxproj');
+      final minimos = RegExp(r'IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);')
+          .allMatches(proyecto)
+          .map((m) => m.group(1))
+          .toList();
+      expect(minimos, ['15.0', '15.0', '15.0']);
+      expect(_leer('ios/Podfile'), contains("platform :ios, '15.0'"));
+    });
   });
 
   group('Android', () {

@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:ui' show DartPluginRegistrant;
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:firebase_messaging/firebase_messaging.dart' show RemoteMessage;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/bus_notification_service.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
+import '../../data/avisos_push.dart';
 import 'alert_history_provider.dart';
 
 /// Radio en el que se dispara el aviso (m).
@@ -30,6 +33,16 @@ typedef BusNearNotifier = Future<bool> Function({
 /// Si el teléfono puede enseñar un aviso ahora (inyectable en tests).
 typedef PermisoDeAvisos = Future<bool> Function();
 
+/// Cada cuánto late en el servidor un aviso armado. El arriendo dura un
+/// minuto (`ARRIENDO_MS` del backend): caben dos latidos perdidos antes de
+/// que el servidor se meta.
+const cadaLatidoPush = Duration(seconds: 20);
+
+/// Cuánto se deja de intentar el push cuando el servidor dice que no lo
+/// tiene (sin la cuenta de servicio de Firebase): preguntar en cada latido
+/// sería ruido; diez minutos dejan que vuelva solo cuando lo configuren.
+const pausaSinPush = Duration(minutes: 10);
+
 /// Hay avisos armados que no pueden sonar porque las notificaciones de la
 /// app están apagadas. Lo pone el barrido cuando un aviso no se pudo
 /// mostrar y lo lee la hoja del mapa para decirlo (auditoría 2026-09, H2).
@@ -45,9 +58,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     BusNearNotifier? notify,
     PermisoDeAvisos? permiso,
     DateTime Function()? ahora,
+    AvisosPush? push,
   })  : _notify = notify ?? _defaultNotify,
         _permiso = permiso ?? BusNotificationService.puedeAvisar,
         _ahora = ahora ?? DateTime.now,
+        _push = push,
         super({}) {
     _ref.listen<UserLocationState>(userLocationProvider, _alMoverUbicacion);
   }
@@ -60,6 +75,27 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// esperar tres horas de verdad no es una prueba).
   final DateTime Function() _ahora;
   Timer? _timer;
+
+  /// Los avisos con la app cerrada (D13 del backend). `null` = sin push
+  /// (las pruebas que no lo miran); en iOS existe pero no tiene token y no
+  /// hace nada.
+  final AvisosPush? _push;
+  Timer? _timerPush;
+  StreamSubscription<Map<String, dynamic>>? _mensajes;
+
+  /// Identificador en el servidor de cada aviso armado que el servidor ya
+  /// tiene.
+  final _servidor = <String, String>{};
+
+  /// Avisos del servidor que hay que borrar y todavía no se pudo (sin red al
+  /// desarmar). Se reintentan en cada vuelta: un huérfano ocupa uno de los
+  /// dos cupos del teléfono y podría sonar por un aviso ya retirado.
+  final _porBorrar = <String>{};
+
+  /// Hasta cuándo no se arma nada en el servidor ([pausaSinPush]).
+  DateTime? _pushPausadoHasta;
+  Future<void>? _sincronizando;
+  bool _otraVuelta = false;
 
   /// Ruta a la que pertenece cada bus con aviso armado. Necesaria para que el
   /// aviso siga midiendo aunque el usuario esté viendo otra ruta.
@@ -96,12 +132,20 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   void start() {
     if (_timer != null) return;
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => _check());
+    if (_push != null) {
+      _timerPush = Timer.periodic(cadaLatidoPush, (_) => sincronizarPush());
+      _mensajes = AvisosPush.mensajes.listen(alPush);
+    }
   }
 
   /// Detiene el timer periódico. Idempotente; [start] lo relanza.
   void stop() {
     _timer?.cancel();
     _timer = null;
+    _timerPush?.cancel();
+    _timerPush = null;
+    _mensajes?.cancel();
+    _mensajes = null;
   }
 
   /// Fuerza una verificación (útil en tests).
@@ -138,6 +182,8 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     if (!_ref.read(activeAlertsProvider.notifier).activateAlert(e.busId)) {
       return false;
     }
+    final enServidor = e.servidorId;
+    if (enServidor != null) _servidor.putIfAbsent(e.busId, () => enServidor);
     if (!wasMonitoring) {
       // Ancla guardada, no la ubicación de ahora: re-armar leyendo la
       // posición actual mudaba el aviso al pin nuevo (o lo dejaba en
@@ -231,6 +277,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     // Registro en el historial: la activación queda anotada (y es la fuente
     // de persistencia para re-armar al volver a abrir la app).
     if (recordHistory) {
+      // Un aviso nuevo es otro aviso también en el servidor: el de antes
+      // (si quedaba) se borra y el siguiente latido arma este.
+      final viejo = _servidor.remove(busId);
+      if (viejo != null) _porBorrar.add(viejo);
       _ref.read(alertHistoryProvider.notifier).upsert(
             busId,
             routeId: routeId,
@@ -252,11 +302,17 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         fireImmediately: true,
       );
     });
+    unawaited(sincronizarPush());
   }
 
   /// Olvida la ruta del bus; si era el último aviso de esa ruta, se cierra la
   /// suscripción (se desuscribe del socket).
   void disarmAlert(String busId) {
+    final enServidor = _servidor.remove(busId);
+    if (enServidor != null) {
+      _porBorrar.add(enServidor);
+      unawaited(sincronizarPush());
+    }
     _alertRefs.remove(busId);
     final routeId = _alertRoutes.remove(busId);
     if (routeId == null) return;
@@ -266,10 +322,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     }
   }
 
-  /// Limpia el registro de avisos disparados/rearmados.
+  /// Limpia el registro de avisos disparados/rearmados. Lo que el servidor
+  /// tiene no se borra: los avisos siguen en el historial y el mapa los
+  /// re-arma enseguida, con el mismo identificador.
   void clear() {
     _monitoringPaused = false;
     state = {};
+    _servidor.clear();
     _alertRoutes.clear();
     _alertRefs.clear();
     for (final sub in _routeSubs.values) {
@@ -282,12 +341,195 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   @override
   void dispose() {
     _timer?.cancel();
+    _timerPush?.cancel();
+    _mensajes?.cancel();
     for (final sub in _routeSubs.values) {
       sub.close();
     }
     _routeSubs.clear();
     _alertRefs.clear();
     super.dispose();
+  }
+
+  /// La entrada que espera de [busId] en el historial.
+  AlertHistoryEntry? _entradaActiva(String busId) {
+    for (final e in _ref.read(alertHistoryProvider)) {
+      if (e.busId == busId && !e.sent) return e;
+    }
+    return null;
+  }
+
+  /// El aviso de [busId] ya sonó por otro lado (el push): queda enviado,
+  /// fuera de los activos y marcado como avisado, igual que si hubiera
+  /// sonado aquí.
+  void _yaSono(String busId) {
+    _ref.read(alertHistoryProvider.notifier).markSent(busId);
+    _ref.read(activeAlertsProvider.notifier).deactivateAlert(busId);
+    disarmAlert(busId);
+    state = {...state, busId};
+  }
+
+  /// Pone al día el servidor con los avisos armados: borra lo pendiente,
+  /// arma lo que falta y late por lo que ya tiene. Corre cada
+  /// [cadaLatidoPush] y al armar o desarmar; si llega otra mientras corre,
+  /// la que corre da una vuelta más y las dos terminan juntas.
+  Future<void> sincronizarPush() {
+    final push = _push;
+    if (push == null || !mounted) return Future.value();
+    final enCurso = _sincronizando;
+    if (enCurso != null) {
+      _otraVuelta = true;
+      return enCurso;
+    }
+    return _sincronizando =
+        _sincronizar(push).whenComplete(() => _sincronizando = null);
+  }
+
+  Future<void> _sincronizar(AvisosPush push) async {
+    do {
+      _otraVuelta = false;
+      await _sincronizarUnaVez(push);
+    } while (_otraVuelta && mounted);
+  }
+
+  Future<void> _sincronizarUnaVez(AvisosPush push) async {
+    for (final id in [..._porBorrar]) {
+      if (await push.borrar(id)) _porBorrar.remove(id);
+      if (!mounted) return;
+    }
+    if (_alertRoutes.isEmpty) return;
+    final pausa = _pushPausadoHasta;
+    if (pausa != null && _ahora().isBefore(pausa)) return;
+    final token = await push.token();
+    if (token == null || !mounted) return;
+    final location = _ref.read(userLocationProvider);
+    final liveRef =
+        location.hasPosition ? (location.lat!, location.lon!) : null;
+    for (final MapEntry(key: busId, value: routeId) in [
+      ..._alertRoutes.entries
+    ]) {
+      if (_alertRoutes[busId] != routeId) continue;
+      // El mismo punto desde el que mide la app.
+      final punto = _alertRefs[busId] ?? liveRef;
+      if (punto == null) continue;
+      final id = _servidor[busId];
+      if (id == null) {
+        final entrada = _entradaActiva(busId);
+        if (entrada == null) continue;
+        // Lo que le queda, no tres horas más: el servidor no debe avisar
+        // después de que el aviso venció aquí. Nunca más de tres horas, aunque
+        // el reloj haya ido hacia atrás desde que se armó.
+        final vida = vidaDeUnAviso - _ahora().difference(entrada.createdAt);
+        if (vida <= Duration.zero) continue;
+        final vidaTope = vida > vidaDeUnAviso ? vidaDeUnAviso : vida;
+        final r = await push.armar(
+          token: token,
+          busId: busId,
+          routeId: routeId,
+          lat: punto.$1,
+          lon: punto.$2,
+          vida: vidaTope,
+        );
+        if (!mounted) return;
+        if (r.apagado) {
+          _pushPausadoHasta = _ahora().add(pausaSinPush);
+          return;
+        }
+        final nuevo = r.id;
+        if (nuevo == null) continue;
+        // Se desarmó o se volvió a armar mientras el servidor contestaba:
+        // lo que se armó ya no es de nadie.
+        if (_alertRoutes[busId] != routeId ||
+            _servidor.containsKey(busId) ||
+            _entradaActiva(busId)?.createdAt != entrada.createdAt) {
+          _porBorrar.add(nuevo);
+          _otraVuelta = true;
+          continue;
+        }
+        _servidor[busId] = nuevo;
+        _ref.read(alertHistoryProvider.notifier).fijarServidor(busId, nuevo);
+      } else {
+        final latido = await push.latir(
+          id,
+          token: token,
+          lat: punto.$1,
+          lon: punto.$2,
+        );
+        if (!mounted) return;
+        if (_servidor[busId] != id) continue;
+        switch (latido) {
+          case Latido.enviado:
+            // El servidor avisó mientras la app no latía. Si el push llegó,
+            // el proceso de fondo lo marcó en el disco: se relee antes de
+            // escribir nada, o esta copia vieja taparía la suya.
+            await _conciliar();
+            if (!mounted) return;
+            if (_servidor[busId] == id) _rearmarEnServidor(busId);
+          case Latido.noExiste:
+            _rearmarEnServidor(busId);
+          case Latido.renovado:
+          case Latido.fallo:
+            break;
+        }
+      }
+    }
+  }
+
+  /// El servidor ya no tiene el aviso (venció allá, se perdió, o avisó sin
+  /// que nadie lo viera): se olvida su identificador y se arma otra vez.
+  void _rearmarEnServidor(String busId) {
+    _servidor.remove(busId);
+    _ref.read(alertHistoryProvider.notifier).fijarServidor(busId, null);
+    _otraVuelta = true;
+  }
+
+  /// Relee el historial del disco y da por sonados los avisos armados que
+  /// el proceso de fondo marcó como enviados al atender un push.
+  Future<void> _conciliar() async {
+    await _ref.read(alertHistoryProvider.notifier).load();
+    if (!mounted) return;
+    for (final busId in [..._alertRoutes.keys]) {
+      if (_entradaActiva(busId) == null) _yaSono(busId);
+    }
+  }
+
+  /// Un push que llega con la app en primer plano: la app lo enseña como
+  /// sus propios avisos, si es del aviso que sigue armado.
+  Future<void> alPush(Map<String, dynamic> data) async {
+    final busId = data['busId'];
+    final avisoId = data['avisoId'];
+    final distancia = int.tryParse('${data['distancia']}');
+    if (data['tipo'] != 'bus_cerca' ||
+        busId is! String ||
+        avisoId is! String ||
+        distancia == null ||
+        _servidor[busId] != avisoId) {
+      return;
+    }
+    final mostrado = await _notify(
+      busId: busId,
+      routeName: _entradaActiva(busId)?.routeName,
+      routeId: _alertRoutes[busId],
+      distanceMeters: distancia,
+    );
+    if (!mounted || _servidor[busId] != avisoId) return;
+    if (mostrado) {
+      _anotarPermiso(true);
+      _yaSono(busId);
+    } else {
+      // No se vio: el aviso sigue armado aquí y en el servidor, que lo
+      // gastó, se arma otra vez.
+      _rearmarEnServidor(busId);
+      unawaited(sincronizarPush());
+    }
+  }
+
+  /// La app vuelve al frente: lo que sonó por push mientras estaba en el
+  /// fondo se da por sonado y el servidor se pone al día.
+  Future<void> alVolver() async {
+    if (_push == null || !mounted) return;
+    await _conciliar();
+    await sincronizarPush();
   }
 
   /// Retira los avisos que pasaron su [vidaDeUnAviso] sin sonar: el caso
@@ -436,5 +678,56 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
 final proximityAlertsProvider =
     StateNotifierProvider<ProximityAlertsNotifier, Set<String>>((ref) {
-  return ProximityAlertsNotifier(ref);
+  return ProximityAlertsNotifier(ref, push: ref.read(avisosPushProvider));
 });
+
+/// Atiende un push con la app en el fondo o cerrada. Corre en un proceso de
+/// Dart aparte, sin nada en memoria: lo que sabe del aviso lo lee del
+/// historial en el disco. Lo registra [AvisosPush.iniciar].
+@pragma('vm:entry-point')
+Future<void> alRecibirPushEnFondo(RemoteMessage mensaje) async {
+  DartPluginRegistrant.ensureInitialized();
+  await atenderPushEnFondo(mensaje.data);
+}
+
+/// El cuerpo de [alRecibirPushEnFondo], con el aviso inyectable.
+@visibleForTesting
+Future<void> atenderPushEnFondo(
+  Map<String, dynamic> data, {
+  BusNearNotifier? notify,
+}) async {
+  final busId = data['busId'];
+  final avisoId = data['avisoId'];
+  final distancia = int.tryParse('${data['distancia']}');
+  if (data['tipo'] != 'bus_cerca' ||
+      busId is! String ||
+      avisoId is! String ||
+      distancia == null) {
+    return;
+  }
+  final contenedor = ProviderContainer();
+  final historial = contenedor.read(alertHistoryProvider.notifier);
+  try {
+    await historial.load();
+    AlertHistoryEntry? entrada;
+    for (final e in contenedor.read(alertHistoryProvider)) {
+      if (e.busId == busId && !e.sent && e.servidorId == avisoId) entrada = e;
+    }
+    // Retirado o ya sonado: el push llegó tarde y no se enseña.
+    if (entrada == null) return;
+    if (notify == null) await BusNotificationService.init();
+    final mostrado = await (notify ?? ProximityAlertsNotifier._defaultNotify)(
+      busId: busId,
+      routeName: entrada.routeName,
+      routeId: entrada.routeId,
+      distanceMeters: distancia,
+    );
+    if (!mostrado) return;
+    historial.markSent(busId);
+    await historial.guardado;
+  } catch (e) {
+    debugPrint('push: no se pudo atender el aviso de $busId: $e');
+  } finally {
+    contenedor.dispose();
+  }
+}

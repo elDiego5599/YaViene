@@ -59,13 +59,19 @@ Set<String> _claves(Object? json) => switch (json) {
 void main() {
   test('el contrato trae los archivos que estas pruebas conocen', () {
     // Un evento nuevo en el backend entra aquí a propósito, con su prueba.
+    // Los tres de los avisos con la app cerrada (D13 del backend) solo los
+    // lee el pasajero en Android: su prueba es
+    // app_pasajero/test/avisos_push_test.dart.
     final nombres = Directory(_carpeta)
         .listSync()
         .map((f) => f.uri.pathSegments.last)
         .toSet();
     expect(nombres, {
       for (final n in [
+        'push-bus-cerca',
         'rest-admin-login',
+        'rest-aviso-creado',
+        'rest-aviso-enviado',
         'rest-companies',
         'rest-company-routes',
         'rest-fleet-bus-created',

@@ -1,0 +1,14 @@
+{
+  "token": "<token>",
+  "data": {
+    "tipo": "bus_cerca",
+    "avisoId": "<avisoId>",
+    "busId": "BUS-ABC123",
+    "routeId": "R-101",
+    "distancia": "300"
+  },
+  "android": {
+    "priority": "HIGH",
+    "ttl": "600s"
+  }
+}

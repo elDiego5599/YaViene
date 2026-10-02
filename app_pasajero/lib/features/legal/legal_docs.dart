@@ -56,36 +56,55 @@ class LegalDoc {
 // Sube a 3 el 29 de septiembre de 2026: el seguimiento de Android ya no
 // sigue con la app cerrada del todo, solo con la app en el fondo y un aviso
 // armado (auditoría 2026-09, H1). Lo prometido cambió otra vez.
-const int kLegalVersion = 3;
+// Sube a 4 el 2 de octubre de 2026: en Android, con un aviso armado, el punto
+// de espera redondeado y el código de Firebase Cloud Messaging van al
+// servidor para que el aviso suene con la app cerrada (D13 del backend).
+// Hasta aquí la ubicación no salía nunca del teléfono; ahora sale en ese caso.
+const int kLegalVersion = 4;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '29 de septiembre de 2026',
+  updated: '2 de octubre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
       'necesita muy poco, y lo poco que necesita casi todo se queda dentro '
       'de tu teléfono. Esto dice exactamente qué es cada cosa.',
     ),
-    LegalBlock.heading('Tu ubicación no sale del teléfono'),
+    LegalBlock.heading('Tu ubicación se queda en el teléfono, salvo una vez'),
     LegalBlock.p(
       'La app te pide permiso de ubicación para dos cosas: centrar el mapa '
       'donde estás y calcular cuántos metros te separan del bus. Las dos se '
       'hacen dentro del aparato.',
     ),
     LegalBlock.p(
-      'Lo único que tu teléfono le pide al servidor es «mándame las '
-      'posiciones de esta ruta». Dónde estás tú no viaja en esa petición, no '
-      'se guarda en ningún servidor y no se comparte con la empresa de '
-      'transporte ni con nadie más.',
+      'Para ver los buses, lo único que tu teléfono le pide al servidor es '
+      '«mándame las posiciones de esta ruta». Dónde estás tú no viaja en esa '
+      'petición.',
+    ),
+    // El único caso en que la ubicación sale (D13 del backend): el punto se
+    // redondea a tres decimales en `avisos_push.dart` y el servidor borra la
+    // fila al quitar el aviso, cuando la app ve que sonó o al vencer.
+    LegalBlock.p(
+      'La excepción es el aviso en Android, para que suene con la app '
+      'cerrada. Mientras tienes uno armado, tu teléfono le deja al servidor el '
+      'punto desde el que esperas —el que marcaste a mano o tu última '
+      'posición—, redondeado a unos 100 metros, y lo pone al día cada 20 '
+      'segundos mientras la app está abierta. Con él van el bus y la ruta del '
+      'aviso y el código con el que Firebase Cloud Messaging le hace llegar la '
+      'notificación a tu teléfono. Se borra cuando quitas el aviso o cuando la '
+      'app ve que sonó, y como mucho a las tres horas de armarlo. No se '
+      'comparte con la empresa de transporte ni con nadie más. En iPhone tu '
+      'ubicación no sale del teléfono.',
     ),
     LegalBlock.heading('El aviso lo calcula tu propio teléfono'),
     LegalBlock.p(
       'Cuando activas el aviso, la app compara tu posición con la del bus '
       'mientras lo ves moverse, y cuando entra en un kilómetro a la redonda '
       'lanza una notificación local —la crea el teléfono, no la manda un '
-      'servidor—. La app no usa ningún servicio de mensajería push.',
+      'servidor—. Solo si cierras la app en Android mide el servidor, con el '
+      'punto de arriba, y la notificación llega por Firebase Cloud Messaging.',
     ),
     LegalBlock.p(
       'Cuando sales de la app sin cerrarla y tienes un aviso activo, en '
@@ -95,8 +114,9 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'la distancia se mide contra el último punto que conoció, o contra el '
       'punto de espera que hayas marcado a mano. Si cierras la app del todo, '
       'el seguimiento se detiene y la notificación desaparece: el aviso queda '
-      'guardado y vuelve a vigilar cuando abres la app otra vez. En iPhone el '
-      'aviso solo suena con la app abierta.',
+      'guardado y vuelve a vigilar cuando abres la app otra vez, y en Android '
+      'mientras tanto vigila el servidor. En iPhone el aviso solo suena con '
+      'la app abierta.',
     ),
     LegalBlock.heading('Sin analítica, sin rastreo, sin publicidad'),
     LegalBlock.p(
@@ -105,8 +125,9 @@ const LegalDoc legalPrivacidad = LegalDoc(
     ),
     LegalBlock.heading('Lo que se queda guardado en tu teléfono'),
     LegalBlock.p(
-      'Algunas cosas sí se guardan, pero solo dentro del teléfono, en el '
-      'espacio privado de la app. Ninguna se manda a un servidor:',
+      'Algunas cosas sí se guardan dentro del teléfono, en el espacio privado '
+      'de la app. Salvo el aviso armado en Android que se cuenta arriba, '
+      'ninguna se manda a un servidor:',
     ),
     LegalBlock.bullet(
       'El punto de espera que hayas marcado a mano, para no tener que '
@@ -157,13 +178,18 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'Servidores propios — las posiciones de los buses pasan por '
       'infraestructura nuestra, no por un servicio ajeno.',
     ),
+    LegalBlock.bullet(
+      'Firebase Cloud Messaging, de Google — solo en Android y solo para un '
+      'aviso armado con la app cerrada: entrega la notificación. Lleva el '
+      'bus, la ruta y la distancia, no tu ubicación.',
+    ),
     LegalBlock.heading('Si usaste una versión anterior'),
     LegalBlock.p(
       'Las primeras versiones de prueba pedían entrar con un correo o con '
       'Google; la de hoy ya no. Si creaste una cuenta entonces, en ella '
       'quedaron dos datos, tu correo y el nombre que se mostraba, guardados '
-      'en Firebase Authentication, de Google. En nuestros servidores no hay '
-      'nada más tuyo. Escríbenos por WhatsApp al 300 443 8626 y la '
+      'en Firebase Authentication, de Google. De esa cuenta no hay nada más '
+      'en nuestros servidores. Escríbenos por WhatsApp al 300 443 8626 y la '
       'borramos.',
     ),
     // Ley 1581 de 2012 y Decreto 1377 de 2013: quién responde, cómo se le
@@ -189,8 +215,9 @@ const LegalDoc legalPrivacidad = LegalDoc(
     LegalBlock.p(
       'Si algo de esto cambia, cambia también este texto y su fecha, y la '
       'app te lo vuelve a mostrar. Ya Viene está en pruebas y todavía '
-      'crece; lo que no va a cambiar es la parte de arriba: tu ubicación se '
-      'queda en tu teléfono.',
+      'crece; lo que no va a cambiar es la parte de arriba: tu ubicación solo '
+      'sale del teléfono para el aviso de Android, redondeada y por unas '
+      'horas.',
     ),
   ],
 );

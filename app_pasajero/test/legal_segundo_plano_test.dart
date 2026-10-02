@@ -67,7 +67,6 @@ void main() {
       final manifiesto =
           File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
       expect(manifiesto, contains('android:stopWithTask="true"'));
-      expect(legalPrivacidad.updated, '29 de septiembre de 2026');
     });
 
     test('el sí que se dio sobre el texto viejo no vale para este', () {
@@ -76,7 +75,51 @@ void main() {
       // no lo caza; lo que caza es que la versión no se quede en la de antes
       // de esta tarea.
       // 3: la app cerrada del todo ya no sigue (29 de septiembre de 2026).
-      expect(kLegalVersion, greaterThanOrEqualTo(3));
+      // 4: el aviso de Android deja su punto en el servidor (2 de octubre).
+      expect(kLegalVersion, greaterThanOrEqualTo(4));
+      expect(legalPrivacidad.updated, '2 de octubre de 2026');
+    });
+  });
+
+  // Los avisos con la app cerrada (D13 del backend): en Android el punto de
+  // espera, redondeado, y el código de Firebase Cloud Messaging van al
+  // servidor mientras hay un aviso armado. Hasta el 2 de octubre la política
+  // decía que la ubicación no salía nunca del teléfono y que no había push;
+  // las dos frases dejaron de ser ciertas y aquí se vigila que no vuelvan.
+  group('la privacidad y los avisos con la app cerrada', () {
+    test('dice qué sale, cuándo, redondeado y hasta cuándo', () {
+      final texto = textoDe(legalPrivacidad);
+      expect(texto, contains('La excepción es el aviso en Android'));
+      expect(texto, contains('redondeado a unos 100 metros'));
+      expect(texto, contains('como mucho a las tres horas de armarlo'));
+      expect(texto, contains('En iPhone tu ubicación no sale del teléfono.'));
+      expect(texto, isNot(contains('no usa ningún servicio de mensajería')));
+      expect(texto, isNot(contains('Tu ubicación no sale del teléfono')));
+    });
+
+    test('nombra a Firebase Cloud Messaging entre los apoyos', () {
+      final apoyos = legalPrivacidad.blocks
+          .where((b) => b.kind == LegalBlockKind.bullet)
+          .map((b) => b.text);
+      expect(
+        apoyos.where((t) => t.startsWith('Firebase Cloud Messaging')),
+        hasLength(1),
+      );
+    });
+
+    test('Google no recibe nada hasta que se arma un aviso', () {
+      // La privacidad dice «solo para un aviso armado». Con el arranque
+      // automático de FCM, el teléfono pediría su código a Google en cuanto
+      // se abre la app, aviso o no.
+      final manifiesto =
+          File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+      expect(
+        manifiesto,
+        matches(RegExp(
+          r'android:name="firebase_messaging_auto_init_enabled"\s*'
+          r'android:value="false"',
+        )),
+      );
     });
   });
 }

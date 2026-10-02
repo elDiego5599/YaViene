@@ -29,6 +29,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **La consola de Firebase** (T3.13): borrar lo que quedó de las cuentas
   viejas del pasajero, con tu sesión.
 - **Las cuentas de las tiendas** (T5.7), para subir las fichas.
+- **La cuenta de Apple Developer** (99 USD al año). Sin ella no hay APNs,
+  así que en iPhone el aviso sigue sonando solo con la app abierta. Cuando
+  exista: la clave de APNs en la consola de Firebase, la capacidad de push
+  en Xcode y quitar el «solo Android» de `avisos_push.dart` y de la
+  privacidad.
 
 ## Lo que tienes que decidir tú
 
@@ -42,7 +47,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   propósito; queda aquí para cuando quieras abrirla.
 - **La Ley 1581 con un abogado** (T3.15). Son seis puntos pendientes. No
   frena la demo, pero tiene que estar resuelto antes de recoger datos reales
-  de empresas o de pasajeros.
+  de empresas o de pasajeros. Ahora entra también la privacidad del
+  2 de octubre (versión 4): con un aviso armado en Android, el punto de
+  espera redondeado y el código de Firebase quedan en el servidor hasta
+  tres horas.
 
 ## Lo que tienes que hacer tú
 
@@ -63,14 +71,22 @@ Necesitan un teléfono, una cuenta o estar presente.
 - **El video de respaldo del pitch** (T10.4), por si el día falla la red.
 - **Mirar el tráfico real un rato** para fijar el umbral de latencia de la
   alerta (T7.1).
+- **Encender los avisos con la app cerrada en el backend vivo** (D13). El
+  código ya está; falta la clave. En la consola de Firebase → Configuración
+  del proyecto → Cuentas de servicio → «Generar nueva clave privada», y el
+  JSON se guarda en `~/.config/yaviene/fcm-credenciales.json` con
+  `chmod 600` (no se manda por chat). Luego en `local.env`:
+  `YA_VIENE_FCM_CREDENCIALES=` con esa ruta. Con tu OK hago el `build` y el
+  reinicio. El paso a paso está en `YaVieneBackend/docs/runbook.md`.
+- **Probarlo en un Android de verdad**: armar un aviso, cerrar la app del
+  todo y esperar a que el bus llegue. Tiene que sonar la misma notificación
+  de siempre, y `/api/metrics` contar un `push.enviados`.
 
 ## Lo que puedo hacer yo
 
-- **Avisos con la app cerrada, solo en Android** (dijiste que sí el
-  2026-10-02): el servidor manda el aviso por FCM cuando la app ya no lo
-  puede mandar. En iPhone espera a la cuenta de Apple (99 USD al año).
+Nada por ahora.
 
-Ojo con la web: el CSS va en 117,8 de 121 KB y la carpeta `dist` en 770 de
+Ojo con la web: el CSS va en 117,8 de 121 KB y la carpeta `dist` en 772 de
 797. Cualquier cambio de la web se mide antes de sumarlo.
 
 ## El día antes y el día del pitch

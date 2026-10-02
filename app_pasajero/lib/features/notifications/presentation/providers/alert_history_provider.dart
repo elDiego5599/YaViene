@@ -25,6 +25,12 @@ class AlertHistoryEntry {
   /// Momento en que se disparó la notificación. `null` = aviso aún activo.
   final DateTime? sentAt;
 
+  /// Identificador del aviso en el servidor, que avisa por push con la app
+  /// cerrada (Android, D13 del backend). `null` = el servidor no lo tiene.
+  /// Se guarda porque el push llega a un proceso que no tiene nada en
+  /// memoria: con él sabe si el push es de este aviso o de uno ya retirado.
+  final String? servidorId;
+
   const AlertHistoryEntry({
     required this.busId,
     required this.routeId,
@@ -33,6 +39,7 @@ class AlertHistoryEntry {
     this.sentAt,
     this.refLat,
     this.refLon,
+    this.servidorId,
   });
 
   bool get sent => sentAt != null;
@@ -53,6 +60,20 @@ class AlertHistoryEntry {
         sentAt: sentAt ?? this.sentAt,
         refLat: refLat ?? this.refLat,
         refLon: refLon ?? this.refLon,
+        servidorId: servidorId,
+      );
+
+  /// La misma entrada con otro [servidorId] (también `null`, que `copyWith`
+  /// no sabe poner).
+  AlertHistoryEntry conServidor(String? id) => AlertHistoryEntry(
+        busId: busId,
+        routeId: routeId,
+        routeName: routeName,
+        createdAt: createdAt,
+        sentAt: sentAt,
+        refLat: refLat,
+        refLon: refLon,
+        servidorId: id,
       );
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +84,7 @@ class AlertHistoryEntry {
         'sentAt': sentAt?.toIso8601String(),
         'refLat': refLat,
         'refLon': refLon,
+        if (servidorId != null) 'servidorId': servidorId,
       };
 
   factory AlertHistoryEntry.fromJson(Map<String, dynamic> json) {
@@ -78,6 +100,7 @@ class AlertHistoryEntry {
       // que es exactamente como se comportaban.
       refLat: (json['refLat'] as num?)?.toDouble(),
       refLon: (json['refLon'] as num?)?.toDouble(),
+      servidorId: json['servidorId'] as String?,
     );
   }
 
@@ -253,6 +276,17 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     _save();
   }
 
+  /// Apunta (o borra, con `null`) el identificador del aviso activo de
+  /// [busId] en el servidor.
+  void fijarServidor(String busId, String? id) {
+    final index = _activa(busId);
+    if (index == -1 || state[index].servidorId == id) return;
+    final next = [...state];
+    next[index] = state[index].conServidor(id);
+    state = next;
+    _save();
+  }
+
   /// El aviso disparó: el registro pasa a "enviado" con su fecha.
   void markSent(String busId) {
     final index = _activa(busId);
@@ -318,6 +352,10 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     // todavía está terminando de persistirse.
     await _saveQueue;
     final prefs = await SharedPreferences.getInstance();
+    // Un push con la app en el fondo lo atiende otro proceso de Dart, que
+    // marca el aviso como enviado en el disco; la copia en memoria de este
+    // no se entera sin releer.
+    await prefs.reload();
     var raw = prefs.getString(_kHistoryKey);
     final fundido = await _migrarPorCuenta(prefs);
     if (fundido != null) raw = fundido;
@@ -349,6 +387,9 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     // se descartó no vuelve a leerse mañana.
     if (purgado.length != decoded.length) _save();
   }
+
+  /// Se cumple cuando lo último que se cambió ya está en el disco.
+  Future<void> get guardado => _saveQueue.catchError((_) {});
 
   void _save() {
     final purgado = _purgar(state);

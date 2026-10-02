@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../services/background_keep_alive.dart';
+import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'tracking_providers.dart';
 
 /// Cada cuánto la app le dice al servicio de fondo que sigue viva. El
@@ -58,9 +59,13 @@ final seguimientoSegundoPlanoProvider =
   );
   final ciclo = AppLifecycleListener(
     onDetach: () => seguimiento.ajustar(hayAvisos: false),
-    onResume: () => seguimiento.ajustar(
-      hayAvisos: ref.read(activeAlertsProvider).isNotEmpty,
-    ),
+    onResume: () {
+      seguimiento.ajustar(
+        hayAvisos: ref.read(activeAlertsProvider).isNotEmpty,
+      );
+      // Lo que sonó por push mientras la app estaba en el fondo.
+      unawaited(ref.read(proximityAlertsProvider.notifier).alVolver());
+    },
   );
   ref.onDispose(() {
     ciclo.dispose();

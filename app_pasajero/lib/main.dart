@@ -13,6 +13,8 @@ import 'core/router/app_router.dart';
 import 'core/router/app_transitions.dart';
 import 'core/services/bus_notification_service.dart';
 import 'core/widgets/ink_hero.dart';
+import 'features/notifications/data/avisos_push.dart';
+import 'features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +44,10 @@ void main() async {
   } catch (_) {
     debugPrint('notificaciones: init falló, los avisos quedan desactivados');
   }
+
+  // Los avisos con la app cerrada (Android). Falla blando por dentro: sin
+  // Firebase la app sigue avisando mientras está abierta.
+  await AvisosPush.iniciar(alRecibirPushEnFondo);
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

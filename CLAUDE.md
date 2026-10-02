@@ -62,17 +62,17 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-10-02)**: **1.575 pruebas** en total
-  (1.542 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
+- **Verificación (2026-10-02)**: **1.623 pruebas** en total
+  (1.590 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
   corren con `tool/simulacros.sh`), contando las 11 de `ya_viene_pruebas`; aparte,
   las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
-  `npm run typecheck` limpio (3 configs), **301 en Vitest** y el trinquete de
+  `npm run typecheck` limpio (3 configs), **303 en Vitest** y el trinquete de
   cobertura 98 / 90 / 100 / 99 (`vite.config.ts`) **en verde** con
   98,8 / 92,1 / 100 / 99,9 (estuvo en rojo desde `33338f9` hasta el
   2026-09-30: `npm test` no lo mide, `npm run test:cobertura` sí); Playwright **153 pasadas + 29 saltadas**
   (estables: `movimiento.spec.ts` y `isla.spec.ts` pasaron 40 de 40 con 5
   hilos); presupuestos dist
-  770,4/797 (**97 %**), JavaScript 59,1/66 (90 %), CSS 117,8/121 (**97 %**) y
+  772,3/797 (**97 %**), JavaScript 59,1/66 (90 %), CSS 117,8/121 (**97 %**) y
   primera visita 463,4/560 (83 %) — dist y CSS casi sin margen: todo cambio web
   mide antes de sumar. Antes de correr Playwright, matar el puerto:
   `lsof -ti tcp:4174 | xargs -r kill -9` — un servidor viejo sirve una
@@ -81,13 +81,13 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   al repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
   privacidad y términos 1,65; CLS 0, TBT ≤ 35 ms. `e2e/vitales.spec.ts`
   vigila el marcado que lo hace posible.
-- **Backend**: 247 pruebas en verde (2026-10-02; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
+- **Backend**: 265 pruebas en verde (2026-10-02; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
   limpio. Las pruebas usan bases temporales y puertos propios; el backend
   vivo y ngrok no se tocan.
 - **Documentación del backend** en `YaVieneBackend/docs/`: `arquitectura.md`
   (por dónde pasa una posición), `integracion-gps.md` (el contrato del equipo
-  del bus), `runbook.md` (qué hacer cuando algo se cae) y `decisiones/` (D1–D12
-  con índice). `tests/doc_gps.test.ts` y `tests/docs_enlaces.test.ts` las atan
+  del bus), `runbook.md` (qué hacer cuando algo se cae) y `decisiones/` (D1–D13
+  con índice; D13: avisos con la app cerrada por FCM, solo Android). `tests/doc_gps.test.ts` y `tests/docs_enlaces.test.ts` las atan
   al código: si el código cambia y el documento no, la suite lo dice.
 - Objeciones solo con código real (tgrep/import antes de afirmar).
 
@@ -133,7 +133,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
   el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
   (`99c0a07`).
-- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 487 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
+- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 515 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
   base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres (y `integration_test` en el panel)
   (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
   `--comprobar`) tras `npm run contrato:actualizar` en el backend. El
@@ -144,7 +144,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
 1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; nada de cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en `archivo/`). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa («Tu bus está cerca de ti»); app CON ruta+placa — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar". 15. `FALTANTES.md` se mantiene al día (dueño, 2026-10-02): todo pendiente nuevo entra en su grupo y todo lo que se cierra sale, en el mismo commit que lo cierra. Lo de «Lo que puedo hacer yo» va primero, hasta dejar ese grupo vacío.
 
 ## Verificación web (tras cada cambio)
-`npm run typecheck` + `npm test` (**301**) + `npm run test:cobertura` + Playwright sin pageerror (**153 + 29 saltadas**, última corrida 2026-10-01) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
+`npm run typecheck` + `npm test` (**303**) + `npm run test:cobertura` + Playwright sin pageerror (**153 + 29 saltadas**, última corrida 2026-10-02) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
 
 ## Búsqueda de código
 - **`grep` está aliasado a `ugrep`: no usarlo.** Usar `tgrep "patrón" <ruta> --no-index` (instalado en `~/.cargo/bin`, v1.0.5, en PATH).
