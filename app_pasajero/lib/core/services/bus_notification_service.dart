@@ -1,13 +1,20 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
-import '../utils/distancia.dart';
+
+/// El aviso que alguien tocó: el bus y su ruta, para dejar el mapa como
+/// estaba cuando sonó.
+typedef AvisoTocado = ({String busId, String routeId});
 
 /// Notificaciones locales de proximidad de buses (sin servidor).
 ///
-/// Cada bus con alerta activa tiene su propio aviso (id estable por bus):
-/// título "Calle 72 - Uninorte - WGV705 está cerca de ti" y cuerpo
-/// "Está a 430 m de tu ubicación".
+/// Cada bus con alerta activa tiene su propio aviso (id estable por bus),
+/// de una sola línea: «Tu bus de la ruta Calle 72 - Uninorte está cerca de
+/// ti». Sin placa ni distancia (dueño, 2026-10-02): la placa y los metros
+/// están en la hoja del mapa, que es lo que abre tocarlo.
 class BusNotificationService {
   BusNotificationService._();
 
@@ -33,7 +40,13 @@ class BusNotificationService {
         requestSoundPermission: false,
       ),
     );
-    await _plugin.initialize(settings: settings);
+    await _plugin.initialize(
+      settings: settings,
+      onDidReceiveNotificationResponse: (respuesta) {
+        final aviso = leerCarga(respuesta.payload);
+        if (aviso != null) _tocados.add(aviso);
+      },
+    );
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await android?.createNotificationChannel(
@@ -44,6 +57,52 @@ class BusNotificationService {
         importance: Importance.high,
       ),
     );
+  }
+
+  static final _tocados = StreamController<AvisoTocado>.broadcast();
+
+  /// Los avisos que se tocan con la app viva (en primer plano o en el
+  /// fondo). El que la abrió desde cerrada llega por [tocadoAlAbrir].
+  static Stream<AvisoTocado> get tocados => _tocados.stream;
+
+  static bool _arranqueLeido = false;
+
+  /// El aviso que abrió la app desde cerrada, una sola vez por proceso: si
+  /// el mapa se vuelve a montar no repite la selección encima de lo que la
+  /// persona haya escogido después.
+  static Future<AvisoTocado?> tocadoAlAbrir() async {
+    if (_arranqueLeido) return null;
+    _arranqueLeido = true;
+    try {
+      final detalles = await _plugin.getNotificationAppLaunchDetails();
+      if (detalles?.didNotificationLaunchApp != true) return null;
+      return leerCarga(detalles!.notificationResponse?.payload);
+    } catch (e) {
+      debugPrint('no se pudo leer el aviso que abrió la app: $e');
+      return null;
+    }
+  }
+
+  /// Lo que viaja dentro del aviso, y su lectura. Cualquier cosa que no sea
+  /// un bus y una ruta se ignora: tocar el aviso abre la app y ya.
+  @visibleForTesting
+  static String carga(String busId, String routeId) =>
+      jsonEncode({'busId': busId, 'routeId': routeId});
+
+  @visibleForTesting
+  static AvisoTocado? leerCarga(String? carga) {
+    if (carga == null || carga.isEmpty) return null;
+    try {
+      final datos = jsonDecode(carga);
+      if (datos is! Map) return null;
+      final busId = datos['busId'];
+      final routeId = datos['routeId'];
+      if (busId is! String || busId.isEmpty) return null;
+      if (routeId is! String || routeId.isEmpty) return null;
+      return (busId: busId, routeId: routeId);
+    } on FormatException {
+      return null;
+    }
   }
 
   static Future<bool> areNotificationsEnabled() async {
@@ -115,19 +174,19 @@ class BusNotificationService {
     required String busId,
     String? routeName,
     String? routeId,
-    required int distanceMeters,
   }) async {
-    final etiqueta = routePlateLabel(
-      busId: busId,
-      routeName: routeName,
-      routeId: routeId,
-    );
+    final ruta = rutaLegible(routeName, routeId);
     try {
       if (!await puedeAvisar()) return false;
       await _plugin.show(
         id: _stableNotificationId(busId),
-        title: '$etiqueta está cerca de ti',
-        body: 'Está a ${distanciaAviso(distanceMeters)} de tu ubicación',
+        // El texto es el del glosario (`aviso.app`); glosario_test lo ata.
+        title: ruta == null
+            ? 'Tu bus está cerca de ti'
+            : 'Tu bus de la ruta $ruta está cerca de ti',
+        payload: routeId == null || routeId.isEmpty
+            ? null
+            : carga(busId, routeId),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,

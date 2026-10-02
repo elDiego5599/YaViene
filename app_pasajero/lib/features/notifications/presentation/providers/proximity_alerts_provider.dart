@@ -117,13 +117,14 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     required String busId,
     String? routeName,
     String? routeId,
+    // La distancia ya no se dice en el aviso (dueño, 2026-10-02); llega
+    // igual porque las pruebas miden con ella cuándo sonó.
     required int distanceMeters,
   }) =>
       BusNotificationService.notifyBusNear(
         busId: busId,
         routeName: routeName,
         routeId: routeId,
-        distanceMeters: distanceMeters,
       );
 
   /// BusIds que ya notificaron su acercamiento (armados): no vuelven a

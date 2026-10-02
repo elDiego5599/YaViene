@@ -76,3 +76,19 @@ FitBounds waitingPointBounds(
     minSpanDeg: spanDeg,
   )!;
 }
+
+/// Caja del aviso que se tocó: el bus y el punto de espera juntos.
+///
+/// El aviso sonó porque el bus está cerca, así que caben los dos sin que el
+/// pin se vuelva una mota. Devuelve `null` mientras el mapa siga en otra
+/// ruta ([rutaEnMapa] distinta de [rutaDelAviso]) o el bus no haya llegado
+/// en un lote: el pedido espera al siguiente.
+FitBounds? avisoBounds({
+  required String rutaDelAviso,
+  required String? rutaEnMapa,
+  required FitPoint? bus,
+  FitPoint? espera,
+}) {
+  if (rutaEnMapa != rutaDelAviso || bus == null) return null;
+  return liveViewportBounds([bus, if (espera != null) espera]);
+}

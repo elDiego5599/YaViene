@@ -94,7 +94,6 @@ void main() {
     Future<bool> avisar() => BusNotificationService.notifyBusNear(
           busId: 'BUS-SQA223',
           routeName: 'Ruta 106',
-          distanceMeters: 800,
         );
 
     test('sin permiso devuelve false y no intenta mostrar nada', () async {

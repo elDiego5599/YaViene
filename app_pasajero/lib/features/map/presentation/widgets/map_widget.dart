@@ -49,6 +49,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<int>? _cameraRequestSubscription;
   ProviderSubscription<int>? _recenterRequestSubscription;
   ProviderSubscription<Set<String>>? _busSelectionSubscription;
+  ProviderSubscription<Object?>? _enfoqueSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
   double _currentBottomInset = 0;
@@ -235,6 +236,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _pushBusSource();
       _syncHaloPulse(next);
     });
+    // El bus del aviso que se acaba de tocar. Fuera del aviso de cambio:
+    // `_enfocarBusPedido` cierra el pedido, y eso es otro cambio del mismo
+    // proveedor.
+    _enfoqueSubscription = ref.listenManual(enfoqueDeBusProvider, (_, __) {
+      scheduleMicrotask(_enfocarBusPedido);
+    });
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
     // un fallo de MapLibre), el placeholder nunca debe quedarse para
     // siempre. Pasado el límite se funde y deja ver el mapa (o el fondo).
@@ -288,6 +295,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _cameraRequestSubscription?.close();
     _recenterRequestSubscription?.close();
     _busSelectionSubscription?.close();
+    _enfoqueSubscription?.close();
     _trajectorySub?.close();
     _stopsSub?.close();
     // Hay que desecharlo, no solo pararlo: `TickerProviderStateMixin` afirma
@@ -440,8 +448,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final projected =
           await _mapController!.toScreenLocation(LatLng(loc.lat!, loc.lon!));
       if (!mounted) return;
-      setState(() => _pinScreenPos = Offset(
-          projected.x.toDouble(), projected.y.toDouble() + _pinTipOffset));
+      final punto = aPuntoLogico(projected, _escalaNativa);
+      setState(
+          () => _pinScreenPos = Offset(punto.dx, punto.dy + _pinTipOffset));
     } catch (e, st) {
       debugPrint('_refreshPinScreenPos failed: $e\n$st');
       // El mapa aún no tiene cámara lista o la proyección falló: el pulso se
@@ -738,8 +747,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           // El punto del gesto ES la posición del pin en pantalla: el pulso
           // sigue al dedo sin proyecciones (la cámara no se mueve).
           _renderPin(current.latitude, current.longitude);
-          setState(() => _pinScreenPos =
-              Offset(point.x.toDouble(), point.y.toDouble() + _pinTipOffset));
+          final punto = aPuntoLogico(point, _escalaNativa);
+          setState(
+              () => _pinScreenPos = Offset(punto.dx, punto.dy + _pinTipOffset));
           break;
         case DragEventType.end:
           _pinDragging = false;
@@ -755,6 +765,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   final _tapDebouncer = TapDebouncer();
 
+  /// Unidades del mapa nativo por punto lógico ([escalaDelMapa]).
+  double get _escalaNativa => escalaDelMapa(
+      defaultTargetPlatform, MediaQuery.devicePixelRatioOf(context));
+
   Future<bool> _selectBusAtTap(math.Point<double> point) =>
       _tapDebouncer.run(point, _doSelectBusAtTap);
 
@@ -767,6 +781,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           : ref.read(busPositionsSourceProvider(routeId)).value ??
               const <BusPosition>[];
       final screenPoints = <BusScreenPoint>[];
+      final escala = _escalaNativa;
 
       // MapLibre puede devolver varios features dentro de un rectángulo. No
       // basta con tomar `features.first`: cuando dos buses están cerca, el
@@ -778,12 +793,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         );
         screenPoints.add(BusScreenPoint(
           busId: position.busId,
-          offset: Offset(screen.x.toDouble(), screen.y.toDouble()),
+          offset: aPuntoLogico(screen, escala),
         ));
       }
 
       const maxHitRadius = MapConstants.busHitRadius;
-      var busId = nearestBusId(Offset(point.x, point.y), screenPoints,
+      var busId = nearestBusId(aPuntoLogico(point, escala), screenPoints,
           maxDistance: maxHitRadius);
       if (busId == null) {
         // Fallback solo cuando todavía no hay snapshot local para proyectar;
@@ -791,10 +806,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // el rectángulo grande que causaba selecciones equivocadas.
         if (positions.isNotEmpty) return false;
         final features = await _mapController!.queryRenderedFeaturesInRect(
+          // El rectángulo va en las unidades del mapa nativo.
           Rect.fromCenter(
             center: Offset(point.x, point.y),
-            width: maxHitRadius * 2,
-            height: maxHitRadius * 2,
+            width: maxHitRadius * 2 * escala,
+            height: maxHitRadius * 2 * escala,
           ),
           _kBusHitLayers,
           null,
@@ -915,6 +931,33 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _hasFitInitialRoute = true;
       fitLiveViewport(animated: true);
     }
+    _enfocarBusPedido();
+  }
+
+  /// Lleva la cámara al bus del aviso que se tocó ([enfoqueDeBusProvider])
+  /// en cuanto el mapa lo tiene ([avisoBounds]). La ruta recién escogida
+  /// llega al mapa en el cuadro siguiente y sus buses en el primer lote:
+  /// hasta entonces el pedido espera.
+  void _enfocarBusPedido() {
+    final pedido = ref.read(enfoqueDeBusProvider);
+    if (pedido == null || !mounted || !_layersReady) return;
+    final bus = _rawBuses[pedido.busId];
+    final ubicacion = ref.read(userLocationProvider);
+    final caja = avisoBounds(
+      rutaDelAviso: pedido.routeId,
+      rutaEnMapa: widget.routeId,
+      bus: bus == null ? null : (lat: bus.lat, lon: bus.lon),
+      espera: ubicacion.hasPosition
+          ? (lat: ubicacion.lat!, lon: ubicacion.lon!)
+          : null,
+    );
+    if (caja == null) return;
+    // Ni el encuadre del primer lote ni el del punto de espera, si llegaran
+    // después, deben llevarse la cámara lejos del bus.
+    _hasFitInitialRoute = true;
+    _hasCenteredOnUser = true;
+    ref.read(enfoqueDeBusProvider.notifier).hecho();
+    moveCameraToBounds(caja, animated: true);
   }
 
   /// Convierte el primer bus visible en un rect global para que la guía pueda
@@ -934,9 +977,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (!mounted || _guideBusPosition != position) return;
       final box = context.findRenderObject() as RenderBox?;
       if (box == null || !box.attached) return;
-      final global = box.localToGlobal(
-        Offset(screen.x.toDouble(), screen.y.toDouble()),
-      );
+      final global = box.localToGlobal(aPuntoLogico(screen, _escalaNativa));
       widget.onGuideBusTargetChanged?.call(
         Rect.fromCenter(
             center: global,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show listEquals;
@@ -6,6 +7,8 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/services/bus_notification_service.dart';
+import '../../../notifications/presentation/providers/abrir_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
@@ -57,10 +60,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   ProviderSubscription<UserLocationState>? _locationSub;
   ProviderSubscription<MapGuideState>? _guideSub;
   ProviderSubscription<Set<String>>? _busSub;
+  StreamSubscription<AvisoTocado>? _avisosTocados;
 
   @override
   void initState() {
     super.initState();
+    // Tocar un aviso abre el mapa en su bus, con la empresa y la ruta con
+    // las que sonó (dueño, 2026-10-02): con la app viva llega por aquí; con
+    // la app cerrada, por `tocadoAlAbrir` al primer cuadro.
+    _avisosTocados = BusNotificationService.tocados.listen(_abrirAviso);
     _locationSub = ref.listenManual<UserLocationState>(
       userLocationProvider,
       (previous, next) {
@@ -106,7 +114,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       // El servicio de fondo lo encienden y apagan los avisos armados: sin
       // aviso no hay nada que seguir con la app en el fondo.
       ref.read(seguimientoSegundoPlanoProvider);
+      unawaited(BusNotificationService.tocadoAlAbrir().then((aviso) {
+        if (aviso != null) _abrirAviso(aviso);
+      }));
     });
+  }
+
+  void _abrirAviso(AvisoTocado aviso) {
+    if (!mounted) return;
+    // El aviso se pudo tocar con el historial o un texto legal encima: se
+    // vuelve al mapa, que es donde está el bus.
+    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+    unawaited(ref.read(abrirAvisoProvider)(aviso));
   }
 
   @override
@@ -114,6 +133,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _locationSub?.close();
     _guideSub?.close();
     _busSub?.close();
+    _avisosTocados?.cancel();
     super.dispose();
   }
 

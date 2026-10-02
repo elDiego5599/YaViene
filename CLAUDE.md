@@ -62,8 +62,8 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-10-02)**: **1.623 pruebas** en total
-  (1.590 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
+- **Verificación (2026-10-02)**: **1.639 pruebas** en total
+  (1.606 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
   corren con `tool/simulacros.sh`), contando las 11 de `ya_viene_pruebas`; aparte,
   las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
   `npm run typecheck` limpio (3 configs), **303 en Vitest** y el trinquete de
@@ -133,7 +133,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
   el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
   (`99c0a07`).
-- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 515 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
+- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 531 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
   base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres (y `integration_test` en el panel)
   (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
   `--comprobar`) tras `npm run contrato:actualizar` en el backend. El
@@ -141,7 +141,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
 
 ## Reglas del usuario (no negociables, resumen)
-1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; nada de cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en `archivo/`). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa («Tu bus está cerca de ti»); app CON ruta+placa — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar". 15. `FALTANTES.md` se mantiene al día (dueño, 2026-10-02): todo pendiente nuevo entra en su grupo y todo lo que se cierra sale, en el mismo commit que lo cierra. Lo de «Lo que puedo hacer yo» va primero, hasta dejar ese grupo vacío.
+1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; nada de cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en `archivo/`). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa ni ruta («Tu bus está cerca de ti»); app CON ruta, sin placa ni distancia («Tu bus de la ruta X está cerca de ti», dueño 2026-10-02) — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar". 15. `FALTANTES.md` se mantiene al día (dueño, 2026-10-02): todo pendiente nuevo entra en su grupo y todo lo que se cierra sale, en el mismo commit que lo cierra. Lo de «Lo que puedo hacer yo» va primero, hasta dejar ese grupo vacío.
 
 ## Verificación web (tras cada cambio)
 `npm run typecheck` + `npm test` (**303**) + `npm run test:cobertura` + Playwright sin pageerror (**153 + 29 saltadas**, última corrida 2026-10-02) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.

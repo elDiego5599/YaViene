@@ -21,7 +21,7 @@
   },
   "aviso": {
     "landing": "Tu bus está cerca de ti",
-    "app": "{ruta} - {placa} está cerca de ti",
-    "_nota": "Distintos a propósito (regla 12): la landing no lleva placa; la app sí, con la ruta."
+    "app": "Tu bus de la ruta {ruta} está cerca de ti",
+    "_nota": "Distintos a propósito (regla 12): la landing no nombra la ruta; la app sí, sin placa ni distancia (dueño, 2026-10-02)."
   }
 }

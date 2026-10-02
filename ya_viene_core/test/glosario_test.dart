@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// `app_control/test/glosario_test.dart` y
 /// `app_pasajero/test/glosario_test.dart`.
 const kHashGlosario =
-    'a504203047349505e763090f95f60db4bf595c9f9183dd5ca55463427bfe0b74';
+    '0dd131a5163095d0a970bd26ee4cd17b21b27609c047311ff44fce4c3294cf7b';
 
 const _ruta = 'lib/core/texto/glosario.json';
 
@@ -48,7 +48,10 @@ void main() {
     // Regla 12: distintos a propósito. Si un día coinciden, alguien
     // unificó lo que no se unifica.
     expect(aviso['landing'], isNot(aviso['app']));
-    expect(aviso['landing'], isNot(contains('{placa}')));
-    expect(aviso['app'], contains('{placa}'));
+    expect(aviso['landing'], isNot(contains('{ruta}')));
+    // La app nombra la ruta y nada más: ni placa ni distancia (dueño,
+    // 2026-10-02). La placa y los metros siguen en la hoja y el historial.
+    expect(aviso['app'], contains('{ruta}'));
+    expect(aviso['app'], isNot(contains('{placa}')));
   });
 }

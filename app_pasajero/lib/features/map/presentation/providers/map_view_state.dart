@@ -2,6 +2,7 @@ import 'dart:ui' show Rect;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import '../utils/map_constants.dart';
 
 final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
@@ -68,3 +69,27 @@ final mapRecenterRequestProvider =
 final mapCameraRequestProvider =
     StateNotifierProvider<MapCameraRequestNotifier, int>(
         (ref) => MapCameraRequestNotifier());
+
+/// Un bus al que la cámara tiene que ir en cuanto aparezca en el mapa: el
+/// del aviso que se acaba de tocar. Sus posiciones llegan un rato después de
+/// escoger la ruta, así que el pedido espera aquí hasta que el mapa lo ve.
+/// Si entretanto la persona cambia de ruta, se olvida: no hay que saltar a
+/// un bus de una ruta que ya no está mirando.
+class EnfoqueDeBus extends Notifier<({String busId, String routeId})?> {
+  @override
+  ({String busId, String routeId})? build() {
+    ref.listen<RouteInfo?>(selectedRouteProvider, (_, ruta) {
+      if (state != null && ruta?.id != state!.routeId) state = null;
+    });
+    return null;
+  }
+
+  void pedir(String busId, String routeId) =>
+      state = (busId: busId, routeId: routeId);
+
+  void hecho() => state = null;
+}
+
+final enfoqueDeBusProvider =
+    NotifierProvider<EnfoqueDeBus, ({String busId, String routeId})?>(
+        EnfoqueDeBus.new);

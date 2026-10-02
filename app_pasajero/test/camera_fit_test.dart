@@ -95,4 +95,51 @@ void main() {
       expect(delPunto.maxLat - delPunto.minLat, closeTo(minFitSpanDeg, 1e-9));
     });
   });
+
+  group('avisoBounds', () {
+    const bus = (lat: 11.0, lon: -74.80);
+    const espera = (lat: 11.03, lon: -74.77);
+
+    test('enmarca el bus del aviso y el punto de espera juntos', () {
+      final caja = avisoBounds(
+        rutaDelAviso: 'r106',
+        rutaEnMapa: 'r106',
+        bus: bus,
+        espera: espera,
+      )!;
+      expect(caja.minLat, 11.0);
+      expect(caja.maxLat, 11.03);
+      expect(caja.minLon, -74.80);
+      expect(caja.maxLon, -74.77);
+    });
+
+    test('sin punto de espera, el bus solo al lado mínimo', () {
+      final caja = avisoBounds(
+        rutaDelAviso: 'r106',
+        rutaEnMapa: 'r106',
+        bus: bus,
+      )!;
+      expect(caja.maxLat - caja.minLat, closeTo(minFitSpanDeg, 1e-9));
+      expect((caja.minLat + caja.maxLat) / 2, closeTo(11.0, 1e-9));
+    });
+
+    test('espera mientras el mapa siga en otra ruta o el bus no llegue', () {
+      expect(
+        avisoBounds(rutaDelAviso: 'r106', rutaEnMapa: 'c11', bus: bus),
+        isNull,
+      );
+      expect(
+        avisoBounds(rutaDelAviso: 'r106', rutaEnMapa: null, bus: bus),
+        isNull,
+      );
+      expect(
+        avisoBounds(
+            rutaDelAviso: 'r106',
+            rutaEnMapa: 'r106',
+            bus: null,
+            espera: espera),
+        isNull,
+      );
+    });
+  });
 }

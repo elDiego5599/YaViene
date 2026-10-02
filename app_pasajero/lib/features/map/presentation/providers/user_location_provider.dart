@@ -62,10 +62,10 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   /// el permiso dos veces a la vez.
   Future<void>? _initFuture;
 
-  /// Pide el permiso de ubicación en el arranque (primera instalación) y, si
-  /// ya estaba concedido, obtiene el GPS en silencio. Sin permiso, restaura
-  /// el último pin manual guardado (si existe) para que el usuario reencuentre
-  /// su punto de parada al instante; si no hay pin, queda el modo sin
+  /// Restaura el último pin manual guardado (si existe), para que el usuario
+  /// reencuentre su punto de parada al instante. Sin pin, pide el permiso de
+  /// ubicación en el arranque (primera instalación) y, si ya estaba
+  /// concedido, obtiene el GPS en silencio; sin permiso queda el modo sin
   /// ubicación para que la hoja invite a tocar el mapa.
   Future<void> initialize() {
     return _initFuture ??=
@@ -93,27 +93,23 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   }
 
   Future<void> _initializeOrThrow() async {
+    // El pin marcado a mano manda, haya permiso de GPS o no: es el punto que
+    // la persona eligió y lo deja hasta tocar «Quitar», que es lo que vuelve
+    // al GPS. Antes, con el GPS concedido, cada arranque lo pisaba (dueño,
+    // 2026-10-02: «se guarda el ultimo pin q el usuario coloco»).
+    if (await _restoreSavedPin()) return;
     final prefs = await SharedPreferences.getInstance();
     if (await _hasGpsPermission()) {
       await _locate();
-      // El usuario permitió la ubicación pero el GPS no dio fijación (sin
-      // señal, GPS apagado, indoor): en vez de quedarse "sin ubicación", se
-      // recupera el último pin manual guardado, que es lo único que se
-      // conserva entre arranques.
-      if (state.mode == UserLocationMode.gpsFailed) {
-        if (await _restoreSavedPin()) return;
-      }
       return;
     }
     var status = await Permission.location.status;
     if (status.isRestricted || status.isPermanentlyDenied) {
-      if (await _restoreSavedPin()) return;
       state = const UserLocationState(mode: UserLocationMode.permanentDenied);
       return;
     }
     final alreadyAsked = prefs.getBool(_kAsked) ?? false;
     if (alreadyAsked) {
-      if (await _restoreSavedPin()) return;
       state = const UserLocationState(mode: UserLocationMode.denied);
       return;
     }
@@ -122,7 +118,6 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     if (status.isGranted) {
       await _locate();
     } else {
-      if (await _restoreSavedPin()) return;
       state = const UserLocationState(mode: UserLocationMode.denied);
     }
   }
@@ -291,7 +286,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   }
 
   /// Pin manual: el usuario tocó el mapa. Se guarda para reencontrarlo en el
-  /// próximo arranque cuando no hay permiso de GPS.
+  /// próximo arranque, con o sin permiso de GPS.
   void setManualPin(double lat, double lon) {
     if (!_coordenadasValidas(lat, lon)) return;
     _gpsSub?.cancel();

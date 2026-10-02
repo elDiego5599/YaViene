@@ -77,31 +77,35 @@ void main() {
         .instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_canal, null));
 
-    Future<void> avisar(int metros) => BusNotificationService.notifyBusNear(
+    Future<void> avisar() => BusNotificationService.notifyBusNear(
           busId: 'BUS-SQA223',
           routeName: 'Ruta 106',
-          distanceMeters: metros,
         );
 
-    test('el título es el aviso de la app: ruta y placa (regla 12)', () async {
-      await avisar(430);
+    test('el aviso dice solo la ruta, sin placa ni distancia (regla 12)',
+        () async {
+      // El dueño lo pidió así al probarlo en un Android (2026-10-02): una
+      // línea, «Tu bus de la ruta X está cerca de ti». La placa y los metros
+      // siguen en la hoja y en el historial.
+      await avisar();
       final plantilla = (_glosario['aviso'] as Map)['app'] as String;
-      expect(
-        mostrada['title'],
-        plantilla
-            .replaceAll('{ruta}', 'Ruta 106')
-            .replaceAll('{placa}', 'SQA223'),
-      );
+      expect(mostrada['title'], plantilla.replaceAll('{ruta}', 'Ruta 106'));
+      expect(mostrada['body'], isNull);
     });
 
-    test('el cuerpo canta la distancia como el historial', () async {
-      // El radio del aviso es ≤ 1000 m: justo en 1000, la notificación
-      // decía «1000 m» y el historial de la misma alerta «1,0 km».
-      for (final metros in [430, 1000]) {
-        await avisar(metros);
-        expect(mostrada['body'],
-            'Está a ${distanciaAviso(metros)} de tu ubicación');
-      }
+    test('sin nombre de ruta, usa su id; sin ninguno, no inventa', () async {
+      await BusNotificationService.notifyBusNear(
+        busId: 'BUS-SQA223',
+        routeId: 'r106',
+      );
+      expect(mostrada['title'], 'Tu bus de la ruta r106 está cerca de ti');
+      // Lleva el bus y su ruta: tocarlo abre el mapa en ese bus.
+      expect(BusNotificationService.leerCarga(mostrada['payload'] as String?),
+          (busId: 'BUS-SQA223', routeId: 'r106'));
+      await BusNotificationService.notifyBusNear(
+        busId: 'BUS-SQA223',
+      );
+      expect(mostrada['title'], 'Tu bus está cerca de ti');
     });
   });
 }

@@ -53,6 +53,44 @@ void main() {
     expect(notifier.state.lon, -74.79145);
   });
 
+  test('initialize con permiso de GPS también restaura el pin guardado',
+      () async {
+    // El dueño, 2026-10-02: «se guarda el ultimo pin q el usuario coloco
+    // antes de cerrar la app». Con el GPS concedido el arranque iba al GPS y
+    // el pin marcado a mano se perdía; ahora manda el pin hasta «Quitar».
+    SharedPreferences.setMockInitialValues({
+      _kManualLat: 10.9512,
+      _kManualLon: -74.79145,
+      'user_loc_asked': true,
+    });
+    const permisos =
+        MethodChannel('flutter.baseflow.com/permissions/methods');
+    const gps = MethodChannel('flutter.baseflow.com/geolocator');
+    final llamadasGps = <String>[];
+    final mensajero =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    mensajero.setMockMethodCallHandler(permisos, (call) async {
+      if (call.method == 'checkPermissionStatus') return 1; // granted
+      return null;
+    });
+    mensajero.setMockMethodCallHandler(gps, (call) async {
+      llamadasGps.add(call.method);
+      return null;
+    });
+    addTearDown(() {
+      mensajero.setMockMethodCallHandler(permisos, null);
+      mensajero.setMockMethodCallHandler(gps, null);
+    });
+
+    final notifier = UserLocationNotifier();
+    await notifier.initialize();
+
+    expect(notifier.state.mode, UserLocationMode.manual);
+    expect(notifier.state.lat, 10.9512);
+    expect(notifier.state.lon, -74.79145);
+    expect(llamadasGps, isEmpty);
+  });
+
   test('initialize sin permiso y sin pin guardado queda en modo denegado',
       () async {
     SharedPreferences.setMockInitialValues({'user_loc_asked': true});

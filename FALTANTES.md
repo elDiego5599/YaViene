@@ -74,8 +74,12 @@ Necesitan un teléfono, una cuenta o estar presente.
 - **Probar en un Android de verdad los avisos con la app cerrada** (D13; el
   backend vivo ya tiene la clave de FCM desde el 2026-10-02): instalar la
   APK nueva, armar un aviso, cerrar la app del todo y esperar a que el bus
-  llegue. Tiene que sonar la misma notificación
-  de siempre, y `/api/metrics` contar un `push.enviados`.
+  llegue. Tiene que sonar «Tu bus de la ruta X está cerca de ti» y
+  `/api/metrics` contar un `push.enviados`. Con la misma APK: que tocar la
+  notificación abra el mapa en esa empresa, esa ruta y ese bus, con la
+  cámara encima (también con la app cerrada); que el pin puesto a mano siga
+  ahí al volver a abrir la app aunque haya GPS, y que tocar un bus en el
+  mapa acierte a la primera, como en el iPhone.
 
 ## Lo que puedo hacer yo
 
