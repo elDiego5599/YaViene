@@ -45,9 +45,11 @@ String? validateAlertActivation({
     return 'El bus ${bus!.busId} ya está a menos de $alertRadiusMeters m; '
         'no se puede activar el aviso';
   }
-  if (activeAlertsCount >= 2) {
-    return 'Ya tienes 2 avisos activos: desactiva uno o espera a que '
-        'termine para activar otro. Recuerda no cerrar la aplicación';
-  }
+  if (activeAlertsCount >= 2) return avisosAlTope;
   return null;
 }
+
+/// Lo que se dice al pasar del tope de 2 avisos activos: al armar uno y al
+/// deshacer un borrado cuando ya se armaron otros dos.
+const avisosAlTope = 'Ya tienes 2 avisos activos: desactiva uno o espera a '
+    'que termine para activar otro. Recuerda no cerrar la aplicación';

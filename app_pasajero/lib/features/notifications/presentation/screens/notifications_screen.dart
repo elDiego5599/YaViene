@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/distancia.dart';
+import '../../../../core/widgets/aviso.dart';
+import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
+import '../../../map/presentation/widgets/alert_guards.dart' show avisosAlTope;
 import '../providers/alert_history_provider.dart';
 import '../providers/proximity_alerts_provider.dart';
 
@@ -161,6 +164,70 @@ class _SoloConLaAppAbierta extends StatelessWidget {
   }
 }
 
+/// Pregunta antes de borrar varios (o todos) y, si dice que sí, borra.
+/// Borrar de a muchos es fácil de tocar sin querer y se lleva avisos que
+/// están esperando: un sí explícito, como en el panel con los buses.
+Future<void> _borrarConfirmando(
+    BuildContext context, WidgetRef ref, Set<String> busIds) async {
+  final n = busIds.length;
+  final si = await mostrarDialogo<bool>(
+    context,
+    (ctx) => Dialogo(
+      delicado: true,
+      icono: Icons.delete_outline_rounded,
+      titulo: n == 1 ? '¿Borrar este aviso?' : '¿Borrar los $n avisos?',
+      mensaje: 'Los que siguen esperando dejan de avisarte y se borran '
+          'del historial.',
+      principal: DialogoAccion('Borrar', () => Navigator.pop(ctx, true)),
+      secundaria: DialogoAccion('Cancelar', () => Navigator.pop(ctx, false)),
+    ),
+  );
+  if (si != true || !context.mounted) return;
+  ref.read(alertSelectionProvider.notifier).clear();
+  _borrar(
+      context, ref, busIds, n == 1 ? 'Aviso borrado' : '$n avisos borrados');
+}
+
+/// Borra [busIds] —los que esperan se desactivan y dejan de vigilarse— y
+/// deja abajo la tarjeta con «Deshacer», que los devuelve como estaban:
+/// en su sitio, con su fecha y su ancla, y vigilando otra vez los que
+/// esperaban. Los notificadores se leen antes: si la pantalla se cierra,
+/// el «Deshacer» sigue sirviendo.
+void _borrar(
+    BuildContext context, WidgetRef ref, Set<String> busIds, String hecho) {
+  final historial = ref.read(alertHistoryProvider.notifier);
+  final activos = ref.read(activeAlertsProvider.notifier);
+  final vigilancia = ref.read(proximityAlertsProvider.notifier);
+  final antes = ref.read(alertHistoryProvider);
+  for (final busId in busIds) {
+    activos.deactivateAlert(busId);
+    vigilancia.disarmAlert(busId);
+    historial.remove(busId);
+  }
+  mostrarAviso(
+    context,
+    hecho,
+    icono: Icons.delete_outline_rounded,
+    accion: (
+      'Deshacer',
+      (contexto) {
+        historial.reponer(antes);
+        var sinCupo = false;
+        for (final e in antes) {
+          if (e.sent || !busIds.contains(e.busId)) continue;
+          // Entre tanto se armaron otros dos: este no cabe y no se queda
+          // en «Esperando» sin vigilar.
+          if (!vigilancia.rearmar(e)) {
+            historial.remove(e.busId);
+            sinCupo = true;
+          }
+        }
+        if (sinCupo) mostrarAviso(contexto, avisosAlTope);
+      },
+    ),
+  );
+}
+
 /// Acción "Seleccionar"/"Borrar todas" en la barra superior.
 class _SelectAction extends ConsumerWidget {
   const _SelectAction();
@@ -174,15 +241,8 @@ class _SelectAction extends ConsumerWidget {
       onPressed: () {
         if (selecting) {
           // Borrar todo: los activos se desactivan, el historial se limpia.
-          final notifier = ref.read(proximityAlertsProvider.notifier);
-          for (final e in ref.read(alertHistoryProvider)) {
-            if (!e.sent) {
-              ref.read(activeAlertsProvider.notifier).deactivateAlert(e.busId);
-              notifier.disarmAlert(e.busId);
-            }
-          }
-          ref.read(alertHistoryProvider.notifier).clearAll();
-          ref.read(alertSelectionProvider.notifier).clear();
+          _borrarConfirmando(context, ref,
+              {for (final e in ref.read(alertHistoryProvider)) e.busId});
         } else {
           ref.read(alertSelectionProvider.notifier).enter();
         }
@@ -317,17 +377,10 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                     onToggleSelect: () => ref
                         .read(alertSelectionProvider.notifier)
                         .toggle(entry.busId),
-                    onDisable: () {
-                      ref
-                          .read(activeAlertsProvider.notifier)
-                          .deactivateAlert(entry.busId);
-                      ref
-                          .read(proximityAlertsProvider.notifier)
-                          .disarmAlert(entry.busId);
-                      ref
-                          .read(alertHistoryProvider.notifier)
-                          .remove(entry.busId);
-                    },
+                    // Uno solo, a la vista y con su botón: no pregunta,
+                    // pero se puede deshacer.
+                    onDisable: () => _borrar(
+                        context, ref, {entry.busId}, 'Aviso desactivado'),
                   ),
                 ),
               );
@@ -359,20 +412,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                       ),
                       onPressed: selected.isEmpty
                           ? null
-                          : () {
-                              final notifier =
-                                  ref.read(proximityAlertsProvider.notifier);
-                              for (final busId in selected) {
-                                ref
-                                    .read(activeAlertsProvider.notifier)
-                                    .deactivateAlert(busId);
-                                notifier.disarmAlert(busId);
-                                ref
-                                    .read(alertHistoryProvider.notifier)
-                                    .remove(busId);
-                              }
-                              ref.read(alertSelectionProvider.notifier).clear();
-                            },
+                          : () => _borrarConfirmando(context, ref, selected),
                       icon: const Icon(Icons.delete_outline_rounded, size: 20),
                       label: Text(
                         selected.isEmpty
@@ -628,13 +668,15 @@ class _AlertTile extends StatelessWidget {
     final fila = Row(
       children: [
         // Medallón de 44 (era 48 con radio de 16: casi un círculo que no
-        // llegaba a serlo). Verde mientras espera; en gris cuando ya sonó,
-        // porque lo enviado es historia y no debe pesar como lo vigente.
+        // llegaba a serlo). Verde siempre: la campana de lo que ya sonó iba
+        // en gris, pero un aviso que llegó es un acierto, no algo apagado
+        // (dueño, 2026-10-02). Lo vigente ya se distingue por el bus, la
+        // distancia en vivo y el grupo «Esperando».
         Container(
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: sent ? AppColors.surfaceMuted : AppColors.primaryTint,
+            color: AppColors.primaryTint,
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: ExcludeSemantics(
@@ -645,9 +687,7 @@ class _AlertTile extends StatelessWidget {
               // El glifo va en la variante accesible: sobre su propio
               // tinte, el color de relleno se queda en 2,8:1 y la norma
               // pide 3:1 hasta para un icono.
-              color: sent
-                  ? AppColors.textSecondary
-                  : AppColors.primaryAccessible,
+              color: AppColors.primaryAccessible,
               size: 22,
             ),
           ),
@@ -851,7 +891,6 @@ String _hora(DateTime d) {
 
 /// Lo que sigue a la cifra en la franja de un aviso que espera.
 const restoDistancia = 'de tu ubicación · esperando aviso';
-
 
 /// «Está a 14 km de tu ubicación · esperando aviso», siempre en una fila.
 /// La cifra cambia con cada posición del bus: en un hueco de ancho fijo y

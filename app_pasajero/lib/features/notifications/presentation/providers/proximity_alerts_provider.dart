@@ -116,24 +116,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       await _ref.read(alertHistoryProvider.notifier).load();
       final entries = _ref.read(alertHistoryProvider);
       for (final e in entries) {
-        if (e.sent || e.routeId.isEmpty) continue;
-        final active = _ref.read(activeAlertsProvider.notifier);
-        final wasMonitoring = _alertRoutes[e.busId] == e.routeId &&
-            _routeSubs.containsKey(e.routeId);
-        if (!active.activateAlert(e.busId)) continue;
-        if (!wasMonitoring) {
-          // Ancla guardada, no la ubicación de ahora: re-armar leyendo la
-          // posición actual mudaba el aviso al pin nuevo (o lo dejaba en
-          // vivo si el GPS todavía no había respondido).
-          _armMonitoring(
-            e.busId,
-            e.routeId,
-            recordHistory: false,
-            ancla: e.refLat != null && e.refLon != null
-                ? (e.refLat!, e.refLon!)
-                : null,
-          );
-        }
+        if (!e.sent) rearmar(e);
       }
     } finally {
       _monitoringPaused = false;
@@ -143,6 +126,32 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     if (_ref.read(activeAlertsProvider).isNotEmpty) {
       _anotarPermiso(await _preguntarPermiso());
     }
+  }
+
+  /// Vuelve a armar un aviso que está en el historial, con su ancla de
+  /// entonces. Lo usan [restore] y el «Deshacer» de la pantalla de avisos.
+  /// `false` si no cabe: ya hay 2 activos.
+  bool rearmar(AlertHistoryEntry e) {
+    if (e.routeId.isEmpty) return false;
+    final wasMonitoring =
+        _alertRoutes[e.busId] == e.routeId && _routeSubs.containsKey(e.routeId);
+    if (!_ref.read(activeAlertsProvider.notifier).activateAlert(e.busId)) {
+      return false;
+    }
+    if (!wasMonitoring) {
+      // Ancla guardada, no la ubicación de ahora: re-armar leyendo la
+      // posición actual mudaba el aviso al pin nuevo (o lo dejaba en
+      // vivo si el GPS todavía no había respondido).
+      _armMonitoring(
+        e.busId,
+        e.routeId,
+        recordHistory: false,
+        ancla: e.refLat != null && e.refLon != null
+            ? (e.refLat!, e.refLon!)
+            : null,
+      );
+    }
+    return true;
   }
 
   /// Pregunta al sistema; `null` si no contesta (sin plugin, o un error del

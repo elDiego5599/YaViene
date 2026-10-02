@@ -11,11 +11,21 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 /// Del `SnackBar` se queda lo que funciona bien: la cola (un aviso espera a
 /// que se vaya el anterior), la voz (se lee en cuanto aparece) y el gesto
 /// de apartarlo con el dedo.
+///
+/// [accion] es el botón de texto de la derecha («Deshacer»): al pulsarlo
+/// la tarjeta se va y la acción recibe un contexto que sigue vivo aunque la
+/// pantalla que la armó ya se haya cerrado, para poder avisar otra cosa.
 class AvisoTarjeta extends StatelessWidget {
-  const AvisoTarjeta({super.key, required this.mensaje, required this.icono});
+  const AvisoTarjeta({
+    super.key,
+    required this.mensaje,
+    required this.icono,
+    this.accion,
+  });
 
   final String mensaje;
   final IconData icono;
+  final (String, void Function(BuildContext))? accion;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +66,21 @@ class AvisoTarjeta extends StatelessWidget {
               ),
             ),
           ),
+          if (accion case (final texto, final alPulsar))
+            // Verde legible y con la letra de los botones del [Dialogo]: es
+            // la acción que arregla, no un aviso más. 48 de alto para el dedo.
+            TextButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                alPulsar(context);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryAccessible,
+                minimumSize: const Size(48, 48),
+                textStyle: AppTextStyles.boton,
+              ),
+              child: Text(texto),
+            ),
         ],
       ),
     );
@@ -81,6 +106,7 @@ void mostrarAviso(
   BuildContext context,
   String mensaje, {
   IconData icono = Icons.info_outline_rounded,
+  (String, void Function(BuildContext))? accion,
 }) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -100,7 +126,7 @@ void mostrarAviso(
           AppSpacing.md,
         ),
         duration: duracionDeAviso(mensaje),
-        content: AvisoTarjeta(mensaje: mensaje, icono: icono),
+        content: AvisoTarjeta(mensaje: mensaje, icono: icono, accion: accion),
       ),
     );
 }

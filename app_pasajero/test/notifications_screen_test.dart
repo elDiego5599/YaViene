@@ -103,6 +103,20 @@ void main() {
   /// juntas en una sola línea con guion.
   Finder aviso(String busId) => find.byKey(ValueKey('aviso-$busId'));
 
+  /// Acepta la ventana de «¿Borrar…?» que sale antes de borrar.
+  Future<void> confirmar(WidgetTester tester, String titulo) async {
+    expect(find.text(titulo), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Borrar'));
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
+  /// Toca «Deshacer» en la tarjeta que sale abajo después de borrar.
+  Future<void> deshacer(WidgetTester tester) async {
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.tap(find.text('Deshacer'));
+    await tester.pump(const Duration(milliseconds: 750));
+  }
+
   void expectAviso(String busId, {String ruta = 'Ruta 1'}) {
     expect(aviso(busId), findsOneWidget);
     expect(find.descendant(of: aviso(busId), matching: find.text(ruta)),
@@ -232,7 +246,8 @@ void main() {
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Borrar 1'));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await confirmar(tester, '¿Borrar este aviso?');
 
     expect(aviso('A-1'), findsNothing);
     expectAviso('A-2');
@@ -250,7 +265,8 @@ void main() {
     // Deja terminar la entrada de la barra inferior (AnimatedSize).
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Borrar todas'));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await confirmar(tester, '¿Borrar los 2 avisos?');
 
     expect(find.text('No tienes avisos activos'), findsOneWidget);
     expect(container.read(activeAlertsProvider), isEmpty);
@@ -362,6 +378,114 @@ void main() {
     // que la norma pide hasta para un icono.
     final campana =
         tester.widget<Icon>(find.byIcon(Icons.notifications_none_outlined));
+    expect(campana.color, AppColors.primaryAccessible);
+  });
+
+  // Clase de frontend del dueño (2026-10-02): borrar no preguntaba ni se
+  // podía deshacer. Borrar varios o todos pregunta antes; cualquier borrado
+  // —también «Desactivar»— se puede deshacer desde la tarjeta de abajo.
+  testWidgets('borrar pide confirmación y «Cancelar» no borra nada',
+      (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Borrar todas'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('¿Borrar este aviso?'), findsOneWidget);
+    await tester.tap(find.text('Cancelar'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expectAviso('A-1');
+    expect(container.read(activeAlertsProvider), {'A-1'});
+    expect(find.text('Deshacer'), findsNothing);
+  });
+
+  testWidgets('deshacer «Desactivar» devuelve el aviso armado y con su fecha',
+      (tester) async {
+    // El bus está encima, pero nadie mide hasta después de deshacer.
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    final antes = container.read(alertHistoryProvider).single;
+
+    await tester.tap(find.text('Desactivar'));
+    await tester.pump();
+    expect(aviso('A-1'), findsNothing);
+    expect(find.text('Aviso desactivado'), findsOneWidget);
+
+    await deshacer(tester);
+
+    expectAviso('A-1');
+    expect(container.read(activeAlertsProvider), {'A-1'});
+    final despues = container.read(alertHistoryProvider).single;
+    // La misma fecha: es la que dice cuándo vence el aviso.
+    expect(despues.createdAt, antes.createdAt);
+    // Y vuelve a vigilar: con el bus encima, suena.
+    await container.read(proximityAlertsProvider.notifier).check();
+    expect(container.read(alertHistoryProvider).single.sent, isTrue);
+  });
+
+  testWidgets('deshacer «Borrar todas» devuelve enviados y activos en su sitio',
+      (tester) async {
+    // A-1 encima: suena. A-2 lejos: sigue esperando.
+    final container =
+        await pumpScreen(tester, [bus('A-1'), bus('A-2', lat: userLat + 0.05)]);
+    arm(container, 'A-1');
+    arm(container, 'A-2');
+    await tester.pump();
+    await container.read(proximityAlertsProvider.notifier).check();
+    await tester.pump();
+    final antes = container.read(alertHistoryProvider);
+
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Borrar todas'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await confirmar(tester, '¿Borrar los 2 avisos?');
+    expect(find.text('No tienes avisos activos'), findsOneWidget);
+    expect(find.text('2 avisos borrados'), findsOneWidget);
+
+    await deshacer(tester);
+
+    expect(container.read(alertHistoryProvider).map((e) => e.toJson()),
+        antes.map((e) => e.toJson()));
+    expect(container.read(activeAlertsProvider), {'A-2'});
+    expectAviso('A-1');
+    expectAviso('A-2');
+  });
+
+  testWidgets('deshacer no pasa del tope de 2 avisos activos', (tester) async {
+    final container = await pumpScreen(tester, const []);
+    arm(container, 'A-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Desactivar'));
+    await tester.pump();
+    // Mientras tanto se armaron otros dos: ya no cabe.
+    arm(container, 'A-2');
+    arm(container, 'A-3');
+    await deshacer(tester);
+
+    expect(container.read(activeAlertsProvider), {'A-2', 'A-3'});
+    expect(container.read(alertHistoryProvider).map((e) => e.busId).toSet(),
+        {'A-2', 'A-3'});
+    // Primero se va la tarjeta del «Deshacer», luego entra la del tope.
+    await tester.pump(const Duration(milliseconds: 750));
+    expect(find.textContaining('Ya tienes 2 avisos activos'), findsOneWidget);
+  });
+
+  testWidgets('la campana de un aviso enviado va en verde', (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    await container.read(proximityAlertsProvider.notifier).check();
+    await tester.pump();
+
+    final campana =
+        tester.widget<Icon>(find.byIcon(Icons.notifications_active_outlined));
     expect(campana.color, AppColors.primaryAccessible);
   });
 }

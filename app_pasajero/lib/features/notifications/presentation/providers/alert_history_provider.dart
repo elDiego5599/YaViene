@@ -262,6 +262,18 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     _save();
   }
 
+  /// «Deshacer» de un borrado: devuelve las entradas de [antes] que ya no
+  /// están, en su sitio y con sus fechas. Lo que cambió entre tanto (un
+  /// aviso nuevo, uno que sonó) gana a la copia vieja.
+  void reponer(List<AlertHistoryEntry> antes) {
+    final ahora = {for (final e in state) e.busId: e};
+    state = [
+      for (final e in antes) ahora.remove(e.busId) ?? e,
+      ...ahora.values
+    ];
+    _save();
+  }
+
   void clearAll() {
     if (state.isEmpty) return;
     state = const [];
