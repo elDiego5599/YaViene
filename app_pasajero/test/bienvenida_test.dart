@@ -34,7 +34,7 @@ void main() {
         tester.getSize(find.byKey(const ValueKey('bienvenida_ventana')));
     final nucleo = tester.getSize(find.byType(SingleChildScrollView).last);
     expect(marco.width - nucleo.width, 14);
-    expect(find.text('Todo listo'), findsOneWidget);
+    expect(find.text('Bienvenido'), findsOneWidget);
     expect(find.text('¿Te mostramos cómo funciona?'), findsOneWidget);
     expect(find.text('Ver la guía'), findsOneWidget);
     expect(find.text('Ir a la app'), findsOneWidget);

@@ -8,7 +8,8 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 /// dos frases: se leía como un aviso más y no como la entrada a la app
 /// (dueño, 2026-10-02: «no se ve elegante ni sofisticado»). Esta es la hoja
 /// arena de la entrada hecha ventana: el logo, una pregunta y dos salidas.
-/// Pocas palabras y grandes, como la entrada.
+/// Pocas palabras y grandes, como la entrada. El título dice «Bienvenido»
+/// (dueño, 2026-10-02; antes «Todo listo»).
 ///
 /// Se probó con la noche de la entrada (`LiveRouteBackdrop`) en una franja
 /// de arriba y no gustó: ese fondo está dibujado para la pantalla entera y,
@@ -109,7 +110,7 @@ class VentanaBienvenida extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              'Todo listo',
+              'Bienvenido',
               style: AppTextStyles.display,
               textAlign: TextAlign.center,
             ),

@@ -185,6 +185,10 @@ void main() {
     await pumpDrawer(tester);
     await openDrawer(tester);
 
+    // Con el buzón en el grupo, «Acerca de» queda bajo el borde de la
+    // pantalla de prueba (600 de alto): el menú se desplaza para llegar.
+    await tester.ensureVisible(find.text('Acerca de'));
+    await tester.pump();
     await tester.tap(find.text('Acerca de'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

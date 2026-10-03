@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/buzon/presentation/buzon_screen.dart';
 import '../../features/legal/legal_docs.dart';
 import '../../features/legal/presentation/screens/legal_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
@@ -18,6 +19,9 @@ abstract class AppRoutes {
   static const String notifications = '/notifications';
   static const String routeDetail = '/route/:routeId';
   static const String alertSettings = '/alerts';
+
+  /// El buzón de problemas y sugerencias (D14 del backend).
+  static const String buzon = '/buzon';
 
   /// Privacidad y términos, uno por documento: `/legal/privacidad`.
   static const String legal = '/legal/:doc';
@@ -65,6 +69,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.notifications,
         name: 'notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.buzon,
+        name: 'buzon',
+        builder: (context, state) => const BuzonScreen(),
       ),
     ],
     errorBuilder: (context, state) => const _NotFoundScreen(),

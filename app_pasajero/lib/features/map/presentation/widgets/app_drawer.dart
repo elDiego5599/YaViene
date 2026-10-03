@@ -385,6 +385,13 @@ class AppDrawerState extends ConsumerState<AppDrawer>
                       // lo que se aceptó en la bienvenida.
                       _staggered(
                         _grupo([
+                          // Como Avisos, sin cerrar el menú: al volver del
+                          // buzón se regresa aquí.
+                          DrawerItem(
+                            icon: Icons.feedback_outlined,
+                            title: 'Problemas y sugerencias',
+                            onTap: () => context.push(AppRoutes.buzon),
+                          ),
                           DrawerItem(
                             icon: Icons.lock_outline_rounded,
                             title: 'Privacidad',

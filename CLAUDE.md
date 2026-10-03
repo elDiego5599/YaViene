@@ -62,8 +62,8 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
   2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
   secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-10-02)**: **1.648 pruebas** en total
-  (1.615 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
+- **Verificación (2026-10-02)**: **1.678 pruebas** en total
+  (1.645 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
   corren con `tool/simulacros.sh`), contando las 11 de `ya_viene_pruebas`; aparte,
   las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
   `npm run typecheck` limpio (3 configs), **303 en Vitest** y el trinquete de
@@ -81,13 +81,14 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   al repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
   privacidad y términos 1,65; CLS 0, TBT ≤ 35 ms. `e2e/vitales.spec.ts`
   vigila el marcado que lo hace posible.
-- **Backend**: 265 pruebas en verde (2026-10-02; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
+- **Backend**: 277 pruebas en verde (2026-10-02; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
   limpio. Las pruebas usan bases temporales y puertos propios; el backend
   vivo y ngrok no se tocan.
 - **Documentación del backend** en `YaVieneBackend/docs/`: `arquitectura.md`
   (por dónde pasa una posición), `integracion-gps.md` (el contrato del equipo
-  del bus), `runbook.md` (qué hacer cuando algo se cae) y `decisiones/` (D1–D13
-  con índice; D13: avisos con la app cerrada por FCM, solo Android). `tests/doc_gps.test.ts` y `tests/docs_enlaces.test.ts` las atan
+  del bus), `runbook.md` (qué hacer cuando algo se cae) y `decisiones/` (D1–D14
+  con índice; D13: avisos con la app cerrada por FCM, solo Android; D14:
+  buzón de problemas y sugerencias, que llega al Gmail del equipo). `tests/doc_gps.test.ts` y `tests/docs_enlaces.test.ts` las atan
   al código: si el código cambia y el documento no, la suite lo dice.
 - Objeciones solo con código real (tgrep/import antes de afirmar).
 
@@ -133,7 +134,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
   el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
   (`99c0a07`).
-- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 540 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
+- **Flutter** (2026-10-02): core 85, panel 258 + 3 saltadas, pasajero 558 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
   base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres (y `integration_test` en el panel)
   (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
   `--comprobar`) tras `npm run contrato:actualizar` en el backend. El

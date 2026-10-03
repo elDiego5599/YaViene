@@ -1,0 +1,322 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_pasajero/core/app_info.dart';
+import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
+import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/app_drawer.dart';
+
+/// El botón queda bajo el campo: en la pantalla de prueba (800×600) hay que
+/// llevarlo a la vista antes de tocarlo, como haría el pasajero.
+Future<void> enviar(WidgetTester tester) async {
+  final boton = find.byKey(const ValueKey('buzon_enviar'));
+  await tester.ensureVisible(boton);
+  await tester.pump();
+  await tester.tap(boton);
+}
+
+/// El menú tiene un fondo vivo que no se asienta nunca: se espera lo que
+/// dura su entrada y la de la pantalla, como en `app_drawer_test.dart`.
+Future<void> asentar(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 700));
+}
+
+void main() {
+  group('Buzon.enviar', () {
+    test('manda tipo, texto limpio, plataforma y versión a /api/reportes',
+        () async {
+      late http.Request pedido;
+      final buzon = Buzon(
+        backend: () => 'http://x',
+        cliente: MockClient((r) async {
+          pedido = r;
+          return http.Response('{"recibido":true}', 201);
+        }),
+      );
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        expect(await buzon.enviar(TipoReporte.sugerencia, '  Más rutas \n'),
+            EnvioReporte.recibido);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      expect(pedido.method, 'POST');
+      expect(pedido.url.toString(), 'http://x/api/reportes');
+      expect(pedido.headers['Content-Type'], startsWith('application/json'));
+      expect(jsonDecode(pedido.body), {
+        'tipo': 'sugerencia',
+        'texto': 'Más rutas',
+        'plataforma': 'ios',
+        'version': kAppVersion,
+      });
+    });
+
+    test('en Android dice android', () async {
+      late Map<String, dynamic> cuerpo;
+      final buzon = Buzon(
+        backend: () => 'http://x',
+        cliente: MockClient((r) async {
+          cuerpo = jsonDecode(r.body) as Map<String, dynamic>;
+          return http.Response('', 201);
+        }),
+      );
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await buzon.enviar(TipoReporte.problema, 'No carga');
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      expect(cuerpo['plataforma'], 'android');
+      expect(cuerpo['tipo'], 'problema');
+    });
+
+    test('fuera de un teléfono no inventa plataforma', () async {
+      late Map<String, dynamic> cuerpo;
+      final buzon = Buzon(
+        backend: () => 'http://x',
+        cliente: MockClient((r) async {
+          cuerpo = jsonDecode(r.body) as Map<String, dynamic>;
+          return http.Response('', 201);
+        }),
+      );
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        await buzon.enviar(TipoReporte.problema, 'No carga');
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      expect(cuerpo.containsKey('plataforma'), isFalse);
+    });
+
+    test('lee la URL del backend en cada envío (el respaldo puede cambiarla)',
+        () async {
+      var url = 'http://principal';
+      final vistas = <String>[];
+      final buzon = Buzon(
+        backend: () => url,
+        cliente: MockClient((r) async {
+          vistas.add(r.url.host);
+          return http.Response('', 201);
+        }),
+      );
+      await buzon.enviar(TipoReporte.problema, 'uno');
+      url = 'http://respaldo';
+      await buzon.enviar(TipoReporte.problema, 'dos');
+      expect(vistas, ['principal', 'respaldo']);
+    });
+
+    for (final (codigo, esperado) in [
+      (429, EnvioReporte.muchos),
+      (503, EnvioReporte.noDisponible),
+      (400, EnvioReporte.noDisponible),
+      (404, EnvioReporte.noDisponible),
+      (500, EnvioReporte.noDisponible),
+    ]) {
+      test('$codigo es $esperado', () async {
+        final buzon = Buzon(
+          backend: () => 'http://x',
+          cliente: MockClient((_) async => http.Response('', codigo)),
+        );
+        expect(await buzon.enviar(TipoReporte.problema, 'abc'), esperado);
+      });
+    }
+
+    test('sin red es sinRed, sin lanzar', () async {
+      final buzon = Buzon(
+        backend: () => 'http://x',
+        cliente: MockClient((_) async => throw http.ClientException('caído')),
+      );
+      expect(
+          await buzon.enviar(TipoReporte.problema, 'abc'), EnvioReporte.sinRed);
+    });
+  });
+
+  group('BuzonScreen', () {
+    Future<void> abrir(WidgetTester tester, Buzon buzon) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [buzonProvider.overrideWithValue(buzon)],
+          child: const MaterialApp(home: BuzonScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    FilledButton boton(WidgetTester tester) =>
+        tester.widget<FilledButton>(find.byKey(const ValueKey('buzon_enviar')));
+
+    testWidgets('el botón se enciende con 3 caracteres y no con espacios',
+        (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+              backend: () => 'http://x',
+              cliente: MockClient((_) async => http.Response('', 201))));
+      expect(boton(tester).onPressed, isNull);
+      await tester.enterText(find.byKey(const ValueKey('buzon_texto')), 'ab');
+      await tester.pump();
+      expect(boton(tester).onPressed, isNull);
+      await tester.enterText(
+          find.byKey(const ValueKey('buzon_texto')), '      ');
+      await tester.pump();
+      expect(boton(tester).onPressed, isNull);
+      await tester.enterText(find.byKey(const ValueKey('buzon_texto')), 'abc');
+      await tester.pump();
+      expect(boton(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('el campo no deja pasar de 1000', (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+              backend: () => 'http://x',
+              cliente: MockClient((_) async => http.Response('', 201))));
+      final campo =
+          tester.widget<TextField>(find.byKey(const ValueKey('buzon_texto')));
+      expect(campo.maxLength, Buzon.maximo);
+    });
+
+    testWidgets('manda el tipo elegido, muestra la espera y luego las gracias',
+        (tester) async {
+      final respuesta = Completer<http.Response>();
+      late Map<String, dynamic> cuerpo;
+      await abrir(
+        tester,
+        Buzon(
+          backend: () => 'http://x',
+          cliente: MockClient((r) {
+            cuerpo = jsonDecode(r.body) as Map<String, dynamic>;
+            return respuesta.future;
+          }),
+        ),
+      );
+      // Arranca en «Un problema», elegida para el lector.
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('buzon_problema'))),
+        matchesSemantics(
+            label: 'Un problema',
+            isButton: true,
+            isSelected: true,
+            hasSelectedState: true,
+            hasTapAction: true),
+      );
+      await tester.tap(find.byKey(const ValueKey('buzon_sugerencia')));
+      await tester.pump();
+      expect(find.textContaining('Qué mejorarías'), findsOneWidget);
+      await tester.enterText(
+          find.byKey(const ValueKey('buzon_texto')), 'Más rutas de noche');
+      await enviar(tester);
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(boton(tester).onPressed, isNull,
+          reason: 'un segundo toque no manda dos veces');
+
+      respuesta.complete(http.Response('', 201));
+      await tester.pumpAndSettle();
+      expect(cuerpo['tipo'], 'sugerencia');
+      expect(cuerpo['texto'], 'Más rutas de noche');
+      expect(find.text('Gracias, lo recibimos'), findsOneWidget);
+      expect(find.byKey(const ValueKey('buzon_formulario')), findsNothing);
+    });
+
+    for (final (codigo, mensaje) in [
+      (429, 'Ya enviaste varios hace poco'),
+      (503, 'El buzón no está disponible ahora'),
+      (null, 'Revisa tu conexión'),
+    ]) {
+      testWidgets('si falla (${codigo ?? 'sin red'}) lo dice y guarda el texto',
+          (tester) async {
+        var intentos = 0;
+        await abrir(
+          tester,
+          Buzon(
+            backend: () => 'http://x',
+            cliente: MockClient((_) async {
+              intentos++;
+              if (intentos > 1) return http.Response('', 201);
+              if (codigo == null) throw http.ClientException('caído');
+              return http.Response('', codigo);
+            }),
+          ),
+        );
+        await tester.enterText(
+            find.byKey(const ValueKey('buzon_texto')), 'El bus no aparece');
+        await enviar(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining(mensaje), findsOneWidget);
+        expect(find.text('El bus no aparece'), findsOneWidget);
+        expect(find.text('Intentar de nuevo'), findsOneWidget);
+
+        await enviar(tester);
+        await tester.pumpAndSettle();
+        expect(intentos, 2);
+        expect(find.text('Gracias, lo recibimos'), findsOneWidget);
+      });
+    }
+  });
+
+  testWidgets('el menú abre el buzón y «Volver» regresa al menú',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, __) =>
+              Scaffold(appBar: AppBar(), drawer: const AppDrawer()),
+        ),
+        GoRoute(path: AppRoutes.buzon, builder: (_, __) => const BuzonScreen()),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          buzonProvider.overrideWithValue(Buzon(
+              backend: () => 'http://x',
+              cliente: MockClient((_) async => http.Response('', 201)))),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
+    await asentar(tester);
+
+    await tester.tap(find.text('Problemas y sugerencias'));
+    await asentar(tester);
+    expect(find.byType(BuzonScreen), findsOneWidget);
+
+    await tester.enterText(find.byKey(const ValueKey('buzon_texto')), 'Hola');
+    await enviar(tester);
+    await asentar(tester);
+    await tester.tap(find.byKey(const ValueKey('buzon_volver')));
+    await asentar(tester);
+    expect(find.byType(BuzonScreen), findsNothing);
+    expect(find.text('Problemas y sugerencias'), findsOneWidget,
+        reason: 'el menú sigue abierto');
+  });
+
+  test('la app tiene la ruta /buzon', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final rutas = container
+        .read(appRouterProvider)
+        .configuration
+        .routes
+        .whereType<GoRoute>()
+        .map((r) => r.path);
+    expect(rutas, contains(AppRoutes.buzon));
+  });
+}
