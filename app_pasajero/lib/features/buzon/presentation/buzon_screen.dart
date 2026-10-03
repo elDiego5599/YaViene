@@ -100,194 +100,323 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
     );
   }
 
+  /// El formulario arriba, que se desplaza, y el botón abajo, fijo: con el
+  /// teclado abierto el botón sube con él y sigue a la mano, y con la
+  /// pantalla vacía no flota a media altura.
   Widget _formulario() {
     final problema = _tipo == TipoReporte.problema;
-    return ListView(
+    return Column(
       key: const ValueKey('buzon_formulario'),
-      padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              const _Encabezado(),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _Opcion(
+                      key: const ValueKey('buzon_problema'),
+                      icono: Icons.report_gmailerrorred_outlined,
+                      texto: 'Un problema',
+                      detalle: 'Algo no funciona bien',
+                      elegida: problema,
+                      alPulsar: () =>
+                          setState(() => _tipo = TipoReporte.problema),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _Opcion(
+                      key: const ValueKey('buzon_sugerencia'),
+                      icono: Icons.lightbulb_outline_rounded,
+                      texto: 'Una sugerencia',
+                      detalle: 'Una idea para mejorar',
+                      elegida: !problema,
+                      alPulsar: () =>
+                          setState(() => _tipo = TipoReporte.sugerencia),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Tarjeta blanca con sombra suave, como las opciones: el filo
+              // solo aparece, verde, mientras se escribe.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: TextField(
+                  key: const ValueKey('buzon_texto'),
+                  controller: _texto,
+                  enabled: !_enviando,
+                  minLines: 7,
+                  maxLines: 12,
+                  maxLength: Buzon.maximo,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppTextStyles.cuerpo
+                      .copyWith(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: problema
+                        ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
+                        : 'Qué mejorarías o qué te gustaría ver en la app.',
+                    hintStyle: AppTextStyles.cuerpo
+                        .copyWith(color: AppColors.textSecondary),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                        const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
+                    counterStyle: AppTextStyles.pie
+                        .copyWith(color: AppColors.textSecondary),
+                    enabledBorder: _filo(AppColors.hairline, 1),
+                    disabledBorder: _filo(AppColors.hairline, 1),
+                    focusedBorder: _filo(AppColors.primaryAccessible, 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const _NotaPrivacidad(),
+            ],
+          ),
+        ),
+        // El fallo va pegado al botón fijo y no al final de la lista: así
+        // se ve siempre, también con el campo lleno o en un teléfono bajo.
+        if (_fallo case final fallo?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+            child: _Fallo(fallo),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+          child: SizedBox(
+            height: 56,
+            width: double.infinity,
+            child: FilledButton(
+              key: const ValueKey('buzon_enviar'),
+              onPressed: _listo ? _enviar : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                textStyle: AppTextStyles.boton,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+              ),
+              child: _enviando
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                        semanticsLabel: 'Enviando',
+                      ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_fallo == null ? 'Enviar' : 'Intentar de nuevo'),
+                        const SizedBox(width: AppSpacing.sm),
+                        const ExcludeSemantics(
+                          child: Icon(Icons.send_rounded, size: 18),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  OutlineInputBorder _filo(Color color, double ancho) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        borderSide: BorderSide(color: color, width: ancho),
+      );
+}
+
+/// Ícono en su círculo verde, la pregunta y una línea que dice para qué
+/// sirve: el mismo arranque que la bienvenida.
+class _Encabezado extends StatelessWidget {
+  const _Encabezado();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExcludeSemantics(
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryTint,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.forum_outlined,
+                size: 26, color: AppColors.primaryAccessible),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
         Semantics(
           header: true,
           child: Text('¿Qué nos quieres contar?', style: AppTextStyles.titulo),
         ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _Opcion(
-                key: const ValueKey('buzon_problema'),
-                icono: Icons.report_gmailerrorred_outlined,
-                texto: 'Un problema',
-                elegida: problema,
-                alPulsar: () => setState(() => _tipo = TipoReporte.problema),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _Opcion(
-                key: const ValueKey('buzon_sugerencia'),
-                icono: Icons.lightbulb_outline_rounded,
-                texto: 'Una sugerencia',
-                elegida: !problema,
-                alPulsar: () => setState(() => _tipo = TipoReporte.sugerencia),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          key: const ValueKey('buzon_texto'),
-          controller: _texto,
-          enabled: !_enviando,
-          minLines: 6,
-          maxLines: 12,
-          maxLength: Buzon.maximo,
-          textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyles.cuerpo.copyWith(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: problema
-                ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
-                : 'Qué mejorarías o qué te gustaría ver en la app.',
-            hintStyle:
-                AppTextStyles.cuerpo.copyWith(color: AppColors.textSecondary),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.all(AppSpacing.md),
-            counterStyle:
-                AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              borderSide: const BorderSide(color: AppColors.hairline),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              borderSide: const BorderSide(color: AppColors.hairline),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              borderSide: const BorderSide(
-                  color: AppColors.primaryAccessible, width: 2),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const ExcludeSemantics(
-              child: Padding(
-                padding: EdgeInsets.only(top: 1),
-                child: Icon(Icons.lock_outline_rounded,
-                    size: 16, color: AppColors.textSecondary),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                'Lo lee el equipo de Ya Viene. No incluyas datos personales.',
-                style:
-                    AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          ],
-        ),
-        if (_fallo case final fallo?) ...[
-          const SizedBox(height: AppSpacing.md),
-          _Fallo(fallo),
-        ],
-        const SizedBox(height: AppSpacing.lg),
-        SizedBox(
-          height: 56,
-          child: FilledButton(
-            key: const ValueKey('buzon_enviar'),
-            onPressed: _listo ? _enviar : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              textStyle: AppTextStyles.boton,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-            ),
-            child: _enviando
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                      semanticsLabel: 'Enviando',
-                    ),
-                  )
-                : Text(_fallo == null ? 'Enviar' : 'Intentar de nuevo'),
-          ),
+        const SizedBox(height: 6),
+        Text(
+          'Lo leemos todo y nos ayuda a mejorar Ya Viene.',
+          style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
         ),
       ],
     );
   }
 }
 
-/// Una de las dos opciones: tarjeta blanca con filo; la elegida, con el
-/// tinte y el filo verdes de la ruta activa del menú.
+/// El candado y la nota en una pastilla arena oscura: se ve, pero no
+/// compite con el campo.
+class _NotaPrivacidad extends StatelessWidget {
+  const _NotaPrivacidad();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryDeep.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ExcludeSemantics(
+            child: Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Icon(Icons.lock_outline_rounded,
+                  size: 16, color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'Lo lee el equipo de Ya Viene. No incluyas datos personales.',
+              style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Una de las dos opciones: tarjeta blanca con sombra suave, ícono en su
+/// círculo, nombre y una línea que lo explica. La elegida toma el tinte y
+/// el filo verdes de la ruta activa del menú y una marca en la esquina; el
+/// cambio se anima (y no, con «Reducir movimiento»).
 class _Opcion extends StatelessWidget {
   const _Opcion({
     super.key,
     required this.icono,
     required this.texto,
+    required this.detalle,
     required this.elegida,
     required this.alPulsar,
   });
 
   final IconData icono;
   final String texto;
+  final String detalle;
   final bool elegida;
   final VoidCallback alPulsar;
 
   @override
   Widget build(BuildContext context) {
-    final color = elegida ? AppColors.primaryDeep : AppColors.textBody;
+    final duracion = AppMotion.duracion(context, AppMotion.rapido);
+    final radio = BorderRadius.circular(AppRadius.card - 4);
     return Semantics(
       button: true,
       selected: elegida,
       label: texto,
+      hint: detalle,
       // excludeSemantics se lleva también el toque del InkWell: el lector
       // lo recibe aquí.
       onTap: alPulsar,
       excludeSemantics: true,
-      child: Material(
-        color:
-            elegida ? AppColors.primary.withValues(alpha: 0.10) : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          side: BorderSide(
+      child: AnimatedContainer(
+        duration: duracion,
+        curve: AppMotion.curvaEntrada,
+        decoration: BoxDecoration(
+          color: elegida ? AppColors.primaryTint : Colors.white,
+          borderRadius: radio,
+          border: Border.all(
             color: elegida ? AppColors.primaryAccessible : AppColors.hairline,
             width: elegida ? 2 : 1,
           ),
+          boxShadow: elegida ? null : AppShadows.soft,
         ),
-        child: InkWell(
-          onTap: alPulsar,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 56),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icono, size: 20, color: color),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      texto,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.cuerpoFuerte.copyWith(color: color),
-                    ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: alPulsar,
+            borderRadius: radio,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedContainer(
+                        duration: duracion,
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: elegida
+                              ? AppColors.primary
+                              : AppColors.primaryDeep.withValues(alpha: 0.06),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icono,
+                            size: 22,
+                            color: elegida ? Colors.white : AppColors.textBody),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        texto,
+                        style: AppTextStyles.cuerpoFuerte.copyWith(
+                          color: elegida
+                              ? AppColors.primaryDeep
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        detalle,
+                        style: AppTextStyles.pie
+                            .copyWith(color: AppColors.textSecondary),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: AnimatedScale(
+                    scale: elegida ? 1 : 0,
+                    duration: duracion,
+                    curve: AppMotion.curvaEntrada,
+                    child: const Icon(Icons.check_circle_rounded,
+                        size: 22, color: AppColors.primaryAccessible),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

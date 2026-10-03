@@ -37,13 +37,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que decidir tú
 
-- **Reiniciar el backend vivo con el arreglo del aviso tarde y el buzón.**
-  El servidor ya vigila los avisos desde que se arman, sin esperar el
-  minuto del arriendo que los hacía llegar a 700 m (D13; migración 25), y
-  recibe los reportes del buzón de la app (D14; migración 26). Está en
-  `main` pero el backend vivo sigue con la versión vieja hasta que digas que
-  sí: `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
-  Sin el reinicio, el buzón de la app responde que no pudo enviar.
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
@@ -65,14 +58,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 Necesitan un teléfono, una cuenta o estar presente.
 
-- **El correo del buzón** (D14). La contraseña de aplicación que pegaste en
-  el chat el 2026-10-02 hay que darla por perdida: revócala en tu cuenta de
-  Google (Seguridad → Contraseñas de aplicaciones) y crea otra. Pon en
-  `YaVieneBackend/local.env` `YA_VIENE_CORREO_USUARIO` (el Gmail que manda),
-  `YA_VIENE_CORREO_CLAVE` (la contraseña nueva) y, si quieres que llegue a
-  otra dirección, `YA_VIENE_CORREO_DESTINO`. Luego el reinicio de arriba.
-  Hasta entonces los reportes esperan en la cola y no se pierden; los pasos
-  están en `docs/runbook.md` («Buzón de problemas y sugerencias»).
+- **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
+  problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
+  la contraseña de aplicación que pegaste en el chat el 2026-10-02.
 
 - **Android 15** (T5.5): correr la app en un emulador de Android 15 y
   declarar el tipo de servicio en Play Console.
@@ -93,7 +81,7 @@ Necesitan un teléfono, una cuenta o estar presente.
   backend vivo ya tiene la clave de FCM desde el 2026-10-02): instalar la
   APK nueva, armar un aviso, cerrar la app del todo y esperar a que el bus
   llegue. Tiene que sonar «Tu bus de la ruta X está cerca de ti» con el
-  bus a unos 900–1.000 m (tras reiniciar el backend vivo), una sola vez, y
+  bus a unos 900–1.000 m, una sola vez, y
   `/api/metrics` contar un `push.enviados`. Con la misma APK: que tocar la
   notificación abra el mapa en esa empresa, esa ruta y ese bus, con la
   cámara encima (también con la app cerrada); que el pin puesto a mano siga
