@@ -38,15 +38,17 @@ class LocationStatusChip extends ConsumerWidget {
           text: 'Localizando tu ubicación…',
           tint: AppColors.primaryTint,
         ),
+      // Sin ubicación, la píldora dice qué pasa y ofrece la salida en una
+      // línea. La segunda línea («Toca el mapa para poner tu punto») se
+      // fue (dueño, 2026-10-02: «mucho texto»): la hoja de abajo ya lo
+      // dice en grande en ese mismo momento —«Toca el mapa para indicar
+      // dónde estás», `empty-no-position`—, así que la píldora no es un
+      // callejón sin salida aunque el permiso esté bloqueado.
       UserLocationMode.permanentDenied => PildoraDatos(
           key: 'permanentDenied',
           icon: Icons.location_off_outlined,
           iconColor: AppColors.error,
-          text: 'Ubicación bloqueada en los Ajustes',
-          // Sin esta segunda línea la píldora era un callejón sin salida: el
-          // único camino que ofrecía salía de la app. La app mide desde un
-          // punto, y ese punto se puede poner a mano sin permiso ninguno.
-          sub: 'O toca el mapa para poner tu punto',
+          text: 'Ubicación bloqueada',
           actionLabel: 'Abrir',
           onAction: () => openAppSettings(),
           tint: AppColors.errorLight,
@@ -56,17 +58,17 @@ class LocationStatusChip extends ConsumerWidget {
           icon: Icons.location_disabled_outlined,
           iconColor: AppColors.coralAccessible,
           text: 'Sin ubicación',
-          sub: 'Toca el mapa para poner tu punto',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
           tint: AppColors.coralLight,
         ),
+      // El permiso está; lo que falla es el GPS. «Sin señal» lo dice en
+      // dos palabras y deja claro que reintentar tiene sentido.
       UserLocationMode.gpsFailed => PildoraDatos(
           key: 'gpsFailed',
           icon: Icons.gps_off_outlined,
           iconColor: AppColors.coralAccessible,
-          text: 'No pudimos obtener tu ubicación',
-          sub: 'Toca el mapa para poner tu punto',
+          text: 'GPS sin señal',
           actionLabel: 'Reintentar',
           onAction: () => notifier.useGps(),
           tint: AppColors.coralLight,

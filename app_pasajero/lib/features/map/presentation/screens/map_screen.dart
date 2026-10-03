@@ -22,6 +22,7 @@ import '../providers/user_location_provider.dart';
 import '../utils/bus_semantics.dart';
 import '../utils/map_constants.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/bienvenida.dart';
 import '../widgets/cabecera_flotante.dart';
 import '../widgets/eta_bottom_sheet.dart';
 import '../widgets/idle_status_chip.dart';
@@ -172,19 +173,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _bienvenidaAbierta = true;
     final ver = await mostrarDialogo<bool>(
       context,
-      (dialogContext) => Dialogo(
-        icono: Icons.waving_hand_outlined,
-        titulo: 'Te damos la bienvenida',
-        mensaje: 'En un minuto te mostramos cómo ver tu bus y pedir el aviso. '
-            'Si prefieres ir directo, la guía queda en el menú.',
-        principal: DialogoAccion(
-          'Ver la guía',
-          () => Navigator.of(dialogContext).pop(true),
-        ),
-        secundaria: DialogoAccion(
-          'Ir a la app',
-          () => Navigator.of(dialogContext).pop(false),
-        ),
+      (dialogContext) => VentanaBienvenida(
+        alVerGuia: () => Navigator.of(dialogContext).pop(true),
+        alIrALaApp: () => Navigator.of(dialogContext).pop(false),
       ),
     );
     _bienvenidaAbierta = false;

@@ -74,14 +74,16 @@ void main() {
 
     expect(find.text('Sin ubicación'), findsOneWidget);
     expect(find.text('Reintentar'), findsOneWidget);
+    expect(find.textContaining('Toca el mapa'), findsNothing);
   });
 
   testWidgets('ubicación bloqueada en Ajustes: ofrece Abrir los Ajustes',
       (tester) async {
     await montarChip(tester, UserLocationMode.permanentDenied);
 
-    expect(find.text('Ubicación bloqueada en los Ajustes'), findsOneWidget);
+    expect(find.text('Ubicación bloqueada'), findsOneWidget);
     expect(find.text('Abrir'), findsOneWidget);
+    expect(find.textContaining('Toca el mapa'), findsNothing);
   });
 
   testWidgets(
@@ -89,8 +91,10 @@ void main() {
       'ofrece Reintentar', (tester) async {
     await montarChip(tester, UserLocationMode.gpsFailed);
 
-    expect(find.text('No pudimos obtener tu ubicación'), findsOneWidget);
+    expect(find.text('GPS sin señal'), findsOneWidget);
     expect(find.text('Reintentar'), findsOneWidget);
+    // Una línea: lo de tocar el mapa ya lo dice la hoja de abajo.
+    expect(find.textContaining('Toca el mapa'), findsNothing);
   });
 
   // ── Selector de empresa y ruta ──────────────────────────────────────

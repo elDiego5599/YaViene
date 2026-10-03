@@ -1,10 +1,11 @@
 // La primera vez que se abre el mapa, la app saluda y deja escoger entre la
 // guía y la app sin más. Antes la guía arrancaba sola, sin que nadie
 // recibiera al usuario (dueño, 2026-10-02).
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/bienvenida.dart';
 
 import 'helpers/mapa.dart';
 
@@ -26,8 +27,15 @@ void main() {
       (tester) async {
     final mapa = await abrir(tester);
 
-    expect(find.byType(Dialogo), findsOneWidget);
-    expect(find.text('Te damos la bienvenida'), findsOneWidget);
+    expect(find.byType(VentanaBienvenida), findsOneWidget);
+    // Con el marco de las demás ventanas: por lado, 6 de bandeja y 1 de
+    // filo.
+    final marco =
+        tester.getSize(find.byKey(const ValueKey('bienvenida_ventana')));
+    final nucleo = tester.getSize(find.byType(SingleChildScrollView).last);
+    expect(marco.width - nucleo.width, 14);
+    expect(find.text('Todo listo'), findsOneWidget);
+    expect(find.text('¿Te mostramos cómo funciona?'), findsOneWidget);
     expect(find.text('Ver la guía'), findsOneWidget);
     expect(find.text('Ir a la app'), findsOneWidget);
     expect(mapa.container.read(mapGuideProvider).step, isNull);
@@ -35,7 +43,7 @@ void main() {
     // Otra lectura del GPS vuelve a mirar la guía: no abre otra ventana.
     mapa.ubicacion.leerGps(puntoDeEspera.$1, puntoDeEspera.$2);
     await asentar(tester);
-    expect(find.byType(Dialogo), findsOneWidget);
+    expect(find.byType(VentanaBienvenida), findsOneWidget);
 
     await mapa.desmontar(tester);
   });
@@ -46,7 +54,7 @@ void main() {
     await tester.tap(find.text('Ver la guía'));
     await asentar(tester);
 
-    expect(find.byType(Dialogo), findsNothing);
+    expect(find.byType(VentanaBienvenida), findsNothing);
     // La ubicación ya está: la guía empieza en la búsqueda.
     expect(mapa.container.read(mapGuideProvider).step, MapGuideStep.search);
 
@@ -59,7 +67,7 @@ void main() {
     await tester.tap(find.text('Ir a la app'));
     await asentar(tester);
 
-    expect(find.byType(Dialogo), findsNothing);
+    expect(find.byType(VentanaBienvenida), findsNothing);
     final guia = mapa.container.read(mapGuideProvider);
     expect(guia.step, isNull);
     expect(guia.skipped, isTrue);
@@ -75,7 +83,7 @@ void main() {
     await tester.tapAt(const Offset(4, 4));
     await asentar(tester);
 
-    expect(find.byType(Dialogo), findsNothing);
+    expect(find.byType(VentanaBienvenida), findsNothing);
     expect(mapa.container.read(mapGuideProvider).skipped, isTrue);
 
     await mapa.desmontar(tester);
