@@ -243,8 +243,8 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
       );
 }
 
-/// Ícono en su círculo verde, la pregunta y una línea que dice para qué
-/// sirve: el mismo arranque que la bienvenida.
+/// Ícono en su círculo verde con la pregunta al lado, y debajo una línea
+/// que dice para qué sirve.
 class _Encabezado extends StatelessWidget {
   const _Encabezado();
 
@@ -253,24 +253,31 @@ class _Encabezado extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ExcludeSemantics(
-          child: Container(
-            width: 52,
-            height: 52,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryTint,
-              shape: BoxShape.circle,
+        Row(
+          children: [
+            ExcludeSemantics(
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryTint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.forum_outlined,
+                    size: 26, color: AppColors.primaryAccessible),
+              ),
             ),
-            child: const Icon(Icons.forum_outlined,
-                size: 26, color: AppColors.primaryAccessible),
-          ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Semantics(
+                header: true,
+                child: Text('¿Qué nos quieres contar?',
+                    style: AppTextStyles.titulo),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.md),
-        Semantics(
-          header: true,
-          child: Text('¿Qué nos quieres contar?', style: AppTextStyles.titulo),
-        ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         Text(
           'Lo leemos todo y nos ayuda a mejorar Ya Viene.',
           style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
