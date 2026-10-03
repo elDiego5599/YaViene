@@ -42,8 +42,10 @@ void main() {
 
   group('la notificación', () {
     late Map<String, Object?> mostrada;
+    late List<Object?> retiradas;
 
     setUp(() {
+      retiradas = [];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(_canal, (call) async {
         switch (call.method) {
@@ -69,6 +71,8 @@ void main() {
             ];
           case 'show':
             mostrada = Map<String, Object?>.from(call.arguments as Map);
+          case 'cancel':
+            retiradas.add((call.arguments as Map)['id']);
         }
         return null;
       });
@@ -106,6 +110,19 @@ void main() {
         busId: 'BUS-SQA223',
       );
       expect(mostrada['title'], 'Tu bus está cerca de ti');
+    });
+
+    test('la misma notificación no suena dos veces; retirarla la quita',
+        () async {
+      // El servidor vigila aunque la app esté viva (D13): el push y el
+      // barrido local pueden llegar juntos y ser la misma notificación.
+      await avisar();
+      final android = mostrada['platformSpecifics'] as Map;
+      expect(android['onlyAlertOnce'], isTrue);
+      final id = mostrada['id'];
+
+      await BusNotificationService.retirar('BUS-SQA223');
+      expect(retiradas, [id]);
     });
   });
 }

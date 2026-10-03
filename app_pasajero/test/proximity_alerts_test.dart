@@ -89,6 +89,41 @@ void main() {
     expect(fired.single.distanceMeters, lessThan(500));
   });
 
+  // Con `onlyAlertOnce`, una notificación vieja del bus en la bandeja
+  // callaría la nueva: armar el aviso otra vez la retira. Re-armar lo que ya
+  // estaba (abrir la app, «Deshacer») no toca la bandeja.
+  test('armar un aviso retira la notificación vieja de ese bus', () async {
+    final retirados = <String>[];
+    final c = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+      proximityAlertsProvider.overrideWith((ref) => ProximityAlertsNotifier(
+            ref,
+            notify: (
+                    {required String busId,
+                    String? routeName,
+                    String? routeId,
+                    required int distanceMeters}) async =>
+                true,
+            retirar: (busId) async => retirados.add(busId),
+          )),
+      busPositionsSourceProvider.overrideWith(
+        (ref, routeId) => const Stream<List<BusPosition>>.empty(),
+      ),
+    ]);
+    addTearDown(c.dispose);
+    final avisos = c.read(proximityAlertsProvider.notifier);
+
+    avisos.armAlert('A-1', 'R1');
+    expect(retirados, ['A-1']);
+
+    avisos.rearmar(AlertHistoryEntry(
+      busId: 'B-2',
+      routeId: 'R1',
+      createdAt: DateTime.now(),
+    ));
+    expect(retirados, ['A-1']);
+  });
+
   // `Timer.periodic` no espera al barrido anterior. Con una notificación
   // lenta (el primer aviso en iOS espera a que se conteste el permiso), el
   // barrido siguiente veía el mismo bus todavía sin marcar y avisaba otra vez.

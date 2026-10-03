@@ -194,6 +194,11 @@ class BusNotificationService {
             importance: Importance.high,
             priority: Priority.high,
             playSound: true,
+            // El servidor vigila el aviso aunque la app esté viva (D13):
+            // con la app en el fondo, el push y el barrido local pueden
+            // llegar a la vez. Es la misma notificación (mismo id) y la
+            // segunda no vuelve a sonar.
+            onlyAlertOnce: true,
           ),
           iOS: DarwinNotificationDetails(),
         ),
@@ -204,6 +209,18 @@ class BusNotificationService {
       // El aviso falla blando: nunca debe tumbar el flujo del mapa. Pero el
       // fallo se cuenta, para que el aviso siga armado y se reintente.
       return false;
+    }
+  }
+
+  /// Quita de la bandeja el aviso de [busId], si sigue ahí. Al armar otra
+  /// vez ese bus el de antes ya no dice nada cierto, y con él en la bandeja
+  /// el nuevo no sonaría (`onlyAlertOnce`). Falla blando, como
+  /// [notifyBusNear].
+  static Future<void> retirar(String busId) async {
+    try {
+      await _plugin.cancel(id: _stableNotificationId(busId));
+    } catch (e) {
+      debugPrint('no se pudo retirar el aviso de $busId: $e');
     }
   }
 }

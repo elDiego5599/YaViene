@@ -33,9 +33,13 @@ typedef BusNearNotifier = Future<bool> Function({
 /// Si el teléfono puede enseñar un aviso ahora (inyectable en tests).
 typedef PermisoDeAvisos = Future<bool> Function();
 
-/// Cada cuánto late en el servidor un aviso armado. El arriendo dura un
-/// minuto (`ARRIENDO_MS` del backend): caben dos latidos perdidos antes de
-/// que el servidor se meta.
+/// Quita de la bandeja el aviso de un bus (inyectable en tests).
+typedef RetirarAviso = Future<void> Function(String busId);
+
+/// Cada cuánto late en el servidor un aviso armado: el latido mueve el
+/// punto y el token, y responde 410 si el servidor ya avisó. El servidor
+/// vigila el aviso desde que se arma, sin esperar a que los latidos falten
+/// (D13 del backend).
 const cadaLatidoPush = Duration(seconds: 20);
 
 /// Cuánto se deja de intentar el push cuando el servidor dice que no lo
@@ -59,8 +63,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     PermisoDeAvisos? permiso,
     DateTime Function()? ahora,
     AvisosPush? push,
+    RetirarAviso? retirar,
   })  : _notify = notify ?? _defaultNotify,
         _permiso = permiso ?? BusNotificationService.puedeAvisar,
+        _retirar = retirar ?? BusNotificationService.retirar,
         _ahora = ahora ?? DateTime.now,
         _push = push,
         super({}) {
@@ -70,6 +76,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   final Ref _ref;
   final BusNearNotifier _notify;
   final PermisoDeAvisos _permiso;
+  final RetirarAviso _retirar;
 
   /// Reloj con el que se decide si un aviso venció (inyectable en tests:
   /// esperar tres horas de verdad no es una prueba).
@@ -282,6 +289,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       // (si quedaba) se borra y el siguiente latido arma este.
       final viejo = _servidor.remove(busId);
       if (viejo != null) _porBorrar.add(viejo);
+      // La notificación de un acercamiento anterior de este bus sale de la
+      // bandeja: si se quedara, la nueva no sonaría (`onlyAlertOnce`).
+      unawaited(_retirar(busId));
       _ref.read(alertHistoryProvider.notifier).upsert(
             busId,
             routeId: routeId,

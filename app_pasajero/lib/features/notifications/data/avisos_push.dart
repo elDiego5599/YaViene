@@ -10,7 +10,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 /// Lo que contesta el servidor a un latido de un aviso.
 enum Latido {
-  /// Sigue armado y el servidor no vigila durante un minuto más.
+  /// Sigue armado, con el punto y el token al día.
   renovado,
 
   /// El servidor ya avisó por push: la app no debe avisar otra vez.
@@ -27,10 +27,11 @@ enum Latido {
 ///
 /// La app avisa sola mientras está viva. Para cuando no lo está, le deja el
 /// aviso al servidor: lo arma con `POST /api/avisos`, late cada 20 s con
-/// `PUT` mientras sigue viva (el servidor no se mete mientras los latidos
-/// llegan) y lo borra con `DELETE` al desarmarlo, al sonar o al vencer. Si
-/// los latidos paran, el servidor mide por ella y manda un push de Firebase
-/// Cloud Messaging, que la app convierte en la misma notificación de siempre.
+/// `PUT` mientras sigue viva (punto y token al día) y lo borra con `DELETE`
+/// al desarmarlo, al sonar o al vencer. El servidor mide desde que se arma,
+/// viva o no la app, y manda un push de Firebase Cloud Messaging, que la
+/// app convierte en la misma notificación de siempre; lo que ya sonó aquí
+/// no suena otra vez.
 ///
 /// iOS necesita la cuenta de Apple (APNs) y queda fuera por ahora: ahí
 /// [token] es siempre `null` y nada de esto corre.
@@ -136,7 +137,7 @@ class AvisosPush {
     }
   }
 
-  /// Un latido: renueva el arriendo, el punto y el token.
+  /// Un latido: pone al día el punto y el token.
   Future<Latido> latir(
     String id, {
     required String token,
