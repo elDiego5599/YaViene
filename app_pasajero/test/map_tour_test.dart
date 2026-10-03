@@ -43,6 +43,7 @@ void main() {
         hasSelectedBus: false,
         hasActiveAlert: false,
       );
+      await withoutLocation.empezar();
       expect(withoutLocation.state.step, MapGuideStep.location);
 
       SharedPreferences.setMockInitialValues({});
@@ -55,7 +56,85 @@ void main() {
         hasSelectedBus: false,
         hasActiveAlert: false,
       );
+      await withLocation.empezar();
       expect(withLocation.state.step, MapGuideStep.search);
+    });
+
+    // La primera vez la app saluda y pregunta antes de meterse en la guía
+    // (dueño, 2026-10-02: «nunca se recibe al usuario»). Mientras no se
+    // escoja no hay paso ni nada guardado: cerrar la app con la bienvenida
+    // abierta la vuelve a mostrar.
+    test('la primera vez da la bienvenida y no arranca la guía sola', () async {
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(guide.state.bienvenida, isTrue);
+      expect(guide.state.step, isNull);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('map_guide_step'), isFalse);
+      expect(prefs.containsKey('map_guide_status'), isFalse);
+
+      final otraVez = MapGuideNotifier();
+      addTearDown(otraVez.dispose);
+      await otraVez.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(otraVez.state.bienvenida, isTrue);
+    });
+
+    test('«Ver la guía» la arranca donde toca', () async {
+      final sinUbicacion = MapGuideNotifier();
+      addTearDown(sinUbicacion.dispose);
+      await sinUbicacion.initialize(
+        hasLocation: false,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      await sinUbicacion.empezar();
+      expect(sinUbicacion.state.bienvenida, isFalse);
+      expect(sinUbicacion.state.step, MapGuideStep.location);
+      expect(sinUbicacion.state.includesLocation, isTrue);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('map_guide_step'), MapGuideStep.location.index);
+    });
+
+    test('«Ir a la app» no vuelve a dar la bienvenida', () async {
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      await guide.skip();
+      expect(guide.state.bienvenida, isFalse);
+
+      final despues = MapGuideNotifier();
+      addTearDown(despues.dispose);
+      await despues.initialize(
+        hasLocation: true,
+        locationSettled: true,
+        hasRoute: false,
+        hasSelectedBus: false,
+        hasActiveAlert: false,
+      );
+      expect(despues.state.bienvenida, isFalse);
+      expect(despues.state.skipped, isTrue);
+      expect(despues.state.step, isNull);
     });
 
     test('solo avanza cuando se completa el paso actualmente visible',
@@ -69,6 +148,7 @@ void main() {
         hasSelectedBus: false,
         hasActiveAlert: false,
       );
+      await guide.empezar();
 
       await guide.complete(MapGuideStep.company);
       expect(guide.state.step, MapGuideStep.search);
@@ -96,6 +176,7 @@ void main() {
         hasSelectedBus: false,
         hasActiveAlert: false,
       );
+      await guide.empezar();
       expect(guide.state.step, MapGuideStep.search);
 
       await guide.complete(MapGuideStep.search);

@@ -121,8 +121,20 @@ class MapaDePrueba {
       container.read(userLocationProvider.notifier) as UbicacionDePrueba;
 
   /// Monta la pantalla con [rutaDePrueba] elegida y deja pasar el arranque.
-  static Future<MapaDePrueba> montar(WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({'onboarding_seen': true});
+  ///
+  /// Sin [bienvenida], el teléfono ya la contestó con «Ir a la app»: la
+  /// ventana no tapa el mapa en las pruebas que no van de ella.
+  static Future<MapaDePrueba> montar(
+    WidgetTester tester, {
+    bool bienvenida = false,
+  }) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_seen': true,
+      if (!bienvenida) ...{
+        'map_guide_version': 2,
+        'map_guide_status': 'skipped',
+      },
+    });
     final repo = RepoDePrueba();
     final servicio = ServicioDePrueba();
     final avisados = <String>[];

@@ -23,6 +23,7 @@ class MapGuideState {
     this.skipped = false,
     this.completed = false,
     this.includesLocation = true,
+    this.bienvenida = false,
   });
 
   final MapGuideStep? step;
@@ -30,6 +31,11 @@ class MapGuideState {
   final bool skipped;
   final bool completed;
   final bool includesLocation;
+
+  /// Primera vez en el mapa: la app saluda y pregunta si se quiere ver la
+  /// guía antes de arrancarla (dueño, 2026-10-02). Hasta que se conteste no
+  /// hay paso ni nada guardado.
+  final bool bienvenida;
 
   bool get isActive => step != null;
 }
@@ -50,10 +56,10 @@ int mapGuideStepCount(MapGuideState state) {
 /// `map_tour_bus_seen`) oculten esta guía nueva a usuarios que ya actualizaron
 /// la aplicación.
 ///
-/// La guía es del teléfono, no de una cuenta: sale sola la primera vez que se
-/// abre el mapa y, terminada o saltada, no vuelve salvo que se pida desde el
-/// drawer. Antes solo salía a cuentas recién creadas; sin cuentas (D3), quien
-/// ya usaba la app sin haberla visto la verá una vez.
+/// La guía es del teléfono, no de una cuenta: la primera vez que se abre el
+/// mapa la bienvenida la ofrece y, terminada o saltada, no vuelve salvo que
+/// se pida desde el drawer. Antes solo salía a cuentas recién creadas; sin
+/// cuentas (D3), quien ya usaba la app sin haberla visto la verá una vez.
 class MapGuideNotifier extends StateNotifier<MapGuideState> {
   MapGuideNotifier() : super(const MapGuideState());
 
@@ -117,8 +123,22 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
       return;
     }
 
-    final includesLocation = !hasLocation;
-    final step = hasLocation ? MapGuideStep.search : MapGuideStep.location;
+    // Nada se guarda hasta que se conteste la bienvenida: si la app se
+    // cierra con la ventana abierta, la próxima vez vuelve a saludar.
+    state = MapGuideState(
+      initialized: true,
+      includesLocation: !hasLocation,
+      bienvenida: true,
+    );
+  }
+
+  /// «Ver la guía» en la bienvenida: arranca en la ubicación si todavía
+  /// falta, y si no en la búsqueda.
+  Future<void> empezar() async {
+    if (!state.bienvenida) return;
+    final includesLocation = state.includesLocation;
+    final step = includesLocation ? MapGuideStep.location : MapGuideStep.search;
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kStep, step.index);
     await prefs.setBool(_kIncludesLocation, includesLocation);
     state = MapGuideState(

@@ -31,6 +31,7 @@ void main() {
       hasSelectedBus: false,
       hasActiveAlert: false,
     );
+    await guide.empezar();
     await guide.moveTo(MapGuideStep.company);
     final container = ProviderContainer(overrides: [
       mapGuideProvider.overrideWith((ref) => guide),

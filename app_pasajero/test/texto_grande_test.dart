@@ -136,6 +136,7 @@ void main() {
           hasSelectedBus: false,
           hasActiveAlert: false,
         );
+        await guia.empezar();
         final container = ProviderContainer(overrides: [
           mapGuideProvider.overrideWith((ref) => guia),
           companiesProvider.overrideWith(

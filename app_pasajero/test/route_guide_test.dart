@@ -82,6 +82,7 @@ void main() {
       hasSelectedBus: false,
       hasActiveAlert: false,
     );
+    await guide.empezar();
     await guide.complete(MapGuideStep.search);
 
     container = ProviderContainer(overrides: [

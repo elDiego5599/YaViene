@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../../core/widgets/dialogo.dart';
 import '../../../notifications/presentation/providers/abrir_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/map_guide_copy.dart';
@@ -61,6 +62,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   ProviderSubscription<MapGuideState>? _guideSub;
   ProviderSubscription<Set<String>>? _busSub;
   StreamSubscription<AvisoTocado>? _avisosTocados;
+  bool _bienvenidaAbierta = false;
 
   @override
   void initState() {
@@ -150,11 +152,48 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           hasActiveAlert: ref.read(activeAlertsProvider).isNotEmpty,
         );
     if (!mounted) return;
+    if (ref.read(mapGuideProvider).bienvenida) {
+      await _darBienvenida();
+      if (!mounted) return;
+    }
     final guide = ref.read(mapGuideProvider);
     if (location.hasPosition && guide.step == MapGuideStep.location) {
       await ref.read(mapGuideProvider.notifier).complete(MapGuideStep.location);
     }
     _scheduleGuideMeasurement(ref.read(mapGuideProvider).step);
+  }
+
+  /// La primera vez en el mapa: saludar y dejar escoger entre la guía y la
+  /// app sin más (dueño, 2026-10-02). Cada lectura del GPS vuelve a pasar
+  /// por `_initializeGuide`; la marca evita una segunda ventana encima.
+  /// Tocar fuera es «Ir a la app»: la guía sigue en el menú.
+  Future<void> _darBienvenida() async {
+    if (_bienvenidaAbierta) return;
+    _bienvenidaAbierta = true;
+    final ver = await mostrarDialogo<bool>(
+      context,
+      (dialogContext) => Dialogo(
+        icono: Icons.waving_hand_outlined,
+        titulo: 'Te damos la bienvenida',
+        mensaje: 'En un minuto te mostramos cómo ver tu bus y pedir el aviso. '
+            'Si prefieres ir directo, la guía queda en el menú.',
+        principal: DialogoAccion(
+          'Ver la guía',
+          () => Navigator.of(dialogContext).pop(true),
+        ),
+        secundaria: DialogoAccion(
+          'Ir a la app',
+          () => Navigator.of(dialogContext).pop(false),
+        ),
+      ),
+    );
+    _bienvenidaAbierta = false;
+    final guia = ref.read(mapGuideProvider.notifier);
+    if (ver ?? false) {
+      await guia.empezar();
+    } else {
+      await guia.skip();
+    }
   }
 
   void _onSearchOpened() {
