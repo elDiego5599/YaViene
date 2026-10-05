@@ -79,11 +79,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 Necesitan un teléfono, una cuenta o estar presente.
 
-- **Reiniciar el backend vivo** para que entren A2 fuera (migración 28: se
-  van la ruta y sus dos buses de la demo) y el trazado nuevo de A3 en los
-  simuladores. Dime «reinícialo» y lo hago, o en `YaVieneBackend`:
-  `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
-
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
   la contraseña de aplicación que pegaste en el chat el 2026-10-02.
