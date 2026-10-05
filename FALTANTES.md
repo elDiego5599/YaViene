@@ -72,12 +72,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 Necesitan un teléfono, una cuenta o estar presente.
 
-- **Darme el OK para reiniciar el backend vivo.** Coolitoral ya tiene buses
-  simulados, dos por ruta (`prueba`), y el simulador trae la A1 nueva,
-  pero el backend vivo sigue con la versión de antes hasta que se
-  reinicie: `npm run build` y `launchctl kickstart`. Corta unos segundos
-  la app y el panel; los de A4 aparecen un minuto después que el resto.
-
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
   la contraseña de aplicación que pegaste en el chat el 2026-10-02.
