@@ -47,15 +47,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **Coolitoral en la web.** La app ya trae sus 4 rutas (R-107 a R-110),
   pero la portada sigue mostrando solo Sobusa («6 rutas reales», las
   tarjetas). Decide si la portada la nombra.
-- **Buses simulados para Coolitoral.** La flota demo solo recorre Sobusa:
-  las rutas de Coolitoral salen dibujadas pero sin buses hasta que tengan
-  GPS. Si las quieres con buses de prueba para el pitch, dilo.
 - **Nombres de los terminales de A3 y A4** (R-109 «Carrera 43 – La
   Peñita», R-110 «Calle 17 – Carrera 50»): salen del nombre de los
   archivos GPX. Se cambian desde el panel si no son los que usa Coolitoral.
-- **Nombre y terminales de A1** (R-107). El trazado ya es el del mapa de
-  Google (circuito de 27 km: Calle 17 en Sur Oriente, Calle 90 en Riomar
-  y vuelta), pero sigue llamándose «A1 Silencio Universidades» con
+- **Nombre y terminales de A1** (R-107). El trazado ya es el de los ocho
+  hitos del mapa de Google del 2026-10-05 (circuito de 41 km: Calle 17 en
+  Sur Oriente, Sabanilla Montecarmelo, Uninorte, la Vía 40 y vuelta por el
+  río), pero sigue llamándose «A1 Silencio Universidades» con
   terminales «Silencio, Nogales» y «Universidades, Vía 40», que eran del
   GPX viejo. Dime cómo la llama Coolitoral, o cámbialo en el panel.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
@@ -73,6 +71,12 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 ## Lo que tienes que hacer tú
 
 Necesitan un teléfono, una cuenta o estar presente.
+
+- **Darme el OK para reiniciar el backend vivo.** Coolitoral ya tiene buses
+  simulados, dos por ruta (`prueba`), y el simulador trae la A1 nueva,
+  pero el backend vivo sigue con la versión de antes hasta que se
+  reinicie: `npm run build` y `launchctl kickstart`. Corta unos segundos
+  la app y el panel; los de A4 aparecen un minuto después que el resto.
 
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca

@@ -59,9 +59,12 @@ class MapConstants {
   ///
   /// Era 11,4 hasta que entró Coolitoral: su red se sale un poco hacia los
   /// dos lados de la de Sobusa (0,108° de ancho en vez de 0,100°) y en un
-  /// teléfono de 402 pt ya no cabía entera. A 11,35 cabe y la pantalla
-  /// alta sigue dejando 12 km para arrastrar (`map_area_test`).
-  static const double zoomMinimo = 11.35;
+  /// teléfono de 402 pt ya no cabía entera. Pasó a 11,35, y a 11,3 cuando
+  /// A1 de Coolitoral se rehízo con los hitos de su mapa de Google: llega
+  /// hasta Sabanilla Montecarmelo y la red quedó 6 m más ancha de lo que
+  /// 11,35 abarcaba. A 11,3 cabe con 3 % de holgura y la pantalla alta
+  /// sigue dejando 11 km para arrastrar (`map_area_test`).
+  static const double zoomMinimo = 11.3;
 
   /// Y el más cercano: manzana y media, que es donde el bus deja de ser un
   /// punto y se ve por qué carril viene.
