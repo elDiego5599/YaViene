@@ -51,6 +51,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **Nombres de los terminales de A3 y A4** (R-109 «Carrera 43 – La
   Peñita», R-110 «Calle 17 – Carrera 50»): salen del nombre de los
   archivos GPX. Se cambian desde el panel si no son los que usa Coolitoral.
+- **Nombre y terminales de A1** (R-107). El trazado ya es el del mapa de
+  Google (circuito de 27 km: Calle 17 en Sur Oriente, Calle 90 en Riomar
+  y vuelta), pero sigue llamándose «A1 Silencio Universidades» con
+  terminales «Silencio, Nogales» y «Universidades, Vía 40», que eran del
+  GPX viejo. Dime cómo la llama Coolitoral, o cámbialo en el panel.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
   propósito; queda aquí para cuando quieras abrirla.
