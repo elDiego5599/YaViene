@@ -1,7 +1,9 @@
 # Lo que falta
 
-Al 2026-10-02. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
-está hecho y en `main` de los tres repos. Lo que queda está repartido según
+Al 2026-10-05. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
+está hecho y subido a las ramas de trabajo (`diseno-21st` en app y web,
+`prueba` en el backend); a `main` se sube por lotes cuando lo pidas
+(regla 16 de `CLAUDE.md`). Lo que queda está repartido según
 de quién depende. Cuando algo se cierre, se borra de aquí; cuando aparezca
 algo nuevo, se apunta en su grupo.
 

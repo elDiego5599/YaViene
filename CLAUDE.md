@@ -134,7 +134,7 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
   el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
   (`99c0a07`).
-- **Flutter** (2026-10-05): core 85, panel 258 + 3 saltadas, pasajero 563 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
+- **Flutter** (2026-10-05): core 85, panel 258 + 3 saltadas, pasajero 564 + 1, pruebas 11; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
   base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres (y `integration_test` en el panel)
   (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
   `--comprobar`) tras `npm run contrato:actualizar` en el backend. El
