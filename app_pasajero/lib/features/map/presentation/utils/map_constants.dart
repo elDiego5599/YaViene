@@ -21,9 +21,9 @@ class MapConstants {
   // Un cuadrado de 41 × 41 km sobre el área metropolitana: Malambo y Soledad
   // al sur, Eduardo Santos (La Playa) al suroccidente, el norte de
   // Barranquilla, la ciénaga de Mallorquín y Bocas de Ceniza arriba. Ahí
-  // caben las seis rutas enteras (`rutas.json`: lat 10,887–11,039 · lon
-  // −74,873–−74,773) y todo el casco urbano que las rodea, con sitio de
-  // sobra para arrastrar el mapa y mirar alrededor.
+  // caben las rutas enteras de Sobusa y Coolitoral (`rutas.json`: lat
+  // 10,887–11,039 · lon −74,877–−74,769) y todo el casco urbano que las
+  // rodea, con sitio de sobra para arrastrar el mapa y mirar alrededor.
   //
   // El cuadrado creció —y sobre todo creció hacia el norte— porque el de
   // 28 km apenas era más grande que la propia pantalla: a zoom mínimo la
@@ -56,7 +56,12 @@ class MapConstants {
   /// Es también el zoom con el que abre el mapa: el primer gesto de alejar ya
   /// está en el tope, sin el salto de seis niveles de teselas hasta ver el
   /// Caribe entero que había antes.
-  static const double zoomMinimo = 11.4;
+  ///
+  /// Era 11,4 hasta que entró Coolitoral: su red se sale un poco hacia los
+  /// dos lados de la de Sobusa (0,108° de ancho en vez de 0,100°) y en un
+  /// teléfono de 402 pt ya no cabía entera. A 11,35 cabe y la pantalla
+  /// alta sigue dejando 12 km para arrastrar (`map_area_test`).
+  static const double zoomMinimo = 11.35;
 
   /// Y el más cercano: manzana y media, que es donde el bus deja de ser un
   /// punto y se ve por qué carril viene.

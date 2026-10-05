@@ -8,7 +8,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('rutas.json contiene las 6 rutas reales de Sobusa con geometría',
+  test('rutas.json trae las rutas de Sobusa y Coolitoral con geometría',
       () async {
     final raw = await rootBundle.loadString('assets/data/rutas.json');
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -16,10 +16,12 @@ void main() {
         .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    expect(rutas.length, 6);
-    final ids = rutas.map((r) => r.routeId).toSet();
-    expect(ids,
-        containsAll(['R-101', 'R-102', 'R-103', 'R-104', 'R-105', 'R-106']));
+    // R-101…R-106 son de Sobusa y R-107…R-110 de Coolitoral (A1–A4), con
+    // los mismos identificadores que su catálogo en el backend.
+    expect(rutas.map((r) => r.routeId), [
+      'R-101', 'R-102', 'R-103', 'R-104', 'R-105', 'R-106', //
+      'R-107', 'R-108', 'R-109', 'R-110',
+    ]);
 
     for (final ruta in rutas) {
       expect(ruta.name, isNotEmpty, reason: '${ruta.routeId} sin nombre');
@@ -34,7 +36,7 @@ void main() {
     }
   });
 
-  test('el área del mapa contiene las seis rutas enteras', () async {
+  test('el área del mapa contiene todas las rutas enteras', () async {
     // El mapa ya no deja alejarse de Barranquilla: la cámara vive dentro de
     // MapConstants.area*. Si mañana entra una ruta que sale de ese
     // rectángulo, el pasajero podría seguir un bus hasta que la cámara se

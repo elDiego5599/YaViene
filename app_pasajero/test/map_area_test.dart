@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.dart';
 
@@ -11,6 +13,8 @@ const double _kmPorGradoLat = 110.574;
 double _kmPorGradoLon(double lat) => 111.320 * math.cos(lat * math.pi / 180.0);
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   const altoKm =
       (MapConstants.areaNorteLat - MapConstants.areaSurLat) * _kmPorGradoLat;
   const centroLat = (MapConstants.areaNorteLat + MapConstants.areaSurLat) / 2;
@@ -88,12 +92,22 @@ void main() {
             'de norte a sur');
   });
 
-  test('a zoom mínimo se ven las seis rutas de lado a lado', () {
+  test('a zoom mínimo se ven todas las rutas de lado a lado', () async {
     // El otro lado del mismo compromiso: si el zoom mínimo se sube para que
     // quepa un cuadrado más pequeño, la pantalla —que es estrecha— deja de
-    // abarcar el ancho de las rutas y ya no se pueden ver enteras.
+    // abarcar el ancho de las rutas y ya no se pueden ver enteras. El ancho
+    // sale de `rutas.json`: con Coolitoral la red creció de 0,100° a 0,108°
+    // y el 11,4 de antes ya no la abarcaba.
     const anchoPantallaPt = 402.0;
-    const anchoRutasGrados = 74.873370 - 74.773128;
+    final rutas = (jsonDecode(
+            await rootBundle.loadString('assets/data/rutas.json'))['rutas']
+        as List<dynamic>);
+    final lons = [
+      for (final r in rutas)
+        for (final p in (r as Map<String, dynamic>)['waypoints'] as List)
+          ((p as Map<String, dynamic>)['lon'] as num).toDouble(),
+    ];
+    final anchoRutasGrados = lons.reduce(math.max) - lons.reduce(math.min);
     final mundoPx = 512 * math.pow(2, MapConstants.zoomMinimo);
     final lonVisible = anchoPantallaPt * 360 / mundoPx;
 

@@ -14,8 +14,9 @@ final appLifecycleProvider = StateProvider.autoDispose<AppLifecycleState>(
 );
 
 /// Datos de las rutas reales (recorridos y paradas), generados desde los
-/// KMZ de Sobusa con `convert-rutas.mjs`. Las paradas quedan vacías para la
-/// mayoría de rutas: los buses en Barranquilla no tienen paradas fijas.
+/// KMZ de Sobusa y los GPX de Coolitoral con `convert-rutas.mjs`. Las
+/// paradas quedan vacías para la mayoría de rutas: los buses en Barranquilla
+/// no tienen paradas fijas.
 class RutaSobusa {
   final String routeId;
   final String name;
@@ -77,10 +78,10 @@ final rutasSobusaProvider = FutureProvider.autoDispose<List<RutaSobusa>>(
 /// Geometría del recorrido de una ruta (línea azul en el mapa).
 ///
 /// El recorrido sale de un asset local, y eso tiene fecha de caducidad: hoy
-/// las rutas del catálogo son las seis de Sobusa, convertidas de sus KMZ, y
-/// una ruta que una empresa dé de alta desde el panel de flota no aparece
-/// aquí — el backend guarda rutas, no recorridos. Cuando eso pase, la ruta
-/// existe y sus buses se ven, pero su línea no se dibuja.
+/// las rutas del catálogo son las de Sobusa y Coolitoral, convertidas de sus
+/// KMZ y GPX, y una ruta que una empresa dé de alta desde el panel de flota
+/// no aparece aquí — el backend guarda rutas, no recorridos. Cuando eso
+/// pase, la ruta existe y sus buses se ven, pero su línea no se dibuja.
 ///
 /// La app está preparada para ese caso y lo trata como "no se sabe", nunca
 /// como error: sin geometría no se pinta línea, la comprobación de "esta

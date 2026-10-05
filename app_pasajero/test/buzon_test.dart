@@ -175,6 +175,25 @@ void main() {
       expect(boton(tester).onPressed, isNotNull);
     });
 
+    testWidgets('la pregunta es el título, sin ícono ni repetirla',
+        (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+              backend: () => 'http://x',
+              cliente: MockClient((_) async => http.Response('', 201))));
+      expect(
+        find.descendant(
+            of: find.byType(AppBar),
+            matching: find.text('¿Qué nos quieres contar?')),
+        findsOneWidget,
+      );
+      expect(find.text('¿Qué nos quieres contar?'), findsOneWidget);
+      expect(find.byIcon(Icons.forum_outlined), findsNothing);
+      expect(find.text('Lo leemos todo y nos ayuda a mejorar Ya Viene.'),
+          findsOneWidget);
+    });
+
     testWidgets('el campo no deja pasar de 1000', (tester) async {
       await abrir(
           tester,

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/latido.dart';
+import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import 'route_selector_sheet.dart';
 
@@ -41,6 +42,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   bool _searchPressed = false;
 
   void _onMenuTap() {
+    // Con la guía en marcha el menú la dejaría a medias. Hoy el velo ya
+    // tapa el botón; esto lo cubre en los pasos que lo destapen.
+    final guia = ref.read(mapGuideProvider);
+    if (guia.isActive || guia.bienvenida) return;
     HapticFeedback.lightImpact();
     Scaffold.of(context).openDrawer();
   }

@@ -73,7 +73,7 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
         // barra mide 56 y no se estira.
         title: MediaQuery.withClampedTextScaling(
           maxScaleFactor: 1.3,
-          child: const Text('Problemas y sugerencias'),
+          child: const Text('¿Qué nos quieres contar?'),
         ),
         leading: IconButton(
           icon: const Icon(
@@ -243,46 +243,17 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
       );
 }
 
-/// Ícono en su círculo verde con la pregunta al lado, y debajo una línea
-/// que dice para qué sirve.
+/// Bajo la pregunta del título, una línea que dice para qué sirve el
+/// buzón. El ícono y la pregunta repetida se fueron: la pregunta es el
+/// título de la página (dueño, 2026-10-05).
 class _Encabezado extends StatelessWidget {
   const _Encabezado();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            ExcludeSemantics(
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryTint,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.forum_outlined,
-                    size: 26, color: AppColors.primaryAccessible),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Semantics(
-                header: true,
-                child: Text('¿Qué nos quieres contar?',
-                    style: AppTextStyles.titulo),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Lo leemos todo y nos ayuda a mejorar Ya Viene.',
-          style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
-        ),
-      ],
+    return Text(
+      'Lo leemos todo y nos ayuda a mejorar Ya Viene.',
+      style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
     );
   }
 }

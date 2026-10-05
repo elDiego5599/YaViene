@@ -414,6 +414,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
       drawer: AppDrawer(key: _drawerKey),
+      // El velo de la guía va en el cuerpo y el gesto del borde del Scaffold
+      // va encima: sin esto, arrastrar desde la izquierda abría el menú con
+      // la guía a medias.
+      drawerEnableOpenDragGesture: !guide.isActive && !guide.bienvenida,
       onDrawerChanged: (opened) {
         if (opened) _drawerKey.currentState?.playEntrance();
       },

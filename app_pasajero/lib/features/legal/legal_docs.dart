@@ -234,9 +234,9 @@ const LegalDoc legalTerminos = LegalDoc(
     LegalBlock.heading('Qué es esto'),
     LegalBlock.p(
       'Ya Viene muestra dónde van los buses de las rutas conectadas y avisa '
-      'cuando uno se acerca a donde esperas. Hoy funciona con seis rutas de '
-      'Sobusa, en Barranquilla, en fase de piloto. Usarla como pasajero no '
-      'cuesta nada.',
+      'cuando uno se acerca a donde esperas. Hoy funciona con rutas de '
+      'Sobusa y Coolitoral, en Barranquilla, en fase de piloto. Usarla como '
+      'pasajero no cuesta nada.',
     ),
     LegalBlock.heading('Lo que sí prometemos y lo que no'),
     LegalBlock.p(

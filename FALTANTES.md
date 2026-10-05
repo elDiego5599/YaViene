@@ -42,6 +42,15 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
+- **Coolitoral en la web.** La app ya trae sus 4 rutas (R-107 a R-110),
+  pero la portada sigue mostrando solo Sobusa («6 rutas reales», las
+  tarjetas). Decide si la portada la nombra.
+- **Buses simulados para Coolitoral.** La flota demo solo recorre Sobusa:
+  las rutas de Coolitoral salen dibujadas pero sin buses hasta que tengan
+  GPS. Si las quieres con buses de prueba para el pitch, dilo.
+- **Nombres de los terminales de A3 y A4** (R-109 «Carrera 43 – La
+  Peñita», R-110 «Calle 17 – Carrera 50»): salen del nombre de los
+  archivos GPX. Se cambian desde el panel si no son los que usa Coolitoral.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
   propósito; queda aquí para cuando quieras abrirla.
@@ -57,6 +66,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 ## Lo que tienes que hacer tú
 
 Necesitan un teléfono, una cuenta o estar presente.
+
+- **Darme el sí para reiniciar el backend vivo**: Coolitoral (EMP-03) y
+  sus 4 rutas entran con la migración 27, que corre al arrancar. Hasta ese
+  reinicio la app dibuja las rutas pero no las ofrece en el selector.
 
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
