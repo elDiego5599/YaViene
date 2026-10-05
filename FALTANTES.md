@@ -67,10 +67,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 Necesitan un teléfono, una cuenta o estar presente.
 
-- **Darme el sí para reiniciar el backend vivo**: Coolitoral (EMP-03) y
-  sus 4 rutas entran con la migración 27, que corre al arrancar. Hasta ese
-  reinicio la app dibuja las rutas pero no las ofrece en el selector.
-
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
   la contraseña de aplicación que pegaste en el chat el 2026-10-02.
