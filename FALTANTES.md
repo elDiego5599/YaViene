@@ -44,12 +44,19 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
-- **Coolitoral en la web.** La app ya trae sus 4 rutas (R-107 a R-110),
+- **Coolitoral en la web.** La app ya trae sus 3 rutas (A1, A3 y A4: R-107,
+  R-109 y R-110; A2 se quitó el 2026-10-05),
   pero la portada sigue mostrando solo Sobusa («6 rutas reales», las
   tarjetas). Decide si la portada la nombra.
-- **Nombres de los terminales de A3 y A4** (R-109 «Carrera 43 – La
-  Peñita», R-110 «Calle 17 – Carrera 50»): salen del nombre de los
-  archivos GPX. Se cambian desde el panel si no son los que usa Coolitoral.
+- **Nombre y terminales de A3** (R-109). El trazado ya es el de los diez
+  hitos del mapa de Google del 2026-10-05 (21 km: Calle 17 en Sur Oriente,
+  Carrera 43, Ciudad Jardín, Riomar, Calle 75, El Prado, Carrera 44 y
+  vuelta por el oriente), pero sigue llamándose «A3 Carrera 43 Peñita» con
+  terminales «Carrera 43» y «La Peñita», del GPX viejo. Dime cómo la llama
+  Coolitoral, o cámbialo en el panel.
+- **Terminales de A4** (R-110 «Calle 17 – Carrera 50»): salen del nombre
+  del archivo GPX. Se cambian desde el panel si no son los que usa
+  Coolitoral.
 - **Nombre y terminales de A1** (R-107). El trazado ya es el de los ocho
   hitos del mapa de Google del 2026-10-05 (circuito de 41 km: Calle 17 en
   Sur Oriente, Sabanilla Montecarmelo, Uninorte, la Vía 40 y vuelta por el
@@ -71,6 +78,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 ## Lo que tienes que hacer tú
 
 Necesitan un teléfono, una cuenta o estar presente.
+
+- **Reiniciar el backend vivo** para que entren A2 fuera (migración 28: se
+  van la ruta y sus dos buses de la demo) y el trazado nuevo de A3 en los
+  simuladores. Dime «reinícialo» y lo hago, o en `YaVieneBackend`:
+  `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
 
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
