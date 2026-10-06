@@ -331,6 +331,120 @@ void main() {
     await posController.close();
   });
 
+  // Riesgo: rearmar en cuanto el bus sale del radio de 1000 m. El GPS del bus
+  // salta unos metros y un bus que ronda el borde sonaría una y otra vez. Ya
+  // avisado, se rearma solo pasados 1500 m: a 1200 m y de vuelta, silencio;
+  // a 1600 m y de vuelta, suena otra vez.
+  test('ya avisado, solo vuelve a sonar si el bus se alejó más de 1500 m',
+      () async {
+    BusPosition busA(double lat) => BusPosition(
+          busId: 'A-1',
+          routeId: 'R1',
+          lat: lat,
+          lon: -75.5812,
+          heading: 0,
+          speedKmh: 20,
+          timestamp: DateTime.now(),
+          isGhostBus: false,
+        );
+    // Desde el usuario en 6.2442: 0,0072° ≈ 800 m, 0,0108° ≈ 1200 m y
+    // 0,0144° ≈ 1600 m al norte.
+    final a800 = busA(6.2514), a1200 = busA(6.2550), a1600 = busA(6.2586);
+    final posController = StreamController<List<BusPosition>>.broadcast();
+    final localFired = <String>[];
+    final c = ProviderContainer(overrides: [
+      userLocationProvider
+          .overrideWith((ref) => _TestUserLocation()..set(userHere)),
+      busPositionsSourceProvider
+          .overrideWith((ref, routeId) => posController.stream),
+      proximityAlertsProvider.overrideWith((ref) => ProximityAlertsNotifier(
+            ref,
+            notify: (
+                {required String busId,
+                String? routeName,
+                String? routeId,
+                required int distanceMeters}) async {
+              localFired.add(busId);
+              return true;
+            },
+          )),
+    ]);
+    addTearDown(c.dispose);
+    addTearDown(posController.close);
+    final keepAlive = c.listen<AsyncValue<List<BusPosition>>>(
+      busPositionsSourceProvider('R1'),
+      (_, __) {},
+    );
+    addTearDown(keepAlive.close);
+    c.read(selectedRouteProvider.notifier).select(route());
+    final notifier = c.read(proximityAlertsProvider.notifier);
+    Future<void> busEn(BusPosition p) async {
+      posController.add([p]);
+      await Future<void>.delayed(Duration.zero);
+      await notifier.check();
+    }
+
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    await busEn(a1200);
+    expect(localFired, isEmpty, reason: 'a 1200 m todavía no está cerca');
+    await busEn(a800);
+    expect(localFired, hasLength(1));
+
+    // Activo otra vez sin re-armar: la marca de «ya avisó» sigue puesta.
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    await busEn(a1200);
+    await busEn(a800);
+    expect(localFired, hasLength(1),
+        reason: 'a 1200 m no se rearma: el borde no suena dos veces');
+
+    await busEn(a1600);
+    await busEn(a800);
+    expect(localFired, hasLength(2),
+        reason: 'pasados 1500 m se rearma y vuelve a sonar');
+  });
+
+  // Un bus sin señal se pinta en su último punto conocido, que puede ser de
+  // hace horas. Ese punto no dice que el bus esté cerca: no suena.
+  test('un bus sin señal, aunque su último punto esté encima, no suena',
+      () async {
+    final fantasma = busA.copyWith(isGhostBus: true);
+    final localFired = <String>[];
+    final c = ProviderContainer(overrides: [
+      userLocationProvider
+          .overrideWith((ref) => _TestUserLocation()..set(userHere)),
+      busPositionsSourceProvider
+          .overrideWith((ref, routeId) => Stream.value([fantasma])),
+      proximityAlertsProvider.overrideWith((ref) => ProximityAlertsNotifier(
+            ref,
+            notify: (
+                {required String busId,
+                String? routeName,
+                String? routeId,
+                required int distanceMeters}) async {
+              localFired.add(busId);
+              return true;
+            },
+          )),
+    ]);
+    addTearDown(c.dispose);
+    final keepAlive = c.listen<AsyncValue<List<BusPosition>>>(
+      busPositionsSourceProvider('R1'),
+      (_, __) {},
+    );
+    addTearDown(keepAlive.close);
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(busPositionsSourceProvider('R1')).value?.single.isGhostBus,
+        isTrue);
+
+    c.read(selectedRouteProvider.notifier).select(route());
+    c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    await c.read(proximityAlertsProvider.notifier).check();
+
+    expect(localFired, isEmpty);
+    expect(c.read(activeAlertsProvider), {'A-1'},
+        reason: 'el aviso sigue esperando a que el bus vuelva a reportar');
+  });
+
   test('el aviso armado con pin manual sigue sonando si luego quitan el pin',
       () async {
     // Usuario con pin manual en su parada (sin permiso de GPS).

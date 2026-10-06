@@ -220,6 +220,31 @@ void main() {
     expect(container.read(activeAlertsProvider), isEmpty);
   });
 
+  // Riesgo: medir «ya está cerca» con otra vara que el aviso. A 900 m el aviso
+  // sonaría ya mismo: no se arma. A 1200 m todavía no ha sonado: se arma.
+  test('«ya está cerca» es el mismo radio de 1000 m del aviso', () async {
+    for (final (lat, esperado) in [
+      (6.2523, AlertToggleOutcome.rejected), // ≈ 900 m
+      (6.2550, AlertToggleOutcome.activated), // ≈ 1200 m
+    ]) {
+      SharedPreferences.setMockInitialValues({});
+      final container = _container(
+          buses: [busLejos.copyWith(lat: lat)], permissionGranted: true);
+      (container.read(userLocationProvider.notifier) as _TestUserLocation)
+          .set(userHere);
+      container.read(selectedRouteProvider.notifier).select(route());
+      final sub =
+          container.listen(busPositionsSourceProvider('R1'), (_, __) {});
+      addTearDown(sub.close);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final result = await container.read(alertToggleProvider).toggle('A-1');
+
+      expect(result.outcome, esperado, reason: 'bus en $lat');
+    }
+  });
+
   test('sin permiso de notificaciones no se arma nada', () async {
     SharedPreferences.setMockInitialValues({});
     final container = _container(buses: [busLejos], permissionGranted: false);

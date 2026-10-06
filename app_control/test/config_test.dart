@@ -18,6 +18,10 @@ void main() {
       expect(AppConfig.esSegura('http://192.168.1.40:3000'), isFalse);
       expect(AppConfig.esSegura('ws://ya-viene-backend.fly.dev'), isFalse);
       expect(AppConfig.esSegura('no es una url'), isFalse);
+      // Riesgo: comparar el final del nombre. «evillocalhost» o
+      // «mi.localhost» no son esta máquina: el tráfico sale a la red.
+      expect(AppConfig.esSegura('http://evillocalhost:3000'), isFalse);
+      expect(AppConfig.esSegura('http://mi.localhost:3000'), isFalse);
     });
   });
 }

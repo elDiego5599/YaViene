@@ -261,6 +261,20 @@ void main() {
       expect(unico().sequence, 2);
     });
 
+    // Riesgo: el socket comparte canal entre rutas; una posición en vivo
+    // de otra ruta pintaba en el mapa un bus que no pasa por aquí.
+    test('una posición en vivo de otra ruta no entra', () async {
+      container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
+      await pumpEventQueue();
+
+      fake._busPosition
+        ..add(_busJson('BUS-PIRATA', 'R-999', capturedAt: t0 + 1000))
+        ..add(_busJson('BUS-A', 'R-101', capturedAt: t0 + 1000));
+      await esperarVivo();
+
+      expect(unico().busId, 'BUS-A');
+    });
+
     test('el fantasma con la misma captura sí cambia el estado', () async {
       container.listen(busPositionsSourceProvider('R-101'), (_, __) {});
       await pumpEventQueue();

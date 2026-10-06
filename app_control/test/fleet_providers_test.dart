@@ -52,6 +52,10 @@ class _FakeFleetApi extends FleetApi {
     if (throwsSessionExpired) throw const SessionExpiredException();
     return routes ?? const [];
   }
+
+  @override
+  Future<void> deleteRoute(String token, String routeId) async =>
+      routes?.removeWhere((r) => r.routeId == routeId);
 }
 
 /// Un socket sin red: lo que se mete en [posiciones], [lotes] o [visibles] le
@@ -258,6 +262,59 @@ void main() {
       expect(notifier.state.routeFilter, 'R-101');
     },
   );
+
+  test(
+    'refreshRoutes() abre en la que más buses reporta; si empatan, la primera',
+    () async {
+      FleetRoute ruta(String id, int online) =>
+          FleetRoute(routeId: id, name: id, total: 5, online: online);
+      for (final (rutas, esperada) in [
+        ([ruta('R-1', 0), ruta('R-2', 1), ruta('R-3', 3)], 'R-3'),
+        ([ruta('R-1', 3), ruta('R-2', 1), ruta('R-3', 0)], 'R-1'),
+        ([ruta('R-1', 0), ruta('R-2', 2), ruta('R-3', 2)], 'R-2'),
+      ]) {
+        final container = _containerWith(_FakeFleetApi(routes: rutas));
+        final notifier = container.read(fleetProvider.notifier);
+
+        await notifier.refreshRoutes();
+
+        expect(notifier.state.routeFilter, esperada);
+      }
+    },
+  );
+
+  // Riesgo: borrar una ruta cualquiera soltaba el filtro, y la recarga del
+  // catálogo llevaba al operador a la ruta con más buses, no a la suya.
+  test('borrar otra ruta deja al operador en la que eligió', () async {
+    FleetRoute ruta(String id, int online) =>
+        FleetRoute(routeId: id, name: id, total: 5, online: online);
+    final container = _containerWith(
+      _FakeFleetApi(routes: [ruta('R-1', 3), ruta('R-2', 0), ruta('R-3', 0)]),
+    );
+    final notifier = container.read(fleetProvider.notifier)
+      ..setRouteFilter('R-2');
+
+    await notifier.removeRoute('R-3');
+    await _vaciar();
+
+    expect(notifier.state.routeFilter, 'R-2');
+    expect(notifier.state.routes.map((r) => r.routeId), ['R-1', 'R-2']);
+  });
+
+  test('borrar la ruta elegida suelta el filtro', () async {
+    FleetRoute ruta(String id, int online) =>
+        FleetRoute(routeId: id, name: id, total: 5, online: online);
+    final container = _containerWith(
+      _FakeFleetApi(routes: [ruta('R-1', 3), ruta('R-2', 0)]),
+    );
+    final notifier = container.read(fleetProvider.notifier)
+      ..setRouteFilter('R-2');
+
+    await notifier.removeRoute('R-2');
+    await _vaciar();
+
+    expect(notifier.state.routeFilter, 'R-1');
+  });
 
   test('refreshRoutes() no pisa la ruta que el operador ya eligió', () async {
     const vacia = FleetRoute(
@@ -819,6 +876,30 @@ void main() {
         expect(list.map((b) => b.busId), ['B-2']);
       });
 
+      // Riesgo: que «Sin señal» deje fuera al bus fantasma, que transmite
+      // sesión pero no posición y sí entra en el contador de sin señal.
+      test(
+        'fleetList con statusFilter.offline trae los desconectados y los fantasma',
+        () {
+          final list = state
+              .copyWith(statusFilter: FleetStatusFilter.offline)
+              .fleetList;
+          expect(list.map((b) => b.busId), ['B-3', 'B-4']);
+        },
+      );
+
+      // El número del bus se busca sin su prefijo: escribir «bus» no puede
+      // traer la flota entera.
+      test('buscar no cuenta el prefijo BUS- del número', () {
+        final conPrefijo = FleetState(
+          buses: {
+            for (final id in ['BUS-101', 'BUS-202']) id: _busSinRuta(id),
+          },
+        );
+        expect(conPrefijo.buscar('101').map((b) => b.busId), ['BUS-101']);
+        expect(conPrefijo.buscar('bus'), isEmpty);
+      });
+
       test('fleetList respeta routeFilter además del statusFilter', () {
         final list = state.copyWith(routeFilter: () => 'R-2').fleetList;
         expect(list.map((b) => b.busId), ['B-3']);
@@ -842,3 +923,6 @@ void main() {
     },
   );
 }
+
+FleetBus _busSinRuta(String busId) =>
+    FleetBus(busId: busId, companyId: 'c-1', visible: true, online: true);

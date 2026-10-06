@@ -87,6 +87,44 @@ void main() {
     expect(preguntas, 2);
   });
 
+  // Riesgo: si la conexión vuelve mientras se pregunta, al terminar la
+  // pregunta no hay nada que vigilar; contar otra vez mandaría la app a
+  // preguntar cada 30 s con todo andando.
+  testWidgets('si la conexión vuelve durante la pregunta, no vuelve a contar',
+      (tester) async {
+    var preguntas = 0;
+    final supervisor = BackendSupervisor(reResolver: () async {
+      preguntas++;
+      await Future<void>.delayed(const Duration(seconds: 23));
+    });
+
+    supervisor.conexionPerdida();
+    await tester.pump(const Duration(seconds: 30));
+    expect(preguntas, 1);
+    await tester.pump(const Duration(seconds: 10));
+    supervisor.conexionRecuperada();
+    await tester.pump(const Duration(seconds: 13));
+    await tester.pump(const Duration(minutes: 5));
+    expect(preguntas, 1);
+
+    supervisor.dispose();
+  });
+
+  // Riesgo: un aviso de caída que llega tras cerrar (el socket muere al
+  // salir) arrancaría una cuenta que pregunta con la app ya cerrada.
+  testWidgets('cerrado, un aviso de caída no arranca la cuenta',
+      (tester) async {
+    var preguntas = 0;
+    final supervisor = BackendSupervisor(reResolver: () async {
+      preguntas++;
+    });
+
+    supervisor.dispose();
+    supervisor.conexionPerdida();
+    await tester.pump(const Duration(minutes: 5));
+    expect(preguntas, 0);
+  });
+
   test('reResolver solo cambia la URL cuando la respuesta es otra', () async {
     var vivas = {principal};
     final container = ProviderContainer(overrides: [

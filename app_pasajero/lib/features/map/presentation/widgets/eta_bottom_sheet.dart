@@ -872,11 +872,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     } else {
       // V1: el número hero carga la urgencia en su propio color, en vez de
       // quedarse siempre en el mismo azul — lejos, acercándose o ya casi.
-      colorCifra = _urgencyColor(distance);
-      final parts = _metricParts(distance, referencia);
+      colorCifra = colorDeDistancia(distance);
+      final parts = distanciaPartes(distance, referencia);
       metricText = parts.$1;
       metricUnit = parts.$2;
-      metricSpoken = _metricSpoken(distance, referencia);
+      metricSpoken = distanciaHablada(distance, referencia);
     }
     final isNumberMetric = metricUnit != null;
 
@@ -1032,45 +1032,22 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       ),
     );
   }
+}
 
-  /// La misma distancia, dicha entera y en castellano.
-  ///
-  /// En pantalla la unidad va abreviada porque debajo del número se lee
-  /// sola; en voz alta "m" es una letra suelta y el punto decimal se
-  /// pronuncia "punto". [referencia] dice desde dónde se mide: "de ti" o
-  /// "de tu pin anterior".
-  String _metricSpoken(double meters, String referencia) {
-    if (meters < 1000) {
-      final m = meters.round();
-      return 'A $m ${m == 1 ? "metro" : "metros"} $referencia';
-    }
-    final km = (meters / 1000).toStringAsFixed(1).replaceAll('.', ',');
-    return 'A $km kilómetros $referencia';
-  }
-
-  /// Divide la distancia en número grande + unidad: ("850", "m de ti") o
-  /// ("1,4", "km de tu pin anterior"). Coma decimal, como [kmLabel].
-  (String, String) _metricParts(double meters, String referencia) {
-    if (meters < 1000) return (meters.round().toString(), "m $referencia");
-    final km = (meters / 1000).toStringAsFixed(1).replaceAll('.', ',');
-    return (km, "km $referencia");
-  }
-
-  /// V1: verde lejos, ámbar acercándose, coral ya casi — el mismo semáforo
-  /// que ya usa `alertRadiusMeters` para "el bus ya está cerca".
-  ///
-  /// Van las variantes accesibles del semáforo, no las de relleno: este
-  /// color pinta el número de 64 en peso 200, que es el trazo más fino de
-  /// toda la app y lo único que la app existe para decir. Los tres de
-  /// relleno se quedaban en 2,9:1 sobre la arena, por debajo del 3:1 que
-  /// pide la norma hasta para un icono; estos tres dan 5:1 y, entre
-  /// ellos, el mismo 5:1, así que ninguna distancia se lee más pesada que
-  /// otra por culpa del color.
-  Color _urgencyColor(double meters) {
-    if (meters < 300) return AppColors.coralAccessible;
-    if (meters < alertRadiusMeters) return AppColors.warningAccessible;
-    return AppColors.primaryAccessible;
-  }
+/// V1: verde lejos, ámbar acercándose, coral ya casi — el mismo semáforo
+/// que ya usa `alertRadiusMeters` para "el bus ya está cerca".
+///
+/// Van las variantes accesibles del semáforo, no las de relleno: este
+/// color pinta el número de 64 en peso 200, que es el trazo más fino de
+/// toda la app y lo único que la app existe para decir. Los tres de
+/// relleno se quedaban en 2,9:1 sobre la arena, por debajo del 3:1 que
+/// pide la norma hasta para un icono; estos tres dan 5:1 y, entre
+/// ellos, el mismo 5:1, así que ninguna distancia se lee más pesada que
+/// otra por culpa del color. Público para probar los bordes exactos.
+Color colorDeDistancia(double meters) {
+  if (meters < 300) return AppColors.coralAccessible;
+  if (meters < alertRadiusMeters) return AppColors.warningAccessible;
+  return AppColors.primaryAccessible;
 }
 
 /// Lo que la hoja explica bajo la distancia: un ícono y una frase.

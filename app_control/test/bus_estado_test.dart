@@ -91,6 +91,9 @@ void main() {
     );
     expect(BusEstado.de(_bus(online: false)), BusEstado.sinSenal);
     expect(BusEstado.de(_bus(visible: false)), BusEstado.oculto);
+    // La sesión sigue viva pero el equipo lleva más de 90 s callado: el
+    // operador tiene que verlo, no leer «En línea».
+    expect(BusEstado.de(_bus(isGhost: true)), BusEstado.inactivo);
   });
 
   test('oculto manda sobre el resto: es lo que explica que no se vea', () {

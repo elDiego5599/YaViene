@@ -91,12 +91,6 @@ class RouteTrajectory extends Equatable {
     };
   }
 
-  GeoPoint get center {
-    if (points.isEmpty) return const GeoPoint(lat: 11.0041, lon: -74.8070);
-    final midIndex = points.length ~/ 2;
-    return points[midIndex];
-  }
-
   @override
   List<Object?> get props => [routeId, routeName, points];
 }

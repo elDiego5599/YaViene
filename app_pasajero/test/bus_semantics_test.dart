@@ -79,4 +79,19 @@ void main() {
 
     expect(acciones.single.etiqueta, 'Seguir el bus WGV705');
   });
+
+  // Riesgo: decidir con los metros crudos. A 999,7 m el lector decía
+  // «a 1000 m», que es un kilómetro con otro nombre; la hoja dice «1,0 km».
+  test('a un paso del kilómetro dice kilómetros, como la hoja', () {
+    // Misma longitud: la distancia es solo la latitud, R·Δφ.
+    const grados = 999.7 / 6371000 * 180 / 3.141592653589793;
+    final acciones = accionesDeBuses(
+      buses: [bus('BUS-SQA223', userLat + grados)],
+      userLat: userLat,
+      userLon: userLon,
+      seleccionados: const {},
+    );
+
+    expect(acciones.single.etiqueta, 'Seguir el bus SQA223, a 1,0 km de ti');
+  });
 }

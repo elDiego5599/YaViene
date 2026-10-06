@@ -78,4 +78,23 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 2));
   });
+
+  // Riesgo: un `<` que se vuelve `<=` en la raya. «hace 60 s» o «hace 60 min»
+  // son una unidad que se quedó corta; el operador lee la siguiente.
+  test('cada unidad cambia justo en su raya', () {
+    for (final (edad, texto) in [
+      (const Duration(milliseconds: 1999), 'ahora'),
+      (const Duration(seconds: 2), 'hace 2 s'),
+      (const Duration(seconds: 59), 'hace 59 s'),
+      (const Duration(seconds: 60), 'hace 1 min'),
+      (const Duration(minutes: 59), 'hace 59 min'),
+      (const Duration(minutes: 60), 'hace 1 h'),
+      (const Duration(hours: 23), 'hace 23 h'),
+      (const Duration(hours: 24), 'hace 1 d'),
+      // Un reloj del servidor adelantado da una edad negativa: es «ahora».
+      (const Duration(seconds: -3), 'ahora'),
+    ]) {
+      expect(UltimoReporte.hace(edad), texto, reason: '$edad');
+    }
+  });
 }

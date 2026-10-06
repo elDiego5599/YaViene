@@ -36,7 +36,7 @@ List<AccionDeBus> accionesDeBuses({
         : null;
     final donde = distancia == null
         ? ''
-        : distancia < 1000
+        : enMetros(distancia)
             // Por debajo del kilómetro, los metros redondos: "a 850 m de ti"
             // es la misma frase que la tarjeta de abajo.
             ? ', a ${distancia.round()} m de ti'

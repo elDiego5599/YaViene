@@ -4,6 +4,9 @@
 // backend es constante de compilación, así que sin respaldo una APK ya
 // repartida se queda muerta si el túnel de ngrok se cae, y la única salida es
 // recompilar e instalar de nuevo.
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -102,5 +105,57 @@ void main() {
     expect(f.esperas.first, BackendResolver.esperaPrincipal);
     expect(f.esperas.last, BackendResolver.esperaRespaldo);
     expect(f.esperas.last, greaterThan(f.esperas.first));
+  });
+
+  // `responde` contra un servidor de verdad en esta máquina: la sonda falsa
+  // de arriba no mira el estado ni el cuerpo. Un túnel caído contesta con su
+  // página de error, y un backend a medias con un 5xx: ninguno es «vivo».
+  group('responde', () {
+    late HttpServer servidor;
+    late int estado;
+    late String cuerpo;
+
+    setUp(() async {
+      servidor = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      servidor.listen((peticion) {
+        peticion.response
+          ..statusCode = estado
+          ..write(cuerpo);
+        peticion.response.close();
+      });
+    });
+    tearDown(() => servidor.close(force: true));
+
+    Future<bool> pregunta() => BackendResolver.responde(
+        'http://127.0.0.1:${servidor.port}', const Duration(seconds: 5));
+
+    test('un 200 con el JSON de salud es un backend vivo', () async {
+      estado = 200;
+      cuerpo = jsonEncode({'status': 'ok'});
+      expect(await pregunta(), isTrue);
+    });
+
+    test('un 503, aunque traiga el JSON de salud, no', () async {
+      estado = 503;
+      cuerpo = jsonEncode({'status': 'ok'});
+      expect(await pregunta(), isFalse);
+    });
+
+    test('un 200 que no dice ok, o que no es JSON, no', () async {
+      estado = 200;
+      cuerpo = jsonEncode({'status': 'degradado'});
+      expect(await pregunta(), isFalse);
+      cuerpo = '<html>ERR_NGROK_3200</html>';
+      expect(await pregunta(), isFalse);
+    });
+
+    test('sin nadie escuchando, no', () async {
+      final puerto = servidor.port;
+      await servidor.close(force: true);
+      expect(
+          await BackendResolver.responde(
+              'http://127.0.0.1:$puerto', const Duration(seconds: 5)),
+          isFalse);
+    });
   });
 }

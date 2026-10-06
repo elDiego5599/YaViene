@@ -52,10 +52,29 @@ void main() {
           reason: 'sin $falta no hay posición');
     }
     expect(BusPosition.tryParse(json()..['lat'] = 91.0), isNull);
+    expect(BusPosition.tryParse(json()..['lat'] = -90.5), isNull);
+    expect(BusPosition.tryParse(json()..['lon'] = 180.5), isNull);
+    expect(BusPosition.tryParse(json()..['lon'] = -180.5), isNull);
     expect(BusPosition.tryParse(json()..['busId'] = '  '), isNull);
     // Un tipo equivocado no tumba a quien escucha: devuelve null.
     expect(BusPosition.tryParse(json()..['lat'] = '10.99'), isNull);
     expect(BusPosition.tryParse(json()..['busId'] = 42), isNull);
+  });
+
+  // Riesgo: un `<` que pasa a `<=` tira posiciones válidas en el borde del
+  // mapa. Los cuatro bordes son coordenadas reales y se aceptan.
+  test('tryParse acepta las coordenadas justo en los bordes', () {
+    for (final (lat, lon) in [
+      (-90.0, 0.0),
+      (90.0, 0.0),
+      (0.0, -180.0),
+      (0.0, 180.0)
+    ]) {
+      final p = BusPosition.tryParse(json()
+        ..['lat'] = lat
+        ..['lon'] = lon);
+      expect(p, isNotNull, reason: '($lat, $lon) es una coordenada válida');
+    }
   });
 
   // Antes una fecha que faltaba o no se entendía se volvía «ahora», y el bus
@@ -77,6 +96,34 @@ void main() {
       isNotNull,
       reason: 'un reloj un par de minutos corrido no deja la app sin buses',
     );
+  });
+
+  // Riesgo: una holgura que crece deja pasar fechas falsas. La del reloj es
+  // de 10 min: 9 min adelante pasa y 12 ya no.
+  test('tryParse: la holgura del reloj es de 10 minutos, ni uno más', () {
+    String adelante(Duration d) =>
+        DateTime.now().add(d).toUtc().toIso8601String();
+    expect(
+        BusPosition.tryParse(
+            json(timestamp: adelante(const Duration(minutes: 9)))),
+        isNotNull);
+    expect(
+        BusPosition.tryParse(
+            json(timestamp: adelante(const Duration(minutes: 12)))),
+        isNull);
+  });
+
+  // La posición en vivo vale 5 min 10 s más la holgura de 10: hasta los
+  // 15 min 10 s. A los 14 min se ve; a los 17 ya es un bus que no está.
+  test('tryParse: en vivo deja de valer a los 15 minutos y 10 segundos', () {
+    expect(
+        BusPosition.tryParse(
+            json(timestamp: hace(const Duration(minutes: 14)))),
+        isNotNull);
+    expect(
+        BusPosition.tryParse(
+            json(timestamp: hace(const Duration(minutes: 17)))),
+        isNull);
   });
 
   test('tryParse: en vivo tiene tope de edad; sin señal no, porque se enseña',

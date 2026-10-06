@@ -33,7 +33,8 @@ class UltimoReporte extends StatefulWidget {
   /// y a veces un poco más por la red.
   static const umbralAhora = Duration(seconds: 2);
 
-  /// «ahora», «hace 7 s», «hace 2 min», «hace 3 h», «hace 2 d».
+  /// «ahora», «hace 7 s», «hace 2 min», «hace 3 h», «hace 2 d». Un reloj
+  /// del servidor adelantado da una edad negativa, y también es «ahora».
   static String hace(Duration edad) {
     if (edad < umbralAhora) return 'ahora';
     if (edad.inMinutes < 1) return 'hace ${edad.inSeconds} s';
@@ -81,9 +82,7 @@ class _UltimoReporteState extends State<UltimoReporte> {
     final edad = widget.reloj().difference(
       DateTime.fromMillisecondsSinceEpoch(reportadoEn),
     );
-    // Un reloj del servidor adelantado daría una edad negativa: es «ahora».
-    return 'Último reporte '
-        '${UltimoReporte.hace(edad.isNegative ? Duration.zero : edad)}';
+    return 'Último reporte ${UltimoReporte.hace(edad)}';
   }
 
   @override

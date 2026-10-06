@@ -1,0 +1,458 @@
+[
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "lat < -90 ||",
+    "a": "lat <= -90 ||",
+    "que": "latitud sur en el borde"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "lat > 90 ||",
+    "a": "lat >= 90 ||",
+    "que": "latitud norte en el borde"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "lon < -180 ||",
+    "a": "lon <= -180 ||",
+    "que": "longitud oeste en el borde"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "lon > 180) {",
+    "a": "lon >= 180) {",
+    "que": "longitud este en el borde"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "if (timestamp.difference(ahora) > _holguraDeReloj) {",
+    "a": "if (timestamp.difference(ahora) > _holguraDeReloj * 2) {",
+    "que": "posición del futuro"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "ahora.difference(timestamp) > _vidaEnVivo + _holguraDeReloj",
+    "a": "ahora.difference(timestamp) > _vidaEnVivo * 2 + _holguraDeReloj",
+    "que": "posición en vivo vieja"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "if (!isGhost &&",
+    "a": "if (true &&",
+    "que": "sin señal no tiene tope de edad"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "|| !speedKmh.isFinite) {",
+    "a": ") {",
+    "que": "velocidad no finita"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "return capturaNueva > capturaPrevia;",
+    "a": "return capturaNueva < capturaPrevia;",
+    "que": "la captura más nueva gana"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_position.dart",
+    "de": "return fantasmaNuevo != fantasmaPrevio;",
+    "a": "return true;",
+    "que": "misma captura solo si cambia el fantasma"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_resolver.dart",
+    "de": "if (respaldo.isEmpty || respaldo == principal) return principal;",
+    "a": "if (respaldo.isEmpty) return principal;",
+    "que": "respaldo igual al principal"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_resolver.dart",
+    "de": "if (await preguntar(respaldo, tiempoRespaldo)) return respaldo;",
+    "a": "if (false) return respaldo;",
+    "que": "pasar al respaldo"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_resolver.dart",
+    "de": "if (respuesta.statusCode != 200) return false;",
+    "a": "if (false) return false;",
+    "que": "salud con estado distinto de 200"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_resolver.dart",
+    "de": "return cuerpo is Map && cuerpo['status'] == 'ok';",
+    "a": "return cuerpo is Map;",
+    "que": "salud que no dice ok"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_supervisor.dart",
+    "de": "if (!_cerrado && _sinConexion) _cuenta ??= Timer(paciencia, _preguntar);",
+    "a": "if (!_cerrado) _cuenta ??= Timer(paciencia, _preguntar);",
+    "que": "no reintentar si volvió la conexión"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_supervisor.dart",
+    "de": "if (_cerrado) return;",
+    "a": "if (false) return;",
+    "que": "supervisor cerrado no cuenta"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/backend_supervisor.dart",
+    "de": "if (!_preguntando) _cuenta ??= Timer(paciencia, _preguntar);",
+    "a": "_cuenta ??= Timer(paciencia, _preguntar);",
+    "que": "una pregunta a la vez"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/network/fallo_red.dart",
+    "de": "TimeoutException() => FalloRed.lento,",
+    "a": "TimeoutException() => FalloRed.servidor,",
+    "que": "tiempo agotado es lento"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "const int alertRadiusMeters = 1000;",
+    "a": "const int alertRadiusMeters = 1200;",
+    "que": "radio del aviso"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "const int alertReArmMeters = 1500;",
+    "a": "const int alertReArmMeters = 1000;",
+    "que": "histéresis para rearmar"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "if (distance > alertReArmMeters) rearm.add(busId);",
+    "a": "if (distance > alertRadiusMeters) rearm.add(busId);",
+    "que": "rearmar lejos del radio"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "} else if (distance <= alertRadiusMeters) {",
+    "a": "} else {",
+    "que": "solo suena dentro del radio"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "if (pos == null || pos.isGhostBus) continue;",
+    "a": "if (pos == null) continue;",
+    "que": "un bus sin señal no suena"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "final ref = _alertRefs[busId] ?? liveRef;",
+    "a": "final ref = liveRef;",
+    "que": "el aviso mide desde donde se armó"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/active_alerts_provider.dart",
+    "de": "if (state.length >= maxActive) return false;",
+    "a": "if (state.length > maxActive) return false;",
+    "que": "tope de avisos activos"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/active_alerts_provider.dart",
+    "de": "bool activateAlert(String busId, {int maxActive = 2}) {",
+    "a": "bool activateAlert(String busId, {int maxActive = 3}) {",
+    "que": "dos avisos a la vez"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/active_alerts_provider.dart",
+    "de": "if (state.contains(busId)) return true;",
+    "a": "if (false) return true;",
+    "que": "activar dos veces no gasta cupo"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/alert_guards.dart",
+    "de": "routeDistanceMeters > alertMaxRouteDistanceMeters) {",
+    "a": "routeDistanceMeters > alertMaxRouteDistanceMeters * 2) {",
+    "que": "ruta que no pasa cerca"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/alert_guards.dart",
+    "de": "if (bus != null && bus.isGhostBus) {",
+    "a": "if (bus != null && false) {",
+    "que": "aviso de un bus sin señal"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
+    "de": "return distance != null && distance <= alertRadiusMeters;",
+    "a": "return distance != null && distance <= alertReArmMeters;",
+    "que": "el bus ya está cerca, con el radio del aviso"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/alert_history_provider.dart",
+    "de": "!e.sent && ahora.difference(e.createdAt) > vidaDeUnAviso;",
+    "a": "!e.sent && ahora.difference(e.createdAt) > vidaDeUnAviso * 2;",
+    "que": "aviso vencido"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/alert_history_provider.dart",
+    "de": "const Duration vidaDeUnAviso = Duration(hours: 3);",
+    "a": "const Duration vidaDeUnAviso = Duration(hours: 4);",
+    "que": "vida de un aviso"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/alert_history_provider.dart",
+    "de": "const int _maxEntradas = 50;",
+    "a": "const int _maxEntradas = 60;",
+    "que": "tope del historial"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/alert_history_provider.dart",
+    "de": ".where((e) => e.sent && e.sentAt!.isAfter(limite))",
+    "a": ".where((e) => e.sent)",
+    "que": "historial de 30 días"
+  },
+  {
+    "archivo": "app_pasajero/lib/core/utils/distancia.dart",
+    "de": "bool enMetros(double meters) => meters.round() < 1000;",
+    "a": "bool enMetros(double meters) => meters.round() <= 1000;",
+    "que": "metros bajo 1 km"
+  },
+  {
+    "archivo": "app_pasajero/lib/core/utils/distancia.dart",
+    "de": "return double.parse(unDecimal) >= 10",
+    "a": "return km >= 10",
+    "que": "sin decimal desde 10 km redondeados"
+  },
+  {
+    "archivo": "app_pasajero/lib/core/utils/distancia.dart",
+    "de": ": '${unDecimal.replaceAll('.', ',')} km';",
+    "a": ": '$unDecimal km';",
+    "que": "coma decimal"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "if (meters < 300) return AppColors.coralAccessible;",
+    "a": "if (meters <= 300) return AppColors.coralAccessible;",
+    "que": "coral bajo 300 m"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "if (meters < alertRadiusMeters) return AppColors.warningAccessible;",
+    "a": "if (meters <= alertRadiusMeters) return AppColors.warningAccessible;",
+    "que": "ámbar bajo el radio"
+  },
+  {
+    "archivo": "app_pasajero/lib/core/utils/distancia.dart",
+    "de": "${cifra == '1' ? 'metro' : 'metros'}",
+    "a": "metros",
+    "que": "un metro en singular"
+  },
+  {
+    "archivo": "app_pasajero/lib/core/utils/distancia.dart",
+    "de": "if (enMetros(meters)) return ('${meters.round()}', 'm $referencia');",
+    "a": "if (meters < 1000) return ('${meters.round()}', 'm $referencia');",
+    "que": "cifra en metros o km, redondeada"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/utils/bus_semantics.dart",
+    "de": ": enMetros(distancia)",
+    "a": ": distancia < 1000",
+    "que": "lector: metros o km, redondeados"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/utils/bus_semantics.dart",
+    "de": "final sinSenal = bus.isGhostBus ? ', sin señal' : '';",
+    "a": "final sinSenal = '';",
+    "que": "lector: sin señal"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/bus_stream.dart",
+    "de": "if (!belongsTo(pos.routeId)) return;",
+    "a": "if (false) return;",
+    "que": "posición de otra ruta"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/bus_stream.dart",
+    "de": "if (!reemplaza(pos, positions[pos.busId])) return;",
+    "a": "if (false) return;",
+    "que": "posición vieja no pisa la nueva"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/bus_estado.dart",
+    "de": "if (!bus.visible) return oculto;",
+    "a": "if (false) return oculto;",
+    "que": "oculto manda"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/bus_estado.dart",
+    "de": "if (!bus.online) return bus.isGhost ? inactivo : sinSenal;",
+    "a": "if (!bus.online) return sinSenal;",
+    "que": "desconectado e inactivo"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/bus_estado.dart",
+    "de": "return bus.isGhost ? inactivo : enLinea;",
+    "a": "return enLinea;",
+    "que": "en línea pero fantasma"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/domain/fleet_bus.dart",
+    "de": "visible: json['visible'] == true,",
+    "a": "visible: json['visible'] != false,",
+    "que": "visible solo si lo dice"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/domain/fleet_bus.dart",
+    "de": "routeId: routeId == null || routeId.isEmpty ? null : routeId,",
+    "a": "routeId: routeId,",
+    "que": "ruta vacía es sin ruta"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/domain/fleet_bus.dart",
+    "de": "visible == otro.visible &&",
+    "a": "true &&",
+    "que": "la ficha cambia con la visibilidad"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/velocidad_bus.dart",
+    "de": "valor != null && valor.isFinite && valor >= 0",
+    "a": "valor != null && valor.isFinite",
+    "que": "velocidad negativa sin dato"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/ultimo_reporte.dart",
+    "de": "static const umbralAhora = Duration(seconds: 2);",
+    "a": "static const umbralAhora = Duration(seconds: 5);",
+    "que": "umbral de «ahora»"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/ultimo_reporte.dart",
+    "de": "if (edad.inMinutes < 1) return 'hace ${edad.inSeconds} s';",
+    "a": "if (edad.inMinutes <= 1) return 'hace ${edad.inSeconds} s';",
+    "que": "segundos o minutos"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/ultimo_reporte.dart",
+    "de": "if (edad.inHours < 1) return 'hace ${edad.inMinutes} min';",
+    "a": "if (edad.inHours <= 1) return 'hace ${edad.inMinutes} min';",
+    "que": "minutos u horas"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/ultimo_reporte.dart",
+    "de": "if (edad.inDays < 1) return 'hace ${edad.inHours} h';",
+    "a": "if (edad.inDays <= 1) return 'hace ${edad.inHours} h';",
+    "que": "horas o días"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/ultimo_reporte.dart",
+    "de": "if (edad < umbralAhora) return 'ahora';",
+    "a": "if (edad <= umbralAhora) return 'ahora';",
+    "que": "«ahora» es menos de 2 s"
+  },
+  {
+    "archivo": "app_control/lib/features/auth/data/auth_api.dart",
+    "de": "return response.statusCode == 200;",
+    "a": "return true;",
+    "que": "sesión válida solo con 200"
+  },
+  {
+    "archivo": "app_control/lib/features/auth/data/auth_api.dart",
+    "de": "if (e.response?.statusCode == 401) return false;",
+    "a": "if (false) return false;",
+    "que": "sesión vencida"
+  },
+  {
+    "archivo": "app_control/lib/features/auth/data/auth_api.dart",
+    "de": "if (error is Map && error['message'] is String) {",
+    "a": "if (error is Map && false) {",
+    "que": "mensaje del servidor"
+  },
+  {
+    "archivo": "app_control/lib/config.dart",
+    "de": "if (uri.scheme == 'https') return true;",
+    "a": "if (uri.scheme != 'http') return true;",
+    "que": "solo https afuera"
+  },
+  {
+    "archivo": "app_control/lib/config.dart",
+    "de": "uri.host == '127.0.0.1' ||",
+    "a": "uri.host == '127.0.0.2' ||",
+    "que": "http solo en esta máquina (IPv4)"
+  },
+  {
+    "archivo": "app_control/lib/config.dart",
+    "de": "(uri.host == 'localhost' ||",
+    "a": "(uri.host.endsWith('localhost') ||",
+    "que": "http solo en localhost exacto"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "FleetStatusFilter.online => b.online && !b.isGhost,",
+    "a": "FleetStatusFilter.online => b.online,",
+    "que": "filtro en línea"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "FleetStatusFilter.offline => !b.online || b.isGhost,",
+    "a": "FleetStatusFilter.offline => !b.online,",
+    "que": "filtro sin señal"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "if (filter != null && b.routeId != filter) return false;",
+    "a": "if (false) return false;",
+    "que": "filtro por ruta"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "}).toList()..sort((a, b) => a.busId.compareTo(b.busId));",
+    "a": "}).toList();",
+    "que": "lista ordenada"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "b.interno.toLowerCase().contains(q) ||",
+    "a": "false ||",
+    "que": "buscar por interno"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "b.busId.replaceFirst('BUS-', '').toLowerCase().contains(q) ||",
+    "a": "b.busId.toLowerCase().contains(q) ||",
+    "que": "buscar sin el prefijo BUS-"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "_routeScoped.where((b) => b.online && !b.isGhost).length;",
+    "a": "_routeScoped.where((b) => b.online).length;",
+    "que": "cuenta en línea"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "int get hiddenBuses => _routeScoped.where((b) => !b.visible).length;",
+    "a": "int get hiddenBuses => 0;",
+    "que": "cuenta de ocultos"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": ": routes.reduce((a, b) => b.online > a.online ? b : a).routeId;",
+    "a": ": routes.reduce((a, b) => b.online >= a.online ? b : a).routeId;",
+    "que": "si empatan, la primera del catálogo"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": ": routes.reduce((a, b) => b.online > a.online ? b : a).routeId;",
+    "a": ": routes.reduce((a, b) => b.online < a.online ? b : a).routeId;",
+    "que": "arranca en la ruta con más buses"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "if (previo == null || _masNueva(foto, previo)) return foto;",
+    "a": "if (true) return foto;",
+    "que": "la foto no pisa lo más nuevo"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "state.routeFilter == routeId ? null : state.routeFilter,",
+    "a": "null,",
+    "que": "borrar otra ruta no quita el filtro"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/providers/fleet_providers.dart",
+    "de": "if (!_masNueva(bus, previous)) return;",
+    "a": "if (false) return;",
+    "que": "posición vieja del socket"
+  }
+]

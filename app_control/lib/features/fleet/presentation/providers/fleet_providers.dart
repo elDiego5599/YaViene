@@ -465,13 +465,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
   /// andando: el panel arrancaba en una ruta vacía y parecía que la empresa
   /// no tuviera flota. Se abre en la que más buses estén reportando; si
   /// ninguna reporta, en la primera, como antes. Solo decide el arranque:
-  /// en cuanto el operador toca una pestaña, manda su elección.
-  static String? _rutaDeArranque(List<FleetRoute> routes) {
-    if (routes.isEmpty) return null;
-    final conBuses = routes.where((r) => r.online > 0).toList()
-      ..sort((a, b) => b.online.compareTo(a.online));
-    return conBuses.isEmpty ? routes.first.routeId : conBuses.first.routeId;
-  }
+  /// en cuanto el operador toca una pestaña, manda su elección. Entre dos
+  /// que empatan gana la que va antes en el catálogo.
+  static String? _rutaDeArranque(List<FleetRoute> routes) => routes.isEmpty
+      ? null
+      : routes.reduce((a, b) => b.online > a.online ? b : a).routeId;
 
   void selectBus(String? busId) {
     state = state.copyWith(selectedBusId: () => busId);
