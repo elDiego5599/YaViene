@@ -1,6 +1,6 @@
 # Lo que falta
 
-Al 2026-10-05. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
+Al 2026-10-06. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
 está hecho y subido a las ramas de trabajo (`diseno-21st` en app y web,
 `prueba` en el backend); a `main` se sube por lotes cuando lo pidas
 (regla 16 de `CLAUDE.md`). Lo que queda está repartido según
@@ -19,9 +19,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   toda la ingesta desde el GPS de verdad: recibir las posiciones del equipo
   del bus, autenticar cada equipo, las rutas nuevas (T4.1–T4.3, T4.5–T4.7 y
   T11.1).
-- **La cuota de GitHub Actions** (se agotó el 2026-09-19). Hasta que se
-  renueve, la CI no arranca y lo verificado en local no se puede ver en
-  verde allá (T1.8, T8.4 y la confirmación de T8.7–T8.9).
 - **El secreto `BACKEND_REPO_TOKEN`** en el repo. Sin él, la CI no puede
   vigilar sola el contrato entre la app y el backend ni el socket del panel
   (T8.5 paso 3 y T8.6).
@@ -44,19 +41,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
-- **Coolitoral en la web.** La app ya trae sus 3 rutas (A1, A3 y A4: R-107,
-  R-109 y R-110; A2 se quitó el 2026-10-05),
-  pero la portada sigue mostrando solo Sobusa («6 rutas reales», las
-  tarjetas). Decide si la portada la nombra.
-- **Nombres y terminales de A1, A3 y A4** (R-107, R-109 y R-110). El
-  trazado ya es el de los KMZ que mandó Coolitoral (2026-10-05): tres
-  circuitos que salen y vuelven a la Calle 17 en Sur Oriente (A1 de 41,6 km
-  hasta Sabanilla Montecarmelo, A3 de 23,3 y A4 de 24,1 hasta Riomar). Los
-  KMZ solo traen el código («A1-4106»), así que los nombres y terminales
-  siguen siendo los de los GPX viejos: «A1 Silencio Universidades»
-  (Silencio, Nogales – Universidades, Vía 40), «A3 Carrera 43 Peñita»
-  (Carrera 43 – La Peñita) y «A4 Carrera 50» (Calle 17 – Carrera 50). Dime
-  cómo las llama Coolitoral, o cámbialos en el panel.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
   propósito; queda aquí para cuando quieras abrirla.
@@ -87,23 +71,13 @@ Necesitan un teléfono, una cuenta o estar presente.
 - **Lectores de pantalla**, con el guion al lado: TalkBack, VoiceOver en el
   iPhone y en el Mac, y el Narrador de Windows.
 - **El panel en un Windows de verdad**: que la contraseña guardada funcione
-  y que vaya fluido.
+  y que vaya fluido. Se descarga de la CI: Actions → «Ya Viene CI» → «Run
+  workflow» con `backend_url`, y en la corrida el artefacto `panel-windows`
+  (la carpeta entera; se abre `app_control.exe`).
 - **Las fichas de las tiendas** (T5.7): textos, capturas y video.
 - **El video de respaldo del pitch** (T10.4), por si el día falla la red.
 - **Mirar el tráfico real un rato** para fijar el umbral de latencia de la
   alerta (T7.1).
-- **Probar en un Android de verdad los avisos con la app cerrada** (D13; el
-  backend vivo ya tiene la clave de FCM desde el 2026-10-02): instalar la
-  APK nueva, armar un aviso, cerrar la app del todo y esperar a que el bus
-  llegue. Tiene que sonar «Tu bus de la ruta X está cerca de ti» con el
-  bus a unos 900–1.000 m, una sola vez, y
-  `/api/metrics` contar un `push.enviados`. Con la misma APK: que tocar la
-  notificación abra el mapa en esa empresa, esa ruta y ese bus, con la
-  cámara encima (también con la app cerrada); que el pin puesto a mano siga
-  ahí al volver a abrir la app aunque haya GPS, y que tocar un bus en el
-  mapa acierte a la primera, como en el iPhone. Instalada de cero, el mapa
-  saluda una vez y deja escoger entre ver la guía o ir directo a la app.
-
 ## Lo que puedo hacer yo
 
 Nada por ahora.

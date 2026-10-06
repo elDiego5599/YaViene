@@ -97,10 +97,11 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   prueba roja→verde o código muerto fuera.
 - Objeciones solo con código real (tgrep/import antes de afirmar).
 
-- **CI**: cuota de Actions agotada (2026-09-19); GitHub no arranca jobs hasta
-  que se renueve. La CI corre solo en `main` (+ a mano); en YaViene
-  `compilar-apple` es solo a mano y Android/Windows a mano y los martes. La
-  verificación local es la evidencia mientras tanto.
+- **CI**: la cuota de Actions volvió (dueño, 2026-10-06; estuvo agotada
+  desde el 2026-09-19). La CI corre solo en `main` (+ a mano); en YaViene
+  `compilar-apple` es solo a mano y Android/Windows a mano y los martes; a
+  mano con `backend_url`, el panel de Windows queda como artefacto
+  `panel-windows`.
 - **Rama `diseno-21st`** (2026-09-27, app y web, sin push): cifra viva en la
   distancia de la hoja, filas del selector escalonadas (app + espejo web),
   reloj en el segundo, «Último reporte» y velocidad en grande en la ficha

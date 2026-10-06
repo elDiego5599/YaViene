@@ -13,6 +13,11 @@ on:
   schedule:
     - cron: '41 11 * * 2'
   workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'https:// del backend para el panel de Windows que se descarga (vacío: solo compila)'
+        required: false
+        default: ''
 
 # El token de la corrida se le presta a código de terceros, así que va con lo
 # mínimo: ningún job de aquí escribe en el repositorio. Sin este bloque iba
@@ -303,3 +308,20 @@ jobs:
         run: |
           flutter pub get
           flutter build windows
+
+      # Para probarlo en un Windows de verdad: a mano y con `backend_url`,
+      # la misma compilación apunta al backend y queda para descargar desde
+      # la corrida. Sin la URL no se sube nada: `config.dart` la exige y un
+      # panel sin ella no arranca.
+      - name: Windows del panel contra el backend
+        if: inputs.backend_url != ''
+        working-directory: app_control
+        env:
+          BACKEND_URL: ${{ inputs.backend_url }}
+        run: flutter build windows --release --dart-define=BACKEND_URL="$BACKEND_URL"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: inputs.backend_url != ''
+        with:
+          name: panel-windows
+          path: app_control/build/windows/x64/runner/Release/
+          retention-days: 7
