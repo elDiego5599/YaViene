@@ -48,21 +48,15 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   R-109 y R-110; A2 se quitó el 2026-10-05),
   pero la portada sigue mostrando solo Sobusa («6 rutas reales», las
   tarjetas). Decide si la portada la nombra.
-- **Nombre y terminales de A3** (R-109). El trazado ya es el de los diez
-  hitos del mapa de Google del 2026-10-05 (21 km: Calle 17 en Sur Oriente,
-  Carrera 43, Ciudad Jardín, Riomar, Calle 75, El Prado, Carrera 44 y
-  vuelta por el oriente), pero sigue llamándose «A3 Carrera 43 Peñita» con
-  terminales «Carrera 43» y «La Peñita», del GPX viejo. Dime cómo la llama
-  Coolitoral, o cámbialo en el panel.
-- **Terminales de A4** (R-110 «Calle 17 – Carrera 50»): salen del nombre
-  del archivo GPX. Se cambian desde el panel si no son los que usa
-  Coolitoral.
-- **Nombre y terminales de A1** (R-107). El trazado ya es el de los ocho
-  hitos del mapa de Google del 2026-10-05 (circuito de 41 km: Calle 17 en
-  Sur Oriente, Sabanilla Montecarmelo, Uninorte, la Vía 40 y vuelta por el
-  río), pero sigue llamándose «A1 Silencio Universidades» con
-  terminales «Silencio, Nogales» y «Universidades, Vía 40», que eran del
-  GPX viejo. Dime cómo la llama Coolitoral, o cámbialo en el panel.
+- **Nombres y terminales de A1, A3 y A4** (R-107, R-109 y R-110). El
+  trazado ya es el de los KMZ que mandó Coolitoral (2026-10-05): tres
+  circuitos que salen y vuelven a la Calle 17 en Sur Oriente (A1 de 41,6 km
+  hasta Sabanilla Montecarmelo, A3 de 23,3 y A4 de 24,1 hasta Riomar). Los
+  KMZ solo traen el código («A1-4106»), así que los nombres y terminales
+  siguen siendo los de los GPX viejos: «A1 Silencio Universidades»
+  (Silencio, Nogales – Universidades, Vía 40), «A3 Carrera 43 Peñita»
+  (Carrera 43 – La Peñita) y «A4 Carrera 50» (Calle 17 – Carrera 50). Dime
+  cómo las llama Coolitoral, o cámbialos en el panel.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
   propósito; queda aquí para cuando quieras abrirla.
