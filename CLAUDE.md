@@ -136,9 +136,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 14
   commits de código (Coolitoral por sus KMZ, prueba de fuego, CI de Windows
   y del APK, E2E del simulador) más los de este archivo y FALTANTES, web 3 (prueba de fuego, source-map-js, tarjeta para
-  compartir) y backend 5 (Coolitoral y prueba de fuego). Las ramas de
+  compartir) y backend 6 (Coolitoral, prueba de fuego, y el bus oculto con su prueba
+  más la ficha del conductor fuera, 2026-10-06). Las ramas de
   trabajo están al día con su remoto.
-- **Verificación (2026-10-05)**: **1.731 pruebas** en total (1.698 pasan +
+- **Verificación (2026-10-05)**: **1.730 pruebas** en total (1.697 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
@@ -150,7 +151,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   llavero va en memoria). Contrato con el backend:
   `tool/sincronizar-contrato.sh` (y `--comprobar`) tras
   `npm run contrato:actualizar` en el backend.
-- **Backend**: 281 pruebas con `npm test` (también con
+- **Backend**: 280 pruebas con `npm test` (también con
   `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production`:
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
