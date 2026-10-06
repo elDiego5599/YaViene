@@ -40,9 +40,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
-- **El worktree viejo** `YaViene/.claude/worktrees/elated-engelbart-65fca7`
-  (2026-09-11, `4e948c6` suelto): duplica archivos en `tgrep` y `find`.
-  Con tu sí lo quito con `git worktree remove`.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
