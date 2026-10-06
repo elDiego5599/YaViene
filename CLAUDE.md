@@ -95,6 +95,15 @@ diario y las reglas de trabajo están en `AGENTS.md`.
   backend `npm run fuego`; las tres se niegan a correr con lo mutado sin commitear y
   una prueba de cada suite ata su lista al código. Mutación que sobrevive =
   prueba roja→verde o código muerto fuera.
+- **E2E del pasajero en el simulador** (2026-10-06, tester-army/e2e): en
+  `e2e/`, `npm run test:e2e` con Node ≥22.22.3 o ≥24.8
+  (`PATH=/opt/homebrew/opt/node@24/bin:$PATH`; el Node del sistema es 22.20).
+  Instala `app_pasajero/build/ios/iphonesimulator/Runner.app` (compilarla
+  antes con `--simulator` y el define) en el «iPhone 17» (`E2E_DEVICE` lo
+  cambia): 5 deterministas sin modelo (bienvenida, selector, ruta, menú) y
+  1 de agente con GitHub Copilot que se salta sin `npx e2e login
+  github-copilot` (lo corre el dueño). Lee el backend de la build, no
+  escribe en él.
 - Objeciones solo con código real (tgrep/import antes de afirmar).
 
 - **CI**: la cuota de Actions volvió (dueño, 2026-10-06; estuvo agotada

@@ -1,0 +1,20 @@
+{
+  "name": "ya-viene-e2e",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@ai-sdk/openai": "^4.0.84",
+    "@ai-sdk/openai-compatible": "^3.0.63",
+    "@e2e-dev/mobile": "^0.10.0",
+    "@types/node": "^26.6.4",
+    "ai": "^7.0.128",
+    "e2e": "^0.18.0",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22.22.3 <23 || >=24.8"
+  },
+  "scripts": {
+    "test:e2e": "E2E_TELEMETRY_DISABLED=1 e2e run"
+  }
+}

@@ -76,6 +76,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   (la carpeta entera; se abre `app_control.exe`).
 - **Las fichas de las tiendas** (T5.7): textos, capturas y video.
 - **El video de respaldo del pitch** (T10.4), por si el día falla la red.
+- **Entrar a Copilot para las E2E con agente**: en `YaViene/e2e`, con
+  Node 24, `npx e2e login github-copilot`. Hasta entonces esa prueba se
+  salta; las cinco deterministas corren sin login.
 - **Mirar el tráfico real un rato** para fijar el umbral de latencia de la
   alerta (T7.1).
 ## Lo que puedo hacer yo
