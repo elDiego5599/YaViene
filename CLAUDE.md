@@ -133,9 +133,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `diseno-21st`). Remotos `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
 - **`main` en el remoto** (2026-10-05, Coolitoral): app `22ad26c`, web
-  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 15
-  commits (Coolitoral por sus KMZ, prueba de fuego, CI de Windows y del APK,
-  E2E del simulador, este archivo), web 3 (prueba de fuego, source-map-js, tarjeta para
+  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 14
+  commits de código (Coolitoral por sus KMZ, prueba de fuego, CI de Windows
+  y del APK, E2E del simulador) más los de este archivo y FALTANTES, web 3 (prueba de fuego, source-map-js, tarjeta para
   compartir) y backend 5 (Coolitoral y prueba de fuego). Las ramas de
   trabajo están al día con su remoto.
 - **Verificación (2026-10-05)**: **1.731 pruebas** en total (1.698 pasan +
