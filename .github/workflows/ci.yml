@@ -278,9 +278,22 @@ jobs:
       # release cae a la firma de depuración (app/build.gradle.kts). Es a
       # propósito: la CI comprueba que compila; la APK que se entrega se
       # firma en la máquina del dueño.
+      # Lo mismo con `google-services.json` (FCM, D13): el de verdad no
+      # está en git. El plugin solo exige que exista y nombre el paquete, así
+      # que la CI compila con uno de mentira que no apunta a ningún proyecto.
       - name: APK del pasajero
         working-directory: app_pasajero
         run: |
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {"project_number": "0", "project_id": "ci-sin-firebase", "storage_bucket": "ci-sin-firebase.invalid"},
+            "client": [{
+              "client_info": {"mobilesdk_app_id": "1:0:android:0", "android_client_info": {"package_name": "com.example.ya_viene_pasajero"}},
+              "api_key": [{"current_key": "ci-sin-clave"}]
+            }],
+            "configuration_version": "1"
+          }
+          JSON
           flutter pub get
           flutter build apk --dart-define=BACKEND_URL=https://ejemplo.invalid
 
