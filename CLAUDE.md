@@ -1,18 +1,7 @@
 # YaViene — CLAUDE
 
-Este proyecto usa las skills de `mattpocock/skills` para estandarizar el flujo con Claude.
-
-## Skills activas
-- `grill-me` — interroga casos borde antes de codear. Invoca con `/grill-me` al planificar una feature grande.
-- `to-spec` / `to-tickets` — planifica features complejas (spec → tickets).
-- `code-review` — audita calidad y rendimiento.
-
-## Flujo
-1. Para feature grande de **YA VIENE**, inicia con `/grill-me`.
-2. Luego usa `to-spec` y `to-tickets` para planificar.
-3. Implementa y cierra con `code-review`.
-
-Skills instaladas en `.claude/skills/` (copia de `mattpocock/skills`). Ver `npx skills list` para todas.
+Ya Viene muestra en vivo los buses urbanos de Barranquilla y a qué
+**distancia** vienen. Tres repos, una vara: calidad de producción.
 
 ## Vara de calidad (decisión del dueño, 2026-09-27)
 Calidad de producción siempre. Que el entorno sea de prueba (ramas `prueba`,
@@ -22,149 +11,232 @@ o no se marca ☑. El plan usa `[YA]`, `[BLOQUEADA: X]`, `[DUEÑO]`,
 `[FECHA: pitch]` y `[CONTINUO]` (ver su §0.4). Lo honesto se queda: la
 etiqueta «Simulación», la flota demo y `empty-pick-bus`.
 
-## Estado (al 2026-10-02)
+## Para arrancar en frío
+1. **`FALTANTES.md`** (vive en `YaViene/FALTANTES.md`; en la raíz hay un
+   enlace): lo que queda, por grupos — espera a terceros, decide el dueño,
+   hace el dueño, puedo hacer yo, el día del pitch.
+2. Este archivo: reglas, estado y cómo se verifica.
+3. El detalle de cada tarea: fichas de `plan-remediacion.md` (raíz, sin
+   versionar; tablero en §2, fichas en §4, bloqueos en §15.B). Estados
+   vacíos/error de los 3 productos: `inventario-estados.md` (T6.7).
+4. `archivo/prompt-revision.md`: el prompt de la auditoría de ojos frescos,
+   listo para pegar en una sesión nueva.
+5. `AGENTS.md` es **historia** (rondas de agosto y septiembre, gotchas de
+   pruebas que siguen valiendo); el estado vivo está aquí y en FALTANTES.
 
-**Para arrancar en frío, primero `FALTANTES.md`** (raíz del workspace;
-vive en `YaViene/FALTANTES.md` y en la raíz hay un enlace): lo que queda,
-separado en lo que espera a terceros, lo que decide el dueño, lo que hace el
-dueño, lo que puedo hacer yo y el día del pitch. Cuando algo se cierra, se
-borra de ahí. El detalle de cada tarea sigue en las fichas de
-`plan-remediacion.md` (§4; raíz, sin versionar) y los estados vacíos/error
-de los 3 productos en `inventario-estados.md` (T6.7). En `archivo/` queda
-el prompt de la auditoría de ojos frescos y `build-demo.sh`. Los reportes y
-las revisiones, los prompts viejos y los `docs/` de agosto se borraron el
-2026-10-02 (los rastreados siguen en la historia de git). El estado
-diario y las reglas de trabajo están en `AGENTS.md`.
+## Cómo se trabaja: skills y herramientas
+Skills del workspace en `.claude/skills/` (copia de `mattpocock/skills` y
+otras) y del usuario en `~/.claude/skills/`. Se invocan con la herramienta
+Skill; la tabla dice cuándo.
 
-- **NO es monorepo**: `YaViene/YaViene` (Flutter, rama `diseno-21st`),
-  `YaVieneBackend` (rama `prueba`), `YaVieneWeb` (rama `diseno-21st`). Remotos
-  `elDiego5599/*`. Nunca usar el backend duplicado
+| Cuándo | Skill / herramienta |
+|---|---|
+| Siempre, en todo lo que se escribe | **`ponytail`** (nivel full): escalera YAGNI — ¿hace falta?, ¿ya existe aquí?, stdlib, plataforma, dependencia instalada, una línea, y solo entonces lo mínimo. **Nunca** recorta validación en fronteras, manejo de errores que evita pérdida de datos, seguridad ni accesibilidad. Bug = causa raíz en la función compartida, no parche por llamador. |
+| Feature grande | `grill-me` (o `grill-with-docs`) → `to-spec` → `to-tickets` → `implement` / `implement-spec` |
+| Toda lógica nueva o bug | **`tdd`**: la prueba primero, roja, y luego verde. Sin roja no hay ☑ |
+| Algo falla y no se sabe por qué | `systematic-debugging` / `diagnosing-bugs`: reproducir, aislar, causa raíz antes de tocar |
+| Antes de cerrar un cambio | `code-review` + `ponytail-review` (diff) ; `ponytail-audit` / `ponytail-debt` para pasadas grandes |
+| Seguridad (auth, entradas, secretos, CORS, socket, MQTT, permisos) | **`security-and-hardening`**: validar en la frontera, mínimo privilegio, secretos fuera del código y de los logs |
+| UI (app, panel, web) | `frontend-design`, `high-end-visual-design`, `redesign-existing-projects`; en Flutter, `flutter-animations` y `flutter-verify`. Todo juicio visual **medido** (contraste WCAG calculado, px/pt, radios), nunca a ojo. `image-to-code` / `imagegen-frontend-mobile` solo para referencias |
+| Arquitectura | `codebase-design`, `improve-codebase-architecture`, `domain-modeling` |
+| Antes de una build que se entrega | `release-preflight` |
+| Pasar a otra sesión | `handoff` / `claude-handoff`, o el prompt de `archivo/prompt-revision.md` para auditar |
+| Orientarse en el código | **graphify** (`~/.local/bin/graphify`): `graphify query "pregunta"`, `explain "Nodo"`, `path "A" "B"`, `affected "X"`, `god-nodes`, con `--graph <repo>/graphify-out/graph.json`. Tras cambios grandes: `graphify update <repo>` (sin LLM). Es **brújula, nunca evidencia**: toda afirmación se verifica en el código. `graphify-out/` está ignorado en los 3 repos: no se commitea. No correr `graphify install` |
+| Buscar texto en el código | **`tgrep "patrón" <ruta> --no-index`** (ver reglas de trabajo) |
+
+## Reglas de trabajo (no negociables)
+1. **Búsquedas solo con `tgrep "patrón" <ruta> --no-index`** (`~/.cargo/bin`,
+   v1.0.5). `grep` está aliasado a `ugrep` y está **prohibido**, igual que
+   `command grep` y `rg`. `tgrep` no lee de una tubería: para filtrar una
+   salida, `python3`.
+2. **A `main` solo por lotes, cuando el dueño lo pida** (dueño, 2026-10-05):
+   cada push a `main` gasta minutos de Actions. Se trabaja y se sube a
+   `diseno-21st` (app, web) y `prueba` (backend); ahí se acumula. La CI de
+   una rama de trabajo se lanza a mano («Run workflow»), solo si hace falta.
+3. **Secretos**: nunca imprimir `local.env` (solo los nombres de sus
+   claves), `key.properties` (no se lee), `google-services.json`,
+   `GoogleService-Info.plist`, el keystore, el PIN ni ningún token (ngrok
+   incluido). Para comparar: igualdad, longitud o enmascarado. `gitleaks`
+   solo con `--redact`. Nunca escribo claves ni contraseñas: los logins los
+   hace el dueño.
+4. **La cuenta de prueba de flota** (usuario y contraseña se piden, no se
+   escriben) no se usa contra la GUI ni la API, no va en scripts ni en la
+   CI; no se mandan correos de recuperación.
+5. **Nada de despliegues** (ni Fly ni túnel) y **el backend vivo no se
+   toca** salvo para aplicar un cambio ya probado: `npm run build` y
+   `launchctl kickstart -k gui/$UID/com.yaviene.backend`, y luego
+   `curl localhost:3000/api/ready`. Las pruebas usan bases temporales y
+   puertos propios (comprobar antes que nadie contesta en ese puerto).
+6. No matar el puerto **8091** (dev de la web) ni tocar `~/.zshrc`. **No
+   subir `maplibre_gl`**: está fijado a propósito.
+7. **`FALTANTES.md` al día** (dueño, 2026-10-02): todo pendiente nuevo entra
+   en su grupo y todo lo cerrado sale, **en el mismo commit**. «Lo que
+   puedo hacer yo» va primero, hasta vaciarlo.
+8. Commits en español, que digan qué cambia y por qué, terminados en
+   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Nada de
+   `--no-verify` ni de reescribir historia publicada.
+9. **Objeciones solo con código real**: `tgrep` o el import antes de
+   afirmar; citar `archivo:línea`.
+10. Goldens: si uno falla, se entiende por qué antes de regenerar; un
+    `--update-goldens` que tapa una regresión es un defecto.
+11. Los 20 literales de UI blindados por pruebas espejo (T6.5) y los estados
+    de `inventario-estados.md` no se cambian para «arreglar» una prueba.
+12. Mutaciones: la prueba de fuego (abajo) se corre sobre lo que se toca; una
+    mutación que sobrevive es una prueba roja→verde nueva o código muerto
+    fuera.
+13. `dart format` solo en los archivos tocados, nunca en carpetas enteras.
+14. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad
+    de texto posible, salvo que el dueño pida detalle.
+
+## Reglas del producto (no negociables)
+1. Logo intocable.
+2. GPS = hardware en el bus; frase a preservar: `empresas.html:110-111`.
+   No hay app de conductor y no se propone ninguna.
+3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo
+   respaldo, no se despliega hasta un día antes de presentar; nada de
+   cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en
+   `archivo/`).
+4. `app_control` (panel) solo macOS + Windows.
+5. Sin modo oscuro; mapa CARTO Voyager; **distancia, no ETA**.
+6. Solo teléfonos; el bloqueo vertical se queda.
+7. Cambio en la app → build Android **e** iOS con
+   `--dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.dev`
+   (sin el define la APK explota: `config.dart` lanza StateError). Después,
+   build y launch en el iOS Simulator para que el dueño lo vea.
+8. Solape del hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`,
+   trío 360px, sangrado 0.14).
+9. Gitignore: `google-services.json`, `key.properties`,
+   `upload-keystore.jks`.
+10. Aviso de la landing SIN placa ni ruta («Tu bus está cerca de ti»); app
+    CON ruta, sin placa ni distancia («Tu bus de la ruta X está cerca de
+    ti», dueño 2026-10-02) — no unificar.
+11. Los mockups web espejan Dart con comentarios que justifican cada número;
+    cambio nuevo trae su comentario.
+12. El estado vacío `empty-pick-bus` es intencional, no se «arregla».
+13. D3: el pasajero no tiene cuenta. Firebase en el pasajero existe solo
+    para los avisos con la app cerrada (D13, FCM, solo Android).
+14. Máximo 2 avisos activos; sin estado «va pasando»; la guía no se
+    reanuda sola tras un cierre a medias.
+15. Las decisiones D1–D14 (`YaVieneBackend/docs/decisiones/`) también son
+    reglas. D2 (el equipo GPS) espera la respuesta del AMB a la PQRS.
+16. Coolitoral está en la app para que no quede solo Sobusa (dueño,
+    2026-10-06): no hay nada pendiente con ellos.
+
+## Estado (al 2026-10-06)
+- **NO es monorepo**: `YaViene/YaViene` (Flutter: `app_pasajero`,
+  `app_control`, `ya_viene_core`, `ya_viene_pruebas`; rama `diseno-21st`),
+  `YaVieneBackend` (Node/TS; rama `prueba`) y `YaVieneWeb` (Vite/TS; rama
+  `diseno-21st`). Remotos `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
-- **`main` al día en el remoto** (2026-10-01): app `05c5d79`, web `6e7f63d`
-  y backend `ad5254a` (más el commit de este `CLAUDE.md` encima), los tres
-  por avance rápido desde `diseno-21st` / `prueba`. Traen T5.6 (texto
-  grande y giro), T6.8 (glosario), T7.7 (Lighthouse móvil en presupuesto,
-  web), T7.1 en su parte web y con los números del backend, T10.5 b y d
-  (simulacros contra un backend temporal, `tool/simulacros.sh`, y
-  `zonaSocket()` en core) y T10.3 (`check-demo.sh` por grupos). Antes
-  (2026-09-29, tarde): app `ed52e56`, web `572be9c` y backend `f62d3b1`,
-  con la revisión del 2026-09-29: P1-2 sin
-  falso verde y la suite inmune a `YA_VIENE_EXPUESTO`/`NODE_ENV` (backend),
-  `start-test.sh` borrado, responsable y derechos de la Ley 1581 en la
-  privacidad (web y app, sin subir `kLegalVersion`) con la autorización
-  del formulario de empresas, ACC-01 (el lector anuncia la ruta) y las dos
-  E2E inestables arregladas. Antes, la misma mañana: app `74bf864`, web
-  `33338f9` y backend `1171b57` (ronda «auditoría 2026-09» de la nube y
-  privacidad v3). Antes (2026-09-28): app `99c0a07`, web `6acb895` y backend `a1fc70f`. Los 21 archivos sueltos del backend eran
-  T3.4 + T9.3 y las pruebas R-05/06/07 del lote 3, cerradas en el plan pero
-  nunca commiteadas: revisadas (200/200, también con la siembra en 0; 8
-  rojas con el `src` viejo) y subidas (`83a93f1`, `1055885`, `a1fc70f`).
-  Este `CLAUDE.md` vuelve a estar versionado en `main` (dueño,
-  2026-09-29) para que las sesiones en la nube lean las reglas; no lleva
-  secretos ni valores de cuentas, y así se queda.
-- **Verificación (2026-10-05)**: **1.731 pruebas** en total
-  (1.698 pasan + 33 saltadas: 29 de Playwright y los 3 simulacros, que
-  corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte,
-  las 50 de `npm run test:aforo` (Python; 6 se saltan sin torch). Web:
-  `npm run typecheck` limpio (3 configs), **310 en Vitest** y el trinquete de
-  cobertura 98 / 90 / 100 / 99 (`vite.config.ts`) **en verde** con
-  98,8 / 92,1 / 100 / 99,9 (estuvo en rojo desde `33338f9` hasta el
-  2026-09-30: `npm test` no lo mide, `npm run test:cobertura` sí); Playwright **153 pasadas + 29 saltadas**
-  (estables: `movimiento.spec.ts` y `isla.spec.ts` pasaron 40 de 40 con 5
-  hilos); presupuestos dist
-  774,9/797 (**97 %**), JavaScript 59,1/66 (90 %), CSS 117,8/121 (**97 %**) y
-  primera visita 463,4/560 (83 %) — dist y CSS casi sin margen: todo cambio web
-  mide antes de sumar. Antes de correr Playwright, matar el puerto:
-  `lsof -ti tcp:4174 | xargs -r kill -9` — un servidor viejo sirve una
-  build vieja y las pruebas mienten.
-- **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra
-  al repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
+- **`main` en el remoto** (2026-10-05, Coolitoral): app `22ad26c`, web
+  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 14
+  commits (Coolitoral por sus KMZ, prueba de fuego, CI de Windows y del APK,
+  E2E del simulador), web 3 (prueba de fuego, source-map-js, tarjeta para
+  compartir) y backend 5 (Coolitoral y prueba de fuego). Las ramas de
+  trabajo están al día con su remoto.
+- **Verificación (2026-10-05)**: **1.731 pruebas** en total (1.698 pasan +
+  33 saltadas: 29 de Playwright y los 3 simulacros, que corren con
+  `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
+  50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
+  simulador.
+- **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 575 + 1, pruebas
+  13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
+  `integration_test` en el panel). Aparte, la E2E del panel de escritorio
+  contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el
+  llavero va en memoria). Contrato con el backend:
+  `tool/sincronizar-contrato.sh` (y `--comprobar`) tras
+  `npm run contrato:actualizar` en el backend.
+- **Backend**: 281 pruebas con `npm test` (también con
+  `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production`:
+  `tests/entorno.ts` fija la siembra y borra las dos guardias),
+  `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
+  `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
+- **Web**: `npm run typecheck` limpio (3 configs), **310 en Vitest**,
+  cobertura 98,8 / 92,1 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
+  (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
+  Playwright **153 + 29 saltadas**. Presupuestos: dist 774,9/797 (**97 %**),
+  JS 59,1/66, CSS 117,8/121 (**97 %**), primera visita 463,4/560 — dist y
+  CSS casi sin margen: todo cambio web se mide antes de sumarlo.
+- **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra al
+  repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
   privacidad y términos 1,65; CLS 0, TBT ≤ 35 ms. `e2e/vitales.spec.ts`
   vigila el marcado que lo hace posible.
-- **Backend**: 281 pruebas en verde (2026-10-05; también con `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production` en el entorno: `tests/entorno.ts` fija la siembra y borra las dos guardias) con `npm test`, `npx tsc --noEmit`
-  limpio. Las pruebas usan bases temporales y puertos propios; el backend
-  vivo y ngrok no se tocan.
-- **Documentación del backend** en `YaVieneBackend/docs/`: `arquitectura.md`
-  (por dónde pasa una posición), `integracion-gps.md` (el contrato del equipo
-  del bus), `runbook.md` (qué hacer cuando algo se cae) y `decisiones/` (D1–D14
-  con índice; D13: avisos con la app cerrada por FCM, solo Android; D14:
-  buzón de problemas y sugerencias, que llega al Gmail del equipo). `tests/doc_gps.test.ts` y `tests/docs_enlaces.test.ts` las atan
-  al código: si el código cambia y el documento no, la suite lo dice.
-- **Prueba de fuego** (2026-10-05, mutaciones): app `dart tool/prueba_de_fuego.dart`
-  (`--solo=n,m`; lista en `tool/prueba-de-fuego.json`), web `npm run fuego`,
-  backend `npm run fuego`; las tres se niegan a correr con lo mutado sin commitear y
-  una prueba de cada suite ata su lista al código. Mutación que sobrevive =
-  prueba roja→verde o código muerto fuera.
+- **Prueba de fuego** (mutaciones, 2026-10-05): app
+  `dart tool/prueba_de_fuego.dart` (`--solo=n,m`; lista en
+  `tool/prueba-de-fuego.json`), web y backend `npm run fuego`. Las tres se
+  niegan a correr con lo mutado sin commitear y una prueba de cada suite
+  ata su lista al código.
 - **E2E del pasajero en el simulador** (2026-10-06, tester-army/e2e): en
-  `e2e/`, `npm run test:e2e` con Node ≥22.22.3 o ≥24.8
-  (`PATH=/opt/homebrew/opt/node@24/bin:$PATH`; el Node del sistema es 22.20).
-  Instala `app_pasajero/build/ios/iphonesimulator/Runner.app` (compilarla
-  antes con `--simulator` y el define) en el «iPhone 17» (`E2E_DEVICE` lo
-  cambia): 5 deterministas sin modelo (bienvenida, selector, ruta, menú) y
-  1 de agente con GitHub Copilot que se salta sin `npx e2e login
-  github-copilot` (lo corre el dueño). Lee el backend de la build, no
-  escribe en él.
-- Objeciones solo con código real (tgrep/import antes de afirmar).
-
-- **CI**: la cuota de Actions volvió (dueño, 2026-10-06; estuvo agotada
-  desde el 2026-09-19). La CI corre solo en `main` (+ a mano); en YaViene
-  `compilar-apple` es solo a mano y Android/Windows a mano y los martes; a
+  `YaViene/e2e`, `npm run test:e2e` con Node ≥22.22.3 o ≥24.8
+  (`PATH=/opt/homebrew/opt/node@24/bin:$PATH`; el Node del sistema es 22.20
+  y se queda). Instala `app_pasajero/build/ios/iphonesimulator/Runner.app`
+  (compilarla antes con `--simulator` y el define) en el «iPhone 17»
+  (`E2E_DEVICE` lo cambia): 5 deterministas sin modelo (bienvenida,
+  selector, ruta, menú). La sexta, con agente de GitHub Copilot, queda
+  saltada: el dueño decidió no iniciar sesión (2026-10-06). Lee el backend
+  de la build, no escribe en él.
+- **Documentación del backend** en `YaVieneBackend/docs/`:
+  `arquitectura.md`, `integracion-gps.md`, `runbook.md`,
+  `contingencia-pitch.md` y `decisiones/` (D1–D14 con índice; D13: avisos
+  con la app cerrada por FCM, solo Android; D14: buzón de problemas y
+  sugerencias, que llega al Gmail del equipo). `tests/doc_gps.test.ts` y
+  `tests/docs_enlaces.test.ts` las atan al código.
+- **CI**: la cuota de Actions volvió (2026-10-06). Corre sola solo en `main`; en YaViene
+  `compilar-apple` es solo a mano y Android/Windows a mano y los martes. A
   mano con `backend_url`, el panel de Windows queda como artefacto
-  `panel-windows`.
-- **Rama `diseno-21st`** (2026-09-27, app y web, sin push): cifra viva en la
-  distancia de la hoja, filas del selector escalonadas (app + espejo web),
-  reloj en el segundo, «Último reporte» y velocidad en grande en la ficha
-  del bus (control), cinta de empresas con logos nítidos y filos blancos
-  (portada + empresas), cabecera de la app en los tres teléfonos de los
-  pasos (web `9529625`), «Agregar ruta» junto a las rutas y pestañas de
-  estado segmentadas en el panel (sin desbordes de 1600 a 1200, `747ba8d`),
-  terminales de la ruta activa enteros en el menú (`07c6cf3`), la hoja
-  del selector conserva su alto y la fila de empresa/ruta mide como la
-  tarjeta del paso (app `a301675`, web `7954242`); panel sin conductor ni
-  chip de ruta, mapa acotado (60 km, zoom ≥ 11) y login partido con
-  «¿Olvidaste tu contraseña?» → WhatsApp del equipo (app `eeb75ec`), con el
-  filo de la referencia y el degradado del 404 #17325F→#00A859 (`f219c2d`); en el panel el azul pasa de
-  tinta a #17325F e INGRESAR va verde (prueba del dueño, `bc78100`);
-  el eléctrico #2563EB se probó y no gustó (`a28e448`): los botones llenos
-  van en #1E56A8 (`AppColors.acento` / `boton`, opción D) y nada más;
-  íconos y texto siguen en su azul (`8f542c1`); también el filtro y la
-  pestaña activos del panel (`ecc135b`) y en la web `--azul-boton`: botón
-  del teléfono y panel dibujado (`031a14a`); «Qué resuelve» volvió a su
-  rojo, términos y privacidad llevan la isla y el pie del sitio con título
-  «Ya Viene Términos/Privacidad», y la ruta del mapa va verde sobre orla
-  blanca como «El producto» en el teléfono de la web (`4af2267`) y en el
-  pasajero (`EstiloRuta`, app `0c7cf4d`); los pasos de «Cómo funciona»
-  ruedan en vertical al bajar (≥1024 px, sin GSAP: `--paso-giro` en
-  pasos.css, web `6acb895`; la órbita `a0b77d4` no gustó; tope CSS 117→121);
-  retoque visual del panel (app `b275c7f`): filas planas, carril de
-  estados, barra de flota de 48, mapa redondeado, «Agregar bus» de 36 y
-  ventana mínima 1200×700 (`ventanaMinima`, `estilo_panel_test.dart`); «Recordar contraseña» en la entrada del panel
-  (Llavero clásico: con la firma «ad hoc» el de protección de datos da
-  -34018 y no guardaba ni la sesión; `f8345f6`, `ef50aaa`); aviso del
-  pasajero anclado donde se armó (no sigue al pin), «Escoge empresa y ruta»
-  tocable → selector, y ventanas propias en todo: `Dialogo`/`AvisoTarjeta`
-  (pasajero), `Ventana`/`AvisoPanel`/`confirmarBorrado` (panel,
-  `core/widgets/ventana.dart`), globos de ayuda con tema; guardas en
-  `avisos_propios_test.dart` y `ventanas_propias_test.dart` prohíben
-  `AlertDialog`/`showDialog`/`SnackBar` de fábrica (`a63771c`, en `main`);
-  el ícono de «Escoge empresa y ruta» sigue gris: el verde no gustó
-  (`99c0a07`).
-- **Flutter** (2026-10-05): core 94, panel 272 + 3 saltadas, pasajero 575 + 1, pruebas 13; aparte, la E2E del panel de escritorio contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el llavero va en memoria). Analyze: línea
-  base **0 infos** con `flutter analyze --fatal-infos lib test` en los tres (y `integration_test` en el panel)
-  (T8.3, `2b0a192`; las «40 infos» de `AGENTS.md` son historia). Contrato con el backend: `tool/sincronizar-contrato.sh` (y
-  `--comprobar`) tras `npm run contrato:actualizar` en el backend. El
-  backend vivo corre bajo launchd (`com.yaviene.backend`): tras cambiarlo,
-  `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
+  `panel-windows`. El APK de la CI compila con un `google-services.json` de
+  mentira. Falta `BACKEND_REPO_TOKEN` (del dueño) para el contrato y el
+  socket del panel en CI.
 
-## Reglas del usuario (no negociables, resumen)
-1. Logo intocable. 2. GPS = hardware en buses; frase a preservar: `empresas.html:110-111` (el GPS va en el bus; no hay app de conductor y no se propone ninguna). 3. ngrok primario (`occupy-shed-squatter.ngrok-free.dev`); Fly solo respaldo, no desplegar hasta un día antes de presentar; nada de cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en `archivo/`). 4. `app_control` solo macOS+Windows. 5. Sin modo oscuro; mapa CARTO Voyager; distancia, no ETA. 6. Solo móviles (bloqueo vertical se queda). 7. Cambios en app → build Android **e** iOS con `--dart-define=BACKEND_URL=...` (sin el define la APK explota: `config.dart` lanza StateError). 8. Solape hero congelado (`--lado: tel*0.93`, `--solape: lado*0.16`, trío 360px, sangrado 0.14). 9. La cuenta de prueba de flota (usuario y contraseña se piden, no se escriben): nunca en GUI ni API desde aquí; no mandar correos de recuperación. 10. Gitignore: `google-services.json`, `key.properties`, `upload-keystore.jks`. 11. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad de texto posible, salvo que el usuario pida detalle. 12. Aviso landing SIN placa ni ruta («Tu bus está cerca de ti»); app CON ruta, sin placa ni distancia («Tu bus de la ruta X está cerca de ti», dueño 2026-10-02) — no unificar. 13. Mockups web espejan Dart con comentarios que justifican cada número; cambio nuevo trae su comentario. 14. Estado vacío `empty-pick-bus` es intencional, no "arreglar". 15. `FALTANTES.md` se mantiene al día (dueño, 2026-10-02): todo pendiente nuevo entra en su grupo y todo lo que se cierra sale, en el mismo commit que lo cierra. Lo de «Lo que puedo hacer yo» va primero, hasta dejar ese grupo vacío. 16. A `main` solo por lotes, cuando el dueño lo pida (dueño, 2026-10-05): cada push a `main` gasta minutos de Actions. Los cambios se suben a `diseno-21st` (app, web) y `prueba` (backend) y ahí se acumulan.
+## Decisiones de diseño vigentes (rama `diseno-21st`)
+- **Color**: botones llenos en #1E56A8 (`AppColors.acento` / `boton`; en la
+  web `--azul-boton`); íconos y texto siguen en su azul. El eléctrico
+  #2563EB se probó y no gustó (`a28e448`). Degradado del 404 y del login del
+  panel #17325F→#00A859. En el panel la tinta es #17325F e INGRESAR va
+  verde. El ícono de «Escoge empresa y ruta» va gris (el verde no gustó).
+- **Ruta del mapa** verde sobre orla blanca, igual en la web («El producto»)
+  y en el pasajero (`EstiloRuta`).
+- **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
+  `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
+  `core/widgets/ventana.dart`). `avisos_propios_test.dart` y
+  `ventanas_propias_test.dart` prohíben `AlertDialog`, `showDialog` y
+  `SnackBar` de fábrica.
+- **Pasajero**: cifra viva en la distancia de la hoja; filas del selector
+  escalonadas (con espejo en la web); la hoja del selector conserva su alto;
+  aviso anclado donde se armó (no sigue al pin); «Escoge empresa y ruta»
+  abre el selector.
+- **Panel**: sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
+  login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
+  filas planas, carril de estados, barra de flota de 48, «Agregar bus» de
+  36, ventana mínima 1200×700 (`ventanaMinima`); «Recordar contraseña» con
+  el Llavero clásico (con la firma «ad hoc» el de protección de datos da
+  -34018).
+- **Web**: los pasos de «Cómo funciona» ruedan en vertical al bajar
+  (≥1024 px, sin GSAP, `--paso-giro` en `pasos.css`; la órbita no gustó);
+  «Qué resuelve» en su rojo; términos y privacidad con la isla y el pie
+  «Ya Viene Términos/Privacidad».
 
-## Verificación web (tras cada cambio)
-`npm run typecheck` + `npm test` (**310**) + `npm run test:cobertura` + Playwright sin pageerror (**153 + 29 saltadas**, última corrida 2026-10-05) + `node scripts/presupuesto.mjs`. Dev: `npm run dev` en puerto **8091**. E2E corre contra build propia en 4174.
-
-## Búsqueda de código
-- **`grep` está aliasado a `ugrep`: no usarlo.** Usar `tgrep "patrón" <ruta> --no-index` (instalado en `~/.cargo/bin`, v1.0.5, en PATH).
+## Verificación tras cada cambio
+- **Web**: `npm run typecheck` + `npm test` + `npm run test:cobertura` +
+  Playwright sin pageerror + `node scripts/presupuesto.mjs`. Antes de
+  Playwright: `lsof -ti tcp:4174 | xargs -r kill -9` (un servidor viejo
+  sirve una build vieja y las pruebas mienten). Dev en el puerto **8091**;
+  la E2E corre contra su propia build en el 4174.
+- **Flutter**: `flutter analyze --fatal-infos lib test` y `flutter test` en
+  el paquete tocado (y en los que dependen de `ya_viene_core` si se toca el
+  core); goldens sin regenerar.
+- **Backend**: `npm test` + `npx tsc --noEmit`; si cambia el contrato,
+  `npm run contrato:actualizar` y `tool/sincronizar-contrato.sh` en la app.
+- Lo que se toca pasa además por su prueba de fuego.
 
 ## Trampas del entorno
-- Bash reinicia `cwd` si el comando trae `cd`: encadenar en una línea. `sleep` en primer plano bloqueado (usar `python3 -c "import time;time.sleep(N)"`). Timeouts: `flutter test` ≥300s, APK ~900s, iOS ~1800s.
-- Panel del navegador oculto congela animaciones CSS (leer computado con `transition='none'`). La landing intercepta scroll (`scrollTo`/`scrollIntoView` no mueven `scrollY` en el panel; en Playwright sí sirven). `preview_start` con `name:` falla (levanta Vite a mano). `computer zoom` no sirve; usar `read_page`/texto/`getBoundingClientRect`.
+- Bash reinicia el `cwd` si el comando trae `cd`: encadenar en una línea.
+  `sleep` en primer plano está bloqueado: `python3 -c "import
+  time;time.sleep(N)"`. Timeouts: `flutter test` ≥ 300 s, APK ~900 s, iOS
+  ~1800 s; una build cortada no es una build fallida.
+- Panel del navegador oculto congela las animaciones CSS (leer lo computado
+  con `transition='none'`). La landing intercepta el scroll (`scrollTo` /
+  `scrollIntoView` no mueven `scrollY` en el panel; en Playwright sí).
+  `preview_start` con `name:` falla (levantar Vite a mano). `computer zoom`
+  no sirve: usar `read_page`, el texto o `getBoundingClientRect`.
+- Con varios simuladores de iOS encendidos hay que nombrar uno (UDID).
