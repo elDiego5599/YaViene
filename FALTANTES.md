@@ -3,7 +3,7 @@
 Al 2026-10-06. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
 está hecho y subido a las ramas de trabajo (`diseno-21st` en app y web,
 `prueba` en el backend); a `main` se sube por lotes cuando lo pidas
-(regla 16 de `CLAUDE.md`). Lo que queda está repartido según
+(regla de trabajo 2 de `CLAUDE.md`). Lo que queda está repartido según
 de quién depende. Cuando algo se cierre, se borra de aquí; cuando aparezca
 algo nuevo, se apunta en su grupo.
 
@@ -40,6 +40,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
+- **El worktree viejo** `YaViene/.claude/worktrees/elated-engelbart-65fca7`
+  (2026-09-11, `4e948c6` suelto): duplica archivos en `tgrep` y `find`.
+  Con tu sí lo quito con `git worktree remove`.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a

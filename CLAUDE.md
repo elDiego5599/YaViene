@@ -27,7 +27,11 @@ etiqueta «Simulación», la flota demo y `empty-pick-bus`.
 ## Cómo se trabaja: skills y herramientas
 Skills del workspace en `.claude/skills/` (copia de `mattpocock/skills` y
 otras) y del usuario en `~/.claude/skills/`. Se invocan con la herramienta
-Skill; la tabla dice cuándo.
+Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
+(`grill-me`, `grill-with-docs`, `to-spec`, `to-tickets`, `implement`,
+`implement-spec`, `improve-codebase-architecture`, `handoff`,
+`claude-handoff`) solo las lanza el dueño con `/nombre`; Claude lee su
+`SKILL.md` y sigue el método.
 
 | Cuándo | Skill / herramienta |
 |---|---|
@@ -129,14 +133,14 @@ Skill; la tabla dice cuándo.
   `diseno-21st`). Remotos `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
 - **`main` en el remoto** (2026-10-05, Coolitoral): app `22ad26c`, web
-  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 14
+  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 15
   commits (Coolitoral por sus KMZ, prueba de fuego, CI de Windows y del APK,
-  E2E del simulador), web 3 (prueba de fuego, source-map-js, tarjeta para
+  E2E del simulador, este archivo), web 3 (prueba de fuego, source-map-js, tarjeta para
   compartir) y backend 5 (Coolitoral y prueba de fuego). Las ramas de
   trabajo están al día con su remoto.
 - **Verificación (2026-10-05)**: **1.731 pruebas** en total (1.698 pasan +
-  33 saltadas: 29 de Playwright y los 3 simulacros, que corren con
-  `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
+  33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
+  que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
   simulador.
 - **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 575 + 1, pruebas
