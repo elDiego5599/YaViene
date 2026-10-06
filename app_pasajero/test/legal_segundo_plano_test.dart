@@ -76,8 +76,30 @@ void main() {
       // de esta tarea.
       // 3: la app cerrada del todo ya no sigue (29 de septiembre de 2026).
       // 4: el aviso de Android deja su punto en el servidor (2 de octubre).
-      expect(kLegalVersion, greaterThanOrEqualTo(4));
-      expect(legalPrivacidad.updated, '2 de octubre de 2026');
+      // 5: la distancia del aviso la elige la persona y viaja con el punto
+      //    (6 de octubre).
+      expect(kLegalVersion, greaterThanOrEqualTo(5));
+      expect(legalPrivacidad.updated, '6 de octubre de 2026');
+    });
+  });
+
+  // La distancia del aviso la elige la persona, de 500 m a 3 km (dueño,
+  // 2026-10-06). El documento decía «un kilómetro a la redonda» y que con el
+  // punto solo iban el bus, la ruta y el código de Firebase: las dos frases
+  // dejaron de ser ciertas.
+  group('la privacidad y la distancia del aviso', () {
+    test('dice que el aviso suena a la distancia que elijas', () {
+      final texto = textoDe(legalPrivacidad);
+      expect(texto, contains('a la distancia que elijas'));
+      expect(texto, contains('de 500 metros a 3 kilómetros'));
+      expect(texto, isNot(contains('un kilómetro a la redonda')));
+    });
+
+    test('dice que esa distancia va al servidor con el punto', () {
+      expect(
+        textoDe(legalPrivacidad),
+        contains('la distancia a la que pediste que te avise'),
+      );
     });
   });
 

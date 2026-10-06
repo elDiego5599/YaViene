@@ -14,6 +14,7 @@ import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
+import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/map_view_state.dart';
@@ -22,6 +23,7 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 import 'map_recenter_button.dart';
+import 'rueda_distancia.dart';
 import 'sena_tocar_bus.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
@@ -85,8 +87,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   Timer? _refreshTimer;
 
   /// Histéresis del bloqueo del aviso: una vez bloqueado (bus sin señal o
-  /// dentro del radio), permanece bloqueado hasta que el bus se aleje más de
-  /// `alertReArmMeters`. Evita que el cruce de umbrales por el movimiento del
+  /// dentro del radio), permanece bloqueado hasta que el bus se aleje
+  /// [margenRearmeMetros] más allá del radio, el mismo margen con el que el
+  /// aviso se rearma. Evita que el cruce de umbrales por el movimiento del
   /// bus haga flapear el botón (y la guía) entre bloqueado/desbloqueado.
   bool _blockedLatched = false;
   String? _latchedBusId;
@@ -171,8 +174,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico,
   /// aviso o ventana.
   Future<void> _toggleAlert(String busId) async {
-    final result = await ref.read(alertToggleProvider).toggle(busId);
-    if (!mounted) return;
+    final result = await ref
+        .read(alertToggleProvider)
+        .toggle(busId, elegirDistancia: () => elegirDistanciaAviso(context));
+    // Cerró la rueda sin elegir: no pidió nada, no hay nada que decirle.
+    if (!mounted || result.outcome == AlertToggleOutcome.cancelled) return;
     if (result.needsHaptic) HapticFeedback.mediumImpact();
     final message = result.message;
     if (message != null) {
@@ -223,16 +229,32 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);
   }
 
+  /// A qué distancia sonaría el aviso de [busId]: la del aviso que ya suena
+  /// (puede ser de «Solo esta vez»), si no la guardada y, sin ninguna, el
+  /// kilómetro donde arranca la rueda. Es la que dice la fila «Cambiar» y la
+  /// que parte el color de la cifra.
+  int _radioDe(String busId) =>
+      ref.read(proximityAlertsProvider.notifier).radioDe(busId) ??
+      ref.watch(distanciaAvisoProvider) ??
+      distanciaAvisoInicial;
+
+  /// Dentro de qué distancia el bus ya está demasiado cerca para armar el
+  /// aviso: la guardada o, sin ninguna, la menor de la rueda —con el bus a
+  /// 800 m todavía se puede pedir el aviso de 500 m—. Es la misma cuenta
+  /// que hace [AlertToggleController] antes de abrir la rueda.
+  int get _radioBloqueo =>
+      ref.watch(distanciaAvisoProvider) ?? distanciaAvisoMinima;
+
   /// El bus ya está dentro del radio de aviso: no se puede activar la alerta.
   bool _busAlreadyNear(BusPosition? bus) {
     final distance = _distanceToBus(bus);
-    return distance != null && distance <= alertRadiusMeters;
+    return distance != null && distance <= _radioBloqueo;
   }
 
   /// Histéresis del bloqueo: una vez bloqueado, sigue bloqueado hasta que el
-  /// bus se aleje más de `alertReArmMeters` (el movimiento del bus o el GPS
-  /// cruzando el radio no debe hacer flapear el botón ni la guía). Se reinicia
-  /// automáticamente al cambiar de bus.
+  /// bus se aleje más de [margenRearmeMetros] por fuera del radio (el
+  /// movimiento del bus o el GPS cruzando el radio no debe hacer flapear el
+  /// botón ni la guía). Se reinicia automáticamente al cambiar de bus.
   bool _applyBlockedHysteresis(
       String busId, bool liveBlocked, double? distance) {
     if (_latchedBusId != busId) {
@@ -240,10 +262,32 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       _blockedLatched = liveBlocked;
     } else if (liveBlocked) {
       _blockedLatched = true;
-    } else if (distance != null && distance > alertReArmMeters) {
+    } else if (distance != null &&
+        distance > _radioBloqueo + margenRearmeMetros) {
       _blockedLatched = false;
     }
     return _blockedLatched;
+  }
+
+  /// «Cambiar»: la rueda en la distancia de ahora. Lo elegido queda guardado
+  /// y, si este bus tiene el aviso puesto, el aviso pasa a sonar ahí
+  /// (dueño, 2026-10-06: «cambia también el activo»).
+  Future<void> _cambiarDistancia(String busId, int actual) async {
+    final elegida = await elegirDistanciaAviso(
+      context,
+      inicial: actual,
+      primeraVez: false,
+      avisoActivo: ref.read(activeAlertsProvider).contains(busId),
+    );
+    if (elegida == null || !mounted) return;
+    HapticFeedback.selectionClick();
+    // Sin aviso armado para este bus no hace nada: no arma ninguno.
+    ref
+        .read(proximityAlertsProvider.notifier)
+        .cambiarRadio(busId, elegida.metros);
+    await ref.read(distanciaAvisoProvider.notifier).guardar(elegida.metros);
+    // El radio del aviso no es estado de Riverpod: el cuadro se pide aquí.
+    if (mounted) setState(() {});
   }
 
   void _publishMapInset([double? forcedInset]) {
@@ -615,8 +659,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // falta para decidir si mueve el pin o cambia de ruta.
     final routeDistance =
         route == null ? null : ref.watch(routeDistanceToUserProvider(route.id));
-    final routeTooFar =
-        routeDistance != null && routeDistance > alertMaxRouteDistanceMeters;
+    final routeTooFar = routeDistance != null &&
+        routeDistance > ref.watch(distanciaMaximaDeRutaProvider);
 
     final String stateKey;
     final String title;
@@ -769,21 +813,42 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // la limpieza) → volvemos al estado "toca un bus", no a un bus fantasma.
     if (bus == null) return _buildEmptyState(buses);
 
-    // El bus ya está dentro del radio de aviso (≤1000 m): no se puede activar.
+    // El bus ya está dentro de la distancia del aviso: no se puede activar.
     final alreadyNear = !isActive && _busAlreadyNear(bus);
     final liveBlocked =
         ghostBlocked || alreadyNear || !locationState.hasPosition;
     // La ruta no pasa cerca: el aviso no sonaría nunca. Va FUERA de la
     // histéresis a propósito. La histéresis existe para que el bus moviéndose
-    // alrededor del kilómetro no haga parpadear el botón; esto no se mueve
-    // —depende del recorrido y del pin, no del bus— y meterlo dentro dejaría
-    // el botón trabado en bloqueado después de mover el pin hasta la ruta.
+    // alrededor de la distancia del aviso no haga parpadear el botón; esto no
+    // se mueve —depende del recorrido y del pin, no del bus— y meterlo
+    // dentro dejaría el botón trabado en bloqueado después de mover el pin
+    // hasta la ruta.
     final routeTooFar = !isActive &&
         (route == null
             ? false
             : ref.watch(routeTooFarFromUserProvider(route.id)));
     final blocked =
         _applyBlockedHysteresis(busId, liveBlocked, distance) || routeTooFar;
+
+    // La distancia del aviso, bajo el botón, con su «Cambiar». Solo cuando
+    // ya hay una: antes del primer aviso la pregunta la rueda al activarlo,
+    // y una fila que ofrece cambiar algo que nunca se eligió confunde.
+    //
+    // En iPhone, con el aviso activo, sube a la nota de encima del botón:
+    // ese sitio era de «Deja Ya Viene abierta y la pantalla encendida», que
+    // sobra porque iPhone sale cuando haya avisos por push (dueño,
+    // 2026-10-06). En Android la nota de cómo cuidar el aviso se queda.
+    final radio = _radioDe(busId);
+    void cambiar() => _cambiarDistancia(busId, radio);
+    final distanciaEnNota =
+        isActive && Theme.of(context).platform == TargetPlatform.iOS;
+    final filaDistancia = !distanciaEnNota &&
+            (isActive || ref.watch(distanciaAvisoProvider) != null)
+        ? _CambiarDistancia(metros: radio, onTap: cambiar)
+        : null;
+    // Con la fila debajo, el aire de abajo lo pone su propio alto de 48: los
+    // 20 de siempre la alejaban del botón al que pertenece.
+    final aireAbajo = filaDistancia == null ? 20.0 : 6.0;
 
     // Sin señal: excepción importante, se marca con coral.
     if (staleLabel != null) {
@@ -802,27 +867,33 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           const SizedBox(height: AppSpacing.lg),
           Padding(
             padding:
-                const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 20),
-            child: _StickyAlertButton(
-              key: widget.alertKey,
-              onBlockedChanged: widget.onGuideAlertBlocked,
-              isActive: isActive,
-              blocked: isActive ? false : blocked,
-              // Esta rama es la del bus sin señal (`_staleLabel` solo existe
-              // para un bus fantasma), así que sin aviso puesto el botón
-              // siempre está bloqueado por la señal: no hay tercer rótulo.
-              label: isActive ? "Aviso activado" : "Bus sin señal",
-              onPressed: () => _toggleAlert(busId),
+                EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, aireAbajo),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _StickyAlertButton(
+                  key: widget.alertKey,
+                  onBlockedChanged: widget.onGuideAlertBlocked,
+                  isActive: isActive,
+                  blocked: isActive ? false : blocked,
+                  // Esta rama es la del bus sin señal (`_staleLabel` solo
+                  // existe para un bus fantasma), así que sin aviso puesto el
+                  // botón siempre está bloqueado por la señal: no hay tercer
+                  // rótulo.
+                  label: isActive ? "Aviso activado" : "Bus sin señal",
+                  onPressed: () => _toggleAlert(busId),
+                ),
+                if (filaDistancia != null) filaDistancia,
+              ],
             ),
           ),
         ],
       );
     }
 
-    // Con el aviso activo, el detalle explica que se puede cambiar de app,
-    // pero no deslizar Ya Viene fuera de recientes ni forzar su cierre. En
-    // iPhone no se puede ni cambiar de app: iOS suspende la app y el aviso
-    // no suena (auditoría 2026-09, H3).
+    // Con el aviso activo, en Android el detalle explica que se puede
+    // cambiar de app, pero no deslizar Ya Viene fuera de recientes ni forzar
+    // su cierre. En iPhone dice a qué distancia suena, con su «Cambiar».
     //
     // El detalle va en una nota con su ícono (diseño «A», dueño 2026-09-30)
     // y no en un párrafo gris suelto bajo el número: el ícono dice de un
@@ -832,9 +903,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // elige otra ruta»; el botón ya dice «Esta ruta no pasa cerca», así que
     // la nota solo cuenta qué hacer.
     final _Nota? stateDetail = isActive
-        ? Theme.of(context).platform == TargetPlatform.iOS
-            ? const _Nota.aviso(Icons.smartphone_outlined,
-                "Deja Ya Viene abierta y la pantalla encendida")
+        ? distanciaEnNota
+            ? _Nota.distancia(radio, cambiar)
             : const _Nota.aviso(Icons.info_outline_rounded,
                 "Puedes cambiar de aplicación; no cierres Ya Viene del todo")
         : !locationState.hasPosition
@@ -872,7 +942,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     } else {
       // V1: el número hero carga la urgencia en su propio color, en vez de
       // quedarse siempre en el mismo azul — lejos, acercándose o ya casi.
-      colorCifra = colorDeDistancia(distance);
+      colorCifra = colorDeDistancia(distance, radio);
       final parts = distanciaPartes(distance, referencia);
       metricText = parts.$1;
       metricUnit = parts.$2;
@@ -883,7 +953,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     return Padding(
       // La tarjeta del bus se muestra entera, siempre: es la única que no se
       // pliega, así que no tiene una versión corta que ajustar.
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 6, AppSpacing.lg, 20),
+      padding: EdgeInsets.fromLTRB(AppSpacing.lg, 6, AppSpacing.lg, aireAbajo),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1028,14 +1098,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                             : "Avisarme cuando esté cerca",
             onPressed: () => _toggleAlert(busId),
           ),
+          if (filaDistancia != null) filaDistancia,
         ],
       ),
     );
   }
 }
 
-/// V1: verde lejos, ámbar acercándose, coral ya casi — el mismo semáforo
-/// que ya usa `alertRadiusMeters` para "el bus ya está cerca".
+/// V1: verde lejos, ámbar acercándose, coral ya casi. El ámbar empieza en
+/// [radio], la distancia a la que suena el aviso: el color cambia justo
+/// cuando el aviso lo dice.
 ///
 /// Van las variantes accesibles del semáforo, no las de relleno: este
 /// color pinta el número de 64 en peso 200, que es el trazo más fino de
@@ -1044,9 +1116,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 /// pide la norma hasta para un icono; estos tres dan 5:1 y, entre
 /// ellos, el mismo 5:1, así que ninguna distancia se lee más pesada que
 /// otra por culpa del color. Público para probar los bordes exactos.
-Color colorDeDistancia(double meters) {
+Color colorDeDistancia(double meters, int radio) {
   if (meters < 300) return AppColors.coralAccessible;
-  if (meters < alertRadiusMeters) return AppColors.warningAccessible;
+  if (meters < radio) return AppColors.warningAccessible;
   return AppColors.primaryAccessible;
 }
 
@@ -1058,22 +1130,40 @@ class _Nota {
   /// Algo impide el aviso (la ruta no pasa cerca): el coral del semáforo.
   const _Nota.impide(this.icono, this.texto)
       : fondo = AppColors.coralLight,
-        tinta = AppColors.coralAccessible;
+        tinta = AppColors.coralAccessible,
+        metros = null,
+        onTap = null;
 
   /// El aviso está puesto y esto es cómo cuidarlo: el verde de la marca.
   const _Nota.aviso(this.icono, this.texto)
       : fondo = AppColors.primaryTint,
-        tinta = AppColors.primaryAccessible;
+        tinta = AppColors.primaryAccessible,
+        metros = null,
+        onTap = null;
 
   /// Solo falta un paso o un dato: la tinta, sin alarma.
   const _Nota.paso(this.icono, this.texto)
       : fondo = AppColors.surfaceMuted,
-        tinta = AppColors.primaryDeep;
+        tinta = AppColors.primaryDeep,
+        metros = null,
+        onTap = null;
+
+  /// La distancia del aviso puesto, con su «Cambiar»: el verde del aviso y
+  /// su campana, porque dice cuándo va a sonar.
+  _Nota.distancia(int this.metros, VoidCallback this.onTap)
+      : icono = Icons.notifications_active_outlined,
+        texto = 'Te avisamos a ${distanciaAviso(metros)}',
+        fondo = AppColors.primaryTint,
+        tinta = AppColors.primaryAccessible;
 
   final IconData icono;
   final String texto;
   final Color fondo;
   final Color tinta;
+
+  /// Solo en la nota de la distancia: la que se dice y qué hace el toque.
+  final int? metros;
+  final VoidCallback? onTap;
 }
 
 /// La nota entra, sale o cambia sin salto.
@@ -1143,15 +1233,10 @@ class _NotaHoja extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('hoja-nota'),
-      width: double.infinity,
+    final onTap = nota.onTap;
+    final metros = nota.metros;
+    final contenido = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.hairline),
-      ),
       child: Row(
         children: [
           // Baldosa de 30 con el glifo de 18: el mismo par tinte/tinta de
@@ -1176,7 +1261,115 @@ class _NotaHoja extends StatelessWidget {
               style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
             ),
           ),
+          // «Cambiar» al final, en el azul de los botones (7,1:1 sobre el
+          // blanco) y en 700, como la fila bajo el botón en Android.
+          if (onTap != null) ...[
+            const SizedBox(width: 10),
+            Text(
+              'Cambiar',
+              style: AppTextStyles.pie.copyWith(
+                color: AppColors.acento,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+    final hoja = Container(
+      key: const ValueKey('hoja-nota'),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: onTap == null
+          ? contenido
+          // La nota entera es el blanco del toque: 30 de baldosa más 10 y
+          // 10 de relleno (y el filo) dan 52, por encima de los 48 del
+          // pulgar. El material transparente lleva la onda sobre el blanco.
+          : Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(AppRadius.lg - 1),
+                child: contenido,
+              ),
+            ),
+    );
+    if (onTap == null || metros == null) return hoja;
+    return Semantics(
+      key: const ValueKey('cambiar-distancia'),
+      button: true,
+      // La misma frase que la fila de Android, con la distancia en palabras.
+      label: 'Te avisamos a ${distanciaAvisoHablada(metros)}. '
+          'Cambiar la distancia',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: hoja,
+    );
+  }
+}
+
+/// «Te avisamos a 1,8 km · Cambiar», bajo el botón del aviso.
+///
+/// Una línea de texto y no un segundo botón: el botón grande es lo que se
+/// hace en esta hoja, y la distancia es un ajuste suyo. El toque abarca la
+/// fila entera con 48 de alto, el mínimo de un blanco para el pulgar. Gris
+/// secundario (5,0:1 sobre la arena) para lo que se dice y el azul de los
+/// botones (6,6:1) para lo que se toca, como un enlace.
+class _CambiarDistancia extends StatelessWidget {
+  const _CambiarDistancia({required this.metros, required this.onTap});
+
+  final int metros;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      key: const ValueKey('cambiar-distancia'),
+      button: true,
+      // Una sola frase para la voz, con la distancia en palabras.
+      label: 'Te avisamos a ${distanciaAvisoHablada(metros)}. '
+          'Cambiar la distancia',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: 6,
+                  children: [
+                    Text(
+                      'Te avisamos a ${distanciaAviso(metros)}',
+                      style: AppTextStyles.etiqueta
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                    Text(
+                      'Cambiar',
+                      style: AppTextStyles.etiqueta.copyWith(
+                        color: AppColors.acento,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

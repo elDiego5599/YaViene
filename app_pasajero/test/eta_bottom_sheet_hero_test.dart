@@ -167,6 +167,8 @@ void main() {
     expect(find.text('Toca el mapa para indicar dónde estás'), findsOneWidget);
   });
 
+  // En iPhone esa nota la toma la distancia del aviso: lo prueba
+  // eta_sheet_distancia_test.dart.
   testWidgets('hero card: con aviso activo, la nota dice cómo cuidarlo',
       (tester) async {
     final container = await pumpHero(tester, [busAt(0.02)]);
@@ -180,26 +182,12 @@ void main() {
         findsOneWidget);
   });
 
-  // En iPhone la app suspendida no mide ni avisa: la línea bajo «Aviso
-  // activado» no puede invitar a cambiar de aplicación (auditoría 2026-09,
-  // H3). En Android sigue la de antes (prueba de arriba).
-  testWidgets('en iPhone, con aviso activo, pide dejar la app abierta',
-      (tester) async {
-    final container = await pumpHero(tester, [busAt(0.02)]);
-    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
-    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
-    await tester.pump();
-
-    expect(find.text('Aviso activado'), findsOneWidget);
-    expect(find.text('Deja Ya Viene abierta y la pantalla encendida'),
-        findsOneWidget);
-    expect(
-        find.text('Puedes cambiar de aplicación; no cierres Ya Viene del todo'),
-        findsNothing);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
-
-  testWidgets('el bloqueo del aviso no flapea: histéresis hasta 1500 m',
-      (tester) async {
+  testWidgets(
+      'el bloqueo del aviso no flapea: se suelta 500 m más allá de la '
+      'distancia guardada (1 km → 1500 m)', (tester) async {
+    // La distancia del aviso la guarda la persona; aquí, el kilómetro.
+    SharedPreferences.setMockInitialValues({'distancia_aviso_m': 1000});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
     final controller = StreamController<List<BusPosition>>();
     addTearDown(controller.close);
     final container = ProviderContainer(overrides: [

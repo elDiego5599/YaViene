@@ -19,6 +19,7 @@ class Dialogo extends StatelessWidget {
     required this.principal,
     this.secundaria,
     this.detalle,
+    this.contenido,
     this.delicado = false,
   });
 
@@ -29,6 +30,10 @@ class Dialogo extends StatelessWidget {
   /// Dato corto que va pegado al título, en verde y pequeño: la versión,
   /// en «Acerca de».
   final String? detalle;
+
+  /// Lo que se elige dentro de la ventana, entre el mensaje y los botones:
+  /// la rueda de la distancia del aviso.
+  final Widget? contenido;
 
   /// Lo que pasa si se acepta. El botón lleno.
   final DialogoAccion principal;
@@ -127,6 +132,10 @@ class Dialogo extends StatelessWidget {
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      if (contenido != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        contenido!,
+                      ],
                       const SizedBox(height: 20),
                       // El botón principal de la guía, tal cual.
                       SizedBox(

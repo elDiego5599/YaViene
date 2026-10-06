@@ -11,15 +11,15 @@ import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
 import '../../data/avisos_push.dart';
 import 'alert_history_provider.dart';
+import 'distancia_aviso_provider.dart';
 
-/// Radio en el que se dispara el aviso (m).
-const int alertRadiusMeters = 1000;
-
-/// Distancia a la que se "rearma" el aviso de un bus para poder volver a
-/// notificar si el bus se aleja y regresa (histéresis). Debe ser MAYOR al
-/// radio de alerta: si fuera menor, un bus entre rearm y radio (p. ej. a
-/// 900 m) dispararía otra vez al instante cada vez que se re-arma el aviso.
-const int alertReArmMeters = 1500;
+/// Cuánto tiene que alejarse un bus ya avisado, más allá de la distancia de
+/// su aviso, para poder volver a sonar (histéresis). Va sobre la distancia
+/// de cada aviso y no es una cifra fija: con avisos de hasta 3 km, un rearme
+/// fijo de 1500 m quedaba por dentro del radio y el bus sonaba otra vez en el
+/// barrido siguiente sin haberse movido. 500 m le sobran al salto del GPS
+/// del bus en el borde. La hoja suelta su bloqueo con el mismo margen.
+const int margenRearmeMetros = 500;
 
 /// Firma del disparo de notificación (inyectable en tests). Devuelve si el
 /// aviso llegó a mostrarse: un aviso que no se mostró no se da por enviado.
@@ -53,9 +53,9 @@ const pausaSinPush = Duration(minutes: 10);
 final avisosSinPermisoProvider = StateProvider<bool>((ref) => false);
 
 /// Vigila el bus con alerta activa (selección única) y dispara una notificación
-/// local cuando entra al radio de [alertRadiusMeters] de la ubicación
-/// del usuario (GPS o pin). Cada bus notifica por separado y solo una vez por
-/// acercamiento.
+/// local cuando entra a la distancia de su aviso (la que eligió la persona)
+/// de la ubicación del usuario (GPS o pin). Cada bus notifica por separado y
+/// solo una vez por acercamiento.
 class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   ProximityAlertsNotifier(
     this._ref, {
@@ -113,6 +113,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// actual (GPS activo, o todavía sin ubicación al armar).
   final _alertRefs = <String, (double, double)?>{};
 
+  /// Distancia a la que suena cada aviso armado (m): la que eligió la
+  /// persona al armarlo o después, con «Cambiar».
+  final _alertRadios = <String, int>{};
+
   /// Suscripciones de posiciones por ruta armada: solo se mantienen mientras
   /// haya avisos activos en esa ruta.
   final _routeSubs =
@@ -135,7 +139,8 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       );
 
   /// BusIds que ya notificaron su acercamiento (armados): no vuelven a
-  /// notificar hasta que se alejen más de [alertReArmMeters].
+  /// notificar hasta que se alejen [margenRearmeMetros] más allá de su
+  /// distancia.
 
   void start() {
     if (_timer != null) return;
@@ -203,6 +208,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         ancla: e.refLat != null && e.refLon != null
             ? (e.refLat!, e.refLon!)
             : null,
+        radioM: e.radioM,
       );
     }
     return true;
@@ -225,14 +231,42 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   }
 
   /// Registra la ruta del bus al armar el aviso y suscribe posiciones de esa
-  /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta.
-  void armAlert(String busId, String routeId) {
+  /// ruta: el aviso mide aunque la pantalla esté mostrando otra ruta. Suena
+  /// cuando el bus está a [radioM] o menos.
+  void armAlert(
+    String busId,
+    String routeId, {
+    int radioM = distanciaAvisoInicial,
+  }) {
     _armMonitoring(
       busId,
       routeId,
       recordHistory: true,
       ancla: _anclaActual(),
+      radioM: radioM,
     );
+  }
+
+  /// Distancia a la que suena el aviso armado de [busId]; `null` si no hay.
+  int? radioDe(String busId) => _alertRadios[busId];
+
+  /// «Cambiar» con un aviso armado: el aviso sigue (misma ancla, misma
+  /// fecha) y mide con [radioM]. En el servidor es otro aviso: el de antes
+  /// se borra y el siguiente latido arma este, porque allá el radio se fija
+  /// al armar.
+  void cambiarRadio(String busId, int radioM) {
+    final antes = _alertRadios[busId];
+    if (antes == null || antes == radioM) return;
+    _alertRadios[busId] = radioM;
+    state = {...state}..remove(busId);
+    final historial = _ref.read(alertHistoryProvider.notifier)
+      ..fijarRadio(busId, radioM);
+    final viejo = _servidor.remove(busId);
+    if (viejo != null) {
+      _porBorrar.add(viejo);
+      historial.fijarServidor(busId, null);
+    }
+    unawaited(sincronizarPush());
   }
 
   /// Punto de espera al que se fija un aviso nuevo: el pin manual de ahora.
@@ -275,9 +309,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     String routeId, {
     required bool recordHistory,
     required (double, double)? ancla,
+    required int radioM,
   }) {
     _monitoringPaused = false;
     _alertRoutes[busId] = routeId;
+    _alertRadios[busId] = radioM;
     // Re-armado limpio: si este bus ya notificó su acercamiento antes (quedó
     // marcado en `state`), se borra esa marca para que pueda volver a sonar
     // en un nuevo acercamiento; si no, el aviso re-armado quedaba "muerto".
@@ -298,6 +334,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             routeName: _ref.read(selectedRouteProvider)?.name,
             refLat: ancla?.$1,
             refLon: ancla?.$2,
+            radioM: radioM,
           );
     }
     // Ancla del aviso: el punto de espera con el que se armó. Aunque luego se
@@ -325,6 +362,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       unawaited(sincronizarPush());
     }
     _alertRefs.remove(busId);
+    _alertRadios.remove(busId);
     final routeId = _alertRoutes.remove(busId);
     if (routeId == null) return;
     if (!_alertRoutes.containsValue(routeId)) {
@@ -342,6 +380,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     _servidor.clear();
     _alertRoutes.clear();
     _alertRefs.clear();
+    _alertRadios.clear();
     for (final sub in _routeSubs.values) {
       sub.close();
     }
@@ -433,6 +472,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         final vida = vidaDeUnAviso - _ahora().difference(entrada.createdAt);
         if (vida <= Duration.zero) continue;
         final vidaTope = vida > vidaDeUnAviso ? vidaDeUnAviso : vida;
+        final radio = _alertRadios[busId] ?? entrada.radioM;
         final r = await push.armar(
           token: token,
           busId: busId,
@@ -440,6 +480,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           lat: punto.$1,
           lon: punto.$2,
           vida: vidaTope,
+          radioM: radio,
         );
         if (!mounted) return;
         if (r.apagado) {
@@ -448,9 +489,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         }
         final nuevo = r.id;
         if (nuevo == null) continue;
-        // Se desarmó o se volvió a armar mientras el servidor contestaba:
-        // lo que se armó ya no es de nadie.
+        // Se desarmó, se volvió a armar o cambió de distancia mientras el
+        // servidor contestaba: lo que se armó ya no es de nadie.
         if (_alertRoutes[busId] != routeId ||
+            _alertRadios[busId] != radio ||
             _servidor.containsKey(busId) ||
             _entradaActiva(busId)?.createdAt != entrada.createdAt) {
           _porBorrar.add(nuevo);
@@ -626,9 +668,12 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       final ref = _alertRefs[busId] ?? liveRef;
       if (ref == null) continue;
       final distance = haversineMeters(ref.$1, ref.$2, pos.lat, pos.lon);
+      final radio = _alertRadios[busId] ??
+          _entradaActiva(busId)?.radioM ??
+          distanciaAvisoInicial;
       if (state.contains(busId)) {
-        if (distance > alertReArmMeters) rearm.add(busId);
-      } else if (distance <= alertRadiusMeters) {
+        if (distance > radio + margenRearmeMetros) rearm.add(busId);
+      } else if (distance <= radio) {
         fire[busId] = distance.round();
       }
     }

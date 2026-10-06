@@ -35,6 +35,13 @@ bool enMetros(double meters) => meters.round() < 1000;
 String distanciaAviso(int metros) =>
     enMetros(metros.toDouble()) ? '$metros m' : kmLabel(metros.toDouble());
 
+/// [distanciaAviso] dicha en palabras: «900 metros», «1,8 kilómetros». En
+/// voz alta, «km» son dos letras sueltas.
+String distanciaAvisoHablada(int metros) {
+  final (cifra, _) = distanciaPartes(metros.toDouble(), '');
+  return enMetros(metros.toDouble()) ? '$cifra metros' : '$cifra kilómetros';
+}
+
 /// La cifra grande de la hoja y su unidad: ("850", "m de ti") o
 /// ("1,4", "km de tu pin anterior"). A diferencia de [kmLabel], la hoja
 /// conserva el decimal pasados 10 km. [referencia] dice desde dónde se mide:

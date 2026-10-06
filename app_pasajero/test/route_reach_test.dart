@@ -4,11 +4,17 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/route_reach_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/alert_guards.dart';
-import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart'
-    show alertRadiusMeters;
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/distancia_aviso_provider.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
+}
+
+/// La distancia que la persona guardó (o ninguna), sin pasar por el disco.
+class _DistanciaFija extends DistanciaAvisoNotifier {
+  _DistanciaFija(int? metros) {
+    state = metros;
+  }
 }
 
 const _userLat = 6.2442;
@@ -37,13 +43,19 @@ List<GeoPoint> _routeAtKm(double km) {
 
 void main() {
   group('validateAlertActivation: ruta que no pasa cerca', () {
-    String? validate({double? routeDistanceMeters, bool ghost = false}) =>
+    String? validate({
+      double? routeDistanceMeters,
+      bool ghost = false,
+      int radio = 1000,
+    }) =>
         validateAlertActivation(
           hasPosition: true,
           bus: _bus(ghost: ghost),
-          busAlreadyNear: false,
+          busDistanceMeters: null,
           activeAlertsCount: 0,
           routeDistanceMeters: routeDistanceMeters,
+          radioCercaM: radio,
+          radioRutaM: radio,
         );
 
     test('rechaza el aviso si el recorrido no entra en el radio de disparo',
@@ -54,17 +66,38 @@ void main() {
     });
 
     // El bug que reportó el usuario: el recorrido rozaba el anillo verde de
-    // 2 km y la app dejaba armar el aviso, pero el aviso solo suena a 1 km.
+    // 2 km y la app dejaba armar el aviso, pero el aviso solo sonaba a 1 km.
     // El botón decía «AVISO ACTIVADO» y no iba a sonar nunca.
-    test('entre 1 y 2 km ya no se puede armar: ahí no sonaría nunca', () {
+    test('con el aviso a 1 km, una ruta entre 1 y 2 km no se arma', () {
       expect(validate(routeDistanceMeters: 1500),
           contains('Esta ruta no pasa cerca de ti'));
       expect(validate(routeDistanceMeters: 1900), isNotNull);
       expect(validate(routeDistanceMeters: 2100), isNotNull);
     });
 
-    test('el tope de la ruta es exactamente el radio que dispara', () {
-      expect(alertMaxRouteDistanceMeters, alertRadiusMeters);
+    // La distancia la elige la persona (dueño, 2026-10-06): el tope de la
+    // ruta es esa distancia, no el kilómetro de antes.
+    test('el tope de la ruta es exactamente la distancia elegida', () {
+      expect(validate(routeDistanceMeters: 1800, radio: 1800), isNull);
+      expect(validate(routeDistanceMeters: 1801, radio: 1800), isNotNull);
+      expect(validate(routeDistanceMeters: 1500, radio: 2000), isNull);
+      expect(validate(routeDistanceMeters: 600, radio: 500), isNotNull);
+    });
+
+    test('dice a cuánto suena el aviso y que una distancia mayor lo arregla',
+        () {
+      final message = validate(routeDistanceMeters: 2400, radio: 2000)!;
+      expect(message, contains('2,4 km'));
+      expect(message, contains('tu aviso suena a 2,0 km'));
+      expect(message, contains('Elige una distancia mayor'));
+      expect(validate(routeDistanceMeters: 800, radio: 500),
+          contains('tu aviso suena a 500 m'));
+    });
+
+    test('a 3 km no hay distancia mayor que ofrecer', () {
+      final message = validate(routeDistanceMeters: 3400, radio: 3000)!;
+      expect(message, contains('el aviso suena a 3 km como mucho'));
+      expect(message, isNot(contains('distancia mayor')));
     });
 
     test('a 10 km o más el decimal sobra', () {
@@ -72,7 +105,7 @@ void main() {
     });
 
     test('justo en el límite todavía deja armar', () {
-      // 1000 m es alcanzable: el disparo es `distancia <= alertRadiusMeters`.
+      // 1000 m es alcanzable: el disparo es `distancia <= radio`.
       expect(validate(routeDistanceMeters: 1000), isNull);
       expect(validate(routeDistanceMeters: 999), isNull);
       expect(validate(routeDistanceMeters: 1001), isNotNull);
@@ -95,12 +128,43 @@ void main() {
         validateAlertActivation(
           hasPosition: false,
           bus: _bus(),
-          busAlreadyNear: false,
+          busDistanceMeters: null,
           activeAlertsCount: 0,
           routeDistanceMeters: 8000,
+          radioCercaM: 1000,
+          radioRutaM: 1000,
         ),
         contains('dónde estás'),
       );
+    });
+  });
+
+  group('validateAlertActivation: bus que ya está cerca', () {
+    String? validate(double? busDistanceMeters, {required int radio}) =>
+        validateAlertActivation(
+          hasPosition: true,
+          bus: _bus(),
+          busDistanceMeters: busDistanceMeters,
+          activeAlertsCount: 0,
+          radioCercaM: radio,
+          radioRutaM: radio,
+        );
+
+    // «Ya está cerca» se mide con la misma vara que el aviso: dentro de la
+    // distancia elegida el aviso sonaría ya mismo.
+    test('dentro de la distancia elegida no se arma, y lo dice', () {
+      expect(validate(800, radio: 800), contains('ya está a menos de 800 m'));
+      expect(
+          validate(1900, radio: 2500), contains('ya está a menos de 2,5 km'));
+    });
+
+    test('fuera de la distancia elegida sí se arma', () {
+      expect(validate(801, radio: 800), isNull);
+      expect(validate(1900, radio: 1500), isNull);
+    });
+
+    test('sin saber dónde va el bus no se rechaza', () {
+      expect(validate(null, radio: 3000), isNull);
     });
   });
 
@@ -108,9 +172,11 @@ void main() {
     ProviderContainer containerWith({
       required List<GeoPoint> points,
       bool located = true,
+      int? guardada = 1000,
     }) {
       final container = ProviderContainer(overrides: [
         userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+        distanciaAvisoProvider.overrideWith((ref) => _DistanciaFija(guardada)),
         routeTrajectoryProvider.overrideWith((ref, routeId) => RouteTrajectory(
               routeId: routeId,
               routeName: 'R1',
@@ -144,6 +210,30 @@ void main() {
     test('un recorrido a 1.5 km cuenta como lejos', () {
       final container = containerWith(points: _routeAtKm(1.5));
       expect(container.read(routeTooFarFromUserProvider('R1')), isTrue);
+    });
+
+    test('con la distancia guardada, lejos es más allá de esa distancia', () {
+      expect(
+          containerWith(points: _routeAtKm(1.5), guardada: 2000)
+              .read(routeTooFarFromUserProvider('R1')),
+          isFalse);
+      expect(
+          containerWith(points: _routeAtKm(0.8), guardada: 500)
+              .read(routeTooFarFromUserProvider('R1')),
+          isTrue);
+    });
+
+    // Sin distancia guardada todavía se puede elegir hasta 3 km: solo es
+    // lejos lo que ni a 3 km sonaría.
+    test('sin distancia guardada, lejos es más allá de 3 km', () {
+      expect(
+          containerWith(points: _routeAtKm(2.8), guardada: null)
+              .read(routeTooFarFromUserProvider('R1')),
+          isFalse);
+      expect(
+          containerWith(points: _routeAtKm(3.2), guardada: null)
+              .read(routeTooFarFromUserProvider('R1')),
+          isTrue);
     });
 
     test('sin ubicación no se sabe, y no saber no bloquea', () {

@@ -53,9 +53,11 @@ void main() {
     'Ahí ponemos tu punto de espera y medimos desde él': ['hoja sin punto'],
     'Avisarme cuando esté cerca': ['hoja con bus'],
     'Aviso activado': ['hoja con aviso', 'hoja sin señal con aviso'],
-    'Puedes cambiar de aplicación; no cierres Ya Viene del todo': [
-      'hoja con aviso',
-    ],
+    // La nota del aviso puesto en el iPhone (`_Nota.distancia`), en la
+    // distancia con la que arranca la rueda: los teléfonos de la web son
+    // iPhone, así que la nota de Android no está en la lista.
+    'Te avisamos a 1,0 km': ['hoja con aviso en iPhone'],
+    'Cambiar': ['hoja con aviso en iPhone'],
     'Localizando tu ubicación…': ['píldora localizando'],
     'Arrástralo para moverlo': ['píldora con pin'],
     'Fija tu punto de espera': ['guía sin ubicación'],
@@ -204,11 +206,15 @@ void main() {
       addTearDown(container.dispose);
     });
 
-    Future<void> montar(WidgetTester tester) async {
+    Future<void> montar(WidgetTester tester,
+        {TargetPlatform? plataforma}) async {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: Scaffold(body: EtaBottomSheet())),
+          child: MaterialApp(
+            theme: ThemeData(platform: plataforma),
+            home: const Scaffold(body: EtaBottomSheet()),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -257,6 +263,13 @@ void main() {
       container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
       await montar(tester);
       vista('hoja con aviso');
+    });
+
+    testWidgets('con el aviso puesto, en el iPhone', (tester) async {
+      conBusElegido();
+      container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+      await montar(tester, plataforma: TargetPlatform.iOS);
+      vista('hoja con aviso en iPhone');
     });
 
     testWidgets('con el aviso puesto y el bus sin señal', (tester) async {

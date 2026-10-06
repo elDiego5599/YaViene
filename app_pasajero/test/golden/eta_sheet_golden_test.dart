@@ -140,6 +140,19 @@ void main() {
     await coincideConOro(tester, 'hoja_con_aviso');
   });
 
+  // En iPhone la nota de encima del botón dice a qué distancia suena el
+  // aviso, con su «Cambiar» (dueño, 2026-10-06).
+  testWidgets('hoja · con aviso activo en iPhone', (tester) async {
+    fijarPantalla(tester);
+    final container = await montar(tester, buses: [_busA(0.02)]);
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await coincideConOro(tester, 'hoja_con_aviso_iphone');
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
   testWidgets('hoja · el bus ya está cerca', (tester) async {
     fijarPantalla(tester);
     await montar(tester, buses: [_busA(0.002)]);

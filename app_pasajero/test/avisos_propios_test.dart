@@ -26,7 +26,11 @@ class _ToggleFijo extends AlertToggleController {
   final AlertToggleResult resultado;
 
   @override
-  Future<AlertToggleResult> toggle(String busId) async => resultado;
+  Future<AlertToggleResult> toggle(
+    String busId, {
+    required ElegirDistancia elegirDistancia,
+  }) async =>
+      resultado;
 }
 
 void main() {

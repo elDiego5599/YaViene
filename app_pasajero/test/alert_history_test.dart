@@ -243,6 +243,74 @@ void main() {
     expect(guardado, hasLength(3));
   });
 
+  // Cada aviso guarda la distancia a la que se armó: es lo único que la
+  // recuerda al reabrir la app, y la persona pudo haber cambiado la suya
+  // desde entonces (dueño, 2026-10-06).
+  group('distancia de cada aviso', () {
+    test('se guarda con el aviso y vuelve con él al reabrir la app', () async {
+      final first = buildContainer();
+      addTearDown(first.dispose);
+      first.read(activeAlertsProvider.notifier).toggleAlert('A-2');
+      first
+          .read(proximityAlertsProvider.notifier)
+          .armAlert('A-2', 'R1', radioM: 2500);
+      expect(first.read(alertHistoryProvider).single.radioM, 2500);
+      await first.read(alertHistoryProvider.notifier).guardado;
+
+      final second = buildContainer();
+      addTearDown(second.dispose);
+      await second.read(proximityAlertsProvider.notifier).restore();
+
+      expect(second.read(alertHistoryProvider).single.radioM, 2500);
+      expect(
+          second.read(proximityAlertsProvider.notifier).radioDe('A-2'), 2500);
+    });
+
+    test('un aviso de antes, sin distancia, sigue sonando al kilómetro', () {
+      final e = AlertHistoryEntry.fromJson({
+        'busId': 'A-1',
+        'routeId': 'R1',
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(e.radioM, 1000);
+    });
+
+    // Lo que viene del disco no se cree: fuera de 500–3000, o con otro
+    // tipo, el aviso se queda con el kilómetro de siempre en vez de
+    // perderse (el historial es la única persistencia de los activos).
+    test('una distancia rota en el disco no tumba el aviso', () {
+      for (final roto in <Object>[50, 99999, '2000', 1500.5]) {
+        final e = AlertHistoryEntry.tryFromJson({
+          'busId': 'A-1',
+          'routeId': 'R1',
+          'createdAt': DateTime.now().toIso8601String(),
+          'radioM': roto,
+        });
+        expect(e?.radioM, 1000, reason: 'radioM: $roto');
+      }
+    });
+
+    test('cambiar la distancia no renueva el aviso ni lo saca del servidor',
+        () async {
+      final n = AlertHistoryNotifier();
+      n.upsert('A-1', routeId: 'R1', radioM: 1000);
+      n.fijarServidor('A-1', 'srv-1');
+      final creado = n.state.single.createdAt;
+
+      n.fijarRadio('A-1', 2000);
+
+      expect(n.state.single.radioM, 2000);
+      expect(n.state.single.createdAt, creado,
+          reason: 'la fecha decide cuándo vence: cambiar la distancia no '
+              'le regala tres horas más');
+      expect(n.state.single.servidorId, 'srv-1');
+      await n.guardado;
+      final prefs = await SharedPreferences.getInstance();
+      final guardado = jsonDecode(prefs.getString('alert_history')!) as List;
+      expect((guardado.single as Map)['radioM'], 2000);
+    });
+  });
+
   group('purga del historial', () {
     Map<String, dynamic> entrada(String busId, {required int diasAtras}) {
       final cuando = DateTime.now().subtract(Duration(days: diasAtras));

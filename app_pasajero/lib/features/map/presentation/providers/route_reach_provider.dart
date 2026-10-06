@@ -13,28 +13,33 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../../notifications/presentation/providers/proximity_alerts_provider.dart'
-    show alertRadiusMeters;
+import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../utils/geo.dart';
 import 'user_location_provider.dart';
 
 /// Lo más lejos que puede pasar un recorrido del punto del usuario para que
-/// armar un aviso tenga sentido: exactamente el radio en el que el aviso
+/// armar un aviso tenga sentido: exactamente la distancia a la que el aviso
 /// suena, ni un metro más.
 ///
 /// No admite margen, y esa es toda la regla: el aviso dispara cuando el bus
-/// entra en [alertRadiusMeters] del punto de espera, así que si el recorrido
-/// entero nunca entra en ese radio, ningún bus de esa ruta va a entrar
-/// tampoco. El aviso se quedaría armado para siempre.
+/// entra en esa distancia del punto de espera, así que si el recorrido
+/// entero nunca entra, ningún bus de esa ruta va a entrar tampoco. El aviso
+/// se quedaría armado para siempre.
 ///
-/// Antes esto valía 2 km, copiado del anillo verde que se dibuja alrededor
+/// La distancia es la que la persona guardó. Sin ninguna guardada todavía
+/// puede elegir hasta [distanciaAvisoMaxima]: solo es lejos lo que ni ahí
+/// sonaría.
+///
+/// Antes el tope valía 2 km, copiado del anillo verde que se dibuja alrededor
 /// del pin, con la idea de dejar margen para caminar hacia la ruta. El margen
 /// era falso —con el pin puesto a mano el aviso mide contra el pin, no contra
 /// dónde camines— y el resultado era el peor posible: una ruta que pasa entre
-/// 1 y 2 km dejaba armar el aviso, el botón decía «AVISO ACTIVADO» y no
-/// sonaba nunca. El anillo verde responde otra pregunta (qué buses ves) y
+/// 1 y 2 km dejaba armar el aviso de 1 km, el botón decía «AVISO ACTIVADO» y
+/// no sonaba nunca. El anillo verde responde otra pregunta (qué buses ves) y
 /// sigue en 2 km a propósito.
-const int alertMaxRouteDistanceMeters = alertRadiusMeters;
+final distanciaMaximaDeRutaProvider = Provider<int>(
+  (ref) => ref.watch(distanciaAvisoProvider) ?? distanciaAvisoMaxima,
+);
 
 /// Distancia en metros del punto del usuario al trozo más cercano del
 /// recorrido, o **null cuando no se sabe**: sin ubicación, con la geometría
@@ -69,5 +74,6 @@ final routeDistanceToUserProvider =
 final routeTooFarFromUserProvider =
     Provider.autoDispose.family<bool, String>((ref, routeId) {
   final distance = ref.watch(routeDistanceToUserProvider(routeId));
-  return distance != null && distance > alertMaxRouteDistanceMeters;
+  return distance != null &&
+      distance > ref.watch(distanciaMaximaDeRutaProvider);
 });

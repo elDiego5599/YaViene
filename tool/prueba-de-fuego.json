@@ -109,27 +109,33 @@
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
-    "de": "const int alertRadiusMeters = 1000;",
-    "a": "const int alertRadiusMeters = 1200;",
-    "que": "radio del aviso"
+    "de": "const int margenRearmeMetros = 500;",
+    "a": "const int margenRearmeMetros = 0;",
+    "que": "margen para rearmar"
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
-    "de": "const int alertReArmMeters = 1500;",
-    "a": "const int alertReArmMeters = 1000;",
-    "que": "histéresis para rearmar"
+    "de": "if (distance > radio + margenRearmeMetros) rearm.add(busId);",
+    "a": "if (distance > 1500) rearm.add(busId);",
+    "que": "rearme sobre la distancia de cada aviso"
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
-    "de": "if (distance > alertReArmMeters) rearm.add(busId);",
-    "a": "if (distance > alertRadiusMeters) rearm.add(busId);",
-    "que": "rearmar lejos del radio"
-  },
-  {
-    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
-    "de": "} else if (distance <= alertRadiusMeters) {",
+    "de": "} else if (distance <= radio) {",
     "a": "} else {",
-    "que": "solo suena dentro del radio"
+    "que": "solo suena dentro de su distancia"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "_entradaActiva(busId)?.radioM ??",
+    "a": "(null as int?) ??",
+    "que": "la distancia del historial manda"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
+    "de": "if (antes == null || antes == radioM) return;",
+    "a": "if (antes == radioM) return;",
+    "que": "cambiar sin aviso no arma"
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
@@ -163,9 +169,15 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/alert_guards.dart",
-    "de": "routeDistanceMeters > alertMaxRouteDistanceMeters) {",
-    "a": "routeDistanceMeters > alertMaxRouteDistanceMeters * 2) {",
+    "de": "routeDistanceMeters > radioRutaM) {",
+    "a": "routeDistanceMeters > radioRutaM * 2) {",
     "que": "ruta que no pasa cerca"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/alert_guards.dart",
+    "de": "busDistanceMeters <= radioCercaM) {",
+    "a": "busDistanceMeters <= radioCercaM ~/ 2) {",
+    "que": "el bus ya está a su distancia"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/alert_guards.dart",
@@ -175,9 +187,21 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
-    "de": "return distance != null && distance <= alertRadiusMeters;",
-    "a": "return distance != null && distance <= alertReArmMeters;",
-    "que": "el bus ya está cerca, con el radio del aviso"
+    "de": "radioCercaM: guardada ?? distanciaAvisoMinima,",
+    "a": "radioCercaM: guardada ?? distanciaAvisoInicial,",
+    "que": "sin guardar, cerca es con la mínima"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
+    "de": "radioRutaM: guardada ?? distanciaAvisoMaxima,",
+    "a": "radioRutaM: guardada ?? distanciaAvisoInicial,",
+    "que": "sin guardar, la ruta lejos es con la máxima"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
+    "de": "if (elegida.guardar) {",
+    "a": "if (true) {",
+    "que": "«Solo esta vez» no guarda"
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/alert_history_provider.dart",
@@ -229,9 +253,75 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "if (meters < alertRadiusMeters) return AppColors.warningAccessible;",
-    "a": "if (meters <= alertRadiusMeters) return AppColors.warningAccessible;",
-    "que": "ámbar bajo el radio"
+    "de": "if (meters < radio) return AppColors.warningAccessible;",
+    "a": "if (meters < radio + 500) return AppColors.warningAccessible;",
+    "que": "ámbar bajo su distancia"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "return distance != null && distance <= _radioBloqueo;",
+    "a": "return distance != null && distance <= distanciaAvisoInicial;",
+    "que": "bloqueo con la distancia guardada"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "ref.watch(distanciaAvisoProvider) ?? distanciaAvisoMinima;",
+    "a": "ref.watch(distanciaAvisoProvider) ?? distanciaAvisoInicial;",
+    "que": "sin guardar, bloquea con la mínima"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "distance > _radioBloqueo + margenRearmeMetros) {",
+    "a": "distance > _radioBloqueo) {",
+    "que": "el bloqueo se suelta con margen"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "(isActive || ref.watch(distanciaAvisoProvider) != null)",
+    "a": "(isActive)",
+    "que": "«Cambiar» con distancia guardada"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "isActive && Theme.of(context).platform == TargetPlatform.iOS;",
+    "a": "false;",
+    "que": "en iPhone «Cambiar» va en la nota"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": ".cambiarRadio(busId, elegida.metros);",
+    "a": ".radioDe(busId);",
+    "que": "«Cambiar» mueve el aviso activo"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "await ref.read(distanciaAvisoProvider.notifier).guardar(elegida.metros);",
+    "a": "await Future<void>.value();",
+    "que": "«Cambiar» guarda la distancia"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "if (!mounted || result.outcome == AlertToggleOutcome.cancelled) return;",
+    "a": "if (!mounted) return;",
+    "que": "cerrar la rueda no dice nada"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/distancia_aviso_provider.dart",
+    "de": "valor >= distanciaAvisoMinima &&",
+    "a": "valor > distanciaAvisoMinima - 200 &&",
+    "que": "lo guardado bajo 500 m no vale"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/distancia_aviso_provider.dart",
+    "de": "valor <= distanciaAvisoMaxima",
+    "a": "valor <= distanciaAvisoMaxima + 200",
+    "que": "lo guardado sobre 3 km no vale"
+  },
+  {
+    "archivo": "app_pasajero/lib/core/utils/distancia.dart",
+    "de": "enMetros(metros.toDouble()) ? '$cifra metros' : '$cifra kilómetros';",
+    "a": "enMetros(metros.toDouble()) ? '$cifra kilómetros' : '$cifra metros';",
+    "que": "distancia del aviso en palabras"
   },
   {
     "archivo": "app_pasajero/lib/core/utils/distancia.dart",

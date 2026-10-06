@@ -60,12 +60,15 @@ class LegalDoc {
 // de espera redondeado y el código de Firebase Cloud Messaging van al
 // servidor para que el aviso suene con la app cerrada (D13 del backend).
 // Hasta aquí la ubicación no salía nunca del teléfono; ahora sale en ese caso.
-const int kLegalVersion = 4;
+// Sube a 5 el 6 de octubre de 2026: el aviso ya no suena a un kilómetro sino
+// a la distancia que elige la persona, y esa distancia viaja con el punto.
+// Cambian lo que se promete y lo que sale del teléfono.
+const int kLegalVersion = 5;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '2 de octubre de 2026',
+  updated: '6 de octubre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
@@ -92,8 +95,9 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'punto desde el que esperas —el que marcaste a mano o tu última '
       'posición—, redondeado a unos 100 metros, y lo pone al día cada 20 '
       'segundos mientras la app está abierta. Con él van el bus y la ruta del '
-      'aviso y el código con el que Firebase Cloud Messaging le hace llegar la '
-      'notificación a tu teléfono. Se borra cuando quitas el aviso o cuando la '
+      'aviso, la distancia a la que pediste que te avise y el código con el '
+      'que Firebase Cloud Messaging le hace llegar la notificación a tu '
+      'teléfono. Se borra cuando quitas el aviso o cuando la '
       'app ve que sonó, y como mucho a las tres horas de armarlo. No se '
       'comparte con la empresa de transporte ni con nadie más. En iPhone tu '
       'ubicación no sale del teléfono.',
@@ -101,10 +105,11 @@ const LegalDoc legalPrivacidad = LegalDoc(
     LegalBlock.heading('El aviso lo calcula tu propio teléfono'),
     LegalBlock.p(
       'Cuando activas el aviso, la app compara tu posición con la del bus '
-      'mientras lo ves moverse, y cuando entra en un kilómetro a la redonda '
-      'lanza una notificación local —la crea el teléfono, no la manda un '
-      'servidor—. Solo si cierras la app en Android mide el servidor, con el '
-      'punto de arriba, y la notificación llega por Firebase Cloud Messaging.',
+      'mientras lo ves moverse, y cuando entra a la distancia que elijas (de '
+      '500 metros a 3 kilómetros) lanza una notificación local —la crea el '
+      'teléfono, no la manda un servidor—. Solo si cierras la app en Android '
+      'mide el servidor, con el punto de arriba, y la notificación llega por '
+      'Firebase Cloud Messaging.',
     ),
     LegalBlock.p(
       'Cuando sales de la app sin cerrarla y tienes un aviso activo, en '

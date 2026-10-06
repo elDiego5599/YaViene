@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'distancia_aviso_provider.dart';
+
 /// Una entrada del historial: `activo` (armado, esperando el aviso) o
 /// `enviado` (la notificación ya se disparó). Activa hay a lo sumo una por
 /// bus; enviadas, las que hayan sonado: volver a armar un bus que ya avisó
@@ -31,6 +33,11 @@ class AlertHistoryEntry {
   /// memoria: con él sabe si el push es de este aviso o de uno ya retirado.
   final String? servidorId;
 
+  /// A qué distancia suena este aviso (m). Va con el aviso y no con la
+  /// preferencia: cambiar la de los avisos que vienen no mueve uno ya armado
+  /// sin que la persona lo pida.
+  final int radioM;
+
   const AlertHistoryEntry({
     required this.busId,
     required this.routeId,
@@ -40,6 +47,7 @@ class AlertHistoryEntry {
     this.refLat,
     this.refLon,
     this.servidorId,
+    this.radioM = distanciaAvisoInicial,
   });
 
   bool get sent => sentAt != null;
@@ -51,6 +59,7 @@ class AlertHistoryEntry {
     DateTime? sentAt,
     double? refLat,
     double? refLon,
+    int? radioM,
   }) =>
       AlertHistoryEntry(
         busId: busId,
@@ -61,6 +70,7 @@ class AlertHistoryEntry {
         refLat: refLat ?? this.refLat,
         refLon: refLon ?? this.refLon,
         servidorId: servidorId,
+        radioM: radioM ?? this.radioM,
       );
 
   /// La misma entrada con otro [servidorId] (también `null`, que `copyWith`
@@ -74,6 +84,7 @@ class AlertHistoryEntry {
         refLat: refLat,
         refLon: refLon,
         servidorId: id,
+        radioM: radioM,
       );
 
   Map<String, dynamic> toJson() => {
@@ -85,6 +96,7 @@ class AlertHistoryEntry {
         'refLat': refLat,
         'refLon': refLon,
         if (servidorId != null) 'servidorId': servidorId,
+        'radioM': radioM,
       };
 
   factory AlertHistoryEntry.fromJson(Map<String, dynamic> json) {
@@ -101,6 +113,9 @@ class AlertHistoryEntry {
       refLat: (json['refLat'] as num?)?.toDouble(),
       refLon: (json['refLon'] as num?)?.toDouble(),
       servidorId: json['servidorId'] as String?,
+      // Sin distancia (versiones de antes) o con una que no se entiende:
+      // el kilómetro de siempre. Perder el aviso por eso sería peor.
+      radioM: distanciaAvisoValida(json['radioM']) ?? distanciaAvisoInicial,
     );
   }
 
@@ -245,6 +260,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     String? routeName,
     double? refLat,
     double? refLon,
+    int radioM = distanciaAvisoInicial,
   }) {
     final entry = AlertHistoryEntry(
       busId: busId,
@@ -253,6 +269,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       createdAt: DateTime.now(),
       refLat: refLat,
       refLon: refLon,
+      radioM: radioM,
     );
     final index = _activa(busId);
     if (index == -1) {
@@ -272,6 +289,17 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     if (index == -1) return;
     final next = [...state];
     next[index] = state[index].copyWith(refLat: lat, refLon: lon);
+    state = next;
+    _save();
+  }
+
+  /// Cambia la distancia del aviso activo de [busId]. Como [fijarAncla],
+  /// no renueva la fecha.
+  void fijarRadio(String busId, int radioM) {
+    final index = _activa(busId);
+    if (index == -1 || state[index].radioM == radioM) return;
+    final next = [...state];
+    next[index] = state[index].copyWith(radioM: radioM);
     state = next;
     _save();
   }

@@ -32,7 +32,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   así que en iPhone el aviso sigue sonando solo con la app abierta. Cuando
   exista: la clave de APNs en la consola de Firebase, la capacidad de push
   en Xcode y quitar el «solo Android» de `avisos_push.dart` y de la
-  privacidad.
+  privacidad. El iPhone sale cuando haya push remoto (dueño, 2026-10-06):
+  por eso su nota ya no pide dejar la app abierta y dice a qué distancia
+  avisa, con su «Cambiar».
 
 ## Lo que tienes que decidir tú
 

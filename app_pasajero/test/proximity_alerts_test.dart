@@ -403,6 +403,154 @@ void main() {
         reason: 'pasados 1500 m se rearma y vuelve a sonar');
   });
 
+  // La distancia del aviso la pone la persona, de 500 m a 3 km (dueño,
+  // 2026-10-06). Cada aviso mide con la suya.
+  group('distancia propia de cada aviso', () {
+    BusPosition busEnLat(double lat) => BusPosition(
+          busId: 'A-1',
+          routeId: 'R1',
+          lat: lat,
+          lon: -75.5812,
+          heading: 0,
+          speedKmh: 20,
+          timestamp: DateTime.now(),
+          isGhostBus: false,
+        );
+    // Al norte del usuario (6.2442), a 111,2 km por grado: 0,0036° ≈ 400 m,
+    // 0,0072° ≈ 800 m, 0,0144° ≈ 1600 m y 0,0234° ≈ 2600 m.
+    final a400 = busEnLat(6.2478),
+        a800 = busEnLat(6.2514),
+        a1600 = busEnLat(6.2586),
+        a2600 = busEnLat(6.2676);
+
+    late StreamController<List<BusPosition>> posiciones;
+    late List<int> sonados;
+    late ProviderContainer c;
+    late ProximityAlertsNotifier avisos;
+
+    setUp(() {
+      posiciones = StreamController<List<BusPosition>>.broadcast();
+      sonados = [];
+      c = ProviderContainer(overrides: [
+        userLocationProvider
+            .overrideWith((ref) => _TestUserLocation()..set(userHere)),
+        busPositionsSourceProvider
+            .overrideWith((ref, routeId) => posiciones.stream),
+        proximityAlertsProvider.overrideWith((ref) => ProximityAlertsNotifier(
+              ref,
+              notify: (
+                  {required String busId,
+                  String? routeName,
+                  String? routeId,
+                  required int distanceMeters}) async {
+                sonados.add(distanceMeters);
+                return true;
+              },
+            )),
+      ]);
+      final keepAlive = c.listen<AsyncValue<List<BusPosition>>>(
+        busPositionsSourceProvider('R1'),
+        (_, __) {},
+      );
+      addTearDown(() {
+        keepAlive.close();
+        c.dispose();
+        return posiciones.close();
+      });
+      avisos = c.read(proximityAlertsProvider.notifier);
+    });
+
+    Future<void> busEn(BusPosition p) async {
+      posiciones.add([p]);
+      await Future<void>.delayed(Duration.zero);
+      await avisos.check();
+    }
+
+    void armar(int radioM) {
+      c.read(activeAlertsProvider.notifier).activateAlert('A-1');
+      avisos.armAlert('A-1', 'R1', radioM: radioM);
+    }
+
+    test('a 500 m no suena con el bus a 800 m; a 400 m sí', () async {
+      armar(500);
+      await busEn(a800);
+      expect(sonados, isEmpty);
+      await busEn(a400);
+      expect(sonados, hasLength(1));
+    });
+
+    test('a 2 km suena con el bus a 1,6 km', () async {
+      armar(2000);
+      await busEn(a1600);
+      expect(sonados, hasLength(1));
+      expect(avisos.radioDe('A-1'), isNull,
+          reason: 'el que sonó ya no está armado');
+    });
+
+    test('re-armar desde el historial conserva la distancia', () async {
+      expect(
+        avisos.rearmar(AlertHistoryEntry(
+          busId: 'A-1',
+          routeId: 'R1',
+          createdAt: DateTime.now(),
+          radioM: 500,
+        )),
+        isTrue,
+      );
+      expect(avisos.radioDe('A-1'), 500);
+      await busEn(a800);
+      expect(sonados, isEmpty);
+    });
+
+    test('cambiar la distancia de un aviso armado mide con la nueva', () async {
+      armar(500);
+      await busEn(a800);
+      expect(sonados, isEmpty);
+
+      avisos.cambiarRadio('A-1', 1000);
+
+      expect(avisos.radioDe('A-1'), 1000);
+      expect(c.read(alertHistoryProvider).single.radioM, 1000);
+      await busEn(a800);
+      expect(sonados, hasLength(1));
+    });
+
+    // El rearme era 1500 m fijo, pensado para el kilómetro de antes. Con un
+    // aviso a 2 km, un bus ya avisado a 1,6 km quedaba «lejos» (rearmado) y
+    // el barrido siguiente lo volvía a dar por cerca: sonaba dos veces sin
+    // que el bus se moviera. El rearme va 500 m más allá de su distancia.
+    test('ya avisado a 2 km, no vuelve a sonar hasta pasar los 2,5 km',
+        () async {
+      armar(2000);
+      await busEn(a1600);
+      expect(sonados, hasLength(1));
+
+      // Activo otra vez por el camino viejo, sin re-armar: la marca de «ya
+      // avisó» sigue puesta y la distancia viene del historial.
+      c.read(alertHistoryProvider.notifier).upsert('A-1',
+          routeId: 'R1',
+          refLat: userHere.lat,
+          refLon: userHere.lon,
+          radioM: 2000);
+      c.read(activeAlertsProvider.notifier).activateAlert('A-1');
+      await busEn(a1600);
+      await busEn(a1600);
+      expect(sonados, hasLength(1),
+          reason: 'a 1,6 km sigue dentro de los 2 km: no se rearma');
+
+      await busEn(a2600);
+      await busEn(a1600);
+      expect(sonados, hasLength(2),
+          reason: 'pasados 2,5 km se rearma y vuelve a sonar');
+    });
+
+    test('cambiar la distancia de un bus sin aviso no hace nada', () {
+      avisos.cambiarRadio('A-1', 2000);
+      expect(avisos.radioDe('A-1'), isNull);
+      expect(c.read(alertHistoryProvider), isEmpty);
+    });
+  });
+
   // Un bus sin señal se pinta en su último punto conocido, que puede ser de
   // hace horas. Ese punto no dice que el bus esté cerca: no suena.
   test('un bus sin señal, aunque su último punto esté encima, no suena',

@@ -4,10 +4,8 @@
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/distancia.dart';
-import '../../../notifications/presentation/providers/proximity_alerts_provider.dart'
-    show alertRadiusMeters;
-import '../providers/route_reach_provider.dart'
-    show alertMaxRouteDistanceMeters;
+import '../../../notifications/presentation/providers/distancia_aviso_provider.dart'
+    show distanciaAvisoMaxima;
 
 /// Devuelve el mensaje de error si no se puede armar el aviso, o null si
 /// todo está bien. No muestra SnackBars ni pide permisos: solo valida.
@@ -15,13 +13,21 @@ import '../providers/route_reach_provider.dart'
 /// [routeDistanceMeters] es lo más que se acerca el recorrido de la ruta al
 /// punto del usuario, o **null si no se sabe** (sin ubicación, geometría sin
 /// cargar, ruta sin recorrido). Null nunca rechaza: ante la duda se deja
-/// armar el aviso.
+/// armar el aviso. Lo mismo [busDistanceMeters]: null es no saber dónde va
+/// el bus.
+///
+/// [radioCercaM] y [radioRutaM] son la distancia a la que sonaría el aviso.
+/// Con la distancia ya elegida, las dos son esa. Antes de elegirla se valida
+/// solo lo que ninguna opción de la rueda arreglaría: el bus ya encima con
+/// la mínima y la ruta lejos con la máxima.
 String? validateAlertActivation({
   required bool hasPosition,
   required BusPosition? bus,
-  required bool busAlreadyNear,
+  required double? busDistanceMeters,
   required int activeAlertsCount,
   double? routeDistanceMeters,
+  required int radioCercaM,
+  required int radioRutaM,
 }) {
   if (!hasPosition) {
     return 'El aviso necesita saber dónde estás: toca el mapa en tu '
@@ -30,20 +36,28 @@ String? validateAlertActivation({
   // Va antes que "sin señal" a propósito: si la ruta no pasa por aquí, decir
   // que el aviso se activará cuando el bus vuelva a transmitir sería mentir
   // dos veces —ni va a transmitir cerca, ni esperar sirve de nada—.
-  if (routeDistanceMeters != null &&
-      routeDistanceMeters > alertMaxRouteDistanceMeters) {
-    return 'Esta ruta no pasa cerca de ti: lo más que se acerca son '
-        '${kmLabel(routeDistanceMeters)} y el aviso suena a '
-        '${alertRadiusMeters ~/ 1000} km, así que no sonaría nunca. '
-        'Mueve tu punto de espera o elige otra ruta';
+  if (routeDistanceMeters != null && routeDistanceMeters > radioRutaM) {
+    // Con la distancia por debajo de 3 km, subirla es la salida más corta.
+    return radioRutaM < distanciaAvisoMaxima
+        ? 'Esta ruta no pasa cerca de ti: lo más que se acerca son '
+            '${kmLabel(routeDistanceMeters)} y tu aviso suena a '
+            '${distanciaAviso(radioRutaM)}, así que no sonaría nunca. '
+            'Elige una distancia mayor, mueve tu punto de espera o elige '
+            'otra ruta'
+        : 'Esta ruta no pasa cerca de ti: lo más que se acerca son '
+            '${kmLabel(routeDistanceMeters)} y el aviso suena a '
+            '${distanciaAvisoMaxima ~/ 1000} km como mucho, así que no '
+            'sonaría nunca. Mueve tu punto de espera o elige otra ruta';
   }
   if (bus != null && bus.isGhostBus) {
     return 'El bus ${bus.busId} está sin señal; el aviso se activa '
         'cuando vuelva a transmitir';
   }
-  if (busAlreadyNear) {
-    return 'El bus ${bus!.busId} ya está a menos de $alertRadiusMeters m; '
-        'no se puede activar el aviso';
+  if (bus != null &&
+      busDistanceMeters != null &&
+      busDistanceMeters <= radioCercaM) {
+    return 'El bus ${bus.busId} ya está a menos de '
+        '${distanciaAviso(radioCercaM)}; no se puede activar el aviso';
   }
   if (activeAlertsCount >= 2) return avisosAlTope;
   return null;

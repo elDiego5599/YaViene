@@ -3,6 +3,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/services/bus_notification_service.dart';
 import '../../../notifications/presentation/providers/alert_history_provider.dart';
+import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../utils/geo.dart';
 import '../widgets/alert_guards.dart' as guards;
@@ -12,6 +13,10 @@ import 'user_location_provider.dart';
 
 /// Pide el permiso de notificaciones (inyectable en tests).
 typedef NotificationPermissionRequester = Future<bool> Function();
+
+/// Le pregunta a la persona a qué distancia quiere el aviso (la rueda).
+/// `null` si cerró sin elegir; [guardar] si la quiere para los que vienen.
+typedef ElegirDistancia = Future<({int metros, bool guardar})?> Function();
 
 /// Resultado de intentar activar/desactivar un aviso. El widget solo traduce
 /// esto a háptico y snackbar: toda la regla de negocio vive aquí.
@@ -36,6 +41,9 @@ enum AlertToggleOutcome {
   /// Estado imposible defendido: aviso activado sin ruta seleccionada; se
   /// deshace solo. No debería ocurrir nunca.
   noRoute,
+
+  /// Cerró la rueda de la distancia sin elegir: no se arma nada.
+  cancelled,
 }
 
 class AlertToggleResult {
@@ -51,7 +59,8 @@ class AlertToggleResult {
   /// antes: tras validar y tras permiso, incluso si la carrera quitó el cupo).
   bool get needsHaptic =>
       outcome != AlertToggleOutcome.rejected &&
-      outcome != AlertToggleOutcome.permissionDenied;
+      outcome != AlertToggleOutcome.permissionDenied &&
+      outcome != AlertToggleOutcome.cancelled;
 }
 
 /// Orquestación de activar/desactivar un aviso, fuera del widget: pide
@@ -68,22 +77,50 @@ class AlertToggleController {
   final Ref _ref;
   final NotificationPermissionRequester _requestPermission;
 
-  Future<AlertToggleResult> toggle(String busId) async {
+  /// Activa o desactiva el aviso de [busId]. Para activarlo hace falta una
+  /// distancia: la guardada o, si no hay, la que conteste [elegirDistancia].
+  Future<AlertToggleResult> toggle(
+    String busId, {
+    required ElegirDistancia elegirDistancia,
+  }) async {
     final notifier = _ref.read(activeAlertsProvider.notifier);
     final wasActive = _ref.read(activeAlertsProvider).contains(busId);
+    late final int radio;
     if (!wasActive) {
       // Sin posición (GPS negado y sin pin) el aviso nunca podría medir ni
       // dispararse: mejor explicarlo antes de armar una alerta muerta.
-      final bus = _busById(busId);
-      final message = guards.validateAlertActivation(
-        hasPosition: _ref.read(userLocationProvider).hasPosition,
-        bus: bus,
-        busAlreadyNear: _busAlreadyNear(bus),
-        activeAlertsCount: _ref.read(activeAlertsProvider).length,
-        routeDistanceMeters: await _routeDistanceToUser(),
+      final routeDistance = await _routeDistanceToUser();
+      final guardada = _ref.read(distanciaAvisoProvider);
+      // Sin distancia guardada, antes de abrir la rueda se dice lo que
+      // ninguna opción arreglaría: preguntar para luego decir que no se
+      // puede sería hacerle perder el tiempo.
+      var message = _validar(
+        busId,
+        routeDistance,
+        radioCercaM: guardada ?? distanciaAvisoMinima,
+        radioRutaM: guardada ?? distanciaAvisoMaxima,
       );
       if (message != null) {
         return AlertToggleResult(AlertToggleOutcome.rejected, message: message);
+      }
+      if (guardada != null) {
+        radio = guardada;
+      } else {
+        final elegida = await elegirDistancia();
+        if (elegida == null) {
+          return const AlertToggleResult(AlertToggleOutcome.cancelled);
+        }
+        radio = elegida.metros;
+        if (elegida.guardar) {
+          await _ref.read(distanciaAvisoProvider.notifier).guardar(radio);
+        }
+        // La rueda tardó lo que la persona quiso: el bus se movió.
+        message = _validar(busId, routeDistance,
+            radioCercaM: radio, radioRutaM: radio);
+        if (message != null) {
+          return AlertToggleResult(AlertToggleOutcome.rejected,
+              message: message);
+        }
       }
       if (!await _requestPermission()) {
         return const AlertToggleResult(AlertToggleOutcome.permissionDenied);
@@ -118,7 +155,9 @@ class AlertToggleController {
     if (routeId != null) {
       // Quedó armado: se registra la ruta para que el aviso mida aunque se
       // cambie de ruta en pantalla.
-      _ref.read(proximityAlertsProvider.notifier).armAlert(busId, routeId);
+      _ref
+          .read(proximityAlertsProvider.notifier)
+          .armAlert(busId, routeId, radioM: radio);
       return const AlertToggleResult(AlertToggleOutcome.activated);
     }
     // Defensa contra un estado imposible: nunca dejes un aviso activo sin
@@ -145,9 +184,22 @@ class AlertToggleController {
     return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);
   }
 
-  bool _busAlreadyNear(BusPosition? bus) {
-    final distance = _distanceToBus(bus);
-    return distance != null && distance <= alertRadiusMeters;
+  String? _validar(
+    String busId,
+    double? routeDistance, {
+    required int radioCercaM,
+    required int radioRutaM,
+  }) {
+    final bus = _busById(busId);
+    return guards.validateAlertActivation(
+      hasPosition: _ref.read(userLocationProvider).hasPosition,
+      bus: bus,
+      busDistanceMeters: _distanceToBus(bus),
+      activeAlertsCount: _ref.read(activeAlertsProvider).length,
+      routeDistanceMeters: routeDistance,
+      radioCercaM: radioCercaM,
+      radioRutaM: radioRutaM,
+    );
   }
 
   /// Lo más que se acerca el recorrido de la ruta abierta al punto del
@@ -178,8 +230,10 @@ class AlertToggleController {
   String _limitMessage() => guards.validateAlertActivation(
         hasPosition: true,
         bus: null,
-        busAlreadyNear: false,
+        busDistanceMeters: null,
         activeAlertsCount: 2,
+        radioCercaM: distanciaAvisoInicial,
+        radioRutaM: distanciaAvisoInicial,
       )!;
 }
 

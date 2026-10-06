@@ -37,6 +37,7 @@ typedef _Armado = ({
   double lat,
   double lon,
   Duration vida,
+  int radioM,
 });
 
 /// El servidor de avisos, en memoria.
@@ -62,6 +63,7 @@ class _PushFalso implements AvisosPush {
     required double lat,
     required double lon,
     required Duration vida,
+    required int radioM,
   }) async {
     armados.add((
       token: token,
@@ -70,6 +72,7 @@ class _PushFalso implements AvisosPush {
       lat: lat,
       lon: lon,
       vida: vida,
+      radioM: radioM,
     ));
     await frenoArmar?.future;
     return respuesta ?? (id: 'srv-${++_siguiente}', apagado: false);
@@ -109,7 +112,8 @@ void main() {
 
     setUp(() => pedidos = []);
 
-    test('armar manda el punto redondeado a ~100 m y lee el id', () async {
+    test('armar manda el punto redondeado a ~100 m, la distancia y lee el id',
+        () async {
       final push = cliente((_) => http.Response(
             _contrato('rest-aviso-creado'),
             201,
@@ -123,6 +127,7 @@ void main() {
         lat: 10.987654,
         lon: -74.812345,
         vida: const Duration(hours: 2),
+        radioM: 2300,
       );
 
       expect(r.id, '<avisoId>');
@@ -136,6 +141,7 @@ void main() {
         'lat': 10.988,
         'lon': -74.812,
         'vidaMs': 7200000,
+        'radioM': 2300,
       });
     });
 
@@ -154,6 +160,7 @@ void main() {
             lat: 0,
             lon: 0,
             vida: const Duration(hours: 1),
+            radioM: 1000,
           );
 
       expect(await con(503, 'PUSH_NO_DISPONIBLE'), (id: null, apagado: true));
@@ -166,7 +173,8 @@ void main() {
               routeId: 'R',
               lat: 0,
               lon: 0,
-              vida: const Duration(hours: 1));
+              vida: const Duration(hours: 1),
+              radioM: 1000);
       expect(caido, (id: null, apagado: false));
     });
 
@@ -308,6 +316,57 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(
           prefs.getString('alert_history'), contains('"servidorId":"srv-1"'));
+    });
+
+    // El servidor mide con la distancia de cada aviso (migración 29): sin
+    // ella, con la app cerrada sonaba al kilómetro aunque la persona hubiera
+    // pedido 3 km.
+    test('el servidor recibe la distancia del aviso', () async {
+      container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+      vigilante().armAlert('A-1', 'R1', radioM: 2700);
+      await pumpEventQueue();
+
+      expect(push.armados.single.radioM, 2700);
+    });
+
+    // Allá la distancia se fija al armar: «Cambiar» borra el aviso del
+    // servidor y arma otro con la nueva, sin tocar la vida que le queda.
+    test('cambiar la distancia rearma el aviso en el servidor', () async {
+      await armar();
+      reloj = reloj.add(const Duration(hours: 1));
+
+      vigilante().cambiarRadio('A-1', 1800);
+      await pumpEventQueue();
+
+      expect(push.borrados, ['srv-1']);
+      expect(push.armados.map((a) => a.radioM), [1000, 1800]);
+      // Lo que le queda (unas 2 h), no tres horas nuevas. El historial
+      // fecha con el reloj de verdad y el vigilante con el de la prueba:
+      // un minuto de holgura cubre esa diferencia.
+      expect(push.armados.last.vida,
+          lessThan(vidaDeUnAviso - const Duration(minutes: 59)));
+      expect(activa()?.servidorId, 'srv-2');
+      expect(activa()?.radioM, 1800);
+    });
+
+    test('cambiada mientras el servidor armaba: lo de antes se borra',
+        () async {
+      push.frenoArmar = Completer<void>();
+      container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+      vigilante().armAlert('A-1', 'R1', radioM: 1000);
+      await pumpEventQueue();
+      expect(push.armados.single.radioM, 1000);
+
+      vigilante().cambiarRadio('A-1', 2500);
+      push.frenoArmar!.complete();
+      push.frenoArmar = null;
+      await vigilante().sincronizarPush();
+      await pumpEventQueue();
+
+      expect(push.borrados, ['srv-1'],
+          reason: 'el armado con 1 km quedó sin dueño');
+      expect(push.armados.map((a) => a.radioM), [1000, 2500]);
+      expect(activa()?.servidorId, 'srv-2');
     });
 
     test('con el aviso ya armado, cada vuelta late en vez de armar', () async {

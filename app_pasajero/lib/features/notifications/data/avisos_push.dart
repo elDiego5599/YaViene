@@ -91,7 +91,7 @@ class AvisosPush {
   Future<String?> token() => _token();
 
   /// El punto se manda redondeado a tres decimales, unos 100 m: alcanza para
-  /// medir un radio de un kilómetro y no dice en qué casa espera nadie.
+  /// medir un radio de 500 m a 3 km y no dice en qué casa espera nadie.
   static double _redondear(double grados) =>
       (grados * 1000).roundToDouble() / 1000;
 
@@ -99,9 +99,10 @@ class AvisosPush {
 
   static const _json = {'Content-Type': 'application/json'};
 
-  /// Arma el aviso en el servidor. Devuelve su identificador, o `apagado`
-  /// si ese servidor no tiene push (sin la cuenta de servicio de Firebase):
-  /// no tiene sentido volver a preguntar en cada latido.
+  /// Arma el aviso en el servidor, que avisa cuando el bus esté a [radioM]
+  /// o menos. Devuelve su identificador, o `apagado` si ese servidor no
+  /// tiene push (sin la cuenta de servicio de Firebase): no tiene sentido
+  /// volver a preguntar en cada latido.
   Future<({String? id, bool apagado})> armar({
     required String token,
     required String busId,
@@ -109,6 +110,7 @@ class AvisosPush {
     required double lat,
     required double lon,
     required Duration vida,
+    required int radioM,
   }) async {
     try {
       final r = await _cliente
@@ -122,6 +124,7 @@ class AvisosPush {
               'lat': _redondear(lat),
               'lon': _redondear(lon),
               'vidaMs': vida.inMilliseconds,
+              'radioM': radioM,
             }),
           )
           .timeout(_espera);

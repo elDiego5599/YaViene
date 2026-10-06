@@ -6,6 +6,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_togg
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/distancia_aviso_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
@@ -24,6 +25,14 @@ List<GeoPoint> _routeAtKm(double km) {
     GeoPoint(lat: lat, lon: _userLon + 0.05),
   ];
 }
+
+/// La rueda contestada con [metros] «solo esta vez».
+ElegirDistancia _unaVez(int metros) =>
+    () async => (metros: metros, guardar: false);
+
+/// Una rueda que no debía abrirse.
+Future<({int metros, bool guardar})?> _noPreguntes() async =>
+    fail('no debía preguntar la distancia');
 
 ProviderContainer _container({
   required List<BusPosition> buses,
@@ -127,7 +136,9 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.activated);
     expect(container.read(activeAlertsProvider), contains('A-1'));
@@ -155,7 +166,9 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.rejected);
     expect(result.message, contains('no pasa cerca de ti'));
@@ -173,7 +186,9 @@ void main() {
     ));
     container.read(selectedRouteProvider.notifier).select(route());
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.rejected);
     expect(result.message, contains('dónde estás'));
@@ -193,7 +208,9 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
-    final result = await container.read(alertToggleProvider).toggle('G-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('G-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.rejected);
     expect(result.message, contains('sin señal'));
@@ -213,23 +230,27 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
-    final result = await container.read(alertToggleProvider).toggle('C-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('C-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.rejected);
     expect(result.message, contains('ya está a menos de'));
     expect(container.read(activeAlertsProvider), isEmpty);
   });
 
-  // Riesgo: medir «ya está cerca» con otra vara que el aviso. A 900 m el aviso
-  // sonaría ya mismo: no se arma. A 1200 m todavía no ha sonado: se arma.
-  test('«ya está cerca» es el mismo radio de 1000 m del aviso', () async {
-    for (final (lat, esperado) in [
-      (6.2523, AlertToggleOutcome.rejected), // ≈ 900 m
-      (6.2550, AlertToggleOutcome.activated), // ≈ 1200 m
+  // Riesgo: medir «ya está cerca» con otra vara que el aviso. A 900 m un
+  // aviso de 1 km sonaría ya mismo: no se arma. Uno de 800 m todavía no ha
+  // sonado: se arma.
+  test('«ya está cerca» se mide con la distancia elegida', () async {
+    for (final (metros, esperado) in [
+      (1000, AlertToggleOutcome.rejected),
+      (800, AlertToggleOutcome.activated),
     ]) {
       SharedPreferences.setMockInitialValues({});
       final container = _container(
-          buses: [busLejos.copyWith(lat: lat)], permissionGranted: true);
+          buses: [busLejos.copyWith(lat: 6.2523)], // ≈ 900 m
+          permissionGranted: true);
       (container.read(userLocationProvider.notifier) as _TestUserLocation)
           .set(userHere);
       container.read(selectedRouteProvider.notifier).select(route());
@@ -239,9 +260,14 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
-      final result = await container.read(alertToggleProvider).toggle('A-1');
+      final result = await container
+          .read(alertToggleProvider)
+          .toggle('A-1', elegirDistancia: _unaVez(metros));
 
-      expect(result.outcome, esperado, reason: 'bus en $lat');
+      expect(result.outcome, esperado, reason: 'aviso a $metros m');
+      if (esperado == AlertToggleOutcome.rejected) {
+        expect(result.message, contains('ya está a menos de 1,0 km'));
+      }
     }
   });
 
@@ -252,7 +278,9 @@ void main() {
         .set(userHere);
     container.read(selectedRouteProvider.notifier).select(route());
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.permissionDenied);
     expect(container.read(activeAlertsProvider), isEmpty);
@@ -266,7 +294,9 @@ void main() {
         .set(userHere);
     container.read(selectedRouteProvider.notifier).select(route());
 
-    await container.read(alertToggleProvider).toggle('A-1');
+    await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
     expect(container.read(activeAlertsProvider), contains('A-1'));
     // `load()` espera a que termine la escritura y relee del disco: lo que
     // devuelve es lo que vería la app al reabrirse.
@@ -275,7 +305,9 @@ void main() {
     expect(container.read(alertHistoryProvider).map((e) => e.busId),
         contains('A-1'));
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
     expect(result.outcome, AlertToggleOutcome.deactivated);
     expect(container.read(activeAlertsProvider), isEmpty);
     expect(container.read(proximityAlertsProvider), isEmpty);
@@ -305,7 +337,9 @@ void main() {
         .set(userHere);
     container.read(selectedRouteProvider.notifier).select(route());
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.limitReached);
     expect(result.message, contains('2 avisos activos'));
@@ -320,10 +354,188 @@ void main() {
     // Sin ruta seleccionada: el caso imposible.
     container.read(selectedRouteProvider.notifier).clear();
 
-    final result = await container.read(alertToggleProvider).toggle('A-1');
+    final result = await container
+        .read(alertToggleProvider)
+        .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.noRoute);
     // En ningún caso queda un aviso huérfano.
     expect(container.read(activeAlertsProvider), isEmpty);
+  });
+
+  // La distancia la pone la persona (dueño, 2026-10-06): la primera vez que
+  // activa un aviso sale la rueda, y puede usarla «solo esta vez» o
+  // guardarla para los que vienen.
+  group('la distancia del aviso', () {
+    Future<ProviderContainer> listo({
+      List<BusPosition>? buses,
+      double routeKm = 0,
+      Map<String, Object> guardado = const {},
+      bool located = true,
+    }) async {
+      SharedPreferences.setMockInitialValues(guardado);
+      final container = _container(
+        // A ≈ 4 km: fuera de cualquier distancia de la rueda.
+        buses: buses ?? [busLejos.copyWith(lat: 6.2800)],
+        permissionGranted: true,
+        routeKm: routeKm,
+      );
+      (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
+          located
+              ? userHere
+              : UserLocationState(
+                  mode: UserLocationMode.denied, updatedAt: DateTime.now()));
+      container.read(selectedRouteProvider.notifier).select(route());
+      final sub =
+          container.listen(busPositionsSourceProvider('R1'), (_, __) {});
+      addTearDown(sub.close);
+      await container.read(distanciaAvisoProvider.notifier).load();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      return container;
+    }
+
+    test('sin distancia guardada pregunta; «solo esta vez» no la guarda',
+        () async {
+      final container = await listo();
+      var preguntas = 0;
+
+      final result = await container.read(alertToggleProvider).toggle('A-1',
+          elegirDistancia: () async {
+        preguntas++;
+        return (metros: 1800, guardar: false);
+      });
+
+      expect(result.outcome, AlertToggleOutcome.activated);
+      expect(preguntas, 1);
+      expect(container.read(proximityAlertsProvider.notifier).radioDe('A-1'),
+          1800);
+      expect(container.read(distanciaAvisoProvider), isNull);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('distancia_aviso_m'), isFalse);
+    });
+
+    test('«Guardar» la deja para los avisos que vienen y arma con ella',
+        () async {
+      final container = await listo();
+
+      final result = await container.read(alertToggleProvider).toggle('A-1',
+          elegirDistancia: () async => (metros: 2200, guardar: true));
+
+      expect(result.outcome, AlertToggleOutcome.activated);
+      expect(container.read(proximityAlertsProvider.notifier).radioDe('A-1'),
+          2200);
+      expect(container.read(distanciaAvisoProvider), 2200);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('distancia_aviso_m'), 2200);
+    });
+
+    test('con una distancia guardada no pregunta y arma con ella', () async {
+      final container = await listo(guardado: {'distancia_aviso_m': 1500});
+
+      final result = await container
+          .read(alertToggleProvider)
+          .toggle('A-1', elegirDistancia: _noPreguntes);
+
+      expect(result.outcome, AlertToggleOutcome.activated);
+      expect(container.read(proximityAlertsProvider.notifier).radioDe('A-1'),
+          1500);
+    });
+
+    test('cerrar la rueda sin elegir no arma nada ni vibra', () async {
+      final container = await listo();
+
+      final result = await container
+          .read(alertToggleProvider)
+          .toggle('A-1', elegirDistancia: () async => null);
+
+      expect(result.outcome, AlertToggleOutcome.cancelled);
+      expect(result.needsHaptic, isFalse);
+      expect(container.read(activeAlertsProvider), isEmpty);
+      expect(container.read(alertHistoryProvider), isEmpty);
+    });
+
+    test('desactivar no pregunta la distancia', () async {
+      final container = await listo();
+      final toggle = container.read(alertToggleProvider);
+      await toggle.toggle('A-1', elegirDistancia: _unaVez(1000));
+
+      final result = await toggle.toggle('A-1', elegirDistancia: _noPreguntes);
+
+      expect(result.outcome, AlertToggleOutcome.deactivated);
+    });
+
+    // Preguntar una distancia para luego decir que no se puede sería hacerle
+    // perder el tiempo: lo que ninguna opción de la rueda arregla se dice
+    // antes de abrirla.
+    group('lo que ninguna distancia arregla se dice sin preguntar', () {
+      test('sin ubicación', () async {
+        final container = await listo(located: false);
+        final result = await container
+            .read(alertToggleProvider)
+            .toggle('A-1', elegirDistancia: _noPreguntes);
+        expect(result.outcome, AlertToggleOutcome.rejected);
+        expect(result.message, contains('dónde estás'));
+      });
+
+      test('el bus ya está más cerca que 500 m', () async {
+        final container =
+            await listo(buses: [busLejos.copyWith(lat: 6.2478)]); // ≈ 400 m
+        final result = await container
+            .read(alertToggleProvider)
+            .toggle('A-1', elegirDistancia: _noPreguntes);
+        expect(result.outcome, AlertToggleOutcome.rejected);
+        expect(result.message, contains('ya está a menos de 500 m'));
+      });
+
+      test('la ruta no entra ni a 3 km', () async {
+        final container = await listo(routeKm: 3.4);
+        final result = await container
+            .read(alertToggleProvider)
+            .toggle('A-1', elegirDistancia: _noPreguntes);
+        expect(result.outcome, AlertToggleOutcome.rejected);
+        expect(result.message, contains('3 km como mucho'));
+      });
+
+      test('ya hay 2 avisos activos', () async {
+        final container = await listo();
+        final alerts = container.read(activeAlertsProvider.notifier);
+        alerts.activateAlert('X-1');
+        alerts.activateAlert('X-2');
+        final result = await container
+            .read(alertToggleProvider)
+            .toggle('A-1', elegirDistancia: _noPreguntes);
+        expect(result.outcome, AlertToggleOutcome.rejected);
+        expect(result.message, contains('2 avisos activos'));
+      });
+    });
+
+    test('la ruta a 1,5 km se arma a 2 km pero no a 1 km', () async {
+      for (final (metros, esperado) in [
+        (1000, AlertToggleOutcome.rejected),
+        (2000, AlertToggleOutcome.activated),
+      ]) {
+        final container = await listo(routeKm: 1.5);
+        final result = await container
+            .read(alertToggleProvider)
+            .toggle('A-1', elegirDistancia: _unaVez(metros));
+        expect(result.outcome, esperado, reason: 'aviso a $metros m');
+        if (esperado == AlertToggleOutcome.rejected) {
+          expect(result.message, contains('Elige una distancia mayor'));
+          expect(container.read(activeAlertsProvider), isEmpty);
+        }
+      }
+    });
+
+    test('con la distancia guardada corta, la ruta lejos lo dice sin rueda',
+        () async {
+      final container =
+          await listo(routeKm: 1.5, guardado: {'distancia_aviso_m': 1000});
+      final result = await container
+          .read(alertToggleProvider)
+          .toggle('A-1', elegirDistancia: _noPreguntes);
+      expect(result.outcome, AlertToggleOutcome.rejected);
+      expect(result.message, contains('tu aviso suena a 1,0 km'));
+    });
   });
 }

@@ -219,9 +219,10 @@ void main() {
 
     testWidgets('estado bloqueado: el gris del botón también se lee',
         (tester) async {
-      // 850 m: dentro del radio → bloqueado. El botón dice «El bus ya está
-      // cerca» y se pinta gris con letra blanca.
-      await pumpHoja(tester, [busAt(0.007645)]);
+      // 400 m: más cerca que el aviso más corto que se puede pedir (500 m)
+      // → bloqueado. El botón dice «El bus ya está cerca» y se pinta gris con
+      // letra blanca.
+      await pumpHoja(tester, [busAt(0.0036)]);
       exigeCTA(
         tester,
         'El bus ya está cerca',

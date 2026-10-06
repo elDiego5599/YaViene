@@ -133,18 +133,19 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `diseno-21st`). Remotos `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
 - **`main` en el remoto** (2026-10-05, Coolitoral): app `22ad26c`, web
-  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 14
+  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 15
   commits de código (Coolitoral por sus KMZ, prueba de fuego, CI de Windows
-  y del APK, E2E del simulador) más los de este archivo y FALTANTES, web 3 (prueba de fuego, source-map-js, tarjeta para
-  compartir) y backend 6 (Coolitoral, prueba de fuego, y el bus oculto con su prueba
+  y del APK, E2E del simulador, distancia del aviso) más los de este archivo
+  y FALTANTES, web 4 (prueba de fuego, source-map-js, tarjeta para
+  compartir, distancia del aviso) y backend 6 (Coolitoral, prueba de fuego, y el bus oculto con su prueba
   más la ficha del conductor fuera, 2026-10-06). Las ramas de
   trabajo están al día con su remoto.
-- **Verificación (2026-10-05)**: **1.730 pruebas** en total (1.697 pasan +
+- **Verificación (2026-10-06)**: **1.805 pruebas** en total (1.772 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
   simulador.
-- **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 575 + 1, pruebas
+- **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 642 + 1, pruebas
   13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
   `integration_test` en el panel). Aparte, la E2E del panel de escritorio
   contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el
@@ -156,12 +157,13 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web**: `npm run typecheck` limpio (3 configs), **310 en Vitest**,
-  cobertura 98,8 / 92,1 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
+- **Web**: `npm run typecheck` limpio (3 configs), **318 en Vitest**,
+  cobertura 98,8 / 91,9 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
-  Playwright **153 + 29 saltadas**. Presupuestos: dist 774,9/797 (**97 %**),
-  JS 59,1/66, CSS 117,8/121 (**97 %**), primera visita 463,4/560 — dist y
-  CSS casi sin margen: todo cambio web se mide antes de sumarlo.
+  Playwright **153 + 29 saltadas**. Presupuestos: dist 781,9/797 (**98 %**),
+  JS 60,0/66, CSS 120,6/121 (**100 %**), primera visita 470,0/560 — dist y
+  CSS sin margen: todo cambio web se mide antes de sumarlo, y el CSS que
+  entre tiene que salir de otro lado.
 - **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra al
   repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
   privacidad y términos 1,65; CLS 0, TBT ≤ 35 ms. `e2e/vitales.spec.ts`
@@ -209,7 +211,13 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 - **Pasajero**: cifra viva en la distancia de la hoja; filas del selector
   escalonadas (con espejo en la web); la hoja del selector conserva su alto;
   aviso anclado donde se armó (no sigue al pin); «Escoge empresa y ruta»
-  abre el selector.
+  abre el selector. La distancia del aviso la elige el pasajero con una
+  rueda como la de la alarma del iPhone (500 m–3 km, de 100 en 100; arranca
+  en 1 km): la primera vez sale en una ventana con «Guardar» y «Solo esta
+  vez»; «Cambiar» la abre otra vez y cambia también el aviso activo. Con el
+  aviso puesto, el iPhone dice «Te avisamos a X · Cambiar» (dueño,
+  2026-10-06; antes pedía dejar la app abierta) y Android conserva su nota
+  con la fila «Cambiar». La web lo espeja en el paso 3 y en el hero.
 - **Panel**: sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
   filas planas, carril de estados, barra de flota de 48, «Agregar bus» de
