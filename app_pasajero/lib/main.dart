@@ -173,19 +173,13 @@ class YaVieneApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
-    const fadeSlide = PageTransitionsTheme(
-      builders: {
-        TargetPlatform.android: FadeSlidePageTransitionsBuilder(),
-        TargetPlatform.iOS: FadeSlidePageTransitionsBuilder(),
-        TargetPlatform.macOS: FadeSlidePageTransitionsBuilder(),
-      },
-    );
-
     return MaterialApp.router(
       title: 'Ya Viene',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme.copyWith(pageTransitionsTheme: fadeSlide),
-      darkTheme: AppTheme.lightTheme.copyWith(pageTransitionsTheme: fadeSlide),
+      theme:
+          AppTheme.lightTheme.copyWith(pageTransitionsTheme: transicionesApp),
+      darkTheme:
+          AppTheme.lightTheme.copyWith(pageTransitionsTheme: transicionesApp),
       themeMode: ThemeMode.light,
       routerConfig: router,
       // El idioma no es solo el texto que escribimos nosotros: sin los

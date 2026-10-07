@@ -1,5 +1,20 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+
+/// Las transiciones de pantalla de la app, por plataforma.
+///
+/// En el iPhone va la de Cupertino: el gesto de volver deslizando desde el
+/// borde izquierdo vive en ella, y con el fundido propio se había perdido
+/// (dueño, 2026-10-07; `test/gesto_atras_test.dart`). En Android el gesto
+/// de atrás lo pone el sistema, así que ahí se queda el fundido.
+const transicionesApp = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: FadeSlidePageTransitionsBuilder(),
+    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.macOS: FadeSlidePageTransitionsBuilder(),
+  },
+);
 
 /// Transición de pantalla suave para toda la app: la nueva
 /// pantalla entra con un leve deslizamiento lateral y fundido, en vez del
