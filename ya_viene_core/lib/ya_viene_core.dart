@@ -1,6 +1,7 @@
 library;
 
 // --- Models (capa de datos) ---
+export 'core/models/bus_motion.dart';
 export 'core/models/bus_position.dart';
 export 'core/models/bus_stop.dart';
 export 'core/models/company.dart';

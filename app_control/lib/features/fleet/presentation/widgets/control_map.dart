@@ -3,10 +3,13 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:ya_viene_core/core/models/bus_motion.dart';
+import 'package:ya_viene_core/core/theme/app_motion.dart';
 import 'package:ya_viene_core/core/theme/estilo_mapa.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -64,10 +67,23 @@ class ControlMap extends ConsumerStatefulWidget {
   ConsumerState<ControlMap> createState() => _ControlMapState();
 }
 
-class _ControlMapState extends ConsumerState<ControlMap> {
+class _ControlMapState extends ConsumerState<ControlMap>
+    with SingleTickerProviderStateMixin {
   final MapController _mapController = MapController();
   double _zoom = 12;
   Timer? _reintento;
+
+  // El bus se desliza de una fijación GPS a la siguiente con el mismo tramo
+  // de 1 s del pasajero (`BusMotion`), en vez de saltar en cada paquete
+  // (dueño, 2026-10-07). El reloj es el del ticker, que solo corre mientras
+  // queda algún tramo; al arrancar de nuevo vuelve a cero, y para entonces
+  // los tramos viejos ya terminaron.
+  // Se crea con el primer tramo: un panel sin buses en marcha no lo pide.
+  Ticker? _reloj;
+  Duration _transcurrido = Duration.zero;
+  final Map<String, BusMotion> _tramos = {};
+  static final _epoca = DateTime.utc(2000);
+  DateTime get _ahora => _epoca.add(_transcurrido);
 
   // El marcador crece con el zoom, pero arranca más grande que antes (16 pt):
   // a zoom 12, que es como abre el panel, un bus medía 20 pt de lado y la
@@ -78,9 +94,55 @@ class _ControlMapState extends ConsumerState<ControlMap> {
 
   @override
   void dispose() {
+    _reloj?.dispose();
     _reintento?.cancel();
     _mapController.dispose();
     super.dispose();
+  }
+
+  void _alTic(Duration transcurrido) {
+    _transcurrido = transcurrido;
+    final ahora = _ahora;
+    _tramos.removeWhere((_, m) => m.isFinished(ahora));
+    if (_tramos.isEmpty) _reloj!.stop();
+    setState(() {});
+  }
+
+  /// Un tramo por cada bus que cambió de sitio, desde donde se ve ahora (a
+  /// medio tramo, si iba en uno) para que no retroceda ni salte. Con
+  /// movimiento reducido no hay tramo: el bus aparece en su nuevo punto.
+  void _alMoverse(FleetState? antes, FleetState ahora) {
+    if (antes == null || AppMotion.reducido(context)) return;
+    final reloj = _reloj ??= createTicker(_alTic);
+    if (!reloj.isActive) {
+      _tramos.clear();
+      _transcurrido = Duration.zero;
+    }
+    final momento = _ahora;
+    for (final bus in ahora.buses.values) {
+      final previo = antes.buses[bus.busId];
+      if (bus.lat == null || bus.lon == null) {
+        _tramos.remove(bus.busId);
+        continue;
+      }
+      if (previo?.lat == null || previo?.lon == null) continue;
+      if (previo!.lat == bus.lat && previo.lon == bus.lon) continue;
+      final tramo = _tramos[bus.busId];
+      final desde = tramo != null && !tramo.isFinished(momento)
+          ? displayOf(tramo, momento)
+          : (previo.lat!, previo.lon!, previo.heading ?? bus.heading ?? 0.0);
+      _tramos[bus.busId] = BusMotion(
+        fromLat: desde.$1,
+        fromLon: desde.$2,
+        fromHeading: desde.$3,
+        toLat: bus.lat!,
+        toLon: bus.lon!,
+        // Sin rumbo conocido, el bus avanza sin girar.
+        toHeading: bus.heading ?? desde.$3,
+        start: momento,
+      );
+    }
+    if (_tramos.isNotEmpty && !reloj.isActive) reloj.start();
   }
 
   static bool _inRoute(FleetState fleet, FleetBus bus) =>
@@ -95,6 +157,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
         if (mounted) ref.invalidate(estiloMapaProvider);
       });
     });
+    ref.listen<FleetState>(fleetProvider, _alMoverse);
     final estilo = ref.watch(estiloMapaProvider).valueOrNull;
     final fleet = ref.watch(fleetProvider);
     final size = _markerSize;
@@ -185,8 +248,13 @@ class _ControlMapState extends ConsumerState<ControlMap> {
     double size,
     VoidCallback onTap,
   ) {
+    final tramo = _tramos[bus.busId];
+    final (lat, lon, rumbo) = tramo != null
+        ? displayOf(tramo, _ahora)
+        // Un bus del que nunca llegó rumbo se pinta sin girar.
+        : (bus.lat!, bus.lon!, bus.heading ?? 0.0);
     return Marker(
-      point: LatLng(bus.lat!, bus.lon!),
+      point: LatLng(lat, lon),
       width: size,
       height: size,
       child: GestureDetector(
@@ -197,8 +265,7 @@ class _ControlMapState extends ConsumerState<ControlMap> {
               '${bus.placa.isEmpty ? bus.busId : bus.placa}: '
               '${BusEstado.de(bus).rotulo}',
           child: Transform.rotate(
-            // Un bus del que nunca llegó rumbo se pinta sin girar.
-            angle: (bus.heading ?? 0) * math.pi / 180,
+            angle: rumbo * math.pi / 180,
             child: CustomPaint(
               size: Size.square(size),
               painter: _FlatBusPainter(

@@ -1,0 +1,149 @@
+// Los buses del panel se deslizan entre dos fijaciones GPS como en el
+// pasajero (`BusMotion`, 1 s por tramo). Antes saltaban de un punto al
+// siguiente en cada paquete (dueño, 2026-10-07).
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
+import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
+import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
+import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
+import 'package:ya_viene_control/features/fleet/presentation/widgets/control_map.dart';
+import 'package:ya_viene_core/core/providers/app_providers.dart'
+    show BackendUrl, backendUrlProvider;
+
+class _FakeFleetApi extends FleetApi {
+  _FakeFleetApi() : super(baseUrl: 'http://localhost:3000');
+
+  @override
+  Future<List<FleetBus>> fetchPositions(String token) async => const [];
+
+  @override
+  Future<List<FleetRoute>> fetchRoutes(String token) async => const [];
+}
+
+FleetBus _bus(double lon, double heading) => FleetBus(
+  busId: 'B-1',
+  companyId: 'c-1',
+  visible: true,
+  online: true,
+  lat: 10.9639,
+  lon: lon,
+  heading: heading,
+);
+
+/// Un bus en línea que avanza cuando la prueba lo pide.
+class _FlotaMovil extends FleetNotifier {
+  _FlotaMovil(super.ref) : super(api: _FakeFleetApi()) {
+    state = FleetState(buses: {'B-1': _bus(-74.80, 80)});
+  }
+
+  void avanzar() => state = FleetState(buses: {'B-1': _bus(-74.79, 100)});
+}
+
+void main() {
+  late Directory cache;
+  setUpAll(() {
+    cache = Directory.systemTemp.createTempSync('panel-movimiento-');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/path_provider'),
+          (_) async => cache.path,
+        );
+  });
+  tearDownAll(() => cache.deleteSync(recursive: true));
+
+  Future<ProviderContainer> montar(
+    WidgetTester tester, {
+    bool reducido = false,
+  }) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final container = ProviderContainer(
+      overrides: [
+        backendUrlProvider.overrideWith(
+          () => BackendUrl.fija('http://localhost:3000'),
+        ),
+        fleetProvider.overrideWith(_FlotaMovil.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MediaQuery(
+          data: MediaQueryData(
+            size: const Size(1200, 800),
+            disableAnimations: reducido,
+          ),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const Scaffold(body: ControlMap()),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    return container;
+  }
+
+  Marker marcador(WidgetTester tester) =>
+      tester.widget<MarkerLayer>(find.byType(MarkerLayer)).markers.single;
+
+  double rumbo(WidgetTester tester) => tester
+      .widget<Transform>(
+        find.byWidgetPredicate((w) => w is Transform && w.child is CustomPaint),
+      )
+      .transform
+      .getRotation()
+      .row0
+      .y;
+
+  // El mapa deja pendiente el reintento del estilo (en pruebas no llega).
+  Future<void> desmontar(WidgetTester tester) async {
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 2));
+  }
+
+  testWidgets('el bus se desliza hasta su nueva posición en un segundo', (
+    tester,
+  ) async {
+    final container = await montar(tester);
+    expect(marcador(tester).point.longitude, closeTo(-74.80, 1e-9));
+
+    (container.read(fleetProvider.notifier) as _FlotaMovil).avanzar();
+    await tester.pump();
+    expect(
+      marcador(tester).point.longitude,
+      closeTo(-74.80, 1e-4),
+      reason: 'arranca donde estaba, no salta',
+    );
+
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(marcador(tester).point.longitude, closeTo(-74.795, 2e-4));
+    // A medio tramo va a 90°: entre 80 y 100. sin(-90°) en la matriz.
+    expect(rumbo(tester), closeTo(-1, 1e-2));
+
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(marcador(tester).point.longitude, closeTo(-74.79, 1e-9));
+    expect(
+      tester.hasRunningAnimations,
+      isFalse,
+      reason: 'el reloj se apaga cuando no queda tramo',
+    );
+    await desmontar(tester);
+  });
+
+  testWidgets('con movimiento reducido salta en seco', (tester) async {
+    final container = await montar(tester, reducido: true);
+    (container.read(fleetProvider.notifier) as _FlotaMovil).avanzar();
+    await tester.pump();
+    expect(marcador(tester).point.longitude, closeTo(-74.79, 1e-9));
+    await desmontar(tester);
+  });
+}

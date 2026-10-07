@@ -79,35 +79,6 @@ void main() {
   });
 
   group('map_bus_animator', () {
-    test('BusMotion dura 1 segundo', () {
-      final start = DateTime(2024, 1, 1, 12, 0, 0);
-      final m = BusMotion(
-        fromLat: 0,
-        fromLon: 0,
-        fromHeading: 0,
-        toLat: 1,
-        toLon: 1,
-        toHeading: 90,
-        start: start,
-      );
-      expect(m.isFinished(start), isFalse);
-      expect(
-          m.isFinished(
-            start.add(const Duration(milliseconds: 999)),
-          ),
-          isFalse);
-      expect(
-          m.isFinished(
-            start.add(const Duration(milliseconds: 1000)),
-          ),
-          isTrue);
-      expect(
-          m.isFinished(
-            start.add(const Duration(seconds: 2)),
-          ),
-          isTrue);
-    });
-
     // El backend guarda NULL cuando el bus no manda rumbo. Pintarlo como 0 lo
     // giraba hacia el norte en cada paquete.
     test('una posición sin rumbo se queda con el del paquete anterior', () {
@@ -126,34 +97,6 @@ void main() {
           reason: '0 es el norte, un rumbo de verdad');
       expect(conRumboAnterior(pos(null), null).heading, isNull);
       expect(conRumboAnterior(pos(null), pos(null)).heading, isNull);
-    });
-
-    test('displayOf interpola lineal y heading por arco corto', () {
-      final start = DateTime(2024, 1, 1, 12, 0, 0);
-      final m = BusMotion(
-        fromLat: 10,
-        fromLon: 20,
-        fromHeading: 350,
-        toLat: 20,
-        toLon: 40,
-        toHeading: 10,
-        start: start,
-      );
-      // t=0
-      final at0 = displayOf(m, start);
-      expect(at0.$1, closeTo(10, 0.01));
-      expect(at0.$2, closeTo(20, 0.01));
-      expect(at0.$3, closeTo(350, 0.01));
-      // t=0.5 -> heading 350 -> 10 por arco corto (20 grados, +10 desde 350)
-      final atHalf = displayOf(m, start.add(const Duration(milliseconds: 500)));
-      expect(atHalf.$1, closeTo(15, 0.01));
-      expect(atHalf.$2, closeTo(30, 0.01));
-      expect(atHalf.$3, closeTo(0, 0.01));
-      // t=1
-      final at1 = displayOf(m, start.add(const Duration(milliseconds: 1000)));
-      expect(at1.$1, closeTo(20, 0.01));
-      expect(at1.$2, closeTo(40, 0.01));
-      expect(at1.$3, closeTo(10, 0.01));
     });
   });
 

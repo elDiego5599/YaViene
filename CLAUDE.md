@@ -221,14 +221,18 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   cabecera no gustó), filo entre buses centrado en la barra y sombras
   realzadas en tinta (`sombraCabecera` / `sombraTarjeta` /
   `sombraFlotante`; la maqueta web no las copia, por el presupuesto)
-  (dueño, 2026-10-07); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
+  (dueño, 2026-10-07); los buses se deslizan 1 s entre fijaciones como
+  en el pasajero (`BusMotion` en el core, 2026-10-07); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
   filas planas, carril de estados, barra de flota de 48, «Agregar bus» de
   36, ventana mínima 1200×700 (`ventanaMinima`); «Recordar contraseña» con
   el Llavero clásico (con la firma «ad hoc» el de protección de datos da
   -34018).
 - **Web**: los pasos de «Cómo funciona» ruedan en vertical al bajar
-  (≥1024 px, sin GSAP, `--paso-giro` en `pasos.css`; la órbita no gustó);
+  (≥1024 px, sin GSAP, `--paso-giro` en `pasos.css`; la órbita no gustó):
+  siguen al dedo entre dos pasos y se quedan quietos media pista en cada
+  uno (`giroDe` en `paso-foco.ts`; ni continuo ni a saltos, 2026-10-07);
+  el mapa del panel dibujado va redondeado como la lista;
   «Qué resuelve» en su rojo; términos y privacidad con la isla y el pie
   «Ya Viene Términos/Privacidad».
 

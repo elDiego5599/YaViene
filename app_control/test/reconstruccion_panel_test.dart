@@ -248,9 +248,13 @@ void main() {
           capturedAt: 2000,
         ),
       );
-      // Un segundo cuadro: el mapa repinta sus marcadores en el siguiente.
+      // El bus se desliza un segundo hasta su punto (como en el pasajero,
+      // dueño 2026-10-07); al cabo está ahí. El paquete llega en un cuadro,
+      // el reloj del tramo arranca en el siguiente y el segundo corre desde
+      // ahí.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1100));
 
       expect(
         _latitudesEnElMapa(tester),
