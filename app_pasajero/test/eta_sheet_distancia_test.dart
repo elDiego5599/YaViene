@@ -320,12 +320,12 @@ void main() {
     ]) {
       testWidgets('con el tope dicho también cabe ($tamano ×$escala)',
           (tester) async {
-        await montar(tester, metros: 900, tamano: tamano, escala: escala);
+        await montar(tester, metros: 950, tamano: tamano, escala: escala);
         await tester.tap(find.text('Avisarme cuando esté cerca'));
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Hasta 800 m'), findsOneWidget);
+        expect(find.text('Hasta 700 m'), findsOneWidget);
         expect(tester.getRect(find.text('Solo esta vez')).bottom,
             lessThanOrEqualTo(tamano.height));
         expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
@@ -342,7 +342,7 @@ void main() {
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.text('Hasta 1,2 km'), findsOneWidget);
+      expect(find.text('Hasta 1,0 km'), findsOneWidget);
       expect(
           tester.getRect(find.text('Cancelar')).bottom, lessThanOrEqualTo(568));
       expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
@@ -619,9 +619,10 @@ void main() {
 
   group('la hoja mide con la distancia elegida', () {
     // «Hay alarmas de 500 m pero cuando el bus está a 1 km o menos sale que
-    // ya está cerca» (dueño, 2026-10-07): con el bus a 1,6 km y 2 km
-    // guardados, el aviso de 2 km sonaría ya mismo, pero uno de 1,5 km o
-    // menos todavía sirve. La rueda llega hasta ahí y no más.
+    // ya está cerca» (dueño, 2026-10-07): con el bus a 1,65 km y 2 km
+    // guardados, el aviso de 2 km sonaría ya mismo, pero uno que deje los
+    // 200 m de margen, 1,4 km o menos, todavía sirve. La rueda llega hasta
+    // ahí y no más.
     testWidgets('con la guardada por encima del bus, la rueda llega hasta él',
         (tester) async {
       final c = await montar(tester, metros: 1650, guardada: 2000);
@@ -630,9 +631,9 @@ void main() {
       await tester.tap(find.text('Avisarme cuando esté cerca'));
       await tester.pumpAndSettle();
       expect(rueda, findsOneWidget);
-      expect(find.text('Hasta 1,6 km'), findsOneWidget);
-      expect(ruedaEn(tester), 11, reason: 'arranca en la mayor que sirve');
-      expect(find.text('1,7 km'), findsNothing);
+      expect(find.text('Hasta 1,4 km'), findsOneWidget);
+      expect(ruedaEn(tester), 9, reason: 'arranca en la mayor que sirve');
+      expect(find.text('1,5 km'), findsNothing);
       expect(find.text('2,0 km'), findsNothing);
 
       await girarA(tester, 1200);
@@ -650,14 +651,14 @@ void main() {
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hasta 1,2 km'), findsOneWidget);
-      expect(find.text('1,3 km'), findsNothing);
-      await girarA(tester, 1200);
-      expect(find.text('1,3 km'), findsNothing,
+      expect(find.text('Hasta 1,0 km'), findsOneWidget);
+      expect(find.text('1,1 km'), findsNothing);
+      await girarA(tester, 1000);
+      expect(find.text('1,1 km'), findsNothing,
           reason: 'debajo de la última no asoma ninguna');
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
-      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1200);
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1000);
     });
 
     // «El bus ya va a 2,4 km y aún puedo poner 2,6 km si ya estaba
@@ -673,29 +674,29 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
-      expect(find.text('Hasta 2,4 km'), findsOneWidget);
+      expect(find.text('Hasta 2,2 km'), findsOneWidget);
       expect(ruedaEn(tester), 15, reason: 'en la del aviso, 2 km');
 
       // Se acerca a 1,85 km: 2 km ya sonaría, así que la rueda baja sola a
-      // la mayor que sirve.
+      // la mayor que deja el margen.
       bus.add([_busA(1850)]);
       await tester.pumpAndSettle();
-      expect(find.text('Hasta 1,8 km'), findsOneWidget);
-      expect(find.text('1,9 km'), findsNothing);
+      expect(find.text('Hasta 1,6 km'), findsOneWidget);
+      expect(find.text('1,7 km'), findsNothing);
       expect(find.text('2,0 km'), findsNothing);
-      expect(ruedaEn(tester), 13);
+      expect(ruedaEn(tester), 11);
 
       // Se aleja otra vez: vuelve a ofrecer lo que ya no pasó, sin mover
       // la elegida.
       bus.add([_busA(2450)]);
       await tester.pumpAndSettle();
-      expect(find.text('Hasta 2,4 km'), findsOneWidget);
-      expect(ruedaEn(tester), 13);
+      expect(find.text('Hasta 2,2 km'), findsOneWidget);
+      expect(ruedaEn(tester), 11);
 
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
-      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1800);
-      expect(c.read(distanciaAvisoProvider), 1800);
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1600);
+      expect(c.read(distanciaAvisoProvider), 1600);
     });
 
     testWidgets('con el bus lejos la rueda va entera y no dice tope',
@@ -713,6 +714,14 @@ void main() {
       // 800 m: a 1 km ya estaría encima, pero la rueda deja elegir 500 m.
       await montar(tester, metros: 800);
       expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
+    });
+
+    // Con el bus a menos de 700 m, ni el de 500 m deja los 200 de margen:
+    // sonaría en segundos.
+    testWidgets('sin los 200 m de margen para el de 500 m, bloquea',
+        (tester) async {
+      await montar(tester, metros: 650);
+      expect(find.text('El bus ya está cerca'), findsOneWidget);
     });
 
     testWidgets('sin nada guardado bloquea lo que ni a 500 m sirve',

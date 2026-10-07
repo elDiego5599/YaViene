@@ -96,13 +96,13 @@ class AlertToggleController {
       final guardada = _ref.read(distanciaAvisoProvider);
       // Antes de abrir la rueda se dice lo que ninguna opción arreglaría:
       // preguntar para luego decir que no se puede sería hacerle perder el
-      // tiempo. «Ya está cerca» se mide con la mínima aunque haya una
-      // guardada mayor: con el bus a 800 m y 1 km guardado, el de 500 m
-      // todavía sirve.
+      // tiempo. «Ya está cerca» se mide con la mínima y su margen aunque
+      // haya una guardada mayor: con el bus a 800 m y 1 km guardado, el de
+      // 500 m todavía sirve.
       var message = _validar(
         busId,
         routeDistance,
-        radioCercaM: distanciaAvisoMinima,
+        radioCercaM: distanciaAvisoBloqueo,
         radioRutaM: guardada ?? distanciaAvisoMaxima,
       );
       if (message != null) {

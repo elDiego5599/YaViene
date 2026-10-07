@@ -270,14 +270,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       ref.watch(distanciaAvisoProvider) ??
       distanciaAvisoInicial;
 
-  /// El bus ya está a la menor distancia de la rueda o más cerca: ningún
-  /// aviso sirve. Con una guardada mayor no se bloquea —con el bus a 800 m
-  /// y 1 km guardado todavía sirve el de 500 m, y la rueda solo ofrece lo
-  /// que el bus no ha pasado (dueño, 2026-10-07)—. Es la misma cuenta que
-  /// hace [AlertToggleController] antes de abrir la rueda.
+  /// El bus ya está tan cerca que ni la menor distancia de la rueda deja
+  /// [margenAvisoMetros]: ningún aviso sirve. Con una guardada mayor no se
+  /// bloquea —con el bus a 800 m y 1 km guardado todavía sirve el de
+  /// 500 m, y la rueda solo ofrece lo que deja el margen (dueño,
+  /// 2026-10-07)—. Es la misma cuenta que hace [AlertToggleController]
+  /// antes de abrir la rueda.
   bool _busAlreadyNear(BusPosition? bus) {
     final distance = _distanceToBus(bus);
-    return distance != null && distance <= distanciaAvisoMinima;
+    return distance != null && distance <= distanciaAvisoBloqueo;
   }
 
   /// Histéresis del bloqueo: una vez bloqueado, sigue bloqueado hasta que el
@@ -292,7 +293,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     } else if (liveBlocked) {
       _blockedLatched = true;
     } else if (distance != null &&
-        distance > distanciaAvisoMinima + margenRearmeMetros) {
+        distance > distanciaAvisoBloqueo + margenRearmeMetros) {
       _blockedLatched = false;
     }
     return _blockedLatched;

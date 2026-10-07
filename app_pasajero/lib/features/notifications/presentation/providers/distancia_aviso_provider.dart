@@ -23,16 +23,30 @@ final List<int> distanciasDeAviso = List.unmodifiable([
     m,
 ]);
 
-/// La mayor distancia de la rueda que un bus a [metrosAlBus] todavía no ha
-/// pasado: un aviso a esa distancia o a más sonaría ya mismo (dueño,
-/// 2026-10-07: «si ya viene a menos de 1 km no puede poner aviso para 1 km
-/// o más, y así con todos»). `null` si no se sabe dónde va el bus o si va
-/// más lejos que la máxima: sirve la rueda entera. Con el bus a la mínima o
-/// menos no queda ninguna y da la mínima: quien arma ya lo rechazó antes.
+/// Lo que el bus tiene que estar por fuera de la distancia del aviso para
+/// poder ponerlo: unos 30–40 s de bus en Barranquilla. Con menos, el aviso
+/// suena en segundos o con el primer salto del GPS y parece roto (dueño,
+/// 2026-10-07: «el bus ya va a 2,4 km y aún puedo poner 2,6 km»). No 500:
+/// con el bus a 1 km o menos no quedaría ningún aviso que poner.
+const int margenAvisoMetros = 200;
+
+/// Con el bus a menos de esto, ni el aviso de la mínima deja el margen.
+const int distanciaAvisoBloqueo = distanciaAvisoMinima + margenAvisoMetros;
+
+/// La mayor distancia de la rueda que deja [margenAvisoMetros] con el bus a
+/// [metrosAlBus] (dueño, 2026-10-07: «si ya viene a menos de 1 km no puede
+/// poner aviso para 1 km o más, y así con todos»). `null` si no se sabe
+/// dónde va el bus o si la máxima ya lo deja: sirve la rueda entera. Con el
+/// bus por debajo de [distanciaAvisoBloqueo] no queda ninguna y da la
+/// mínima: quien arma ya lo rechazó antes.
 int? distanciaAvisoHasta(double? metrosAlBus) {
-  if (metrosAlBus == null || metrosAlBus > distanciaAvisoMaxima) return null;
-  final pasos =
-      ((metrosAlBus - distanciaAvisoMinima) / pasoDistanciaAviso).ceil() - 1;
+  if (metrosAlBus == null ||
+      metrosAlBus - margenAvisoMetros >= distanciaAvisoMaxima) {
+    return null;
+  }
+  final pasos = ((metrosAlBus - margenAvisoMetros - distanciaAvisoMinima) /
+          pasoDistanciaAviso)
+      .floor();
   return (distanciaAvisoMinima + pasos * pasoDistanciaAviso)
       .clamp(distanciaAvisoMinima, distanciaAvisoMaxima);
 }

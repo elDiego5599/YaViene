@@ -49,18 +49,22 @@ void main() {
     expect(prefs.containsKey('distancia_aviso_m'), isFalse);
   });
 
-  // Un aviso suena cuando el bus está a su distancia o menos: con el bus a
-  // 800 m justos, el de 800 m ya sonó y el mayor que sirve es el de 700.
-  test('la mayor distancia que el bus todavía no ha pasado', () {
+  // Un aviso suena cuando el bus está a su distancia o menos, y uno que
+  // sonaría en segundos no sirve (y un salto del GPS lo dispara ya mismo):
+  // la rueda deja 200 m de margen (dueño, 2026-10-07: «el bus ya va a
+  // 2,4 km y aún puedo poner 2,6 km»). Con el bus a 2,6 km, hasta 2,4.
+  test('la mayor distancia a 200 m o más del bus', () {
+    expect(margenAvisoMetros, 200);
     for (final (metros, hasta) in <(double?, int?)>[
       (null, null),
-      (3000.5, null),
-      (3000, 2900),
-      (834, 800),
-      (800, 700),
-      (800.1, 800),
-      (600, 500),
-      (500, 500),
+      (3200, null),
+      (3199, 2900),
+      (2600, 2400),
+      (2650, 2400),
+      (834, 600),
+      (800, 600),
+      (700, 500),
+      (650, 500),
       (120, 500),
     ]) {
       expect(distanciaAvisoHasta(metros), hasta, reason: 'bus a $metros m');

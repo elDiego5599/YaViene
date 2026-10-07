@@ -187,9 +187,9 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
-    "de": "radioCercaM: distanciaAvisoMinima,\n        radioRutaM",
-    "a": "radioCercaM: distanciaAvisoInicial,\n        radioRutaM",
-    "que": "«ya está cerca» se mide con la mínima, aunque haya una guardada mayor"
+    "de": "radioCercaM: distanciaAvisoBloqueo,\n        radioRutaM",
+    "a": "radioCercaM: distanciaAvisoMinima,\n        radioRutaM",
+    "que": "«ya está cerca» se mide con la mínima y su margen"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
@@ -259,9 +259,9 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "return distance != null && distance <= distanciaAvisoMinima;",
-    "a": "return distance != null && distance <= distanciaAvisoInicial;",
-    "que": "bloquea con la mínima aunque haya una guardada mayor"
+    "de": "return distance != null && distance <= distanciaAvisoBloqueo;",
+    "a": "return distance != null && distance <= distanciaAvisoMinima;",
+    "que": "bloquea con la mínima y su margen"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
@@ -271,8 +271,8 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "distance > distanciaAvisoMinima + margenRearmeMetros) {",
-    "a": "distance > distanciaAvisoMinima) {",
+    "de": "distance > distanciaAvisoBloqueo + margenRearmeMetros) {",
+    "a": "distance > distanciaAvisoBloqueo) {",
     "que": "el bloqueo se suelta con margen"
   },
   {
@@ -310,6 +310,12 @@
     "de": "valor >= distanciaAvisoMinima &&",
     "a": "valor > distanciaAvisoMinima - 200 &&",
     "que": "lo guardado bajo 500 m no vale"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/notifications/presentation/providers/distancia_aviso_provider.dart",
+    "de": "const int margenAvisoMetros = 200;",
+    "a": "const int margenAvisoMetros = 0;",
+    "que": "la rueda deja 200 m de margen con el bus"
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/distancia_aviso_provider.dart",
