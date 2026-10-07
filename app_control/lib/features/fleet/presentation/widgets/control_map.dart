@@ -9,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:ya_viene_core/core/models/bus_motion.dart';
+import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/app_motion.dart';
 import 'package:ya_viene_core/core/theme/estilo_mapa.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' as core show AppColors;
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
@@ -169,6 +171,18 @@ class _ControlMapState extends ConsumerState<ControlMap>
           }),
         )
         .toList();
+    final ruta = fleet.routeFilter;
+    final recorrido = ruta == null
+        ? const <LatLng>[]
+        : [
+            for (final p
+                in ref
+                        .watch(routeTrajectoryProvider(ruta))
+                        .valueOrNull
+                        ?.points ??
+                    const [])
+              LatLng(p.lat, p.lon),
+          ];
 
     // Cada bus de la ruta cae en un estado y solo en uno, así que las cuatro
     // cifras suman el total. Antes eran tres contadores que se solapaban —un
@@ -222,6 +236,30 @@ class _ControlMapState extends ConsumerState<ControlMap>
                   theme: estilo.theme,
                   sprites: estilo.sprites,
                   tileProviders: estilo.providers,
+                ),
+              // El recorrido de la ruta elegida, debajo de los buses y con
+              // los números del pasajero (`EstiloRuta` en app_pasajero):
+              // verde de la marca de 4 sobre una orla blanca de 8 al 95 %.
+              // Una ruta sin recorrido en `rutas.json` (dada de alta aquí)
+              // no pinta nada (dueño, 2026-10-07).
+              if (recorrido.length > 1)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: recorrido,
+                      color: Colors.white.withValues(alpha: 0.95),
+                      strokeWidth: 8,
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                    Polyline(
+                      points: recorrido,
+                      color: core.AppColors.primary,
+                      strokeWidth: 4,
+                      strokeCap: StrokeCap.round,
+                      strokeJoin: StrokeJoin.round,
+                    ),
+                  ],
                 ),
               MarkerLayer(markers: markers),
             ],

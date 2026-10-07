@@ -212,7 +212,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   en 1 km; cinco filas a la vista, dos arriba y dos abajo, tres con el texto
   grande): la primera vez la tarjeta del bus cambia su distancia por la
   rueda, con «Guardar» y «Solo esta vez» (sin ventana encima); «Cambiar» la
-  trae otra vez y cambia también el aviso activo. Solo con el aviso puesto
+  trae otra vez y cambia solo el aviso de ese bus («Solo se cambia la
+  distancia de este aviso», dueño, 2026-10-07). Solo con el aviso puesto
   se dice la distancia: el iPhone «Te avisamos a X · Cambiar» (dueño,
   2026-10-06; antes pedía dejar la app abierta) y Android su nota con la
   fila «Cambiar». «Cambiar» es una píldora como «Quitar» con letra roja
@@ -222,7 +223,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   realzadas en tinta (`sombraCabecera` / `sombraTarjeta` /
   `sombraFlotante`; la maqueta web no las copia, por el presupuesto)
   (dueño, 2026-10-07); los buses se deslizan 1 s entre fijaciones como
-  en el pasajero (`BusMotion` en el core, 2026-10-07); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
+  en el pasajero (`BusMotion` en el core, 2026-10-07) y la ruta elegida
+  lleva su recorrido como en el pasajero (`rutas.json` vive en el core,
+  `kRutasAsset`); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
   filas planas, carril de estados, barra de flota de 48, «Agregar bus» de
   36, ventana mínima 1200×700 (`ventanaMinima`); «Recordar contraseña» con

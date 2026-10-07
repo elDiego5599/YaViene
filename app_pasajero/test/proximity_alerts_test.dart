@@ -504,13 +504,21 @@ void main() {
 
     test('cambiar la distancia de un aviso armado mide con la nueva', () async {
       armar(500);
+      c.read(activeAlertsProvider.notifier).activateAlert('B-2');
+      avisos.armAlert('B-2', 'R1', radioM: 1500);
       await busEn(a800);
       expect(sonados, isEmpty);
 
       avisos.cambiarRadio('A-1', 1000);
 
       expect(avisos.radioDe('A-1'), 1000);
-      expect(c.read(alertHistoryProvider).single.radioM, 1000);
+      // Uno por uno: la hoja dice «Solo se cambia la distancia de este
+      // aviso», y el otro aviso puesto sigue a la suya.
+      expect(avisos.radioDe('B-2'), 1500);
+      final historial = {
+        for (final e in c.read(alertHistoryProvider)) e.busId: e.radioM
+      };
+      expect(historial, {'A-1': 1000, 'B-2': 1500});
       await busEn(a800);
       expect(sonados, hasLength(1));
     });

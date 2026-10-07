@@ -350,8 +350,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 
   /// «Cambiar»: la rueda en la distancia de ahora. Lo elegido queda guardado
-  /// y, si este bus tiene el aviso puesto, el aviso pasa a sonar ahí
-  /// (dueño, 2026-10-06: «cambia también el activo»). Solo ofrece lo que el
+  /// y, si este bus tiene el aviso puesto, ese aviso pasa a sonar ahí
+  /// (dueño, 2026-10-06); el otro aviso puesto sigue a la suya, y así lo dice
+  /// la rueda (dueño, 2026-10-07: «es individual»). Solo ofrece lo que el
   /// bus, a [metrosAlBus], todavía no ha pasado: más sonaría ya mismo.
   Future<void> _cambiarDistancia(
       String busId, int actual, double? metrosAlBus) async {
@@ -1264,7 +1265,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           if (eleccion.avisoActivo) ...[
             const SizedBox(height: 4),
             Text(
-              'También cambia el aviso que tienes activo',
+              'Solo se cambia la distancia de este aviso',
               textAlign: TextAlign.center,
               style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
             ),

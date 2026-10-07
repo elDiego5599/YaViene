@@ -187,9 +187,9 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
-    "de": "radioCercaM: guardada ?? distanciaAvisoMinima,",
-    "a": "radioCercaM: guardada ?? distanciaAvisoInicial,",
-    "que": "sin guardar, cerca es con la mínima"
+    "de": "radioCercaM: distanciaAvisoMinima,\n        radioRutaM",
+    "a": "radioCercaM: distanciaAvisoInicial,\n        radioRutaM",
+    "que": "«ya está cerca» se mide con la mínima, aunque haya una guardada mayor"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
@@ -259,20 +259,20 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "return distance != null && distance <= _radioBloqueo;",
+    "de": "return distance != null && distance <= distanciaAvisoMinima;",
     "a": "return distance != null && distance <= distanciaAvisoInicial;",
-    "que": "bloqueo con la distancia guardada"
+    "que": "bloquea con la mínima aunque haya una guardada mayor"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "ref.watch(distanciaAvisoProvider) ?? distanciaAvisoMinima;",
-    "a": "ref.watch(distanciaAvisoProvider) ?? distanciaAvisoInicial;",
-    "que": "sin guardar, bloquea con la mínima"
+    "de": "ref.watch(distanciaAvisoProvider) ??\n      distanciaAvisoInicial;",
+    "a": "ref.watch(distanciaAvisoProvider) ??\n      distanciaAvisoMaxima;",
+    "que": "sin guardar, la hoja ofrece la inicial"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "distance > _radioBloqueo + margenRearmeMetros) {",
-    "a": "distance > _radioBloqueo) {",
+    "de": "distance > distanciaAvisoMinima + margenRearmeMetros) {",
+    "a": "distance > distanciaAvisoMinima) {",
     "que": "el bloqueo se suelta con margen"
   },
   {

@@ -55,11 +55,16 @@ class RutaSobusa {
   }
 }
 
-/// Carga `rutas.json` (asset del app_pasajero) con los recorridos reales.
+/// Los recorridos viven en el core para que el pasajero y el panel pinten
+/// la misma línea; desde una app, un asset de un paquete se pide con el
+/// prefijo `packages/<paquete>/`.
+const kRutasAsset = 'packages/ya_viene_core/assets/data/rutas.json';
+
+/// Carga `rutas.json` (asset del core) con los recorridos reales.
 final rutasSobusaProvider = FutureProvider.autoDispose<List<RutaSobusa>>(
   (ref) async {
     try {
-      final raw = await rootBundle.loadString('assets/data/rutas.json');
+      final raw = await rootBundle.loadString(kRutasAsset);
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       final rutas = (decoded['rutas'] as List<dynamic>? ?? const [])
           .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))

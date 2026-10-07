@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.dart';
 
 /// Grados de latitud a kilómetros (constante: los meridianos no se estrechan).
@@ -99,8 +100,7 @@ void main() {
     // sale de `rutas.json`: con Coolitoral la red creció de 0,100° a 0,108°
     // y el 11,4 de antes ya no la abarcaba.
     const anchoPantallaPt = 402.0;
-    final rutas = (jsonDecode(
-            await rootBundle.loadString('assets/data/rutas.json'))['rutas']
+    final rutas = (jsonDecode(await rootBundle.loadString(kRutasAsset))['rutas']
         as List<dynamic>);
     final lons = [
       for (final r in rutas)

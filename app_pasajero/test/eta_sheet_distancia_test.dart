@@ -454,7 +454,8 @@ void main() {
       expect(find.text('Te avisamos a 2,0 km'), findsOneWidget);
     });
 
-    testWidgets('con el aviso activo también cambia el aviso', (tester) async {
+    testWidgets('con el aviso activo cambia ese aviso y lo dice',
+        (tester) async {
       final c = await montar(tester, guardada: 1800);
       await tester.tap(find.text('Avisarme cuando esté cerca'));
       await tester.pumpAndSettle();
@@ -462,7 +463,7 @@ void main() {
 
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
-      expect(find.text('También cambia el aviso que tienes activo'),
+      expect(find.text('Solo se cambia la distancia de este aviso'),
           findsOneWidget);
       await girarA(tester, 2500);
       await tester.tap(find.text('Guardar'));

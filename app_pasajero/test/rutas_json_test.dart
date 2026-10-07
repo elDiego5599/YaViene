@@ -11,7 +11,7 @@ void main() {
 
   test('rutas.json trae las rutas de Sobusa y Coolitoral con geometría',
       () async {
-    final raw = await rootBundle.loadString('assets/data/rutas.json');
+    final raw = await rootBundle.loadString(kRutasAsset);
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     final rutas = (decoded['rutas'] as List<dynamic>)
         .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
@@ -47,11 +47,11 @@ void main() {
   // ruta vuelve a una fuente vieja, esto lo dice (A3 calzada medía 21,1 km
   // y no llegaba a Riomar por la Calle 84).
   test('Coolitoral sigue los circuitos de sus KMZ', () async {
-    final raw = await rootBundle.loadString('assets/data/rutas.json');
-    final rutas = ((jsonDecode(raw) as Map<String, dynamic>)['rutas']
-            as List<dynamic>)
-        .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final raw = await rootBundle.loadString(kRutasAsset);
+    final rutas =
+        ((jsonDecode(raw) as Map<String, dynamic>)['rutas'] as List<dynamic>)
+            .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
+            .toList();
     const salida = (10.967503, -74.774768); // Cl. 17, Sur Oriente
     const circuitos = {
       'R-107': (41.6, (11.020563, -74.873080)), // A1, Sabanilla Montecarmelo
@@ -79,7 +79,7 @@ void main() {
     // MapConstants.area*. Si mañana entra una ruta que sale de ese
     // rectángulo, el pasajero podría seguir un bus hasta que la cámara se
     // topara con una pared invisible. Este test lo dice antes.
-    final raw = await rootBundle.loadString('assets/data/rutas.json');
+    final raw = await rootBundle.loadString(kRutasAsset);
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     final rutas = (decoded['rutas'] as List<dynamic>)
         .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
@@ -102,7 +102,7 @@ void main() {
   });
 
   test('las paradas quedan vacías (buses sin paradas fijas)', () async {
-    final raw = await rootBundle.loadString('assets/data/rutas.json');
+    final raw = await rootBundle.loadString(kRutasAsset);
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     final rutas = (decoded['rutas'] as List<dynamic>)
         .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))

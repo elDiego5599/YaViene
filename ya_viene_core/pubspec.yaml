@@ -25,5 +25,11 @@ dev_dependencies:
   # análisis del core depende de que otro paquete lo haya bajado antes.
   flutter_lints: ^6.0.0
 
+flutter:
+  # Los recorridos de las rutas (`kRutasAsset`): los pintan el pasajero y el
+  # panel, y `convert-rutas.mjs` del backend los escribe aquí.
+  assets:
+    - assets/data/
+
 # ── Importante: El core no debe depender de MapLibre, Mapbox o MQTT directamente.
 # Es estrictamente para modelos de dominio puros y el sistema de diseño visual.
