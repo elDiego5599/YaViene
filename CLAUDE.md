@@ -217,9 +217,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   2026-10-06; antes pedía dejar la app abierta) y Android su nota con la
   fila «Cambiar». «Cambiar» es una píldora como «Quitar» con letra roja
   (`coralAccessible`, 4,96:1). La web lo espeja en el paso 3 y en el hero.
-- **Panel**: cabecera del tablero en el degradado del login (eje al 70 %,
-  todo en blanco, estado en píldora blanca) y fondo blanco, no arena
-  (dueño, 2026-10-07); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
+- **Panel**: tablero con fondo y cabecera blancos (el degradado en la
+  cabecera no gustó) y filo entre buses centrado en la barra (dueño,
+  2026-10-07); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
   filas planas, carril de estados, barra de flota de 48, «Agregar bus» de
   36, ventana mínima 1200×700 (`ventanaMinima`); «Recordar contraseña» con

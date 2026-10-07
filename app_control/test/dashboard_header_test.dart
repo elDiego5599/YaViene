@@ -137,59 +137,32 @@ void main() {
   // El dueño pidió la cabecera en el degradado del login (2026-10-07). La
   // letra va encima de todo el ancho, así que se mide contra el borde más
   // claro que se ve, no contra el azul de la izquierda.
-  testWidgets('la cabecera va en el degradado del login y se lee en todo él', (
-    tester,
-  ) async {
+  testWidgets('la cabecera es blanca y su texto se lee', (tester) async {
     await _montar(
       tester,
       () => BackendUrl(respaldo, principal: principal, respaldo: respaldo),
     );
 
+    // El degradado del login se probó y no gustó (dueño, 2026-10-07).
     final caja = tester.widget<Container>(
       find.byKey(const ValueKey('cabecera')),
     );
-    final g = (caja.decoration! as BoxDecoration).gradient! as LinearGradient;
-    expect(g.colors, const [Color(0xFF17325F), Color(0xFF00A859)]);
-    final inicio = g.begin as Alignment, fin = g.end as Alignment;
-    Color en(double x) => Color.lerp(
-      g.colors.first,
-      g.colors.last,
-      ((x - inicio.x) / (fin.x - inicio.x)).clamp(0.0, 1.0),
-    )!;
-    final claro = [
-      en(-1),
-      en(1),
-    ].reduce((a, b) => a.computeLuminance() > b.computeLuminance() ? a : b);
+    final deco = caja.decoration! as BoxDecoration;
+    expect(deco.gradient, isNull);
+    expect(deco.color, AppColors.surface);
 
     for (final texto in [
       'YA VIENE',
       'CONTROL DE FLOTA',
       'Conectado al respaldo',
       'Salir',
+      'En línea',
     ]) {
       expect(
-        _contraste(_letra(tester, texto), claro),
+        _contraste(_letra(tester, texto), AppColors.surface),
         greaterThanOrEqualTo(4.5),
-        reason: '«$texto» sobre el borde claro del degradado',
+        reason: '«$texto» sobre la cabecera blanca',
       );
     }
-
-    // El estado va en su píldora, opaca: su color no compite con el verde.
-    final pildora = tester
-        .widgetList<Container>(
-          find.ancestor(
-            of: find.text('En línea'),
-            matching: find.byType(Container),
-          ),
-        )
-        .map((c) => c.decoration)
-        .whereType<BoxDecoration>()
-        .firstWhere((d) => d.color != null)
-        .color!;
-    expect(pildora.a, 1.0);
-    expect(
-      _contraste(_letra(tester, 'En línea'), pildora),
-      greaterThanOrEqualTo(4.5),
-    );
   });
 }

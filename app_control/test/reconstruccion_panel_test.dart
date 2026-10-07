@@ -225,6 +225,15 @@ void main() {
       final antes = _tarjetas(tester);
       expect(antes.keys, unorderedEquals(['B-1', 'B-2']));
 
+      // El filo entre buses va centrado en la barra (dueño, 2026-10-07).
+      final filo = tester.widget<Divider>(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Divider),
+        ),
+      );
+      expect(filo.indent, filo.endIndent, reason: 'filo centrado');
+
       // Solo se mueve: la lista no enseña nada de esto.
       socket.posiciones.add(
         const FleetBus(

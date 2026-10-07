@@ -41,18 +41,6 @@ abstract class AppColors {
   /// blanco o arena sigue por encima de 11:1.
   static const Color navy = Color(0xFF17325F);
 
-  /// La cabecera del tablero: el degradado del login (`FondoEquipo`, el del
-  /// «404» de la web), [navy] → #00A859, a lo ancho (dueño, 2026-10-07).
-  /// Como en el login, el eje sigue más allá del borde: la cabecera termina
-  /// en el 70 % (#07855B), donde el blanco da 4,65:1; con el verde puro, el
-  /// «Salir» de la derecha quedaba en 3,1 (test/dashboard_header_test.dart).
-  static const LinearGradient cabecera = LinearGradient(
-    begin: Alignment.centerLeft,
-    // -1 + 2 / 0,7: el borde derecho (x = 1) cae en el 70 % del eje.
-    end: Alignment(1.857, 0),
-    colors: [navy, core.AppColors.primary],
-  );
-
   /// El fondo de lo que va lleno —botones, el filtro de ruta y la pestaña
   /// de estado activos—: el mismo azul de los botones del pasajero
   /// (#1E56A8). El dueño lo eligió solo para eso, no para íconos, y vio

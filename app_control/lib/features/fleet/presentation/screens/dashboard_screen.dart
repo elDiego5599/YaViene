@@ -400,11 +400,12 @@ class DashboardHeader extends ConsumerWidget {
       FleetConnection.disconnected => ('Sin conexión', AppColors.danger),
       FleetConnection.connecting => ('Conectando…', AppColors.ghost),
     };
-    // En el degradado del login; encima, todo en blanco (4,65:1 en el borde
-    // más claro) y el estado en su píldora blanca, donde su color se lee.
     return Container(
       key: const ValueKey('cabecera'),
-      decoration: const BoxDecoration(gradient: AppColors.cabecera),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
@@ -413,8 +414,9 @@ class DashboardHeader extends ConsumerWidget {
             height: 36,
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
             ),
             child: SvgPicture.asset(
               'assets/logo/ya_viene_logo.svg',
@@ -431,7 +433,7 @@ class DashboardHeader extends ConsumerWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2.5,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
               Text(
@@ -440,7 +442,7 @@ class DashboardHeader extends ConsumerWidget {
                   fontSize: 8.5,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.8,
-                  color: Colors.white,
+                  color: AppColors.textMuted,
                 ),
               ),
             ],
@@ -452,7 +454,7 @@ class DashboardHeader extends ConsumerWidget {
               style: AppType.ui(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(width: 12),
@@ -460,7 +462,7 @@ class DashboardHeader extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(
@@ -498,8 +500,8 @@ class DashboardHeader extends ConsumerWidget {
               icon: const Icon(Icons.logout, size: 15),
               label: const Text('Salir'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Color(0x8CFFFFFF)),
+                foregroundColor: AppColors.textSecondary,
+                side: const BorderSide(color: AppColors.borderStrong),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
@@ -849,6 +851,10 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+/// El filo entre buses, igual en las filas de verdad y en las fantasma: mismo
+/// largo que cuando arrancaba en la placa (61 + 10), repartido a los dos lados.
+const _filo = Divider(height: 9, indent: 36, endIndent: 36);
+
 /// La forma de [FleetListTile] sin datos: el recuadro del bus, la placa y el
 /// interruptor, con el mismo relleno y el mismo filo entre filas, para que al
 /// llegar la flota las filas de verdad caigan donde estaban estas.
@@ -873,8 +879,7 @@ class _FilasFantasma extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _anchos.length,
-      separatorBuilder: (_, _) =>
-          const Divider(height: 9, indent: 61, endIndent: 10),
+      separatorBuilder: (_, _) => _filo,
       itemBuilder: (_, i) => Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
         // 46: lo que mide el interruptor con su rótulo de 9 debajo, que es
@@ -1031,12 +1036,10 @@ class _FleetPanel extends ConsumerWidget {
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                     itemCount: buses.length,
-                    // Las filas ya no son tarjetas: las separa un filo que
-                    // arranca donde arranca la placa (1 de borde + 12 de
-                    // relleno + 36 del recuadro + 12 de aire), como en las
-                    // listas de macOS. 9 de alto: 4 de aire a cada lado.
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 9, indent: 61, endIndent: 10),
+                    // Las filas ya no son tarjetas: las separa un filo
+                    // centrado en la barra (dueño, 2026-10-07; antes
+                    // arrancaba en la placa). 9 de alto: 4 de aire a cada lado.
+                    separatorBuilder: (_, _) => _filo,
                     itemBuilder: (context, index) {
                       final bus = buses[index];
                       return FleetListTile(
