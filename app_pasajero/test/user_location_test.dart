@@ -63,8 +63,7 @@ void main() {
       _kManualLon: -74.79145,
       'user_loc_asked': true,
     });
-    const permisos =
-        MethodChannel('flutter.baseflow.com/permissions/methods');
+    const permisos = MethodChannel('flutter.baseflow.com/permissions/methods');
     const gps = MethodChannel('flutter.baseflow.com/geolocator');
     final llamadasGps = <String>[];
     final mensajero =
@@ -164,31 +163,59 @@ void main() {
     expect(prefs.getDouble(_kManualLon), isNull);
   });
 
-  test('clearManualPin borra el pin guardado', () async {
-    SharedPreferences.setMockInitialValues({
-      _kManualLat: 10.9512,
-      _kManualLon: -74.79145,
-    });
-    const channel = MethodChannel('flutter.baseflow.com/permissions/methods');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-      if (call.method == 'checkPermissionStatus') return 0; // denied
-      if (call.method == 'shouldShowRequestPermissionRationale') return false;
-      return null;
-    });
-    addTearDown(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, null);
-    });
+  // El dueño, 2026-10-07: «Quitar» quita el pin para que ponga otro; el GPS
+  // es aparte («Usar GPS»). Antes, con el permiso concedido, «Quitar» volvía
+  // solo al GPS y el usuario no veía cómo marcar otro punto.
+  for (final (nombre, permiso) in [('con permiso', 1), ('sin permiso', 0)]) {
+    test('clearManualPin $nombre borra el pin y deja el mapa sin punto',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        _kManualLat: 10.9512,
+        _kManualLon: -74.79145,
+        'user_loc_asked': true,
+      });
+      const permisos =
+          MethodChannel('flutter.baseflow.com/permissions/methods');
+      const gps = MethodChannel('flutter.baseflow.com/geolocator');
+      final llamadasGps = <String>[];
+      final mensajero =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      mensajero.setMockMethodCallHandler(permisos, (call) async {
+        if (call.method == 'checkPermissionStatus') return permiso;
+        if (call.method == 'shouldShowRequestPermissionRationale') {
+          return false;
+        }
+        return null;
+      });
+      mensajero.setMockMethodCallHandler(gps, (call) async {
+        llamadasGps.add(call.method);
+        return null;
+      });
+      addTearDown(() {
+        mensajero.setMockMethodCallHandler(permisos, null);
+        mensajero.setMockMethodCallHandler(gps, null);
+      });
 
-    final notifier = UserLocationNotifier();
-    await notifier.clearManualPin();
+      final notifier = UserLocationNotifier();
+      addTearDown(notifier.dispose);
+      await notifier.initialize();
+      expect(notifier.state.mode, UserLocationMode.manual);
 
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getDouble(_kManualLat), isNull);
-    expect(prefs.getDouble(_kManualLon), isNull);
-    expect(notifier.state.mode, UserLocationMode.denied);
-  });
+      await notifier.clearManualPin();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getDouble(_kManualLat), isNull);
+      expect(prefs.getDouble(_kManualLon), isNull);
+      expect(notifier.state.mode, UserLocationMode.sinPunto);
+      expect(notifier.state.hasPosition, isFalse);
+      expect(llamadasGps, isEmpty, reason: 'Quitar no prende el GPS');
+
+      // Y al volver a la app no se prende solo.
+      await notifier.resumeGpsIfNeeded();
+      expect(notifier.state.mode, UserLocationMode.sinPunto);
+      expect(llamadasGps, isEmpty);
+    });
+  }
 
   group('permiso denegado para siempre y concedido más tarde (T5.6)', () {
     const permisos = MethodChannel('flutter.baseflow.com/permissions/methods');

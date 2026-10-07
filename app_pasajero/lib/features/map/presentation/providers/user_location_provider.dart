@@ -28,6 +28,10 @@ enum UserLocationMode {
 
   /// Centro del usuario = pin manual tocado en el mapa.
   manual,
+
+  /// El usuario quitó su pin («Quitar»): el mapa espera otro toque y el GPS
+  /// queda a un toque («Usar GPS»), sin prenderse solo.
+  sinPunto,
 }
 
 class UserLocationState {
@@ -241,8 +245,11 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
         ),
       );
       // Si mientras esperábamos el GPS el usuario tocó el mapa para fijar su
-      // pin manual, el GPS no debe sobrescribirlo.
-      if (state.mode == UserLocationMode.manual) return;
+      // pin manual, o lo quitó, el GPS no debe sobrescribirlo.
+      if (state.mode == UserLocationMode.manual ||
+          state.mode == UserLocationMode.sinPunto) {
+        return;
+      }
       state = UserLocationState(
         mode: UserLocationMode.gps,
         lat: position.latitude,
@@ -251,6 +258,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       );
       _startGpsStream();
     } catch (_) {
+      if (state.mode == UserLocationMode.sinPunto) return;
       state = const UserLocationState(mode: UserLocationMode.gpsFailed);
     }
   }
@@ -306,23 +314,20 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     await prefs.setDouble(_kManualLon, lon);
   }
 
-  /// Quita el pin («Quitar» en el mapa) y vuelve al GPS si hay permiso. Es
-  /// la única forma de borrar el punto de espera guardado, y así lo dice la
-  /// política de privacidad.
+  /// Quita el pin («Quitar» en el mapa) y deja el mapa sin punto, para que
+  /// el usuario toque otro; el GPS no se prende solo, va con «Usar GPS»
+  /// (dueño, 2026-10-07). Es la única forma de borrar el punto de espera
+  /// guardado, y así lo dice la política de privacidad.
   Future<void> clearManualPin() async {
     // Lo primero, antes de cualquier `await`: una lectura del GPS que llegara
     // mientras se borra el pin del disco escribiría una posición a medio
-    // camino. `_locate` abre una suscripción nueva.
+    // camino.
     _gpsSub?.cancel();
     _gpsSub = null;
+    state = const UserLocationState(mode: UserLocationMode.sinPunto);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kManualLat);
     await prefs.remove(_kManualLon);
-    if (await _hasGpsPermission()) {
-      await _locate();
-    } else {
-      state = const UserLocationState(mode: UserLocationMode.denied);
-    }
   }
 
   @override

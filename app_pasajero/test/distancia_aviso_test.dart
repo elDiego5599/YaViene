@@ -48,4 +48,22 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.containsKey('distancia_aviso_m'), isFalse);
   });
+
+  // Un aviso suena cuando el bus está a su distancia o menos: con el bus a
+  // 800 m justos, el de 800 m ya sonó y el mayor que sirve es el de 700.
+  test('la mayor distancia que el bus todavía no ha pasado', () {
+    for (final (metros, hasta) in <(double?, int?)>[
+      (null, null),
+      (3000.5, null),
+      (3000, 2900),
+      (834, 800),
+      (800, 700),
+      (800.1, 800),
+      (600, 500),
+      (500, 500),
+      (120, 500),
+    ]) {
+      expect(distanciaAvisoHasta(metros), hasta, reason: 'bus a $metros m');
+    }
+  });
 }

@@ -184,8 +184,10 @@ void main() {
 
   testWidgets(
       'el bloqueo del aviso no flapea: se suelta 500 m más allá de la '
-      'distancia guardada (1 km → 1500 m)', (tester) async {
-    // La distancia del aviso la guarda la persona; aquí, el kilómetro.
+      'distancia mínima (500 m → 1 km)', (tester) async {
+    // Bloquea la mínima de la rueda y no la guardada: con el bus a 800 m y
+    // el kilómetro guardado, la rueda todavía ofrece 500, 600 y 700 m
+    // (dueño, 2026-10-07).
     SharedPreferences.setMockInitialValues({'distancia_aviso_m': 1000});
     addTearDown(() => SharedPreferences.setMockInitialValues({}));
     final controller = StreamController<List<BusPosition>>();
@@ -217,39 +219,39 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     await tester.pump();
 
-    // 800 m: dentro del radio de aviso → bloqueado.
+    // 400 m: dentro de la mínima → bloqueado.
+    controller.add([busAt(0.003593)]);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('El bus ya está cerca'), findsOneWidget);
+
+    // 800 m: ya no está dentro de la mínima pero sigue a menos de 1 km →
+    // permanece bloqueado (el cruce de umbral no debe flapear el botón).
     controller.add([busAt(0.007186)]);
     await tester.pump();
     await tester.pump();
     expect(find.text('El bus ya está cerca'), findsOneWidget);
 
-    // 1100 m: ya no está dentro del radio pero sigue a menos de 1500 m →
-    // permanece bloqueado (el cruce de umbral no debe flapear el botón).
-    controller.add([busAt(0.009881)]);
-    await tester.pump();
-    await tester.pump();
-    expect(find.text('El bus ya está cerca'), findsOneWidget);
-
     // El icono es el que delata el estado real del latch: mientras el
-    // umbral de rearme sea 1500 m la campana sigue apagada. Un umbral
+    // umbral de rearme sea 1 km la campana sigue apagada. Un umbral
     // torcido (p. ej. 500 m) encendería la campana aquí aunque el texto
     // de la métrica no cambie.
     await tester.pump(const Duration(milliseconds: 400));
     expect(
       find.byIcon(Icons.notifications_off_outlined),
       findsOneWidget,
-      reason: 'a los 1100 m el botón sigue bloqueado (histéresis)',
+      reason: 'a los 800 m el botón sigue bloqueado (histéresis)',
     );
     expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
 
-    // 1600 m: se alejó más de 1500 m → recién ahí se desbloquea.
-    controller.add([busAt(0.014373)]);
+    // 1100 m: se alejó más de 1 km → recién ahí se desbloquea.
+    controller.add([busAt(0.009881)]);
     await tester.pump();
     await tester.pump();
     expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget,
-        reason: 'pasados los 1500 m la campana se reactiva');
+        reason: 'pasado el kilómetro la campana se reactiva');
     expect(find.byIcon(Icons.notifications_off_outlined), findsNothing);
   });
 

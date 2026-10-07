@@ -106,6 +106,33 @@ void main() {
         reason: 'perder la ubicación no debe cancelar el aviso');
   });
 
+  // «Quitar» deja el mapa sin punto (dueño, 2026-10-07): sin ubicación no
+  // hay distancia, así que el bus elegido se suelta como al perder el GPS.
+  // El aviso armado sigue: se pausa hasta que haya punto otra vez.
+  testWidgets('Quitar el pin suelta el bus elegido y conserva el aviso',
+      (tester) async {
+    await pumpSheet(tester);
+    final ubicacion =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    ubicacion.set(const UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.2442,
+      lon: -75.5812,
+    ));
+    container.read(selectedRouteProvider.notifier).select(routeR1());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    await tester.pump();
+    expect(container.read(selectedBusesProvider), contains('A-1'));
+
+    ubicacion.set(const UserLocationState(mode: UserLocationMode.sinPunto));
+    await tester.pump();
+
+    expect(container.read(selectedBusesProvider), isEmpty);
+    expect(container.read(activeAlertsProvider), contains('A-1'));
+  });
+
   testWidgets('un aviso activo se puede desactivar aunque el bus pierda señal',
       (tester) async {
     positions = [

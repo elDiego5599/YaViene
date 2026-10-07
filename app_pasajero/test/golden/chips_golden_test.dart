@@ -72,6 +72,7 @@ void main() {
     (UserLocationMode.denied, 'sin_permiso'),
     (UserLocationMode.permanentDenied, 'bloqueada'),
     (UserLocationMode.gpsFailed, 'gps_fallido'),
+    (UserLocationMode.sinPunto, 'sin_punto'),
   ]) {
     testWidgets('píldora de ubicación · $nombre', (tester) async {
       fijarPantalla(tester);

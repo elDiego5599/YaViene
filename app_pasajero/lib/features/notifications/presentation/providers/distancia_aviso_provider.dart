@@ -23,6 +23,20 @@ final List<int> distanciasDeAviso = List.unmodifiable([
     m,
 ]);
 
+/// La mayor distancia de la rueda que un bus a [metrosAlBus] todavía no ha
+/// pasado: un aviso a esa distancia o a más sonaría ya mismo (dueño,
+/// 2026-10-07: «si ya viene a menos de 1 km no puede poner aviso para 1 km
+/// o más, y así con todos»). `null` si no se sabe dónde va el bus o si va
+/// más lejos que la máxima: sirve la rueda entera. Con el bus a la mínima o
+/// menos no queda ninguna y da la mínima: quien arma ya lo rechazó antes.
+int? distanciaAvisoHasta(double? metrosAlBus) {
+  if (metrosAlBus == null || metrosAlBus > distanciaAvisoMaxima) return null;
+  final pasos =
+      ((metrosAlBus - distanciaAvisoMinima) / pasoDistanciaAviso).ceil() - 1;
+  return (distanciaAvisoMinima + pasos * pasoDistanciaAviso)
+      .clamp(distanciaAvisoMinima, distanciaAvisoMaxima);
+}
+
 /// [valor] si es una distancia de aviso que se puede usar; si no, `null`.
 /// Lo que viene del disco no se cree.
 int? distanciaAvisoValida(Object? valor) => valor is int &&

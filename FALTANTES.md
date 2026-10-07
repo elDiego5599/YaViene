@@ -1,6 +1,6 @@
 # Lo que falta
 
-Al 2026-10-06. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
+Al 2026-10-07. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
 está hecho y subido a las ramas de trabajo (`diseno-21st` en app y web,
 `prueba` en el backend); a `main` se sube por lotes cuando lo pidas
 (regla de trabajo 2 de `CLAUDE.md`). Lo que queda está repartido según
@@ -42,6 +42,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
+- **La línea de la ruta en el mapa del panel.** El panel y el pasajero
+  pintan los buses en las mismas posiciones (las mismas que manda el
+  backend), pero solo el pasajero dibuja el recorrido; si quieres que el
+  panel también lo muestre, es un cambio en `control_map.dart`.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
@@ -83,9 +87,17 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
-Nada por ahora.
+- **La tarjeta del aviso activo con el texto al doble** (hallado el
+  2026-10-07, ya estaba en `9d0f3a0`): con el aviso puesto y el texto del
+  sistema al doble, en un 390×844 la hoja se pasa de la pantalla. En
+  Android desborda 21 px y «Cambiar» queda en 861–892, fuera; en iPhone
+  «Te avisamos a 1,0 km» se parte palabra por palabra junto a su
+  «Cambiar» y el botón del aviso baja a 831–869. Medido con la letra de
+  pruebas, que es más ancha que la de verdad; falta la prueba roja que lo
+  ate y acomodarlo (la píldora debajo del texto con letra grande, como en
+  `notifications_screen.dart:813`).
 
-Ojo con la web: el CSS va en 120,0 de 121 KB y la carpeta `dist` en 781,2 de
+Ojo con la web: el CSS va en 120,2 de 121 KB y la carpeta `dist` en 781,6 de
 797. Cualquier cambio de la web se mide antes de sumarlo.
 
 ## El día antes y el día del pitch

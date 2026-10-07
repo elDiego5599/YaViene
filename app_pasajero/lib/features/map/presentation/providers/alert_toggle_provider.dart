@@ -15,8 +15,11 @@ import 'user_location_provider.dart';
 typedef NotificationPermissionRequester = Future<bool> Function();
 
 /// Le pregunta a la persona a qué distancia quiere el aviso (la rueda).
-/// `null` si cerró sin elegir; [guardar] si la quiere para los que vienen.
-typedef ElegirDistancia = Future<({int metros, bool guardar})?> Function();
+/// [hasta] es la mayor que puede ofrecer —la de más que el bus ya pasó
+/// sonaría ya mismo—, o `null` si cualquiera sirve. `null` si cerró sin
+/// elegir; [guardar] si la quiere para los que vienen.
+typedef ElegirDistancia = Future<({int metros, bool guardar})?> Function(
+    int? hasta);
 
 /// Resultado de intentar activar/desactivar un aviso. El widget solo traduce
 /// esto a háptico y snackbar: toda la regla de negocio vive aquí.
@@ -91,22 +94,27 @@ class AlertToggleController {
       // dispararse: mejor explicarlo antes de armar una alerta muerta.
       final routeDistance = await _routeDistanceToUser();
       final guardada = _ref.read(distanciaAvisoProvider);
-      // Sin distancia guardada, antes de abrir la rueda se dice lo que
-      // ninguna opción arreglaría: preguntar para luego decir que no se
-      // puede sería hacerle perder el tiempo.
+      // Antes de abrir la rueda se dice lo que ninguna opción arreglaría:
+      // preguntar para luego decir que no se puede sería hacerle perder el
+      // tiempo. «Ya está cerca» se mide con la mínima aunque haya una
+      // guardada mayor: con el bus a 800 m y 1 km guardado, el de 500 m
+      // todavía sirve.
       var message = _validar(
         busId,
         routeDistance,
-        radioCercaM: guardada ?? distanciaAvisoMinima,
+        radioCercaM: distanciaAvisoMinima,
         radioRutaM: guardada ?? distanciaAvisoMaxima,
       );
       if (message != null) {
         return AlertToggleResult(AlertToggleOutcome.rejected, message: message);
       }
-      if (guardada != null) {
+      final hasta = distanciaAvisoHasta(_distanceToBus(_busById(busId)));
+      if (guardada != null && (hasta == null || guardada <= hasta)) {
         radio = guardada;
       } else {
-        final elegida = await elegirDistancia();
+        // Sin guardada, o con una que el bus ya pasó: la rueda, solo con
+        // las que todavía no ha pasado.
+        final elegida = await elegirDistancia(hasta);
         if (elegida == null) {
           return const AlertToggleResult(AlertToggleOutcome.cancelled);
         }

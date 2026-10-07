@@ -81,6 +81,17 @@ class LocationStatusChip extends ConsumerWidget {
       // no se quede clavado si algo revienta, `initialize()` acaba siempre en
       // un modo con salida.
       UserLocationMode.unknown => null,
+      // Tras «Quitar»: la hoja de abajo ya dice «Toca el mapa para indicar
+      // dónde estás»; la píldora deja el GPS a un toque (dueño, 2026-10-07).
+      UserLocationMode.sinPunto => PildoraDatos(
+          key: 'sinPunto',
+          icon: Icons.add_location_alt_outlined,
+          iconColor: AppColors.primaryAccessible,
+          text: 'Sin punto de espera',
+          actionLabel: 'Usar GPS',
+          onAction: () => notifier.useGps(),
+          tint: AppColors.primaryTint,
+        ),
     };
 
     if (pill == null) return const SizedBox.shrink();
@@ -153,22 +164,23 @@ class LocationStatusChip extends ConsumerWidget {
 
   PildoraDatos? _gpsPill(UserLocationState location, int? nearbyCount,
       UserLocationNotifier notifier) {
-    // "Fijar": deja el pin clavado en la posición actual del GPS (útil cuando
-    // el punto exacto de espera no es donde el GPS cree que estás). El pin se
-    // puede arrastrar y el modo manual permite "Quitar" para volver al GPS.
-    PildoraDatos withFix(PildoraDatos data) => location.hasPosition
+    // «Quitar»: el pin que sigue al GPS sale del mapa para que el usuario
+    // toque su punto de espera (dueño, 2026-10-07). Antes era «Fijar», que
+    // clavaba el pin donde ya estaba: no se veía hacer nada.
+    PildoraDatos conQuitar(PildoraDatos data) => location.hasPosition
         ? PildoraDatos(
-            key: '${data.key}-fix',
+            key: '${data.key}-quitar',
             icon: data.icon,
             iconColor: data.iconColor,
             text: data.text,
             tint: data.tint,
-            actionLabel: 'Fijar',
-            onAction: () => notifier.setManualPin(location.lat!, location.lon!),
+            actionLabel: 'Quitar',
+            onAction: () => notifier.clearManualPin(),
+            actionDanger: true,
           )
         : data;
     if (nearbyCount == null) {
-      return withFix(const PildoraDatos(
+      return conQuitar(const PildoraDatos(
         key: 'gps',
         icon: Icons.my_location_outlined,
         iconColor: AppColors.primaryAccessible,
@@ -177,7 +189,7 @@ class LocationStatusChip extends ConsumerWidget {
       ));
     }
     if (nearbyCount == 0) {
-      return withFix(const PildoraDatos(
+      return conQuitar(const PildoraDatos(
         key: 'gps-empty',
         icon: Icons.directions_bus_outlined,
         iconColor: AppColors.warningAccessible,
@@ -185,7 +197,7 @@ class LocationStatusChip extends ConsumerWidget {
         tint: AppColors.warningLight,
       ));
     }
-    return withFix(PildoraDatos(
+    return conQuitar(PildoraDatos(
       key: 'gps-near',
       icon: Icons.my_location_outlined,
       iconColor: AppColors.primaryAccessible,

@@ -282,13 +282,16 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Un aviso armado con GPS no tiene ancla: mide desde la persona, que se
   /// mueve con él. Pero al poner o arrastrar el pin, «en vivo» pasaba a ser
   /// el pin y el aviso se mudaba con él (lo vio el dueño, 2026-09-28). Al
-  /// pasar de GPS a pin, esos avisos se quedan donde estaba el GPS. Solo en
-  /// ese paso: GPS → «ubicando» es el mismo GPS volviendo a leer.
+  /// pasar de GPS a pin, esos avisos se quedan donde estaba el GPS. Igual
+  /// al quitar el pin del GPS («Quitar»): el próximo punto lo toca el
+  /// usuario y el aviso no se muda a él. Solo en esos pasos: GPS →
+  /// «ubicando» es el mismo GPS volviendo a leer.
   void _alMoverUbicacion(UserLocationState? antes, UserLocationState ahora) {
     if (antes == null ||
         antes.mode != UserLocationMode.gps ||
         !antes.hasPosition ||
-        ahora.mode != UserLocationMode.manual) {
+        (ahora.mode != UserLocationMode.manual &&
+            ahora.mode != UserLocationMode.sinPunto)) {
       return;
     }
     final donde = (antes.lat!, antes.lon!);

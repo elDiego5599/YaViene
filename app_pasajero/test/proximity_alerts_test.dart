@@ -677,6 +677,30 @@ void main() {
     expect(fired, hasLength(1), reason: 'mide desde donde estaba el GPS');
   });
 
+  // Con «Quitar» (dueño, 2026-10-07) el GPS se va y el mapa queda sin punto
+  // hasta que el usuario toca otro: el aviso armado con GPS no puede mudarse
+  // a ese punto nuevo. Se queda donde estaba el GPS al quitarlo.
+  test('quitar el pin del GPS y tocar otro NO mueve el aviso', () async {
+    final notifier =
+        container.read(userLocationProvider.notifier) as _TestUserLocation;
+    container.read(selectedRouteProvider.notifier).select(route());
+    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+    final alerts = container.read(proximityAlertsProvider.notifier);
+    alerts.armAlert('A-1', 'R1');
+
+    notifier.set(const UserLocationState(mode: UserLocationMode.sinPunto));
+    notifier.set(UserLocationState(
+      mode: UserLocationMode.manual,
+      lat: 6.35,
+      lon: -75.55,
+      updatedAt: DateTime.now(),
+    ));
+
+    expect(alerts.anchorFor('A-1'), (6.2442, -75.5812));
+    await alerts.check();
+    expect(fired, hasLength(1), reason: 'mide desde donde estaba el GPS');
+  });
+
   test('el GPS que se mueve sigue arrastrando el aviso armado con GPS',
       () async {
     final notifier =

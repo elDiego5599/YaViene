@@ -309,6 +309,43 @@ void main() {
           greaterThanOrEqualTo(0));
     });
 
+    // La línea del tope suma alto: con el texto al doble y en el teléfono
+    // más bajo, la tarjeta sigue entera.
+    for (final (tamano, escala) in [
+      (const Size(390, 844), 2.0),
+      (const Size(320, 568), 1.0),
+    ]) {
+      testWidgets('con el tope dicho también cabe ($tamano ×$escala)',
+          (tester) async {
+        await montar(tester, metros: 900, tamano: tamano, escala: escala);
+        await tester.tap(find.text('Avisarme cuando esté cerca'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('Hasta 800 m'), findsOneWidget);
+        expect(tester.getRect(find.text('Solo esta vez')).bottom,
+            lessThanOrEqualTo(tamano.height));
+        expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
+            greaterThanOrEqualTo(0));
+      });
+    }
+
+    testWidgets('«Cambiar» con el tope dicho cabe en el teléfono más bajo',
+        (tester) async {
+      await montar(tester,
+          metros: 1250, guardada: 800, tamano: const Size(320, 568));
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cambiar'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Hasta 1,2 km'), findsOneWidget);
+      expect(
+          tester.getRect(find.text('Cancelar')).bottom, lessThanOrEqualTo(568));
+      expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
+          greaterThanOrEqualTo(0));
+    });
+
     testWidgets('los botones se tocan con el pulgar', (tester) async {
       await montar(tester);
       await tester.tap(find.text('Avisarme cuando esté cerca'));
@@ -577,12 +614,56 @@ void main() {
   });
 
   group('la hoja mide con la distancia elegida', () {
-    testWidgets('el bus ya está cerca según la distancia guardada',
+    // «Hay alarmas de 500 m pero cuando el bus está a 1 km o menos sale que
+    // ya está cerca» (dueño, 2026-10-07): con el bus a 1,6 km y 2 km
+    // guardados, el aviso de 2 km sonaría ya mismo, pero uno de 1,5 km o
+    // menos todavía sirve. La rueda llega hasta ahí y no más.
+    testWidgets('con la guardada por encima del bus, la rueda llega hasta él',
         (tester) async {
-      // 1600 m: con 2 km guardados ya está dentro; el kilómetro de antes lo
-      // habría dejado armar.
-      await montar(tester, metros: 1600, guardada: 2000);
-      expect(find.text('El bus ya está cerca'), findsOneWidget);
+      final c = await montar(tester, metros: 1650, guardada: 2000);
+      expect(find.text('El bus ya está cerca'), findsNothing);
+
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(rueda, findsOneWidget);
+      expect(find.text('Hasta 1,6 km'), findsOneWidget);
+      expect(ruedaEn(tester), 11, reason: 'arranca en la mayor que sirve');
+      expect(find.text('1,7 km'), findsNothing);
+      expect(find.text('2,0 km'), findsNothing);
+
+      await girarA(tester, 1200);
+      await tester.tap(find.text('Solo esta vez'));
+      await tester.pumpAndSettle();
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1200);
+      expect(c.read(distanciaAvisoProvider), 2000);
+    });
+
+    testWidgets('«Cambiar» tampoco ofrece lo que el bus ya pasó',
+        (tester) async {
+      final c = await montar(tester, metros: 1250, guardada: 800);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cambiar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hasta 1,2 km'), findsOneWidget);
+      expect(find.text('1,3 km'), findsNothing);
+      await girarA(tester, 1200);
+      expect(find.text('1,3 km'), findsNothing,
+          reason: 'debajo de la última no asoma ninguna');
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1200);
+    });
+
+    testWidgets('con el bus lejos la rueda va entera y no dice tope',
+        (tester) async {
+      await montar(tester, metros: 4000);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Hasta '), findsNothing);
+      await girarA(tester, 3000);
+      expect(find.text('3,0 km'), findsOneWidget);
     });
 
     testWidgets('sin nada guardado no bloquea lo que a 500 m todavía sirve',

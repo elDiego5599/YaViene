@@ -204,9 +204,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico,
   /// aviso o ventana.
   Future<void> _toggleAlert(String busId) async {
-    final result = await ref
-        .read(alertToggleProvider)
-        .toggle(busId, elegirDistancia: () => _preguntarDistancia(busId));
+    final result = await ref.read(alertToggleProvider).toggle(busId,
+        elegirDistancia: (hasta) => _preguntarDistancia(busId,
+            inicial: ref.read(distanciaAvisoProvider) ?? distanciaAvisoInicial,
+            hasta: hasta));
     // Cerró la rueda sin elegir (cancelled): sin háptico ni mensaje, no
     // hay nada que decirle.
     if (!mounted) return;
@@ -269,17 +270,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       ref.watch(distanciaAvisoProvider) ??
       distanciaAvisoInicial;
 
-  /// Dentro de qué distancia el bus ya está demasiado cerca para armar el
-  /// aviso: la guardada o, sin ninguna, la menor de la rueda —con el bus a
-  /// 800 m todavía se puede pedir el aviso de 500 m—. Es la misma cuenta
-  /// que hace [AlertToggleController] antes de abrir la rueda.
-  int get _radioBloqueo =>
-      ref.watch(distanciaAvisoProvider) ?? distanciaAvisoMinima;
-
-  /// El bus ya está dentro del radio de aviso: no se puede activar la alerta.
+  /// El bus ya está a la menor distancia de la rueda o más cerca: ningún
+  /// aviso sirve. Con una guardada mayor no se bloquea —con el bus a 800 m
+  /// y 1 km guardado todavía sirve el de 500 m, y la rueda solo ofrece lo
+  /// que el bus no ha pasado (dueño, 2026-10-07)—. Es la misma cuenta que
+  /// hace [AlertToggleController] antes de abrir la rueda.
   bool _busAlreadyNear(BusPosition? bus) {
     final distance = _distanceToBus(bus);
-    return distance != null && distance <= _radioBloqueo;
+    return distance != null && distance <= distanciaAvisoMinima;
   }
 
   /// Histéresis del bloqueo: una vez bloqueado, sigue bloqueado hasta que el
@@ -294,7 +292,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     } else if (liveBlocked) {
       _blockedLatched = true;
     } else if (distance != null &&
-        distance > _radioBloqueo + margenRearmeMetros) {
+        distance > distanciaAvisoMinima + margenRearmeMetros) {
       _blockedLatched = false;
     }
     return _blockedLatched;
@@ -305,19 +303,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// de un popup nuevo»). [primeraVez]: al activar el primer aviso, con
   /// «Guardar» y «Solo esta vez». Si no, es «Cambiar», con «Guardar» y
   /// «Cancelar». `null` si se fue sin elegir: «Cancelar», «atrás» o soltar
-  /// el bus.
+  /// el bus. [hasta]: la mayor que la rueda ofrece, la que el bus todavía no
+  /// ha pasado (`null`, todas).
   Future<({int metros, bool guardar})?> _preguntarDistancia(
     String busId, {
     int inicial = distanciaAvisoInicial,
     bool primeraVez = true,
     bool avisoActivo = false,
+    int? hasta,
   }) {
     // El aviso valida la ruta antes de preguntar: en esa espera la hoja
     // pudo irse.
     if (!mounted) return Future.value();
     _responder(null);
-    final eleccion = _Eleccion(busId, distanciaEnRueda(inicial),
-        primeraVez: primeraVez, avisoActivo: avisoActivo);
+    final eleccion = _Eleccion(busId, distanciaEnRueda(inicial, hasta: hasta),
+        primeraVez: primeraVez, avisoActivo: avisoActivo, hasta: hasta);
     setState(() {
       _eleccion = eleccion;
       _eleccionVista = eleccion;
@@ -351,13 +351,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 
   /// «Cambiar»: la rueda en la distancia de ahora. Lo elegido queda guardado
   /// y, si este bus tiene el aviso puesto, el aviso pasa a sonar ahí
-  /// (dueño, 2026-10-06: «cambia también el activo»).
-  Future<void> _cambiarDistancia(String busId, int actual) async {
+  /// (dueño, 2026-10-06: «cambia también el activo»). Solo ofrece lo que el
+  /// bus, a [metrosAlBus], todavía no ha pasado: más sonaría ya mismo.
+  Future<void> _cambiarDistancia(
+      String busId, int actual, double? metrosAlBus) async {
     final elegida = await _preguntarDistancia(
       busId,
       inicial: actual,
       primeraVez: false,
       avisoActivo: ref.read(activeAlertsProvider).contains(busId),
+      hasta: distanciaAvisoHasta(metrosAlBus),
     );
     if (elegida == null || !mounted) return;
     HapticFeedback.selectionClick();
@@ -419,7 +422,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     ref.listen<UserLocationState>(userLocationProvider, (previous, next) {
       final hardLoss = next.mode == UserLocationMode.denied ||
           next.mode == UserLocationMode.permanentDenied ||
-          next.mode == UserLocationMode.gpsFailed;
+          next.mode == UserLocationMode.gpsFailed ||
+          next.mode == UserLocationMode.sinPunto;
       if (previous?.hasPosition == true && !next.hasPosition && hardLoss) {
         ref.read(selectedBusesProvider.notifier).clear();
       }
@@ -931,7 +935,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // sobra porque iPhone sale cuando haya avisos por push (dueño,
     // 2026-10-06). En Android la nota de cómo cuidar el aviso se queda.
     final radio = _radioDe(busId);
-    void cambiar() => _cambiarDistancia(busId, radio);
+    void cambiar() => _cambiarDistancia(busId, radio, distance);
     final distanciaEnNota =
         isActive && Theme.of(context).platform == TargetPlatform.iOS;
     final filaDistancia = isActive && !distanciaEnNota
@@ -1265,11 +1269,30 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
             ),
           ],
+          // Por qué la rueda se acaba antes de 3 km: sin decirlo parece que
+          // le faltan distancias. Corto a propósito: con el texto al doble,
+          // una línea más larga se parte en dos y la tarjeta deja de caber
+          // en un iPhone 13. El porqué entero lo dice el lector.
+          if (eleccion.hasta case final hasta?) ...[
+            const SizedBox(height: 4),
+            Semantics(
+              label: 'Hasta ${distanciaAvisoHablada(hasta)}: el bus ya está '
+                  'más cerca',
+              excludeSemantics: true,
+              child: Text(
+                'Hasta ${distanciaAviso(hasta)}',
+                textAlign: TextAlign.center,
+                style:
+                    AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+          ],
           // 8 hasta la rueda: su primera fila es la más tenue, y el aire
           // que se ve ya es mayor.
           const SizedBox(height: 8),
           RuedaDistancia(
             inicial: eleccion.metros,
+            hasta: eleccion.hasta,
             alCambiar: (metros) => eleccion.metros = metros,
           ),
         ],
@@ -1325,12 +1348,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 /// Una pregunta de la distancia en curso. [metros] sigue a la rueda.
 class _Eleccion {
   _Eleccion(this.busId, this.metros,
-      {required this.primeraVez, required this.avisoActivo});
+      {required this.primeraVez, required this.avisoActivo, this.hasta});
 
   final String busId;
   int metros;
   final bool primeraVez;
   final bool avisoActivo;
+
+  /// La mayor que ofrece la rueda; `null`, todas.
+  final int? hasta;
   final respuesta = Completer<({int metros, bool guardar})?>();
 }
 

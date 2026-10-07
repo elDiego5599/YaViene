@@ -13,8 +13,8 @@ final Color franjaRuedaDistancia = AppColors.primary.withValues(alpha: 0.10);
 /// van las filas en el cilindro.
 const double _apriete = 1.45;
 
-int _indiceDe(int metros) =>
-    ((metros.clamp(distanciaAvisoMinima, distanciaAvisoMaxima) -
+int _indiceDe(int metros, int? hasta) =>
+    ((metros.clamp(distanciaAvisoMinima, hasta ?? distanciaAvisoMaxima) -
                 distanciaAvisoMinima) /
             pasoDistanciaAviso)
         .round();
@@ -22,7 +22,8 @@ int _indiceDe(int metros) =>
 /// La distancia en la que arranca la rueda para [metros]: la misma si la
 /// ofrece y, si no, la más cercana que sí. Es la que vale si se guarda sin
 /// girarla.
-int distanciaEnRueda(int metros) => distanciasDeAviso[_indiceDe(metros)];
+int distanciaEnRueda(int metros, {int? hasta}) =>
+    distanciasDeAviso[_indiceDe(metros, hasta)];
 
 /// La rueda de la distancia del aviso, como la de la alarma del iPhone
 /// (dueño, 2026-10-06): de 500 m a 3 km en pasos de 100 m.
@@ -31,11 +32,16 @@ class RuedaDistancia extends StatefulWidget {
     super.key,
     required this.inicial,
     required this.alCambiar,
+    this.hasta,
   });
 
   /// Dónde arranca. Una distancia que la rueda no ofrece arranca en la más
   /// cercana que sí.
   final int inicial;
+
+  /// La mayor que ofrece: la que el bus todavía no ha pasado (dueño,
+  /// 2026-10-07). `null`, hasta 3 km.
+  final int? hasta;
   final ValueChanged<int> alCambiar;
 
   @override
@@ -43,8 +49,13 @@ class RuedaDistancia extends StatefulWidget {
 }
 
 class _RuedaDistanciaState extends State<RuedaDistancia> {
-  late final FixedExtentScrollController _control =
-      FixedExtentScrollController(initialItem: _indiceDe(widget.inicial));
+  late final FixedExtentScrollController _control = FixedExtentScrollController(
+      initialItem: _indiceDe(widget.inicial, widget.hasta));
+
+  late final List<int> _opciones = [
+    for (final m in distanciasDeAviso)
+      if (m <= (widget.hasta ?? distanciaAvisoMaxima)) m,
+  ];
 
   @override
   void dispose() {
@@ -88,9 +99,9 @@ class _RuedaDistanciaState extends State<RuedaDistancia> {
           selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
             background: franjaRuedaDistancia,
           ),
-          onSelectedItemChanged: (i) => widget.alCambiar(distanciasDeAviso[i]),
+          onSelectedItemChanged: (i) => widget.alCambiar(_opciones[i]),
           children: [
-            for (final m in distanciasDeAviso)
+            for (final m in _opciones)
               Center(
                 child: Semantics(
                   label: distanciaAvisoHablada(m),

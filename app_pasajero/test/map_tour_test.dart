@@ -11,18 +11,31 @@ import 'helpers/contraste.dart';
 
 class _FakeLocation extends StateNotifier<UserLocationState>
     implements UserLocationNotifier {
-  _FakeLocation()
-      : super(const UserLocationState(
-          mode: UserLocationMode.gps,
-          lat: 11.0041,
-          lon: -74.8070,
-        ));
+  _FakeLocation([
+    super.state = const UserLocationState(
+      mode: UserLocationMode.gps,
+      lat: 11.0041,
+      lon: -74.8070,
+    ),
+  ]);
 
   bool fixedPin = false;
+  bool cleared = false;
+  bool gpsAsked = false;
 
   @override
   void setManualPin(double lat, double lon) {
     fixedPin = true;
+  }
+
+  @override
+  Future<void> clearManualPin() async {
+    cleared = true;
+  }
+
+  @override
+  Future<void> useGps() async {
+    gpsAsked = true;
   }
 
   @override
@@ -599,15 +612,12 @@ void main() {
     });
   });
 
-  group('LocationStatusChip con GPS activo', () {
-    testWidgets('ofrece Fijar y clava el pin en la posición actual',
-        (tester) async {
-      final location = _FakeLocation();
+  group('LocationStatusChip: Quitar y Usar GPS', () {
+    Future<void> montar(WidgetTester tester, _FakeLocation location) async {
       final container = ProviderContainer(overrides: [
         userLocationProvider.overrideWith((ref) => location),
       ]);
       addTearDown(container.dispose);
-
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -618,9 +628,27 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Fijar'), findsOneWidget);
-      await tester.tap(find.text('Fijar'));
-      expect(location.fixedPin, isTrue);
+    }
+
+    // El dueño, 2026-10-07: «Fijar» clavaba el pin donde ya estaba y
+    // «Quitar» volvía al GPS en el mismo sitio; ninguno se veía hacer nada.
+    // Con el GPS, «Quitar» deja el mapa sin punto para tocar otro.
+    testWidgets('con GPS ofrece Quitar, no Fijar', (tester) async {
+      final location = _FakeLocation();
+      await montar(tester, location);
+      expect(find.text('Fijar'), findsNothing);
+      await tester.tap(find.text('Quitar'));
+      expect(location.cleared, isTrue);
+      expect(location.fixedPin, isFalse);
+    });
+
+    testWidgets('sin punto invita a usar el GPS', (tester) async {
+      final location = _FakeLocation(
+          const UserLocationState(mode: UserLocationMode.sinPunto));
+      await montar(tester, location);
+      expect(find.text('Sin punto de espera'), findsOneWidget);
+      await tester.tap(find.text('Usar GPS'));
+      expect(location.gpsAsked, isTrue);
     });
   });
 }
