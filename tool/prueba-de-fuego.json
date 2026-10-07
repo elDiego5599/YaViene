@@ -277,9 +277,9 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "(isActive || ref.watch(distanciaAvisoProvider) != null)",
-    "a": "(isActive)",
-    "que": "«Cambiar» con distancia guardada"
+    "de": "final filaDistancia = isActive && !distanciaEnNota",
+    "a": "final filaDistancia = !distanciaEnNota",
+    "que": "sin aviso no dice la distancia"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
@@ -304,6 +304,12 @@
     "de": "if (!mounted || result.outcome == AlertToggleOutcome.cancelled) return;",
     "a": "if (!mounted) return;",
     "que": "cerrar la rueda no dice nada"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "AppTextStyles.etiqueta.copyWith(color: AppColors.coralAccessible),",
+    "a": "AppTextStyles.etiqueta.copyWith(color: AppColors.primaryAccessible),",
+    "que": "«Cambiar» en rojo"
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/distancia_aviso_provider.dart",
