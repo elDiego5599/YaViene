@@ -264,55 +264,64 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     // de las teselas para que el recorte no lo corte.
                     child: _seccion(
                       6,
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        child: DecoratedBox(
-                          position: DecorationPosition.foreground,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(AppRadius.lg),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Stack(
-                            children: [
-                              const Positioned.fill(child: ControlMap()),
-                              // T7.6: lo que tarda una posición en llegar del bus
-                              // a esta pantalla. Solo en depuración y si se pide
-                              // al compilar (`RecuadroLatencia.pedido`).
-                              if (RecuadroLatencia.pedido)
-                                const Positioned(
-                                  left: 16,
-                                  bottom: 16,
-                                  child: RecuadroLatencia(),
-                                ),
-                              if (fleet.selectedBus != null)
-                                Positioned(
-                                  right: 16,
-                                  bottom: 16,
-                                  child: _SelectedBusCard(
-                                    bus: fleet.selectedBus!,
-                                    routeName: fleet.routeName(
-                                      fleet.selectedBus!.routeId,
-                                    ),
-                                    updating: fleet.updating.contains(
-                                      fleet.selectedBus!.busId,
-                                    ),
-                                    onToggle: (visible) => ref
-                                        .read(fleetProvider.notifier)
-                                        .toggleVisibility(
-                                          fleet.selectedBus!.busId,
-                                          visible,
-                                        ),
-                                    onEdit: () =>
-                                        _showBusDialog(bus: fleet.selectedBus),
-                                    onDelete: () => _confirmDeleteSelected(
-                                      fleet.selectedBus!,
-                                    ),
-                                    onClose: () => ref
-                                        .read(fleetProvider.notifier)
-                                        .selectBus(null),
+                      // La sombra va por fuera del recorte, que si no la corta.
+                      DecoratedBox(
+                        key: const ValueKey('marco_mapa'),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          boxShadow: AppColors.sombraTarjeta,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          child: DecoratedBox(
+                            position: DecorationPosition.foreground,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Stack(
+                              children: [
+                                const Positioned.fill(child: ControlMap()),
+                                // T7.6: lo que tarda una posición en llegar del bus
+                                // a esta pantalla. Solo en depuración y si se pide
+                                // al compilar (`RecuadroLatencia.pedido`).
+                                if (RecuadroLatencia.pedido)
+                                  const Positioned(
+                                    left: 16,
+                                    bottom: 16,
+                                    child: RecuadroLatencia(),
                                   ),
-                                ),
-                            ],
+                                if (fleet.selectedBus != null)
+                                  Positioned(
+                                    right: 16,
+                                    bottom: 16,
+                                    child: _SelectedBusCard(
+                                      bus: fleet.selectedBus!,
+                                      routeName: fleet.routeName(
+                                        fleet.selectedBus!.routeId,
+                                      ),
+                                      updating: fleet.updating.contains(
+                                        fleet.selectedBus!.busId,
+                                      ),
+                                      onToggle: (visible) => ref
+                                          .read(fleetProvider.notifier)
+                                          .toggleVisibility(
+                                            fleet.selectedBus!.busId,
+                                            visible,
+                                          ),
+                                      onEdit: () => _showBusDialog(
+                                        bus: fleet.selectedBus,
+                                      ),
+                                      onDelete: () => _confirmDeleteSelected(
+                                        fleet.selectedBus!,
+                                      ),
+                                      onClose: () => ref
+                                          .read(fleetProvider.notifier)
+                                          .selectBus(null),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -402,9 +411,11 @@ class DashboardHeader extends ConsumerWidget {
     };
     return Container(
       key: const ValueKey('cabecera'),
+      // La sombra hace de filo: sobre el tablero blanco la raya sola no la
+      // despegaba.
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+        boxShadow: AppColors.sombraCabecera,
       ),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
@@ -921,10 +932,12 @@ class _FleetPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
+      key: const ValueKey('lista'),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.sombraTarjeta,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -1223,7 +1236,7 @@ class _SelectedBusCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
-        boxShadow: AppColors.softShadow,
+        boxShadow: AppColors.sombraFlotante,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

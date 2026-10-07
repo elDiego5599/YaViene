@@ -397,7 +397,7 @@ class FleetLegend extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
-        boxShadow: AppColors.softShadow,
+        boxShadow: AppColors.sombraFlotante,
       ),
       // `IntrinsicWidth` y filas estiradas para que las cuatro cifras caigan
       // una encima de otra. Con cada fila a su ancho, la cifra iba pegada

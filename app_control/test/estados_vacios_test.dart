@@ -277,6 +277,37 @@ void main() {
     await _desmontar(tester);
   });
 
+  testWidgets('la cabecera, la lista y el mapa flotan con sombra realzada', (
+    tester,
+  ) async {
+    // Sobre el blanco el filo solo no las despegaba (dueño, 2026-10-07).
+    await _montar(tester);
+
+    List<BoxShadow>? sombra(String llave) {
+      final w = tester.widget(find.byKey(ValueKey(llave)));
+      final d = switch (w) {
+        Container(:final decoration) => decoration,
+        DecoratedBox(:final decoration) => decoration,
+        _ => null,
+      };
+      return (d! as BoxDecoration).boxShadow;
+    }
+
+    expect(sombra('cabecera'), AppColors.sombraCabecera);
+    expect(sombra('lista'), AppColors.sombraTarjeta);
+    expect(sombra('marco_mapa'), AppColors.sombraTarjeta);
+
+    // Realzada: más honda y más presente que la suave de antes (5 % y 12 de
+    // difuminado), sin llegar a la mancha gris.
+    for (final capas in [AppColors.sombraTarjeta, AppColors.sombraFlotante]) {
+      final honda = capas.reduce((a, b) => a.blurRadius > b.blurRadius ? a : b);
+      expect(honda.blurRadius, greaterThan(12));
+      expect(honda.color.a, inInclusiveRange(0.08, 0.2));
+    }
+
+    await _desmontar(tester);
+  });
+
   testWidgets('el fondo del tablero es blanco, no arena', (tester) async {
     // El dueño lo pidió blanco (2026-10-07); el login sigue en su arena.
     await _montar(tester);

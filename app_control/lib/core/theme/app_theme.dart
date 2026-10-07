@@ -118,8 +118,55 @@ abstract class AppColors {
   // del pasajero (2026-09-30) esa razón ya no está, pero el verde es el del
   // estado «en línea», y así lo lee el operador.
 
-  static List<BoxShadow> get softShadow => core.AppShadows.soft;
-  static List<BoxShadow> get floatingShadow => core.AppShadows.floating;
+  // Las sombras del panel, propias y no las de `core.AppShadows`, que
+  // comparte el pasajero. Más realzadas que la suave de antes (5 %, 12 de
+  // difuminado), que sobre el fondo blanco no despegaba nada (dueño,
+  // 2026-10-07). Dos capas, como una luz de verdad: una corta y nítida que
+  // asienta el borde y una larga, recogida hacia dentro (`spreadRadius`
+  // negativo), que da la altura sin ensuciar los lados. En el marino de la
+  // marca y no en negro, para que no se lean grises. La maqueta de la web
+  // no las copia: allí no pesan lo que cuestan (dueño, 2026-10-07).
+
+  /// La barra de arriba sobre el tablero: solo hacia abajo.
+  static const List<BoxShadow> sombraCabecera = [
+    BoxShadow(
+      color: Color(0x1414274E), // 8 %
+      blurRadius: 12,
+      spreadRadius: -4,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  /// La lista, el mapa y los globos de ayuda: apoyados en el tablero.
+  static const List<BoxShadow> sombraTarjeta = [
+    BoxShadow(
+      color: Color(0x0F14274E), // 6 %
+      blurRadius: 3,
+      offset: Offset(0, 1),
+    ),
+    BoxShadow(
+      color: Color(0x1F14274E), // 12 %
+      blurRadius: 24,
+      spreadRadius: -6,
+      offset: Offset(0, 10),
+    ),
+  ];
+
+  /// Lo que va encima del mapa o del velo: la leyenda, la ficha del bus,
+  /// los avisos y las ventanas.
+  static const List<BoxShadow> sombraFlotante = [
+    BoxShadow(
+      color: Color(0x1414274E), // 8 %
+      blurRadius: 6,
+      offset: Offset(0, 2),
+    ),
+    BoxShadow(
+      color: Color(0x2914274E), // 16 %
+      blurRadius: 40,
+      spreadRadius: -10,
+      offset: Offset(0, 20),
+    ),
+  ];
 }
 
 /// Los radios del sistema. El panel usaba nueve valores distintos entre 8 y
@@ -276,7 +323,7 @@ abstract class AppTheme {
         decoration: BoxDecoration(
           color: AppColors.navy,
           borderRadius: BorderRadius.circular(AppRadius.sm),
-          boxShadow: AppColors.softShadow,
+          boxShadow: AppColors.sombraTarjeta,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         textStyle: AppType.ui(

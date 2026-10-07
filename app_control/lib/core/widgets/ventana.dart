@@ -111,7 +111,7 @@ class Ventana extends StatelessWidget {
                 color: const Color(0x1AFFFFFF),
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 border: Border.all(color: const Color(0x24FFFFFF)),
-                boxShadow: AppColors.floatingShadow,
+                boxShadow: AppColors.sombraFlotante,
               ),
               // `Material` y no un `Container`: los campos, los botones de
               // icono y sus salpicaduras necesitan uno encima, y el recorte
@@ -384,7 +384,7 @@ class AvisoPanel extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
-        boxShadow: AppColors.floatingShadow,
+        boxShadow: AppColors.sombraFlotante,
       ),
       child: Row(
         children: [
