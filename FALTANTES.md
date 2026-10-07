@@ -85,7 +85,7 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 Nada por ahora.
 
-Ojo con la web: el CSS va en 117,8 de 121 KB y la carpeta `dist` en 774,9 de
+Ojo con la web: el CSS va en 120,0 de 121 KB y la carpeta `dist` en 781,2 de
 797. Cualquier cambio de la web se mide antes de sumarlo.
 
 ## El día antes y el día del pitch

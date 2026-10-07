@@ -233,6 +233,38 @@ void main() {
     expect(find.text('Reintentar'), findsOneWidget);
   });
 
+  testWidgets(
+      'rutas en camino: la lista muestra su forma, no unos puntos '
+      'sueltos', (tester) async {
+    final rutas = Completer<List<RouteInfo>>();
+    await abrir(tester, [
+      companiesProvider.overrideWith((ref) async => [
+            const Company(id: 'EMP-01', name: 'Sobusa'),
+          ]),
+      routesByCompanyProvider('EMP-01').overrideWith((ref) => rutas.future),
+    ]);
+
+    await tester.tap(find.text('Empresa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sobusa'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ruta'));
+    // Sin `pumpAndSettle`: la carga late mientras espera y no se asienta.
+    // El primer `pump` arranca el cruce de vistas; el segundo lo termina.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.bySemanticsLabel('Cargando las rutas'), findsOneWidget);
+    expect(find.byType(IndicadorCarga), findsNothing);
+
+    rutas.complete([
+      const RouteInfo(id: 'R-1', name: 'B18 Tcherassi', companyId: 'EMP-01'),
+    ]);
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Cargando las rutas'), findsNothing);
+  });
+
   testWidgets('empresa sin rutas: lo dice en la lista', (tester) async {
     await abrir(tester, [
       companiesProvider.overrideWith((ref) async => [

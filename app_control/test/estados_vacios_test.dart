@@ -74,8 +74,13 @@ class _FakeFleetApi extends FleetApi {
   /// caducado: el `FleetNotifier` lo detecta y levanta el diálogo.
   bool expirar = false;
 
+  /// Cuando está puesto, la flota no vuelve hasta que la prueba lo diga:
+  /// las rutas ya llegaron y la flota sigue en camino.
+  Completer<void>? flotaEnCamino;
+
   @override
   Future<List<FleetBus>> fetchPositions(String token) async {
+    await flotaEnCamino?.future;
     if (expirar) throw const SessionExpiredException();
     return [...buses];
   }
@@ -247,6 +252,27 @@ void main() {
 
     expect(find.text('Sin buses registrados'), findsOneWidget);
     expect(find.text('Selecciona una ruta'), findsNothing);
+
+    await _desmontar(tester);
+  });
+
+  testWidgets('mientras la flota no llega, la lista carga y no dice que '
+      'no hay buses', (tester) async {
+    // Rutas y flota se piden a la vez. Si las rutas llegan primero, el
+    // panel ya está filtrado en una ruta y la lista decía «Sin buses
+    // registrados» de una flota que aún no había llegado.
+    final api = _FakeFleetApi(buses: const [])..flotaEnCamino = Completer();
+    await _montar(tester, api: api);
+
+    expect(find.text('Sin buses registrados'), findsNothing);
+    expect(find.bySemanticsLabel('Cargando la flota'), findsOneWidget);
+
+    api.flotaEnCamino!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Sin buses registrados'), findsOneWidget);
+    expect(find.bySemanticsLabel('Cargando la flota'), findsNothing);
 
     await _desmontar(tester);
   });

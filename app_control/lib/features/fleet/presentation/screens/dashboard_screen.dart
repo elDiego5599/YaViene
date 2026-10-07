@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show enRespaldoProvider;
+import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 import 'package:ya_viene_core/shared/widgets/recuadro_latencia.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -345,6 +346,7 @@ class _VistaDashboard {
         a.routeFilter != b.routeFilter ||
         a.statusFilter != b.statusFilter ||
         a.sessionExpired != b.sessionExpired ||
+        a.flotaCargada != b.flotaCargada ||
         // `copyWith` conserva la misma lista y el mismo conjunto si no
         // cambian, y los reemplaza enteros cuando cambian.
         !identical(a.routes, b.routes) ||
@@ -845,6 +847,55 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+/// La forma de [FleetListTile] sin datos: el recuadro del bus, la placa y el
+/// interruptor, con el mismo relleno y el mismo filo entre filas, para que al
+/// llegar la flota las filas de verdad caigan donde estaban estas.
+class _FilasFantasma extends StatelessWidget {
+  const _FilasFantasma();
+
+  /// Placas de largos distintos: todas iguales se leen como un patrón y no
+  /// como una lista.
+  static const _anchos = [96.0, 78.0, 104.0, 86.0];
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bloque(double ancho, double alto, double radio) => Container(
+      width: ancho,
+      height: alto,
+      decoration: BoxDecoration(
+        color: AppColors.borderStrong,
+        borderRadius: BorderRadius.circular(radio),
+      ),
+    );
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _anchos.length,
+      separatorBuilder: (_, _) =>
+          const Divider(height: 9, indent: 61, endIndent: 10),
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
+        // 46: lo que mide el interruptor con su rótulo de 9 debajo, que es
+        // lo más alto de la fila de verdad.
+        child: SizedBox(
+          height: 46,
+          child: Row(
+            children: [
+              bloque(36, 36, AppRadius.md),
+              const SizedBox(width: 12),
+              bloque(_anchos[i], 12, AppRadius.sm),
+              const Spacer(),
+              // El interruptor: 52 × 32 a tamaño compacto.
+              bloque(44, 24, AppRadius.pill),
+              const SizedBox(width: 6),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FleetPanel extends ConsumerWidget {
   const _FleetPanel({
     required this.buses,
@@ -957,7 +1008,15 @@ class _FleetPanel extends ConsumerWidget {
           // Sin filo debajo: el carril de las pestañas ya cierra la cabecera.
           const SizedBox(height: 4),
           Expanded(
-            child: buses.isEmpty
+            // Rutas y flota se piden a la vez: si las rutas llegan antes, la
+            // lista vacía no es «sin buses» sino «aún no llegan». Con error
+            // no: el aviso de arriba lo dice y aquí queda el vacío de siempre.
+            child: buses.isEmpty && !fleet.flotaCargada && fleet.error == null
+                ? const CargaFantasma(
+                    semanticsLabel: 'Cargando la flota',
+                    child: _FilasFantasma(),
+                  )
+                : buses.isEmpty
                 ? Center(
                     child: Text(
                       _emptyMessage(),

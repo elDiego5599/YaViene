@@ -31,6 +31,7 @@ class FleetState {
     this.routeFilter,
     this.statusFilter = FleetStatusFilter.all,
     this.sessionExpired = false,
+    this.flotaCargada = false,
   });
 
   final FleetConnection connection;
@@ -44,6 +45,10 @@ class FleetState {
 
   /// La sesión del admin expiró o fue revocada (401 en REST o kick del socket).
   final bool sessionExpired;
+
+  /// Ya llegó una foto entera de la flota (REST o lote del socket). Antes de
+  /// eso una lista vacía no quiere decir «sin buses», sino «aún no sé».
+  final bool flotaCargada;
 
   FleetBus? get selectedBus {
     final id = selectedBusId;
@@ -109,6 +114,7 @@ class FleetState {
     String? Function()? routeFilter,
     FleetStatusFilter? statusFilter,
     bool? sessionExpired,
+    bool? flotaCargada,
     bool clearError = false,
   }) {
     return FleetState(
@@ -123,6 +129,7 @@ class FleetState {
       routeFilter: routeFilter != null ? routeFilter() : this.routeFilter,
       statusFilter: statusFilter ?? this.statusFilter,
       sessionExpired: sessionExpired ?? this.sessionExpired,
+      flotaCargada: flotaCargada ?? this.flotaCargada,
     );
   }
 }
@@ -233,7 +240,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
         // Respeta el estado visible guardado en el backend: los buses que
         // quedaron habilitados/ocultos de la última sesión se ven igual. La
         // posición, solo si es más nueva que la que ya llegó en vivo.
-        state = state.copyWith(buses: _fusionarFoto(buses), clearError: true);
+        state = state.copyWith(
+          buses: _fusionarFoto(buses),
+          flotaCargada: true,
+          clearError: true,
+        );
       }),
     );
     _subs.add(
@@ -402,7 +413,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
     if (token == null || state.sessionExpired) return;
     try {
       final buses = await _api.fetchPositions(token);
-      state = state.copyWith(buses: _fusionarFoto(buses), clearError: true);
+      state = state.copyWith(
+        buses: _fusionarFoto(buses),
+        flotaCargada: true,
+        clearError: true,
+      );
     } catch (e) {
       if (_onSessionExpired(e)) return;
       state = state.copyWith(error: 'No se pudo actualizar la flota.');

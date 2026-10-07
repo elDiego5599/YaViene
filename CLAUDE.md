@@ -136,12 +136,12 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   Coolitoral, prueba de fuego y E2E del simulador): `main` igual a la rama
   de trabajo en los tres repos (web `f0e2011`, backend `9dc18a7`; la app
   en el commit de este párrafo).
-- **Verificación (2026-10-06)**: **1.819 pruebas** en total (1.786 pasan +
+- **Verificación (2026-10-06)**: **1.825 pruebas** en total (1.792 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
   simulador.
-- **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 651 + 1, pruebas
+- **Flutter**: core 98, panel 273 + 3 saltadas, pasajero 652 + 1, pruebas
   13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
   `integration_test` en el panel). Aparte, la E2E del panel de escritorio
   contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el

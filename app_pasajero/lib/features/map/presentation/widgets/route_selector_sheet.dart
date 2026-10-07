@@ -862,9 +862,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       ),
       loading: () => _listPlaceholder(
         key: widget.companyChoiceGuideKey,
+        cargando: 'Cargando las empresas',
       ),
       error: (error, _) => _listPlaceholder(
         key: widget.companyChoiceGuideKey,
+        cargando: 'Cargando las empresas',
         fallo: AvisoFallo(
           error: error,
           que: 'las empresas',
@@ -936,9 +938,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
       ),
       loading: () => _listPlaceholder(
         key: widget.routeChoiceGuideKey,
+        cargando: 'Cargando las rutas',
       ),
       error: (error, _) => _listPlaceholder(
         key: widget.routeChoiceGuideKey,
+        cargando: 'Cargando las rutas',
         fallo: AvisoFallo(
           error: error,
           que: 'las rutas',
@@ -1081,11 +1085,85 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// Estado de carga/error de las listas secundarias. Mantiene la key del
   /// objetivo de la guía para que el overlay nunca desaparezca mientras el
   /// usuario espera (y no pueda salirse tocando el back u otro botón).
-  Widget _listPlaceholder({Key? key, Widget? fallo}) {
-    return Center(
+  ///
+  /// Cargando no son unos puntos sueltos en medio de la hoja: son las filas
+  /// que vienen, con la forma de [_compactTile], latiendo. Al llegar los
+  /// datos las de verdad caen donde estaban estas.
+  Widget _listPlaceholder({
+    Key? key,
+    required String cargando,
+    Widget? fallo,
+  }) {
+    if (fallo != null) return Center(key: key, child: fallo);
+    return CargaFantasma(
       key: key,
-      child:
-          fallo ?? const IndicadorCarga(size: 34, semanticsLabel: 'Cargando'),
+      semanticsLabel: cargando,
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: _fundidoLista),
+        shrinkWrap: true,
+        children: [
+          // Nombres de largos distintos: iguales se leen como un patrón.
+          for (final ancho in const [0.62, 0.48, 0.7]) _filaFantasma(ancho),
+        ],
+      ),
+    );
+  }
+
+  /// La forma de [_compactTile] sin datos: la tarjeta de 78, la insignia de
+  /// 44, el nombre y su subtítulo, y la flecha. [ancho] es la fracción del
+  /// espacio del texto que ocupa el nombre.
+  Widget _filaFantasma(double ancho) {
+    Widget bloque({double? w, required double h, required double radio}) =>
+        Container(
+          width: w,
+          height: h,
+          decoration: BoxDecoration(
+            color: AppColors.divider,
+            borderRadius: BorderRadius.circular(radio),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm + AppSpacing.xs),
+      child: Container(
+        height: _kTileHeight,
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          children: [
+            bloque(w: 44, h: 44, radio: AppRadius.md),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: ancho,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 14 y 10: la altura de las letras de `subtitulo` y de
+                    // `pie`, sin su interlineado.
+                    bloque(h: 14, radio: AppRadius.sm),
+                    const SizedBox(height: AppSpacing.sm),
+                    FractionallySizedBox(
+                      widthFactor: 0.7,
+                      child: bloque(h: 10, radio: AppRadius.sm),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            const Icon(Icons.chevron_right_outlined,
+                size: 20, color: AppColors.divider),
+          ],
+        ),
+      ),
     );
   }
 
