@@ -301,12 +301,6 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "if (!mounted || result.outcome == AlertToggleOutcome.cancelled) return;",
-    "a": "if (!mounted) return;",
-    "que": "cerrar la rueda no dice nada"
-  },
-  {
-    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
     "de": "AppTextStyles.etiqueta.copyWith(color: AppColors.coralAccessible),",
     "a": "AppTextStyles.etiqueta.copyWith(color: AppColors.primaryAccessible),",
     "que": "«Cambiar» en rojo"

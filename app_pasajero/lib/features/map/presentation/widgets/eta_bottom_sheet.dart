@@ -207,8 +207,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final result = await ref
         .read(alertToggleProvider)
         .toggle(busId, elegirDistancia: () => _preguntarDistancia(busId));
-    // Cerró la rueda sin elegir: no pidió nada, no hay nada que decirle.
-    if (!mounted || result.outcome == AlertToggleOutcome.cancelled) return;
+    // Cerró la rueda sin elegir (cancelled): sin háptico ni mensaje, no
+    // hay nada que decirle.
+    if (!mounted) return;
     if (result.needsHaptic) HapticFeedback.mediumImpact();
     final message = result.message;
     if (message != null) {
