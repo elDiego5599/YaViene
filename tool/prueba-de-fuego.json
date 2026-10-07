@@ -550,5 +550,11 @@
     "de": "if (!_masNueva(bus, previous)) return;",
     "a": "if (false) return;",
     "que": "posición vieja del socket"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/rueda_distancia.dart",
+    "de": "height: fila * filas / _apriete,",
+    "a": "height: fila * filas,",
+    "que": "la rueda enseña dos arriba y dos abajo"
   }
 ]
