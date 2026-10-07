@@ -62,4 +62,18 @@ void main() {
     expect(_opacidad(tester), antes);
     expect(tester.hasRunningAnimations, isFalse);
   });
+
+  testWidgets(
+      'con movimiento reducido queda a media luz, entre los dos '
+      'extremos del latido', (tester) async {
+    await tester.pumpWidget(_host());
+    final arriba = _opacidad(tester);
+    await tester.pump(AppMotion.pulso);
+    final abajo = _opacidad(tester);
+    expect(abajo, lessThan(arriba));
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(_host(sinAnimaciones: true));
+    expect(_opacidad(tester), allOf(greaterThan(abajo), lessThan(arriba)));
+  });
 }

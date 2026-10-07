@@ -60,4 +60,36 @@ void main() {
     expect(at1.$2, closeTo(40, 0.01));
     expect(at1.$3, closeTo(10, 0.01));
   });
+
+  test('de 10° a 350° gira 20° hacia atrás, no 340° hacia delante', () {
+    final start = DateTime(2024, 1, 1, 12, 0, 0);
+    final m = BusMotion(
+      fromLat: 0,
+      fromLon: 0,
+      fromHeading: 10,
+      toLat: 0,
+      toLon: 0,
+      toHeading: 350,
+      start: start,
+    );
+    final atHalf = displayOf(m, start.add(const Duration(milliseconds: 500)));
+    expect(atHalf.$3, closeTo(0, 0.01));
+  });
+
+  test('pasado el segundo el bus se queda en su destino', () {
+    final start = DateTime(2024, 1, 1, 12, 0, 0);
+    final m = BusMotion(
+      fromLat: 10,
+      fromLon: 20,
+      fromHeading: 0,
+      toLat: 20,
+      toLon: 40,
+      toHeading: 90,
+      start: start,
+    );
+    final tarde = displayOf(m, start.add(const Duration(seconds: 3)));
+    expect(tarde.$1, closeTo(20, 0.01));
+    expect(tarde.$2, closeTo(40, 0.01));
+    expect(tarde.$3, closeTo(90, 0.01));
+  });
 }

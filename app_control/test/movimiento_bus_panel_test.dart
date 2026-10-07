@@ -44,6 +44,8 @@ class _FlotaMovil extends FleetNotifier {
   }
 
   void avanzar() => state = FleetState(buses: {'B-1': _bus(-74.79, 100)});
+
+  void seguir() => state = FleetState(buses: {'B-1': _bus(-74.78, 100)});
 }
 
 void main() {
@@ -136,6 +138,27 @@ void main() {
       isFalse,
       reason: 'el reloj se apaga cuando no queda tramo',
     );
+    await desmontar(tester);
+  });
+
+  testWidgets('una fijación a medio tramo sigue desde donde se ve el bus', (
+    tester,
+  ) async {
+    final container = await montar(tester);
+    final flota = container.read(fleetProvider.notifier) as _FlotaMovil;
+    flota.avanzar();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    flota.seguir();
+    await tester.pump();
+    expect(
+      marcador(tester).point.longitude,
+      closeTo(-74.795, 2e-4),
+      reason: 'ni vuelve atrás ni salta a la fijación anterior',
+    );
+    await tester.pump(const Duration(milliseconds: 1100));
+    expect(marcador(tester).point.longitude, closeTo(-74.78, 1e-9));
     await desmontar(tester);
   });
 
