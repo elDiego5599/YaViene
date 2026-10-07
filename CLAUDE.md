@@ -85,9 +85,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
     `--update-goldens` que tapa una regresión es un defecto.
 11. Los 20 literales de UI blindados por pruebas espejo (T6.5) y los estados
     de `inventario-estados.md` no se cambian para «arreglar» una prueba.
-12. Mutaciones: la prueba de fuego (abajo) se corre sobre lo que se toca; una
-    mutación que sobrevive es una prueba roja→verde nueva o código muerto
-    fuera.
+12. Mutaciones: la prueba de fuego (abajo) se corre antes de cada lote a
+    `main` sobre lo que se tocó; una mutación que sobrevive es una prueba
+    roja→verde nueva o código muerto fuera.
 13. `dart format` solo en los archivos tocados, nunca en carpetas enteras.
 14. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad
     de texto posible, salvo que el dueño pida detalle.
@@ -132,14 +132,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `YaVieneBackend` (Node/TS; rama `prueba`) y `YaVieneWeb` (Vite/TS; rama
   `diseno-21st`). Remotos `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
-- **`main` en el remoto** (2026-10-05, Coolitoral): app `22ad26c`, web
-  `3ebca60`, backend `6ae9a07`. Encima, sin subir a `main`: app 15
-  commits de código (Coolitoral por sus KMZ, prueba de fuego, CI de Windows
-  y del APK, E2E del simulador, distancia del aviso) más los de este archivo
-  y FALTANTES, web 4 (prueba de fuego, source-map-js, tarjeta para
-  compartir, distancia del aviso) y backend 6 (Coolitoral, prueba de fuego, y el bus oculto con su prueba
-  más la ficha del conductor fuera, 2026-10-06). Las ramas de
-  trabajo están al día con su remoto.
+- **`main` en el remoto** (2026-10-06, lote de la distancia del aviso,
+  Coolitoral, prueba de fuego y E2E del simulador): `main` igual a la rama
+  de trabajo en los tres repos (web `f0e2011`, backend `9dc18a7`; la app
+  en el commit de este párrafo).
 - **Verificación (2026-10-06)**: **1.819 pruebas** en total (1.786 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
@@ -232,7 +228,12 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   «Qué resuelve» en su rojo; términos y privacidad con la isla y el pie
   «Ya Viene Términos/Privacidad».
 
-## Verificación tras cada cambio
+## Verificación
+Mientras se trabaja (dueño, 2026-10-06), cada cambio corre solo sus
+pruebas: la roja→verde nueva y las del archivo o la suite que toca, más
+`flutter analyze` / `typecheck` / `tsc`. Lo de abajo entero (suites
+completas, Playwright, presupuesto, goldens, prueba de fuego de lo tocado
+y builds de entrega) se corre una vez, antes de cada lote a `main`.
 - **Web**: `npm run typecheck` + `npm test` + `npm run test:cobertura` +
   Playwright sin pageerror + `node scripts/presupuesto.mjs`. Antes de
   Playwright: `lsof -ti tcp:4174 | xargs -r kill -9` (un servidor viejo
@@ -243,7 +244,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   core); goldens sin regenerar.
 - **Backend**: `npm test` + `npx tsc --noEmit`; si cambia el contrato,
   `npm run contrato:actualizar` y `tool/sincronizar-contrato.sh` en la app.
-- Lo que se toca pasa además por su prueba de fuego.
+- Lo tocado desde el último lote pasa además por su prueba de fuego.
 
 ## Trampas del entorno
 - Bash reinicia el `cwd` si el comando trae `cd`: encadenar en una línea.
