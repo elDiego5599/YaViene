@@ -277,6 +277,23 @@ void main() {
     await _desmontar(tester);
   });
 
+  testWidgets('el fondo del tablero es blanco, no arena', (tester) async {
+    // El dueño lo pidió blanco (2026-10-07); el login sigue en su arena.
+    await _montar(tester);
+
+    final tablero = tester.widget<Scaffold>(
+      find
+          .descendant(
+            of: find.byType(DashboardScreen),
+            matching: find.byType(Scaffold),
+          )
+          .first,
+    );
+    expect(tablero.backgroundColor, AppColors.surface);
+
+    await _desmontar(tester);
+  });
+
   // ── Sesión expirada ─────────────────────────────────────────────────
   testWidgets('una sesión revocada levanta su diálogo, con su botón', (
     tester,

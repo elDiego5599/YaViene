@@ -194,6 +194,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   Widget _cuerpo(FleetState fleet, List<FleetBus> buses) {
     return Scaffold(
+      // Blanco, no la arena del tema (dueño, 2026-10-07): las tarjetas se
+      // separan por su filo. El login sigue en arena.
+      backgroundColor: AppColors.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -397,11 +400,11 @@ class DashboardHeader extends ConsumerWidget {
       FleetConnection.disconnected => ('Sin conexión', AppColors.danger),
       FleetConnection.connecting => ('Conectando…', AppColors.ghost),
     };
+    // En el degradado del login; encima, todo en blanco (4,65:1 en el borde
+    // más claro) y el estado en su píldora blanca, donde su color se lee.
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
+      key: const ValueKey('cabecera'),
+      decoration: const BoxDecoration(gradient: AppColors.cabecera),
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
@@ -410,9 +413,8 @@ class DashboardHeader extends ConsumerWidget {
             height: 36,
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.border),
             ),
             child: SvgPicture.asset(
               'assets/logo/ya_viene_logo.svg',
@@ -429,7 +431,7 @@ class DashboardHeader extends ConsumerWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2.5,
-                  color: AppColors.textPrimary,
+                  color: Colors.white,
                 ),
               ),
               Text(
@@ -438,7 +440,7 @@ class DashboardHeader extends ConsumerWidget {
                   fontSize: 8.5,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.8,
-                  color: AppColors.textMuted,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -450,7 +452,7 @@ class DashboardHeader extends ConsumerWidget {
               style: AppType.ui(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: Colors.white,
               ),
             ),
             const SizedBox(width: 12),
@@ -458,7 +460,7 @@ class DashboardHeader extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(
@@ -496,8 +498,8 @@ class DashboardHeader extends ConsumerWidget {
               icon: const Icon(Icons.logout, size: 15),
               label: const Text('Salir'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                side: const BorderSide(color: AppColors.borderStrong),
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Color(0x8CFFFFFF)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
