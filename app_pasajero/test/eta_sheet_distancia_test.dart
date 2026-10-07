@@ -1,5 +1,6 @@
 // La hoja con la distancia del aviso elegida por la persona (dueño,
-// 2026-10-06): el primer aviso pregunta con la rueda; después, una fila
+// 2026-10-06): el primer aviso pregunta con la rueda, en la misma tarjeta
+// del bus y no en una ventana encima; después, una fila
 // «Te avisamos a … · Cambiar» bajo el botón deja cambiarla (en iPhone, con
 // el aviso activo, va en la nota de encima), y cambiarla también mueve el
 // aviso que está sonando por ese bus.
@@ -47,12 +48,15 @@ void main() {
     WidgetTester tester, {
     double metros = 4000,
     int? guardada,
+    Size tamano = const Size(390, 844),
+    double escala = 1,
+    ValueChanged<bool>? alEligiendo,
   }) async {
     SharedPreferences.setMockInitialValues(
       {if (guardada != null) 'distancia_aviso_m': guardada},
     );
-    // Un iPhone 13: la ventana de la rueda cabe entera con sus dos botones.
-    tester.view.physicalSize = const Size(390, 844);
+    // Un iPhone 13 salvo que la prueba pida otro.
+    tester.view.physicalSize = tamano;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final container = ProviderContainer(overrides: [
@@ -81,7 +85,18 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: AppTheme.lightTheme,
-          home: const Scaffold(body: EtaBottomSheet()),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(escala)),
+            child: child!,
+          ),
+          // Abajo, como en el mapa: la hoja crece hacia arriba.
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: EtaBottomSheet(onEligiendoDistancia: alEligiendo),
+            ),
+          ),
         ),
       ),
     );
@@ -113,6 +128,8 @@ void main() {
       .selectedItem;
 
   final fila = find.byKey(const ValueKey('cambiar-distancia'));
+  final tarjeta = find.byKey(const ValueKey('hoja-tarjeta'));
+  final rueda = find.byType(CupertinoPicker);
 
   group('el primer aviso pregunta la distancia', () {
     testWidgets('«Guardar» arma el aviso a esa distancia y la deja guardada',
@@ -125,6 +142,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('¿A qué distancia te avisamos?'), findsOneWidget);
       expect(ruedaEn(tester), 5, reason: 'arranca en el kilómetro de siempre');
+      expect(find.text('Solo esta vez'), findsOneWidget);
 
       await girarA(tester, 1800);
       await tester.tap(find.text('Guardar'));
@@ -155,18 +173,162 @@ void main() {
       expect(find.text('Te avisamos a 600 m'), findsOneWidget);
     });
 
-    testWidgets('cerrar la rueda sin elegir no arma nada ni dice nada',
+    // «Que salga en la misma card en vez de un popup nuevo» (dueño,
+    // 2026-10-06): la tarjeta del bus cambia a la rueda, sin velo ni
+    // ventana, y la placa se queda donde estaba.
+    testWidgets('pregunta en la tarjeta del bus, sin ventana encima',
+        (tester) async {
+      await montar(tester);
+      final placa = tester.getRect(find.byKey(const ValueKey('hoja-placa')));
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialogo), findsNothing);
+      expect(tester.state<NavigatorState>(find.byType(Navigator)).canPop(),
+          isFalse,
+          reason: 'no hay nada encima de la página del mapa');
+      expect(find.descendant(of: tarjeta, matching: rueda), findsOneWidget);
+      expect(
+        find.descendant(
+            of: tarjeta, matching: find.text('¿A qué distancia te avisamos?')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('hoja-placa')), findsOneWidget);
+      expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).width,
+          placa.width);
+      // Mientras pregunta, el botón del aviso deja su sitio a «Guardar».
+      expect(find.text('Avisarme cuando esté cerca'), findsNothing);
+      expect(find.byType(CifraViva), findsNothing);
+      // Los dos botones, bajo la tarjeta y dentro de la pantalla.
+      final guardar = tester.getRect(find.text('Guardar'));
+      expect(guardar.top, greaterThan(tester.getRect(tarjeta).bottom));
+      expect(tester.getRect(find.text('Solo esta vez')).top,
+          greaterThan(guardar.bottom));
+      expect(tester.getRect(find.text('Solo esta vez')).bottom,
+          lessThanOrEqualTo(844));
+    });
+
+    testWidgets('el cambio a la rueda y de vuelta se anima', (tester) async {
+      await montar(tester);
+      final antes = tester.getRect(tarjeta).height;
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final aMedias = tester.getRect(tarjeta).height;
+      await tester.pumpAndSettle();
+      final despues = tester.getRect(tarjeta).height;
+      expect(despues, greaterThan(antes));
+      expect(aMedias, inExclusiveRange(antes, despues),
+          reason: 'la tarjeta crece, no salta');
+    });
+
+    testWidgets('girar la rueda con el dedo cambia la distancia',
         (tester) async {
       final c = await montar(tester);
       await tester.tap(find.text('Avisarme cuando esté cerca'));
       await tester.pumpAndSettle();
-      await tester.tapAt(const Offset(8, 8));
+      // Hacia arriba sube la distancia.
+      await tester.drag(rueda, const Offset(0, -120));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Dialogo), findsNothing);
+      final radio = c.read(proximityAlertsProvider.notifier).radioDe('A-1')!;
+      expect(radio, greaterThan(1000));
+      expect(radio % 100, 0);
+    });
+
+    testWidgets('soltar el bus mientras pregunta no arma nada ni dice nada',
+        (tester) async {
+      final c = await montar(tester);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      c.read(selectedBusesProvider.notifier).toggleBus('A-1');
+      await tester.pumpAndSettle();
+
+      expect(rueda, findsNothing);
       expect(find.byType(AvisoTarjeta), findsNothing);
       expect(c.read(activeAlertsProvider), isEmpty);
+      // Y al volver al bus, la tarjeta es la de siempre.
+      c.read(selectedBusesProvider.notifier).toggleBus('A-1');
+      await tester.pumpAndSettle();
+      expect(rueda, findsNothing);
       expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
+    });
+
+    testWidgets('«atrás» cierra la rueda sin armar nada', (tester) async {
+      final c = await montar(tester);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(rueda, findsNothing);
+      expect(c.read(activeAlertsProvider), isEmpty);
+      expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
+    });
+
+    // La guía tapa con su velo todo lo que no sea el botón del aviso: con
+    // la rueda en la tarjeta, la rueda quedaría debajo sin poder girarse.
+    testWidgets('le dice a la guía cuándo está preguntando', (tester) async {
+      final avisos = <bool>[];
+      await montar(tester, alEligiendo: avisos.add);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(avisos, [true]);
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(avisos, [true, false]);
+    });
+
+    testWidgets('con el texto al doble cabe entera con sus dos botones',
+        (tester) async {
+      await montar(tester, escala: 2);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // La fila crece con el texto: la cifra elegida no se recorta.
+      expect(tester.widget<CupertinoPicker>(rueda).itemExtent,
+          greaterThanOrEqualTo(tester.getSize(find.text('1,0 km')).height));
+      expect(tester.getRect(find.text('Solo esta vez')).bottom,
+          lessThanOrEqualTo(844));
+      expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
+          greaterThanOrEqualTo(0));
+    });
+
+    testWidgets('cabe entera en el teléfono más bajo', (tester) async {
+      await montar(tester, tamano: const Size(320, 568));
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(find.text('Solo esta vez')).bottom,
+          lessThanOrEqualTo(568));
+      expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
+          greaterThanOrEqualTo(0));
+    });
+
+    testWidgets('los botones se tocan con el pulgar', (tester) async {
+      await montar(tester);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      for (final b in [FilledButton, TextButton]) {
+        expect(tester.getSize(find.byType(b)).height, greaterThanOrEqualTo(48));
+      }
+    });
+
+    testWidgets('el título se anuncia como encabezado', (tester) async {
+      final semantica = tester.ensureSemantics();
+      await montar(tester);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(find.text('¿A qué distancia te avisamos?')),
+        matchesSemantics(
+            label: '¿A qué distancia te avisamos?', isHeader: true),
+      );
+      semantica.dispose();
     });
 
     testWidgets('con la distancia guardada no vuelve a preguntar',
@@ -181,29 +343,70 @@ void main() {
   });
 
   group('«Cambiar»', () {
-    testWidgets('con una distancia guardada la fila la dice y la cambia',
+    Future<void> activar(WidgetTester tester) async {
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+    }
+
+    // Sin aviso puesto no hay nada que cambiar: la distancia se pregunta al
+    // activarlo, y una fila que la ofrece antes confunde (dueño,
+    // 2026-10-06).
+    testWidgets('sin el aviso activo no dice la distancia ni la ofrece',
         (tester) async {
-      final c = await montar(tester, guardada: 2000);
+      await montar(tester, guardada: 2000);
+      expect(find.text('Te avisamos a 2,0 km'), findsNothing);
+      expect(find.text('Cambiar'), findsNothing);
+      expect(fila, findsNothing);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+    testWidgets('sin el aviso activo tampoco en iPhone', (tester) async {
+      await montar(tester, guardada: 2000);
+      expect(find.text('Te avisamos a 2,0 km'), findsNothing);
+      expect(find.text('Cambiar'), findsNothing);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
+    testWidgets('abre la rueda en la distancia de ahora, con «Cancelar»',
+        (tester) async {
+      await montar(tester, guardada: 2000);
+      await activar(tester);
       expect(find.text('Te avisamos a 2,0 km'), findsOneWidget);
 
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
-      expect(find.text('Distancia del aviso'), findsOneWidget);
+      expect(find.byType(Dialogo), findsNothing);
+      expect(
+        find.descendant(
+            of: tarjeta, matching: find.text('Distancia del aviso')),
+        findsOneWidget,
+      );
       expect(find.text('Cancelar'), findsOneWidget);
+      expect(find.text('Solo esta vez'), findsNothing);
       expect(ruedaEn(tester), 15, reason: 'abre en la distancia de ahora');
+    });
 
-      await girarA(tester, 1200);
-      await tester.tap(find.text('Guardar'));
-      await tester.pumpAndSettle();
-
-      expect(c.read(distanciaAvisoProvider), 1200);
-      expect(find.text('Te avisamos a 1,2 km'), findsOneWidget);
-      expect(c.read(activeAlertsProvider), isEmpty,
-          reason: 'cambiar la distancia no arma ningún aviso');
+    // «Cambiar» se pinta como «Quitar» en la píldora de la ubicación
+    // (`PildoraEstado` con `actionDanger`), pero en rojo (dueño,
+    // 2026-10-06).
+    testWidgets('«Cambiar» es una píldora como «Quitar», en rojo',
+        (tester) async {
+      await montar(tester, guardada: 1500);
+      await activar(tester);
+      final pildora = find.ancestor(
+          of: find.text('Cambiar'), matching: find.byType(Container));
+      final caja =
+          tester.widget<Container>(pildora.first).decoration! as BoxDecoration;
+      expect(caja.color, AppColors.surfaceMuted);
+      expect(caja.borderRadius, BorderRadius.circular(AppRadius.pill));
+      expect(caja.border, Border.all(color: AppColors.hairline));
+      final texto = tester.widget<Text>(find.text('Cambiar')).style!;
+      expect(texto.color, AppColors.coralAccessible);
+      expect(contraste(texto.color!, AppColors.surfaceMuted),
+          greaterThanOrEqualTo(4.5));
     });
 
     testWidgets('«Cancelar» deja la distancia como estaba', (tester) async {
       final c = await montar(tester, guardada: 2000);
+      await activar(tester);
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
       await girarA(tester, 700);
@@ -222,11 +425,8 @@ void main() {
 
       await tester.tap(find.text('Cambiar'));
       await tester.pumpAndSettle();
-      expect(
-        find.text('Te avisamos cuando el bus esté así de cerca. También '
-            'cambia el aviso que tienes activo.'),
-        findsOneWidget,
-      );
+      expect(find.text('También cambia el aviso que tienes activo'),
+          findsOneWidget);
       await girarA(tester, 2500);
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
@@ -256,6 +456,7 @@ void main() {
     testWidgets('se lee como un botón y se toca con el pulgar', (tester) async {
       final semantica = tester.ensureSemantics();
       await montar(tester, guardada: 1500);
+      await activar(tester);
 
       expect(
         tester.getSemantics(fila),
@@ -269,14 +470,14 @@ void main() {
       semantica.dispose();
     });
 
-    testWidgets('los textos de la fila contrastan con la hoja (WCAG AA)',
+    // «Cambiar» se mide contra su píldora, en la prueba de arriba.
+    testWidgets('la distancia de la fila contrasta con la hoja (WCAG AA)',
         (tester) async {
       await montar(tester, guardada: 1500);
-      for (final texto in ['Te avisamos a 1,5 km', 'Cambiar']) {
-        final color = tester.widget<Text>(find.text(texto)).style!.color!;
-        expect(contraste(color, AppColors.arena), greaterThanOrEqualTo(4.5),
-            reason: texto);
-      }
+      await activar(tester);
+      final color =
+          tester.widget<Text>(find.text('Te avisamos a 1,5 km')).style!.color!;
+      expect(contraste(color, AppColors.arena), greaterThanOrEqualTo(4.5));
     });
 
     // iPhone sale cuando haya avisos por push (dueño, 2026-10-06): la nota
@@ -363,9 +564,14 @@ void main() {
             const RouteInfo(id: 'R1', name: 'Ruta 1', companyId: 'C1'),
           );
       c.read(selectedBusesProvider.notifier).toggleBus('A-1');
+      // El aviso se puso antes de que el bus perdiera la señal.
+      c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+      c
+          .read(proximityAlertsProvider.notifier)
+          .armAlert('A-1', 'R1', radioM: 1500);
       await tester.pumpAndSettle();
 
-      expect(find.text('Bus sin señal'), findsOneWidget);
+      expect(find.text('Aviso activado'), findsOneWidget);
       expect(find.text('Te avisamos a 1,5 km'), findsOneWidget);
     });
   });

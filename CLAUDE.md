@@ -140,12 +140,12 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   compartir, distancia del aviso) y backend 6 (Coolitoral, prueba de fuego, y el bus oculto con su prueba
   más la ficha del conductor fuera, 2026-10-06). Las ramas de
   trabajo están al día con su remoto.
-- **Verificación (2026-10-06)**: **1.805 pruebas** en total (1.772 pasan +
+- **Verificación (2026-10-06)**: **1.815 pruebas** en total (1.782 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
   simulador.
-- **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 642 + 1, pruebas
+- **Flutter**: core 94, panel 272 + 3 saltadas, pasajero 650 + 1, pruebas
   13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
   `integration_test` en el panel). Aparte, la E2E del panel de escritorio
   contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el
@@ -157,11 +157,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web**: `npm run typecheck` limpio (3 configs), **318 en Vitest**,
+- **Web**: `npm run typecheck` limpio (3 configs), **320 en Vitest**,
   cobertura 98,8 / 91,9 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
-  Playwright **153 + 29 saltadas**. Presupuestos: dist 781,9/797 (**98 %**),
-  JS 60,0/66, CSS 120,6/121 (**100 %**), primera visita 470,0/560 — dist y
+  Playwright **153 + 29 saltadas**. Presupuestos: dist 781,1/797 (**98 %**),
+  JS 60,0/66, CSS 119,9/121 (**99 %**), primera visita 469,2/560 — dist y
   CSS sin margen: todo cambio web se mide antes de sumarlo, y el CSS que
   entre tiene que salir de otro lado.
 - **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra al
@@ -213,11 +213,13 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   aviso anclado donde se armó (no sigue al pin); «Escoge empresa y ruta»
   abre el selector. La distancia del aviso la elige el pasajero con una
   rueda como la de la alarma del iPhone (500 m–3 km, de 100 en 100; arranca
-  en 1 km): la primera vez sale en una ventana con «Guardar» y «Solo esta
-  vez»; «Cambiar» la abre otra vez y cambia también el aviso activo. Con el
-  aviso puesto, el iPhone dice «Te avisamos a X · Cambiar» (dueño,
-  2026-10-06; antes pedía dejar la app abierta) y Android conserva su nota
-  con la fila «Cambiar». La web lo espeja en el paso 3 y en el hero.
+  en 1 km): la primera vez la tarjeta del bus cambia su distancia por la
+  rueda, con «Guardar» y «Solo esta vez» (sin ventana encima); «Cambiar» la
+  trae otra vez y cambia también el aviso activo. Solo con el aviso puesto
+  se dice la distancia: el iPhone «Te avisamos a X · Cambiar» (dueño,
+  2026-10-06; antes pedía dejar la app abierta) y Android su nota con la
+  fila «Cambiar». «Cambiar» es una píldora como «Quitar» con letra roja
+  (`coralAccessible`, 4,96:1). La web lo espeja en el paso 3 y en el hero.
 - **Panel**: sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
   filas planas, carril de estados, barra de flota de 48, «Agregar bus» de

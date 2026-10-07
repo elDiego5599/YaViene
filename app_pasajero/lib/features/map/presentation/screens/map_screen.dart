@@ -59,6 +59,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _busesEncuadrado = false;
   bool _alertBlocked = false;
 
+  /// La hoja pregunta la distancia del aviso en la tarjeta del bus: la guía
+  /// se aparta mientras tanto, porque su velo solo deja tocar el botón del
+  /// aviso y la rueda queda debajo.
+  bool _eligiendoDistancia = false;
+
   ProviderSubscription<UserLocationState>? _locationSub;
   ProviderSubscription<MapGuideState>? _guideSub;
   ProviderSubscription<Set<String>>? _busSub;
@@ -198,6 +203,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (ref.read(mapGuideProvider).step == MapGuideStep.buses) {
       _scheduleGuideMeasurement(MapGuideStep.buses);
     }
+  }
+
+  void _onEligiendoDistancia(bool eligiendo) {
+    if (!mounted || _eligiendoDistancia == eligiendo) return;
+    setState(() => _eligiendoDistancia = eligiendo);
+    // Al volver, el botón del aviso está otra vez en su sitio: se mide de
+    // nuevo, que la tarjeta cambió de alto en medio.
+    if (!eligiendo) _scheduleGuideMeasurement(ref.read(mapGuideProvider).step);
   }
 
   void _onGuideAlertBlocked(bool blocked) {
@@ -396,6 +409,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         : _copyFor(
             step, selectedBusHasActiveAlert, alertLimitReached, routeTooFar);
     final showMapGuide = copy != null &&
+        !_eligiendoDistancia &&
         _isMapStep(step) &&
         (step == MapGuideStep.background ||
             (_guideTarget != null && _measuredGuideStep == step));
@@ -506,6 +520,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               detailKey: _detailGuideKey,
               recenterKey: _recenterGuideKey,
               onGuideAlertBlocked: _onGuideAlertBlocked,
+              onEligiendoDistancia: _onEligiendoDistancia,
               enRespaldo: ref.watch(enRespaldoProvider),
             ),
           ),

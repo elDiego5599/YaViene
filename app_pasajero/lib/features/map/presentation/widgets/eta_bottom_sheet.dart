@@ -35,6 +35,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
     this.detailKey,
     this.recenterKey,
     this.onGuideAlertBlocked,
+    this.onEligiendoDistancia,
     this.enRespaldo = false,
   });
 
@@ -50,6 +51,11 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   final GlobalKey? recenterKey;
   final ValueChanged<bool>? onGuideAlertBlocked;
 
+  /// `true` cuando la tarjeta pasa a preguntar la distancia del aviso y
+  /// `false` cuando deja de hacerlo. La guía se aparta mientras tanto: su
+  /// velo solo deja tocar el botón del aviso, y la rueda quedaría debajo.
+  final ValueChanged<bool>? onEligiendoDistancia;
+
   /// Si la app habla con el respaldo (T2.3): la hoja lo dice en una línea
   /// discreta. Lo pasa el mapa desde `enRespaldoProvider`; la hoja no lee la
   /// configuración del backend por su cuenta, así que montarla en una prueba
@@ -61,7 +67,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const double _expandedMapInset = 250;
   static const double _collapsedMapInset = 120;
 
@@ -94,6 +100,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   bool _blockedLatched = false;
   String? _latchedBusId;
 
+  /// La pregunta de la distancia que espera respuesta, si hay una.
+  _Eleccion? _eleccion;
+
+  /// La que se ve en la tarjeta: la de [_eleccion] y, después de
+  /// contestarla, la misma mientras se apaga.
+  _Eleccion? _eleccionVista;
+
+  /// 0, la tarjeta de siempre; 1, la pregunta de la distancia.
+  late final AnimationController _rueda;
+
   @override
   void initState() {
     super.initState();
@@ -108,6 +124,14 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       parent: _pliegue,
       curve: const Interval(0.35, 1, curve: AppMotion.curvaEntrada),
     );
+    _rueda = AnimationController(vsync: this, duration: AppMotion.pausado)
+      ..addStatusListener((estado) {
+        if (estado == AnimationStatus.dismissed &&
+            _eleccion == null &&
+            mounted) {
+          setState(() => _eleccionVista = null);
+        }
+      });
     // Refresca el texto "Sin señal · hace X min" de un bus fantasma: sin
     // posiciones nuevas la UI no se reconstruye sola.
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -118,6 +142,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    // Una pregunta sin contestar se cierra sin elegir: quien la espera no
+    // arma nada.
+    final pendiente = _eleccion;
+    _eleccion = null;
+    pendiente?.respuesta.complete(null);
+    _rueda.dispose();
     _opacidad.dispose();
     _pliegue.dispose();
     super.dispose();
@@ -176,7 +206,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   Future<void> _toggleAlert(String busId) async {
     final result = await ref
         .read(alertToggleProvider)
-        .toggle(busId, elegirDistancia: () => elegirDistanciaAviso(context));
+        .toggle(busId, elegirDistancia: () => _preguntarDistancia(busId));
     // Cerró la rueda sin elegir: no pidió nada, no hay nada que decirle.
     if (!mounted || result.outcome == AlertToggleOutcome.cancelled) return;
     if (result.needsHaptic) HapticFeedback.mediumImpact();
@@ -269,12 +299,61 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     return _blockedLatched;
   }
 
+  /// Pregunta a qué distancia avisar en la misma tarjeta del bus, sin
+  /// ventana encima (dueño, 2026-10-06: «que salga en la misma card en vez
+  /// de un popup nuevo»). [primeraVez]: al activar el primer aviso, con
+  /// «Guardar» y «Solo esta vez». Si no, es «Cambiar», con «Guardar» y
+  /// «Cancelar». `null` si se fue sin elegir: «Cancelar», «atrás» o soltar
+  /// el bus.
+  Future<({int metros, bool guardar})?> _preguntarDistancia(
+    String busId, {
+    int inicial = distanciaAvisoInicial,
+    bool primeraVez = true,
+    bool avisoActivo = false,
+  }) {
+    // El aviso valida la ruta antes de preguntar: en esa espera la hoja
+    // pudo irse.
+    if (!mounted) return Future.value();
+    _responder(null);
+    final eleccion = _Eleccion(busId, distanciaEnRueda(inicial),
+        primeraVez: primeraVez, avisoActivo: avisoActivo);
+    setState(() {
+      _eleccion = eleccion;
+      _eleccionVista = eleccion;
+    });
+    _rueda
+      ..duration = AppMotion.duracion(context, AppMotion.pausado)
+      ..forward();
+    widget.onEligiendoDistancia?.call(true);
+    return eleccion.respuesta.future;
+  }
+
+  /// Contesta la pregunta en curso y devuelve la tarjeta a lo de siempre.
+  /// [deGolpe] cuando la tarjeta se va de todos modos (otro bus o ninguno):
+  /// no hay nada que animar.
+  void _responder(({int metros, bool guardar})? respuesta,
+      {bool deGolpe = false}) {
+    final eleccion = _eleccion;
+    if (eleccion == null) return;
+    _eleccion = null;
+    eleccion.respuesta.complete(respuesta);
+    widget.onEligiendoDistancia?.call(false);
+    if (deGolpe) {
+      _rueda.value = 0;
+      setState(() => _eleccionVista = null);
+    } else {
+      _rueda
+        ..duration = AppMotion.duracion(context, AppMotion.pausado)
+        ..reverse();
+    }
+  }
+
   /// «Cambiar»: la rueda en la distancia de ahora. Lo elegido queda guardado
   /// y, si este bus tiene el aviso puesto, el aviso pasa a sonar ahí
   /// (dueño, 2026-10-06: «cambia también el activo»).
   Future<void> _cambiarDistancia(String busId, int actual) async {
-    final elegida = await elegirDistanciaAviso(
-      context,
+    final elegida = await _preguntarDistancia(
+      busId,
       inicial: actual,
       primeraVez: false,
       avisoActivo: ref.read(activeAlertsProvider).contains(busId),
@@ -351,6 +430,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       if (previous != null && previous.isEmpty && next.isNotEmpty) {
         _asentar(true);
       }
+      // Soltar el bus (o cambiarlo por otro) deja la pregunta sin contestar.
+      final eleccion = _eleccion;
+      if (eleccion != null && (next.isEmpty || next.first != eleccion.busId)) {
+        _responder(null, deGolpe: true);
+      }
     });
 
     if (selectedRoute == null) {
@@ -400,12 +484,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // arrastrando la hoja. Las demás tarjetas solo explican o invitan, así
     // que se pliegan para devolver el mapa entero.
     final tarjetaDeBus = selectedBuses.isNotEmpty;
+    // El bus sin señal tiene otra tarjeta; la pregunta va en la de siempre,
+    // y la hoja funde la una en la otra como al cambiar de bus.
+    final preguntaSinSenal = tarjetaDeBus &&
+        _eleccion != null &&
+        _staleLabel(busById[selectedBuses.first]) != null;
 
     return _sheetShell(
       toggleable: !tarjetaDeBus,
       child: tarjetaDeBus
           ? KeyedSubtree(
-              key: ValueKey('sheet-bus-${selectedBuses.first}'),
+              key: ValueKey('sheet-bus-${selectedBuses.first}'
+                  '${preguntaSinSenal ? '-rueda' : ''}'),
               child: _buildSingleBusState(
                 selectedBuses.first,
                 busById[selectedBuses.first],
@@ -830,9 +920,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final blocked =
         _applyBlockedHysteresis(busId, liveBlocked, distance) || routeTooFar;
 
-    // La distancia del aviso, bajo el botón, con su «Cambiar». Solo cuando
-    // ya hay una: antes del primer aviso la pregunta la rueda al activarlo,
-    // y una fila que ofrece cambiar algo que nunca se eligió confunde.
+    // La distancia del aviso, bajo el botón, con su «Cambiar». Solo con el
+    // aviso activo: sin él la pregunta la rueda al activarlo, y una fila que
+    // ofrece cambiar algo que todavía no va a sonar confunde (dueño,
+    // 2026-10-06).
     //
     // En iPhone, con el aviso activo, sube a la nota de encima del botón:
     // ese sitio era de «Deja Ya Viene abierta y la pantalla encendida», que
@@ -842,16 +933,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     void cambiar() => _cambiarDistancia(busId, radio);
     final distanciaEnNota =
         isActive && Theme.of(context).platform == TargetPlatform.iOS;
-    final filaDistancia = !distanciaEnNota &&
-            (isActive || ref.watch(distanciaAvisoProvider) != null)
+    final filaDistancia = isActive && !distanciaEnNota
         ? _CambiarDistancia(metros: radio, onTap: cambiar)
         : null;
     // Con la fila debajo, el aire de abajo lo pone su propio alto de 48: los
     // 20 de siempre la alejaban del botón al que pertenece.
     final aireAbajo = filaDistancia == null ? 20.0 : 6.0;
 
-    // Sin señal: excepción importante, se marca con coral.
-    if (staleLabel != null) {
+    final eleccion = _eleccionVista;
+    // Sin señal: excepción importante, se marca con coral. Salvo mientras
+    // pregunta la distancia, que va en la tarjeta de siempre.
+    if (staleLabel != null && _eleccion == null) {
       return Column(
         children: [
           const SizedBox(height: 10),
@@ -950,7 +1042,59 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     }
     final isNumberMetric = metricUnit != null;
 
-    return Padding(
+    // Métrica principal: número grande que respira, o el estado en
+    // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
+    // TextStyle base) en vez de un literal duplicado.
+    // El número y su unidad son dos bloques —64 y 15— y en voz alta
+    // se leerían como "850" y luego "m de ti", con una pausa en
+    // medio y la unidad abreviada. Aquí se dicen en una sola frase.
+    final cifra = Semantics(
+      label: metricSpoken,
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // El color del número pasa de un tramo al otro en vez de
+          // saltar cuando el bus se acerca.
+          TweenAnimationBuilder<Color?>(
+            tween: ColorTween(end: colorCifra),
+            duration: AppMotion.duracion(context, AppMotion.pausado),
+            curve: AppMotion.curvaCambio,
+            // El número es `dato`, el rol que existe para él.
+            // Cuando en su sitio va una palabra —"Sin señal",
+            // "Llegando"— no cabe a 64 ni tendría sentido en w200:
+            // pasa a `display`, que es el otro rol grande, y ocupa
+            // el mismo hueco. El número gira cifra a cifra con cada
+            // posición nueva (`CifraViva`); la palabra no tiene
+            // cifras y va quieta.
+            builder: (context, color, _) => isNumberMetric
+                ? CifraViva(
+                    metricText,
+                    key: widget.metricKey,
+                    valor: distance,
+                    style: AppTextStyles.dato.copyWith(color: color),
+                  )
+                : Text(
+                    metricText,
+                    key: widget.metricKey,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.display.copyWith(color: color),
+                  ),
+          ),
+          if (metricUnit != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              metricUnit,
+              key: widget.metricUnitKey,
+              style: AppTextStyles.cuerpoFuerte
+                  .copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final tarjeta = Padding(
       // La tarjeta del bus se muestra entera, siempre: es la única que no se
       // pliega, así que no tiene una versión corta que ajustar.
       padding: EdgeInsets.fromLTRB(AppSpacing.lg, 6, AppSpacing.lg, aireAbajo),
@@ -1023,84 +1167,245 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   color: AppColors.hairline,
                 ),
                 const SizedBox(height: 14),
-                // Métrica principal: número grande que respira, o el estado en
-                // palabras. F10: override sobre AppTextStyles.etaNumber (mismo
-                // TextStyle base) en vez de un literal duplicado.
-                // El número y su unidad son dos bloques —64 y 15— y en voz alta
-                // se leerían como "850" y luego "m de ti", con una pausa en
-                // medio y la unidad abreviada. Aquí se dicen en una sola frase.
-                Semantics(
-                  label: metricSpoken,
-                  excludeSemantics: true,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // El color del número pasa de un tramo al otro en vez de
-                      // saltar cuando el bus se acerca.
-                      TweenAnimationBuilder<Color?>(
-                        tween: ColorTween(end: colorCifra),
-                        duration:
-                            AppMotion.duracion(context, AppMotion.pausado),
-                        curve: AppMotion.curvaCambio,
-                        // El número es `dato`, el rol que existe para él.
-                        // Cuando en su sitio va una palabra —"Sin señal",
-                        // "Llegando"— no cabe a 64 ni tendría sentido en w200:
-                        // pasa a `display`, que es el otro rol grande, y ocupa
-                        // el mismo hueco. El número gira cifra a cifra con cada
-                        // posición nueva (`CifraViva`); la palabra no tiene
-                        // cifras y va quieta.
-                        builder: (context, color, _) => isNumberMetric
-                            ? CifraViva(
-                                metricText,
-                                key: widget.metricKey,
-                                valor: distance,
-                                style:
-                                    AppTextStyles.dato.copyWith(color: color),
-                              )
-                            : Text(
-                                metricText,
-                                key: widget.metricKey,
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.display
-                                    .copyWith(color: color),
-                              ),
-                      ),
-                      if (metricUnit != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          metricUnit,
-                          key: widget.metricUnitKey,
-                          style: AppTextStyles.cuerpoFuerte
-                              .copyWith(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ],
+                // El alto se anima aquí y no dentro del vaivén: la tarjeta
+                // va a media hoja y lo de abajo tiene que deslizarse con su
+                // borde. El vaivén de abajo es el pie de la hoja y su alto
+                // ya lo anima la hoja; con otro `AnimatedSize` en medio, la
+                // hoja llegaba a su alto un cuadro tarde por cada nivel.
+                AnimatedSize(
+                  duration: AppMotion.duracion(context, AppMotion.pausado),
+                  curve: AppMotion.curvaCambio,
+                  alignment: Alignment.topCenter,
+                  child: _Vaiven(
+                    animacion: _rueda,
+                    haciaRueda: _eleccion != null,
+                    // Sin señal, lo de siempre es la otra tarjeta: aquí no
+                    // hay nada a lo que volver.
+                    normal: staleLabel != null
+                        ? const SizedBox(width: double.infinity)
+                        : cifra,
+                    rueda: eleccion == null ? null : _preguntaRueda(eleccion),
                   ),
                 ),
               ],
             ),
           ),
-          _NotaAnimada(stateDetail),
-          const SizedBox(height: 18),
-          _StickyAlertButton(
-            key: widget.alertKey,
-            onBlockedChanged: widget.onGuideAlertBlocked,
-            isActive: isActive,
-            blocked: isActive ? false : blocked,
-            label: isActive
-                ? "Aviso activado"
-                : ghostBlocked
-                    ? "Bus sin señal"
-                    : routeTooFar
-                        ? "Esta ruta no pasa cerca"
-                        : blocked
-                            ? "El bus ya está cerca"
-                            : "Avisarme cuando esté cerca",
-            onPressed: () => _toggleAlert(busId),
+          _Vaiven(
+            animacion: _rueda,
+            haciaRueda: _eleccion != null,
+            normal: staleLabel != null
+                ? const SizedBox(width: double.infinity)
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _NotaAnimada(stateDetail),
+                      const SizedBox(height: 18),
+                      _StickyAlertButton(
+                        key: widget.alertKey,
+                        onBlockedChanged: widget.onGuideAlertBlocked,
+                        isActive: isActive,
+                        blocked: isActive ? false : blocked,
+                        label: isActive
+                            ? "Aviso activado"
+                            : ghostBlocked
+                                ? "Bus sin señal"
+                                : routeTooFar
+                                    ? "Esta ruta no pasa cerca"
+                                    : blocked
+                                        ? "El bus ya está cerca"
+                                        : "Avisarme cuando esté cerca",
+                        onPressed: () => _toggleAlert(busId),
+                      ),
+                      if (filaDistancia != null) filaDistancia,
+                    ],
+                  ),
+            rueda: eleccion == null ? null : _respuestas(eleccion),
           ),
-          if (filaDistancia != null) filaDistancia,
         ],
       ),
+    );
+    // «Atrás» con la pregunta abierta la cierra sin elegir, como el
+    // «Cancelar»: no saca de la app ni deja el aviso a medio armar.
+    return PopScope(
+      canPop: _eleccion == null,
+      onPopInvokedWithResult: (salio, _) {
+        if (!salio) _responder(null);
+      },
+      child: tarjeta,
+    );
+  }
+
+  /// Lo de dentro de la tarjeta mientras pregunta: el título y la rueda. La
+  /// placa se queda arriba: la distancia que se elige es la de este bus.
+  Widget _preguntaRueda(_Eleccion eleccion) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // `subtitulo`, como los títulos de los estados de la hoja; se
+          // anuncia como encabezado para que el lector sepa qué pregunta la
+          // rueda de abajo.
+          Semantics(
+            header: true,
+            child: Text(
+              eleccion.primeraVez
+                  ? '¿A qué distancia te avisamos?'
+                  : 'Distancia del aviso',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.subtitulo,
+            ),
+          ),
+          if (eleccion.avisoActivo) ...[
+            const SizedBox(height: 4),
+            Text(
+              'También cambia el aviso que tienes activo',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+          // 8 hasta la rueda: su primera fila es la más tenue, y el aire
+          // que se ve ya es mayor.
+          const SizedBox(height: 8),
+          RuedaDistancia(
+            inicial: eleccion.metros,
+            alCambiar: (metros) => eleccion.metros = metros,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Lo de debajo de la tarjeta mientras pregunta: «Guardar» en el sitio y
+  /// con la forma del botón del aviso, que es el que el pulgar acaba de
+  /// tocar, y debajo «Solo esta vez» (o «Cancelar», si es «Cambiar») como
+  /// texto, con su alto de 48.
+  Widget _respuestas(_Eleccion eleccion) {
+    final forma = WidgetStateProperty.all(
+      const StadiumBorder(),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryAccessible,
+              foregroundColor: Colors.white,
+              textStyle: AppTextStyles.boton,
+              // 60, el alto del botón del aviso: «Guardar» ocupa su sitio
+              // y la hoja no se mueve bajo el pulgar.
+              minimumSize: const Size.fromHeight(60),
+            ).copyWith(shape: forma),
+            onPressed: () =>
+                _responder((metros: eleccion.metros, guardar: true)),
+            child: const Text('Guardar'),
+          ),
+        ),
+        const SizedBox(height: 4),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+            textStyle: AppTextStyles.boton,
+            minimumSize: const Size(48, 48),
+          ).copyWith(shape: forma),
+          onPressed: eleccion.primeraVez
+              ? () => _responder((metros: eleccion.metros, guardar: false))
+              : () => _responder(null),
+          child: Text(eleccion.primeraVez ? 'Solo esta vez' : 'Cancelar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Una pregunta de la distancia en curso. [metros] sigue a la rueda.
+class _Eleccion {
+  _Eleccion(this.busId, this.metros,
+      {required this.primeraVez, required this.avisoActivo});
+
+  final String busId;
+  int metros;
+  final bool primeraVez;
+  final bool avisoActivo;
+  final respuesta = Completer<({int metros, bool guardar})?>();
+}
+
+/// Pasa de [normal] a [rueda] y de vuelta, con el mismo fundido encadenado
+/// que el resto de la hoja: lo que se va se apaga en el primer 40 % y lo
+/// que llega entra desde el 30 %. El alto salta al del que llega; quien lo
+/// anima es el `AnimatedSize` de afuera.
+///
+/// No es un `AnimatedSwitcher` porque [normal] lleva las llaves globales
+/// de la guía (botón del aviso, número): con «Guardar» tocado antes de que
+/// lo de siempre terminara de irse, el switcher montaba dos copias a la
+/// vez. Aquí cada uno tiene su sitio fijo y existe una sola vez.
+class _Vaiven extends StatelessWidget {
+  const _Vaiven({
+    required this.animacion,
+    required this.haciaRueda,
+    required this.normal,
+    required this.rueda,
+  });
+
+  /// 0, [normal]; 1, [rueda].
+  final Animation<double> animacion;
+
+  /// Hacia dónde va: decide cuál entra y cuál sale.
+  final bool haciaRueda;
+  final Widget normal;
+
+  /// `null` cuando no hay pregunta que mostrar.
+  final Widget? rueda;
+
+  static const _entra = Interval(0.3, 1, curve: AppMotion.curvaEntrada);
+  static const _sale = Interval(0.6, 1, curve: AppMotion.curvaSalida);
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animacion,
+      builder: (context, _) {
+        final v = animacion.value;
+        final rueda = this.rueda;
+        // El que llega está desde el primer cuadro, aunque todavía no se
+        // vea: es el que le da el alto a todo.
+        final conNormal = rueda == null || !haciaRueda || v < 1;
+        final conRueda = rueda != null && (haciaRueda || v > 0);
+        final opacidadRueda =
+            haciaRueda ? _entra.transform(v) : _sale.transform(v);
+        final opacidadNormal =
+            haciaRueda ? _sale.transform(1 - v) : _entra.transform(1 - v);
+        // El que va de salida se posiciona: no cuenta en el alto, que
+        // viaja directo al del que llega.
+        Widget lugar(Widget hijo, String llave, double opacidad,
+                {required bool llega}) =>
+            Positioned(
+              key: ValueKey(llave),
+              top: llega ? null : 0,
+              left: llega ? null : 0,
+              right: llega ? null : 0,
+              child: IgnorePointer(
+                ignoring: !llega,
+                child: ExcludeSemantics(
+                  excluding: !llega,
+                  child: Opacity(opacity: opacidad, child: hijo),
+                ),
+              ),
+            );
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            if (conNormal)
+              lugar(normal, 'vaiven-normal', rueda == null ? 1 : opacidadNormal,
+                  llega: !haciaRueda || rueda == null),
+            if (conRueda)
+              lugar(rueda, 'vaiven-rueda', opacidadRueda, llega: haciaRueda),
+          ],
+        );
+      },
     );
   }
 }
@@ -1261,17 +1566,9 @@ class _NotaHoja extends StatelessWidget {
               style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
             ),
           ),
-          // «Cambiar» al final, en el azul de los botones (7,1:1 sobre el
-          // blanco) y en 700, como la fila bajo el botón en Android.
           if (onTap != null) ...[
             const SizedBox(width: 10),
-            Text(
-              'Cambiar',
-              style: AppTextStyles.pie.copyWith(
-                color: AppColors.acento,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            const _PildoraCambiar(),
           ],
         ],
       ),
@@ -1317,8 +1614,8 @@ class _NotaHoja extends StatelessWidget {
 /// Una línea de texto y no un segundo botón: el botón grande es lo que se
 /// hace en esta hoja, y la distancia es un ajuste suyo. El toque abarca la
 /// fila entera con 48 de alto, el mínimo de un blanco para el pulgar. Gris
-/// secundario (5,0:1 sobre la arena) para lo que se dice y el azul de los
-/// botones (6,6:1) para lo que se toca, como un enlace.
+/// secundario (5,0:1 sobre la arena) para lo que se dice y la píldora de
+/// «Cambiar» para lo que se toca.
 class _CambiarDistancia extends StatelessWidget {
   const _CambiarDistancia({required this.metros, required this.onTap});
 
@@ -1357,19 +1654,41 @@ class _CambiarDistancia extends StatelessWidget {
                       style: AppTextStyles.etiqueta
                           .copyWith(color: AppColors.textSecondary),
                     ),
-                    Text(
-                      'Cambiar',
-                      style: AppTextStyles.etiqueta.copyWith(
-                        color: AppColors.acento,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    const _PildoraCambiar(),
                   ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// «Cambiar», con la cara de «Quitar» en la píldora de la ubicación
+/// (`PildoraEstado` con `actionDanger`: gris apagado, filo y píldora) pero
+/// con la letra roja (dueño, 2026-10-06). `coralAccessible` y no `coral`:
+/// sobre `surfaceMuted` da 5,0:1, y el coral a secas no llega a 3.
+///
+/// Solo se ve: el toque es de la nota o de la fila entera, que miden los
+/// 48 del pulgar y la píldora no.
+class _PildoraCambiar extends StatelessWidget {
+  const _PildoraCambiar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Text(
+        'Cambiar',
+        style:
+            AppTextStyles.etiqueta.copyWith(color: AppColors.coralAccessible),
       ),
     );
   }
