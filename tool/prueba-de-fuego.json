@@ -193,9 +193,27 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
-    "de": "radioRutaM: guardada ?? distanciaAvisoMaxima,",
-    "a": "radioRutaM: guardada ?? distanciaAvisoInicial,",
-    "que": "sin guardar, la ruta lejos es con la máxima"
+    "de": "radioRutaM: distanciaAvisoMaxima,",
+    "a": "radioRutaM: distanciaAvisoInicial,",
+    "que": "antes de la rueda, la ruta lejos es con la máxima"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
+    "de": "if (desde != null && desde > (hasta ?? distanciaAvisoMaxima)) {",
+    "a": "if (false) {",
+    "que": "sin distancia que alcance la ruta no abre la rueda"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",
+    "de": "guardada >= (desde ?? distanciaAvisoMinima) &&",
+    "a": "true &&",
+    "que": "la guardada que la ruta no alcanza abre la rueda"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
+    "de": "if (desde != null && desde > (hasta ?? distanciaAvisoMaxima)) {",
+    "a": "if (false) {",
+    "que": "«Cambiar» sin distancia que sirva no abre la rueda"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/alert_toggle_provider.dart",

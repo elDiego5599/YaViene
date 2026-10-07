@@ -13,17 +13,32 @@ final Color franjaRuedaDistancia = AppColors.primary.withValues(alpha: 0.10);
 /// van las filas en el cilindro.
 const double _apriete = 1.45;
 
-int _indiceDe(int metros, int? hasta) =>
-    ((metros.clamp(distanciaAvisoMinima, hasta ?? distanciaAvisoMaxima) -
-                distanciaAvisoMinima) /
+/// Las que ofrece la rueda entre [desde] y [hasta]. Nunca vacía: si el bus
+/// ya pasó lo más cerca que llega la ruta, queda solo [desde], y quien la
+/// abre ya lo había rechazado.
+List<int> _opcionesDe(int? desde, int? hasta) {
+  final piso = (desde ?? distanciaAvisoMinima)
+      .clamp(distanciaAvisoMinima, distanciaAvisoMaxima);
+  final techo =
+      (hasta ?? distanciaAvisoMaxima).clamp(piso, distanciaAvisoMaxima);
+  return [
+    for (final m in distanciasDeAviso)
+      if (m >= piso && m <= techo) m,
+  ];
+}
+
+int _indiceDe(int metros, List<int> opciones) =>
+    ((metros.clamp(opciones.first, opciones.last) - opciones.first) /
             pasoDistanciaAviso)
         .round();
 
 /// La distancia en la que arranca la rueda para [metros]: la misma si la
 /// ofrece y, si no, la más cercana que sí. Es la que vale si se guarda sin
 /// girarla.
-int distanciaEnRueda(int metros, {int? hasta}) =>
-    distanciasDeAviso[_indiceDe(metros, hasta)];
+int distanciaEnRueda(int metros, {int? desde, int? hasta}) {
+  final opciones = _opcionesDe(desde, hasta);
+  return opciones[_indiceDe(metros, opciones)];
+}
 
 /// La rueda de la distancia del aviso, como la de la alarma del iPhone
 /// (dueño, 2026-10-06): de 500 m a 3 km en pasos de 100 m.
@@ -32,12 +47,17 @@ class RuedaDistancia extends StatefulWidget {
     super.key,
     required this.inicial,
     required this.alCambiar,
+    this.desde,
     this.hasta,
   });
 
   /// Dónde arranca. Una distancia que la rueda no ofrece arranca en la más
   /// cercana que sí.
   final int inicial;
+
+  /// La menor que ofrece: lo más cerca que pasa la ruta, porque una menor no
+  /// sonaría nunca (dueño, 2026-10-07). `null`, desde 500 m.
+  final int? desde;
 
   /// La mayor que ofrece: la que el bus todavía no ha pasado (dueño,
   /// 2026-10-07). `null`, hasta 3 km. Puede cambiar con la rueda abierta,
@@ -51,25 +71,23 @@ class RuedaDistancia extends StatefulWidget {
 
 class _RuedaDistanciaState extends State<RuedaDistancia> {
   late final FixedExtentScrollController _control = FixedExtentScrollController(
-      initialItem: _indiceDe(widget.inicial, widget.hasta));
+      initialItem: _indiceDe(widget.inicial, _opciones));
 
-  List<int> get _opciones => [
-        for (final m in distanciasDeAviso)
-          if (m <= (widget.hasta ?? distanciaAvisoMaxima)) m,
-      ];
+  List<int> get _opciones => _opcionesDe(widget.desde, widget.hasta);
 
   @override
   void didUpdateWidget(RuedaDistancia antes) {
     super.didUpdateWidget(antes);
-    final ultima = _opciones.length - 1;
-    if (widget.hasta == antes.hasta || _control.selectedItem <= ultima) {
-      return;
-    }
+    if (widget.desde == antes.desde && widget.hasta == antes.hasta) return;
+    final viejas = _opcionesDe(antes.desde, antes.hasta);
+    final elegida = viejas[_control.selectedItem.clamp(0, viejas.length - 1)];
+    final indice = _indiceDe(elegida, _opciones);
+    if (indice == _control.selectedItem) return;
     // Las filas que sobran se van por abajo: las de arriba no cambian de
     // índice y solo hay que mover la rueda si la elegida era de las que se
     // fueron. Tras el cuadro, con la lista nueva ya puesta.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _control.jumpToItem(ultima);
+      if (mounted) _control.jumpToItem(indice);
     });
   }
 

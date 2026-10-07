@@ -51,6 +51,17 @@ int? distanciaAvisoHasta(double? metrosAlBus) {
       .clamp(distanciaAvisoMinima, distanciaAvisoMaxima);
 }
 
+/// La menor distancia de la rueda que alcanza la ruta cuando su recorrido
+/// pasa, como mucho, a [metrosARuta] del punto: un aviso más corto no suena
+/// nunca, porque ningún bus de esa ruta entra en él (dueño, 2026-10-07: «hago
+/// el cambio a 800 m y se guarda sabiendo que eso nunca va a sonar»).
+/// `null` si no se sabe o si la mínima ya la alcanza: sirve la rueda desde
+/// abajo. Puede pasar de [distanciaAvisoMaxima]: entonces ninguna sirve.
+int? distanciaAvisoDesde(double? metrosARuta) {
+  if (metrosARuta == null || metrosARuta <= distanciaAvisoMinima) return null;
+  return (metrosARuta / pasoDistanciaAviso).ceil() * pasoDistanciaAviso;
+}
+
 /// [valor] si es una distancia de aviso que se puede usar; si no, `null`.
 /// Lo que viene del disco no se cree.
 int? distanciaAvisoValida(Object? valor) => valor is int &&

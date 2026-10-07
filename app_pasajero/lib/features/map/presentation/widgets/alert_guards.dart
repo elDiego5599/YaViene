@@ -67,3 +67,10 @@ String? validateAlertActivation({
 /// deshacer un borrado cuando ya se armaron otros dos.
 const avisosAlTope = 'Ya tienes 2 avisos activos: desactiva uno o espera a '
     'que termine para activar otro. Recuerda no cerrar la aplicación';
+
+/// Lo que se dice cuando el bus ya va más cerca de lo que la ruta se acerca
+/// al punto: lo que el bus todavía no ha pasado no alcanza la ruta y ninguna
+/// distancia de la rueda sonaría. [accion], lo que no se puede hacer.
+String sinDistanciaQueSirva(String busId, String accion) =>
+    'El bus $busId ya va por lo más cerca que te pasa su ruta; no se puede '
+    '$accion';

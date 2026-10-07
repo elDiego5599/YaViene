@@ -215,7 +215,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   trae otra vez y cambia solo el aviso de ese bus («Solo se cambia la
   distancia de este aviso», dueño, 2026-10-07). La rueda solo ofrece lo
   que deja 200 m con el bus (`margenAvisoMetros`; bloquea bajo 700 m) y
-  ese tope sigue al bus con la rueda abierta (dueño, 2026-10-07). Solo con el aviso puesto
+  ese tope sigue al bus con la rueda abierta (dueño, 2026-10-07); y
+  empieza en lo más cerca que pasa la ruta del punto del aviso
+  (`distanciaAvisoDesde`), al activar y en «Cambiar»: si el bus ya pasó
+  ese punto, lo dice sin rueda (dueño, 2026-10-07). Solo con el aviso puesto
   se dice la distancia: el iPhone «Te avisamos a X · Cambiar» (dueño,
   2026-10-06; antes pedía dejar la app abierta) y Android su nota con la
   fila «Cambiar». «Cambiar» es una píldora como «Quitar» con letra roja

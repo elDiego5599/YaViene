@@ -15,11 +15,12 @@ import 'user_location_provider.dart';
 typedef NotificationPermissionRequester = Future<bool> Function();
 
 /// Le pregunta a la persona a qué distancia quiere el aviso (la rueda).
-/// [hasta] es la mayor que puede ofrecer —la de más que el bus ya pasó
-/// sonaría ya mismo—, o `null` si cualquiera sirve. `null` si cerró sin
-/// elegir; [guardar] si la quiere para los que vienen.
+/// [desde] es la menor que puede ofrecer —la de menos que lo más cerca que
+/// pasa la ruta no sonaría nunca— y [hasta] la mayor —la de más que el bus
+/// ya pasó sonaría ya mismo—; `null`, sin límite por ese lado. `null` si
+/// cerró sin elegir; [guardar] si la quiere para los que vienen.
 typedef ElegirDistancia = Future<({int metros, bool guardar})?> Function(
-    int? hasta);
+    int? desde, int? hasta);
 
 /// Resultado de intentar activar/desactivar un aviso. El widget solo traduce
 /// esto a háptico y snackbar: toda la regla de negocio vive aquí.
@@ -96,25 +97,35 @@ class AlertToggleController {
       final guardada = _ref.read(distanciaAvisoProvider);
       // Antes de abrir la rueda se dice lo que ninguna opción arreglaría:
       // preguntar para luego decir que no se puede sería hacerle perder el
-      // tiempo. «Ya está cerca» se mide con la mínima y su margen aunque
-      // haya una guardada mayor: con el bus a 800 m y 1 km guardado, el de
-      // 500 m todavía sirve.
+      // tiempo. «Ya está cerca» se mide con la mínima y su margen, y la
+      // ruta lejos con la máxima, aunque haya una guardada: con el bus a
+      // 800 m y 1 km guardado, el de 500 m todavía sirve; con la ruta a
+      // 1,5 km y 1 km guardado, el de 1,5 km.
       var message = _validar(
         busId,
         routeDistance,
         radioCercaM: distanciaAvisoBloqueo,
-        radioRutaM: guardada ?? distanciaAvisoMaxima,
+        radioRutaM: distanciaAvisoMaxima,
       );
       if (message != null) {
         return AlertToggleResult(AlertToggleOutcome.rejected, message: message);
       }
+      // Lo que sirve va de lo más cerca que pasa la ruta a lo que el bus
+      // todavía no ha pasado. Si eso no deja nada, se dice sin rueda.
+      final desde = distanciaAvisoDesde(routeDistance);
       final hasta = distanciaAvisoHasta(_distanceToBus(_busById(busId)));
-      if (guardada != null && (hasta == null || guardada <= hasta)) {
+      if (desde != null && desde > (hasta ?? distanciaAvisoMaxima)) {
+        return AlertToggleResult(AlertToggleOutcome.rejected,
+            message: guards.sinDistanciaQueSirva(busId, 'activar el aviso'));
+      }
+      if (guardada != null &&
+          guardada >= (desde ?? distanciaAvisoMinima) &&
+          guardada <= (hasta ?? distanciaAvisoMaxima)) {
         radio = guardada;
       } else {
-        // Sin guardada, o con una que el bus ya pasó: la rueda, solo con
-        // las que todavía no ha pasado.
-        final elegida = await elegirDistancia(hasta);
+        // Sin guardada, o con una que no sonaría (la ruta no llega) o que
+        // sonaría ya (el bus la pasó): la rueda, solo con las que sirven.
+        final elegida = await elegirDistancia(desde, hasta);
         if (elegida == null) {
           return const AlertToggleResult(AlertToggleOutcome.cancelled);
         }

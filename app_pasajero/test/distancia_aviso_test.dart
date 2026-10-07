@@ -70,4 +70,22 @@ void main() {
       expect(distanciaAvisoHasta(metros), hasta, reason: 'bus a $metros m');
     }
   });
+
+  // Un aviso por debajo de lo más cerca que pasa la ruta no suena nunca
+  // (dueño, 2026-10-07: «hago el cambio a 800 m y se guarda sabiendo que
+  // eso nunca va a sonar»): la rueda empieza en la primera que la alcanza.
+  test('la menor distancia que alcanza la ruta', () {
+    for (final (metros, desde) in <(double?, int?)>[
+      (null, null),
+      (0, null),
+      (500, null),
+      (500.4, 600),
+      (800, 800),
+      (2450, 2500),
+      (3000, 3000),
+      (3001, 3100),
+    ]) {
+      expect(distanciaAvisoDesde(metros), desde, reason: 'ruta a $metros m');
+    }
+  });
 }

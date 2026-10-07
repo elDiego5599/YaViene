@@ -207,33 +207,23 @@ void main() {
       expect(container.read(routeTooFarFromUserProvider('R1')), isFalse);
     });
 
-    test('un recorrido a 1.5 km cuenta como lejos', () {
-      final container = containerWith(points: _routeAtKm(1.5));
-      expect(container.read(routeTooFarFromUserProvider('R1')), isTrue);
-    });
-
-    test('con la distancia guardada, lejos es más allá de esa distancia', () {
-      expect(
-          containerWith(points: _routeAtKm(1.5), guardada: 2000)
-              .read(routeTooFarFromUserProvider('R1')),
-          isFalse);
-      expect(
-          containerWith(points: _routeAtKm(0.8), guardada: 500)
-              .read(routeTooFarFromUserProvider('R1')),
-          isTrue);
-    });
-
-    // Sin distancia guardada todavía se puede elegir hasta 3 km: solo es
-    // lejos lo que ni a 3 km sonaría.
-    test('sin distancia guardada, lejos es más allá de 3 km', () {
-      expect(
-          containerWith(points: _routeAtKm(2.8), guardada: null)
-              .read(routeTooFarFromUserProvider('R1')),
-          isFalse);
-      expect(
-          containerWith(points: _routeAtKm(3.2), guardada: null)
-              .read(routeTooFarFromUserProvider('R1')),
-          isTrue);
+    // La guardada no cuenta: la rueda ofrece desde lo más cerca que pasa la
+    // ruta, así que solo es lejos lo que ni a 3 km sonaría (dueño,
+    // 2026-10-07). Antes, con 500 m guardados, una ruta a 800 m bloqueaba el
+    // botón y no había rueda con la que elegir más.
+    test('lejos es más allá de 3 km, con o sin distancia guardada', () {
+      for (final guardada in [null, 500, 2000]) {
+        expect(
+            containerWith(points: _routeAtKm(2.8), guardada: guardada)
+                .read(routeTooFarFromUserProvider('R1')),
+            isFalse,
+            reason: 'guardada $guardada');
+        expect(
+            containerWith(points: _routeAtKm(3.2), guardada: guardada)
+                .read(routeTooFarFromUserProvider('R1')),
+            isTrue,
+            reason: 'guardada $guardada');
+      }
     });
 
     test('sin ubicación no se sabe, y no saber no bloquea', () {

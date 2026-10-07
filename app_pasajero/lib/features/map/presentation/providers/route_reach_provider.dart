@@ -17,30 +17,6 @@ import '../../../notifications/presentation/providers/distancia_aviso_provider.d
 import '../utils/geo.dart';
 import 'user_location_provider.dart';
 
-/// Lo más lejos que puede pasar un recorrido del punto del usuario para que
-/// armar un aviso tenga sentido: exactamente la distancia a la que el aviso
-/// suena, ni un metro más.
-///
-/// No admite margen, y esa es toda la regla: el aviso dispara cuando el bus
-/// entra en esa distancia del punto de espera, así que si el recorrido
-/// entero nunca entra, ningún bus de esa ruta va a entrar tampoco. El aviso
-/// se quedaría armado para siempre.
-///
-/// La distancia es la que la persona guardó. Sin ninguna guardada todavía
-/// puede elegir hasta [distanciaAvisoMaxima]: solo es lejos lo que ni ahí
-/// sonaría.
-///
-/// Antes el tope valía 2 km, copiado del anillo verde que se dibuja alrededor
-/// del pin, con la idea de dejar margen para caminar hacia la ruta. El margen
-/// era falso —con el pin puesto a mano el aviso mide contra el pin, no contra
-/// dónde camines— y el resultado era el peor posible: una ruta que pasa entre
-/// 1 y 2 km dejaba armar el aviso de 1 km, el botón decía «AVISO ACTIVADO» y
-/// no sonaba nunca. El anillo verde responde otra pregunta (qué buses ves) y
-/// sigue en 2 km a propósito.
-final distanciaMaximaDeRutaProvider = Provider<int>(
-  (ref) => ref.watch(distanciaAvisoProvider) ?? distanciaAvisoMaxima,
-);
-
 /// Distancia en metros del punto del usuario al trozo más cercano del
 /// recorrido, o **null cuando no se sabe**: sin ubicación, con la geometría
 /// todavía cargando, o si la ruta no trae recorrido en `rutas.json`.
@@ -53,27 +29,41 @@ final routeDistanceToUserProvider =
   final location = ref.watch(userLocationProvider);
   if (!location.hasPosition) return null;
 
-  final trajectory = ref.watch(routeTrajectoryProvider(routeId)).value;
+  return distanciaDeRuta(ref.watch(routeTrajectoryProvider(routeId)).value,
+      location.lat!, location.lon!);
+});
+
+/// Lo más que se acerca [trajectory] al punto ([lat], [lon]), o `null` si no
+/// se sabe. «Cambiar» la mide desde el punto del aviso, que puede no ser el
+/// de ahora.
+double? distanciaDeRuta(RouteTrajectory? trajectory, double lat, double lon) {
   // `points` viene vacío cuando la ruta no está en rutas.json, y con un solo
   // punto no hay segmento que proyectar: en ambos casos projectOntoPolyline
   // devuelve 0 m, que se leería como "estás encima de la ruta".
   if (trajectory == null || trajectory.points.length < 2) return null;
 
-  final projection = projectOntoPolyline(
-    GeoPoint(lat: location.lat!, lon: location.lon!),
-    trajectory.points,
-  );
+  final projection =
+      projectOntoPolyline(GeoPoint(lat: lat, lon: lon), trajectory.points);
   // Una polilínea de puntos repetidos no tiene ningún segmento con longitud:
   // la proyección sale infinita. Eso es no saber, no estar lejos.
   if (!projection.distanceMeters.isFinite) return null;
   return projection.distanceMeters;
-});
+}
 
-/// True solo cuando se **sabe** que la ruta no pasa cerca. Sin ubicación o sin
-/// geometría es false: no se bloquea nada por falta de datos.
+/// True solo cuando se **sabe** que la ruta no pasa cerca: ni el aviso de
+/// [distanciaAvisoMaxima] la alcanzaría. Sin ubicación o sin geometría es
+/// false: no se bloquea nada por falta de datos.
+///
+/// Más cerca de eso hay aviso que sirve: la rueda empieza en lo más cerca
+/// que pasa la ruta (`distanciaAvisoDesde`). La distancia guardada no
+/// cuenta: antes, con 500 m guardados, una ruta a 800 m bloqueaba el botón
+/// y no había rueda con la que elegir más (dueño, 2026-10-07).
+///
+/// Antes el tope valía 2 km, copiado del anillo verde que se dibuja
+/// alrededor del pin. El anillo responde otra pregunta (qué buses ves) y
+/// sigue en 2 km a propósito.
 final routeTooFarFromUserProvider =
     Provider.autoDispose.family<bool, String>((ref, routeId) {
   final distance = ref.watch(routeDistanceToUserProvider(routeId));
-  return distance != null &&
-      distance > ref.watch(distanciaMaximaDeRutaProvider);
+  return distance != null && distance > distanciaAvisoMaxima;
 });

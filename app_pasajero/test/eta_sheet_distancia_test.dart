@@ -54,6 +54,7 @@ void main() {
     double escala = 1,
     ValueChanged<bool>? alEligiendo,
     Stream<List<BusPosition>>? posiciones,
+    double rutaKm = 0,
   }) async {
     SharedPreferences.setMockInitialValues(
       {if (guardada != null) 'distancia_aviso_m': guardada},
@@ -66,14 +67,15 @@ void main() {
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       busPositionsSourceProvider.overrideWith(
           (ref, routeId) => posiciones ?? Stream.value([_busA(metros)])),
-      // El recorrido pasa por el pin: aquí no se prueba la ruta lejana.
+      // Por defecto el recorrido pasa por el pin; [rutaKm] lo corre al sur,
+      // lejos del bus, que va al norte.
       routeTrajectoryProvider.overrideWith(
         (ref, routeId) => RouteTrajectory(
           routeId: routeId,
           routeName: 'Ruta 1',
-          points: const [
-            GeoPoint(lat: _lat, lon: _lon - 0.05),
-            GeoPoint(lat: _lat, lon: _lon + 0.05),
+          points: [
+            GeoPoint(lat: _lat - rutaKm * 1000 / 111195, lon: _lon - 0.05),
+            GeoPoint(lat: _lat - rutaKm * 1000 / 111195, lon: _lon + 0.05),
           ],
         ),
       ),
@@ -326,6 +328,33 @@ void main() {
 
         expect(tester.takeException(), isNull);
         expect(find.text('Hasta 700 m'), findsOneWidget);
+        expect(tester.getRect(find.text('Solo esta vez')).bottom,
+            lessThanOrEqualTo(tamano.height));
+        expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
+            greaterThanOrEqualTo(0));
+      });
+    }
+
+    // «700 m–1,2 km», con las dos unidades, es la línea más larga: en una
+    // sola línea y con la tarjeta entera, con el texto al doble y en el
+    // teléfono más bajo.
+    for (final (tamano, escala) in [
+      (const Size(390, 844), 2.0),
+      (const Size(320, 568), 1.0),
+    ]) {
+      testWidgets('con las dos puntas dichas también cabe ($tamano ×$escala)',
+          (tester) async {
+        await montar(tester,
+            metros: 1450, rutaKm: 0.65, tamano: tamano, escala: escala);
+        await tester.tap(find.text('Avisarme cuando esté cerca'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final linea = find.text('700 m–1,2 km');
+        final alto =
+            AppTextStyles.pie.fontSize! * AppTextStyles.pie.height! * escala;
+        expect(tester.getSize(linea).height, closeTo(alto, 1),
+            reason: 'una sola línea');
         expect(tester.getRect(find.text('Solo esta vez')).bottom,
             lessThanOrEqualTo(tamano.height));
         expect(tester.getRect(find.byKey(const ValueKey('hoja-placa'))).top,
@@ -697,6 +726,69 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1600);
       expect(c.read(distanciaAvisoProvider), 1600);
+    });
+
+    // «Hago el cambio a 800 m y se guarda sabiendo que eso nunca va a
+    // sonar» (dueño, 2026-10-07): con la ruta a 1,45 km del pin, la rueda
+    // empieza en 1,5 km, al activar y al cambiar.
+    testWidgets('con la ruta lejos la rueda empieza donde la ruta llega',
+        (tester) async {
+      final c = await montar(tester, metros: 4000, rutaKm: 1.45);
+      int opciones() => (tester.widget<CupertinoPicker>(rueda).childDelegate
+              as ListWheelChildListDelegate)
+          .children
+          .length;
+
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(find.text('Desde 1,5 km'), findsOneWidget);
+      expect(opciones(), 16, reason: 'de 1,5 a 3 km');
+      expect(ruedaEn(tester), 0, reason: 'el kilómetro no llega: 1,5 km');
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1500);
+
+      await tester.tap(fila);
+      await tester.pumpAndSettle();
+      expect(find.text('Desde 1,5 km'), findsOneWidget);
+      expect(opciones(), 16);
+      expect(find.text('1,4 km'), findsNothing);
+    });
+
+    testWidgets('con la ruta lejos y el bus cerca dice las dos puntas',
+        (tester) async {
+      await montar(tester, metros: 2450, rutaKm: 1.45);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(find.text('1,5–2,2 km'), findsOneWidget);
+    });
+
+    // La ruta a 1,45 km y el bus ya a 1,6: lo que deja el bus no la alcanza.
+    // «Cambiar» lo dice en vez de abrir una rueda sin nada que sirva.
+    testWidgets('«Cambiar» sin distancia que sirva lo dice sin rueda',
+        (tester) async {
+      final bus = StreamController<List<BusPosition>>();
+      addTearDown(bus.close);
+      final c = await montar(tester, rutaKm: 1.45, posiciones: bus.stream);
+      bus.add([_busA(4000)]);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+
+      bus.add([_busA(1600)]);
+      await tester.pumpAndSettle();
+      await tester.tap(fila);
+      await tester.pumpAndSettle();
+      expect(rueda, findsNothing);
+      expect(
+          find.text('El bus A-1 ya va por lo más cerca que te pasa su ruta; '
+              'no se puede cambiar la distancia'),
+          findsOneWidget);
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1500);
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('con el bus lejos la rueda va entera y no dice tope',
