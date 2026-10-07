@@ -303,8 +303,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// de un popup nuevo»). [primeraVez]: al activar el primer aviso, con
   /// «Guardar» y «Solo esta vez». Si no, es «Cambiar», con «Guardar» y
   /// «Cancelar». `null` si se fue sin elegir: «Cancelar», «atrás» o soltar
-  /// el bus. [hasta]: la mayor que la rueda ofrece, la que el bus todavía no
-  /// ha pasado (`null`, todas).
+  /// el bus. [hasta]: la mayor que el bus no había pasado al abrirla, para
+  /// que arranque en una que sirve; después la rueda sigue al bus.
   Future<({int metros, bool guardar})?> _preguntarDistancia(
     String busId, {
     int inicial = distanciaAvisoInicial,
@@ -317,7 +317,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     if (!mounted) return Future.value();
     _responder(null);
     final eleccion = _Eleccion(busId, distanciaEnRueda(inicial, hasta: hasta),
-        primeraVez: primeraVez, avisoActivo: avisoActivo, hasta: hasta);
+        primeraVez: primeraVez, avisoActivo: avisoActivo);
     setState(() {
       _eleccion = eleccion;
       _eleccionVista = eleccion;
@@ -1190,7 +1190,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     normal: staleLabel != null
                         ? const SizedBox(width: double.infinity)
                         : cifra,
-                    rueda: eleccion == null ? null : _preguntaRueda(eleccion),
+                    rueda: eleccion == null
+                        ? null
+                        : _preguntaRueda(
+                            eleccion, distanciaAvisoHasta(distance)),
                   ),
                 ),
               ],
@@ -1243,7 +1246,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 
   /// Lo de dentro de la tarjeta mientras pregunta: el título y la rueda. La
   /// placa se queda arriba: la distancia que se elige es la de este bus.
-  Widget _preguntaRueda(_Eleccion eleccion) {
+  /// [hasta] sale del bus de ahora, no del de cuando se abrió: si se acerca
+  /// con la rueda abierta, lo que ya pasó deja de ofrecerse y la elegida
+  /// baja a la mayor que sirve (dueño, 2026-10-07: «el bus ya va a 2,4 km y
+  /// aún puedo poner 2,6 km»).
+  Widget _preguntaRueda(_Eleccion eleccion, int? hasta) {
+    if (hasta != null && eleccion.metros > hasta) eleccion.metros = hasta;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Column(
@@ -1274,7 +1282,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           // le faltan distancias. Corto a propósito: con el texto al doble,
           // una línea más larga se parte en dos y la tarjeta deja de caber
           // en un iPhone 13. El porqué entero lo dice el lector.
-          if (eleccion.hasta case final hasta?) ...[
+          if (hasta != null) ...[
             const SizedBox(height: 4),
             Semantics(
               label: 'Hasta ${distanciaAvisoHablada(hasta)}: el bus ya está '
@@ -1293,7 +1301,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           const SizedBox(height: 8),
           RuedaDistancia(
             inicial: eleccion.metros,
-            hasta: eleccion.hasta,
+            hasta: hasta,
             alCambiar: (metros) => eleccion.metros = metros,
           ),
         ],
@@ -1349,15 +1357,12 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 /// Una pregunta de la distancia en curso. [metros] sigue a la rueda.
 class _Eleccion {
   _Eleccion(this.busId, this.metros,
-      {required this.primeraVez, required this.avisoActivo, this.hasta});
+      {required this.primeraVez, required this.avisoActivo});
 
   final String busId;
   int metros;
   final bool primeraVez;
   final bool avisoActivo;
-
-  /// La mayor que ofrece la rueda; `null`, todas.
-  final int? hasta;
   final respuesta = Completer<({int metros, bool guardar})?>();
 }
 

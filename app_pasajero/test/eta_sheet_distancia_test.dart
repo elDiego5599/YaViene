@@ -4,6 +4,8 @@
 // «Te avisamos a … · Cambiar» bajo el botón deja cambiarla (en iPhone, con
 // el aviso activo, va en la nota de encima), y cambiarla también mueve el
 // aviso que está sonando por ese bus.
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,6 +53,7 @@ void main() {
     Size tamano = const Size(390, 844),
     double escala = 1,
     ValueChanged<bool>? alEligiendo,
+    Stream<List<BusPosition>>? posiciones,
   }) async {
     SharedPreferences.setMockInitialValues(
       {if (guardada != null) 'distancia_aviso_m': guardada},
@@ -61,8 +64,8 @@ void main() {
     addTearDown(tester.view.reset);
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
-      busPositionsSourceProvider
-          .overrideWith((ref, routeId) => Stream.value([_busA(metros)])),
+      busPositionsSourceProvider.overrideWith(
+          (ref, routeId) => posiciones ?? Stream.value([_busA(metros)])),
       // El recorrido pasa por el pin: aquí no se prueba la ruta lejana.
       routeTrajectoryProvider.overrideWith(
         (ref, routeId) => RouteTrajectory(
@@ -655,6 +658,44 @@ void main() {
       await tester.tap(find.text('Guardar'));
       await tester.pumpAndSettle();
       expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1200);
+    });
+
+    // «El bus ya va a 2,4 km y aún puedo poner 2,6 km si ya estaba
+    // adentro» (dueño, 2026-10-07): el tope sigue al bus mientras la rueda
+    // está abierta, no se queda en el de cuando se abrió.
+    testWidgets('el tope sigue al bus con la rueda abierta', (tester) async {
+      final bus = StreamController<List<BusPosition>>();
+      addTearDown(bus.close);
+      final c = await montar(tester, guardada: 2000, posiciones: bus.stream);
+      bus.add([_busA(2450)]);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cambiar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Hasta 2,4 km'), findsOneWidget);
+      expect(ruedaEn(tester), 15, reason: 'en la del aviso, 2 km');
+
+      // Se acerca a 1,85 km: 2 km ya sonaría, así que la rueda baja sola a
+      // la mayor que sirve.
+      bus.add([_busA(1850)]);
+      await tester.pumpAndSettle();
+      expect(find.text('Hasta 1,8 km'), findsOneWidget);
+      expect(find.text('1,9 km'), findsNothing);
+      expect(find.text('2,0 km'), findsNothing);
+      expect(ruedaEn(tester), 13);
+
+      // Se aleja otra vez: vuelve a ofrecer lo que ya no pasó, sin mover
+      // la elegida.
+      bus.add([_busA(2450)]);
+      await tester.pumpAndSettle();
+      expect(find.text('Hasta 2,4 km'), findsOneWidget);
+      expect(ruedaEn(tester), 13);
+
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(c.read(proximityAlertsProvider.notifier).radioDe('A-1'), 1800);
+      expect(c.read(distanciaAvisoProvider), 1800);
     });
 
     testWidgets('con el bus lejos la rueda va entera y no dice tope',

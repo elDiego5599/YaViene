@@ -40,7 +40,8 @@ class RuedaDistancia extends StatefulWidget {
   final int inicial;
 
   /// La mayor que ofrece: la que el bus todavía no ha pasado (dueño,
-  /// 2026-10-07). `null`, hasta 3 km.
+  /// 2026-10-07). `null`, hasta 3 km. Puede cambiar con la rueda abierta,
+  /// porque el bus se mueve: si baja de la elegida, la rueda va a ella.
   final int? hasta;
   final ValueChanged<int> alCambiar;
 
@@ -52,10 +53,25 @@ class _RuedaDistanciaState extends State<RuedaDistancia> {
   late final FixedExtentScrollController _control = FixedExtentScrollController(
       initialItem: _indiceDe(widget.inicial, widget.hasta));
 
-  late final List<int> _opciones = [
-    for (final m in distanciasDeAviso)
-      if (m <= (widget.hasta ?? distanciaAvisoMaxima)) m,
-  ];
+  List<int> get _opciones => [
+        for (final m in distanciasDeAviso)
+          if (m <= (widget.hasta ?? distanciaAvisoMaxima)) m,
+      ];
+
+  @override
+  void didUpdateWidget(RuedaDistancia antes) {
+    super.didUpdateWidget(antes);
+    final ultima = _opciones.length - 1;
+    if (widget.hasta == antes.hasta || _control.selectedItem <= ultima) {
+      return;
+    }
+    // Las filas que sobran se van por abajo: las de arriba no cambian de
+    // índice y solo hay que mover la rueda si la elegida era de las que se
+    // fueron. Tras el cuadro, con la lista nueva ya puesta.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _control.jumpToItem(ultima);
+    });
+  }
 
   @override
   void dispose() {
