@@ -550,5 +550,41 @@
     "de": "height: fila * filas / _apriete,",
     "a": "height: fila * filas,",
     "que": "la rueda enseña dos arriba y dos abajo"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_motion.dart",
+    "de": "if (delta > 180) delta -= 360;",
+    "a": "",
+    "que": "el bus gira por el arco más corto"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/models/bus_motion.dart",
+    "de": ".clamp(0.0, 1.0);",
+    "a": ";",
+    "que": "el tramo no se pasa de su destino"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/control_map.dart",
+    "de": "if (antes == null || AppMotion.reducido(context)) return;",
+    "a": "if (antes == null) return;",
+    "que": "con movimiento reducido el bus del panel salta sin deslizarse"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/control_map.dart",
+    "de": "? displayOf(tramo, momento)\n",
+    "a": "? (previo.lat!, previo.lon!, previo.heading ?? bus.heading ?? 0.0)\n",
+    "que": "un tramo nuevo arranca desde donde se ve el bus, sin retroceder"
+  },
+  {
+    "archivo": "app_control/lib/features/fleet/presentation/widgets/control_map.dart",
+    "de": "? displayOf(tramo, _ahora)\n",
+    "a": "? (bus.lat!, bus.lon!, bus.heading ?? 0.0)\n",
+    "que": "el bus del panel se desliza entre fijaciones"
+  },
+  {
+    "archivo": "ya_viene_core/lib/shared/widgets/carga_fantasma.dart",
+    "de": "child: AppMotion.reducido(context)\n          ? Opacity",
+    "a": "child: false\n          ? Opacity",
+    "que": "con movimiento reducido la carga fantasma no late"
   }
 ]
