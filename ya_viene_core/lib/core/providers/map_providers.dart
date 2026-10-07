@@ -156,7 +156,7 @@ final movingBusProvider = StreamProvider.autoDispose<BusPosition>((ref) {
         : DateTime.now();
 
     controller.add(BusPosition(
-      busId: 'BUS-WGV705',
+      busId: 'BUS-ABC123',
       routeId: 'R-101',
       lat: lat,
       lon: lon,

@@ -9,6 +9,10 @@ import '../../../notifications/presentation/providers/distancia_aviso_provider.d
 /// control prestado. Con la cifra en `textPrimary` encima da 16:1.
 final Color franjaRuedaDistancia = AppColors.primary.withValues(alpha: 0.10);
 
+/// El `squeeze` del picker de iOS (1,45, privado en Flutter): lo junto que
+/// van las filas en el cilindro.
+const double _apriete = 1.45;
+
 int _indiceDe(int metros) =>
     ((metros.clamp(distanciaAvisoMinima, distanciaAvisoMaxima) -
                 distanciaAvisoMinima) /
@@ -57,11 +61,11 @@ class _RuedaDistanciaState extends State<RuedaDistancia> {
     // y no 80, que es lo que deja caber la tarjeta entera con sus botones
     // en un iPhone 13.
     final fila = 10 + escala.scale(30);
-    // Cinco filas a la vista, la elegida en medio. Se queda en tres con el
-    // texto grande o en un teléfono de menos de 640 de alto (el SE de
-    // 568): la tarjeta con cinco mide unos 600 y no dejaría ver los
-    // botones. La de arriba y la de abajo bastan para saber hacia dónde se
-    // gira.
+    // Cinco filas a la vista, la elegida en medio: dos arriba y dos abajo,
+    // sin media fila más asomando en los bordes (dueño, 2026-10-06). Se
+    // queda en tres con el texto grande o en un teléfono de menos de 640 de
+    // alto (el SE de 568): la tarjeta con cinco no dejaría ver los botones.
+    // La de arriba y la de abajo bastan para saber hacia dónde se gira.
     final filas =
         escala.scale(1) > 1.3 || MediaQuery.sizeOf(context).height < 640
             ? 3
@@ -70,10 +74,15 @@ class _RuedaDistanciaState extends State<RuedaDistancia> {
       container: true,
       label: 'Distancia del aviso',
       child: SizedBox(
-        height: fila * filas,
+        // El picker pinta las filas que caben en su alto por `squeeze`: con
+        // `fila * filas` de alto pintaba siete, las dos de los bordes
+        // aplastadas. Dividido por él caben justo [filas], y la rueda queda
+        // más baja.
+        height: fila * filas / _apriete,
         child: CupertinoPicker(
           scrollController: _control,
           itemExtent: fila,
+          squeeze: _apriete,
           useMagnifier: true,
           magnification: 1.08,
           selectionOverlay: CupertinoPickerDefaultSelectionOverlay(

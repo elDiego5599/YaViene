@@ -16,6 +16,11 @@ void main() {
     double escala = 1,
   }) async {
     final elegidas = <int>[];
+    // Un iPhone 13 de pie: en la pantalla de prueba (800×600) la rueda se
+    // quedaría en tres filas por baja.
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.lightTheme,
@@ -65,6 +70,20 @@ void main() {
     expect(find.text('1,1 km'), findsOneWidget);
   });
 
+  /// Las cifras que la rueda pinta, de arriba abajo.
+  List<String> aLaVista(WidgetTester tester) => tester
+      .widgetList<Text>(find.descendant(
+          of: find.byType(CupertinoPicker), matching: find.byType(Text)))
+      .map((t) => t.data!)
+      .toList();
+
+  // Dos arriba y dos abajo, y ni media más asomando en los bordes (dueño,
+  // 2026-10-06): con la altura de cinco filas el picker apretaba siete.
+  testWidgets('se ven dos arriba y dos abajo de la elegida', (tester) async {
+    await montar(tester);
+    expect(aLaVista(tester), ['800 m', '900 m', '1,0 km', '1,1 km', '1,2 km']);
+  });
+
   testWidgets('girarla con el dedo dice la distancia nueva', (tester) async {
     final elegidas = await montar(tester);
     // Hacia arriba sube la distancia.
@@ -107,7 +126,7 @@ void main() {
     final fila = rueda(tester).itemExtent;
     expect(
         fila, greaterThanOrEqualTo(tester.getSize(find.text('1,0 km')).height));
-    expect(tester.getSize(find.byType(CupertinoPicker)).height, fila * 3);
+    expect(aLaVista(tester), ['900 m', '1,0 km', '1,1 km']);
   });
 
   testWidgets('la cifra elegida contrasta con su franja (WCAG AA)',

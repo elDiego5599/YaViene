@@ -1,6 +1,6 @@
 /// Placa legible de un bus. Los buses se registran con el id `BUS-<placa>`
 /// (el backend deriva el id desde la placa), también los de la flota demo
-/// desde el 2026-09-30 (BUS-WGV705). Un id que no sale de una placa —un
+/// desde el 2026-09-30 (BUS-ABC123). Un id que no sale de una placa —un
 /// equipo dado de alta a mano— se enseña tal cual.
 String busPlaca(String busId) {
   final value = busId.trim();
@@ -20,7 +20,7 @@ String? rutaLegible(String? routeName, String? routeId) {
 }
 
 /// Etiqueta "ruta - placa" para notificaciones e historial: en vez de
-/// "Bus BUS-WGV705" el usuario ve el NOMBRE de la ruta y la placa, p. ej.
+/// "Bus BUS-ABC123" el usuario ve el NOMBRE de la ruta y la placa, p. ej.
 /// "Calle 72 - Uninorte - SQA223".
 String routePlateLabel({
   required String busId,

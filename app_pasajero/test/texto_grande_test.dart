@@ -337,7 +337,7 @@ class _HistorialSembrado extends AlertHistoryNotifier {
         createdAt: DateTime(2026, 3, 14, 7, 40),
       ),
       AlertHistoryEntry(
-        busId: 'BUS-WGV705',
+        busId: 'BUS-ABC123',
         routeId: 'R1',
         routeName: 'Ruta 106',
         createdAt: DateTime(2026, 3, 14, 6, 55),

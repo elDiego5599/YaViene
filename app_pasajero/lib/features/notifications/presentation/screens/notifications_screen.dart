@@ -855,7 +855,7 @@ class _AlertTile extends StatelessWidget {
             excludeSemantics: true,
             // La ruta escrita y, debajo, la placa en su lámina blanca: la
             // misma de la hoja de distancia, para cotejarla con el bus que
-            // llega. Antes iban en una línea, «Ruta - WGV705», y la placa
+            // llega. Antes iban en una línea, «Ruta - ABC123», y la placa
             // se perdía al final del nombre.
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

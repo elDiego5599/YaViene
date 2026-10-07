@@ -20,7 +20,7 @@ void main() {
   });
 
   test('la flota demo también lleva placa de verdad', () {
-    expect(busPlaca('BUS-WGV705'), 'WGV705');
+    expect(busPlaca('BUS-ABC123'), 'ABC123');
     expect(busPlaca('BUS-WFK042'), 'WFK042');
   });
 
@@ -32,10 +32,10 @@ void main() {
   test('la etiqueta es nombre de ruta - placa (ruta preferida)', () {
     expect(
       routePlateLabel(
-          busId: 'BUS-WGV705',
+          busId: 'BUS-ABC123',
           routeName: 'Calle 72 - Uninorte',
           routeId: 'R-106'),
-      'Calle 72 - Uninorte - WGV705',
+      'Calle 72 - Uninorte - ABC123',
     );
     expect(
       routePlateLabel(
@@ -48,16 +48,16 @@ void main() {
 
   test('sin nombre de ruta cae al id de la ruta', () {
     expect(
-      routePlateLabel(busId: 'BUS-WGV705', routeId: 'R-106'),
-      'R-106 - WGV705',
+      routePlateLabel(busId: 'BUS-ABC123', routeId: 'R-106'),
+      'R-106 - ABC123',
     );
     expect(
-      routePlateLabel(busId: 'BUS-WGV705', routeName: '  ', routeId: 'R-106'),
-      'R-106 - WGV705',
+      routePlateLabel(busId: 'BUS-ABC123', routeName: '  ', routeId: 'R-106'),
+      'R-106 - ABC123',
     );
   });
 
   test('sin ruta se queda solo la placa', () {
-    expect(routePlateLabel(busId: 'BUS-WGV705'), 'WGV705');
+    expect(routePlateLabel(busId: 'BUS-ABC123'), 'ABC123');
   });
 }

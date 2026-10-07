@@ -38,21 +38,21 @@ void main() {
 
   test('pasado el kilómetro se dice en kilómetros', () {
     final acciones = accionesDeBuses(
-      buses: [bus('BUS-WGV705', userLat + 0.05)],
+      buses: [bus('BUS-ABC123', userLat + 0.05)],
       userLat: userLat,
       userLon: userLon,
       seleccionados: const {},
     );
 
-    expect(acciones.single.etiqueta, 'Seguir el bus WGV705, a 5,6 km de ti');
+    expect(acciones.single.etiqueta, 'Seguir el bus ABC123, a 5,6 km de ti');
   });
 
   test('el bus ya seguido ofrece soltarlo, no seguirlo otra vez', () {
     final acciones = accionesDeBuses(
-      buses: [bus('BUS-WGV705', userLat + 0.005)],
+      buses: [bus('BUS-ABC123', userLat + 0.005)],
       userLat: userLat,
       userLon: userLon,
-      seleccionados: const {'BUS-WGV705'},
+      seleccionados: const {'BUS-ABC123'},
     );
 
     expect(acciones.single.etiqueta, startsWith('Dejar de seguir el bus '));
@@ -71,13 +71,13 @@ void main() {
 
   test('sin punto de espera no se inventa distancia', () {
     final acciones = accionesDeBuses(
-      buses: [bus('BUS-WGV705', userLat + 0.005)],
+      buses: [bus('BUS-ABC123', userLat + 0.005)],
       userLat: null,
       userLon: null,
       seleccionados: const {},
     );
 
-    expect(acciones.single.etiqueta, 'Seguir el bus WGV705');
+    expect(acciones.single.etiqueta, 'Seguir el bus ABC123');
   });
 
   // Riesgo: decidir con los metros crudos. A 999,7 m el lector decía
