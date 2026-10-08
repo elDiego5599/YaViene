@@ -46,6 +46,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   falta un dominio propio (por ejemplo `panel.` y `api.` del mismo) o
   servir el panel desde el mismo backend. Ese origen, y solo ese, va en
   `CORS_ORIGINS`. Es un despliegue: no lo hago sin que lo decidas.
+  Probado entero en Chromium contra un backend temporal (2026-10-08).
+  Se compila con `tool/compilar-panel-web.sh <API>`, que deja al lado
+  `build/web/csp.txt`: la CSP que el servidor del panel tiene que mandar.
 
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
