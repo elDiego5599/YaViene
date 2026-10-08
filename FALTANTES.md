@@ -38,6 +38,15 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que decidir tú
 
+- **Dónde se sirve el panel en el navegador.** El panel ya corre también
+  en web (además de macOS y Windows). Su sesión va en una cookie
+  `SameSite=Strict`, así que el panel tiene que servirse en el mismo sitio
+  que la API: dos subdominios de `ngrok-free.dev` cuentan como sitios
+  distintos (está en la Public Suffix List), y ahí la cookie no viaja. Hace
+  falta un dominio propio (por ejemplo `panel.` y `api.` del mismo) o
+  servir el panel desde el mismo backend. Ese origen, y solo ese, va en
+  `CORS_ORIGINS`. Es un despliegue: no lo hago sin que lo decidas.
+
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por

@@ -1,5 +1,4 @@
-import 'dart:io' show Platform;
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -24,6 +23,19 @@ import 'features/auth/presentation/providers/auth_providers.dart';
 /// pantalla en que el panel se lee (estilo_panel_test.dart).
 const ventanaMinima = Size(1200, 700);
 
+/// Si el panel arma su propia ventana con `window_manager`: en macOS,
+/// Windows y Linux sí; en el navegador la ventana es la pestaña y el plugin
+/// no existe. Va [web] aparte porque un navegador en un Mac dice macOS en
+/// [defaultTargetPlatform] (ventana_plataforma_test.dart).
+bool manejaVentana({required bool web, required TargetPlatform plataforma}) =>
+    !web &&
+    switch (plataforma) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      _ => false,
+    };
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -35,7 +47,7 @@ Future<void> main() async {
     respaldo: AppConfig.fallbackBackendUrl,
   );
 
-  if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+  if (manejaVentana(web: kIsWeb, plataforma: defaultTargetPlatform)) {
     try {
       await windowManager.ensureInitialized();
       const windowOptions = WindowOptions(
