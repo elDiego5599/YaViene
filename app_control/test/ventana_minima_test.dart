@@ -3,9 +3,11 @@
 // En el escritorio `window_manager` no deja achicar la ventana bajo
 // 1200×700 (`ventanaMinima`). En el navegador la ventana es la pestaña y
 // nadie la detiene: el tablero, medido de 1600 a 1200
-// (panel_angosto_test.dart), se desbordaba. Ahí el tablero se sigue
-// armando a 1200×700, recortado y sin perder lo que tenía, y encima va una
-// ventana propia que pide agrandar la pestaña.
+// (panel_angosto_test.dart), se desbordaba. Bajo `ventanaMinimaWeb` el
+// tablero se sigue armando a ese mínimo, recortado y sin perder lo que
+// tenía, y encima va una ventana propia que pide agrandar la pestaña.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
@@ -54,16 +56,34 @@ Size _tamanoTablero(WidgetTester tester) =>
     tester.getSize(find.byKey(const ValueKey('tablero')));
 
 void main() {
-  testWidgets('a 1200×700 el tablero va solo', (tester) async {
-    await _montar(tester, ventanaMinima);
+  testWidgets('en el mínimo de la pestaña el tablero va solo', (tester) async {
+    await _montar(tester, ventanaMinimaWeb);
 
     expect(find.text(_titulo), findsNothing);
-    expect(_tamanoTablero(tester), ventanaMinima);
+    expect(_tamanoTablero(tester), ventanaMinimaWeb);
+  });
+
+  // El portátil más común en las empresas: 768 − 40 de la barra de tareas
+  // − ~85 de Chrome. Ahí el panel tiene que abrir sin aviso.
+  testWidgets('en un portátil de 1366×768 (pestaña de 1366×643) no hay '
+      'aviso', (tester) async {
+    await _montar(tester, const Size(1366, 643));
+
+    expect(find.text(_titulo), findsNothing);
+    expect(_tamanoTablero(tester), const Size(1366, 643));
+  });
+
+  testWidgets('el aviso dice el mínimo que de verdad se pide', (tester) async {
+    await _montar(tester, const Size(1000, 800));
+
+    final w = ventanaMinimaWeb.width.toInt();
+    final h = ventanaMinimaWeb.height.toInt();
+    expect(find.textContaining('al menos $w × $h '), findsOneWidget);
   });
 
   for (final tamano in const [
     Size(1000, 800),
-    Size(1400, 600),
+    Size(1400, 560),
     Size(375, 667),
   ]) {
     testWidgets('a ${tamano.width.toInt()}×${tamano.height.toInt()} pide '
@@ -76,8 +96,8 @@ void main() {
       expect(
         _tamanoTablero(tester),
         Size(
-          tamano.width < 1200 ? 1200 : tamano.width,
-          tamano.height < 700 ? 700 : tamano.height,
+          math.max(tamano.width, ventanaMinimaWeb.width),
+          math.max(tamano.height, ventanaMinimaWeb.height),
         ),
       );
       expect(tester.takeException(), isNull);

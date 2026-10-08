@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -12,13 +14,22 @@ import 'ventana.dart';
 /// pantalla en que el panel se lee (estilo_panel_test.dart).
 const ventanaMinima = Size(1200, 700);
 
+/// Lo más chica que se deja la pestaña del navegador sin aviso. El ancho es
+/// el de [ventanaMinima]. El alto es el de un portátil de 1366×768 con
+/// Windows y Chrome: 768 − 40 de la barra de tareas − ~85 de pestañas y
+/// barra de direcciones ≈ 643. Medido con el tablero entero a 1200 de ancho
+/// (como panel_angosto_test.dart): a 643 nada se desborda ni se sale de la
+/// pantalla con la letra a 1×, 1,5× y 2×; a 620, con la letra a 2×, la
+/// barra de la flota ya corta «PERMITIDO».
+const ventanaMinimaWeb = Size(1200, 643);
+
 /// El tablero en una pestaña del navegador, que nadie detiene bajo
 /// [ventanaMinima] como hace `window_manager` en el escritorio.
 ///
-/// Por debajo, el tablero se sigue armando a lo mínimo que cuida, recortado
-/// arriba a la izquierda y sin recibir toques, teclas ni lector de
-/// pantalla; encima va el velo de [mostrarVentana] con una [Ventana] que
-/// pide agrandar. No se cambia el tablero por el aviso: el árbol es el
+/// Bajo [ventanaMinimaWeb], el tablero se sigue armando a lo mínimo que
+/// cuida, recortado arriba a la izquierda y sin recibir toques, teclas ni
+/// lector de pantalla; encima va el velo de [mostrarVentana] con una
+/// [Ventana] que pide agrandar. No se cambia el tablero por el aviso: el árbol es el
 /// mismo de los dos lados del mínimo, así que el socket y lo elegido no se
 /// rehacen cada vez que la pestaña lo cruza (ventana_minima_test.dart).
 class VentanaMinima extends StatelessWidget {
@@ -34,12 +45,8 @@ class VentanaMinima extends StatelessWidget {
     if (!web) return child;
     return LayoutBuilder(
       builder: (context, espacio) {
-        final ancho = espacio.maxWidth < ventanaMinima.width
-            ? ventanaMinima.width
-            : espacio.maxWidth;
-        final alto = espacio.maxHeight < ventanaMinima.height
-            ? ventanaMinima.height
-            : espacio.maxHeight;
+        final ancho = math.max(espacio.maxWidth, ventanaMinimaWeb.width);
+        final alto = math.max(espacio.maxHeight, ventanaMinimaWeb.height);
         final chica = ancho > espacio.maxWidth || alto > espacio.maxHeight;
         return Stack(
           children: [
@@ -69,12 +76,14 @@ class VentanaMinima extends StatelessWidget {
                 dismissible: false,
                 color: AppColors.navyRaised.withValues(alpha: 0.62),
               ),
-              const SafeArea(
+              SafeArea(
                 child: Ventana(
                   icono: Icons.open_in_full,
                   titulo: 'La ventana es muy pequeña',
                   mensaje:
-                      'El tablero necesita al menos 1200 × 700 para que la '
+                      'El tablero necesita al menos '
+                      '${ventanaMinimaWeb.width.toInt()} × '
+                      '${ventanaMinimaWeb.height.toInt()} para que la '
                       'lista y el mapa quepan enteros. Agranda la ventana '
                       'del navegador o aleja el zoom.',
                 ),
