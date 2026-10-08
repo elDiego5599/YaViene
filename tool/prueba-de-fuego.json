@@ -277,8 +277,8 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/widgets/eta_bottom_sheet.dart",
-    "de": "return distance != null && distance <= distanciaAvisoBloqueo;",
-    "a": "return distance != null && distance <= distanciaAvisoMinima;",
+    "de": "distance != null && distance <= distanciaAvisoBloqueo;",
+    "a": "distance != null && distance <= distanciaAvisoMinima;",
     "que": "bloquea con la mínima y su margen"
   },
   {
@@ -610,5 +610,29 @@
     "de": "child: AppMotion.reducido(context)\n          ? Opacity",
     "a": "child: false\n          ? Opacity",
     "que": "con movimiento reducido la carga fantasma no late"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (circular) return d % largo;",
+    "a": "if (false) return d % largo;",
+    "que": "en la circular, cruzar el final del recorrido no es retroceder"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (c.desvio > mejor + _empate) continue;",
+    "a": "if (true) continue;",
+    "que": "en la calle de ida y vuelta, el rumbo del bus decide el carril"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (pasos.first.desvio > desvioPuntoMaximo) return null;",
+    "a": "if (false) return null;",
+    "que": "un punto lejos de la ruta no se mide por ella"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/utils/geo.dart",
+    "de": "seguidor?.distancia(bus, GeoPoint(lat: lat, lon: lon)) ??",
+    "a": "null ??",
+    "que": "la app mide la distancia por la ruta, no en línea recta"
   }
 ]
