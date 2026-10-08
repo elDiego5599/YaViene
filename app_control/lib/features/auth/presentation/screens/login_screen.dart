@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,7 +37,12 @@ final abrirEnlaceProvider = Provider<Future<bool> Function(Uri)>(
   que nada desborda de 1600 a 640 de ancho con la letra del sistema al doble.
 */
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.web = kIsWeb});
+
+  /// En el navegador el panel no guarda la clave: no hay casilla de
+  /// recordar y el formulario se deja al gestor de contraseñas del
+  /// navegador (usuario y clave con su pista de autocompletar).
+  final bool web;
 
   static final contactoEquipo = Uri.https('wa.me', '/573004438626', {
     'text': 'Hola, olvidé la contraseña del panel de control de Ya Viene.',
@@ -306,7 +312,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  /// En el navegador, usuario y clave van en un grupo de autocompletar: el
+  /// gestor de contraseñas los llena juntos. Al entrar, la pantalla se va y
+  /// el grupo, al soltarse, le dice al navegador que el ingreso terminó
+  /// (`AutofillContextAction.commit`): ahí ofrece guardar la clave.
   Widget _formulario() {
+    final campos = _campos();
+    return widget.web ? AutofillGroup(child: campos) : campos;
+  }
+
+  Widget _campos() {
     final auth = ref.watch(authProvider);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -370,11 +385,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           style: AppType.ui(fontSize: 14, fontWeight: FontWeight.w500),
           decoration: _campo('Usuario', Icons.person_outline),
           textInputAction: TextInputAction.next,
+          autofillHints: widget.web ? const [AutofillHints.username] : null,
         ),
         const SizedBox(height: 14),
         TextField(
           controller: _passwordController,
           obscureText: _obscurePassword,
+          autofillHints: widget.web ? const [AutofillHints.password] : null,
           inputFormatters: [
             TextInputFormatter.withFunction(_reemplazarRecordada),
           ],
@@ -408,8 +425,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           onSubmitted: (_) => _submit(),
         ),
-        const SizedBox(height: 12),
-        _casillaRecordar(),
+        if (!widget.web) ...[const SizedBox(height: 12), _casillaRecordar()],
         // El renglón del error guarda su alto aunque esté vacío, para que el
         // botón no salte al aparecer; con la letra grande crece lo que haga
         // falta.

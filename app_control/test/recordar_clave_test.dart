@@ -8,6 +8,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,15 +84,16 @@ class _FakeSecureStorage extends FlutterSecureStorage {
 Future<void> _montar(
   WidgetTester tester,
   _FakeAuthApi api,
-  _FakeSecureStorage storage,
-) async {
+  _FakeSecureStorage storage, {
+  bool web = false,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1366, 768));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authProvider.overrideWith(
-          (ref) => AuthNotifier(api: api, storage: storage),
+          (ref) => AuthNotifier(api: api, storage: storage, web: web),
         ),
       ],
       // Con su router: al entrar, la pantalla se va a /dashboard.
@@ -99,7 +101,10 @@ Future<void> _montar(
         theme: AppTheme.light,
         routerConfig: GoRouter(
           routes: [
-            GoRoute(path: '/', builder: (_, _) => const LoginScreen()),
+            GoRoute(
+              path: '/',
+              builder: (_, _) => LoginScreen(web: web),
+            ),
             GoRoute(path: '/dashboard', builder: (_, _) => const Text('panel')),
           ],
         ),
@@ -279,5 +284,79 @@ void main() {
       ),
     );
     semantica.dispose();
+  });
+
+  // En el navegador el panel no guarda nada: la casilla no se ofrece y la
+  // clave la recuerda, si se quiere, el gestor de contraseñas del navegador.
+  // Para eso los campos dicen qué son y, al entrar, se le avisa que el
+  // formulario terminó y puede ofrecer guardarla.
+  group('en el navegador', () {
+    testWidgets('no hay casilla de recordar', (tester) async {
+      await _montar(tester, _FakeAuthApi(), _FakeSecureStorage(), web: true);
+
+      expect(find.byType(Checkbox), findsNothing);
+      expect(find.text('Recordar contraseña'), findsNothing);
+    });
+
+    testWidgets('usuario y clave van en un grupo de autocompletar', (
+      tester,
+    ) async {
+      await _montar(tester, _FakeAuthApi(), _FakeSecureStorage(), web: true);
+
+      final campos = find.descendant(
+        of: find.byType(AutofillGroup),
+        matching: find.byType(TextField),
+      );
+      expect(campos, findsNWidgets(2));
+      expect(tester.widget<TextField>(campos.at(0)).autofillHints, [
+        AutofillHints.username,
+      ]);
+      expect(tester.widget<TextField>(campos.at(1)).autofillHints, [
+        AutofillHints.password,
+      ]);
+    });
+
+    testWidgets('al entrar se cierra el autocompletar para que lo guarde', (
+      tester,
+    ) async {
+      await _montar(tester, _FakeAuthApi(), _FakeSecureStorage(), web: true);
+      final cierres = <Object?>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.textInput,
+        (llamada) async {
+          if (llamada.method == 'TextInput.finishAutofillContext') {
+            cierres.add(llamada.arguments);
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.textInput,
+          null,
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField).at(0), 'operador');
+      await tester.enterText(find.byType(TextField).at(1), 'clave-de-prueba');
+      await tester.tap(find.text('INGRESAR'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('panel'), findsOneWidget);
+      expect(cierres, [true]);
+    });
+  });
+
+  // En el escritorio el Llavero ya recuerda: el sistema no debe ofrecer
+  // además guardar la clave de la flota por su cuenta.
+  testWidgets('en el escritorio los campos no piden autocompletar', (
+    tester,
+  ) async {
+    await _montar(tester, _FakeAuthApi(), _FakeSecureStorage());
+
+    expect(find.byType(AutofillGroup), findsNothing);
+    for (final campo in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(campo.autofillHints, anyOf(isNull, isEmpty));
+    }
   });
 }
