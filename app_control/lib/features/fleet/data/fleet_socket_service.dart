@@ -24,7 +24,10 @@ class FleetSocketService {
   /// `AppConfig.backendUrl`, fijo: si el túnel no contestaba y el panel
   /// entraba por el respaldo, el REST iba a un sitio y el socket a otro.
   final String baseUrl;
-  final String token;
+
+  /// Null en el navegador: el socket entra con la cookie del panel, que el
+  /// navegador manda solo en el apretón de manos.
+  final String? token;
   final FleetIoSocketFactory _crearSocket;
 
   /// Apunta cuánto tardó en llegar cada bus (T7.6). Solo en memoria: nada de
@@ -86,7 +89,7 @@ class FleetSocketService {
       'reconnectionDelay': 1000,
       'reconnectionDelayMax': 10000,
       'randomizationFactor': 0.3,
-      'auth': {'token': token},
+      if (token != null) 'auth': {'token': token},
       // Un `Manager` propio para cada socket. Sin esto `io.io` devolvía el
       // que ya tenía guardado para el mismo servidor, con su mismo socket y
       // el token de la primera entrada: tras volver a entrar, el backend lo

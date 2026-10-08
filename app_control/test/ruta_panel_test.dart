@@ -24,10 +24,10 @@ class _FakeFleetApi extends FleetApi {
   _FakeFleetApi() : super(baseUrl: 'http://localhost:3000');
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async => const [];
+  Future<List<FleetBus>> fetchPositions(String? token) async => const [];
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async => const [];
+  Future<List<FleetRoute>> fetchRoutes(String? token) async => const [];
 }
 
 class _Flota extends FleetNotifier {

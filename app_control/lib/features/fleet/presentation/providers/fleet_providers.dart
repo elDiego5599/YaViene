@@ -10,6 +10,7 @@ import 'package:ya_viene_core/core/network/backend_supervisor.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show backendUrlProvider;
 
+import '../../../auth/domain/auth_session.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/fleet_api.dart';
 import '../../data/fleet_socket_service.dart';
@@ -165,7 +166,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   /// backend puede cambiar con el panel abierto (`BackendSupervisor`).
   FleetApi get _api => _apiFija ?? _ref.read(fleetApiProvider);
 
-  String? get _token => _ref.read(authProvider).session?.token;
+  /// La sesión abierta. Su token es null en el navegador: ahí la sesión va
+  /// en la cookie del panel y cada pedido sale sin `Authorization`.
+  AuthSession? get _sesion => _ref.read(authProvider).session;
 
   /// Pide la flota por REST una sola vez aunque aparezcan varios buses
   /// nuevos seguidos: el primero arma el temporizador y los que llegan dentro
@@ -209,8 +212,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   void start() {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     for (final s in _subs) {
       s.cancel();
     }
@@ -409,8 +413,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> refresh() async {
-    final token = _token;
-    if (token == null || state.sessionExpired) return;
+    final sesion = _sesion;
+    if (sesion == null || state.sessionExpired) return;
+    final token = sesion.token;
     try {
       final buses = await _api.fetchPositions(token);
       state = state.copyWith(
@@ -460,8 +465,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> refreshRoutes() async {
-    final token = _token;
-    if (token == null || state.sessionExpired) return;
+    final sesion = _sesion;
+    if (sesion == null || state.sessionExpired) return;
+    final token = sesion.token;
     try {
       final routes = await _api.fetchRoutes(token);
       state = state.copyWith(
@@ -524,8 +530,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> addRoute({required String name}) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     try {
       final route = await _api.createRoute(token, name: name);
       debugPrint('[fleet] ruta creada ${route.routeId}');
@@ -549,8 +556,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> renameRoute(String routeId, {required String name}) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     try {
       final route = await _api.renameRoute(token, routeId, name: name);
       debugPrint('[fleet] ruta renombrada ${route.routeId} -> ${route.name}');
@@ -577,8 +585,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> removeRoute(String routeId) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     try {
       await _api.deleteRoute(token, routeId);
       debugPrint('[fleet] ruta eliminada $routeId');
@@ -599,9 +608,10 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> toggleVisibility(String busId, bool visible) async {
-    final token = _token;
+    final sesion = _sesion;
     final previous = state.buses[busId];
-    if (token == null || previous == null) return;
+    if (sesion == null || previous == null) return;
+    final token = sesion.token;
     state = state.copyWith(
       buses: {
         ...state.buses,
@@ -628,8 +638,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> setAllVisibility(bool visible) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     final previous = state.buses;
     state = state.copyWith(
       buses: {
@@ -658,8 +669,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
     String? routeId,
     String? interno,
   }) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     try {
       final bus = await _api.createBus(
         token,
@@ -691,8 +703,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
     String? routeId,
     String? interno,
   }) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     try {
       final bus = await _api.updateBus(
         token,
@@ -718,8 +731,9 @@ class FleetNotifier extends StateNotifier<FleetState> {
   }
 
   Future<void> removeBus(String busId) async {
-    final token = _token;
-    if (token == null) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
+    final token = sesion.token;
     try {
       await _api.deleteBus(token, busId);
       debugPrint('[fleet] bus eliminado $busId');
@@ -768,7 +782,7 @@ final fleetIoSocketFactoryProvider = Provider<FleetIoSocketFactory>(
 /// Es una fábrica y no un servicio porque el notifier cierra el socket al
 /// salir y abre uno nuevo, con otro token, al volver a entrar.
 final fleetSocketFactoryProvider =
-    Provider<FleetSocketService Function(String token)>((ref) {
+    Provider<FleetSocketService Function(String? token)>((ref) {
       final baseUrl = ref.watch(backendUrlProvider);
       final crearSocket = ref.watch(fleetIoSocketFactoryProvider);
       return (token) => FleetSocketService(

@@ -27,6 +27,9 @@ class _FakeFleetApi extends FleetApi {
   /// Cuántas veces se pidió la flota por REST.
   int pedidas = 0;
 
+  /// Con qué token se pidió cada cosa (null: la cookie del panel web).
+  final tokens = <String?>[];
+
   Completer<void>? _aviso;
   int _meta = 0;
 
@@ -40,22 +43,25 @@ class _FakeFleetApi extends FleetApi {
   }
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async {
+  Future<List<FleetBus>> fetchPositions(String? token) async {
     pedidas++;
+    tokens.add(token);
     if (pedidas >= _meta && !(_aviso?.isCompleted ?? true)) _aviso!.complete();
     if (throwsSessionExpired) throw const SessionExpiredException();
     return positions ?? const [];
   }
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async {
+  Future<List<FleetRoute>> fetchRoutes(String? token) async {
     if (throwsSessionExpired) throw const SessionExpiredException();
     return routes ?? const [];
   }
 
   @override
-  Future<void> deleteRoute(String token, String routeId) async =>
-      routes?.removeWhere((r) => r.routeId == routeId);
+  Future<void> deleteRoute(String? token, String routeId) async {
+    tokens.add(token);
+    routes?.removeWhere((r) => r.routeId == routeId);
+  }
 }
 
 /// Un socket sin red: lo que se mete en [posiciones], [lotes] o [visibles] le
@@ -123,6 +129,7 @@ ProviderContainer _containerWith(
   FleetApi api, {
   FleetSocketService? socket,
   Duration? resincronizarCada,
+  AuthSession session = _session,
 }) {
   final container = ProviderContainer(
     overrides: [
@@ -140,9 +147,9 @@ ProviderContainer _containerWith(
         fleetSocketFactoryProvider.overrideWithValue((_) => socket),
     ],
   );
-  container.read(authProvider.notifier).state = const AuthState(
+  container.read(authProvider.notifier).state = AuthState(
     status: AuthStatus.authenticated,
-    session: _session,
+    session: session,
   );
   addTearDown(container.dispose);
   return container;
@@ -173,6 +180,34 @@ void main() {
 
     expect(notifier.state.sessionExpired, true);
   });
+
+  // En el navegador la sesión no tiene token: la lleva la cookie. Que el
+  // token falte no es «sin sesión»; sin sesión es no tener AuthSession.
+  test(
+    'en el navegador, sin token, la flota se pide y se edita igual',
+    () async {
+      final api = _FakeFleetApi(
+        routes: [
+          const FleetRoute(routeId: 'R-1', name: 'Ruta 1', total: 0, online: 0),
+        ],
+      );
+      final container = _containerWith(
+        api,
+        session: const AuthSession(
+          token: null,
+          companyId: 'c-1',
+          companyName: 'Empresa 1',
+        ),
+      );
+      final notifier = container.read(fleetProvider.notifier);
+
+      await notifier.refresh();
+      await notifier.removeRoute('R-1');
+
+      // Posiciones y rutas al refrescar, y el borrado: los tres salieron.
+      expect(api.tokens, [null, null, null]);
+    },
+  );
 
   test('refresh() exitoso puebla el mapa de buses por id', () async {
     const bus = FleetBus(

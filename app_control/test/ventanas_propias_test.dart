@@ -72,18 +72,18 @@ class _FakeFleetApi extends FleetApi {
   bool expirar = false;
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async {
+  Future<List<FleetBus>> fetchPositions(String? token) async {
     if (expirar) throw const SessionExpiredException();
     return [...buses];
   }
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async => [...rutas];
+  Future<List<FleetRoute>> fetchRoutes(String? token) async => [...rutas];
 
   /// El backend no deja borrar: la confirmación pasa y el aviso cuenta el
   /// fallo.
   @override
-  Future<void> deleteBus(String token, String busId) async =>
+  Future<void> deleteBus(String? token, String busId) async =>
       throw Exception('500');
 }
 

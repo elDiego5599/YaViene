@@ -14,15 +14,20 @@ class _FakeAuthApi extends AuthApi {
     this.loginError,
     this.validateResult,
     this.validateThrows,
+    this.sesionActualResult,
+    this.sesionActualThrows,
   }) : super(baseUrl: 'http://localhost:3000');
 
   final AuthSession? loginResult;
   final AuthApiException? loginError;
   final bool? validateResult;
   final Object? validateThrows;
+  final AuthSession? sesionActualResult;
+  final Object? sesionActualThrows;
 
-  /// Los tokens con los que se pidió cerrar sesión en el servidor.
-  final List<String> cierres = [];
+  /// Los tokens con los que se pidió cerrar sesión en el servidor (null: la
+  /// cookie del panel web).
+  final List<String?> cierres = [];
 
   @override
   Future<AuthSession> login(String username, String password) async {
@@ -37,7 +42,13 @@ class _FakeAuthApi extends AuthApi {
   }
 
   @override
-  Future<void> logout(String token) async => cierres.add(token);
+  Future<AuthSession?> sesionActual() async {
+    if (sesionActualThrows != null) throw sesionActualThrows!;
+    return sesionActualResult;
+  }
+
+  @override
+  Future<void> logout(String? token) async => cierres.add(token);
 }
 
 class _FakeSecureStorage extends FlutterSecureStorage {
@@ -57,6 +68,9 @@ class _FakeSecureStorage extends FlutterSecureStorage {
   /// por las que no están.
   final List<String> accesos = [];
 
+  /// Todas las llamadas, existiera o no la entrada y fallara o no.
+  var llamadas = 0;
+
   @override
   Future<String?> read({
     required String key,
@@ -67,6 +81,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    llamadas++;
     if (falla) throw Exception('almacén del sistema no disponible');
     if (_values.containsKey(key)) accesos.add('leer:$key');
     return _values[key];
@@ -83,6 +98,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    llamadas++;
     if (falla) throw Exception('almacén del sistema no disponible');
     if (_values.containsKey(key)) accesos.add('escribir:$key');
     if (value == null) {
@@ -102,6 +118,7 @@ class _FakeSecureStorage extends FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
+    llamadas++;
     if (falla) throw Exception('almacén del sistema no disponible');
     if (_values.containsKey(key)) accesos.add('borrar:$key');
     _values.remove(key);
@@ -295,6 +312,79 @@ void main() {
     expect(notifier.state.status, AuthStatus.unauthenticated);
   });
 
+  // En el navegador la sesión vive en la cookie HttpOnly del backend y la
+  // clave la recuerda el gestor de contraseñas del navegador. El panel no
+  // guarda nada: flutter_secure_storage en web escribe en el
+  // almacenamiento de la página, que un script inyectado lee.
+  group('en el navegador', () {
+    const deCookie = AuthSession(
+      token: null,
+      companyId: 'c-1',
+      companyName: 'Empresa 1',
+    );
+
+    test('entrar no guarda nada, ni con «recordar»', () async {
+      final storage = _FakeSecureStorage();
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(loginResult: deCookie),
+        storage: storage,
+        web: true,
+      );
+
+      expect(await notifier.login('admin', 'clave', recordar: true), isTrue);
+
+      expect(notifier.state.status, AuthStatus.authenticated);
+      expect(notifier.state.session?.token, isNull);
+      expect(await notifier.credencialesRecordadas(), isNull);
+      expect(storage.llamadas, 0);
+    });
+
+    test('al abrir, la sesión la dice el servidor por la cookie', () async {
+      final storage = _FakeSecureStorage({'sesion': '{"token":"viejo"}'});
+      final notifier = AuthNotifier(
+        api: _FakeAuthApi(sesionActualResult: deCookie),
+        storage: storage,
+        web: true,
+      );
+
+      await notifier.restoreSession();
+
+      expect(notifier.state.status, AuthStatus.authenticated);
+      expect(notifier.state.session?.companyName, 'Empresa 1');
+      expect(storage.llamadas, 0);
+    });
+
+    test('sin cookie viva, o sin red, se pide la clave', () async {
+      for (final api in [
+        _FakeAuthApi(),
+        _FakeAuthApi(sesionActualThrows: Exception('sin red')),
+      ]) {
+        final notifier = AuthNotifier(
+          api: api,
+          storage: _FakeSecureStorage(),
+          web: true,
+        );
+
+        await notifier.restoreSession();
+
+        expect(notifier.state.status, AuthStatus.unauthenticated);
+      }
+    });
+
+    test('salir le pide al servidor borrar la cookie', () async {
+      final storage = _FakeSecureStorage();
+      final api = _FakeAuthApi(loginResult: deCookie);
+      final notifier = AuthNotifier(api: api, storage: storage, web: true);
+      await notifier.login('admin', 'clave');
+
+      await notifier.logout();
+
+      expect(api.cierres, [null]);
+      expect(notifier.state.status, AuthStatus.unauthenticated);
+      expect(storage.llamadas, 0);
+    });
+  });
+
   group('AuthApi.logout contra un servidor', () {
     late HttpServer servidor;
     final pedidos = <String>[];
@@ -357,6 +447,12 @@ void main() {
         s.destroy();
       }
       await mudo.close();
+    });
+
+    test('en web va sin Authorization: lo lleva la cookie', () async {
+      await AuthApi(baseUrl: base()).logout(null);
+
+      expect(pedidos, ['POST /api/fleet/logout null']);
     });
 
     test('sin servidor no lanza', () async {

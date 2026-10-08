@@ -130,6 +130,21 @@ void main() {
     await escucha.cancel();
     servicio.dispose();
   });
+
+  // En el navegador no hay token: el socket entra con la cookie del panel,
+  // que el navegador manda solo en el apretón de manos. Un `auth` con el
+  // token vacío o nulo haría que el backend lo mirara y lo rechazara.
+  test('sin token, el socket no manda auth', () async {
+    final fabrica = _Fabrica();
+    final servicio = FleetSocketService(
+      baseUrl: 'http://127.0.0.1:59204',
+      token: null,
+      crearSocket: fabrica.crear,
+    )..connect();
+
+    expect(fabrica.creados.single.auth, anyOf(isNull, isEmpty));
+    servicio.dispose();
+  });
 }
 
 /// Cuántas veces pidió el socket la sala de flota, leyendo su cola de salida.

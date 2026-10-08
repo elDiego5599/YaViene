@@ -79,14 +79,14 @@ class _FakeFleetApi extends FleetApi {
   Completer<void>? flotaEnCamino;
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async {
+  Future<List<FleetBus>> fetchPositions(String? token) async {
     await flotaEnCamino?.future;
     if (expirar) throw const SessionExpiredException();
     return [...buses];
   }
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async => [...rutas];
+  Future<List<FleetRoute>> fetchRoutes(String? token) async => [...rutas];
 }
 
 class _FakeSocket extends FleetSocketService {

@@ -62,10 +62,10 @@ class _FakeFleetApi extends FleetApi {
   ];
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async => [...flota];
+  Future<List<FleetBus>> fetchPositions(String? token) async => [...flota];
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async => const [
+  Future<List<FleetRoute>> fetchRoutes(String? token) async => const [
     FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2),
   ];
 }

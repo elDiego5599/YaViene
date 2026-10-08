@@ -15,10 +15,20 @@ class AuthApi {
               baseUrl: baseUrl,
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 8),
+              extra: conCookie,
             ),
           );
 
   final Dio _dio;
+
+  /// En el navegador, que la cookie del panel viaje aunque el panel y la API
+  /// sean orígenes distintos del mismo sitio. Fuera del navegador se ignora.
+  static const conCookie = {'withCredentials': true};
+
+  /// El `Bearer` si hay token; en el navegador no hay, y va la cookie.
+  static Options cabeceras(String? token) => Options(
+    headers: token == null ? null : {'Authorization': 'Bearer $token'},
+  );
 
   /// A qué backend pregunta.
   String get baseUrl => _dio.options.baseUrl;
@@ -32,7 +42,8 @@ class AuthApi {
       final data = response.data!;
       final company = Map<String, dynamic>.from(data['company'] as Map);
       return AuthSession(
-        token: data['token'] as String,
+        // En el navegador no viene: el login puso la cookie.
+        token: data['token'] as String?,
         companyId: company['companyId'] as String,
         companyName: company['name'] as String,
       );
@@ -73,7 +84,7 @@ class AuthApi {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/fleet/routes',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: cabeceras(token),
       );
       return response.statusCode == 200;
     } on DioException catch (e) {
@@ -82,8 +93,31 @@ class AuthApi {
     }
   }
 
+  /// En el navegador, la sesión que lleva la cookie: la empresa si sigue
+  /// viva, null si no (401). Un fallo de red o del servidor lanza.
+  Future<AuthSession?> sesionActual() async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/admin/sesion',
+      );
+      if (response.statusCode != 200) return null;
+      final company = Map<String, dynamic>.from(
+        response.data!['company'] as Map,
+      );
+      return AuthSession(
+        token: null,
+        companyId: company['companyId'] as String,
+        companyName: company['name'] as String,
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) return null;
+      rethrow;
+    }
+  }
+
   /// Pide al servidor que revoque [token]. Borrarlo solo en este equipo lo
   /// dejaba vivo hasta que caducara (8 h) para quien lo hubiera copiado.
+  /// En el navegador [token] es null: va la cookie, y el servidor la borra.
   ///
   /// Revoca todas las sesiones de la cuenta, no solo esta: el servidor sube
   /// la versión de la credencial, como al cambiar la contraseña, y cualquier
@@ -93,13 +127,10 @@ class AuthApi {
   /// cerrar sesión en este equipo tiene que funcionar igual. Espera como
   /// mucho 3 s y no los 8 del cliente: quien pulsa «salir» sin red no tiene
   /// por qué quedarse mirando el tablero.
-  Future<void> logout(String token) async {
+  Future<void> logout(String? token) async {
     try {
       await _dio
-          .post<void>(
-            '/api/fleet/logout',
-            options: Options(headers: {'Authorization': 'Bearer $token'}),
-          )
+          .post<void>('/api/fleet/logout', options: cabeceras(token))
           .timeout(const Duration(seconds: 3));
     } catch (e) {
       debugPrint('El servidor no confirmó el cierre de sesión: $e');

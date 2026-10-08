@@ -237,7 +237,7 @@ class _ApiFalsa extends FleetApi {
   final _Red _red;
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async {
+  Future<List<FleetBus>> fetchPositions(String? token) async {
     _red
       ..pedidos.add(baseUrl)
       ..atender(baseUrl, '/api/fleet/positions');
@@ -245,7 +245,7 @@ class _ApiFalsa extends FleetApi {
   }
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async {
+  Future<List<FleetRoute>> fetchRoutes(String? token) async {
     _red.atender(baseUrl, '/api/fleet/routes');
     return _rutas;
   }

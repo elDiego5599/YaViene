@@ -33,7 +33,7 @@ class _FakeFleetApi extends FleetApi {
   _FakeFleetApi() : super(baseUrl: 'http://localhost:3000');
 
   @override
-  Future<List<FleetBus>> fetchPositions(String token) async => const [
+  Future<List<FleetBus>> fetchPositions(String? token) async => const [
     FleetBus(
       busId: 'B-1',
       companyId: 'c-1',
@@ -59,7 +59,7 @@ class _FakeFleetApi extends FleetApi {
   ];
 
   @override
-  Future<List<FleetRoute>> fetchRoutes(String token) async => const [
+  Future<List<FleetRoute>> fetchRoutes(String? token) async => const [
     FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2),
   ];
 }

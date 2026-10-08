@@ -41,9 +41,17 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier({required this.api, FlutterSecureStorage? storage})
-    : _storage = storage ?? almacenDelSistema,
-      super(const AuthState());
+  /// [web]: el panel corre en el navegador. Ahí no se guarda nada —ni la
+  /// sesión ni la clave— y el almacén ni se toca: flutter_secure_storage en
+  /// web escribe en el almacenamiento de la página, que un script inyectado
+  /// lee. La sesión es la cookie HttpOnly que pone el login y la clave la
+  /// recuerda el gestor de contraseñas del navegador.
+  AuthNotifier({
+    required this.api,
+    FlutterSecureStorage? storage,
+    bool web = kIsWeb,
+  }) : _storage = web ? null : storage ?? almacenDelSistema,
+       super(const AuthState());
 
   /// Llavero en macOS, archivo cifrado en Windows. En el Mac, el llavero
   /// clásico: la app va firmada «ad hoc» (sin equipo de Apple) y el de
@@ -89,14 +97,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// rehacer el notifier, que dejaba la sesión en «desconocida» y sacaba al
   /// operador al login aunque su token siguiera valiendo.
   AuthApi api;
-  final FlutterSecureStorage _storage;
+
+  /// Null en el navegador.
+  final FlutterSecureStorage? _storage;
 
   Future<void> restoreSession() async {
+    if (_storage == null) return _restaurarDeCookie();
     String? token;
     String? companyId;
     String? companyName;
     try {
-      final guardada = await _leer(_kSesion, _kViejasSesion, (viejas) {
+      final guardada = await _leer(_storage, _kSesion, _kViejasSesion, (
+        viejas,
+      ) {
         if (viejas.any((v) => v == null)) return null;
         return {
           'token': viejas[0]!,
@@ -139,38 +152,56 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// En el navegador la sesión la dice el servidor por la cookie. Sin red no
+  /// hay nada guardado con qué entrar, así que se pide la clave: el login
+  /// dirá si es la red.
+  Future<void> _restaurarDeCookie() async {
+    AuthSession? sesion;
+    try {
+      sesion = await api.sesionActual();
+    } catch (e) {
+      debugPrint('No se pudo preguntar por la sesión: $e');
+    }
+    state = sesion == null
+        ? const AuthState(status: AuthStatus.unauthenticated)
+        : AuthState(status: AuthStatus.authenticated, session: sesion);
+  }
+
   /// Lee la entrada [clave] como mapa de textos. Si no está, busca las
   /// [viejas]: si [armar] las junta, las pasa a [clave] y las borra.
   Future<Map<String, String>?> _leer(
+    FlutterSecureStorage storage,
     String clave,
     List<String> viejas,
     Map<String, String>? Function(List<String?> viejas) armar,
   ) async {
-    final texto = await _storage.read(key: clave);
+    final texto = await storage.read(key: clave);
     if (texto != null) {
       final mapa = jsonDecode(texto);
       if (mapa is! Map) return null;
       return mapa.map((k, v) => MapEntry('$k', '$v'));
     }
-    final valores = [for (final v in viejas) await _storage.read(key: v)];
+    final valores = [for (final v in viejas) await storage.read(key: v)];
     if (valores.every((v) => v == null)) return null;
     final armado = armar(valores);
     if (armado != null) {
-      await _storage.write(key: clave, value: jsonEncode(armado));
+      await storage.write(key: clave, value: jsonEncode(armado));
     }
     for (final v in viejas) {
-      await _storage.delete(key: v);
+      await storage.delete(key: v);
     }
     return armado;
   }
 
   Future<void> _clearStored() async {
+    final storage = _storage;
+    if (storage == null) return;
     try {
       // Las viejas también: si el panel se actualizó con una sesión abierta
       // y se salió sin pasar por el arranque, quedarían con un token vivo.
       // Borrar una que no está no hace preguntar al llavero.
       for (final clave in [_kSesion, ..._kViejasSesion]) {
-        await _storage.delete(key: clave);
+        await storage.delete(key: clave);
       }
     } catch (e) {
       debugPrint('No se pudo borrar la sesión guardada: $e');
@@ -178,10 +209,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Lo que se recordó en el último ingreso con la casilla encendida, o
-  /// null. Si el almacén no se deja leer, es null y se escribe a mano.
+  /// null. Si el almacén no se deja leer, es null y se escribe a mano. En
+  /// el navegador siempre null: ahí recuerda el navegador.
   Future<({String usuario, String clave})?> credencialesRecordadas() async {
+    final storage = _storage;
+    if (storage == null) return null;
     try {
-      final guardadas = await _leer(_kRecordar, _kViejasRecordar, (viejas) {
+      final guardadas = await _leer(storage, _kRecordar, _kViejasRecordar, (
+        viejas,
+      ) {
         if (viejas.any((v) => v == null)) return null;
         return {'usuario': viejas[0]!, 'clave': viejas[1]!};
       });
@@ -231,8 +267,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // la red aunque el servidor hubiera contestado 200. Ahora, si el almacén
     // falla, se entra igual y lo único que se pierde es no tener que volver
     // a escribir la clave en el próximo arranque.
+    final storage = _storage;
+    if (storage == null) {
+      state = AuthState(status: AuthStatus.authenticated, session: session);
+      return true;
+    }
     try {
-      await _storage.write(
+      await storage.write(
         key: _kSesion,
         value: jsonEncode({
           'token': session.token,
@@ -250,7 +291,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       if (!_recordadasConocidas || nuevas != _recordadas) {
         if (nuevas != null) {
-          await _storage.write(
+          await storage.write(
             key: _kRecordar,
             value: jsonEncode({
               'usuario': nuevas.usuario,
@@ -258,9 +299,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
             }),
           );
         } else {
-          await _storage.delete(key: _kRecordar);
+          await storage.delete(key: _kRecordar);
           for (final v in _kViejasRecordar) {
-            await _storage.delete(key: v);
+            await storage.delete(key: v);
           }
         }
         _recordadas = nuevas;
@@ -277,8 +318,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Primero el servidor revoca el token y luego se borra aquí. Si el
   /// servidor no contesta, se sale igual: `AuthApi.logout` no lanza.
   Future<void> logout() async {
-    final token = state.session?.token;
-    if (token != null) await api.logout(token);
+    final session = state.session;
+    if (session != null) await api.logout(session.token);
     await _clearStored();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }

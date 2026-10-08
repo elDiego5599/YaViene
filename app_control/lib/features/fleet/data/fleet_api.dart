@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../../auth/data/auth_api.dart';
+
 import '../domain/fleet_bus.dart';
 import '../domain/fleet_route.dart';
 
@@ -15,6 +17,7 @@ class FleetApi {
               baseUrl: baseUrl,
               connectTimeout: const Duration(seconds: 8),
               receiveTimeout: const Duration(seconds: 8),
+              extra: AuthApi.conCookie,
             ),
           );
 
@@ -23,8 +26,7 @@ class FleetApi {
   /// A qué backend pregunta.
   String get baseUrl => _dio.options.baseUrl;
 
-  Options _auth(String token) =>
-      Options(headers: {'Authorization': 'Bearer $token'});
+  Options _auth(String? token) => AuthApi.cabeceras(token);
 
   /// Convierte un 401 en una señal clara de "tu sesión expiró" para que la
   /// app cierre sesión con un aviso en vez de quedarse con errores genéricos.
@@ -39,7 +41,7 @@ class FleetApi {
     }
   }
 
-  Future<List<FleetBus>> fetchPositions(String token) async {
+  Future<List<FleetBus>> fetchPositions(String? token) async {
     final response = await _guard(
       () => _dio.get<Map<String, dynamic>>(
         '/api/fleet/positions',
@@ -52,7 +54,7 @@ class FleetApi {
         .toList();
   }
 
-  Future<List<FleetRoute>> fetchRoutes(String token) async {
+  Future<List<FleetRoute>> fetchRoutes(String? token) async {
     final response = await _guard(
       () => _dio.get<Map<String, dynamic>>(
         '/api/fleet/routes',
@@ -66,7 +68,7 @@ class FleetApi {
   }
 
   Future<FleetBus> setVisibility(
-    String token,
+    String? token,
     String busId,
     bool visible,
   ) async {
@@ -80,7 +82,7 @@ class FleetApi {
     return FleetBus.fromJson(response.data!);
   }
 
-  Future<int> setAllVisibility(String token, bool visible) async {
+  Future<int> setAllVisibility(String? token, bool visible) async {
     final response = await _guard(
       () => _dio.post<Map<String, dynamic>>(
         '/api/fleet/buses/visibility',
@@ -92,7 +94,7 @@ class FleetApi {
   }
 
   Future<FleetBus> createBus(
-    String token, {
+    String? token, {
     required String placa,
     String? routeId,
     String? interno,
@@ -112,7 +114,7 @@ class FleetApi {
   }
 
   Future<FleetBus> updateBus(
-    String token,
+    String? token,
     String busId, {
     String? placa,
     String? routeId,
@@ -128,7 +130,7 @@ class FleetApi {
     return FleetBus.fromJson(response.data!);
   }
 
-  Future<FleetRoute> createRoute(String token, {required String name}) async {
+  Future<FleetRoute> createRoute(String? token, {required String name}) async {
     final response = await _guard(
       () => _dio.post<Map<String, dynamic>>(
         '/api/fleet/routes',
@@ -140,7 +142,7 @@ class FleetApi {
   }
 
   Future<FleetRoute> renameRoute(
-    String token,
+    String? token,
     String routeId, {
     required String name,
   }) async {
@@ -154,7 +156,7 @@ class FleetApi {
     return FleetRoute.fromJson(response.data!);
   }
 
-  Future<void> deleteRoute(String token, String routeId) async {
+  Future<void> deleteRoute(String? token, String routeId) async {
     await _guard(
       () => _dio.delete<void>(
         '/api/fleet/routes/$routeId',
@@ -163,7 +165,7 @@ class FleetApi {
     );
   }
 
-  Future<void> deleteBus(String token, String busId) async {
+  Future<void> deleteBus(String? token, String busId) async {
     await _guard(
       () => _dio.delete<void>('/api/fleet/buses/$busId', options: _auth(token)),
     );
