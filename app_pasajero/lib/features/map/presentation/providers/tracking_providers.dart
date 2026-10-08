@@ -16,3 +16,16 @@ final busPositionsSourceProvider = StreamProvider.autoDispose
   ref.onDispose(() => service.unsubscribeFromRoute(routeId));
   return buildRoutePositionsStream(service, {routeId});
 });
+
+/// Quien sigue a los buses de una ruta por su recorrido, para medir la
+/// distancia por la calle y no en línea recta. Recuerda dónde iba cada bus
+/// (no salta de carril en una calle de ida y vuelta), así que la hoja y el
+/// vigía de avisos comparten el mismo mientras alguno lo escuche. `null`
+/// sin recorrido: se mide en línea recta (`distanciaAlBus`).
+final seguidorRutaProvider =
+    Provider.autoDispose.family<SeguidorRuta?, String>((ref, routeId) {
+  final puntos =
+      ref.watch(routeTrajectoryProvider(routeId)).valueOrNull?.points;
+  final ruta = puntos == null ? null : RutaMedible.de(puntos);
+  return ruta == null ? null : SeguidorRuta(ruta);
+});

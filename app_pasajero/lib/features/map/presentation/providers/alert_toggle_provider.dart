@@ -113,7 +113,8 @@ class AlertToggleController {
       // Lo que sirve va de lo más cerca que pasa la ruta a lo que el bus
       // todavía no ha pasado. Si eso no deja nada, se dice sin rueda.
       final desde = distanciaAvisoDesde(routeDistance);
-      final hasta = distanciaAvisoHasta(_distanceToBus(_busById(busId)));
+      final alBus = _distanceToBus(_busById(busId));
+      final hasta = distanciaAvisoHasta(alBus is Faltan ? alBus.metros : null);
       if (desde != null && desde > (hasta ?? distanciaAvisoMaxima)) {
         return AlertToggleResult(AlertToggleOutcome.rejected,
             message: guards.sinDistanciaQueSirva(busId, 'activar el aviso'));
@@ -196,11 +197,14 @@ class AlertToggleController {
     return null;
   }
 
-  double? _distanceToBus(BusPosition? bus) {
+  /// Por la ruta, como la mide el vigía de avisos; `null` sin bus o sin
+  /// ubicación.
+  DistanciaPorRuta? _distanceToBus(BusPosition? bus) {
     if (bus == null) return null;
     final location = _ref.read(userLocationProvider);
     if (!location.hasPosition) return null;
-    return haversineMeters(location.lat!, location.lon!, bus.lat, bus.lon);
+    return distanciaAlBus(_ref.read(seguidorRutaProvider(bus.routeId)), bus,
+        location.lat!, location.lon!);
   }
 
   String? _validar(
@@ -210,10 +214,12 @@ class AlertToggleController {
     required int radioRutaM,
   }) {
     final bus = _busById(busId);
+    final alBus = _distanceToBus(bus);
     return guards.validateAlertActivation(
       hasPosition: _ref.read(userLocationProvider).hasPosition,
       bus: bus,
-      busDistanceMeters: _distanceToBus(bus),
+      busDistanceMeters: alBus is Faltan ? alBus.metros : null,
+      busYaPasoPunto: alBus is YaPaso,
       activeAlertsCount: _ref.read(activeAlertsProvider).length,
       routeDistanceMeters: routeDistance,
       radioCercaM: radioCercaM,

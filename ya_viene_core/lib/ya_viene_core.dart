@@ -1,5 +1,8 @@
 library;
 
+// --- Geometría ---
+export 'core/geo/por_ruta.dart';
+
 // --- Models (capa de datos) ---
 export 'core/models/bus_motion.dart';
 export 'core/models/bus_position.dart';

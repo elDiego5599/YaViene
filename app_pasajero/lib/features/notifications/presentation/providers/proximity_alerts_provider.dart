@@ -122,6 +122,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   final _routeSubs =
       <String, ProviderSubscription<AsyncValue<List<BusPosition>>>>{};
   final _routePositions = <String, List<BusPosition>>{};
+
+  /// El seguidor del recorrido de cada ruta armada, con la misma vida que
+  /// [_routeSubs]: mide por la calle y no en línea recta.
+  final _seguidorSubs = <String, ProviderSubscription<SeguidorRuta?>>{};
   bool _monitoringPaused = false;
 
   static Future<bool> _defaultNotify({
@@ -353,6 +357,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         fireImmediately: true,
       );
     });
+    _seguidorSubs.putIfAbsent(
+      routeId,
+      () => _ref.listen(seguidorRutaProvider(routeId), (_, __) {}),
+    );
     unawaited(sincronizarPush());
   }
 
@@ -370,6 +378,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     if (routeId == null) return;
     if (!_alertRoutes.containsValue(routeId)) {
       _routeSubs.remove(routeId)?.close();
+      _seguidorSubs.remove(routeId)?.close();
       _routePositions.remove(routeId);
     }
   }
@@ -384,10 +393,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     _alertRoutes.clear();
     _alertRefs.clear();
     _alertRadios.clear();
-    for (final sub in _routeSubs.values) {
+    for (final sub in [..._routeSubs.values, ..._seguidorSubs.values]) {
       sub.close();
     }
     _routeSubs.clear();
+    _seguidorSubs.clear();
     _routePositions.clear();
   }
 
@@ -396,10 +406,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     _timer?.cancel();
     _timerPush?.cancel();
     _mensajes?.cancel();
-    for (final sub in _routeSubs.values) {
+    for (final sub in [..._routeSubs.values, ..._seguidorSubs.values]) {
       sub.close();
     }
     _routeSubs.clear();
+    _seguidorSubs.clear();
     _alertRefs.clear();
     super.dispose();
   }
@@ -670,7 +681,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       if (pos == null || pos.isGhostBus) continue;
       final ref = _alertRefs[busId] ?? liveRef;
       if (ref == null) continue;
-      final distance = haversineMeters(ref.$1, ref.$2, pos.lat, pos.lon);
+      // Por la ruta; un bus que ya pasó el punto cuenta como lejos: no
+      // suena y, si ya sonó, puede volver a sonar en su vuelta siguiente.
+      final distance = switch (
+          distanciaAlBus(_seguidorSubs[routeId]?.read(), pos, ref.$1, ref.$2)) {
+        Faltan(:final metros) => metros,
+        YaPaso() => double.infinity,
+      };
       final radio = _alertRadios[busId] ??
           _entradaActiva(busId)?.radioM ??
           distanciaAvisoInicial;

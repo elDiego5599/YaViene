@@ -141,8 +141,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
   simulador.
-- **Flutter**: core 103, panel 279 + 3 saltadas, pasajero 650 + 1, pruebas
-  13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
+- **Flutter** (2026-10-08): core 113, panel 330 + 3 saltadas, pasajero
+  680 + 1, pruebas 13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
   `integration_test` en el panel). Aparte, la E2E del panel de escritorio
   contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el
   llavero va en memoria). Contrato con el backend:
@@ -223,6 +223,14 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   2026-10-06; antes pedía dejar la app abierta) y Android su nota con la
   fila «Cambiar». «Cambiar» es una píldora como «Quitar» con letra roja
   (`coralAccessible`, 4,96:1). La web lo espeja en el paso 3 y en el hero.
+  La distancia al bus se mide **por la ruta**, no en línea recta (A2,
+  2026-10-08; `SeguidorRuta` en `ya_viene_core/lib/core/geo/por_ruta.dart`,
+  compartido por `seguidorRutaProvider`): hoja, rueda, validación y aviso.
+  Si el bus ya pasó el punto dice «Ya pasó» (no la vuelta siguiente) y no
+  deja poner el aviso; si no se puede medir (bus a más de 60 m de la ruta
+  o punto a más de 300 m), cae a la línea recta. El push del servidor
+  sigue en recta (FALTANTES). La idea se publica aparte, en inglés, en
+  `elDiego5599/alongroute` (`YaViene/alongroute`).
 - **Panel**: tablero con fondo y cabecera blancos (el degradado en la
   cabecera no gustó), filo entre buses centrado en la barra y sombras
   realzadas en tinta (`sombraCabecera` / `sombraTarjeta` /

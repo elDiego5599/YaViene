@@ -14,7 +14,8 @@ import '../../../notifications/presentation/providers/distancia_aviso_provider.d
 /// punto del usuario, o **null si no se sabe** (sin ubicación, geometría sin
 /// cargar, ruta sin recorrido). Null nunca rechaza: ante la duda se deja
 /// armar el aviso. Lo mismo [busDistanceMeters]: null es no saber dónde va
-/// el bus.
+/// el bus. Las dos se miden por la ruta; [busYaPasoPunto], el bus ya dejó atrás
+/// el punto y no vuelve a pasar por él.
 ///
 /// [radioCercaM] y [radioRutaM] son la distancia a la que sonaría el aviso.
 /// Con la distancia ya elegida, las dos son esa. Antes de elegirla se valida
@@ -24,6 +25,7 @@ String? validateAlertActivation({
   required bool hasPosition,
   required BusPosition? bus,
   required double? busDistanceMeters,
+  bool busYaPasoPunto = false,
   required int activeAlertsCount,
   double? routeDistanceMeters,
   required int radioCercaM,
@@ -53,6 +55,9 @@ String? validateAlertActivation({
     return 'El bus ${bus.busId} está sin señal; el aviso se activa '
         'cuando vuelva a transmitir';
   }
+  if (bus != null && busYaPasoPunto) {
+    return busYaPaso(bus.busId, 'activar el aviso');
+  }
   if (bus != null &&
       busDistanceMeters != null &&
       busDistanceMeters <= radioCercaM) {
@@ -74,3 +79,8 @@ const avisosAlTope = 'Ya tienes 2 avisos activos: desactiva uno o espera a '
 String sinDistanciaQueSirva(String busId, String accion) =>
     'El bus $busId ya va por lo más cerca que te pasa su ruta; no se puede '
     '$accion';
+
+/// Lo que se dice cuando el bus ya dejó atrás el punto del aviso: ninguna
+/// distancia sonaría. [accion], lo que no se puede hacer.
+String busYaPaso(String busId, String accion) =>
+    'El bus $busId ya pasó por donde lo esperas; no se puede $accion';

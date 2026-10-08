@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -950,6 +951,75 @@ void main() {
 
       expect(c.read(activeAlertsProvider), isEmpty);
       expect(c.read(alertHistoryProvider), isEmpty);
+    });
+  });
+
+  // Se mide por la ruta, no en línea recta (A2, 2026-10-08): una U de
+  // 1500 m de ida, 400 m de lado y 1500 m de vuelta. Las cifras salen del
+  // dibujo, a mano.
+  group('por la ruta', () {
+    GeoPoint m(double x, double y) => GeoPoint(
+          lat: 6.2442 + y / 111320,
+          lon: -75.5812 + x / (111320 * math.cos(6.2442 * math.pi / 180)),
+        );
+    BusPosition bus(double x, double y, double rumbo) {
+      final p = m(x, y);
+      return busA.copyWith(lat: p.lat, lon: p.lon, heading: rumbo);
+    }
+
+    Future<List<({String busId, int distanceMeters})>> barrer(
+        BusPosition b, GeoPoint espera) async {
+      final sonaron = <({String busId, int distanceMeters})>[];
+      final c = ProviderContainer(overrides: [
+        userLocationProvider.overrideWith((ref) => _TestUserLocation()
+          ..set(UserLocationState(
+            mode: UserLocationMode.manual,
+            lat: espera.lat,
+            lon: espera.lon,
+            updatedAt: DateTime.now(),
+          ))),
+        busPositionsSourceProvider
+            .overrideWith((ref, routeId) => Stream.value([b])),
+        routeTrajectoryProvider.overrideWith((ref, routeId) => RouteTrajectory(
+              routeId: routeId,
+              routeName: 'Ruta 1',
+              points: [m(0, 0), m(1500, 0), m(1500, 400), m(0, 400)],
+            )),
+        proximityAlertsProvider.overrideWith((ref) => ProximityAlertsNotifier(
+              ref,
+              notify: (
+                  {required String busId,
+                  String? routeName,
+                  String? routeId,
+                  required int distanceMeters}) async {
+                sonaron.add((busId: busId, distanceMeters: distanceMeters));
+                return true;
+              },
+            )),
+      ]);
+      addTearDown(c.dispose);
+      c.read(selectedRouteProvider.notifier).select(route());
+      c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+      c.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+      await Future<void>.delayed(Duration.zero);
+      await c.read(proximityAlertsProvider.notifier).check();
+      return sonaron;
+    }
+
+    test('a 400 m en línea recta pero a 3,4 km por la ruta, no suena',
+        () async {
+      expect(await barrer(bus(0, 0, 90), m(0, 400)), isEmpty);
+    });
+
+    test('suena con la distancia por la ruta, no la recta', () async {
+      // Recta: √(500² + 300²) ≈ 583 m. Por la ruta: 300 + 500 = 800 m.
+      final sonaron = await barrer(bus(1500, 100, 0), m(1000, 400));
+      expect(sonaron.single.distanceMeters, closeTo(800, 10));
+    });
+
+    test('un bus que ya pasó el punto no suena', () async {
+      // Recta ≈ 776 m, dentro del radio de 1 km; pero ya lo dejó atrás.
+      expect(await barrer(bus(750, 400, 270), m(1500, 200)), isEmpty);
     });
   });
 }

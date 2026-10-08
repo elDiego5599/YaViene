@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,6 +41,7 @@ ProviderContainer _container({
   required bool permissionGranted,
   NotificationPermissionRequester? requester,
   double routeKm = 0,
+  List<GeoPoint>? ruta,
 }) {
   final c = ProviderContainer(overrides: [
     userLocationProvider.overrideWith((ref) => _TestUserLocation()),
@@ -51,7 +54,7 @@ ProviderContainer _container({
       (ref, routeId) => RouteTrajectory(
         routeId: routeId,
         routeName: 'Ruta 1',
-        points: _routeAtKm(routeKm),
+        points: ruta ?? _routeAtKm(routeKm),
       ),
     ),
     proximityAlertsProvider.overrideWith((ref) {
@@ -622,6 +625,72 @@ void main() {
           'El bus A-1 ya va por lo más cerca que te pasa su ruta; no se '
           'puede activar el aviso');
       expect(container.read(activeAlertsProvider), isEmpty);
+    });
+  });
+
+  // Se mide por la ruta, no en línea recta (A2, 2026-10-08): una U de
+  // 1500 m de ida, 400 m de lado y 1500 m de vuelta, en metros alrededor
+  // del usuario. Las cifras salen del dibujo, a mano.
+  group('por la ruta', () {
+    GeoPoint m(double x, double y) => GeoPoint(
+          lat: _userLat + y / 111320,
+          lon: _userLon + x / (111320 * math.cos(_userLat * math.pi / 180)),
+        );
+    final u = [m(0, 0), m(1500, 0), m(1500, 400), m(0, 400)];
+    BusPosition bus(double x, double y, double rumbo) {
+      final p = m(x, y);
+      return busLejos.copyWith(lat: p.lat, lon: p.lon, heading: rumbo);
+    }
+
+    Future<ProviderContainer> montar(BusPosition b, GeoPoint espera) async {
+      SharedPreferences.setMockInitialValues({});
+      final c = _container(buses: [b], permissionGranted: true, ruta: u);
+      (c.read(userLocationProvider.notifier) as _TestUserLocation)
+          .set(UserLocationState(
+        mode: UserLocationMode.manual,
+        lat: espera.lat,
+        lon: espera.lon,
+        updatedAt: DateTime.now(),
+      ));
+      c.read(selectedRouteProvider.notifier).select(route());
+      final subs = [
+        c.listen(busPositionsSourceProvider('R1'), (_, __) {}),
+        c.listen(seguidorRutaProvider('R1'), (_, __) {}),
+      ];
+      for (final s in subs) {
+        addTearDown(s.close);
+      }
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      return c;
+    }
+
+    test('a 400 m en recta y 3,4 km por la ruta, la rueda va entera', () async {
+      final c = await montar(bus(0, 0, 90), m(0, 400));
+      int? hasta = -1;
+      final result = await c.read(alertToggleProvider).toggle('A-1',
+          elegirDistancia: (_, h) async {
+        hasta = h;
+        return (metros: 3000, guardar: false);
+      });
+
+      expect(hasta, isNull);
+      expect(result.outcome, AlertToggleOutcome.activated);
+    });
+
+    test('un bus que ya pasó el punto se dice sin rueda', () async {
+      // Recta ≈ 776 m: la rueda llegaría a 500 m. Pero ya lo dejó atrás.
+      final c = await montar(bus(750, 400, 270), m(1500, 200));
+      final result = await c
+          .read(alertToggleProvider)
+          .toggle('A-1', elegirDistancia: _noPreguntes);
+
+      expect(result.outcome, AlertToggleOutcome.rejected);
+      expect(
+          result.message,
+          'El bus A-1 ya pasó por donde lo esperas; no se puede activar el '
+          'aviso');
+      expect(c.read(activeAlertsProvider), isEmpty);
     });
   });
 }

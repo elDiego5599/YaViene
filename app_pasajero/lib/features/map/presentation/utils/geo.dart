@@ -14,6 +14,18 @@ double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
   return 2 * _earthRadiusMeters * asin(sqrt(safeA));
 }
 
+/// Distancia de [bus] al punto ([lat], [lon]) por el recorrido, o
+/// [YaPaso]. Sin [seguidor], o si el bus o el punto quedan lejos de la ruta,
+/// en línea recta: es lo que se sabe, y nunca es más que por la ruta.
+DistanciaPorRuta distanciaAlBus(
+  SeguidorRuta? seguidor,
+  BusPosition bus,
+  double lat,
+  double lon,
+) =>
+    seguidor?.distancia(bus, GeoPoint(lat: lat, lon: lon)) ??
+    Faltan(haversineMeters(lat, lon, bus.lat, bus.lon));
+
 /// Proyección de un punto sobre una polilínea: distancia al recorrido y
 /// posición medida en metros desde el inicio del recorrido.
 typedef PolylineProjection = ({double distanceMeters, double alongMeters});

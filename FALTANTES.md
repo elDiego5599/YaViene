@@ -1,6 +1,6 @@
 # Lo que falta
 
-Al 2026-10-07. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
+Al 2026-10-08. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
 está hecho y subido a las ramas de trabajo (`diseno-21st` en app y web,
 `prueba` en el backend); a `main` se sube por lotes cuando lo pidas
 (regla de trabajo 2 de `CLAUDE.md`). Lo que queda está repartido según
@@ -42,6 +42,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
   regla no se sube. Se queda así a menos que cambies esa regla.
+- **Las capturas de A2** (distancia por la ruta, 2026-10-08), en
+  `capturas-a2/` en la raíz del workspace: en la B18, el mismo bus a
+  614 m en recta (antes, que bloqueaba el aviso) y a 3,4 km por la ruta
+  (ahora). Si no te convence, se revierte el commit de A2.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
@@ -89,6 +93,14 @@ Necesitan un teléfono, una cuenta o estar presente.
   alerta (T7.1).
 
 ## Lo que puedo hacer yo
+
+- **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
+  2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`
+  del core), pero el servidor que manda el push de Android
+  (`revisarAvisos` en `YaVieneBackend/src/avisos_push.ts`) sigue en línea
+  recta. Con la app cerrada, un bus a 400 m en recta y a 3 km por la ruta
+  todavía avisa antes de tiempo. Falta portar la medida al backend con sus
+  mismas pruebas (la U de 1500 × 400 m del core).
 
 - **La tarjeta del aviso activo con el texto al doble** (hallado el
   2026-10-07, ya estaba en `9d0f3a0`): con el aviso puesto y el texto del
