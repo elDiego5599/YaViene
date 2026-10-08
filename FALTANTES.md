@@ -38,18 +38,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que decidir tú
 
-- **Dónde se sirve el panel en el navegador.** El panel ya corre también
-  en web (además de macOS y Windows). Su sesión va en una cookie
-  `SameSite=Strict`, así que el panel tiene que servirse en el mismo sitio
-  que la API: dos subdominios de `ngrok-free.dev` cuentan como sitios
-  distintos (está en la Public Suffix List), y ahí la cookie no viaja. Hace
-  falta un dominio propio (por ejemplo `panel.` y `api.` del mismo) o
-  servir el panel desde el mismo backend. Ese origen, y solo ese, va en
-  `CORS_ORIGINS`. Es un despliegue: no lo hago sin que lo decidas.
-  Probado entero en Chromium contra un backend temporal (2026-10-08).
-  Se compila con `tool/compilar-panel-web.sh <API>`, que deja al lado
-  `build/web/csp.txt`: la CSP que el servidor del panel tiene que mandar.
-
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
@@ -88,6 +76,13 @@ Necesitan un teléfono, una cuenta o estar presente.
   y que vaya fluido. Se descarga de la CI: Actions → «Ya Viene CI» → «Run
   workflow» con `backend_url`, y en la corrida el artefacto `panel-windows`
   (la carpeta entera; se abre `app_control.exe`).
+- **Entrar al panel web** en
+  `https://occupy-shed-squatter.ngrok-free.dev/panel/` con tu cuenta: ver la
+  flota, recargar (tiene que seguir dentro) y salir. Ya está servido por el
+  backend vivo (2026-10-08); por ngrok se probó la carga, el aviso de ngrok,
+  el login del mismo origen (uno ajeno da 403) y el socket, pero no una
+  sesión de verdad: esa la abres tú. Para actualizarlo, el runbook del
+  backend, «El panel en el navegador».
 - **Las fichas de las tiendas** (T5.7): textos, capturas y video.
 - **El video de respaldo del pitch** (T10.4), por si el día falla la red.
 - **Mirar el tráfico real un rato** para fijar el umbral de latencia de la

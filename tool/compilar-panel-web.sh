@@ -2,6 +2,13 @@
 # Compila el panel para el navegador y deja al lado la CSP con que se sirve.
 #
 #   tool/compilar-panel-web.sh https://api.ejemplo.co
+#   tool/compilar-panel-web.sh --base-href /panel/ https://api.ejemplo.co
+#
+# Con `--base-href /panel/` la build es la que sirve el backend en /panel/,
+# en el mismo origen que la API (`YA_VIENE_PANEL_WEB`, ver
+# YaVieneBackend/src/api/panel_web.ts). La API es entonces ese mismo
+# origen: en connect-src ya la cubre 'self', y su wss va explícito porque
+# no todos los Safari cuentan ws/wss dentro de 'self'.
 #
 # Deja `app_control/build/web` y, dentro, `csp.txt`: la cabecera
 # Content-Security-Policy que el servidor del panel tiene que mandar. Se
@@ -35,7 +42,7 @@ set -euo pipefail
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 uso() {
-  echo "Uso: $0 <API> | --csp <API> | --revisar <dir>" >&2
+  echo "Uso: $0 [--base-href /ruta/] <API> | --csp <API> | --revisar <dir>" >&2
   exit 2
 }
 
@@ -75,6 +82,19 @@ revisar() {
   fi
 }
 
+base=/
+if [ "${1:-}" = --base-href ]; then
+  [ $# -eq 3 ] || uso
+  # Lo que pide `flutter build web --base-href`: empieza y termina en «/».
+  if [[ ! "$2" =~ ^/([a-z0-9_-]+/)*$ ]]; then
+    echo "--base-href «$2» tiene que ser /, o /ruta/ con barra al principio y al final" >&2
+    exit 2
+  fi
+  base="$2"
+  shift 2
+  [[ "$1" != -* ]] || uso
+fi
+
 case "${1:-}" in
   --csp) [ $# -eq 2 ] || uso; csp "$2" ;;
   --revisar) [ $# -eq 2 ] || uso; revisar "$2" ;;
@@ -84,7 +104,7 @@ case "${1:-}" in
     politica="$(csp "$1")"
     cd "$raiz/app_control"
     flutter build web --release --no-web-resources-cdn --no-wasm-dry-run \
-      --dart-define=BACKEND_URL="$1"
+      --base-href "$base" --dart-define=BACKEND_URL="$1"
     revisar build/web
     echo "$politica" > build/web/csp.txt
     echo "CSP en app_control/build/web/csp.txt"

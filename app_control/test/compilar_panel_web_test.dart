@@ -113,6 +113,35 @@ void main() {
     });
   });
 
+  // Lo que se le pasa a `flutter build web --base-href`: tiene que empezar
+  // y terminar en «/». Se revisa antes de compilar, así que aquí no compila.
+  group('--base-href', () {
+    for (final malo in const ['panel/', '/panel', 'panel', '/pa nel/', '//']) {
+      test('«$malo» no es una base y no compila', () {
+        final r = _correr(['--base-href', malo, 'https://api.ejemplo.co']);
+
+        expect(r.exitCode, 2);
+        expect(r.stderr, contains('--base-href'));
+      });
+    }
+
+    for (final resto in const [
+      <String>[],
+      ['--csp', 'https://api.ejemplo.co'],
+    ]) {
+      test(
+        'con ${resto.isEmpty ? 'nada' : resto.first} detrás dice cómo se usa',
+        () {
+          final r = _correr(['--base-href', '/panel/', ...resto]);
+
+          expect(r.exitCode, 2);
+          expect(r.stderr, contains('Uso:'));
+          expect(r.stdout, isEmpty);
+        },
+      );
+    }
+  });
+
   test('sin argumentos dice cómo se usa', () {
     final r = _correr([]);
 
