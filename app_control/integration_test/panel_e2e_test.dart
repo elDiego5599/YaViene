@@ -20,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:ya_viene_control/config.dart';
+import 'package:ya_viene_control/core/widgets/ventana_minima.dart';
 import 'package:ya_viene_control/features/auth/presentation/screens/login_screen.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/fleet_list_tile.dart';
 import 'package:ya_viene_control/main.dart';

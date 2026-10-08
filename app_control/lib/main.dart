@@ -13,15 +13,8 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
 import 'config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/ventana_minima.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
-
-/// Lo más chica que se deja la ventana. 1200 de ancho es lo más angosto que
-/// se cuida (panel_angosto_test.dart): la lista es un cuarto de la ventana y
-/// por debajo la placa se encogía hasta no leerse —a 1024, unos 8 px—. 700
-/// de alto es lo que deja un portátil de 1366×768 con la barra de tareas de
-/// Windows y el título de la ventana, así que la ventana cabe en cualquier
-/// pantalla en que el panel se lee (estilo_panel_test.dart).
-const ventanaMinima = Size(1200, 700);
 
 /// Si el panel arma su propia ventana con `window_manager`: en macOS,
 /// Windows y Linux sí; en el navegador la ventana es la pestaña y el plugin

@@ -28,6 +28,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/core/widgets/ventana_minima.dart'
+    show ventanaMinima;
 import 'package:ya_viene_control/features/auth/domain/auth_session.dart';
 import 'package:ya_viene_control/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
@@ -38,7 +40,6 @@ import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_pro
 import 'package:ya_viene_control/features/fleet/presentation/screens/dashboard_screen.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/control_map.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/fleet_list_tile.dart';
-import 'package:ya_viene_control/main.dart' show ventanaMinima;
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
 
