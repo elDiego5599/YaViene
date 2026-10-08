@@ -1,8 +1,8 @@
 // La hoja mide la distancia al bus por su recorrido, no en línea recta
-// (A2, 2026-10-08), y un bus que ya pasó el punto lo dice en vez de dar un
-// número (dueño: «ya pasó», no la vuelta siguiente). La ruta es una U de
-// 1500 m de ida, 400 m de lado y 1500 m de vuelta, en metros alrededor del
-// pin; las cifras salen del dibujo, a mano.
+// (A2, 2026-10-08), y a un bus que ya pasó el punto le cuenta la vuelta
+// siguiente: no se sabe qué sentido espera la persona (dueño, 2026-10-08).
+// La ruta es una U de 1500 m de ida, 400 m de lado y 1500 m de vuelta, en
+// metros alrededor del pin; las cifras salen del dibujo, a mano.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -32,7 +32,8 @@ void main() {
   Future<void> montar(WidgetTester tester,
       {required GeoPoint bus,
       required double rumbo,
-      required GeoPoint pin}) async {
+      required GeoPoint pin,
+      bool circular = false}) async {
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       busPositionsSourceProvider.overrideWith(
@@ -53,7 +54,13 @@ void main() {
         (ref, routeId) => RouteTrajectory(
           routeId: routeId,
           routeName: 'Ruta 1',
-          points: [_m(0, 0), _m(1500, 0), _m(1500, 400), _m(0, 400)],
+          points: [
+            _m(0, 0),
+            _m(1500, 0),
+            _m(1500, 400),
+            _m(0, 400),
+            if (circular) _m(0, 0),
+          ],
         ),
       ),
     ]);
@@ -88,15 +95,16 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('un bus que ya pasó el punto dice «Ya pasó» y no deja avisar',
+  testWidgets('un bus que ya pasó el punto cuenta hasta su vuelta siguiente',
       (tester) async {
-    // Recta ≈ 776 m; pero va hacia el final y el punto quedó atrás.
-    await montar(tester, bus: _m(750, 400), rumbo: 270, pin: _m(1500, 200));
+    // La U cerrada: 3800 m. El bus en el 2650, el pin en el 1700: 1150
+    // hasta el cierre y 1700 más, 2850 m (en recta, 776).
+    await montar(tester,
+        bus: _m(750, 400), rumbo: 270, pin: _m(1500, 200), circular: true);
 
-    expect(find.text('Ya pasó'), findsOneWidget);
-    expect(find.textContaining('metros de ti'), findsNothing);
-    expect(find.text('El bus ya pasó'), findsOneWidget);
-    expect(find.text('Este bus ya pasó por tu punto. Elige otro de la ruta.'),
+    expect(find.bySemanticsLabel(RegExp(r'^A 2,[89] kilómetros de ti$')),
         findsOneWidget);
+    expect(find.textContaining('ya pasó'), findsNothing);
+    expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
   });
 }

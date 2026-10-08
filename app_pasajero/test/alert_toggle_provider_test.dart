@@ -642,9 +642,11 @@ void main() {
       return busLejos.copyWith(lat: p.lat, lon: p.lon, heading: rumbo);
     }
 
-    Future<ProviderContainer> montar(BusPosition b, GeoPoint espera) async {
+    Future<ProviderContainer> montar(BusPosition b, GeoPoint espera,
+        {List<GeoPoint>? ruta}) async {
       SharedPreferences.setMockInitialValues({});
-      final c = _container(buses: [b], permissionGranted: true, ruta: u);
+      final c =
+          _container(buses: [b], permissionGranted: true, ruta: ruta ?? u);
       (c.read(userLocationProvider.notifier) as _TestUserLocation)
           .set(UserLocationState(
         mode: UserLocationMode.manual,
@@ -678,19 +680,23 @@ void main() {
       expect(result.outcome, AlertToggleOutcome.activated);
     });
 
-    test('un bus que ya pasó el punto se dice sin rueda', () async {
-      // Recta ≈ 776 m: la rueda llegaría a 500 m. Pero ya lo dejó atrás.
-      final c = await montar(bus(750, 400, 270), m(1500, 200));
-      final result = await c
-          .read(alertToggleProvider)
-          .toggle('A-1', elegirDistancia: _noPreguntes);
+    test('un bus que ya pasó el punto se cuenta hasta su vuelta siguiente',
+        () async {
+      // La U cerrada en una vuelta de 3800 m. El bus va en el 2650 y el
+      // punto está en el 1700: 1150 hasta el cierre y 1700 más, 2850. La
+      // rueda deja 200 m con él: hasta 2600. En recta serían 776 m (hasta
+      // 500); no se sabe qué sentido espera la persona (dueño, 2026-10-08).
+      final c =
+          await montar(bus(750, 400, 270), m(1500, 200), ruta: [...u, m(0, 0)]);
+      int? hasta;
+      final result = await c.read(alertToggleProvider).toggle('A-1',
+          elegirDistancia: (_, h) async {
+        hasta = h;
+        return (metros: 1000, guardar: false);
+      });
 
-      expect(result.outcome, AlertToggleOutcome.rejected);
-      expect(
-          result.message,
-          'El bus A-1 ya pasó por donde lo esperas; no se puede activar el '
-          'aviso');
-      expect(c.read(activeAlertsProvider), isEmpty);
+      expect(hasta, 2600);
+      expect(result.outcome, AlertToggleOutcome.activated);
     });
   });
 }

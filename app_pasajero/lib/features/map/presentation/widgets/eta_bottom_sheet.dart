@@ -245,14 +245,15 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 
   /// Distancia del punto de espera al bus por su recorrido, como la mide el
-  /// aviso, o [YaPaso]; null si no se puede medir. Solo desde `build`:
-  /// escucha al seguidor de la ruta para que no se deseche entre cuadros.
+  /// aviso, hasta su próximo paso; null si no se puede medir. Solo desde
+  /// `build`: escucha al seguidor de la ruta para que no se deseche entre
+  /// cuadros.
   ///
   /// Un bus con aviso armado se mide desde el pin con el que se armó, no
   /// desde el pin de ahora: es la misma referencia que usa el aviso para
   /// decidir cuándo sonar, y verla cambiar al mover el pin hacía creer que el
   /// aviso se había mudado con él.
-  DistanciaPorRuta? _distanceToBus(BusPosition? bus) {
+  double? _distanceToBus(BusPosition? bus) {
     if (bus == null) return null;
     final seguidor = ref.watch(seguidorRutaProvider(bus.routeId));
     final ancla =
@@ -364,11 +365,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// (dueño, 2026-10-07: «hago el cambio a 800 m y se guarda sabiendo que
   /// eso nunca va a sonar»)—. Si eso no deja nada, lo dice sin rueda.
   Future<void> _cambiarDistancia(
-      String busId, int actual, double? metrosAlBus, bool yaPaso) async {
-    if (yaPaso) {
-      mostrarAviso(context, guards.busYaPaso(busId, 'cambiar la distancia'));
-      return;
-    }
+      String busId, int actual, double? metrosAlBus) async {
     final desde = distanciaAvisoDesde(_distanciaDeRutaDelAviso(busId));
     final hasta = distanciaAvisoHasta(metrosAlBus);
     if (desde != null && desde > (hasta ?? distanciaAvisoMaxima)) {
@@ -911,9 +908,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final locationState = ref.watch(userLocationProvider);
     final staleLabel = _staleLabel(bus);
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
-    final medida = _distanceToBus(bus);
-    final distance = medida is Faltan ? medida.metros : null;
-    final yaPaso = medida is YaPaso;
+    final distance = _distanceToBus(bus);
     final route = ref.watch(selectedRouteProvider);
     // F6: misma "ruta - placa" que ya usa Notificaciones, en vez de "Bus $id"
     // crudo — el mismo bus no debe tener dos nombres distintos en la app.
@@ -948,12 +943,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 
     // El bus ya está dentro de la distancia del aviso: no se puede activar.
     final alreadyNear = !isActive && _busAlreadyNear(distance);
-    // Ya pasó el punto: ninguna distancia sonaría.
-    final pasoBlocked = !isActive && yaPaso;
-    final liveBlocked = ghostBlocked ||
-        alreadyNear ||
-        pasoBlocked ||
-        !locationState.hasPosition;
+    final liveBlocked =
+        ghostBlocked || alreadyNear || !locationState.hasPosition;
     // La ruta no pasa cerca: el aviso no sonaría nunca. Va FUERA de la
     // histéresis a propósito. La histéresis existe para que el bus moviéndose
     // alrededor de la distancia del aviso no haga parpadear el botón; esto no
@@ -977,7 +968,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // sobra porque iPhone sale cuando haya avisos por push (dueño,
     // 2026-10-06). En Android la nota de cómo cuidar el aviso se queda.
     final radio = _radioDe(busId);
-    void cambiar() => _cambiarDistancia(busId, radio, distance, yaPaso);
+    void cambiar() => _cambiarDistancia(busId, radio, distance);
     final distanciaEnNota =
         isActive && Theme.of(context).platform == TargetPlatform.iOS;
     final filaDistancia = isActive && !distanciaEnNota
@@ -1054,13 +1045,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     Icons.wrong_location_outlined,
                     "La ruta no pasa cerca de tu punto. Muévelo o elige "
                     "otra ruta.")
-                : yaPaso
-                    ? const _Nota.impide(Icons.history_rounded,
-                        "Este bus ya pasó por tu punto. Elige otro de la ruta.")
-                    : distance == null
-                        ? const _Nota.paso(Icons.location_searching_rounded,
-                            "Buscando la posición del bus…")
-                        : null;
+                : distance == null
+                    ? const _Nota.paso(Icons.location_searching_rounded,
+                        "Buscando la posición del bus…")
+                    : null;
 
     // Estado → color de la métrica grande (número o palabra).
     Color colorCifra;
@@ -1076,10 +1064,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // toca a un estado sin dato.
       colorCifra = AppColors.textSecondary;
       metricText = "Sin tu ubicación";
-      metricSpoken = metricText;
-    } else if (yaPaso) {
-      colorCifra = AppColors.textSecondary;
-      metricText = "Ya pasó";
       metricSpoken = metricText;
     } else if (distance == null) {
       colorCifra = AppColors.textSecondary;
@@ -1268,11 +1252,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                                 ? "Bus sin señal"
                                 : routeTooFar
                                     ? "Esta ruta no pasa cerca"
-                                    : pasoBlocked
-                                        ? "El bus ya pasó"
-                                        : blocked
-                                            ? "El bus ya está cerca"
-                                            : "Avisarme cuando esté cerca",
+                                    : blocked
+                                        ? "El bus ya está cerca"
+                                        : "Avisarme cuando esté cerca",
                         onPressed: () => _toggleAlert(busId),
                       ),
                       if (filaDistancia != null) filaDistancia,

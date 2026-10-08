@@ -18,24 +18,6 @@ import '../models/route_trajectory.dart';
 /// recorrido, y [desvio], metros del punto a la línea.
 typedef Proyeccion = ({double avance, double desvio});
 
-/// Lo que le falta al bus, por la ruta, hasta un punto.
-sealed class DistanciaPorRuta {
-  const DistanciaPorRuta();
-}
-
-/// El bus llega al punto tras [metros]: los de ruta más el desvío del punto
-/// a la línea. Nunca es menos que la línea recta.
-final class Faltan extends DistanciaPorRuta {
-  const Faltan(this.metros);
-  final double metros;
-}
-
-/// El bus ya dejó atrás el punto: le queda más por delante que lo que lleva
-/// desde que pasó (dueño, 2026-10-08: «ya pasó», no la vuelta siguiente).
-final class YaPaso extends DistanciaPorRuta {
-  const YaPaso();
-}
-
 /// Inicio y fin a menos de esto: la ruta vuelve a empezar (las de
 /// `rutas.json` cierran a 0–33 m).
 const double _cierreCircular = 50;
@@ -48,6 +30,10 @@ const double _vMax = 25;
 /// GPS) y lo que pudo andar a [_vMax] más 100 m de holgura.
 const double _ventanaAtras = 50;
 const double _ventanaAdelante = 100;
+
+/// Un bus hasta 30 m pasado el punto sigue ahí: es el error del GPS, no
+/// que le falte otra vuelta.
+const double _ruidoAtras = 30;
 
 /// Dos tramos a menos de esto en desvío son la misma calle (ida y vuelta,
 /// un carril por sentido): ahí decide el rumbo, no la cercanía.
@@ -116,11 +102,16 @@ class RutaMedible {
   }
 
   /// Metros hacia adelante de [desde] a [hasta]: con la vuelta en la
-  /// circular; null en la abierta si [hasta] queda atrás.
+  /// circular; null en la abierta si [hasta] queda atrás. Menos de
+  /// [_ruidoAtras] por detrás es el error del GPS: 0, no una vuelta entera.
   double? _adelante(double desde, double hasta) {
     final d = hasta - desde;
-    if (circular) return d % largo;
-    return d < 0 ? null : d;
+    if (circular) {
+      final a = d % largo;
+      return largo - a < _ruidoAtras ? 0 : a;
+    }
+    if (d < 0) return d > -_ruidoAtras ? 0 : null;
+    return d;
   }
 
   /// Cada tramo con la proyección de ([px], [py]) sobre él.
@@ -246,25 +237,25 @@ class RutaMedible {
     return pasos;
   }
 
-  /// Lo que le falta al bus en [avanceBus] para pasar por [p], o null si
-  /// [p] está a más de [desvioPuntoMaximo] de la ruta.
+  /// Los metros que le faltan al bus en [avanceBus] para pasar por [p]: los
+  /// de ruta hasta el próximo paso por [p] más el desvío del punto a la
+  /// línea. Null si [p] está a más de [desvioPuntoMaximo] de la ruta o, en
+  /// la abierta, si el bus ya dejó atrás todos los pasos.
   ///
-  /// De los pasos de la ruta por [p] cuenta el siguiente que el bus tiene
-  /// más cerca por delante que por detrás. Si en todos le queda más por
-  /// delante que lo que lleva desde que pasó —o en la abierta ya los dejó
-  /// todos atrás—, [YaPaso].
-  DistanciaPorRuta? medir(double avanceBus, GeoPoint p) {
+  /// Nunca dice «ya pasó»: en una calle de ida y vuelta no se sabe qué
+  /// sentido espera la persona, así que en la circular se cuenta hasta la
+  /// vuelta siguiente; qué bus elige es cosa suya (dueño, 2026-10-08).
+  double? medir(double avanceBus, GeoPoint p) {
     final pasos = _pasos(p);
     if (pasos.first.desvio > desvioPuntoMaximo) return null;
     double? faltan;
     for (final paso in pasos) {
       final adelante = _adelante(avanceBus, paso.avance);
       if (adelante == null) continue;
-      if (circular && adelante > largo - adelante) continue;
       final metros = adelante + paso.desvio;
       if (faltan == null || metros < faltan) faltan = metros;
     }
-    return faltan == null ? const YaPaso() : Faltan(faltan);
+    return faltan;
   }
 }
 
@@ -304,7 +295,7 @@ class SeguidorRuta {
 
   /// Lo que le falta a [bus] por la ruta hasta [punto], o null si no se
   /// sabe: el bus fuera de la ruta o el punto lejos de ella.
-  DistanciaPorRuta? distancia(BusPosition bus, GeoPoint punto) {
+  double? distancia(BusPosition bus, GeoPoint punto) {
     final avance = avanceDe(bus);
     return avance == null ? null : ruta.medir(avance, punto);
   }

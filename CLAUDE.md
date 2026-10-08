@@ -136,28 +136,28 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   sombras, buses que se deslizan, rodillo de los pasos y empresas de
   usted): `main` igual a la rama de trabajo en los tres repos (web
   `ac234af`, backend `9dc18a7`; la app en el commit de este párrafo).
-- **Verificación (2026-10-07)**: **1.850 pruebas** en total (1.818 pasan +
-  32 saltadas: 28 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
+- **Verificación (2026-10-08)**: **1.975 pruebas** en total (1.942 pasan +
+  33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
   50 de `npm run test:aforo` (Python; 6 se saltan sin torch) y las 6 E2E del
   simulador.
-- **Flutter** (2026-10-08): core 113, panel 330 + 3 saltadas, pasajero
+- **Flutter** (2026-10-08): core 116, panel 330 + 3 saltadas, pasajero
   680 + 1, pruebas 13. `flutter analyze --fatal-infos lib test` en 0 en los tres (y
   `integration_test` en el panel). Aparte, la E2E del panel de escritorio
   contra un backend temporal: `tool/e2e-panel.sh` (abre una ventana; el
   llavero va en memoria). Contrato con el backend:
   `tool/sincronizar-contrato.sh` (y `--comprobar`) tras
   `npm run contrato:actualizar` en el backend.
-- **Backend**: 281 pruebas con `npm test` (también con
+- **Backend**: 307 pruebas con `npm test` (también con
   `YA_VIENE_SEED_DEMO=0`, `YA_VIENE_EXPUESTO=1` o `NODE_ENV=production`:
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web**: `npm run typecheck` limpio (3 configs), **334 en Vitest**,
-  cobertura 98,7 / 91,5 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
+- **Web**: `npm run typecheck` limpio (3 configs), **335 en Vitest**,
+  cobertura 98,6 / 91,2 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
-  Playwright **158 + 28 saltadas**. Presupuestos: dist 781,0/797 (**98 %**),
-  JS 60,1/66, CSS 120,0/121 (**99 %**), primera visita 469,4/560 — dist y
+  Playwright **161 + 29 saltadas**. Presupuestos: dist 781,5/797 (**98 %**),
+  JS 60,4/66, CSS 120,2/121 (**99 %**), primera visita 470,0/560 — dist y
   CSS sin margen: todo cambio web se mide antes de sumarlo, y el CSS que
   entre tiene que salir de otro lado.
 - **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra al
@@ -226,8 +226,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   La distancia al bus se mide **por la ruta**, no en línea recta (A2,
   2026-10-08; `SeguidorRuta` en `ya_viene_core/lib/core/geo/por_ruta.dart`,
   compartido por `seguidorRutaProvider`): hoja, rueda, validación y aviso.
-  Si el bus ya pasó el punto dice «Ya pasó» (no la vuelta siguiente) y no
-  deja poner el aviso; si no se puede medir (bus a más de 60 m de la ruta
+  Sin estado «Ya pasó» (dueño, 2026-10-08): cuenta hasta el próximo paso
+  (la vuelta siguiente en una circular; en una abierta ya pasada, en
+  recta) y nunca bloquea el aviso por eso; si no se puede medir (bus a más de 60 m de la ruta
   o punto a más de 300 m), cae a la línea recta. El push del servidor
   sigue en recta (FALTANTES). La idea se publica aparte, en inglés, en
   `elDiego5599/alongroute` (`YaViene/alongroute`).

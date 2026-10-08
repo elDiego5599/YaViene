@@ -613,9 +613,15 @@
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (circular) return d % largo;",
-    "a": "if (false) return d % largo;",
-    "que": "en la circular, cruzar el final del recorrido no es retroceder"
+    "de": "return largo - a < _ruidoAtras ? 0 : a;",
+    "a": "return a;",
+    "que": "en la circular, el ruido del GPS no manda al bus a la vuelta siguiente"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (d < 0) return d > -_ruidoAtras ? 0 : null;",
+    "a": "if (d < 0) return null;",
+    "que": "en la abierta, el ruido del GPS no da el punto por dejado atrás"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",

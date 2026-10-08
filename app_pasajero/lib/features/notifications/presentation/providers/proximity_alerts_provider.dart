@@ -681,13 +681,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       if (pos == null || pos.isGhostBus) continue;
       final ref = _alertRefs[busId] ?? liveRef;
       if (ref == null) continue;
-      // Por la ruta; un bus que ya pasó el punto cuenta como lejos: no
-      // suena y, si ya sonó, puede volver a sonar en su vuelta siguiente.
-      final distance = switch (
-          distanciaAlBus(_seguidorSubs[routeId]?.read(), pos, ref.$1, ref.$2)) {
-        Faltan(:final metros) => metros,
-        YaPaso() => double.infinity,
-      };
+      // Por la ruta: un bus que ya pasó el punto cuenta hasta su vuelta
+      // siguiente y, si ya sonó, puede volver a sonar entonces.
+      final distance =
+          distanciaAlBus(_seguidorSubs[routeId]?.read(), pos, ref.$1, ref.$2);
       final radio = _alertRadios[busId] ??
           _entradaActiva(busId)?.radioM ??
           distanciaAvisoInicial;
