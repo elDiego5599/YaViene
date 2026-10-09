@@ -132,10 +132,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `YaVieneBackend` (Node/TS; rama `prueba`) y `YaVieneWeb` (Vite/TS; rama
   `diseno-21st`). Remotos `elDiego5599/*`. Nunca usar el backend duplicado
   `/Users/diegoangarita/YaVieneBackend`.
-- **`main` en el remoto** (2026-10-07, lote del tablero blanco del panel,
-  sombras, buses que se deslizan, rodillo de los pasos y empresas de
-  usted): `main` igual a la rama de trabajo en los tres repos (web
-  `ac234af`, backend `9dc18a7`; la app en el commit de este párrafo).
+- **`main` en el remoto** (2026-10-08, lote de la distancia por la ruta
+  —A1, A2 sin «Ya pasó»— y el mapa en vivo de la web por la calle, W1):
+  `main` igual a la rama de trabajo en los tres repos (web `96c5557`,
+  backend `d11cc59`; la app en el commit de este párrafo).
 - **Verificación (2026-10-08)**: **1.975 pruebas** en total (1.942 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
   que corren con `tool/simulacros.sh`), contando las 13 de `ya_viene_pruebas`; aparte, las
