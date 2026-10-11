@@ -34,6 +34,11 @@ enum BusEstado {
     return bus.isGhost ? inactivo : enLinea;
   }
 
+  /// Si [bus] está mandando posición ahora, oculto o no. «Oculto» le gana a
+  /// todo en [de], pero lo oculta al pasajero, no al operador: lo vivo del
+  /// bus (su velocidad) se le sigue enseñando.
+  static bool transmite(FleetBus bus) => bus.online && !bus.isGhost;
+
   String get rotulo => switch (this) {
     enLinea => 'En línea',
     inactivo => 'Inactivo',

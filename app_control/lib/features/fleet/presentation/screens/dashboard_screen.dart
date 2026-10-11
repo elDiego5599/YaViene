@@ -1320,8 +1320,8 @@ class _SelectedBusCard extends StatelessWidget {
           // Lo vivo del bus, en su bandeja: la velocidad en grande y, debajo,
           // cuándo se supo de él. Cambia con cada posición y la ficha no
           // (R-27): este pedazo se suscribe solo a la hora y la velocidad de
-          // su bus. La velocidad, solo en línea; la de un bus callado es de
-          // hace rato y ya no dice nada.
+          // su bus. La velocidad, solo si transmite (oculto también); la de
+          // un bus callado es de hace rato y ya no dice nada.
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -1337,16 +1337,16 @@ class _SelectedBusCard extends StatelessWidget {
                     final vivo = s.buses[bus.busId];
                     return (
                       vivo?.receivedAt ?? vivo?.capturedAt,
-                      vivo?.speedKmh,
+                      vivo != null && BusEstado.transmite(vivo)
+                          ? vivo.speedKmh
+                          : null,
                     );
                   }),
                 );
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    VelocidadBus(
-                      kmh: estado == BusEstado.enLinea ? velocidad : null,
-                    ),
+                    VelocidadBus(kmh: velocidad),
                     const SizedBox(height: 8),
                     UltimoReporte(reportadoEn: reportadoEn),
                   ],

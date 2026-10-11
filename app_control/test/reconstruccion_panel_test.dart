@@ -62,6 +62,14 @@ class _FakeFleetApi extends FleetApi {
   Future<List<FleetRoute>> fetchRoutes(String? token) async => const [
     FleetRoute(routeId: 'R-1', name: 'Tcherassi', total: 2, online: 2),
   ];
+
+  @override
+  Future<FleetBus> setVisibility(
+    String? token,
+    String busId,
+    bool visible,
+  ) async =>
+      FleetBus(busId: busId, companyId: 'c-1', visible: visible, online: true);
 }
 
 class _FakeSocket extends FleetSocketService {
@@ -386,6 +394,30 @@ void main() {
       identical(_tarjetas(tester)['B-1'], antes['B-1']),
       isTrue,
       reason: 'la lista sigue sin rehacerse',
+    );
+
+    // Oculto sigue transmitiendo: ocultar lo quita del mapa del pasajero,
+    // no de la ficha del operador, que sigue viendo a cuánto va.
+    await container.read(fleetProvider.notifier).toggleVisibility('B-1', false);
+    socket.posiciones.add(
+      FleetBus(
+        busId: 'B-1',
+        companyId: 'c-1',
+        routeId: 'R-1',
+        visible: false,
+        online: true,
+        lat: 11.02,
+        lon: -74.7,
+        speedKmh: 41,
+        capturedAt: 2500,
+        receivedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      find.descendant(of: ficha, matching: find.text('41')),
+      findsOneWidget,
     );
 
     // Callado: la ficha lo dice y la velocidad vieja ya no se enseña.
