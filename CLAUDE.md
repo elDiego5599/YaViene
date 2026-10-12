@@ -25,6 +25,15 @@ etiqueta «Simulación», la flota demo y `empty-pick-bus`.
    pruebas que siguen valiendo); el estado vivo está aquí y en FALTANTES.
 
 ## Cómo se trabaja: skills y herramientas
+**Delegación (dueño, 2026-10-11, estricta):** Claude planifica cada tarea
+y la reparte en agentes según su complejidad: lo mecánico o acotado
+(buscar, editar texto, una prueba simple) con **Haiku 5.5**; lo intermedio
+con **Sonnet 5.5**; lo difícil (arquitectura, bugs sin causa clara,
+seguridad, revisión final) con **Opus 5.5 esfuerzo alto**. Cada encargo
+nombra las skills que tocan (tabla de abajo; revisar las disponibles en
+`.claude/skills/` y `~/.claude/skills/`) y le recuerda al agente usarlas.
+Claude revisa siempre lo que entrega cada agente.
+
 Skills del workspace en `.claude/skills/` (copia de `mattpocock/skills` y
 otras) y del usuario en `~/.claude/skills/`. Se invocan con la herramienta
 Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
