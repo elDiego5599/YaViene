@@ -29,7 +29,8 @@ etiqueta «Simulación», la flota demo y `empty-pick-bus`.
 y la reparte en agentes según su complejidad: lo mecánico o acotado
 (buscar, editar texto, una prueba simple) con **Haiku 5.5**; lo intermedio
 con **Sonnet 5.5**; lo difícil (arquitectura, bugs sin causa clara,
-seguridad, revisión final) con **Opus 5.5 esfuerzo alto**. Cada encargo
+seguridad, revisión final) con **Opus 5.5 esfuerzo medio** (el alto gasta
+demasiado; solo si el dueño lo pide). Cada encargo
 nombra las skills que tocan (tabla de abajo; revisar las disponibles en
 `.claude/skills/` y `~/.claude/skills/`) y le recuerda al agente usarlas.
 Claude revisa siempre lo que entrega cada agente.
