@@ -148,7 +148,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   luego, 2026-10-12, la web sola con el hero en video, las preguntas
   frecuentes, el lienzo con `overflow: clip`, los pasos con su cuadro
   blanco y el menú propio de empresas: `72bc384`; carrusel arrastrable
-  de los pasos con sus ideas en rojo y gris: `bfa0085`;
+  de los pasos con sus ideas en rojo y gris: `bfa0085`; la escena
+  también en el carrusel y «Elige tu ruta» quieta: `2702b1f`;
   backend `d11cc59`; la app en el commit de este párrafo).
 - **Verificación (2026-10-08)**: **1.975 pruebas** en total (1.942 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
@@ -167,8 +168,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web** (2026-10-12): `npm run typecheck` limpio (3 configs), **402 en Vitest**,
-  cobertura 99,8 / 96,8 / 100 / 100 sobre el trinquete 98 / 90 / 100 / 99
+- **Web** (2026-10-12): `npm run typecheck` limpio (3 configs), **408 en Vitest**,
+  cobertura 99,5 / 94,1 / 100 / 100 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
   Playwright **117 + 17 saltadas**. Presupuestos: dist 694,3/797 (87 %),
   JS 41,4/66, CSS 108,2/121 (89 %), primera visita 386,7/560 y el video
