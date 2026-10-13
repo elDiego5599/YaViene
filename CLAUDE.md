@@ -151,7 +151,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   de los pasos con sus ideas en rojo y gris: `bfa0085`; la escena
   también en el carrusel y «Elige tu ruta» quieta: `2702b1f`; texto
   y cuadro como una sola lámina, con vuelta y rebote y la sombra del
-  teléfono de la ruta, 2026-10-13: `aff98c4`;
+  teléfono de la ruta, 2026-10-13: `aff98c4`; sin arrastre, con flechas
+  fuera de la caja y el mapa a sangre: `81be7fd`;
   backend `d11cc59`; la app en el commit de este párrafo).
 - **Verificación (2026-10-08)**: **1.975 pruebas** en total (1.942 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
@@ -170,13 +171,13 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web** (2026-10-13): `npm run typecheck` limpio (3 configs), **419 en Vitest**,
-  cobertura 99,2 / 93,5 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
+- **Web** (2026-10-13): `npm run typecheck` limpio (3 configs), **411 en Vitest**,
+  cobertura 99,3 / 94,3 / 100 / 99,8 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
-  Playwright **119 + 17 saltadas** (`carrusel-lamina.spec.ts` vigila
+  Playwright **122 + 18 saltadas** (`carrusel-lamina.spec.ts` vigila
   cuadro a cuadro que texto y cuadro no se separen). Presupuestos: dist
-  701,9/797 (88 %), JS 46,4/66, CSS 109,1/121 (90 %), primera visita
-  394,2/560 y el video
+  702,1/797 (88 %), JS 44,7/66, CSS 110,0/121 (91 %), primera visita
+  394,6/560 y el video
   del hero 4.941/5.090 (**97 %**, tope propio): todo cambio web se mide
   antes de sumarlo.
 - **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra al
