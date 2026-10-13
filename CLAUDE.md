@@ -144,7 +144,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `/Users/diegoangarita/YaVieneBackend`.
 - **`main` en el remoto** (2026-10-08, lote de la distancia por la ruta
   —A1, A2 sin «Ya pasó»— y el mapa en vivo de la web por la calle, W1):
-  `main` igual a la rama de trabajo en los tres repos (web `96c5557`,
+  `main` igual a la rama de trabajo en los tres repos (web `96c5557`;
+  luego, 2026-10-12, la web sola con el hero en video, las preguntas
+  frecuentes y el lienzo con `overflow: clip`: `9f1d562`;
   backend `d11cc59`; la app en el commit de este párrafo).
 - **Verificación (2026-10-08)**: **1.975 pruebas** en total (1.942 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
@@ -163,13 +165,13 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web**: `npm run typecheck` limpio (3 configs), **335 en Vitest**,
-  cobertura 98,6 / 91,2 / 100 / 99,9 sobre el trinquete 98 / 90 / 100 / 99
+- **Web** (2026-10-12): `npm run typecheck` limpio (3 configs), **393 en Vitest**,
+  cobertura 99,8 / 96,8 / 100 / 100 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
-  Playwright **161 + 29 saltadas**. Presupuestos: dist 781,5/797 (**98 %**),
-  JS 60,4/66, CSS 120,2/121 (**99 %**), primera visita 470,0/560 — dist y
-  CSS sin margen: todo cambio web se mide antes de sumarlo, y el CSS que
-  entre tiene que salir de otro lado.
+  Playwright **117 + 17 saltadas**. Presupuestos: dist 694,3/797 (87 %),
+  JS 41,4/66, CSS 108,2/121 (89 %), primera visita 386,7/560 y el video
+  del hero 4.941/5.090 (**97 %**, tope propio): todo cambio web se mide
+  antes de sumarlo.
 - **Lighthouse móvil** (T7.7, 2026-10-01, a mano: `@lhci/cli` no entra al
   repo, falla `npm audit`): portada LCP 2,26–2,41 s, empresas 2,18,
   privacidad y términos 1,65; CLS 0, TBT ≤ 35 ms. `e2e/vitales.spec.ts`
