@@ -146,7 +146,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   —A1, A2 sin «Ya pasó»— y el mapa en vivo de la web por la calle, W1):
   `main` igual a la rama de trabajo en los tres repos (web `96c5557`;
   luego, 2026-10-12, la web sola con el hero en video, las preguntas
-  frecuentes y el lienzo con `overflow: clip`: `9f1d562`;
+  frecuentes, el lienzo con `overflow: clip`, los pasos con su cuadro
+  blanco y el menú propio de empresas: `72bc384`;
   backend `d11cc59`; la app en el commit de este párrafo).
 - **Verificación (2026-10-08)**: **1.975 pruebas** en total (1.942 pasan +
   33 saltadas: 29 de Playwright y 4 de Flutter, 3 de ellas los simulacros,
@@ -165,7 +166,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web** (2026-10-12): `npm run typecheck` limpio (3 configs), **393 en Vitest**,
+- **Web** (2026-10-12): `npm run typecheck` limpio (3 configs), **395 en Vitest**,
   cobertura 99,8 / 96,8 / 100 / 100 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
   Playwright **117 + 17 saltadas**. Presupuestos: dist 694,3/797 (87 %),
