@@ -171,7 +171,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `tests/entorno.ts` fija la siembra y borra las dos guardias),
   `npx tsc --noEmit` limpio. Corre bajo launchd (`com.yaviene.backend`,
   `com.yaviene.ngrok`, `com.yaviene.respaldo`, `com.yaviene.rotar-logs`).
-- **Web** (2026-10-13): `npm run typecheck` limpio (3 configs), **411 en Vitest**,
+- **Web** (2026-10-13): `npm run typecheck` limpio (3 configs), **413 en Vitest**,
   cobertura 99,3 / 94,3 / 100 / 99,8 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
   Playwright **122 + 18 saltadas** (`carrusel-lamina.spec.ts` vigila
