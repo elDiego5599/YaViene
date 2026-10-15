@@ -65,12 +65,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 Necesitan un teléfono, una cuenta o estar presente.
 
-- **Abrirle el backend a la web** (D15): el día que la web tenga su
-  dominio, poner `WEB_ORIGINS=https://<ese dominio>` en `local.env` del
-  backend y reiniciarlo (runbook, «La lista de “Avísame cuando salga”»).
-  Hasta entonces el navegador corta el envío del hero y la persona ve
-  «No pudimos guardar tu número». Después, mandar un número propio desde
-  la web y verlo en la lista.
+- **Probar la lista desde la web** (D15): `WEB_ORIGINS` ya abre
+  `https://yavienetech.com` (2026-10-15). Falta mandar un número propio
+  desde la web publicada y verlo en `GET /api/admin/lanzamiento`.
 
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
