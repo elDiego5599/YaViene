@@ -57,11 +57,20 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   espera redondeado y el código de Firebase quedan en el servidor hasta
   tres horas. Y el buzón (D14): el texto libre del reporte puede traer un
   dato personal aunque la app pida que no; se guarda solo hasta que sale
-  por correo, y luego vive en el Gmail del equipo.
+  por correo, y luego vive en el Gmail del equipo. Y la lista de «Avísame
+  cuando salga» (D15, 2026-10-14): el celular y la fecha del permiso quedan
+  en el backend hasta el aviso o hasta que la persona pida borrarlo.
 
 ## Lo que tienes que hacer tú
 
 Necesitan un teléfono, una cuenta o estar presente.
+
+- **Abrirle el backend a la web** (D15): el día que la web tenga su
+  dominio, poner `WEB_ORIGINS=https://<ese dominio>` en `local.env` del
+  backend y reiniciarlo (runbook, «La lista de “Avísame cuando salga”»).
+  Hasta entonces el navegador corta el envío del hero y la persona ve
+  «No pudimos guardar tu número». Después, mandar un número propio desde
+  la web y verlo en la lista.
 
 - **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
