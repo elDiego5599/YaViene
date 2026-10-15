@@ -62,6 +62,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
    cada push a `main` gasta minutos de Actions. Se trabaja y se sube a
    `diseno-21st` (app, web) y `prueba` (backend); ahí se acumula. La CI de
    una rama de trabajo se lanza a mano («Run workflow»), solo si hace falta.
+   Cada vez que el dueño pida subir a `main` (dueño, 2026-10-14): antes de
+   empujar, recordarle los minutos de Actions (Pro: 3.000/mes; macOS ×10,
+   Windows ×2) y preguntarle si está seguro; solo con su sí se sube.
 3. **Secretos**: nunca imprimir `local.env` (solo los nombres de sus
    claves), `key.properties` (no se lee), `google-services.json`,
    `GoogleService-Info.plist`, el keystore, el PIN ni ningún token (ngrok
