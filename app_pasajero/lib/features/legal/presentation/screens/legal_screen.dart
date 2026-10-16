@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/widgets/borde_desvanecido.dart';
 import '../../legal_docs.dart';
 
 /// Un documento legal, leído dentro de la app.
@@ -23,6 +24,9 @@ class LegalScreen extends StatelessWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        // Lo que pasa debajo se funde (`BordeDesvanecido`): la barra no se
+        // oscurece ni se separa con sombra.
+        scrolledUnderElevation: 0,
         centerTitle: true,
         // El mismo techo que en Avisos: la barra mide 56 y no se estira,
         // así que con el texto al triple el título se saldría por los dos
@@ -44,29 +48,34 @@ class LegalScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.sm,
-            AppSpacing.lg,
-            AppSpacing.xl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Actualizado el ${doc.updated}',
-                style: AppTextStyles.etiqueta.copyWith(
-                  // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre el
-                  // fondo y no pasa AA. Se usa `textSecondary`, el mismo
-                  // token con el que el panel arregló sus rótulos en T6.1,
-                  // no un gris nuevo.
-                  color: AppColors.textSecondary,
+        child: BordeDesvanecido(
+          // Al subir, el texto se disuelve bajo la barra en vez de cortarse
+          // en seco contra ella (dueño, 2026-10-16).
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              // Arriba, lo que se funde: en reposo la fecha queda entera.
+              BordeDesvanecido.alto,
+              AppSpacing.lg,
+              AppSpacing.xl,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Actualizado el ${doc.updated}',
+                  style: AppTextStyles.etiqueta.copyWith(
+                    // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre el
+                    // fondo y no pasa AA. Se usa `textSecondary`, el mismo
+                    // token con el que el panel arregló sus rótulos en T6.1,
+                    // no un gris nuevo.
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              for (final bloque in doc.blocks) _Bloque(bloque: bloque),
-            ],
+                const SizedBox(height: AppSpacing.md),
+                for (final bloque in doc.blocks) _Bloque(bloque: bloque),
+              ],
+            ),
           ),
         ),
       ),

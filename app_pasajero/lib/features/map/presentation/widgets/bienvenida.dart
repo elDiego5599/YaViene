@@ -11,7 +11,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 /// Pocas palabras y grandes, como la entrada. El título dice «Bienvenido»
 /// (dueño, 2026-10-02; antes «Todo listo»).
 ///
-/// Se probó con la noche de la entrada (`LiveRouteBackdrop`) en una franja
+/// Se probó con la noche de rutas que tenía entonces la entrada en una franja
 /// de arriba y no gustó: ese fondo está dibujado para la pantalla entera y,
 /// recortado a 176, se veía como una imagen ampliada.
 class VentanaBienvenida extends StatelessWidget {

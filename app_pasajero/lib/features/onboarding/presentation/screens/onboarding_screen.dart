@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/entrance.dart';
+import '../../../../core/widgets/fondo_malla.dart';
 import '../../../../core/widgets/ink_hero.dart';
-import '../../../../core/widgets/live_route_backdrop.dart';
 import '../../../legal/legal_acceptance.dart';
 import '../../../legal/legal_docs.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
@@ -18,6 +18,10 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
+
+/// Cuánto sube la malla en la bienvenida: lo que deja la bajada de la marca
+/// sobre el tono donde se lee en el arranque (`FondoMalla.subida`).
+const double subidaMalla = 0.24;
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _requesting = false;
@@ -61,10 +65,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.ink,
-      body: LiveRouteBackdrop(
-        // La pantalla pide la ubicación: el fondo la enseña. El punto azul
-        // es dónde espera el usuario y el bus se le va acercando.
-        showUser: true,
+      // La misma malla que respira en el arranque (dueño, 2026-10-16): la
+      // bienvenida lo releva, y un fondo distinto se leía como otra app.
+      body: FondoMalla(
+        subida: subidaMalla,
         child: SafeArea(
           bottom: false,
           child: LayoutBuilder(

@@ -11,11 +11,10 @@ import 'golden_harness.dart';
 
 /// La marca sobre la malla del splash y sobre la tinta de la bienvenida.
 ///
-/// La bienvenida se fotografía con tinta lisa y no con su fondo
-/// (`LiveRouteBackdrop`), que es una animación que no para nunca: la foto
-/// saldría distinta cada vez. Los píxeles que importan —el logo, el nombre,
-/// la bajada y sus tamaños— son todos de este widget. La malla del splash
-/// sí va: es quieta.
+/// La bienvenida se fotografía con tinta lisa: los píxeles que importan
+/// —el logo, el nombre, la bajada y sus tamaños— son todos de este widget,
+/// y su malla ya la miden `fondo_malla_test` y `onboarding_hoja_test`. La
+/// del splash sí va: respira, pero a un tiempo fijo sale siempre igual.
 void main() {
   Widget sobreTinta(Widget hijo) => ColoredBox(
         color: AppColors.ink,
@@ -46,8 +45,8 @@ void main() {
       ),
     );
     // Nada de `pumpAndSettle` aquí: el indicador de carga gira para
-    // siempre y la espera nunca terminaria. Se avanza un tiempo fijo, que
-    // deja el spinner en la misma fase en cada corrida.
+    // siempre —y la malla respira— y la espera nunca terminaría. Se avanza
+    // un tiempo fijo, que deja los dos en la misma fase en cada corrida.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await coincideConOro(tester, 'ink_hero_splash');

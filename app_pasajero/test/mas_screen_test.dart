@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
+import 'package:ya_viene_pasajero/core/widgets/borde_desvanecido.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 void main() {
@@ -196,5 +199,58 @@ void main() {
     final grupo = tester.getRect(find.text('Acerca de'));
     final pie = tester.getRect(find.textContaining('OpenStreetMap'));
     expect(pie.top, greaterThan(grupo.bottom));
+  });
+
+  // «En la parte de info siento que está muy fuerte, se ve muy brillante, y
+  // cuando bajo se esconde el Ya Viene» (dueño, 2026-10-16).
+  testWidgets('Info lleva la malla suave, con letra de tinta', (tester) async {
+    await abrirMas(tester);
+
+    expect(tester.widget<FondoMalla>(find.byType(FondoMalla)).suave, isTrue);
+    expect(tester.widget<Text>(find.text('Ya Viene')).style!.color,
+        AppColors.textPrimary);
+    expect(
+        tester.widget<Text>(find.textContaining('OpenStreetMap')).style!.color,
+        AppColors.textSecondary);
+    // Fondo claro arriba: la hora y la batería en oscuro.
+    final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+        find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first);
+    expect(region.value, SystemUiOverlayStyle.dark);
+  });
+
+  testWidgets('al bajar, «Ya Viene» se queda y lo de abajo se funde bajo él',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await abrirMas(tester);
+
+    final antes = tester.getRect(find.text('Ya Viene'));
+    final tarjetaAntes = tester.getRect(find.byType(ActiveRouteCard));
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -120));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(tester.getRect(find.text('Ya Viene')), antes);
+    expect(tester.getRect(find.byType(ActiveRouteCard)).top,
+        lessThan(tarjetaAntes.top));
+    // Las tarjetas se disuelven bajo el nombre, sin corte seco.
+    expect(
+        find.descendant(
+            of: find.byType(BordeDesvanecido),
+            matching: find.byType(ActiveRouteCard)),
+        findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byType(BordeDesvanecido), matching: find.text('Ya Viene')),
+        findsNothing);
+  });
+
+  testWidgets('en reposo nada queda en la franja que se funde', (tester) async {
+    await abrirMas(tester);
+
+    final borde = tester.getRect(find.byType(BordeDesvanecido));
+    final tarjeta = tester.getRect(find.byType(ActiveRouteCard));
+    expect(
+        tarjeta.top - borde.top, greaterThanOrEqualTo(BordeDesvanecido.alto));
   });
 }

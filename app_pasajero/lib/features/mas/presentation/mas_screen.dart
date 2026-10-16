@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../core/app_info.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/borde_desvanecido.dart';
 import '../../../core/widgets/dialogo.dart';
 import '../../../core/widgets/fondo_malla.dart';
 import '../../legal/legal_docs.dart';
@@ -23,8 +24,8 @@ import '../../map/presentation/providers/user_location_provider.dart';
 ///
 /// Sin la entrada escalonada del menú: cambiar de pestaña es instantáneo en
 /// iOS, y una página que se arma por partes cada vez que se vuelve a ella
-/// se lee como lenta. Fondo de malla, el mismo del arranque, con tarjetas
-/// blancas que se despegan con su sombra (dueño, 2026-10-16).
+/// se lee como lenta. Fondo de malla, la del arranque en suave, con
+/// tarjetas blancas que se despegan con su sombra (dueño, 2026-10-16).
 class MasScreen extends ConsumerWidget {
   const MasScreen({super.key});
 
@@ -138,111 +139,105 @@ class MasScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Arriba la malla es verde oscuro: la hora y la batería en blanco.
+    // La malla suave es clara: la hora y la batería en oscuro.
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Material(
         type: MaterialType.transparency,
         // La malla pinta TODA la pantalla, también bajo la barra de estado
-        // y la píldora: la SafeArea queda solo para el contenido.
+        // y la píldora: la SafeArea queda solo para el contenido. Suave
+        // (dueño, 2026-10-16: «muy fuerte, se ve muy brillante»): la del
+        // arranque bajo un velo blanco, para que las tarjetas no compitan
+        // con ella.
         child: FondoMalla(
+          suave: true,
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(margen, 26, margen, 20),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: anchoMaximo),
-                  // El pie se apoya en el fondo de la página y no justo
-                  // debajo del último grupo: pegado arriba dejaba media
-                  // pantalla vacía. En un teléfono bajo, donde no sobra
-                  // nada, todo se desplaza.
-                  child: CustomScrollView(
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // La marca al centro, como en el arranque: es
-                            // el mismo fondo y se lee como la misma casa.
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // El logo se anunciaba como "imagen", sin
-                                // más, y justo al lado va el nombre escrito:
-                                // es el mismo dato dos veces.
-                                ExcludeSemantics(
-                                  child: SvgPicture.asset(
-                                    'assets/icon/ya_viene_logo.svg',
-                                    width: 30,
-                                    height: 30,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Flexible(
-                                  child: Semantics(
-                                    header: true,
-                                    child: Text(
-                                      'Ya Viene',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTextStyles.titulo.copyWith(
-                                        color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // La marca al centro, como en el arranque, y fija:
+                      // al bajar se escondía con lo demás (dueño,
+                      // 2026-10-16). Lo de abajo se desplaza y se disuelve
+                      // bajo ella.
+                      const _Marca(),
+                      const SizedBox(height: 26 - BordeDesvanecido.alto),
+                      Expanded(
+                        child: BordeDesvanecido(
+                          // El pie se apoya en el fondo de la página y no
+                          // justo debajo del último grupo: pegado arriba
+                          // dejaba media pantalla vacía. En un teléfono
+                          // bajo, donde no sobra nada, todo se desplaza.
+                          child: CustomScrollView(
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // En reposo nada cae en la franja que
+                                    // se funde.
+                                    const SizedBox(
+                                        height: BordeDesvanecido.alto),
+                                    const ActiveRouteCard(),
+                                    const SizedBox(height: AppSpacing.lg),
+                                    _grupo([
+                                      FilaMas(
+                                        icon: Icons.help_outline_outlined,
+                                        title: 'Ver guía de uso',
+                                        onTap: () => _verGuia(context, ref),
                                       ),
-                                    ),
-                                  ),
+                                    ]),
+                                    const SizedBox(height: AppSpacing.md),
+                                    // Segundo grupo: lo que se consulta de
+                                    // vez en cuando. Sin cuenta, este es el
+                                    // único sitio estable donde volver a
+                                    // leer lo que se aceptó en la
+                                    // bienvenida.
+                                    _grupo([
+                                      FilaMas(
+                                        icon: Icons.lock_outline_rounded,
+                                        title: 'Privacidad',
+                                        onTap: () => context.push(
+                                            legalPath(legalPrivacidad.id)),
+                                      ),
+                                      FilaMas(
+                                        icon: Icons.description_outlined,
+                                        title: 'Términos',
+                                        onTap: () => context
+                                            .push(legalPath(legalTerminos.id)),
+                                      ),
+                                      FilaMas(
+                                        icon: Icons.info_outline_rounded,
+                                        title: 'Acerca de',
+                                        onTap: () => _acercaDe(context),
+                                      ),
+                                    ]),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 26),
-                            const ActiveRouteCard(),
-                            const SizedBox(height: AppSpacing.lg),
-                            _grupo([
-                              FilaMas(
-                                icon: Icons.help_outline_outlined,
-                                title: 'Ver guía de uso',
-                                onTap: () => _verGuia(context, ref),
                               ),
-                            ]),
-                            const SizedBox(height: AppSpacing.md),
-                            // Segundo grupo: lo que se consulta de vez en
-                            // cuando. Sin cuenta, este es el único sitio
-                            // estable donde volver a leer lo que se aceptó
-                            // en la bienvenida.
-                            _grupo([
-                              FilaMas(
-                                icon: Icons.lock_outline_rounded,
-                                title: 'Privacidad',
-                                onTap: () =>
-                                    context.push(legalPath(legalPrivacidad.id)),
+                              const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    SizedBox(height: 26),
+                                    // Los créditos del mapa viven aquí
+                                    // desde que la "i" azul de MapLibre
+                                    // dejó libre su esquina para el botón
+                                    // de recentrar. OpenStreetMap y CARTO
+                                    // piden que se vean; el pie de esta
+                                    // página es donde no estorban.
+                                    _Pie(),
+                                  ],
+                                ),
                               ),
-                              FilaMas(
-                                icon: Icons.description_outlined,
-                                title: 'Términos',
-                                onTap: () =>
-                                    context.push(legalPath(legalTerminos.id)),
-                              ),
-                              FilaMas(
-                                icon: Icons.info_outline_rounded,
-                                title: 'Acerca de',
-                                onTap: () => _acercaDe(context),
-                              ),
-                            ]),
-                          ],
-                        ),
-                      ),
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            SizedBox(height: 26),
-                            // Los créditos del mapa viven aquí desde que la
-                            // "i" azul de MapLibre dejó libre su esquina
-                            // para el botón de recentrar. OpenStreetMap y
-                            // CARTO piden que se vean; el pie de esta página
-                            // es donde no estorban.
-                            _Pie(),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -257,6 +252,43 @@ class MasScreen extends ConsumerWidget {
   }
 }
 
+/// El logo y el nombre, arriba de Info.
+class _Marca extends StatelessWidget {
+  const _Marca();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // El logo se anunciaba como "imagen", sin más, y justo al lado va
+        // el nombre escrito: es el mismo dato dos veces.
+        ExcludeSemantics(
+          child: SvgPicture.asset(
+            'assets/icon/ya_viene_logo.svg',
+            width: 30,
+            height: 30,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Semantics(
+            header: true,
+            child: Text(
+              'Ya Viene',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              // En tinta sobre la malla suave (lo mide `fondo_malla_test`).
+              style:
+                  AppTextStyles.titulo.copyWith(color: AppColors.textPrimary),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// La superficie de las tarjetas de Info: blanca y opaca sobre la malla, con
 /// la sombra flotante para que se despegue (dueño, 2026-10-16: «lo que ya es
 /// blanco, ponerle sombras para diferenciar»).
@@ -266,8 +298,8 @@ final _tarjeta = BoxDecoration(
   boxShadow: AppShadows.floating,
 );
 
-/// Pie de Info: los créditos del mapa, chicos y al centro, en el blanco que
-/// la malla deja leer (`FondoMalla.alfaLetraChica`).
+/// Pie de Info: los créditos del mapa, chicos y al centro, en el gris de la
+/// letra secundaria, que sobre la malla suave pasa AA (`fondo_malla_test`).
 class _Pie extends StatelessWidget {
   const _Pie();
 
@@ -282,7 +314,7 @@ class _Pie extends StatelessWidget {
         '©\u00A0MapLibre · ©\u00A0OpenStreetMap · ©\u00A0CARTO',
         textAlign: TextAlign.center,
         style: AppTextStyles.pie.copyWith(
-          color: Colors.white.withValues(alpha: FondoMalla.alfaLetraChica),
+          color: AppColors.textSecondary,
           height: 1.4,
         ),
       ),

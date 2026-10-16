@@ -96,8 +96,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           ),
           child: Row(
             children: [
-              // Lo que mide la X de la derecha: con él, el texto y su lupa
-              // quedan en el centro de la píldora, haya ruta o no.
+              // Lo que mide la punta derecha (la lupa o la X): con él, el
+              // texto queda en el centro de la píldora, haya ruta o no.
               const SizedBox(width: 48),
               Expanded(
                 child: GestureDetector(
@@ -116,7 +116,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                     // en la etiqueta solo alargaba lo que dice el lector.
                     label: selectedRoute != null
                         ? 'Ruta activa: ${selectedRoute.name}'
-                        : '¿Qué bus esperas? Toca para buscar tu ruta',
+                        : '¿Qué bus esperas?',
                     excludeSemantics: true,
                     // Los dos botones de los lados se apagan al tocarlos y
                     // esta zona —que es la mitad de la píldora— no acusaba
@@ -138,43 +138,24 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                         constraints: const BoxConstraints(minHeight: 48),
                         child: Center(
                           heightFactor: 1,
-                          // La lupa va pegada a la derecha del texto y los
-                          // dos se centran juntos (dueño, 2026-10-16). Es
-                          // parte del mismo botón —se apaga con él— y el
-                          // lector ya oye la etiqueta del bloque.
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                // Al elegir o quitar la ruta, el texto se
-                                // releva fundiéndose en vez de cambiar de un
-                                // cuadro al siguiente: la píldora es lo
-                                // primero que se mira, y ahí un corte seco
-                                // se lee como un parpadeo.
-                                child: AnimatedSwitcher(
-                                  duration: AppMotion.duracion(
-                                      context, AppMotion.normal),
-                                  // Encadenado, como en la hoja de abajo: dos
-                                  // nombres cruzados a la vez no se leen.
-                                  switchInCurve: const Interval(0.3, 1,
-                                      curve: AppMotion.curvaEntrada),
-                                  switchOutCurve: const Interval(0.6, 1,
-                                      curve: AppMotion.curvaSalida),
-                                  transitionBuilder: _relevoDeTexto,
-                                  child: selectedRoute != null
-                                      ? _rutaActiva(selectedRoute.name)
-                                      : _sinRuta(),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              const ExcludeSemantics(
-                                child: Icon(
-                                  Icons.search_rounded,
-                                  color: AppColors.primaryDeep,
-                                  size: 22,
-                                ),
-                              ),
-                            ],
+                          // Al elegir o quitar la ruta, el texto se releva
+                          // fundiéndose en vez de cambiar de un cuadro al
+                          // siguiente: la píldora es lo primero que se
+                          // mira, y ahí un corte seco se lee como un
+                          // parpadeo.
+                          child: AnimatedSwitcher(
+                            duration:
+                                AppMotion.duracion(context, AppMotion.normal),
+                            // Encadenado, como en la hoja de abajo: dos
+                            // nombres cruzados a la vez no se leen.
+                            switchInCurve: const Interval(0.3, 1,
+                                curve: AppMotion.curvaEntrada),
+                            switchOutCurve: const Interval(0.6, 1,
+                                curve: AppMotion.curvaSalida),
+                            transitionBuilder: _relevoDeTexto,
+                            child: selectedRoute != null
+                                ? _rutaActiva(selectedRoute.name)
+                                : _sinRuta(),
                           ),
                         ),
                       ),
@@ -182,9 +163,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
-              // La X entra y sale fundiéndose con un leve cambio de escala,
-              // no de un cuadro al siguiente. Sin ruta queda su hueco, que
-              // equilibra el de la izquierda.
+              // La punta derecha: sin ruta, la lupa (dueño, 2026-10-16: «en
+              // la punta derecha»), que abre la búsqueda como el texto y se
+              // apaga con él; con ruta, la X que la quita. Se relevan
+              // fundiéndose con un leve cambio de escala.
               AnimatedSwitcher(
                 duration: AppMotion.duracion(context, AppMotion.normal),
                 switchInCurve: AppMotion.curvaEntrada,
@@ -196,10 +178,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                     child: child,
                   ),
                 ),
-                child: selectedRoute != null
-                    ? _buildCloseButton()
-                    : const SizedBox(
-                        key: ValueKey('pill-sin-cola'), width: 48, height: 48),
+                child: selectedRoute != null ? _buildCloseButton() : _lupa(),
               ),
             ],
           ),
@@ -231,27 +210,44 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     );
   }
 
+  /// Sin ruta, la pregunta sola: «Toca para buscar tu ruta» debajo sobraba
+  /// en una píldora con su lupa (dueño, 2026-10-16).
   Widget _sinRuta() {
-    return Column(
+    return Text(
+      '¿Qué bus esperas?',
       key: const ValueKey('sin-ruta'),
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '¿Qué bus esperas?',
-          style: AppTextStyles.subtitulo,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
+      style: AppTextStyles.subtitulo,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+    );
+  }
+
+  /// La lupa de la punta derecha. Fuera del árbol del lector: el botón del
+  /// texto ya dice lo mismo, y dos botones que hacen igual se oyen doble.
+  Widget _lupa() {
+    return ExcludeSemantics(
+      key: const ValueKey('pill-lupa'),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _onSearchTap,
+        onTapDown: (_) => setState(() => _searchPressed = true),
+        onTapUp: (_) => setState(() => _searchPressed = false),
+        onTapCancel: () => setState(() => _searchPressed = false),
+        child: AnimatedOpacity(
+          opacity: _searchPressed ? 0.5 : 1,
+          duration: AppMotion.instante,
+          child: const SizedBox(
+            width: 48,
+            height: 48,
+            child: Icon(
+              Icons.search_rounded,
+              color: AppColors.primaryDeep,
+              size: 22,
+            ),
+          ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          'Toca para buscar tu ruta',
-          style: AppTextStyles.pie,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 

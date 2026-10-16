@@ -6,6 +6,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
+import '../../../../core/widgets/borde_desvanecido.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
@@ -52,6 +53,9 @@ class NotificationsScreen extends ConsumerWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        // Lo que pasa debajo se funde (`BordeDesvanecido`): la barra no se
+        // oscurece ni se separa con sombra.
+        scrolledUnderElevation: 0,
         centerTitle: true,
         // La pestaña la llama "Avisos", el estado vacío dice "avisos" y el
         // botón del mapa dice "Avísame". Esta era la única pantalla que
@@ -388,82 +392,89 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
     return Column(
       children: [
         Expanded(
-          child: ListView.builder(
-            padding:
-                const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.xl),
-            itemCount: filas.length,
-            itemBuilder: (context, index) {
-              final fila = filas[index];
-              if (fila is String) {
-                return _Encabezado(fila, primero: index == 0);
-              }
-              final entry = fila as AlertHistoryEntry;
-              final seVa = _saliendo.containsKey(entry.id);
-              final pos = positions.cast<BusPosition?>().firstWhere(
-                    (p) => p?.busId == entry.busId,
-                    orElse: () => null,
-                  );
-              final distanceMeters =
-                  !entry.sent && pos != null && location.hasPosition
-                      ? haversineMeters(
-                              location.lat!, location.lon!, pos.lat, pos.lon)
-                          .round()
-                      : null;
-              // El puesto entre los avisos, sin contar los encabezados: el
-              // escalón es entre tarjetas.
-              final orden = entries.indexOf(entry);
-              final tile = _AlertTile(
-                entry: entry,
-                routeName: entry.routeName ??
-                    (route?.id == entry.routeId ? route?.name : null),
-                distanceMeters: distanceMeters,
-                selecting: selecting && !seVa,
-                selected: selected.contains(entry.id),
-                onToggleSelect: () {
-                  HapticFeedback.selectionClick();
-                  ref.read(alertSelectionProvider.notifier).toggle(entry.id);
-                },
-                // Uno solo, a la vista y con su botón: no pregunta,
-                // pero se puede deshacer.
-                onDisable: () =>
-                    _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
-              );
-              if (seVa) {
-                final grupo = entry.sent ? enviados : esperando;
-                final primeraDelGrupo = !vivo(grupo) && grupo.first == entry;
-                return _Salida(
-                  key: ValueKey('sale-${entry.id}'),
-                  alTerminar: () => setState(() => _saliendo.remove(entry.id)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (primeraDelGrupo)
-                        _Encabezado(
-                          entry.sent ? 'Enviados' : 'Esperando',
-                          primero: index == 0,
+          child: BordeDesvanecido(
+            // Al subir, la lista se disuelve bajo la barra en vez de
+            // cortarse en seco contra ella (dueño, 2026-10-16).
+            child: ListView.builder(
+              // Arriba, lo que se funde: en reposo la primera fila queda
+              // entera.
+              padding: const EdgeInsets.fromLTRB(
+                  20, BordeDesvanecido.alto, 20, AppSpacing.xl),
+              itemCount: filas.length,
+              itemBuilder: (context, index) {
+                final fila = filas[index];
+                if (fila is String) {
+                  return _Encabezado(fila, primero: index == 0);
+                }
+                final entry = fila as AlertHistoryEntry;
+                final seVa = _saliendo.containsKey(entry.id);
+                final pos = positions.cast<BusPosition?>().firstWhere(
+                      (p) => p?.busId == entry.busId,
+                      orElse: () => null,
+                    );
+                final distanceMeters =
+                    !entry.sent && pos != null && location.hasPosition
+                        ? haversineMeters(
+                                location.lat!, location.lon!, pos.lat, pos.lon)
+                            .round()
+                        : null;
+                // El puesto entre los avisos, sin contar los encabezados: el
+                // escalón es entre tarjetas.
+                final orden = entries.indexOf(entry);
+                final tile = _AlertTile(
+                  entry: entry,
+                  routeName: entry.routeName ??
+                      (route?.id == entry.routeId ? route?.name : null),
+                  distanceMeters: distanceMeters,
+                  selecting: selecting && !seVa,
+                  selected: selected.contains(entry.id),
+                  onToggleSelect: () {
+                    HapticFeedback.selectionClick();
+                    ref.read(alertSelectionProvider.notifier).toggle(entry.id);
+                  },
+                  // Uno solo, a la vista y con su botón: no pregunta,
+                  // pero se puede deshacer.
+                  onDisable: () =>
+                      _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
+                );
+                if (seVa) {
+                  final grupo = entry.sent ? enviados : esperando;
+                  final primeraDelGrupo = !vivo(grupo) && grupo.first == entry;
+                  return _Salida(
+                    key: ValueKey('sale-${entry.id}'),
+                    alTerminar: () =>
+                        setState(() => _saliendo.remove(entry.id)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (primeraDelGrupo)
+                          _Encabezado(
+                            entry.sent ? 'Enviados' : 'Esperando',
+                            primero: index == 0,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: tile,
                         ),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: tile,
-                      ),
-                    ],
+                      ],
+                    ),
+                  );
+                }
+                return Padding(
+                  // 12 entre tarjetas, como antes el separador.
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _TileEntrance(
+                    key: ValueKey(entry.id),
+                    id: entry.id,
+                    yaEntraron: _yaEntraron,
+                    // El desfase se topa a los seis primeros: más allá, la
+                    // espera del último se notaría más que el efecto.
+                    orden: orden.clamp(0, 5),
+                    child: tile,
                   ),
                 );
-              }
-              return Padding(
-                // 12 entre tarjetas, como antes el separador.
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _TileEntrance(
-                  key: ValueKey(entry.id),
-                  id: entry.id,
-                  yaEntraron: _yaEntraron,
-                  // El desfase se topa a los seis primeros: más allá, la
-                  // espera del último se notaría más que el efecto.
-                  orden: orden.clamp(0, 5),
-                  child: tile,
-                ),
-              );
-            },
+              },
+            ),
           ),
         ),
         // Barra de acciones del modo selección.

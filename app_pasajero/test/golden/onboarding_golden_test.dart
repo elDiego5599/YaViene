@@ -19,8 +19,8 @@ void main() {
         child: marcoGoldenRuteado(const OnboardingScreen()),
       ),
     );
-    // `LiveRouteBackdrop` mueve el bus del fondo sin parar: con un salto
-    // fijo desde el arranque el bus sale siempre en el mismo punto.
+    // La malla del fondo respira sin parar: con un salto fijo desde el
+    // arranque sale siempre en el mismo punto del ciclo.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
     await coincideConOro(tester, 'bienvenida');

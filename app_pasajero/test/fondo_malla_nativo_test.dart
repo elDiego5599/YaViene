@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
@@ -42,4 +45,29 @@ void main() {
           '../android/app/src/main/res/drawable-nodpi/fondo_malla.png'),
     );
   });
+
+  // El logo del arranque de iOS se pinta sobre la malla: si su PNG no trae
+  // transparencia, las esquinas del cuadrado salen en el color con que se
+  // exportó y el disco verde queda metido en un cuadro (dueño, 2026-10-16).
+  for (final escala in ['', '@2x', '@3x']) {
+    testWidgets('el logo del arranque de iOS$escala no trae cuadro',
+        (tester) async {
+      final bytes = File('ios/Runner/Assets.xcassets/LaunchImage.imageset/'
+              'LaunchImage$escala.png')
+          .readAsBytesSync();
+      final pixeles = await tester.runAsync(() async {
+        final codec = await ui.instantiateImageCodec(bytes);
+        final imagen = (await codec.getNextFrame()).image;
+        final datos =
+            await imagen.toByteData(format: ui.ImageByteFormat.rawRgba);
+        return (imagen.width, datos!);
+      });
+      final (ancho, datos) = pixeles!;
+      // La esquina de arriba a la izquierda, fuera del disco.
+      expect(datos.getUint8(3), 0, reason: 'esquina opaca');
+      // El centro, dentro del disco, sí se ve.
+      final centro = ((ancho ~/ 2) * ancho + ancho ~/ 2) * 4;
+      expect(datos.getUint8(centro + 3), 255);
+    });
+  }
 }

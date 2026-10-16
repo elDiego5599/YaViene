@@ -9,6 +9,7 @@ import 'package:ya_viene_pasajero/features/legal/presentation/screens/'
     'legal_screen.dart';
 
 import 'golden/golden_harness.dart';
+import 'helpers/borde.dart';
 
 /// Los documentos se leen dentro de la app, sin navegador.
 ///
@@ -86,5 +87,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('Ruta no encontrada'), findsOneWidget);
+  });
+
+  testWidgets('el documento se funde bajo la barra al subir', (tester) async {
+    fijarPantalla(tester);
+    final doc = legalDocs.first;
+    await tester.pumpWidget(marcoGolden(LegalScreen(doc: doc)));
+    await tester.pump();
+
+    exigeBordeDesvanecido(tester, find.textContaining(doc.updated));
   });
 }

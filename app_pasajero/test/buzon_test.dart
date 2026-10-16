@@ -14,6 +14,7 @@ import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
+import 'helpers/borde.dart';
 
 /// El botón queda bajo el campo: en la pantalla de prueba (800×600) hay que
 /// llevarlo a la vista antes de tocarlo, como haría el pasajero.
@@ -172,6 +173,22 @@ void main() {
             cliente: MockClient((_) async => http.Response('', 201)),
           ));
       exigeFondoBlanco(tester);
+    });
+
+    testWidgets('el formulario se funde bajo la barra al subir',
+        (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+            backend: () => 'http://x',
+            cliente: MockClient((_) async => http.Response('', 201)),
+          ));
+      exigeBordeDesvanecido(
+          tester,
+          find
+              .descendant(
+                  of: find.byType(ListView), matching: find.byType(Text))
+              .first);
     });
 
     FilledButton boton(WidgetTester tester) =>

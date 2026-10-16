@@ -3,15 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/search_pill_bar.dart';
 
 void main() {
-  testWidgets('el texto de la pill queda centrado', (tester) async {
+  Future<ProviderContainer> montarPill(WidgetTester tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     // autoDispose: mantener vivo selectedRouteProvider con un listener.
     container.listen(selectedRouteProvider, (_, __) {});
-
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -25,80 +25,51 @@ void main() {
         ),
       ),
     );
+    return container;
+  }
 
+  // «Quita el subtítulo» (dueño, 2026-10-16): la pregunta sola, centrada.
+  testWidgets('sin ruta dice solo la pregunta, centrada', (tester) async {
+    await montarPill(tester);
+
+    expect(find.text('Toca para buscar tu ruta'), findsNothing);
     final pill = tester.getRect(find.byType(SearchPillBar));
-    final title = tester.getRect(find.text('¿Qué bus esperas?'));
-    final subtitle = tester.getRect(find.text('Toca para buscar tu ruta'));
-    // Las dos líneas, centradas entre sí; el bloque con su lupa, en la
-    // píldora (la prueba de abajo).
-    expect((title.center.dx - subtitle.center.dx).abs(), lessThan(2));
-    expect((title.center.dx - pill.center.dx).abs(), lessThan(24));
-    expect((title.center.dy - subtitle.center.dy).abs(), greaterThan(10));
+    final titulo = tester.getRect(find.text('¿Qué bus esperas?'));
+    expect((titulo.center.dx - pill.center.dx).abs(), lessThan(2));
+    expect((titulo.center.dy - pill.center.dy).abs(), lessThan(2));
   });
 
-  testWidgets('la lupa va pegada a la derecha del texto y el bloque, centrado',
-      (tester) async {
-    // Dueño, 2026-10-16: la lupa junto al texto, a su derecha, y los dos
-    // centrados en la píldora; el botón de filtros de la derecha sobraba.
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    container.listen(selectedRouteProvider, (_, __) {});
-
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const MaterialApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: SearchPillBar(),
-            ),
-          ),
-        ),
-      ),
-    );
+  testWidgets('la lupa va en la punta derecha de la píldora', (tester) async {
+    // Dueño, 2026-10-16: «la lupa de la pill del inicio colócala en la punta
+    // derecha»; en el hueco de 48 donde con ruta va la X.
+    await montarPill(tester);
 
     expect(find.byIcon(Icons.tune_outlined), findsNothing);
-    expect(find.byKey(const ValueKey('pill-filtro')), findsNothing);
     final pill = tester.getRect(find.byType(SearchPillBar));
+    final hueco = tester.getRect(find.byKey(const ValueKey('pill-lupa')));
     final lupa = tester.getRect(find.byIcon(Icons.search_rounded));
-    final titulo = tester.getRect(find.text('¿Qué bus esperas?'));
-    final pie = tester.getRect(find.text('Toca para buscar tu ruta'));
-    final textoDerecha = titulo.right > pie.right ? titulo.right : pie.right;
-    final textoIzquierda = titulo.left < pie.left ? titulo.left : pie.left;
-    expect(lupa.left, greaterThanOrEqualTo(textoDerecha));
-    expect(lupa.left - textoDerecha, lessThanOrEqualTo(AppSpacing.sm + 1));
+    // 20 de margen, 8 de relleno y 1 de filo: lo último de la píldora.
+    expect(hueco.right, pill.right - 20 - 8 - 1);
+    expect(hueco.width, 48);
+    expect(lupa.center.dx, closeTo(hueco.center.dx, 0.5));
     expect((lupa.center.dy - pill.center.dy).abs(), lessThan(2));
-    final centroBloque = (textoIzquierda + lupa.right) / 2;
-    expect((centroBloque - pill.center.dx).abs(), lessThan(2));
+  });
+
+  testWidgets('tocar la lupa también abre la búsqueda', (tester) async {
+    final container = await montarPill(tester);
+    final abierta = <bool>[];
+    container.listen(routeSelectorOpenProvider, (_, v) => abierta.add(v));
+
+    await tester.tap(find.byKey(const ValueKey('pill-lupa')));
+    await tester.pump();
+    expect(abierta, contains(true));
   });
 
   testWidgets('la zona de búsqueda se anuncia como botón', (tester) async {
     final handle = tester.ensureSemantics();
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    container.listen(selectedRouteProvider, (_, __) {});
+    await montarPill(tester);
 
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const MaterialApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.topCenter,
-              child: SearchPillBar(),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    // Los dos botones de los lados ya se anunciaban; la mitad central —que
-    // es la que abre el selector— no decía nada.
-    expect(
-      find.bySemanticsLabel('¿Qué bus esperas? Toca para buscar tu ruta'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('¿Qué bus esperas?'), findsOneWidget);
     handle.dispose();
   });
 
@@ -186,11 +157,11 @@ void main() {
           reason: 'hay un círculo en la línea de «Ruta activa»: $r');
     }
     // Sin nada a la izquierda: la etiqueta y el nombre van centrados entre
-    // sí, y la lupa a su derecha.
+    // sí; en la punta derecha, la X ocupa el sitio de la lupa.
     final nombre = tester.getRect(find.text('Ruta 106'));
     expect((etiqueta.center.dx - nombre.center.dx).abs(), lessThan(1));
-    expect(tester.getRect(find.byIcon(Icons.search_rounded)).left,
-        greaterThanOrEqualTo(nombre.right));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pill-lupa')), findsNothing);
   });
 
   group('«Ruta activa» con destello', () {

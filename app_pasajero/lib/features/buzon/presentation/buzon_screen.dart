@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/widgets/borde_desvanecido.dart';
 import '../data/buzon.dart';
 
 /// El buzón del pasajero: un problema o una sugerencia, escrito en un
@@ -82,6 +83,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        // Lo que pasa debajo se funde (`BordeDesvanecido`): la barra no se
+        // oscurece ni se separa con sombra.
+        scrolledUnderElevation: 0,
         centerTitle: true,
         // El techo de texto grande de la barra de Avisos, por lo mismo: la
         // barra mide 56 y no se estira.
@@ -118,80 +122,86 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
       key: const ValueKey('buzon_formulario'),
       children: [
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            children: [
-              const _Encabezado(),
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _Opcion(
-                      key: const ValueKey('buzon_problema'),
-                      icono: Icons.report_gmailerrorred_outlined,
-                      texto: 'Un problema',
-                      detalle: 'Algo no funciona bien',
-                      elegida: problema,
-                      alPulsar: () =>
-                          setState(() => _tipo = TipoReporte.problema),
+          child: BordeDesvanecido(
+            // Al subir, el formulario se disuelve bajo la barra en vez de
+            // cortarse en seco contra ella (dueño, 2026-10-16).
+            child: ListView(
+              // Arriba, lo que se funde: en reposo el encabezado queda
+              // entero.
+              padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                  BordeDesvanecido.alto, AppSpacing.lg, AppSpacing.lg),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              children: [
+                const _Encabezado(),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _Opcion(
+                        key: const ValueKey('buzon_problema'),
+                        icono: Icons.report_gmailerrorred_outlined,
+                        texto: 'Un problema',
+                        detalle: 'Algo no funciona bien',
+                        elegida: problema,
+                        alPulsar: () =>
+                            setState(() => _tipo = TipoReporte.problema),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _Opcion(
+                        key: const ValueKey('buzon_sugerencia'),
+                        icono: Icons.lightbulb_outline_rounded,
+                        texto: 'Una sugerencia',
+                        detalle: 'Una idea para mejorar',
+                        elegida: !problema,
+                        alPulsar: () =>
+                            setState(() => _tipo = TipoReporte.sugerencia),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Tarjeta blanca con sombra suave, como las opciones: el filo
+                // solo aparece, verde, mientras se escribe.
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    boxShadow: AppShadows.soft,
+                  ),
+                  child: TextField(
+                    key: const ValueKey('buzon_texto'),
+                    controller: _texto,
+                    enabled: !_enviando,
+                    minLines: 7,
+                    maxLines: 12,
+                    maxLength: Buzon.maximo,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: AppTextStyles.cuerpo
+                        .copyWith(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: problema
+                          ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
+                          : 'Qué mejorarías o qué te gustaría ver en la app.',
+                      hintStyle: AppTextStyles.cuerpo
+                          .copyWith(color: AppColors.textSecondary),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding:
+                          const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
+                      counterStyle: AppTextStyles.pie
+                          .copyWith(color: AppColors.textSecondary),
+                      enabledBorder: _filo(AppColors.hairline, 1),
+                      disabledBorder: _filo(AppColors.hairline, 1),
+                      focusedBorder: _filo(AppColors.primaryAccessible, 2),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _Opcion(
-                      key: const ValueKey('buzon_sugerencia'),
-                      icono: Icons.lightbulb_outline_rounded,
-                      texto: 'Una sugerencia',
-                      detalle: 'Una idea para mejorar',
-                      elegida: !problema,
-                      alPulsar: () =>
-                          setState(() => _tipo = TipoReporte.sugerencia),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Tarjeta blanca con sombra suave, como las opciones: el filo
-              // solo aparece, verde, mientras se escribe.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  boxShadow: AppShadows.soft,
                 ),
-                child: TextField(
-                  key: const ValueKey('buzon_texto'),
-                  controller: _texto,
-                  enabled: !_enviando,
-                  minLines: 7,
-                  maxLines: 12,
-                  maxLength: Buzon.maximo,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: AppTextStyles.cuerpo
-                      .copyWith(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: problema
-                        ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
-                        : 'Qué mejorarías o qué te gustaría ver en la app.',
-                    hintStyle: AppTextStyles.cuerpo
-                        .copyWith(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding:
-                        const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
-                    counterStyle: AppTextStyles.pie
-                        .copyWith(color: AppColors.textSecondary),
-                    enabledBorder: _filo(AppColors.hairline, 1),
-                    disabledBorder: _filo(AppColors.hairline, 1),
-                    focusedBorder: _filo(AppColors.primaryAccessible, 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const _NotaPrivacidad(),
-            ],
+                const SizedBox(height: 12),
+                const _NotaPrivacidad(),
+              ],
+            ),
           ),
         ),
         // El fallo va pegado al botón fijo y no al final de la lista: así

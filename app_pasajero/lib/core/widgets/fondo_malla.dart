@@ -1,38 +1,126 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
-/// El fondo del arranque y de la pestaña de Info (dueño, 2026-10-16): una
-/// malla de color difuminada con los colores de la marca, del verde arriba
-/// al azul y la tinta abajo, en vez de la tinta plana con su red de rutas.
+import 'package:flutter/material.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
+
+/// El fondo del arranque, de la bienvenida y de la pestaña de Info (dueño,
+/// 2026-10-16): una malla de color difuminada con los colores de la marca,
+/// del verde arriba al azul y la tinta abajo, en vez de la tinta plana con
+/// su red de rutas.
 ///
-/// Quieta a propósito: un fondo que se mueve en toda la pantalla marea, y
-/// con movimiento reducido no habría nada que apagar. Cada color está
-/// medido (`test/fondo_malla_test.dart`): el blanco chico se lee en la
-/// franja de la bajada y abajo, el grande arriba, y el disco verde del
-/// logo no se pierde en el verde de alrededor.
-class FondoMalla extends StatelessWidget {
-  const FondoMalla({super.key, required this.child});
+/// Respira (dueño, 2026-10-16: «que no fuera un fondo estático, que parezca
+/// moverse y respirar»): cada mancha da una vuelta chica alrededor de su
+/// sitio y crece y mengua un poco, en un ciclo de [vuelta]. Lento a
+/// propósito —lejos del ciclo de cinco segundos que marea— y empieza en la
+/// misma foto que la pantalla de arranque nativa, para que el relevo no
+/// salte. Con «Reducir movimiento» se queda quieta en esa foto. Cada color
+/// está medido en todo el ciclo (`test/fondo_malla_test.dart`).
+class FondoMalla extends StatefulWidget {
+  const FondoMalla({
+    super.key,
+    required this.child,
+    this.suave = false,
+    this.subida = 0,
+  });
 
   final Widget child;
 
-  /// El blanco de la letra chica sobre la malla: la bajada del arranque y
-  /// los créditos de Info. Al 75 % la bajada medía 4,02:1 en su franja; al
-  /// 90 % pasa AA (`test/fondo_malla_test.dart`).
+  /// Cuánto sube la malla, en fracción del alto. La bienvenida pone la
+  /// marca más arriba que el arranque, porque abajo va su hoja: subiendo la
+  /// malla con ella, la bajada cae en el mismo tono hondo donde se lee y no
+  /// en el verde vivo de arriba (`test/onboarding_hoja_test.dart`). Lo que
+  /// queda abajo sin malla sigue en la tinta del final.
+  final double subida;
+
+  /// Bajo un velo blanco: la de Info, que con la malla entera «se ve muy
+  /// fuerte, muy brillante» (dueño, 2026-10-16). Lleva letra de tinta.
+  final bool suave;
+
+  /// El blanco de la letra chica sobre la malla: la bajada del arranque.
+  /// Al 75 % la bajada medía 4,02:1 en su franja; al 90 % pasa AA
+  /// (`test/fondo_malla_test.dart`).
   static const double alfaLetraChica = 0.9;
 
-  /// El pintor solo, para medir sus píxeles.
-  static CustomPainter pintor() => const _PintorMalla();
+  /// Lo que tapa el velo de Info: deja la marca en un tinte pastel y la
+  /// letra de encima por sobre 4,5:1 en todo el ciclo: al 88 % los créditos
+  /// grises daban 4,37:1 abajo, en el verde.
+  static const double alfaVelo = 0.9;
+
+  /// Un ciclo entero de la respiración.
+  static const Duration vuelta = Duration(seconds: 24);
+
+  /// El pintor solo, en un momento del ciclo, para medir sus píxeles.
+  static CustomPainter pintor(
+          {double fase = 0, bool suave = false, double subida = 0}) =>
+      PintorMalla(AlwaysStoppedAnimation(fase), suave: suave, subida: subida);
+
+  @override
+  State<FondoMalla> createState() => _FondoMallaState();
+}
+
+class _FondoMallaState extends State<FondoMalla>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _ciclo;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // La preferencia puede cambiar con la app abierta: se para donde va (un
+    // salto a la foto de arranque sería justo el movimiento que se pidió
+    // quitar) y vuelve a andar si se apaga.
+    if (AppMotion.reducido(context)) {
+      _ciclo?.stop();
+      return;
+    }
+    final ciclo = _ciclo ??=
+        AnimationController(vsync: this, duration: FondoMalla.vuelta);
+    if (!ciclo.isAnimating) ciclo.repeat();
+  }
+
+  @override
+  void dispose() {
+    _ciclo?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: const _PintorMalla(),
-      child: SizedBox.expand(child: child),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Aparte, para que cada cuadro de la malla no vuelva a pintar lo
+        // que lleva encima.
+        RepaintBoundary(
+          child: CustomPaint(
+            painter: PintorMalla(
+              _ciclo ?? const AlwaysStoppedAnimation(0),
+              suave: widget.suave,
+              subida: widget.subida,
+            ),
+          ),
+        ),
+        widget.child,
+      ],
     );
   }
 }
 
-class _PintorMalla extends CustomPainter {
-  const _PintorMalla();
+/// La malla en un momento de su ciclo ([fase], de 0 a 1).
+class PintorMalla extends CustomPainter {
+  PintorMalla(this._ciclo, {this.suave = false, this.subida = 0})
+      : super(repaint: _ciclo);
+
+  final Animation<double> _ciclo;
+  final bool suave;
+  final double subida;
+
+  double get fase => _ciclo.value;
+
+  /// Cuánto se aleja cada mancha de su sitio, en fracción de la pantalla,
+  /// y cuánto crece o mengua su radio: lo bastante para que se note vivo,
+  /// poco para que nada medido deje de pasar.
+  static const _paseo = 0.05;
+  static const _aliento = 0.08;
 
   /// La base, de arriba abajo: el verde de la marca se hunde en un verde
   /// azulado detrás del logo y termina en la tinta del panel.
@@ -75,11 +163,26 @@ class _PintorMalla extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: _base,
           stops: _paradas,
-        ).createShader(todo),
+        ).createShader(todo.shift(Offset(0, -subida * size.height))),
     );
-    for (final (color, centro, radio) in _manchas) {
-      final c = Offset(centro.dx * size.width, centro.dy * size.height);
-      final r = radio * size.width;
+    final giro = 2 * math.pi * fase;
+    for (final (i, (color, centro, radio)) in _manchas.indexed) {
+      // Una vuelta chica alrededor del sitio, unas a un lado y otras al
+      // otro, cada una desde su punto del círculo. Restar el arranque deja
+      // la fase 0 donde siempre estuvo: la imagen nativa. Vueltas enteras,
+      // para que el final del ciclo empalme con el principio.
+      final sentido = i.isEven ? 1 : -1;
+      final desde = i * 0.7;
+      final paseo = Offset(
+        math.sin(sentido * giro + desde) - math.sin(desde),
+        math.cos(sentido * giro + desde) - math.cos(desde),
+      );
+      final c = Offset(
+        (centro.dx + _paseo * paseo.dx) * size.width,
+        (centro.dy - subida + _paseo * paseo.dy) * size.height,
+      );
+      final r =
+          radio * size.width * (1 + _aliento * math.sin((i % 2 + 1) * giro));
       canvas.drawRect(
         todo,
         Paint()
@@ -88,8 +191,17 @@ class _PintorMalla extends CustomPainter {
           ).createShader(Rect.fromCircle(center: c, radius: r)),
       );
     }
+    if (suave) {
+      canvas.drawRect(
+        todo,
+        Paint()..color = Colors.white.withValues(alpha: FondoMalla.alfaVelo),
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(_PintorMalla oldDelegate) => false;
+  bool shouldRepaint(PintorMalla antes) =>
+      antes._ciclo != _ciclo ||
+      antes.suave != suave ||
+      antes.subida != subida;
 }

@@ -107,8 +107,13 @@ Necesitan un teléfono, una cuenta o estar presente.
   números comentados, y la hoja del mapa que crece de ella (20 por lado,
   cantos de 32, apoyada sobre su hueco, la barra fundida en ella). Y lo
   del mismo día: fondos blancos con sombra suave en lo blanco de encima
-  (`AppShadows.soft`), la lupa a la derecha del texto centrado en la
-  búsqueda y el fondo de malla de marca del arranque y de Info. El desliz
+  (`AppShadows.soft`) y el fondo de malla de marca del arranque y de
+  Info. Y lo último del día: la malla respira (fuerte en el arranque y la
+  bienvenida, suave en Info con «Ya Viene» fijo arriba), la búsqueda sin
+  «Toca para buscar tu ruta» —solo «¿Qué bus esperas?» con la lupa en la
+  punta derecha; quitar el texto de `index.html`, `src/phone-simulator.ts`
+  y `tests/coherencia-textos.test.ts`— y lo de Avisos, Buzón y Legal
+  fundiéndose 16 px bajo su barra (`BordeDesvanecido`). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla.
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
