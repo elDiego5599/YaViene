@@ -118,8 +118,22 @@ Necesitan un teléfono, una cuenta o estar presente.
   ate y acomodarlo (la píldora debajo del texto con letra grande, como en
   `notifications_screen.dart:813`).
 
-Ojo con la web: el CSS va en 120,2 de 121 KB y la carpeta `dist` en 781,6 de
-797. Cualquier cambio de la web se mide antes de sumarlo.
+- **Dos specs de Playwright que fallan con 5 hilos** (hallado el
+  2026-10-16): `carrusel-lamina.spec.ts` y `contraste.spec.ts` fallan solo
+  con la carga en paralelo y pasan con `--workers=1`, con y sin el cambio
+  del hero. Falta la causa (tiempos de animación bajo carga) y volverlas
+  firmes.
+
+- **«Calculando» en la hoja del bus, casi inalcanzable** (hallado el
+  2026-10-16): un bus elegido sin posición cae al estado vacío
+  (`eta_bottom_sheet.dart`, `if (bus == null) return _buildEmptyState`),
+  así que «Calculando» y «Buscando la posición del bus…» solo salen sin
+  ubicación con un aviso del pin anterior y sin ancla. Revisar si se
+  quitan (con `inventario-estados.md`) o si falta un estado de verdad.
+
+Ojo con la web: el CSS va en 118,3 de 121 KB (98 %; dueño, 2026-10-16: puede
+subir) y la carpeta `dist` en 717,8 de 797. Cualquier cambio de la web se
+mide antes de sumarlo.
 
 ## El día antes y el día del pitch
 

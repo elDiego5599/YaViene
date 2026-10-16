@@ -4,6 +4,7 @@
 // eta_sheet_distancia_test.dart.
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/rueda_distancia.dart';
@@ -137,6 +138,28 @@ void main() {
     final fondo = Color.alphaBlend(franjaRuedaDistancia, AppColors.surface);
     expect(contraste(texto.style!.color!, fondo), greaterThanOrEqualTo(4.5));
   });
+
+  // Cada paso de la rueda se siente en el dedo, como en la alarma del
+  // iPhone (referentes, 2026-10-16). En iOS ya lo da el propio picker; en
+  // Android no daba nada. Uno por paso, nunca dos.
+  testWidgets('un toque háptico por paso', (tester) async {
+    final toques = <Object?>[];
+    tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (llamada) async {
+      if (llamada.method == 'HapticFeedback.vibrate') {
+        toques.add(llamada.arguments);
+      }
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+    await montar(tester);
+    await girarA(tester, 1200);
+    await girarA(tester, 1300);
+    expect(toques, List.filled(2, 'HapticFeedbackType.selectionClick'));
+  },
+      variant: const TargetPlatformVariant(
+          {TargetPlatform.android, TargetPlatform.iOS}));
 }
 
 double contraste(Color a, Color b) {

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show AppColors;
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
@@ -237,7 +238,20 @@ void main() {
       await enviar(tester);
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // Sin aro que gira: el botón dice lo que hace, sigue verde y una
+      // barra de 2 px corre por su filo de abajo (referentes: Geist).
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Enviando…'), findsOneWidget);
+      final barra = tester.widget<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator));
+      expect(barra.minHeight, 2);
+      expect(tester.getSize(find.byType(LinearProgressIndicator)).height, 2);
+      final estilo = boton(tester).style!;
+      expect(estilo.backgroundColor!.resolve({WidgetState.disabled}),
+          AppColors.primary,
+          reason: 'enviando no es apagado: el verde se queda');
+      expect(estilo.foregroundColor!.resolve({WidgetState.disabled}),
+          Colors.white);
       expect(boton(tester).onPressed, isNull,
           reason: 'un segundo toque no manda dos veces');
 

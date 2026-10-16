@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/distancia.dart';
@@ -133,7 +135,14 @@ class _RuedaDistanciaState extends State<RuedaDistancia> {
           selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
             background: franjaRuedaDistancia,
           ),
-          onSelectedItemChanged: (i) => widget.alCambiar(_opciones[i]),
+          // Cada paso se siente en el dedo, como en la alarma del iPhone. En
+          // iOS el picker ya lo da; en Android no daba nada.
+          onSelectedItemChanged: (i) {
+            if (defaultTargetPlatform != TargetPlatform.iOS) {
+              HapticFeedback.selectionClick();
+            }
+            widget.alCambiar(_opciones[i]);
+          },
           children: [
             for (final m in _opciones)
               Center(

@@ -196,40 +196,60 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+          // Mientras viaja, el botón dice lo que hace y sigue verde (no se
+          // apaga: no falta nada, solo esperar) y una barra de 2 px corre
+          // por el tramo recto de su filo de abajo, 28 por lado (el radio
+          // de la píldora de 56), como el aviso de la web.
           child: SizedBox(
             height: 56,
             width: double.infinity,
-            child: FilledButton(
-              key: const ValueKey('buzon_enviar'),
-              onPressed: _listo ? _enviar : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                textStyle: AppTextStyles.boton,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-              ),
-              child: _enviando
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                        semanticsLabel: 'Enviando',
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: FilledButton(
+                    key: const ValueKey('buzon_enviar'),
+                    onPressed: _listo ? _enviar : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          _enviando ? AppColors.primary : null,
+                      disabledForegroundColor: _enviando ? Colors.white : null,
+                      textStyle: AppTextStyles.boton,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_fallo == null ? 'Enviar' : 'Intentar de nuevo'),
-                        const SizedBox(width: AppSpacing.sm),
-                        const ExcludeSemantics(
-                          child: Icon(Icons.send_rounded, size: 18),
-                        ),
-                      ],
                     ),
+                    child: _enviando
+                        ? const Text('Enviando…')
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_fallo == null
+                                  ? 'Enviar'
+                                  : 'Intentar de nuevo'),
+                              const SizedBox(width: AppSpacing.sm),
+                              const ExcludeSemantics(
+                                child: Icon(Icons.send_rounded, size: 18),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+                if (_enviando)
+                  const Positioned(
+                    left: 28,
+                    right: 28,
+                    bottom: 0,
+                    child: ExcludeSemantics(
+                      child: LinearProgressIndicator(
+                        minHeight: 2,
+                        color: Colors.white,
+                        backgroundColor: Colors.white24,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
