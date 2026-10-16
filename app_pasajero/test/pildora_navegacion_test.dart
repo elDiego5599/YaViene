@@ -30,7 +30,7 @@ class _GuiaEn extends MapGuideNotifier {
 }
 
 /// La barra de abajo con las cuatro pestañas, como en Instagram (dueño,
-/// 2026-10-16): Mapa, Avisos, Buzón y Más. Reemplaza el menú lateral.
+/// 2026-10-16): Mapa, Avisos, Buzón e Info. Reemplaza el menú lateral.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -123,12 +123,24 @@ void main() {
     );
   });
 
+  test('cada pestaña con su dibujo, sin los tres puntos (dueño, 2026-10-16)',
+      () {
+    // «Más» con tres puntos no decía nada: la cuarta es «Info», con su i.
+    // El mapa lleva el pin de lugar, y el buzón un globo de conversación.
+    expect(kPestanas.map((p) => (p.rotulo, p.icono, p.iconoPuesto)), [
+      ('Mapa', Icons.location_on_outlined, Icons.location_on_rounded),
+      ('Avisos', Icons.notifications_none_rounded, Icons.notifications_rounded),
+      ('Buzón', Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
+      ('Info', Icons.info_outline_rounded, Icons.info_rounded),
+    ]);
+  });
+
   testWidgets('la barra dice sus cuatro pestañas y cuál está puesta',
       (tester) async {
     await abrir(tester, '/notifications');
 
     expect(find.byType(PildoraNavegacion), findsOneWidget);
-    for (final r in ['Mapa', 'Avisos', 'Buzón', 'Más']) {
+    for (final r in ['Mapa', 'Avisos', 'Buzón', 'Info']) {
       expect(
         find.descendant(
           of: find.byType(PildoraNavegacion),
@@ -149,7 +161,7 @@ void main() {
   testWidgets('tocar una pestaña lleva a su pantalla', (tester) async {
     final (router, _) = await abrir(tester, '/notifications');
 
-    await tester.tap(find.bySemanticsLabel(RegExp(r'^Más, pestaña')));
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^Info, pestaña')));
     await tester.pumpAndSettle();
     expect(camino(router), '/mas');
     expect(find.byType(MasScreen), findsOneWidget);
@@ -217,7 +229,7 @@ void main() {
     expect(find.byType(PildoraNavegacion), findsOneWidget);
   });
 
-  testWidgets('Más ya no trae Avisos, Buzón ni la X del menú', (tester) async {
+  testWidgets('Info ya no trae Avisos, Buzón ni la X del menú', (tester) async {
     await abrir(tester, '/mas');
 
     expect(find.byKey(const ValueKey('drawer_close')), findsNothing);
@@ -360,7 +372,7 @@ void main() {
       final elegidas = await montar(tester);
 
       final desde = centroDe(tester, 'Avisos');
-      final hasta = centroDe(tester, 'Más');
+      final hasta = centroDe(tester, 'Info');
       final dedo = await tester.startGesture(desde);
       for (var i = 1; i <= 20; i++) {
         await dedo.moveTo(Offset.lerp(desde, hasta, i / 20)!);
@@ -369,7 +381,7 @@ void main() {
       await dedo.up();
       await tester.pumpAndSettle();
 
-      // Pasa por Buzón antes de llegar a Más, y cada paso se siente.
+      // Pasa por Buzón antes de llegar a Info, y cada paso se siente.
       expect(elegidas, [2, 3]);
       expect(toques, [
         'HapticFeedbackType.selectionClick',

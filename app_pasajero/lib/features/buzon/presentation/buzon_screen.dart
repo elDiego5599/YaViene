@@ -11,7 +11,7 @@ import '../data/buzon.dart';
 ///
 /// Pantalla entera y no una ventana: hay un teclado abierto y un texto de
 /// hasta mil caracteres, y en una ventana sobre el mapa el teclado se come
-/// la mitad. La barra es la de Avisos, el fondo arena de las pantallas
+/// la mitad. La barra es la de Avisos, el fondo blanco de las pantallas
 /// claras y el botón el verde lleno de la entrada.
 ///
 /// Sin campo de contacto a propósito (Ley 1581): el equipo no contesta por
@@ -77,9 +77,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.arena,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.arena,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,

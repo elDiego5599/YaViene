@@ -357,9 +357,10 @@ abstract class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      // V5: arena es el fondo general de la app; background queda solo para
-      // superficies que de verdad necesitan un gris neutro (p. ej. el mapa).
-      scaffoldBackgroundColor: AppColors.arena,
+      // El fondo general es blanco y lo blanco de encima se despega con
+      // sombra (dueño, 2026-10-16; antes arena, V5). background queda solo
+      // para superficies que de verdad necesitan un gris neutro (el mapa).
+      scaffoldBackgroundColor: AppColors.surface,
       // Fuente del bundle de la app (Plus Jakarta Sans), como AppTextStyles.
       fontFamily: 'PlusJakartaSans',
       // El tema fijaba la fuente pero no la escala, así que
@@ -375,7 +376,7 @@ abstract class AppTheme {
       highlightColor: AppColors.primary.withValues(alpha: 0.05),
 
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.arena,
+        backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,

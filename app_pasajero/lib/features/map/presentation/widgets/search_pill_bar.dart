@@ -73,8 +73,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           // con el tamaño del sistema al 135% —que iOS ofrece sin entrar
           // siquiera en accesibilidad— no cabían y se recortaban.
           //
-          // El alto fijo apretaba el contenido a 46: el botón del menú
-          // (hoy la lupa)
+          // El alto fijo apretaba el contenido a 46: la X de quitar la ruta
           // pide 48 y se quedaba sin dos. Ahora cabe entero, y el relleno
           // baja a 5 para que la píldora siga midiendo los mismos 60 de
           // antes (48 + 5 + 5 + los dos del filo).
@@ -97,36 +96,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           ),
           child: Row(
             children: [
-              // Donde iba el menú, la lupa: el menú se fue a la pestaña
-              // «Más» de abajo (dueño, 2026-10-16). Es parte del mismo botón
-              // de buscar —toca igual y se apaga con él—, y el lector ya lo
-              // oye en la etiqueta del bloque de texto.
-              ExcludeSemantics(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _onSearchTap,
-                  onTapDown: (_) => setState(() => _searchPressed = true),
-                  onTapUp: (_) => setState(() => _searchPressed = false),
-                  onTapCancel: () => setState(() => _searchPressed = false),
-                  child: AnimatedContainer(
-                    duration: AppMotion.instante,
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _searchPressed
-                          ? AppColors.surfaceMuted
-                          : Colors.transparent,
-                    ),
-                    child: const Icon(
-                      Icons.search_rounded,
-                      color: AppColors.primaryDeep,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
+              // Lo que mide la X de la derecha: con él, el texto y su lupa
+              // quedan en el centro de la píldora, haya ruta o no.
+              const SizedBox(width: 48),
               Expanded(
                 child: GestureDetector(
                   key: widget.searchActionKey,
@@ -166,23 +138,43 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                         constraints: const BoxConstraints(minHeight: 48),
                         child: Center(
                           heightFactor: 1,
-                          // Al elegir o quitar la ruta, el texto se releva
-                          // fundiéndose en vez de cambiar de un cuadro al
-                          // siguiente: la píldora es lo primero que se mira,
-                          // y ahí un corte seco se lee como un parpadeo.
-                          child: AnimatedSwitcher(
-                            duration:
-                                AppMotion.duracion(context, AppMotion.normal),
-                            // Encadenado, como en la hoja de abajo: dos
-                            // nombres cruzados a la vez no se leen.
-                            switchInCurve: const Interval(0.3, 1,
-                                curve: AppMotion.curvaEntrada),
-                            switchOutCurve: const Interval(0.6, 1,
-                                curve: AppMotion.curvaSalida),
-                            transitionBuilder: _relevoDeTexto,
-                            child: selectedRoute != null
-                                ? _rutaActiva(selectedRoute.name)
-                                : _sinRuta(),
+                          // La lupa va pegada a la derecha del texto y los
+                          // dos se centran juntos (dueño, 2026-10-16). Es
+                          // parte del mismo botón —se apaga con él— y el
+                          // lector ya oye la etiqueta del bloque.
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                // Al elegir o quitar la ruta, el texto se
+                                // releva fundiéndose en vez de cambiar de un
+                                // cuadro al siguiente: la píldora es lo
+                                // primero que se mira, y ahí un corte seco
+                                // se lee como un parpadeo.
+                                child: AnimatedSwitcher(
+                                  duration: AppMotion.duracion(
+                                      context, AppMotion.normal),
+                                  // Encadenado, como en la hoja de abajo: dos
+                                  // nombres cruzados a la vez no se leen.
+                                  switchInCurve: const Interval(0.3, 1,
+                                      curve: AppMotion.curvaEntrada),
+                                  switchOutCurve: const Interval(0.6, 1,
+                                      curve: AppMotion.curvaSalida),
+                                  transitionBuilder: _relevoDeTexto,
+                                  child: selectedRoute != null
+                                      ? _rutaActiva(selectedRoute.name)
+                                      : _sinRuta(),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              const ExcludeSemantics(
+                                child: Icon(
+                                  Icons.search_rounded,
+                                  color: AppColors.primaryDeep,
+                                  size: 22,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -190,10 +182,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                   ),
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              // La X y el botón de filtros se relevan fundiéndose con un
-              // leve cambio de escala, como un icono que se convierte en
-              // otro, y no de un cuadro al siguiente.
+              // La X entra y sale fundiéndose con un leve cambio de escala,
+              // no de un cuadro al siguiente. Sin ruta queda su hueco, que
+              // equilibra el de la izquierda.
               AnimatedSwitcher(
                 duration: AppMotion.duracion(context, AppMotion.normal),
                 switchInCurve: AppMotion.curvaEntrada,
@@ -207,7 +198,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                 ),
                 child: selectedRoute != null
                     ? _buildCloseButton()
-                    : _buildFilterButton(),
+                    : const SizedBox(
+                        key: ValueKey('pill-sin-cola'), width: 48, height: 48),
               ),
             ],
           ),
@@ -285,10 +277,9 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     required IconData icon,
     required VoidCallback onTap,
     required String semanticLabel,
-    bool filled = false,
   }) {
-    // La llave es la que deja al relevo de la cola distinguir la X del
-    // botón de filtros: sin ella son el mismo widget y cambian de golpe.
+    // La llave es la que deja al relevo de la cola distinguir la X de su
+    // hueco: sin ella cambian de golpe.
     return GestureDetector(
       key: key,
       behavior: HitTestBehavior.opaque,
@@ -309,9 +300,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
               shape: BoxShape.circle,
               color: _actionPressed
                   ? AppColors.surfaceMuted
-                  : (filled
-                      ? AppColors.surfaceMuted.withValues(alpha: 0.7)
-                      : Colors.transparent),
+                  : AppColors.surfaceMuted.withValues(alpha: 0.7),
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
@@ -330,7 +319,6 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     return _buildActionButton(
       key: const ValueKey('pill-quitar-ruta'),
       iconColor: AppColors.textSecondary,
-      filled: true,
       icon: Icons.close_outlined,
       semanticLabel: 'Quitar ruta activa',
       onTap: () {
@@ -366,19 +354,6 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     } finally {
       if (mounted) ref.read(routeSelectorOpenProvider.notifier).state = false;
     }
-  }
-
-  Widget _buildFilterButton() {
-    return _buildActionButton(
-      key: const ValueKey('pill-filtro'),
-      iconColor: AppColors.primaryDeep,
-      icon: Icons.tune_outlined,
-      semanticLabel: 'Cambiar ruta',
-      onTap: () {
-        HapticFeedback.lightImpact();
-        _openSelector();
-      },
-    );
   }
 }
 

@@ -4,6 +4,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/bienvenida.dart';
 
@@ -44,6 +45,23 @@ void main() {
     mapa.ubicacion.leerGps(puntoDeEspera.$1, puntoDeEspera.$2);
     await asentar(tester);
     expect(find.byType(VentanaBienvenida), findsOneWidget);
+
+    await mapa.desmontar(tester);
+  });
+
+  // Fondos blancos (dueño, 2026-10-16): la hoja de la ventana es blanca
+  // lisa, ya no el blanco cálido que caía a arena.
+  testWidgets('la hoja de la bienvenida es blanca lisa', (tester) async {
+    final mapa = await abrir(tester);
+
+    final hoja = tester
+        .widgetList<Container>(find.ancestor(
+            of: find.text('Bienvenido'), matching: find.byType(Container)))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .first;
+    expect(hoja.gradient, isNull);
+    expect(hoja.color, AppColors.surface);
 
     await mapa.desmontar(tester);
   });

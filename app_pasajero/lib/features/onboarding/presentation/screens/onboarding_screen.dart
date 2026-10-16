@@ -94,25 +94,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               // el contenido apelmazado arriba.
                               padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
                               // Misma superficie que las hojas del mapa:
-                              // arena. La bienvenida va justo antes del mapa
-                              // y el salto de blanco a arena se veía. Sin
-                              // `const` en la decoración: la sombra del
-                              // sistema es `final` (los hijos sí van const).
+                              // blanca (dueño, 2026-10-16). La bienvenida va
+                              // justo antes del mapa y un salto de tono se
+                              // vería. Sin `const` en la decoración: la
+                              // sombra del sistema es `final` (los hijos sí
+                              // van const).
                               decoration: BoxDecoration(
-                                // El pliegue por donde la hoja se separa de
-                                // la noche recoge la luz: blanco cálido que
-                                // cae a arena en el primer quinto. Con el
-                                // relleno plano, ese borde era una línea
-                                // muerta y la hoja parecía pegada encima.
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    AppColors.arenaAlta,
-                                    AppColors.arena,
-                                  ],
-                                  stops: [0.0, 0.20],
-                                ),
+                                color: AppColors.surface,
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(AppRadius.sheet),
                                   topRight: Radius.circular(AppRadius.sheet),

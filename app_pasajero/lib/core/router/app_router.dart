@@ -12,6 +12,7 @@ import '../../features/mas/presentation/mas_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import 'pestanas_deslizantes.dart';
 import 'shell_pildora.dart';
 
 abstract class AppRoutes {
@@ -34,7 +35,7 @@ abstract class AppRoutes {
 }
 
 /// El camino de un documento legal, para no escribirlo a mano en cada sitio
-/// que lo abre (la bienvenida y Más).
+/// que lo abre (la bienvenida e Info).
 String legalPath(String docId) => '/legal/$docId';
 
 // Sin cuenta ni redirect: el pasajero entra directo (D3). El backend nunca
@@ -58,10 +59,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Las cuatro pestañas de la píldora de abajo (dueño, 2026-10-16). Cada
       // una guarda su pantalla viva al cambiar de pestaña, como en iOS: el
       // mapa no se vuelve a montar ni el buzón pierde lo escrito. Lo legal
-      // va fuera, encima de la píldora, con su flecha de volver.
-      StatefulShellRoute.indexedStack(
+      // va fuera, encima de la píldora, con su flecha de volver. Al cambiar,
+      // las pantallas se deslizan en horizontal (`PestanasDeslizantes`).
+      StatefulShellRoute(
         builder: (context, state, shell) =>
             ShellConPildora(navigationShell: shell),
+        navigatorContainerBuilder: (context, shell, pantallas) =>
+            PestanasDeslizantes(
+                indice: shell.currentIndex, children: pantallas),
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(
@@ -70,21 +75,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               builder: (context, state) => const MapScreen(),
             ),
           ]),
-          StatefulShellBranch(routes: [
+          // Las tres ligeras se montan de entrada: de Mapa a Info el
+          // carrete pasa por Avisos y Buzón, y no por pantallas vacías.
+          StatefulShellBranch(preload: true, routes: [
             GoRoute(
               path: AppRoutes.notifications,
               name: 'notifications',
               builder: (context, state) => const NotificationsScreen(),
             ),
           ]),
-          StatefulShellBranch(routes: [
+          StatefulShellBranch(preload: true, routes: [
             GoRoute(
               path: AppRoutes.buzon,
               name: 'buzon',
               builder: (context, state) => const BuzonScreen(),
             ),
           ]),
-          StatefulShellBranch(routes: [
+          StatefulShellBranch(preload: true, routes: [
             GoRoute(
               path: AppRoutes.mas,
               name: 'mas',

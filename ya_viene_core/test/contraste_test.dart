@@ -63,8 +63,7 @@ void main() {
         contraste(AppColors.warningAccessible, AppColors.arena),
         contraste(AppColors.coralAccessible, AppColors.arena),
       ];
-      final rango =
-          valores.reduce(math.max) - valores.reduce(math.min);
+      final rango = valores.reduce(math.max) - valores.reduce(math.min);
       expect(rango, lessThan(0.5));
     });
 
@@ -129,11 +128,19 @@ void main() {
       // El verde de marca a secas da 3,1:1 con blanco y no alcanza: los
       // CTAs van sobre la variante accesible, y el bloqueado sobre el
       // mismo gris con el que el panel pinta «Ocultar».
-      esperaAlMenos(Colors.white, AppColors.primaryAccessible, 4.5,
-          'el CTA verde');
-      esperaAlMenos(Colors.white, AppColors.textSecondary, 4.5,
-          'el CTA bloqueado');
+      esperaAlMenos(
+          Colors.white, AppColors.primaryAccessible, 4.5, 'el CTA verde');
+      esperaAlMenos(
+          Colors.white, AppColors.textSecondary, 4.5, 'el CTA bloqueado');
     });
+  });
+
+  // Fondos blancos y lo blanco de encima con sombra (dueño, 2026-10-16):
+  // el fondo general y la barra de arriba son del mismo blanco.
+  test('el fondo general y la barra de arriba son blancos', () {
+    final tema = AppTheme.lightTheme;
+    expect(tema.scaffoldBackgroundColor, AppColors.surface);
+    expect(tema.appBarTheme.backgroundColor, AppColors.surface);
   });
 
   group('el azul de los botones (#1E56A8, prueba del dueño)', () {
@@ -148,13 +155,12 @@ void main() {
     test('el tema lo pone en el botón lleno y en nada más', () {
       final tema = AppTheme.lightTheme;
       final estados = <WidgetState>{};
-      expect(
-          tema.elevatedButtonTheme.style!.backgroundColor!.resolve(estados),
+      expect(tema.elevatedButtonTheme.style!.backgroundColor!.resolve(estados),
           AppColors.acento);
       expect(tema.textButtonTheme.style!.foregroundColor!.resolve(estados),
           AppColors.primaryDeep);
-      final foco = tema.inputDecorationTheme.focusedBorder!
-          as OutlineInputBorder;
+      final foco =
+          tema.inputDecorationTheme.focusedBorder! as OutlineInputBorder;
       expect(foco.borderSide.color, AppColors.primaryDeep);
       expect(tema.appBarTheme.iconTheme!.color, AppColors.primaryDeep);
       expect(AppTextStyles.dato.color, AppColors.primaryDeep);
@@ -176,19 +182,18 @@ void main() {
     test('la letra negra se lee sobre el blanco', () {
       // La placa lleva 13 en negrita: vara de texto normal, y la pasa de
       // sobra.
-      esperaAlMenos(AppColors.textPrimary, AppColors.placa, 4.5,
-          'la letra de la placa');
+      esperaAlMenos(
+          AppColors.textPrimary, AppColors.placa, 4.5, 'la letra de la placa');
     });
 
-    test('el filo oscuro es el que la despega de la arena y de la tarjeta',
-        () {
+    test('el filo oscuro es el que la despega de la arena y de la tarjeta', () {
       // El blanco apenas se distingue de la arena y nada del fondo de la
       // tarjeta de avisos: sin el filo de [AppColors.textPrimary] la placa
       // sería letra suelta. El filo sí llega a los 3:1 de un control que
       // dice algo.
       expect(contraste(AppColors.placa, AppColors.arena), lessThan(3.0));
-      esperaAlMenos(AppColors.textPrimary, AppColors.arena, 3.0,
-          'el filo de la placa');
+      esperaAlMenos(
+          AppColors.textPrimary, AppColors.arena, 3.0, 'el filo de la placa');
       esperaAlMenos(AppColors.textPrimary, AppColors.surface, 3.0,
           'el filo de la placa en la tarjeta');
     });

@@ -18,12 +18,17 @@ class Pestana {
 }
 
 /// Las cuatro pestañas, en el orden de las ramas del router.
+///
+/// «Más» con tres puntos no decía qué había detrás (dueño, 2026-10-16): la
+/// cuarta es «Info», con su i. El mapa lleva el pin de lugar y el buzón un
+/// globo de conversación, que se leen mejor que el plano y el formulario.
 const kPestanas = [
-  Pestana('Mapa', Icons.map_outlined, Icons.map_rounded),
+  Pestana('Mapa', Icons.location_on_outlined, Icons.location_on_rounded),
   Pestana(
       'Avisos', Icons.notifications_none_rounded, Icons.notifications_rounded),
-  Pestana('Buzón', Icons.feedback_outlined, Icons.feedback_rounded),
-  Pestana('Más', Icons.more_horiz_rounded, Icons.more_horiz_rounded),
+  Pestana(
+      'Buzón', Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
+  Pestana('Info', Icons.info_outline_rounded, Icons.info_rounded),
 ];
 
 /// La barra de abajo: una píldora blanca y sólida, como la de búsqueda de
@@ -72,13 +77,21 @@ class PildoraNavegacion extends StatefulWidget {
   static double hueco(EdgeInsets viewPadding) =>
       math.max(viewPadding.bottom - 12, 12);
 
+  /// Críticamente amortiguado (sin rebote) y con respuesta de 0,3 s: el
+  /// dedo ya trajo el impulso, la cápsula no tiene por qué pasarse. Las
+  /// pantallas se deslizan con el mismo, para que lleguen con la cápsula.
+  static final SpringDescription resorte = SpringDescription.withDampingRatio(
+    mass: 1,
+    stiffness: math.pow(2 * math.pi / 0.3, 2).toDouble(),
+  );
+
   @override
   State<PildoraNavegacion> createState() => _PildoraNavegacionState();
 }
 
 class _PildoraNavegacionState extends State<PildoraNavegacion>
     with SingleTickerProviderStateMixin {
-  /// Dónde está la cápsula, en pestañas: 0 es Mapa, 3 es Más. Sin límites
+  /// Dónde está la cápsula, en pestañas: 0 es Mapa, 3 es Info. Sin límites
   /// para que el resorte pueda llegar con su velocidad.
   late final AnimationController _capsula = AnimationController.unbounded(
     vsync: this,
@@ -136,12 +149,8 @@ class _PildoraNavegacionState extends State<PildoraNavegacion>
       _capsula.value = indice.toDouble();
       return;
     }
-    // Críticamente amortiguado (sin rebote) y con respuesta de 0,3 s: el
-    // dedo ya trajo el impulso, la cápsula no tiene por qué pasarse.
-    const respuesta = 0.3;
-    final rigidez = math.pow(2 * math.pi / respuesta, 2).toDouble();
     _capsula.animateWith(SpringSimulation(
-      SpringDescription.withDampingRatio(mass: 1, stiffness: rigidez),
+      PildoraNavegacion.resorte,
       _capsula.value,
       indice.toDouble(),
       velocidad,

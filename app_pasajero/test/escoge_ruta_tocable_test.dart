@@ -101,6 +101,8 @@ void main() {
     final caja =
         tester.widget<Container>(medallon).decoration! as BoxDecoration;
     expect(caja.color, AppColors.surface);
+    // Blanco sobre la hoja blanca: sin sombra el medallón no se ve.
+    expect(caja.boxShadow, isNotEmpty);
     final icono = tester.widget<Icon>(
       find.descendant(of: medallon, matching: find.byType(Icon)),
     );

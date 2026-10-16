@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
@@ -105,6 +106,18 @@ void main() {
 
     expect(tarjeta(tester).left, 20);
     expect(tarjeta(tester).bottom, 844 - 22);
+  });
+
+  testWidgets('la hoja es blanca como la barra', (tester) async {
+    await montar(tester, barra: 1);
+
+    // Fondos blancos y lo blanco de encima con sombra (dueño, 2026-10-16):
+    // la hoja es del blanco de la barra de la que crece. La sombra de la
+    // tarjeta del bus la mide `eta_sheet_placa_test`.
+    expect(
+        (tester.widget<DecoratedBox>(caja()).decoration as ShapeDecoration)
+            .color,
+        AppColors.surface);
   });
 
   testWidgets('la tarjeta redondea sus cuatro cantos como la barra',

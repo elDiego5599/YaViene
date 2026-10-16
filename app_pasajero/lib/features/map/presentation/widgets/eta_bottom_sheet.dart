@@ -655,7 +655,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         // ancha (sobre un mapa lleno de color la sombra se lee como
         // suciedad), y la sombra es la de la barra, que ahora es esta.
         decoration: ShapeDecoration(
-          color: AppColors.arena,
+          // Blanca como la barra de la que crece (dueño, 2026-10-16): lo
+          // blanco que lleva encima se despega con sombra.
+          color: AppColors.surface,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(AppRadius.sheet)),
             side: BorderSide(color: AppColors.hairline),
@@ -907,7 +909,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final contenido = Column(
       children: [
         // El icono va en su medallón, como los de los tiles del selector y
-        // el de la píldora de ubicación: suelto sobre la arena era un glifo
+        // el de la píldora de ubicación: suelto sobre la hoja era un glifo
         // gris flotando en el hueco más grande de la pantalla. No dice nada
         // que no diga el título, así que en voz alta no existe.
         //
@@ -923,6 +925,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppColors.hairline),
+              boxShadow: AppShadows.soft,
             ),
             child:
                 dibujo ?? Icon(icon, color: AppColors.textSecondary, size: 26),
@@ -1208,9 +1211,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           // asa de la hoja queda justo encima y no hace falta más aire.
           const SizedBox(height: 12),
           // Quién es y cuánto falta, en una tarjeta con marco (prueba del
-          // dueño, 2026-09-30): blanca con el filo de las tarjetas del
-          // selector, sin sombra por lo mismo que ellas —sobre la arena una
-          // sombra azulada se lee como banda gris—. [AppRadius.card] y no
+          // dueño, 2026-09-30): blanca con el filo y la sombra suave de las
+          // filas del selector, que es lo que la separa de la hoja blanca
+          // (dueño, 2026-10-16). [AppRadius.card] y no
           // `lg`: mide casi 200 de alto, y 16 en una caja así se ve recto.
           // La nota y el botón van fuera: son lo que la app dice y lo que
           // se hace, no lo que se mira.
@@ -1224,6 +1227,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(color: AppColors.hairline),
+              boxShadow: AppShadows.soft,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1579,7 +1583,7 @@ class _Vaiven extends StatelessWidget {
 /// Van las variantes accesibles del semáforo, no las de relleno: este
 /// color pinta el número de 64 en peso 200, que es el trazo más fino de
 /// toda la app y lo único que la app existe para decir. Los tres de
-/// relleno se quedaban en 2,9:1 sobre la arena, por debajo del 3:1 que
+/// relleno se quedaban en 2,9:1 sobre la arena de antes, por debajo del 3:1 que
 /// pide la norma hasta para un icono; estos tres dan 5:1 y, entre
 /// ellos, el mismo 5:1, así que ninguna distancia se lee más pesada que
 /// otra por culpa del color. Público para probar los bordes exactos.
@@ -1687,11 +1691,11 @@ class _NotaAnimada extends StatelessWidget {
 
 /// La nota blanca con su ícono en baldosa (diseño «A», dueño 2026-09-30).
 ///
-/// Blanca sobre la arena de la hoja y con el filo de siempre: se despega
-/// sin sombra, como las filas del selector. 16 de radio (`AppRadius.lg`)
-/// para que case con el botón de abajo; 10×12 de relleno para que la
-/// baldosa de 30 quede a la misma distancia del borde por arriba y por la
-/// izquierda una vez sumado el aire de la línea.
+/// Blanca sobre la hoja blanca, con el filo de siempre y la sombra suave
+/// de las filas del selector, que es la que la despega. 16 de radio
+/// (`AppRadius.lg`) para que case con el botón de abajo; 10×12 de relleno
+/// para que la baldosa de 30 quede a la misma distancia del borde por
+/// arriba y por la izquierda una vez sumado el aire de la línea.
 class _NotaHoja extends StatelessWidget {
   const _NotaHoja(this.nota);
 
@@ -1741,6 +1745,7 @@ class _NotaHoja extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.hairline),
+        boxShadow: AppShadows.soft,
       ),
       child: onTap == null
           ? contenido
@@ -1775,8 +1780,8 @@ class _NotaHoja extends StatelessWidget {
 /// Una línea de texto y no un segundo botón: el botón grande es lo que se
 /// hace en esta hoja, y la distancia es un ajuste suyo. El toque abarca la
 /// fila entera con 48 de alto, el mínimo de un blanco para el pulgar. Gris
-/// secundario (5,0:1 sobre la arena) para lo que se dice y la píldora de
-/// «Cambiar» para lo que se toca.
+/// secundario (5,4:1 sobre el blanco de la hoja) para lo que se dice y la
+/// píldora de «Cambiar» para lo que se toca.
 class _CambiarDistancia extends StatelessWidget {
   const _CambiarDistancia({required this.metros, required this.onTap});
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo la malla, sin logo: lo que queda detrás en Android 12+ cuando el
+     sistema retira su pantalla de arranque (que ya puso su propio icono) y
+     Flutter aún no dibuja. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/fondo_malla"
+    android:gravity="fill" />

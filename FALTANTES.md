@@ -102,10 +102,14 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,
-  Avisos, Buzón, Más). Las maquetas del pasajero en `YaVieneWeb` (rama
+  Avisos, Buzón, Info). Las maquetas del pasajero en `YaVieneWeb` (rama
   `referentes-web`) siguen dibujando el ☰; falta espejar la barra con sus
   números comentados, y la hoja del mapa que crece de ella (20 por lado,
-  cantos de 32, apoyada sobre su hueco, la barra fundida en ella).
+  cantos de 32, apoyada sobre su hueco, la barra fundida en ella). Y lo
+  del mismo día: fondos blancos con sombra suave en lo blanco de encima
+  (`AppShadows.soft`), la lupa a la derecha del texto centrado en la
+  búsqueda y el fondo de malla de marca del arranque y de Info. El desliz
+  entre pestañas no se espeja: las maquetas no cambian de pantalla.
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`

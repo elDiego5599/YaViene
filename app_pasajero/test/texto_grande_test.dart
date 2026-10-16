@@ -279,7 +279,7 @@ void main() {
           ),
         );
         await tester.pump();
-        sinDesbordes(tester, 'Más', escala);
+        sinDesbordes(tester, 'Info', escala);
         expect(find.text('Mallorquín'), findsOneWidget);
       });
 

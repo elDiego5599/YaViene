@@ -18,9 +18,9 @@ class LegalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.arena,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.arena,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -57,8 +57,8 @@ class LegalScreen extends StatelessWidget {
               Text(
                 'Actualizado el ${doc.updated}',
                 style: AppTextStyles.etiqueta.copyWith(
-                  // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre la
-                  // arena y no pasa AA. Se usa `textSecondary`, el mismo
+                  // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre el
+                  // fondo y no pasa AA. Se usa `textSecondary`, el mismo
                   // token con el que el panel arregló sus rótulos en T6.1,
                   // no un gris nuevo.
                   color: AppColors.textSecondary,

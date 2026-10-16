@@ -11,7 +11,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  /// La pestaña Más sola. El fondo de rutas anima sin fin, así que nada
+  /// La pestaña Info sola. El fondo de rutas anima sin fin, así que nada
   /// de `pumpAndSettle`: se bombea a mano.
   Future<ProviderContainer> abrirMas(WidgetTester tester) async {
     final container = ProviderContainer();
@@ -33,8 +33,7 @@ void main() {
     return container;
   }
 
-  testWidgets('abre con sus secciones',
-      (tester) async {
+  testWidgets('abre con sus secciones', (tester) async {
     await abrirMas(tester);
 
     expect(find.text('Ya Viene'), findsOneWidget);
@@ -127,6 +126,48 @@ void main() {
 
   // El pie iba pegado al último grupo y debajo quedaba media pantalla de
   // tinta vacía. Ahora baja hasta el fondo de la página.
+  testWidgets('Info va en una columna angosta y centrada, no de borde a borde',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 932);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await abrirMas(tester);
+
+    // «Se ve todo muy ancho» (dueño, 2026-10-16): las tarjetas no pasan de
+    // 360 aunque el teléfono sea grande, y quedan al centro.
+    final tarjeta = tester.getRect(find.byType(ActiveRouteCard));
+    expect(tarjeta.width, lessThanOrEqualTo(360));
+    expect((tarjeta.center.dx - 215).abs(), lessThan(0.5));
+    final grupo = tester.getRect(find
+        .ancestor(
+          of: find.text('Privacidad'),
+          matching: find.byType(Container),
+        )
+        .last);
+    expect(grupo.width, lessThanOrEqualTo(360));
+  });
+
+  testWidgets('las tarjetas blancas de Info se despegan con sombra',
+      (tester) async {
+    await abrirMas(tester);
+
+    for (final texto in ['Sin ruta activa', 'Ver guía de uso', 'Privacidad']) {
+      final decoradas = tester
+          .widgetList<Container>(find.ancestor(
+            of: find.text(texto),
+            matching: find.byType(Container),
+          ))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          // La tarjeta es la superficie redondeada; el fondo de cada fila
+          // (su respuesta al toque) va adentro, sin esquinas.
+          .where((d) => d.borderRadius != null);
+      final tarjeta = decoradas.first;
+      expect(tarjeta.color, AppColors.surface, reason: texto);
+      expect(tarjeta.boxShadow, isNotEmpty, reason: texto);
+    }
+  });
+
   testWidgets('el pie de Más se apoya abajo del todo', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;

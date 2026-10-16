@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/features/legal/legal_docs.dart';
 import 'package:ya_viene_pasajero/features/legal/presentation/screens/'
@@ -17,6 +18,18 @@ import 'golden/golden_harness.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  /// Los fondos de las pantallas son blancos y lo blanco que va encima se
+  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, del mismo
+  /// blanco: si no, se lee como una franja de otro papel.
+  void exigeFondoBlanco(WidgetTester tester) {
+    expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
+        AppColors.surface,
+        reason: 'el fondo de los documentos');
+    expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
+        AppColors.surface,
+        reason: 'la barra de los documentos');
+  }
+
   testWidgets('cada documento se lee entero con su fecha', (tester) async {
     for (final doc in legalDocs) {
       fijarPantalla(tester);
@@ -29,6 +42,13 @@ void main() {
           doc.blocks.firstWhere((b) => b.kind == LegalBlockKind.heading);
       expect(find.text(primerTitular.text), findsOneWidget);
     }
+  });
+
+  testWidgets('los documentos van sobre blanco', (tester) async {
+    fijarPantalla(tester);
+    await tester.pumpWidget(marcoGolden(LegalScreen(doc: legalDocs.first)));
+    await tester.pump();
+    exigeFondoBlanco(tester);
   });
 
   testWidgets('el router lleva a cada documento por su camino', (tester) async {

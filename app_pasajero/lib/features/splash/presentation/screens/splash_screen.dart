@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../../core/widgets/entrance.dart';
+import '../../../../core/widgets/fondo_malla.dart';
 import '../../../../core/widgets/ink_hero.dart';
-import '../../../../core/widgets/live_route_backdrop.dart';
 import '../../../onboarding/onboarding_flow.dart';
 
 /// Pantalla de arranque: deja el estado de la sesión anterior limpio, muestra
@@ -47,9 +47,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.ink,
-      body: LiveRouteBackdrop(
-        // Aquí la marca va centrada, no arriba: el halo la sigue.
-        haloY: 0.46,
+      // La malla de la marca, quieta (dueño, 2026-10-16); la misma imagen
+      // que pintan las pantallas de arranque nativas, así el relevo no salta.
+      body: FondoMalla(
         child: Center(
           // La marca no aparece de golpe: sube un poco y se funde, y el
           // indicador de carga entra después, cuando ya se leyó el nombre.

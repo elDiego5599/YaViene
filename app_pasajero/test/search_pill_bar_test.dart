@@ -29,9 +29,48 @@ void main() {
     final pill = tester.getRect(find.byType(SearchPillBar));
     final title = tester.getRect(find.text('¿Qué bus esperas?'));
     final subtitle = tester.getRect(find.text('Toca para buscar tu ruta'));
-    expect((title.center.dx - pill.center.dx).abs(), lessThan(2));
-    expect((subtitle.center.dx - pill.center.dx).abs(), lessThan(2));
+    // Las dos líneas, centradas entre sí; el bloque con su lupa, en la
+    // píldora (la prueba de abajo).
+    expect((title.center.dx - subtitle.center.dx).abs(), lessThan(2));
+    expect((title.center.dx - pill.center.dx).abs(), lessThan(24));
     expect((title.center.dy - subtitle.center.dy).abs(), greaterThan(10));
+  });
+
+  testWidgets('la lupa va pegada a la derecha del texto y el bloque, centrado',
+      (tester) async {
+    // Dueño, 2026-10-16: la lupa junto al texto, a su derecha, y los dos
+    // centrados en la píldora; el botón de filtros de la derecha sobraba.
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(selectedRouteProvider, (_, __) {});
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topCenter,
+              child: SearchPillBar(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.tune_outlined), findsNothing);
+    expect(find.byKey(const ValueKey('pill-filtro')), findsNothing);
+    final pill = tester.getRect(find.byType(SearchPillBar));
+    final lupa = tester.getRect(find.byIcon(Icons.search_rounded));
+    final titulo = tester.getRect(find.text('¿Qué bus esperas?'));
+    final pie = tester.getRect(find.text('Toca para buscar tu ruta'));
+    final textoDerecha = titulo.right > pie.right ? titulo.right : pie.right;
+    final textoIzquierda = titulo.left < pie.left ? titulo.left : pie.left;
+    expect(lupa.left, greaterThanOrEqualTo(textoDerecha));
+    expect(lupa.left - textoDerecha, lessThanOrEqualTo(AppSpacing.sm + 1));
+    expect((lupa.center.dy - pill.center.dy).abs(), lessThan(2));
+    final centroBloque = (textoIzquierda + lupa.right) / 2;
+    expect((centroBloque - pill.center.dx).abs(), lessThan(2));
   });
 
   testWidgets('la zona de búsqueda se anuncia como botón', (tester) async {
@@ -146,9 +185,12 @@ void main() {
       expect(r.bottom <= etiqueta.top || r.top >= etiqueta.bottom, isTrue,
           reason: 'hay un círculo en la línea de «Ruta activa»: $r');
     }
-    // Sin nada al lado, la etiqueta queda centrada en la píldora.
-    final pill = tester.getRect(find.byType(SearchPillBar));
-    expect((etiqueta.center.dx - pill.center.dx).abs(), lessThan(1));
+    // Sin nada a la izquierda: la etiqueta y el nombre van centrados entre
+    // sí, y la lupa a su derecha.
+    final nombre = tester.getRect(find.text('Ruta 106'));
+    expect((etiqueta.center.dx - nombre.center.dx).abs(), lessThan(1));
+    expect(tester.getRect(find.byIcon(Icons.search_rounded)).left,
+        greaterThanOrEqualTo(nombre.right));
   });
 
   group('«Ruta activa» con destello', () {

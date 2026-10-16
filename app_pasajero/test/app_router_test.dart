@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/router/pestanas_deslizantes.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
@@ -54,6 +55,15 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, '/notifications');
     expect(find.byType(NotificationsScreen), findsOneWidget);
+  });
+
+  testWidgets('las pestañas van en el carrete que las desliza', (tester) async {
+    await abrir(tester, '/notifications');
+
+    final carrete =
+        tester.widget<PestanasDeslizantes>(find.byType(PestanasDeslizantes));
+    expect(carrete.indice, 1);
+    expect(carrete.children, hasLength(4));
   });
 
   testWidgets('/login ya no es una ruta', (tester) async {

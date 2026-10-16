@@ -7,7 +7,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 /// La primera versión era el `Dialogo` de siempre con una mano saludando y
 /// dos frases: se leía como un aviso más y no como la entrada a la app
 /// (dueño, 2026-10-02: «no se ve elegante ni sofisticado»). Esta es la hoja
-/// arena de la entrada hecha ventana: el logo, una pregunta y dos salidas.
+/// blanca de la entrada hecha ventana: el logo, una pregunta y dos salidas.
 /// Pocas palabras y grandes, como la entrada. El título dice «Bienvenido»
 /// (dueño, 2026-10-02; antes «Todo listo»).
 ///
@@ -90,16 +90,9 @@ class VentanaBienvenida extends StatelessWidget {
   Widget _hoja() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
-      // La hoja de la entrada: blanco cálido que cae a arena en el primer
-      // quinto.
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.arenaAlta, AppColors.arena],
-          stops: [0.0, 0.20],
-        ),
-      ),
+      // La hoja de la entrada: blanca lisa, como los fondos de la app
+      // (dueño, 2026-10-16).
+      decoration: const BoxDecoration(color: AppColors.surface),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         // Los dos botones a todo el ancho de la hoja, como en la entrada.

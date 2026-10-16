@@ -129,4 +129,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(tarjetaDe('Ruta 106', InkWell).height, paso.height);
   });
+  // Fondos blancos y lo blanco con sombra (dueño, 2026-10-16): la hoja es
+  // del blanco de la barra de abajo y sus filas, blancas también, se
+  // despegan con sombra en vez de flotar sobre otro tono.
+  testWidgets('la hoja es blanca y sus filas se despegan con sombra',
+      (tester) async {
+    await abrir(tester);
+
+    final hoja = tester.widget<Material>(find.byWidgetPredicate((w) =>
+        w is Material &&
+        w.shape ==
+            const SheetTopBorder(side: BorderSide(color: AppColors.hairline))));
+    expect(hoja.color, AppColors.surface);
+
+    for (final paso in ['Empresa', 'Ruta']) {
+      final fila = tester
+          .widgetList<AnimatedContainer>(find.ancestor(
+              of: find.text(paso), matching: find.byType(AnimatedContainer)))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .firstWhere((d) => d.borderRadius != null);
+      expect(fila.color, AppColors.surface, reason: paso);
+      expect(fila.boxShadow, isNotEmpty, reason: paso);
+    }
+  });
 }

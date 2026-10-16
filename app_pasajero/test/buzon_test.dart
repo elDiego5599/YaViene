@@ -32,6 +32,18 @@ Future<void> asentar(WidgetTester tester) async {
 }
 
 void main() {
+  /// Los fondos de las pantallas son blancos y lo blanco que va encima se
+  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, del mismo
+  /// blanco: si no, se lee como una franja de otro papel.
+  void exigeFondoBlanco(WidgetTester tester) {
+    expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
+        AppColors.surface,
+        reason: 'el fondo de el buzón');
+    expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
+        AppColors.surface,
+        reason: 'la barra de el buzón');
+  }
+
   group('Buzon.enviar', () {
     test('manda tipo, texto limpio, plataforma y versión a /api/reportes',
         () async {
@@ -151,6 +163,16 @@ void main() {
       );
       await tester.pumpAndSettle();
     }
+
+    testWidgets('el buzón va sobre blanco', (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+            backend: () => 'http://x',
+            cliente: MockClient((_) async => http.Response('', 201)),
+          ));
+      exigeFondoBlanco(tester);
+    });
 
     FilledButton boton(WidgetTester tester) =>
         tester.widget<FilledButton>(find.byKey(const ValueKey('buzon_enviar')));
@@ -299,8 +321,7 @@ void main() {
     }
   });
 
-  testWidgets('«Volver» lleva al mapa y el buzón queda limpio',
-      (tester) async {
+  testWidgets('«Volver» lleva al mapa y el buzón queda limpio', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final router = GoRouter(
       initialLocation: AppRoutes.buzon,

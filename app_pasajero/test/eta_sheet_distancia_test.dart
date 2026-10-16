@@ -605,7 +605,7 @@ void main() {
       await activar(tester);
       final color =
           tester.widget<Text>(find.text('Te avisamos a 1,5 km')).style!.color!;
-      expect(contraste(color, AppColors.arena), greaterThanOrEqualTo(4.5));
+      expect(contraste(color, AppColors.surface), greaterThanOrEqualTo(4.5));
     });
 
     // iPhone sale cuando haya avisos por push (dueño, 2026-10-06): la nota

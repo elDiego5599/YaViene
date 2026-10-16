@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'entrance.dart';
+import 'fondo_malla.dart';
 
 /// F12: logo + halo + wordmark + tagline, compartido por splash y
 /// onboarding. Antes cada pantalla repetía el mismo bloque con constantes
@@ -20,6 +21,10 @@ class InkHero extends StatelessWidget {
   /// Etiqueta del `Hero` del logo. Compartida por splash y bienvenida, que
   /// es lo que hace que el logo vuele de una a otra en vez de saltar.
   static const String marcaHeroTag = 'ya-viene-marca';
+
+  /// Lo que se apaga la bajada frente al nombre: el de la letra chica sobre
+  /// la malla del arranque, donde tiene que pasar AA.
+  static const double alfaBajada = FondoMalla.alfaLetraChica;
 
   /// El dibujo sí se mide por pantalla, y no es capricho: en el arranque
   /// tiene que medir exactamente lo que mide en la pantalla nativa que
@@ -108,7 +113,7 @@ class InkHero extends StatelessWidget {
           Text(
             'Tu ciudad en tiempo real.',
             style: AppTextStyles.cuerpoFuerte.copyWith(
-              color: Colors.white.withValues(alpha: 0.75),
+              color: Colors.white.withValues(alpha: alfaBajada),
             ),
           ),
           0.22,

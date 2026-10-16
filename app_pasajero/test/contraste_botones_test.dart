@@ -348,13 +348,14 @@ void main() {
       'la pestaña puesta sobre su cápsula',
     );
     exigeContraste(
-      contraste(letraDe(tester, find.text('Más')), Colors.white),
+      contraste(letraDe(tester, find.text('Info')), Colors.white),
       4.5,
       'una pestaña sin poner',
     );
   });
 
-  testWidgets('los rótulos de Más sobre la tinta pasan AA', (tester) async {
+  testWidgets('los rótulos de Info, en sus tarjetas blancas, pasan AA',
+      (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final sub = container.listen<RouteInfo?>(
@@ -377,22 +378,25 @@ void main() {
     );
     await tester.pump();
 
-    // Los rótulos apagados de Más van sobre la tinta: ahí el gris
-    // pálido lee (y alguien que lo cambie a gris de papel la rompe).
-    final rutaActiva = find.text('Ruta activa');
-    expect(rutaActiva, findsOneWidget);
-    exigeContraste(
-      contraste(letraDe(tester, rutaActiva), AppColors.ink),
-      4.5,
-      '«Ruta activa» sobre la tinta',
-    );
-    final terminal = find.text('Mallorquín');
-    expect(terminal, findsOneWidget);
-    exigeContraste(
-      contraste(letraDe(tester, terminal), AppColors.ink),
-      4.5,
-      'los terminales sobre la tinta',
-    );
+    // Sobre la malla, las tarjetas son blancas y se despegan con sombra
+    // (dueño, 2026-10-16): la letra se mide contra su blanco, que tiene
+    // que ser opaco o la malla se trasluce y la medida miente.
+    for (final (texto, que) in [
+      ('Ruta activa', '«Ruta activa»'),
+      ('B18 Tcherassi', 'el nombre de la ruta'),
+      ('Mallorquín', 'los terminales'),
+      ('Privacidad', 'las filas'),
+    ]) {
+      final rotulo = find.text(texto);
+      expect(rotulo, findsOneWidget);
+      final fondo = fondoDelContenedor(tester, rotulo);
+      expect(fondo.a, 1.0, reason: 'la tarjeta de $que deja ver la malla');
+      exigeContraste(
+        contraste(letraDe(tester, rotulo), fondo),
+        4.5,
+        '$que sobre su tarjeta',
+      );
+    }
   });
 }
 

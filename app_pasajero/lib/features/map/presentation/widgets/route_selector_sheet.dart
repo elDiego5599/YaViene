@@ -487,10 +487,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           },
           child: Material(
             key: _tarjetaKey,
-            // Misma superficie que la hoja de distancia (AppColors.arena):
-            // las dos tarjetas se ven una detrás de otra en el mismo flujo y
-            // el salto de blanco a arena las hacía parecer de apps distintas.
-            color: AppColors.arena,
+            // Misma superficie que la hoja de distancia y la barra de abajo
+            // (blanco, dueño, 2026-10-16): se ven una detrás de otra en el
+            // mismo flujo y un salto de tono las hacía parecer de apps
+            // distintas.
+            color: AppColors.surface,
             // Sobre el velo oscuro del diálogo una sombra ancha no se ve;
             // lo que define la tarjeta es el filo. Mismo tratamiento que la
             // hoja de distancia, que se ve justo después: solo arriba, que
@@ -1532,9 +1533,8 @@ class _SelectorTileState extends State<_SelectorTile>
               // fila no se mueve de donde estaba.
               constraints: const BoxConstraints(minHeight: _kTileHeight),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              // Sin sombra: la tarjeta ya flota sobre arena y una sombra
-              // azulada al 4 % sobre un beige cálido no se lee como
-              // profundidad, se lee como una banda gris. Separa el filo.
+              // Blanca sobre la hoja blanca: la separa la sombra suave, y el
+              // filo dice el estado (activa o con pista).
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -1542,6 +1542,7 @@ class _SelectorTileState extends State<_SelectorTile>
                   color: borde,
                   width: isActive || hint != null ? 1.5 : 1.0,
                 ),
+                boxShadow: AppShadows.soft,
               ),
               child: Row(
                 children: [
@@ -1646,7 +1647,7 @@ class _StepRail extends StatelessWidget {
             height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: done ? AppColors.primary : AppColors.arena,
+              color: done ? AppColors.primary : AppColors.surface,
               border: Border.all(
                 color: done
                     ? AppColors.primary

@@ -41,6 +41,18 @@ void main() {
         companyId: 'C1',
       );
 
+  /// Los fondos de las pantallas son blancos y lo blanco que va encima se
+  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, del mismo
+  /// blanco: si no, se lee como una franja de otro papel.
+  void exigeFondoBlanco(WidgetTester tester) {
+    expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
+        AppColors.surface,
+        reason: 'el fondo de Avisos');
+    expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
+        AppColors.surface,
+        reason: 'la barra de Avisos');
+  }
+
   Future<ProviderContainer> pumpScreen(
       WidgetTester tester, List<BusPosition> buses) async {
     final container = ProviderContainer(overrides: [
@@ -97,6 +109,12 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('Avisos va sobre blanco', (tester) async {
+    await pumpScreen(tester, const []);
+    await tester.pump();
+    exigeFondoBlanco(tester);
   });
 
   /// La tarjeta de un aviso. La ruta va escrita y la placa en su lámina
@@ -312,6 +330,40 @@ void main() {
       await tester.pump();
       expectAviso('A-1');
       expect(find.text(soloConLaAppAbierta), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  // Sobre blanco, una tarjeta blanca sin sombra es solo su filo: también
+  // lo que ya sonó y la nota del iPhone se despegan del fondo.
+  testWidgets('las tarjetas de Avisos se despegan del blanco con sombra',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      final container = await pumpScreen(
+          tester, [bus('A-1'), bus('A-2', lat: userLat + 0.05)]);
+      arm(container, 'A-1');
+      arm(container, 'A-2');
+      await tester.pump();
+      await container.read(proximityAlertsProvider.notifier).check();
+      await tester.pump();
+      expect(container.read(alertHistoryProvider).where((e) => e.sent),
+          hasLength(1));
+
+      for (final id in ['A-1', 'A-2']) {
+        final caja = tester.widget<AnimatedContainer>(aviso(id)).decoration!
+            as BoxDecoration;
+        expect(caja.boxShadow, isNotEmpty, reason: 'la tarjeta de $id');
+      }
+      final nota = tester
+          .widgetList<Container>(find.ancestor(
+              of: find.text(soloConLaAppAbierta),
+              matching: find.byType(Container)))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .firstWhere((d) => d.borderRadius != null);
+      expect(nota.boxShadow, isNotEmpty, reason: 'la nota del iPhone');
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

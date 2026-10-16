@@ -69,16 +69,20 @@ void main() {
     // pantalla (R-14).
     await abrir(tester);
 
+    // Blanca lisa (dueño, 2026-10-16): ya no el blanco cálido que caía a
+    // arena; es la única caja con los cantos de una hoja.
     final hoja = tester.widgetList<Container>(find.byType(Container)).where(
           (c) =>
               c.decoration is BoxDecoration &&
-              (c.decoration! as BoxDecoration).gradient is LinearGradient &&
-              ((c.decoration! as BoxDecoration).gradient! as LinearGradient)
-                      .colors
-                      .first ==
-                  AppColors.arenaAlta,
+              (c.decoration! as BoxDecoration).borderRadius ==
+                  const BorderRadius.only(
+                    topLeft: Radius.circular(AppRadius.sheet),
+                    topRight: Radius.circular(AppRadius.sheet),
+                  ),
         );
     expect(hoja, hasLength(1));
+    expect((hoja.single.decoration! as BoxDecoration).gradient, isNull);
+    expect((hoja.single.decoration! as BoxDecoration).color, AppColors.surface);
     final sombras = (hoja.single.decoration! as BoxDecoration).boxShadow!;
     expect(sombras, isNotEmpty);
     for (final sombra in sombras) {

@@ -10,13 +10,13 @@ import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 import 'golden_harness.dart';
 
-/// La pestaña Más, con y sin ruta activa.
+/// La pestaña Info, con y sin ruta activa.
 ///
 /// Sustituye al menú lateral (dueño, 2026-10-16): página entera en vez de
 /// cajón, sin la X ni las filas de Avisos y Buzón, que ahora son pestañas.
-/// Sigue siendo la superficie oscura más grande de la app, así que aquí se
-/// ve enseguida si cambian pesos o interletrado. Sin cuenta (D3), la ruta
-/// activa es lo primero.
+/// La malla de la marca de fondo y las tarjetas blancas con sombra en una
+/// columna angosta (dueño, 2026-10-16). Sin cuenta (D3), la ruta activa es
+/// lo primero.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -35,8 +35,7 @@ void main() {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           locale: const Locale('es', 'CO'),
-          // Quieto: el fondo de rutas se mueve sin parar y el oro tiene que
-          // salir igual cada vez.
+          // Quieto: el oro tiene que salir igual cada vez.
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(disableAnimations: true),
             child: child!,

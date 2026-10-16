@@ -158,7 +158,7 @@ Future<void> montarHojaVacia(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 400));
 }
 
-/// Abre la pestaña Más y devuelve su contenedor.
+/// Abre la pestaña Info y devuelve su contenedor.
 Future<ProviderContainer> abrirMas(WidgetTester tester) async {
   final container = ProviderContainer();
   addTearDown(container.dispose);
@@ -331,7 +331,7 @@ void main() {
     });
   });
 
-  group('Más', () {
+  group('Info', () {
     testWidgets('cada fila se anuncia como botón', (tester) async {
       await conVoz(tester, () async {
         fijarPantalla(tester);

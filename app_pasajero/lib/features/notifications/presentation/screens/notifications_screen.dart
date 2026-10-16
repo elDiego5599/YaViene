@@ -44,12 +44,12 @@ class NotificationsScreen extends ConsumerWidget {
     final selecting = ref.watch(alertSelectionProvider).active;
 
     return Scaffold(
-      // Era un gris azulado suelto (#F8FAFC). Las tarjetas son blancas y
-      // el resto de superficies claras de la app son arena; un gris frío
-      // entre ellas se lee como una pantalla de otra app.
-      backgroundColor: AppColors.arena,
+      // Blanco, como el resto de pantallas claras (dueño, 2026-10-16): las
+      // tarjetas, también blancas, se despegan por su sombra y no por un
+      // fondo de otro tono.
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.arena,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -148,6 +148,7 @@ class _SoloConLaAppAbierta extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.hairline),
+          boxShadow: AppShadows.soft,
         ),
         child: Row(
           children: [
@@ -870,9 +871,9 @@ class _AlertTile extends StatelessWidget {
       ],
     );
 
-    // El estado en una franja arena dentro de la tarjeta: separa lo que el
-    // aviso es (ruta y placa) de cómo va. Ya se dice en `dicha`; aquí no se
-    // vuelve a leer.
+    // El estado en una franja arena dentro de la tarjeta blanca: separa lo
+    // que el aviso es (ruta y placa) de cómo va. Ya se dice en `dicha`; aquí
+    // no se vuelve a leer.
     final estado = ExcludeSemantics(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -918,10 +919,11 @@ class _AlertTile extends StatelessWidget {
               ? AppColors.acento.withValues(alpha: 0.45)
               : AppColors.hairline,
         ),
-        // Solo lo que espera se levanta del fondo, con la misma sombra
-        // tenue de las píldoras del mapa: lo enviado se queda plano.
+        // Lo que espera se levanta del fondo con la sombra de las píldoras
+        // del mapa; lo enviado, con la suave: sobre el blanco una tarjeta
+        // sin sombra es solo su filo, pero lo que ya sonó va un paso atrás.
         boxShadow: sent
-            ? null
+            ? AppShadows.soft
             : [
                 BoxShadow(
                   color: AppColors.primaryDeep.withValues(alpha: 0.06),
@@ -994,7 +996,7 @@ class _CirculoSeleccion extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: marcado ? AppColors.acento : AppColors.surface,
-            // Sin marcar, el filo en el gris secundario: sobre arena, el
+            // Sin marcar, el filo en el gris secundario: sobre blanco, el
             // de las tarjetas (hairline) no se ve.
             border: Border.all(
               color: marcado ? AppColors.acento : AppColors.textSecondary,

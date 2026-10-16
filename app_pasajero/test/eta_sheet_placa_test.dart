@@ -161,6 +161,8 @@ void main() {
     expect(caja.color, AppColors.surface);
     expect((caja.border! as Border).top.color, AppColors.hairline);
     expect(caja.borderRadius, BorderRadius.circular(AppRadius.card));
+    // Blanca sobre la hoja blanca (dueño, 2026-10-16): la despega su sombra.
+    expect(caja.boxShadow, isNotEmpty);
     // El filo cruza la tarjeta de marco a marco.
     expect(
       tester.getSize(find.byKey(const ValueKey('hoja-filo'))).width,
@@ -186,6 +188,10 @@ void main() {
     );
     expect(icono.icon, Icons.wrong_location_outlined);
     expect(icono.color, AppColors.coralAccessible);
+    // Blanca sobre la hoja blanca: se despega con su sombra.
+    expect(
+        (tester.widget<Container>(nota).decoration! as BoxDecoration).boxShadow,
+        isNotEmpty);
     // El botón sigue diciendo lo suyo, igual que antes.
     expect(find.text('Esta ruta no pasa cerca'), findsOneWidget);
   });

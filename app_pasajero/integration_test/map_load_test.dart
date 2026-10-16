@@ -132,7 +132,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
 
-    // 4) La barra: Avisos, Más y de vuelta al mapa, sin flecha de volver
+    // 4) La barra: Avisos, Info y de vuelta al mapa, sin flecha de volver
     //    porque cada pestaña es un lugar, no una pantalla encima.
     await tester.tap(_pestana('Avisos'));
     await _waitUntil(
@@ -142,12 +142,12 @@ void main() {
       message: 'la pestaña de avisos no abrió',
     );
     expect(find.byTooltip('Volver'), findsNothing);
-    await tester.tap(_pestana('Más'));
+    await tester.tap(_pestana('Info'));
     await _waitUntil(
       tester,
       () => find.text('Ver guía de uso').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
-      message: 'la pestaña Más no abrió',
+      message: 'la pestaña Info no abrió',
     );
     // 5) Sin cuenta no hay sesión que cerrar.
     expect(find.text('Cerrar sesión'), findsNothing);
