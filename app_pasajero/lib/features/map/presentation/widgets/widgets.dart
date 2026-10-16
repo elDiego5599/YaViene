@@ -1,6 +1,5 @@
 // Barrel: importa los widgets del mapa con un solo import.
 export 'alert_guards.dart';
-export 'app_drawer.dart';
 export 'eta_bottom_sheet.dart';
 export 'halo_painter.dart';
 export 'idle_status_chip.dart';

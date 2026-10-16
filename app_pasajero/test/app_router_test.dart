@@ -68,10 +68,12 @@ void main() {
     final router = container.read(appRouterProvider);
     addTearDown(router.dispose);
 
-    final rutas = router.configuration.routes
-        .whereType<GoRoute>()
-        .map((r) => r.path)
-        .toList();
+    // Las pestañas viven dentro del shell: se recorre el árbol entero.
+    Iterable<String> caminos(List<RouteBase> rutas) => rutas.expand((r) => [
+          if (r is GoRoute) r.path,
+          ...caminos(r.routes),
+        ]);
+    final rutas = caminos(router.configuration.routes).toList();
     expect(rutas, isNot(contains('/login')));
     expect(rutas, containsAll(['/', '/onboarding', '/map', '/notifications']));
   });

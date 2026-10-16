@@ -1,4 +1,4 @@
-// Los dos terminales en la tarjeta «Ruta activa» del menú.
+// Los dos terminales en la tarjeta «Ruta activa» de Más.
 //
 // Las dos puntas se repartían el ancho mitad y mitad aunque cupieran
 // enteras: en el iPhone 17, B18 salía «Ciudad Mallor… — La Playa» con
@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/app_drawer.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 const _a = 'Ciudad Mallorquín';
 const _b = 'La Playa';

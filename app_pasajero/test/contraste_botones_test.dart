@@ -7,16 +7,16 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
+import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
-    'app_drawer.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'eta_bottom_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'map_tour_overlay.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/'
     'providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
@@ -314,43 +314,22 @@ void main() {
     );
   });
 
-  testWidgets('la pastilla de avisos del drawer pasa AA y la tinta también',
+  testWidgets('la barra de abajo pasa AA: rótulos, cápsula y cuenta',
       (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final sub = container.listen<RouteInfo?>(
-      selectedRouteProvider,
-      (_, __) {},
-    );
-    addTearDown(sub.close);
-    await tester.pumpWidget(
-      MediaQuery(
-        data: MediaQueryData.fromView(tester.view),
-        child: UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            home: Scaffold(
-              appBar: AppBar(),
-              drawer: const AppDrawer(),
-            ),
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.bottomCenter,
+          child: PildoraNavegacion(
+            indice: 0,
+            avisosActivos: 1,
+            alElegir: (_) {},
           ),
         ),
       ),
-    );
+    ));
 
-    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
-    container.read(selectedRouteProvider.notifier).select(const RouteInfo(
-          id: 'R1',
-          name: 'B18 Tcherassi',
-          companyId: 'C1',
-          terminalA: 'Mallorquín',
-          terminalB: 'La Playa',
-        ));
-    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
-
-    // La pastilla con el contador.
+    // La pastilla con la cuenta de avisos.
     final pastilla = find.text('1');
     expect(pastilla, findsOneWidget);
     exigeContraste(
@@ -359,10 +338,46 @@ void main() {
         fondoDelContenedor(tester, pastilla),
       ),
       4.5,
-      'la pastilla de avisos del drawer',
+      'la pastilla de avisos de la barra',
     );
+    // La pestaña puesta va en verde sobre su cápsula verde clara; las
+    // demás, en gris sobre el blanco de la píldora.
+    exigeContraste(
+      contraste(letraDe(tester, find.text('Mapa')), AppColors.primaryTint),
+      4.5,
+      'la pestaña puesta sobre su cápsula',
+    );
+    exigeContraste(
+      contraste(letraDe(tester, find.text('Más')), Colors.white),
+      4.5,
+      'una pestaña sin poner',
+    );
+  });
 
-    // Los rótulos apagados del drawer van sobre la tinta: ahí el gris
+  testWidgets('los rótulos de Más sobre la tinta pasan AA', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final sub = container.listen<RouteInfo?>(
+      selectedRouteProvider,
+      (_, __) {},
+    );
+    addTearDown(sub.close);
+    container.read(selectedRouteProvider.notifier).select(const RouteInfo(
+          id: 'R1',
+          name: 'B18 Tcherassi',
+          companyId: 'C1',
+          terminalA: 'Mallorquín',
+          terminalB: 'La Playa',
+        ));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: MasScreen()),
+      ),
+    );
+    await tester.pump();
+
+    // Los rótulos apagados de Más van sobre la tinta: ahí el gris
     // pálido lee (y alguien que lo cambie a gris de papel la rompe).
     final rutaActiva = find.text('Ruta activa');
     expect(rutaActiva, findsOneWidget);

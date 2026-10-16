@@ -14,13 +14,12 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/'
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
-    'app_drawer.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'eta_bottom_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'route_selector_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'search_pill_bar.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/'
     'providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/'
@@ -276,13 +275,11 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: marcoGolden(const Scaffold(drawer: AppDrawer())),
+            child: marcoGolden(const MasScreen()),
           ),
         );
-        tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 900));
-        sinDesbordes(tester, 'El menú', escala);
+        sinDesbordes(tester, 'Más', escala);
         expect(find.text('Mallorquín'), findsOneWidget);
       });
 

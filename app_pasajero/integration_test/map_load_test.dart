@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/main.dart' as app;
 
 /// Flujos reales de la pasajero contra el backend real (túnel), desde una
@@ -30,7 +31,7 @@ void main() {
       tester,
       () =>
           find.text('Ahora no').evaluate().isNotEmpty ||
-          find.byIcon(Icons.menu_outlined).evaluate().isNotEmpty,
+          _barra.evaluate().isNotEmpty,
       timeout: const Duration(seconds: 60),
       message: 'ni bienvenida ni mapa tras el arranque',
     );
@@ -44,12 +45,12 @@ void main() {
       await tester.tap(find.text('Ahora no'));
     }
 
-    // 2) El mapa con su menú, y el placeholder que debe fundirse.
+    // 2) El mapa con su barra de abajo, y el placeholder que debe fundirse.
     await _waitUntil(
       tester,
-      () => find.byIcon(Icons.menu_outlined).evaluate().isNotEmpty,
+      () => _barra.evaluate().isNotEmpty,
       timeout: const Duration(seconds: 45),
-      message: 'no apareció el menú del mapa',
+      message: 'no apareció la barra de abajo',
     );
     final placeholder = find.text('Preparando tu mapa…');
     await _waitUntil(
@@ -131,47 +132,42 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
 
-    // 4) Drawer → Avisos → volver: el back regresa AL DRAWER abierto (no al
-    //    mapa), porque el drawer no se cierra antes de navegar.
-    await tester.tap(find.byIcon(Icons.menu_outlined));
-    await _waitUntil(
-      tester,
-      () => find.text('Avisos').evaluate().isNotEmpty,
-      timeout: const Duration(seconds: 10),
-      message: 'no abrió el drawer',
-    );
-    // 5) Sin cuenta no hay sesión que cerrar.
-    expect(find.text('Cerrar sesión'), findsNothing);
-    await tester.tap(find.text('Avisos'));
+    // 4) La barra: Avisos, Más y de vuelta al mapa, sin flecha de volver
+    //    porque cada pestaña es un lugar, no una pantalla encima.
+    await tester.tap(_pestana('Avisos'));
     await _waitUntil(
       tester,
       () => find.text('No tienes avisos activos').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
-      message: 'la pantalla de notificaciones no abrió',
+      message: 'la pestaña de avisos no abrió',
     );
-    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_outlined));
+    expect(find.byTooltip('Volver'), findsNothing);
+    await tester.tap(_pestana('Más'));
     await _waitUntil(
       tester,
-      () => find.text('Avisos').evaluate().isNotEmpty,
+      () => find.text('Ver guía de uso').evaluate().isNotEmpty,
       timeout: const Duration(seconds: 15),
-      message: 'el back no volvió al drawer abierto',
+      message: 'la pestaña Más no abrió',
     );
-    // Cierre explícito con la X del header del drawer (la hoja ETA también
-    // tiene una X en pantalla; la del drawer está identificada por Key).
-    await tester.tap(find.byKey(const ValueKey('drawer_close')));
+    // 5) Sin cuenta no hay sesión que cerrar.
+    expect(find.text('Cerrar sesión'), findsNothing);
+    await tester.tap(_pestana('Mapa'));
     await _waitUntil(
       tester,
-      () =>
-          find.byIcon(Icons.menu_outlined).evaluate().isNotEmpty &&
-          tester.getCenter(find.byIcon(Icons.menu_outlined)).dx > 30,
+      () => find.text('Ver guía de uso').evaluate().isEmpty,
       timeout: const Duration(seconds: 15),
-      message: 'la X no cerró el drawer',
+      message: 'la pestaña Mapa no volvió al mapa',
     );
 
     // Sin excepciones no capturadas en todo el recorrido.
     expect(tester.takeException(), isNull);
   });
 }
+
+final _barra = find.byType(PildoraNavegacion);
+
+Finder _pestana(String rotulo) =>
+    find.descendant(of: _barra, matching: find.text(rotulo));
 
 /// Espera real (no pumpAndSettle, que se cuelga con timers periódicos) hasta
 /// que [cond] se cumpla o venza [timeout].

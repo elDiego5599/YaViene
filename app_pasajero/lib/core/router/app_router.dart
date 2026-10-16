@@ -8,9 +8,11 @@ import '../../features/buzon/presentation/buzon_screen.dart';
 import '../../features/legal/legal_docs.dart';
 import '../../features/legal/presentation/screens/legal_screen.dart';
 import '../../features/map/presentation/screens/map_screen.dart';
+import '../../features/mas/presentation/mas_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import 'shell_pildora.dart';
 
 abstract class AppRoutes {
   static const String splash = '/';
@@ -23,12 +25,16 @@ abstract class AppRoutes {
   /// El buzón de problemas y sugerencias (D14 del backend).
   static const String buzon = '/buzon';
 
+  /// La cuarta pestaña: la guía, lo legal y los créditos, lo que antes
+  /// vivía en el menú lateral.
+  static const String mas = '/mas';
+
   /// Privacidad y términos, uno por documento: `/legal/privacidad`.
   static const String legal = '/legal/:doc';
 }
 
 /// El camino de un documento legal, para no escribirlo a mano en cada sitio
-/// que lo abre (la bienvenida y el menú).
+/// que lo abre (la bienvenida y Más).
 String legalPath(String docId) => '/legal/$docId';
 
 // Sin cuenta ni redirect: el pasajero entra directo (D3). El backend nunca
@@ -49,10 +55,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.map,
-        name: 'map',
-        builder: (context, state) => const MapScreen(),
+      // Las cuatro pestañas de la píldora de abajo (dueño, 2026-10-16). Cada
+      // una guarda su pantalla viva al cambiar de pestaña, como en iOS: el
+      // mapa no se vuelve a montar ni el buzón pierde lo escrito. Lo legal
+      // va fuera, encima de la píldora, con su flecha de volver.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) =>
+            ShellConPildora(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.map,
+              name: 'map',
+              builder: (context, state) => const MapScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.notifications,
+              name: 'notifications',
+              builder: (context, state) => const NotificationsScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.buzon,
+              name: 'buzon',
+              builder: (context, state) => const BuzonScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: AppRoutes.mas,
+              name: 'mas',
+              builder: (context, state) => const MasScreen(),
+            ),
+          ]),
+        ],
       ),
       GoRoute(
         path: AppRoutes.legal,
@@ -64,16 +103,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // existe.
           return doc == null ? const _NotFoundScreen() : LegalScreen(doc: doc);
         },
-      ),
-      GoRoute(
-        path: AppRoutes.notifications,
-        name: 'notifications',
-        builder: (context, state) => const NotificationsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.buzon,
-        name: 'buzon',
-        builder: (context, state) => const BuzonScreen(),
       ),
     ],
     errorBuilder: (context, state) => const _NotFoundScreen(),

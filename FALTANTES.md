@@ -69,7 +69,7 @@ Necesitan un teléfono, una cuenta o estar presente.
   `https://yavienetech.com` (2026-10-15). Falta mandar un número propio
   desde la web publicada y verlo en `GET /api/admin/lanzamiento`.
 
-- **Probar el buzón** (D14): desde el menú de la APK nueva, mandar un
+- **Probar el buzón** (D14): desde la pestaña Buzón de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
   la contraseña de aplicación que pegaste en el chat el 2026-10-02.
 
@@ -99,6 +99,12 @@ Necesitan un teléfono, una cuenta o estar presente.
   alerta (T7.1).
 
 ## Lo que puedo hacer yo
+
+- **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
+  la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,
+  Avisos, Buzón, Más). Las maquetas del pasajero en `YaVieneWeb` (rama
+  `referentes-web`) siguen dibujando el ☰; falta espejar la barra con sus
+  números comentados.
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`

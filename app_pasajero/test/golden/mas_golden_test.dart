@@ -6,17 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
-    'app_drawer.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 import 'golden_harness.dart';
 
-/// El menú lateral, con y sin ruta activa.
+/// La pestaña Más, con y sin ruta activa.
 ///
-/// Once estilos escritos a mano sobre fondo ink. Es la superficie oscura
-/// más grande de la app, así que aquí se ve enseguida si la migración de
-/// tipografía cambia pesos o interletrado. Sin cuenta (D3) ya no lleva la
-/// tarjeta con el nombre ni «Cerrar sesión»: la ruta activa es lo primero.
+/// Sustituye al menú lateral (dueño, 2026-10-16): página entera en vez de
+/// cajón, sin la X ni las filas de Avisos y Buzón, que ahora son pestañas.
+/// Sigue siendo la superficie oscura más grande de la app, así que aquí se
+/// ve enseguida si cambian pesos o interletrado. Sin cuenta (D3), la ruta
+/// activa es lo primero.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -35,31 +35,26 @@ void main() {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           locale: const Locale('es', 'CO'),
-          home: const Scaffold(
-            drawer: AppDrawer(),
-            body: ColoredBox(color: Color(0xFFE8E6E1)),
+          // Quieto: el fondo de rutas se mueve sin parar y el oro tiene que
+          // salir igual cada vez.
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child!,
           ),
+          home: const MasScreen(),
         ),
       ),
     );
-    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
     await tester.pump();
-    // La entrada del menú es escalonada (560 ms de controlador repartidos en
-    // ocho escalones). Se avanza en varios saltos y no en uno solo: un
-    // único salto gigante le da al ticker un delta enorme y hay escalones
-    // que se quedan a medias.
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 200));
-    }
   }
 
-  testWidgets('menú · sin ruta activa', (tester) async {
+  testWidgets('Más · sin ruta activa', (tester) async {
     fijarPantalla(tester);
     await abrir(tester);
-    await coincideConOro(tester, 'menu_sin_ruta');
+    await coincideConOro(tester, 'mas_sin_ruta');
   });
 
-  testWidgets('menú · con ruta activa', (tester) async {
+  testWidgets('Más · con ruta activa', (tester) async {
     fijarPantalla(tester);
     await abrir(
       tester,
@@ -71,6 +66,6 @@ void main() {
         terminalB: 'La Playa',
       ),
     );
-    await coincideConOro(tester, 'menu_con_ruta');
+    await coincideConOro(tester, 'mas_con_ruta');
   });
 }

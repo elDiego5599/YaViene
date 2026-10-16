@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/latido.dart';
-import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import 'route_selector_sheet.dart';
 
@@ -37,18 +36,8 @@ class SearchPillBar extends ConsumerStatefulWidget {
 }
 
 class _SearchPillBarState extends ConsumerState<SearchPillBar> {
-  bool _menuPressed = false;
   bool _actionPressed = false;
   bool _searchPressed = false;
-
-  void _onMenuTap() {
-    // Con la guía en marcha el menú la dejaría a medias. Hoy el velo ya
-    // tapa el botón; esto lo cubre en los pasos que lo destapen.
-    final guia = ref.read(mapGuideProvider);
-    if (guia.isActive || guia.bienvenida) return;
-    HapticFeedback.lightImpact();
-    Scaffold.of(context).openDrawer();
-  }
 
   void _onSearchTap() {
     HapticFeedback.lightImpact();
@@ -85,6 +74,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           // siquiera en accesibilidad— no cabían y se recortaban.
           //
           // El alto fijo apretaba el contenido a 46: el botón del menú
+          // (hoy la lupa)
           // pide 48 y se quedaba sin dos. Ahora cabe entero, y el relleno
           // baja a 5 para que la píldora siga midiendo los mismos 60 de
           // antes (48 + 5 + 5 + los dos del filo).
@@ -107,32 +97,31 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           ),
           child: Row(
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _onMenuTap,
-                onTapDown: (_) => setState(() => _menuPressed = true),
-                onTapUp: (_) => setState(() => _menuPressed = false),
-                onTapCancel: () => setState(() => _menuPressed = false),
-                child: Semantics(
-                  button: true,
-                  label: 'Abrir menú',
-                  child: Tooltip(
-                    message: 'Menú',
-                    child: AnimatedContainer(
-                      duration: AppMotion.instante,
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _menuPressed
-                            ? AppColors.surfaceMuted
-                            : Colors.transparent,
-                      ),
-                      child: const Icon(
-                        Icons.menu_outlined,
-                        color: AppColors.primaryDeep,
-                        size: 22,
-                      ),
+              // Donde iba el menú, la lupa: el menú se fue a la pestaña
+              // «Más» de abajo (dueño, 2026-10-16). Es parte del mismo botón
+              // de buscar —toca igual y se apaga con él—, y el lector ya lo
+              // oye en la etiqueta del bloque de texto.
+              ExcludeSemantics(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _onSearchTap,
+                  onTapDown: (_) => setState(() => _searchPressed = true),
+                  onTapUp: (_) => setState(() => _searchPressed = false),
+                  onTapCancel: () => setState(() => _searchPressed = false),
+                  child: AnimatedContainer(
+                    duration: AppMotion.instante,
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _searchPressed
+                          ? AppColors.surfaceMuted
+                          : Colors.transparent,
+                    ),
+                    child: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primaryDeep,
+                      size: 22,
                     ),
                   ),
                 ),

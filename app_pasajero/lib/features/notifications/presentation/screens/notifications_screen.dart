@@ -51,7 +51,7 @@ class NotificationsScreen extends ConsumerWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        // El menú la llama "Avisos", el estado vacío dice "avisos" y el
+        // La pestaña la llama "Avisos", el estado vacío dice "avisos" y el
         // botón del mapa dice "Avísame". Esta era la única pantalla que
         // usaba otra palabra para la misma cosa.
         //
@@ -65,8 +65,8 @@ class NotificationsScreen extends ConsumerWidget {
           maxScaleFactor: 1.3,
           child: const Text('Avisos'),
         ),
-        // Seleccionando, la flecha cede su sitio a «Cancelar»: antes no
-        // había cómo salir de la selección sin borrar (dueño, 2026-10-02).
+        // Seleccionando, a la izquierda va «Cancelar»: antes no había cómo
+        // salir de la selección sin borrar (dueño, 2026-10-02).
         leadingWidth: selecting ? 104 : null,
         leading: selecting
             ? MediaQuery.withClampedTextScaling(
@@ -80,19 +80,10 @@ class NotificationsScreen extends ConsumerWidget {
                   child: const Text('Cancelar'),
                 ),
               )
-            : IconButton(
-                // La flecha de la barra no es la de Material —que trae su
-                // rótulo puesto—, es un icono a secas: sin esto se anuncia
-                // «botón» y nada más.
-                icon: const Icon(
-                  Icons.arrow_back_ios_new_outlined,
-                  size: 20,
-                  semanticLabel: 'Volver',
-                ),
-                tooltip: 'Volver',
-                color: AppColors.textPrimary,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+            // Fuera de la selección no hay flecha: Avisos es una pestaña de
+            // la barra de abajo y no hay detrás a dónde volver.
+            : null,
+        automaticallyImplyLeading: false,
         actions: entries.isEmpty
             ? null
             : [

@@ -14,7 +14,6 @@ import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/app_drawer.dart';
 
 /// El botón queda bajo el campo: en la pantalla de prueba (800×600) hay que
 /// llevarlo a la vista antes de tocarlo, como haría el pasajero.
@@ -26,7 +25,7 @@ Future<void> enviar(WidgetTester tester) async {
 }
 
 /// El menú tiene un fondo vivo que no se asienta nunca: se espera lo que
-/// dura su entrada y la de la pantalla, como en `app_drawer_test.dart`.
+/// dura su entrada y la de la pantalla, como en `mas_screen_test.dart`.
 Future<void> asentar(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 700));
@@ -300,15 +299,15 @@ void main() {
     }
   });
 
-  testWidgets('el menú abre el buzón y «Volver» regresa al menú',
+  testWidgets('«Volver» lleva al mapa y el buzón queda limpio',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final router = GoRouter(
+      initialLocation: AppRoutes.buzon,
       routes: [
         GoRoute(
-          path: '/',
-          builder: (_, __) =>
-              Scaffold(appBar: AppBar(), drawer: const AppDrawer()),
+          path: AppRoutes.map,
+          builder: (_, __) => const Scaffold(body: Text('el mapa')),
         ),
         GoRoute(path: AppRoutes.buzon, builder: (_, __) => const BuzonScreen()),
       ],
@@ -324,32 +323,37 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
-    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
     await asentar(tester);
-
-    await tester.tap(find.text('Problemas y sugerencias'));
-    await asentar(tester);
-    expect(find.byType(BuzonScreen), findsOneWidget);
+    // Es una pestaña: no hay flecha de volver.
+    expect(find.byTooltip('Volver'), findsNothing);
 
     await tester.enterText(find.byKey(const ValueKey('buzon_texto')), 'Hola');
     await enviar(tester);
     await asentar(tester);
     await tester.tap(find.byKey(const ValueKey('buzon_volver')));
     await asentar(tester);
-    expect(find.byType(BuzonScreen), findsNothing);
-    expect(find.text('Problemas y sugerencias'), findsOneWidget,
-        reason: 'el menú sigue abierto');
+    expect(find.text('el mapa'), findsOneWidget);
+
+    // De vuelta al buzón: el formulario en blanco, no las gracias de antes.
+    router.go(AppRoutes.buzon);
+    await asentar(tester);
+    expect(find.text('Gracias, lo recibimos'), findsNothing);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('buzon_texto')))
+          .controller!
+          .text,
+      isEmpty,
+    );
   });
 
   test('la app tiene la ruta /buzon', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final rutas = container
-        .read(appRouterProvider)
-        .configuration
-        .routes
-        .whereType<GoRoute>()
-        .map((r) => r.path);
-    expect(rutas, contains(AppRoutes.buzon));
+    // Vive dentro de la rama «Buzón» del shell de la barra de abajo.
+    expect(
+      container.read(appRouterProvider).namedLocation('buzon'),
+      AppRoutes.buzon,
+    );
   });
 }

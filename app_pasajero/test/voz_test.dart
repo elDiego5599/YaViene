@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
@@ -15,8 +16,6 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/'
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
-    'app_drawer.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'eta_bottom_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'idle_status_chip.dart';
@@ -24,6 +23,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'route_selector_sheet.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
     'onboarding_screen.dart';
 
@@ -158,8 +158,8 @@ Future<void> montarHojaVacia(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 400));
 }
 
-/// Abre el menú lateral y devuelve su contenedor.
-Future<ProviderContainer> abrirMenu(WidgetTester tester) async {
+/// Abre la pestaña Más y devuelve su contenedor.
+Future<ProviderContainer> abrirMas(WidgetTester tester) async {
   final container = ProviderContainer();
   addTearDown(container.dispose);
   final sub = container.listen<RouteInfo?>(selectedRouteProvider, (_, __) {});
@@ -167,21 +167,10 @@ Future<ProviderContainer> abrirMenu(WidgetTester tester) async {
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
-        home: Scaffold(appBar: AppBar(), drawer: const AppDrawer()),
-      ),
+      child: const MaterialApp(home: MasScreen()),
     ),
   );
-  tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
-  // Tres cuadros, y en este orden. El primero construye el menú y encola
-  // el arranque de la entrada; el segundo es el primer tic de su reloj —si
-  // se salta, la animación empieza a contar recién en el cuadro largo y se
-  // queda a medias—; el tercero la termina. Y hasta que no termina, las
-  // filas están a opacidad cero, que en Flutter también las borra del
-  // árbol de semántica y no solo de la pantalla.
   await tester.pump();
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 700));
   return container;
 }
 
@@ -342,11 +331,11 @@ void main() {
     });
   });
 
-  group('el menú', () {
+  group('Más', () {
     testWidgets('cada fila se anuncia como botón', (tester) async {
       await conVoz(tester, () async {
         fijarPantalla(tester);
-        await abrirMenu(tester);
+        await abrirMas(tester);
 
         final nodo = tester.getSemantics(
           find.bySemanticsLabel('Ver guía de uso'),
@@ -356,20 +345,34 @@ void main() {
       });
     });
 
-    testWidgets('el contador de avisos se dice con su frase', (tester) async {
+    testWidgets('la cuenta de avisos de la barra se dice con su frase',
+        (tester) async {
       await conVoz(tester, () async {
         fijarPantalla(tester);
-        final container = await abrirMenu(tester);
-        container.read(activeAlertsProvider.notifier).activateAlert('A-1');
-        await tester.pump();
+        var cuenta = 1;
+        late StateSetter cambiar;
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(builder: (context, setState) {
+              cambiar = setState;
+              return PildoraNavegacion(
+                indice: 0,
+                avisosActivos: cuenta,
+                alElegir: (_) {},
+              );
+            }),
+          ),
+        ));
 
         // En pantalla es una pastilla verde con un "1" dentro.
         expect(find.text('1'), findsOneWidget);
-        expect(find.bySemanticsLabel('Avisos, 1 activo'), findsOneWidget);
+        expect(find.bySemanticsLabel('Avisos, 1 activo, pestaña 2 de 4'),
+            findsOneWidget);
 
-        container.read(activeAlertsProvider.notifier).activateAlert('A-2');
+        cambiar(() => cuenta = 2);
         await tester.pump();
-        expect(find.bySemanticsLabel('Avisos, 2 activos'), findsOneWidget);
+        expect(find.bySemanticsLabel('Avisos, 2 activos, pestaña 2 de 4'),
+            findsOneWidget);
       });
     });
 
@@ -377,7 +380,7 @@ void main() {
         (tester) async {
       await conVoz(tester, () async {
         fijarPantalla(tester);
-        final container = await abrirMenu(tester);
+        final container = await abrirMas(tester);
 
         expect(
           find.bySemanticsLabel('Sin ruta activa. Elige tu ruta en el mapa'),

@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/router/app_router.dart';
 import '../../../../core/services/bus_notification_service.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../notifications/presentation/providers/abrir_aviso_provider.dart';
@@ -21,7 +23,6 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/bus_semantics.dart';
 import '../utils/map_constants.dart';
-import '../widgets/app_drawer.dart';
 import '../widgets/bienvenida.dart';
 import '../widgets/cabecera_flotante.dart';
 import '../widgets/eta_bottom_sheet.dart';
@@ -39,7 +40,6 @@ class MapScreen extends ConsumerStatefulWidget {
 }
 
 class _MapScreenState extends ConsumerState<MapScreen> {
-  final GlobalKey<AppDrawerState> _drawerKey = GlobalKey<AppDrawerState>();
   final GlobalKey _mapKey = GlobalKey();
   final GlobalKey _pillKey = GlobalKey();
   final GlobalKey _searchActionKey = GlobalKey();
@@ -130,9 +130,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _abrirAviso(AvisoTocado aviso) {
     if (!mounted) return;
-    // El aviso se pudo tocar con el historial o un texto legal encima: se
-    // vuelve al mapa, que es donde está el bus.
-    Navigator.of(context).popUntil((ruta) => ruta.isFirst);
+    // El aviso se pudo tocar con un texto legal encima o desde otra
+    // pestaña: se vuelve al mapa, que es donde está el bus.
+    Navigator.of(context, rootNavigator: true).popUntil((ruta) => ruta.isFirst);
+    GoRouter.of(context).go(AppRoutes.map);
     unawaited(ref.read(abrirAvisoProvider)(aviso));
   }
 
@@ -427,14 +428,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
-      drawer: AppDrawer(key: _drawerKey),
-      // El velo de la guía va en el cuerpo y el gesto del borde del Scaffold
-      // va encima: sin esto, arrastrar desde la izquierda abría el menú con
-      // la guía a medias.
-      drawerEnableOpenDragGesture: !guide.isActive && !guide.bienvenida,
-      onDrawerChanged: (opened) {
-        if (opened) _drawerKey.currentState?.playEntrance();
-      },
       body: Stack(
         children: [
           Positioned.fill(

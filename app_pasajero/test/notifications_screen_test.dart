@@ -552,7 +552,8 @@ void main() {
 
     expect(find.text('Seleccionar'), findsOneWidget);
     expect(find.text('Borrar todas'), findsNothing);
-    expect(find.byTooltip('Volver'), findsOneWidget);
+    // Avisos es una pestaña: al salir de la selección no queda flecha.
+    expect(find.byTooltip('Volver'), findsNothing);
     expectAviso('A-1');
   });
 

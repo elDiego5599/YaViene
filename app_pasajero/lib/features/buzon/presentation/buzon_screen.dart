@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../core/router/app_router.dart';
 import '../data/buzon.dart';
 
 /// El buzón del pasajero: un problema o una sugerencia, escrito en un
@@ -60,6 +62,18 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
     });
   }
 
+  /// De vuelta al mapa, con el buzón limpio para la próxima vez: la
+  /// pestaña sigue viva detrás de la barra y, sin esto, al volver a ella
+  /// seguiría dando las gracias por lo de antes.
+  void _volver() {
+    _texto.clear();
+    setState(() {
+      _recibido = false;
+      _tipo = TipoReporte.problema;
+    });
+    context.go(AppRoutes.map);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,16 +89,8 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
           maxScaleFactor: 1.3,
           child: const Text('¿Qué nos quieres contar?'),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_outlined,
-            size: 20,
-            semanticLabel: 'Volver',
-          ),
-          tooltip: 'Volver',
-          color: AppColors.textPrimary,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        // Sin flecha: el buzón es una pestaña de la barra de abajo.
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         top: false,
@@ -93,7 +99,10 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
           switchInCurve: AppMotion.curvaEntrada,
           switchOutCurve: AppMotion.curvaSalida,
           child: _recibido
-              ? const _Gracias(key: ValueKey('buzon_gracias'))
+              ? _Gracias(
+                  key: const ValueKey('buzon_gracias'),
+                  alVolver: _volver,
+                )
               : _formulario(),
         ),
       ),
@@ -469,9 +478,11 @@ class _Fallo extends StatelessWidget {
   }
 }
 
-/// El reporte llegó: lo dice y deja volver.
+/// El reporte llegó: lo dice y deja volver al mapa.
 class _Gracias extends StatelessWidget {
-  const _Gracias({super.key});
+  const _Gracias({super.key, required this.alVolver});
+
+  final VoidCallback alVolver;
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +528,7 @@ class _Gracias extends StatelessWidget {
               height: 56,
               child: FilledButton(
                 key: const ValueKey('buzon_volver'),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: alVolver,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,

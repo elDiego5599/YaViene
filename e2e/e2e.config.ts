@@ -39,7 +39,7 @@ export default {
         'Ya Viene es una app de Barranquilla para ver en vivo los buses de una ruta y a qué distancia vienen (distancia, nunca tiempo de llegada).',
         'Primera vez: bienvenida con un interruptor «He leído y acepto la privacidad y los términos de uso»; hasta aceptarlo, «Permitir ubicación» y «Ahora no» no responden. Luego un diálogo «Bienvenido» con «Ver la guía» o «Ir a la app».',
         'En el mapa, «¿Qué bus esperas?» abre «Elige tu ruta»: primero «Elegir empresa» (Coolitoral, Sobusa), luego «Elegir ruta» y «Ver buses en vivo».',
-        'Sin GPS, el punto de espera se pone tocando el mapa. El menú («Abrir menú») tiene Avisos, Ver guía de uso, Problemas y sugerencias, Privacidad, Términos y Acerca de.',
+        'Sin GPS, el punto de espera se pone tocando el mapa. Abajo va una barra con cuatro pestañas (Mapa, Avisos, Buzón y Más); Más tiene Ver guía de uso, Privacidad, Términos y Acerca de.',
       ].join('\n'),
     },
   },
