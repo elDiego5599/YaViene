@@ -17,6 +17,14 @@ final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
 final routeSelectorOpenProvider =
     StateProvider.autoDispose<bool>((ref) => false);
 
+/// La tarjeta del bus pregunta a qué distancia avisar (la rueda, con
+/// «Guardar» y «Solo esta vez» o «Cancelar»). Mientras tanto la barra de
+/// pestañas se aparta, como con el teclado: la rueda y sus dos botones no
+/// caben con la barra debajo en un teléfono bajo, ni en uno de 844 con el
+/// texto al doble, y es una pregunta que se contesta antes de irse.
+final eligiendoDistanciaProvider =
+    StateProvider.autoDispose<bool>((ref) => false);
+
 /// Alguien fuera de la píldora pide abrir el selector de ruta: cada pedido
 /// sube el número. Lo abre la píldora, que es la dueña del selector y de sus
 /// guías; así no hay dos maneras de abrirlo. Lo pide «Escoge empresa y

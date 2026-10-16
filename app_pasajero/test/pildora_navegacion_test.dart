@@ -6,14 +6,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:ya_viene_pasajero/services/background_keep_alive.dart';
+
+import 'helpers/mapa.dart';
 
 /// La guía puesta en un paso, sin pasar por las preferencias.
 class _GuiaEn extends MapGuideNotifier {
@@ -38,6 +45,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final container = ProviderContainer(overrides: [
+      // Lo del mapa, sin red ni GPS ni plugins, como en `MapaDePrueba`.
+      backendUrlProvider.overrideWith(() => BackendUrl.fija('http://x')),
+      realtimeServiceProvider.overrideWithValue(RepoDePrueba()),
+      userLocationProvider.overrideWith((ref) => UbicacionDePrueba()),
+      servicioDeFondoProvider.overrideWithValue(ServicioDePrueba()),
       busPositionsSourceProvider.overrideWith(
         (ref, routeId) => const Stream.empty(),
       ),
@@ -79,6 +91,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     return (router, container);
+  }
+
+  /// Como `MapaDePrueba.desmontar`: el mapa deja temporizadores que tienen
+  /// que vencer antes de que la prueba termine.
+  Future<void> desmontarMapa(
+      WidgetTester tester, ProviderContainer container) async {
+    await tester.pumpWidget(const SizedBox());
+    container.read(proximityAlertsProvider.notifier).stop();
+    await tester.pump(const Duration(seconds: 10));
   }
 
   String camino(GoRouter router) =>
@@ -213,6 +234,48 @@ void main() {
             ['Ver guía de uso', 'Privacidad', 'Términos', 'Acerca de']));
   });
 
+  testWidgets(
+      'en el mapa la barra se funde con la hoja, salvo con el '
+      'selector arriba', (tester) async {
+    final (_, container) = await abrir(tester, '/map');
+    bool fundida() => tester
+        .widget<PildoraNavegacion>(find.byType(PildoraNavegacion))
+        .fundida;
+
+    expect(fundida(), isTrue);
+    container.read(routeSelectorOpenProvider.notifier).state = true;
+    await tester.pump();
+    expect(fundida(), isFalse, reason: 'la hoja se aparta y la barra es suya');
+    await desmontarMapa(tester, container);
+  });
+
+  testWidgets('con la rueda de la distancia abierta la barra se aparta',
+      (tester) async {
+    final (_, container) = await abrir(tester, '/map');
+    expect(find.byType(PildoraNavegacion), findsOneWidget);
+
+    container.read(eligiendoDistanciaProvider.notifier).state = true;
+    await tester.pumpAndSettle();
+    expect(find.byType(PildoraNavegacion), findsNothing,
+        reason: 'la rueda y sus dos botones no caben con la barra debajo');
+
+    container.read(eligiendoDistanciaProvider.notifier).state = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(PildoraNavegacion), findsOneWidget);
+    await desmontarMapa(tester, container);
+  });
+
+  testWidgets('fuera del mapa la barra lleva su filo y su sombra',
+      (tester) async {
+    await abrir(tester, '/notifications');
+
+    expect(
+        tester
+            .widget<PildoraNavegacion>(find.byType(PildoraNavegacion))
+            .fundida,
+        isFalse);
+  });
+
   group('la barra sola', () {
     Future<List<int>> montar(WidgetTester tester, {int indice = 1}) async {
       final elegidas = <int>[];
@@ -244,6 +307,33 @@ void main() {
             matching: find.text(rotulo),
           ),
         );
+
+    testWidgets(
+        'fundida, la barra es parte de la hoja: sin fondo, filo ni '
+        'sombra propios', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child:
+                PildoraNavegacion(indice: 0, fundida: true, alElegir: (_) {}),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      final caja = tester.widget<AnimatedContainer>(find.descendant(
+        of: find.byType(PildoraNavegacion),
+        matching: find.byType(AnimatedContainer),
+      ));
+      final fondo = caja.decoration! as BoxDecoration;
+      expect(fondo.color!.a, 0);
+      expect(fondo.border, isNull);
+      expect(fondo.boxShadow, anyOf(isNull, isEmpty));
+    });
 
     testWidgets('tocar la pestaña puesta no hace nada', (tester) async {
       final elegidas = await montar(tester);

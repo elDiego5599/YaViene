@@ -40,6 +40,7 @@ class PildoraNavegacion extends StatefulWidget {
     required this.indice,
     required this.alElegir,
     this.avisosActivos = 0,
+    this.fundida = false,
   });
 
   /// La pestaña puesta.
@@ -51,12 +52,25 @@ class PildoraNavegacion extends StatefulWidget {
   /// La cuenta que lleva Avisos; cero no pinta nada.
   final int avisosActivos;
 
+  /// Sobre la hoja del mapa, que crece de ella: sin fondo, filo ni sombra
+  /// propios, para que barra y hoja sean una sola superficie.
+  final bool fundida;
+
   /// Alto de la píldora: la cápsula de 52 más su margen de 6 por lado, con
   /// el icono de 24 y el rótulo dentro aun con el texto en su techo.
   static const double alto = 64;
 
   /// Margen entre la cápsula y el borde de la píldora.
   static const double margen = 6;
+
+  /// Aire a cada lado, entre la píldora y el canto de la pantalla.
+  static const double lado = 20;
+
+  /// Lo que la píldora se aparta del borde de abajo. Con barra de inicio
+  /// (34 en iPhone) se apoya 22 sobre el borde, encima de la barra y sin
+  /// taparla; sin ella, 12.
+  static double hueco(EdgeInsets viewPadding) =>
+      math.max(viewPadding.bottom - 12, 12);
 
   @override
   State<PildoraNavegacion> createState() => _PildoraNavegacionState();
@@ -79,6 +93,27 @@ class _PildoraNavegacionState extends State<PildoraNavegacion>
   int _bajoDedo = 0;
 
   int get _ultima => kPestanas.length - 1;
+
+  // Los mismos blanco, filo y sombra que la píldora de búsqueda: las dos
+  // flotan sobre el mapa y son la misma familia.
+  static final _fondo = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(AppRadius.pill),
+    border: Border.all(color: AppColors.hairline),
+    boxShadow: [
+      BoxShadow(
+        color: AppColors.primaryDeep.withValues(alpha: 0.08),
+        blurRadius: 24,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  /// El mismo, transparente: así el paso entre los dos se funde.
+  static final _sinFondo = BoxDecoration(
+    color: Colors.white.withValues(alpha: 0),
+    borderRadius: BorderRadius.circular(AppRadius.pill),
+  );
 
   @override
   void didUpdateWidget(PildoraNavegacion antes) {
@@ -142,22 +177,12 @@ class _PildoraNavegacionState extends State<PildoraNavegacion>
     // cuatro no caben en un 390.
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.2,
-      child: Container(
+      child: AnimatedContainer(
         height: PildoraNavegacion.alto,
-        decoration: BoxDecoration(
-          // Los mismos blanco, filo y sombra que la píldora de búsqueda:
-          // las dos flotan sobre el mapa y son la misma familia.
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: AppColors.hairline),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryDeep.withValues(alpha: 0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+        duration: AppMotion.duracion(context, AppMotion.normal),
+        curve: AppMotion.curvaCambio,
+        // Fundida, la hoja de debajo pone el fondo, el filo y la sombra.
+        decoration: widget.fundida ? _sinFondo : _fondo,
         child: LayoutBuilder(builder: (context, caja) {
           final anchoPestana =
               (caja.maxWidth - PildoraNavegacion.margen * 2) / kPestanas.length;
@@ -238,6 +263,26 @@ class _PildoraNavegacionState extends State<PildoraNavegacion>
       ),
     );
   }
+}
+
+/// Cuánto se ve de la píldora, de 0 (apartada) a 1, para la hoja que
+/// crece de ella y le guarda el sitio.
+class PildoraVisible extends InheritedWidget {
+  const PildoraVisible({
+    super.key,
+    required this.visible,
+    required super.child,
+  });
+
+  final double visible;
+
+  /// Fuera de las pestañas no hay píldora: cero.
+  static double of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PildoraVisible>()?.visible ??
+      0;
+
+  @override
+  bool updateShouldNotify(PildoraVisible antes) => antes.visible != visible;
 }
 
 class _PestanaVista extends StatelessWidget {

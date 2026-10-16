@@ -104,7 +104,8 @@ Necesitan un teléfono, una cuenta o estar presente.
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,
   Avisos, Buzón, Más). Las maquetas del pasajero en `YaVieneWeb` (rama
   `referentes-web`) siguen dibujando el ☰; falta espejar la barra con sus
-  números comentados.
+  números comentados, y la hoja del mapa que crece de ella (20 por lado,
+  cantos de 32, apoyada sobre su hueco, la barra fundida en ella).
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`
@@ -115,14 +116,12 @@ Necesitan un teléfono, una cuenta o estar presente.
   mismas pruebas (la U de 1500 × 400 m del core).
 
 - **La tarjeta del aviso activo con el texto al doble** (hallado el
-  2026-10-07, ya estaba en `9d0f3a0`): con el aviso puesto y el texto del
-  sistema al doble, en un 390×844 la hoja se pasa de la pantalla. En
-  Android desborda 21 px y «Cambiar» queda en 861–892, fuera; en iPhone
-  «Te avisamos a 1,0 km» se parte palabra por palabra junto a su
-  «Cambiar» y el botón del aviso baja a 831–869. Medido con la letra de
-  pruebas, que es más ancha que la de verdad; falta la prueba roja que lo
-  ate y acomodarlo (la píldora debajo del texto con letra grande, como en
-  `notifications_screen.dart:813`).
+  2026-10-07, ya estaba en `9d0f3a0`): desde el 2026-10-16 ya no se sale
+  de la pantalla —lo que no cabe se desplaza dentro de la tarjeta, que no
+  se pliega—, pero en iPhone «Te avisamos a 1,0 km» se sigue partiendo
+  palabra por palabra junto a su «Cambiar» y el botón dice «Avisarme
+  cuan…». Falta la prueba roja que lo ate y acomodarlo (la píldora debajo
+  del texto con letra grande, como en `notifications_screen.dart:813`).
 
 - **Dos specs de Playwright que fallan con 5 hilos** (hallado el
   2026-10-16): `carrusel-lamina.spec.ts` y `contraste.spec.ts` fallan solo

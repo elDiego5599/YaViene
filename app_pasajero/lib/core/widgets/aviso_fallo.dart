@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../providers/red_provider.dart';
+import 'tamano_animado.dart';
 
 /// Una carga que falló, dicha con su causa y con un «Reintentar» que se ve
 /// trabajar.
@@ -295,12 +296,8 @@ class _AvisoFalloState extends ConsumerState<AvisoFallo>
                         const SizedBox(width: AppSpacing.sm),
                         // El ancho cambia con el texto; que lo haga
                         // deslizando y no a saltos.
-                        AnimatedSize(
-                          duration: AppMotion.duracion(
-                            context,
-                            AppMotion.rapido,
-                          ),
-                          curve: AppMotion.curvaCambio,
+                        TamanoAnimado(
+                          duracion: AppMotion.rapido,
                           child: Text(
                             _reintentando ? 'Reintentando…' : 'Reintentar',
                             style: AppTextStyles.boton.copyWith(

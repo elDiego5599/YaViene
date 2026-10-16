@@ -15,9 +15,11 @@ abstract final class AppMotion {
       MediaQuery.disableAnimationsOf(context);
 
   /// La duración que toca: la pedida, o cero si el sistema pide menos
-  /// movimiento. Cero no rompe nada —`AnimatedFoo` y `AnimationController`
-  /// aceptan `Duration.zero` y saltan directo al estado final—, así que un
-  /// widget puede pasar por aquí sin más cambios.
+  /// movimiento. Cero casi nunca rompe nada —`AnimatedFoo` y
+  /// `AnimationController` aceptan `Duration.zero` y saltan directo al
+  /// estado final—, así que un widget puede pasar por aquí sin más cambios.
+  /// La excepción es `AnimatedSize`: a cero se vuelve a ensuciar mientras
+  /// se mide. En el pasajero va por `TamanoAnimado`.
   static Duration duracion(BuildContext context, Duration deseada) =>
       reducido(context) ? Duration.zero : deseada;
 

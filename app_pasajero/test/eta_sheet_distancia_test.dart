@@ -15,10 +15,12 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
 import 'package:ya_viene_pasajero/core/widgets/cifra_viva.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
+import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_recenter_button.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/distancia_aviso_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
@@ -55,6 +57,7 @@ void main() {
     ValueChanged<bool>? alEligiendo,
     Stream<List<BusPosition>>? posiciones,
     double rutaKm = 0,
+    double? barra,
   }) async {
     SharedPreferences.setMockInitialValues(
       {if (guardada != null) 'distancia_aviso_m': guardada},
@@ -93,7 +96,10 @@ void main() {
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(textScaler: TextScaler.linear(escala)),
-            child: child!,
+            // [barra]: dentro de las pestañas, con la barra en la hoja.
+            child: barra == null
+                ? child!
+                : PildoraVisible(visible: barra, child: child!),
           ),
           // Abajo, como en el mapa: la hoja crece hacia arriba.
           home: Scaffold(
@@ -361,6 +367,58 @@ void main() {
             greaterThanOrEqualTo(0));
       });
     }
+
+    // Con el aviso puesto y la barra dentro de la hoja, la tarjeta del bus
+    // pasa del alto de la pantalla en el teléfono más bajo y con el texto
+    // al doble: no se sale, se desplaza por dentro (no se pliega, así que
+    // no hay arrastre que robarle).
+    for (final (tamano, escala) in [
+      (const Size(320, 568), 1.0),
+      (const Size(390, 844), 2.0),
+    ]) {
+      testWidgets(
+          'con el aviso puesto y la barra no se sale '
+          '($tamano ×$escala)', (tester) async {
+        await montar(tester,
+            metros: 1250, tamano: tamano, escala: escala, barra: 1);
+        await tester.tap(find.text('Avisarme cuando esté cerca'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Solo esta vez'));
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final tarjeta = tester.getRect(find
+            .ancestor(
+              of: find.byKey(const ValueKey('sheet-handle')),
+              matching: find.byWidgetPredicate(
+                  (w) => w is DecoratedBox && w.decoration is ShapeDecoration),
+            )
+            .first);
+        expect(tarjeta.top, greaterThanOrEqualTo(0));
+        expect(tarjeta.bottom, lessThanOrEqualTo(tamano.height));
+        await tester.dragUntilVisible(
+          fila,
+          find.byKey(const ValueKey('sheet-handle')),
+          const Offset(0, -100),
+        );
+        expect(tester.getRect(fila).bottom,
+            lessThanOrEqualTo(tarjeta.bottom - PildoraNavegacion.alto));
+      });
+    }
+
+    // Como la barra, el botón de recentrar se aparta mientras la rueda
+    // pregunta, y vuelve cuando se contesta.
+    testWidgets('con la rueda abierta el botón de recentrar se aparta',
+        (tester) async {
+      await montar(tester, metros: 1250);
+      expect(find.byType(MapRecenterButton), findsOneWidget);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(find.byType(MapRecenterButton), findsNothing);
+      await tester.tap(find.text('Solo esta vez'));
+      await tester.pumpAndSettle();
+      expect(find.byType(MapRecenterButton), findsOneWidget);
+    });
 
     testWidgets('«Cambiar» con el tope dicho cabe en el teléfono más bajo',
         (tester) async {

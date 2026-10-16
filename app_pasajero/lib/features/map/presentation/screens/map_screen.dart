@@ -209,6 +209,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _onEligiendoDistancia(bool eligiendo) {
     if (!mounted || _eligiendoDistancia == eligiendo) return;
     setState(() => _eligiendoDistancia = eligiendo);
+    ref.read(eligiendoDistanciaProvider.notifier).state = eligiendo;
     // Al volver, el botón del aviso está otra vez en su sitio: se mide de
     // nuevo, que la tarjeta cambió de alto en medio.
     if (!eligiendo) _scheduleGuideMeasurement(ref.read(mapGuideProvider).step);

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
+import '../../../../core/widgets/tamano_animado.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
@@ -464,9 +466,9 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
           ),
         ),
         // Barra de acciones del modo selección.
-        AnimatedSize(
-          duration: AppMotion.rapido,
-          curve: AppMotion.curvaEntrada,
+        TamanoAnimado(
+          duracion: AppMotion.rapido,
+          curva: AppMotion.curvaEntrada,
           child: selecting
               ? Container(
                   padding: const EdgeInsets.fromLTRB(

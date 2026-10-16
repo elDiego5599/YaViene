@@ -11,9 +11,10 @@ import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/cifra_viva.dart';
 import '../../../../core/widgets/dialogo.dart';
+import '../../../../core/widgets/pildora_navegacion.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/sheet_handle.dart';
-import '../../../../core/widgets/sheet_top_border.dart';
+import '../../../../core/widgets/tamano_animado.dart';
 import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
@@ -569,25 +570,51 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           opacity: apartada ? 0 : 1,
           duration: paso,
           curve: apartada ? AppMotion.curvaSalida : AppMotion.curvaEntrada,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // El botón de recentrar viaja pegado al borde de arriba de la
-              // hoja: sube y baja con ella al plegarse, y se va con ella
-              // cuando el selector ocupa la pantalla. Suelto sobre el mapa
-              // habría que estarle calculando el hueco, y con la hoja sin
-              // ruta —que no empuja el mapa pero sí tapa el tercio de
-              // abajo— se quedaba debajo.
-              Padding(
-                padding: const EdgeInsets.only(
-                  right: AppSpacing.md,
-                  bottom: AppSpacing.sm,
+          // A lo ancho de la barra de abajo y apoyada donde ella: la hoja
+          // crece de la barra (dueño, 2026-10-16), no es otra tarjeta de
+          // borde a borde con la barra flotando encima.
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: PildoraNavegacion.lado,
+              right: PildoraNavegacion.lado,
+              bottom:
+                  PildoraNavegacion.hueco(MediaQuery.viewPaddingOf(context)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // El botón de recentrar viaja pegado al borde de arriba de la
+                // hoja: sube y baja con ella al plegarse, y se va con ella
+                // cuando el selector ocupa la pantalla. Suelto sobre el mapa
+                // habría que estarle calculando el hueco, y con la hoja sin
+                // ruta —que no empuja el mapa pero sí tapa el tercio de
+                // abajo— se quedaba debajo.
+                // Su canto derecho, a plomo con el de la hoja.
+                //
+                // Con la rueda de la distancia abierta se aparta, como la
+                // barra: la pregunta se contesta antes de mover el mapa, y
+                // en el teléfono más bajo (320×568) la rueda no cabe con él
+                // encima ahora que la tarjeta se apoya sobre el hueco de la
+                // barra (le faltaban 6 px). Suelta su sitio más rápido de lo
+                // que la rueda crece (200 contra 360, con la misma curva) y
+                // vuelve cuando la rueda ya se apagó: en ningún cuadro se
+                // suman los dos.
+                TamanoAnimado(
+                  duracion: AppMotion.rapido,
+                  alineacion: Alignment.bottomRight,
+                  child: _eleccionVista == null
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: MapRecenterButton(key: widget.recenterKey),
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                child: MapRecenterButton(key: widget.recenterKey),
-              ),
-              _sheetBody(child: child, toggleable: toggleable),
-            ],
+                Flexible(
+                  child: _sheetBody(child: child, toggleable: toggleable),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -620,161 +647,197 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       onVerticalDragStart: toggleable ? _arrastreEmpieza : null,
       onVerticalDragUpdate: toggleable ? _arrastreSigue : null,
       onVerticalDragEnd: toggleable ? _arrastreTermina : null,
-      child: Container(
+      child: DecoratedBox(
         key: widget.detailKey,
-        width: double.infinity,
-        // Un filo de un pixel separa la hoja del mapa mejor que una sombra
-        // ancha: la sombra sobre un mapa lleno de color se lee como
-        // suciedad, el filo se lee como borde. Solo arriba: la hoja va
-        // pegada al borde de abajo y ocupa todo el ancho, y un filo
-        // completo bajaba por los dos cantos de la pantalla.
+        // La forma de la barra estirada hacia arriba: cantos de 32, la
+        // mitad de sus 64 de alto, así que abajo los dos contornos son uno.
+        // El filo de un pixel la separa del mapa mejor que una sombra
+        // ancha (sobre un mapa lleno de color la sombra se lee como
+        // suciedad), y la sombra es la de la barra, que ahora es esta.
         decoration: ShapeDecoration(
           color: AppColors.arena,
-          shape: const SheetTopBorder(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppRadius.sheet)),
             side: BorderSide(color: AppColors.hairline),
           ),
           shadows: [
             BoxShadow(
-              color: AppColors.primaryDeep.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+              color: AppColors.primaryDeep.withValues(alpha: 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             )
           ],
         ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Semantics(
-                button: toggleable,
-                // El asa es dos rayas de 4 px: leída sola no dice nada, y
-                // es el único control que pliega la tarjeta sin arrastrar.
-                label: !toggleable
-                    ? null
-                    : _abierta
-                        ? 'Plegar la tarjeta'
-                        : 'Abrir la tarjeta',
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: toggleable ? () => _asentar(!_abierta) : null,
-                  child: AnimatedBuilder(
-                    animation: _pliegue,
-                    builder: (context, _) {
-                      final abierta = _pliegue.value;
-                      return Padding(
-                        // Plegada, el asa es lo único que queda: se le deja el
-                        // mismo aire arriba y abajo para que no parezca un
-                        // resto de la tarjeta, sino un control.
-                        padding:
-                            EdgeInsets.only(top: 14, bottom: 14 + 4 * abierta),
-                        child: SheetHandle(
-                          key: const ValueKey('sheet-handle'),
-                          abierta: abierta,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              // En el respaldo, una línea lo dice (T2.3). Va fuera del
-              // pliegue: plegada la hoja, los buses del mapa siguen siendo
-              // los del respaldo, así que la línea no se esconde con el
-              // resto. Y aparte del contenido, para no tocar lo que dice
-              // cada estado, el «Toca un bus en el mapa» incluido.
-              if (widget.enRespaldo)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Text(
-                    'Conectado al respaldo',
-                    key: const ValueKey('sheet-respaldo'),
-                    style: AppTextStyles.pie,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              // El pliegue: el alto se recorta anclado bajo el asa —dentro
-              // del contenedor, no fuera— para que nunca coma las esquinas
-              // redondeadas mientras la hoja crece o baja. El factor es el
-              // controlador crudo, sin curva: si le pusiéramos una, el
-              // arrastre dejaría de ir donde va el dedo.
-              SizeTransition(
-                key: const ValueKey('sheet-pliegue'),
-                sizeFactor: _pliegue,
-                alignment: Alignment.topCenter,
-                child: FadeTransition(
-                  opacity: _opacidad,
-                  child: KeyedSubtree(
-                    key: _contenidoKey,
-                    // El alto de la hoja sigue al del contenido. Sin esto,
-                    // al tocar un bus la hoja saltaba de un cuadro al
-                    // siguiente al alto de la tarjeta —y al soltarlo, al del
-                    // estado vacío—, y el fundido de dentro no lo
-                    // disimulaba: lo que el ojo sigue es el borde de arriba.
-                    child: AnimatedSize(
-                      duration: AppMotion.duracion(context, AppMotion.pausado),
-                      curve: AppMotion.curvaCambio,
-                      alignment: Alignment.topCenter,
-                      child: AnimatedSwitcher(
-                        duration:
-                            AppMotion.duracion(context, AppMotion.pausado),
-                        // Fundido encadenado: lo viejo se apaga en el primer
-                        // 40 % y lo nuevo entra a partir del 30 %. Cruzados a
-                        // la vez, el número del bus y el texto del estado
-                        // vacío se leían uno encima del otro a medio cambio.
-                        switchInCurve: const Interval(0.3, 1,
-                            curve: AppMotion.curvaEntrada),
-                        switchOutCurve: const Interval(0.6, 1,
-                            curve: AppMotion.curvaSalida),
-                        // El contenido entrante y el saliente se apilan por su
-                        // borde superior, que es el que no se mueve: apilados
-                        // por el centro (lo que hace por defecto) el texto
-                        // saltaba hacia arriba mientras la hoja todavía bajaba.
-                        //
-                        // Lo que sale va posicionado para que no cuente en el
-                        // alto: así el tamaño viaja directo al del contenido
-                        // nuevo en vez de esperar a que el viejo termine de
-                        // irse. Y sin recorte, porque el viejo puede ser más
-                        // alto que el alto que ya está menguando.
-                        layoutBuilder: (actual, anteriores) => SizedBox(
-                          width: double.infinity,
-                          child: Stack(
-                            alignment: Alignment.topCenter,
-                            clipBehavior: Clip.none,
-                            children: [
-                              for (final anterior in anteriores)
-                                Positioned(
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  child: anterior,
-                                ),
-                              if (actual != null) actual,
-                            ],
-                          ),
-                        ),
-                        transitionBuilder: (child, animation) => FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              // Un dedo de recorrido, no más: acompaña al
-                              // pliegue en vez de competir con él.
-                              begin: Offset(
-                                  0, 0.06 * AppMotion.desplazamiento(context)),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        ),
-                        child: child,
+        child: SizedBox(
+            width: double.infinity,
+            child: _conSitioParaLaBarra(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    button: toggleable,
+                    // El asa es dos rayas de 4 px: leída sola no dice nada, y
+                    // es el único control que pliega la tarjeta sin arrastrar.
+                    label: !toggleable
+                        ? null
+                        : _abierta
+                            ? 'Plegar la tarjeta'
+                            : 'Abrir la tarjeta',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: toggleable ? () => _asentar(!_abierta) : null,
+                      child: AnimatedBuilder(
+                        animation: _pliegue,
+                        builder: (context, _) {
+                          final abierta = _pliegue.value;
+                          return Padding(
+                            // Plegada, el asa es lo único que queda: se le deja
+                            // el mismo aire arriba y abajo para que no parezca
+                            // un resto de la tarjeta, sino un control.
+                            padding: EdgeInsets.only(
+                                top: 14, bottom: 14 + 4 * abierta),
+                            child: SheetHandle(
+                              key: const ValueKey('sheet-handle'),
+                              abierta: abierta,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
-                ),
+                  // En el respaldo, una línea lo dice (T2.3). Va fuera del
+                  // pliegue: plegada la hoja, los buses del mapa siguen siendo
+                  // los del respaldo, así que la línea no se esconde con el
+                  // resto. Y aparte del contenido, para no tocar lo que dice
+                  // cada estado, el «Toca un bus en el mapa» incluido.
+                  if (widget.enRespaldo)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: Text(
+                        'Conectado al respaldo',
+                        key: const ValueKey('sheet-respaldo'),
+                        style: AppTextStyles.pie,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  // El pliegue: el alto se recorta anclado bajo el asa —dentro
+                  // del contenedor, no fuera— para que nunca coma las esquinas
+                  // redondeadas mientras la hoja crece o baja. El factor es el
+                  // controlador crudo, sin curva: si le pusiéramos una, el
+                  // arrastre dejaría de ir donde va el dedo.
+                  SizeTransition(
+                    key: const ValueKey('sheet-pliegue'),
+                    sizeFactor: _pliegue,
+                    alignment: Alignment.topCenter,
+                    child: FadeTransition(
+                      opacity: _opacidad,
+                      child: KeyedSubtree(
+                        key: _contenidoKey,
+                        // El alto de la hoja sigue al del contenido. Sin esto,
+                        // al tocar un bus la hoja saltaba de un cuadro al
+                        // siguiente al alto de la tarjeta —y al soltarlo, al
+                        // del estado vacío—, y el fundido de dentro no lo
+                        // disimulaba: lo que el ojo sigue es el borde de
+                        // arriba.
+                        child: TamanoAnimado(
+                          duracion: AppMotion.pausado,
+                          alineacion: Alignment.topCenter,
+                          child: AnimatedSwitcher(
+                            duration:
+                                AppMotion.duracion(context, AppMotion.pausado),
+                            // Fundido encadenado: lo viejo se apaga en el
+                            // primer 40 % y lo nuevo entra a partir del 30 %.
+                            // Cruzados a la vez, el número del bus y el texto
+                            // del estado vacío se leían uno encima del otro a
+                            // medio cambio.
+                            switchInCurve: const Interval(0.3, 1,
+                                curve: AppMotion.curvaEntrada),
+                            switchOutCurve: const Interval(0.6, 1,
+                                curve: AppMotion.curvaSalida),
+                            // El contenido entrante y el saliente se apilan por
+                            // su borde superior, que es el que no se mueve:
+                            // apilados por el centro (lo que hace por defecto)
+                            // el texto saltaba hacia arriba mientras la hoja
+                            // todavía bajaba.
+                            //
+                            // Lo que sale va posicionado para que no cuente en
+                            // el alto: así el tamaño viaja directo al del
+                            // contenido nuevo en vez de esperar a que el viejo
+                            // termine de irse. Y sin recorte, porque el viejo
+                            // puede ser más alto que el alto que ya está
+                            // menguando.
+                            layoutBuilder: (actual, anteriores) => SizedBox(
+                              width: double.infinity,
+                              child: Stack(
+                                alignment: Alignment.topCenter,
+                                clipBehavior: Clip.none,
+                                children: [
+                                  for (final anterior in anteriores)
+                                    Positioned(
+                                      top: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: anterior,
+                                    ),
+                                  if (actual != null) actual,
+                                ],
+                              ),
+                            ),
+                            transitionBuilder: (child, animation) =>
+                                FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  // Un dedo de recorrido, no más: acompaña al
+                                  // pliegue en vez de competir con él.
+                                  begin: Offset(0,
+                                      0.06 * AppMotion.desplazamiento(context)),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            ),
+                            child: child,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            )),
+      ),
+    );
+  }
+
+  /// Abajo, la barra de pestañas va dentro de la hoja: se le guarda su
+  /// alto, con un filo que separa lo de la hoja de las pestañas. Crece y
+  /// mengua con la barra; fuera de las pestañas, o con la barra apartada
+  /// (la guía, el teclado), no queda nada.
+  ///
+  /// Si lo de la hoja no cabe —la tarjeta del bus con el aviso puesto en el
+  /// teléfono más bajo, o con el texto al doble—, se desplaza por dentro en
+  /// vez de salirse por arriba; el sitio de la barra queda fuera, quieto.
+  /// Cuando cabe no hay nada que desplazar y el arrastre del asa sigue
+  /// siendo de la hoja.
+  Widget _conSitioParaLaBarra({required Widget child}) {
+    final barra = PildoraVisible.of(context);
+    final contenido = SingleChildScrollView(primary: false, child: child);
+    if (barra == 0) return contenido;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: contenido),
+        Opacity(
+          opacity: barra,
+          child: Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            color: AppColors.hairline,
           ),
         ),
-      ),
+        SizedBox(height: (PildoraNavegacion.alto - 1) * barra),
+      ],
     );
   }
 
@@ -1210,10 +1273,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                 // borde. El vaivén de abajo es el pie de la hoja y su alto
                 // ya lo anima la hoja; con otro `AnimatedSize` en medio, la
                 // hoja llegaba a su alto un cuadro tarde por cada nivel.
-                AnimatedSize(
-                  duration: AppMotion.duracion(context, AppMotion.pausado),
-                  curve: AppMotion.curvaCambio,
-                  alignment: Alignment.topCenter,
+                TamanoAnimado(
+                  duracion: AppMotion.pausado,
+                  alineacion: Alignment.topCenter,
                   child: _Vaiven(
                     animacion: _rueda,
                     haciaRueda: _eleccion != null,
@@ -1308,56 +1370,55 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               'ruta no pasa más cerca y el bus ya está más cerca',
         ),
     };
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // `subtitulo`, como los títulos de los estados de la hoja; se
-          // anuncia como encabezado para que el lector sepa qué pregunta la
-          // rueda de abajo.
-          Semantics(
-            header: true,
-            child: Text(
-              eleccion.primeraVez
-                  ? '¿A qué distancia te avisamos?'
-                  : 'Distancia del aviso',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.subtitulo,
-            ),
+    // Sin relleno propio a los lados: la tarjeta ya trae sus 24, y desde
+    // que va a lo ancho de la barra (20 menos por lado) los 16 de más
+    // partían «700 m–1,2 km» en dos líneas con el texto al doble.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // `subtitulo`, como los títulos de los estados de la hoja; se
+        // anuncia como encabezado para que el lector sepa qué pregunta la
+        // rueda de abajo.
+        Semantics(
+          header: true,
+          child: Text(
+            eleccion.primeraVez
+                ? '¿A qué distancia te avisamos?'
+                : 'Distancia del aviso',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.subtitulo,
           ),
-          if (eleccion.avisoActivo) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Solo se cambia la distancia de este aviso',
+        ),
+        if (eleccion.avisoActivo) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Solo se cambia la distancia de este aviso',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+        if (limite != null) ...[
+          const SizedBox(height: 4),
+          Semantics(
+            label: limiteHablado,
+            excludeSemantics: true,
+            child: Text(
+              limite,
               textAlign: TextAlign.center,
               style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
             ),
-          ],
-          if (limite != null) ...[
-            const SizedBox(height: 4),
-            Semantics(
-              label: limiteHablado,
-              excludeSemantics: true,
-              child: Text(
-                limite,
-                textAlign: TextAlign.center,
-                style:
-                    AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          ],
-          // 8 hasta la rueda: su primera fila es la más tenue, y el aire
-          // que se ve ya es mayor.
-          const SizedBox(height: 8),
-          RuedaDistancia(
-            inicial: eleccion.metros,
-            desde: desde,
-            hasta: hasta,
-            alCambiar: (metros) => eleccion.metros = metros,
           ),
         ],
-      ),
+        // 8 hasta la rueda: su primera fila es la más tenue, y el aire
+        // que se ve ya es mayor.
+        const SizedBox(height: 8),
+        RuedaDistancia(
+          inicial: eleccion.metros,
+          desde: desde,
+          hasta: hasta,
+          alCambiar: (metros) => eleccion.metros = metros,
+        ),
+      ],
     );
   }
 
@@ -1588,10 +1649,9 @@ class _NotaAnimada extends StatelessWidget {
   Widget build(BuildContext context) {
     final duracion = AppMotion.duracion(context, AppMotion.pausado);
     final nota = this.nota;
-    return AnimatedSize(
-      duration: duracion,
-      curve: AppMotion.curvaCambio,
-      alignment: Alignment.topCenter,
+    return TamanoAnimado(
+      duracion: AppMotion.pausado,
+      alineacion: Alignment.topCenter,
       child: AnimatedSwitcher(
         duration: duracion,
         // El mismo fundido encadenado que el contenido de la hoja: la nota
