@@ -38,6 +38,7 @@ void main() {
   /// frase → escenas de la app donde se ve pintada (todas).
   const frases = <String, List<String>>{
     '¿Qué bus esperas?': ['barra sin ruta'],
+    'Toca para buscar tu ruta': ['barra sin ruta'],
     'Ruta activa': ['barra con ruta'],
     'Elige tu ruta': ['selector al abrir'],
     'Dos pasos y ves los buses moviéndose.': ['selector al abrir'],

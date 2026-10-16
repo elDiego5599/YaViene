@@ -109,10 +109,8 @@ Necesitan un teléfono, una cuenta o estar presente.
   del mismo día: fondos blancos con sombra suave en lo blanco de encima
   (`AppShadows.soft`) y el fondo de malla de marca del arranque y de
   Info. Y lo último del día: la malla respira (fuerte en el arranque y la
-  bienvenida, suave en Info con «Ya Viene» fijo arriba), la búsqueda sin
-  «Toca para buscar tu ruta» —solo «¿Qué bus esperas?» con la lupa en la
-  punta derecha; quitar el texto de `index.html`, `src/phone-simulator.ts`
-  y `tests/coherencia-textos.test.ts`— y lo de Avisos, Buzón y Legal
+  bienvenida, suave en Info con «Ya Viene» fijo arriba), la lupa de la
+  búsqueda en la punta derecha (el subtítulo se queda) y lo de Avisos, Buzón y Legal
   fundiéndose 16 px bajo su barra (`BordeDesvanecido`). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla.
 

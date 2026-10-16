@@ -28,15 +28,18 @@ void main() {
     return container;
   }
 
-  // «Quita el subtítulo» (dueño, 2026-10-16): la pregunta sola, centrada.
-  testWidgets('sin ruta dice solo la pregunta, centrada', (tester) async {
+  // El subtítulo vuelve (dueño, 2026-10-16): pregunta y subtítulo
+  // centrados, uno sobre otro.
+  testWidgets('sin ruta dice la pregunta y su subtítulo, centrados',
+      (tester) async {
     await montarPill(tester);
 
-    expect(find.text('Toca para buscar tu ruta'), findsNothing);
     final pill = tester.getRect(find.byType(SearchPillBar));
     final titulo = tester.getRect(find.text('¿Qué bus esperas?'));
+    final sub = tester.getRect(find.text('Toca para buscar tu ruta'));
     expect((titulo.center.dx - pill.center.dx).abs(), lessThan(2));
-    expect((titulo.center.dy - pill.center.dy).abs(), lessThan(2));
+    expect((sub.center.dx - pill.center.dx).abs(), lessThan(2));
+    expect(sub.top, greaterThanOrEqualTo(titulo.bottom));
   });
 
   testWidgets('la lupa va en la punta derecha de la píldora', (tester) async {
@@ -69,7 +72,8 @@ void main() {
     final handle = tester.ensureSemantics();
     await montarPill(tester);
 
-    expect(find.bySemanticsLabel('¿Qué bus esperas?'), findsOneWidget);
+    expect(find.bySemanticsLabel('¿Qué bus esperas? Toca para buscar tu ruta'),
+        findsOneWidget);
     handle.dispose();
   });
 

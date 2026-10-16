@@ -116,7 +116,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                     // en la etiqueta solo alargaba lo que dice el lector.
                     label: selectedRoute != null
                         ? 'Ruta activa: ${selectedRoute.name}'
-                        : '¿Qué bus esperas?',
+                        : '¿Qué bus esperas? Toca para buscar tu ruta',
                     excludeSemantics: true,
                     // Los dos botones de los lados se apagan al tocarlos y
                     // esta zona —que es la mitad de la píldora— no acusaba
@@ -210,16 +210,29 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
     );
   }
 
-  /// Sin ruta, la pregunta sola: «Toca para buscar tu ruta» debajo sobraba
-  /// en una píldora con su lupa (dueño, 2026-10-16).
+  /// Sin ruta, la pregunta y debajo cómo se busca (dueño, 2026-10-16: el
+  /// subtítulo vuelve; la lupa se queda en la punta derecha).
   Widget _sinRuta() {
-    return Text(
-      '¿Qué bus esperas?',
+    return Column(
       key: const ValueKey('sin-ruta'),
-      style: AppTextStyles.subtitulo,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '¿Qué bus esperas?',
+          style: AppTextStyles.subtitulo,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Toca para buscar tu ruta',
+          style: AppTextStyles.pie,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
