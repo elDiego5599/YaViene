@@ -10,9 +10,8 @@ import '../../../../core/widgets/borde_desvanecido.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
+import '../../../map/presentation/providers/distancia_al_bus.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
-import '../../../map/presentation/providers/user_location_provider.dart';
-import '../../../map/presentation/utils/geo.dart';
 import '../../../map/presentation/widgets/alert_guards.dart' show avisosAlTope;
 import '../providers/alert_history_provider.dart';
 import '../providers/proximity_alerts_provider.dart';
@@ -27,7 +26,6 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(alertHistoryProvider);
     final route = ref.watch(selectedRouteProvider);
-    final location = ref.watch(userLocationProvider);
     // Sin ruta activa no hay buses que consultar (ni suscripción a '').
     final positions = route == null
         ? const <BusPosition>[]
@@ -119,7 +117,6 @@ class NotificationsScreen extends ConsumerWidget {
                       key: const ValueKey('lista'),
                       entries: entries,
                       positions: positions,
-                      location: location,
                       route: route,
                     ),
             ),
@@ -312,14 +309,12 @@ final alertSelectionProvider =
 class _HistoryList extends ConsumerStatefulWidget {
   final List<AlertHistoryEntry> entries;
   final List<BusPosition> positions;
-  final UserLocationState location;
   final RouteInfo? route;
 
   const _HistoryList({
     super.key,
     required this.entries,
     required this.positions,
-    required this.location,
     required this.route,
   });
 
@@ -365,7 +360,6 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
       entries.insert(i.clamp(0, entries.length), e);
     }
     final positions = widget.positions;
-    final location = widget.location;
     final route = widget.route;
     final selection = ref.watch(alertSelectionProvider);
     final selecting = selection.active;
@@ -412,12 +406,10 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                       (p) => p?.busId == entry.busId,
                       orElse: () => null,
                     );
-                final distanceMeters =
-                    !entry.sent && pos != null && location.hasPosition
-                        ? haversineMeters(
-                                location.lat!, location.lon!, pos.lat, pos.lon)
-                            .round()
-                        : null;
+                // La misma de la hoja: por la ruta, desde el punto del aviso.
+                final distanceMeters = !entry.sent && pos != null
+                    ? distanciaAlBusDesdeTuPunto(ref, pos)?.round()
+                    : null;
                 // El puesto entre los avisos, sin contar los encabezados: el
                 // escalón es entre tarjetas.
                 final orden = entries.indexOf(entry);

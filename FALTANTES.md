@@ -104,15 +104,11 @@ Necesitan un teléfono, una cuenta o estar presente.
   1. La guía, en el paso de la distancia, cuando el pasajero nunca ha
      puesto ni guardado una: queda iluminada toda el área y se puede tocar
      cualquier cosa. Debe iluminar solo la rueda.
-  2. Las distancias no cuadran: la hoja dice «13,4 km de ti» y «Te
-     avisamos a 1,3 km», y en Avisos el mismo bus (SKR201, B18 Tcherassi)
-     dice «Está a 10 km de tu ubicación». Hay que ver si una mide por la
-     ruta y la otra en recta, o si alguna se queda vieja.
-  3. El botón que lleva a tu pin no lo deja centrado en el mapa (falta
+  2. El botón que lleva a tu pin no lo deja centrado en el mapa (falta
      restar la hoja y la barra).
-  4. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
+  3. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
      cercano y decir que se puede mover el mapa para buscar otro.
-  5. Al borrar o seleccionar avisos, la barra de abajo tapa el «Deshacer»
+  4. Al borrar o seleccionar avisos, la barra de abajo tapa el «Deshacer»
      y otro botón que no se alcanza a ver.
 
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -55,9 +56,15 @@ void main() {
   }
 
   Future<ProviderContainer> pumpScreen(
-      WidgetTester tester, List<BusPosition> buses) async {
+      WidgetTester tester, List<BusPosition> buses,
+      {List<GeoPoint>? ruta, double lat = userLat}) async {
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+      if (ruta != null)
+        routeTrajectoryProvider.overrideWith(
+          (ref, routeId) => RouteTrajectory(
+              routeId: routeId, routeName: 'Ruta 1', points: ruta),
+        ),
       busPositionsSourceProvider.overrideWith(
         (ref, routeId) => Stream.value(buses),
       ),
@@ -87,9 +94,9 @@ void main() {
     );
     addTearDown(sub.close);
     (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
-      const UserLocationState(
+      UserLocationState(
         mode: UserLocationMode.manual,
-        lat: userLat,
+        lat: lat,
         lon: userLon,
       ),
     );
@@ -224,6 +231,29 @@ void main() {
     expect(lejos, cerca);
     // Una fila de `pie` (12 × 1,3), no dos.
     expect(cerca.height, lessThan(20));
+  });
+
+  // «Las distancias no corresponden» (dueño, 2026-10-16): la hoja decía
+  // 13,4 km por la ruta y Avisos 10 km en recta del mismo bus. Avisos
+  // mide como la hoja: por el recorrido, desde el punto del aviso. Una U de
+  // 1500 m de ida, 400 de lado y 1500 de vuelta: el bus en la punta de
+  // ida, la persona enfrente, a 400 m en recta y 3,4 km por la ruta.
+  testWidgets('la distancia del aviso es la de la hoja: por la ruta',
+      (tester) async {
+    GeoPoint m(double x, double y) => GeoPoint(
+          lat: userLat + y / 111320,
+          lon: userLon + x / (111320 * math.cos(userLat * math.pi / 180)),
+        );
+    final u = [m(0, 0), m(1500, 0), m(1500, 400), m(0, 400)];
+    final b = bus('A-1', lat: userLat).copyWith(heading: 90);
+    final container =
+        await pumpScreen(tester, [b], ruta: u, lat: m(0, 400).lat);
+    await tester.pump();
+    arm(container, 'A-1');
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('3,4 km'), findsOneWidget);
   });
 
   test('la distancia del aviso: metros hasta 999, luego kilómetros', () {

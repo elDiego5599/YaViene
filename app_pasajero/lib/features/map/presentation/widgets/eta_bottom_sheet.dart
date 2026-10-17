@@ -18,6 +18,7 @@ import '../../../../core/widgets/tamano_animado.dart';
 import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
+import '../providers/distancia_al_bus.dart';
 import '../providers/map_view_state.dart';
 import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
@@ -245,27 +246,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     }
   }
 
-  /// Distancia del punto de espera al bus por su recorrido, como la mide el
-  /// aviso, hasta su próximo paso; null si no se puede medir. Solo desde
-  /// `build`: escucha al seguidor de la ruta para que no se deseche entre
-  /// cuadros.
-  ///
-  /// Un bus con aviso armado se mide desde el pin con el que se armó, no
-  /// desde el pin de ahora: es la misma referencia que usa el aviso para
-  /// decidir cuándo sonar, y verla cambiar al mover el pin hacía creer que el
-  /// aviso se había mudado con él.
-  double? _distanceToBus(BusPosition? bus) {
-    if (bus == null) return null;
-    final seguidor = ref.watch(seguidorRutaProvider(bus.routeId));
-    final ancla =
-        ref.read(proximityAlertsProvider.notifier).anchorFor(bus.busId);
-    if (ancla != null) {
-      return distanciaAlBus(seguidor, bus, ancla.$1, ancla.$2);
-    }
-    final location = ref.read(userLocationProvider);
-    if (!location.hasPosition) return null;
-    return distanciaAlBus(seguidor, bus, location.lat!, location.lon!);
-  }
+  /// Ver [distanciaAlBusDesdeTuPunto].
+  double? _distanceToBus(BusPosition? bus) =>
+      bus == null ? null : distanciaAlBusDesdeTuPunto(ref, bus);
 
   /// A qué distancia sonaría el aviso de [busId]: la del aviso que ya suena
   /// (puede ser de «Solo esta vez»), si no la guardada y, sin ninguna, el
