@@ -104,8 +104,6 @@ Necesitan un teléfono, una cuenta o estar presente.
   1. La guía, en el paso de la distancia, cuando el pasajero nunca ha
      puesto ni guardado una: queda iluminada toda el área y se puede tocar
      cualquier cosa. Debe iluminar solo la rueda.
-  2. El botón que lleva a tu pin no lo deja centrado en el mapa (falta
-     restar la hoja y la barra).
   3. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
      cercano y decir que se puede mover el mapa para buscar otro.
 

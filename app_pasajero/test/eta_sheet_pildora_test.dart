@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
 
@@ -15,7 +16,7 @@ class _TestUserLocation extends UserLocationNotifier {
 /// una tarjeta propia de borde a borde con la barra flotando encima, sino
 /// la misma superficie, con sus cantos y su hueco, que sube desde ella.
 void main() {
-  Future<void> montar(WidgetTester tester, {double? barra}) async {
+  Future<ProviderContainer> montar(WidgetTester tester, {double? barra}) async {
     SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -24,6 +25,8 @@ void main() {
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
     ]);
     addTearDown(container.dispose);
+    // `autoDispose`: sin quien lo escuche, el número se perdería.
+    container.listen(mapBottomInsetProvider, (_, __) {});
     const hoja = Stack(
       children: [
         Positioned(left: 0, right: 0, bottom: 0, child: EtaBottomSheet()),
@@ -57,6 +60,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    return container;
   }
 
   Finder caja() => find
@@ -129,5 +133,21 @@ void main() {
             .shape as RoundedRectangleBorder;
     expect(
         forma.borderRadius, BorderRadius.circular(PildoraNavegacion.alto / 2));
+  });
+
+  // «El botón que te lleva a tu pin no lo centra bien» (dueño, 2026-10-16):
+  // el mapa centra el pin en lo que la hoja le dice que tapa, y eso eran dos
+  // números fijos (120 y 250) de cuando la hoja no se apoyaba sobre la
+  // barra. Lo que se le dice es lo que tapa de verdad, plegada y abierta.
+  testWidgets('el mapa sabe cuánto tapa la hoja, abierta y plegada',
+      (tester) async {
+    final container = await montar(tester, barra: 1);
+    expect(container.read(mapBottomInsetProvider), 844 - tarjeta(tester).top,
+        reason: 'abierta');
+
+    await tester.tap(find.byKey(const ValueKey('sheet-handle')));
+    await tester.pumpAndSettle();
+    expect(container.read(mapBottomInsetProvider), 844 - tarjeta(tester).top,
+        reason: 'plegada');
   });
 }

@@ -72,32 +72,21 @@ extension _MapRouteData on _MapWidgetState {
   }
 
   void _moverCamaraA(FitBounds caja, {required bool animated}) {
-    // Con la guía enseñando el mapa, el encuadre va al trozo que ella deja
-    // a la vista. La caja llega en coordenadas de pantalla y el mapa ocupa
-    // la pantalla entera, así que sus bordes son los rellenos tal cual.
-    final foco = ref.read(mapGuideFocusProvider);
-    final alto = context.size?.height;
-    final enFoco = foco != null && alto != null;
-    // En iOS el mapa suma su margen de contenido (el alto de la hoja) al
-    // relleno que se le pasa aquí; en Android el relleno lo sustituye. Sin
-    // restarlo, en iPhone la hoja contaba dos veces y el pin quedaba en la
-    // parte alta del trozo iluminado en vez de en su centro.
-    final yaDescontado =
-        defaultTargetPlatform == TargetPlatform.iOS ? _currentBottomInset : 0.0;
+    final relleno = rellenoDelEncuadre(
+      hoja: _currentBottomInset,
+      ios: defaultTargetPlatform == TargetPlatform.iOS,
+      foco: ref.read(mapGuideFocusProvider),
+      alto: context.size?.height,
+    );
     final update = CameraUpdate.newLatLngBounds(
       LatLngBounds(
         southwest: LatLng(caja.minLat, caja.minLon),
         northeast: LatLng(caja.maxLat, caja.maxLon),
       ),
-      // Los rellenos dejan el encuadre en el hueco que queda libre entre la
-      // barra de búsqueda y la hoja: centrado en la pantalla entera, el pin
-      // se habría quedado debajo de la tarjeta.
-      left: 40,
-      top: enFoco ? foco.top : 148,
-      right: 40,
-      bottom: enFoco
-          ? math.max(0.0, alto - foco.bottom - yaDescontado)
-          : _currentBottomInset + 32,
+      left: relleno.left,
+      top: relleno.top,
+      right: relleno.right,
+      bottom: relleno.bottom,
     );
 
     // Movimiento reducido: 800 ms de ciudad desplazándose es exactamente el
@@ -142,4 +131,28 @@ extension _MapRouteData on _MapWidgetState {
     _mapController!.setGeoJsonSource(
         _MapWidgetState._kStopsInformalSourceId, emptyGeoJson);
   }
+}
+
+/// Los rellenos del encuadre: dejan lo encuadrado en el hueco libre entre la
+/// barra de búsqueda y la hoja (centrado en la pantalla entera, el pin se
+/// habría quedado debajo de la tarjeta). Con la guía enseñando el mapa
+/// ([foco], en coordenadas de pantalla, y el mapa la ocupa entera), en el
+/// trozo que ella deja a la vista.
+///
+/// En iOS el mapa suma su margen de contenido ([hoja], lo que tapa) al
+/// relleno de abajo; en Android el relleno lo sustituye. Sin restarlo, en
+/// iPhone la hoja contaba dos veces y el pin quedaba alto: así salía el
+/// botón de tu pin (dueño, 2026-10-16).
+EdgeInsets rellenoDelEncuadre({
+  required double hoja,
+  required bool ios,
+  Rect? foco,
+  double? alto,
+}) {
+  final yaDescontado = ios ? hoja : 0.0;
+  if (foco != null && alto != null) {
+    return EdgeInsets.fromLTRB(
+        40, foco.top, 40, math.max(0.0, alto - foco.bottom - yaDescontado));
+  }
+  return EdgeInsets.fromLTRB(40, 148, 40, hoja + 32 - yaDescontado);
 }

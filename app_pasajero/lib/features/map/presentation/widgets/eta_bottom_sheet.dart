@@ -71,8 +71,19 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
 
 class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     with TickerProviderStateMixin {
-  static const double _expandedMapInset = 250;
-  static const double _collapsedMapInset = 120;
+  /// La superficie de la hoja: se mide para decirle al mapa cuánto tapa.
+  final _hojaKey = GlobalKey();
+
+  /// Cuenta un rato quieta tras cada cambio de alto: plegarse, la rueda o
+  /// el contenido que crece no reconstruyen la hoja, y medir a medio camino
+  /// le diría al mapa un alto que no es. Cada cambio vuelve a empezar la
+  /// cuenta; al acabar, se mide. Va con el reloj de los cuadros, no con un
+  /// `Timer`: se apaga con la hoja.
+  late final AnimationController _quieta =
+      AnimationController(vsync: this, duration: AppMotion.rapido)
+        ..addStatusListener((estado) {
+          if (estado == AnimationStatus.completed) _publishMapInset();
+        });
 
   /// Cuánta hoja hay a la vista: 1 abierta, 0 plegada.
   ///
@@ -151,6 +162,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     _eleccion = null;
     pendiente?.respuesta.complete(null);
     _rueda.dispose();
+    _quieta.dispose();
     _opacidad.dispose();
     _pliegue.dispose();
     super.dispose();
@@ -390,13 +402,22 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         ref.read(routeTrajectoryProvider(route.id)).value, punto.$1, punto.$2);
   }
 
-  void _publishMapInset([double? forcedInset]) {
-    final defaultInset = _abierta ? _expandedMapInset : _collapsedMapInset;
-    final inset = forcedInset ?? defaultInset;
-    if (_lastPublishedInset == inset) return;
-    _lastPublishedInset = inset;
+  /// Le dice al mapa cuánto tapa la hoja por abajo, para que centre el pin
+  /// en lo que queda a la vista: su alto más el hueco sobre el borde (la hoja
+  /// va apoyada abajo, `map_screen`). Medido, no supuesto: con números fijos
+  /// el botón de tu pin lo dejaba fuera del centro (dueño, 2026-10-16). Sin
+  /// ruta también tapa, aunque su texto deje pasar los toques. Se mide al
+  /// asentarse, no en cada cuadro: el mapa se desliza con cada cambio.
+  void _publishMapInset() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final caja = _hojaKey.currentContext?.findRenderObject() as RenderBox?;
+      if (caja == null || !caja.hasSize) return;
+      final inset = (caja.size.height +
+              PildoraNavegacion.hueco(MediaQuery.viewPaddingOf(context)))
+          .roundToDouble();
+      if (_lastPublishedInset == inset) return;
+      _lastPublishedInset = inset;
       ref.read(mapBottomInsetProvider.notifier).state = inset;
     });
   }
@@ -460,7 +481,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     });
 
     if (selectedRoute == null) {
-      _publishMapInset(0);
+      _publishMapInset();
       // Sin ruta tampoco se muestra la hoja: si aún no hay ubicación invita
       // a tocar el mapa desde el primer momento. Y se pliega como las demás:
       // es texto, y el mapa de debajo es lo que el usuario quiere tocar.
@@ -624,7 +645,19 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   }
 
   Widget _cuerpoDeLaHoja({required Widget child, required bool toggleable}) {
+    return NotificationListener<SizeChangedLayoutNotification>(
+      onNotification: (_) {
+        _quieta.forward(from: 0);
+        return true;
+      },
+      child: SizeChangedLayoutNotifier(
+          child: _superficie(child: child, toggleable: toggleable)),
+    );
+  }
+
+  Widget _superficie({required Widget child, required bool toggleable}) {
     return GestureDetector(
+      key: _hojaKey,
       // El dedo manda: la hoja baja y sube pegada al pulgar, y al soltar
       // termina sola el camino que falte.
       onVerticalDragStart: toggleable ? _arrastreEmpieza : null,
