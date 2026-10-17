@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
 import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
@@ -16,6 +17,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_p
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:ya_viene_pasajero/services/background_keep_alive.dart';
@@ -259,6 +261,46 @@ void main() {
     await tester.pump();
     expect(fundida(), isFalse, reason: 'la hoja se aparta y la barra es suya');
     await desmontarMapa(tester, container);
+  });
+
+  // «Cuando borro un aviso o selecciono avisos la pill se solapa con el de
+  // deshacer y un botón» (dueño, 2026-10-16). Al seleccionar, la barra se
+  // aparta como en Fotos de iPhone y el botón de borrar queda a la vista,
+  // sobre la barra de inicio.
+  testWidgets('al seleccionar avisos la barra se aparta y deja ver Borrar',
+      (tester) async {
+    final (_, container) = await abrir(tester, '/notifications');
+    container
+        .read(alertHistoryProvider.notifier)
+        .upsert('A-1', routeId: 'R1', radioM: 1000);
+    await tester.pumpAndSettle();
+    final pantalla = ProviderScope.containerOf(
+        tester.element(find.byType(NotificationsScreen)));
+    pantalla.read(alertSelectionProvider.notifier).enter();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PildoraNavegacion), findsNothing);
+    final boton = tester.getRect(find.ancestor(
+        of: find.text('Selecciona avisos'),
+        matching: find.byWidgetPredicate((w) => w is ElevatedButton)));
+    expect(boton.bottom, lessThanOrEqualTo(844 - 34));
+
+    pantalla.read(alertSelectionProvider.notifier).clear();
+    await tester.pumpAndSettle();
+    expect(find.byType(PildoraNavegacion), findsOneWidget);
+  });
+
+  testWidgets('el aviso de abajo («Deshacer») sale encima de la barra',
+      (tester) async {
+    await abrir(tester, '/notifications');
+    mostrarAviso(
+        tester.element(find.byType(NotificationsScreen)), 'Aviso borrado',
+        accion: ('Deshacer', (_) {}));
+    await tester.pumpAndSettle();
+
+    final barra = tester.getRect(find.byType(PildoraNavegacion));
+    expect(tester.getRect(find.byType(AvisoTarjeta)).bottom,
+        lessThanOrEqualTo(barra.top));
   });
 
   testWidgets('con la rueda de la distancia abierta la barra se aparta',

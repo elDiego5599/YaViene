@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
@@ -118,12 +120,20 @@ void mostrarAviso(
         elevation: 0,
         padding: EdgeInsets.zero,
         behavior: SnackBarBehavior.floating,
-        // 16 a los lados y abajo: el margen de las píldoras del mapa.
-        margin: const EdgeInsets.fromLTRB(
+        // 16 a los lados y abajo: el margen de las píldoras del mapa. Y,
+        // dentro de las pestañas, lo que la barra de abajo le suma al
+        // relleno de la pantalla sobre la barra de inicio, que el
+        // `SnackBar` no cuenta: si no, el aviso y su «Deshacer» salían bajo
+        // la barra (dueño, 2026-10-16).
+        margin: EdgeInsets.fromLTRB(
           AppSpacing.md,
           0,
           AppSpacing.md,
-          AppSpacing.md,
+          AppSpacing.md +
+              math.max(
+                  0,
+                  MediaQuery.paddingOf(context).bottom -
+                      MediaQuery.viewPaddingOf(context).bottom),
         ),
         duration: duracionDeAviso(mensaje),
         content: AvisoTarjeta(mensaje: mensaje, icono: icono, accion: accion),

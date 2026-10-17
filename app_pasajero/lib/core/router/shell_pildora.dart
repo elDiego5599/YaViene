@@ -6,6 +6,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../features/map/presentation/providers/active_alerts_provider.dart';
 import '../../features/map/presentation/providers/map_tour_provider.dart';
 import '../../features/map/presentation/providers/map_view_state.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../widgets/pildora_navegacion.dart';
 
 /// Las cuatro pestañas con la píldora flotando abajo.
@@ -40,7 +41,12 @@ class ShellConPildora extends ConsumerWidget {
     final oculta = guia.isActive ||
         guia.bienvenida ||
         media.viewInsets.bottom > 0 ||
-        ref.watch(eligiendoDistanciaProvider);
+        ref.watch(eligiendoDistanciaProvider) ||
+        // Seleccionando avisos, su botón de borrar ocupa el sitio de la
+        // barra, como en Fotos (dueño, 2026-10-16: se solapaban). Solo se
+        // escucha en Avisos: fuera, la selección se olvida (`autoDispose`).
+        (navigationShell.currentIndex == 1 &&
+            ref.watch(alertSelectionProvider).active);
     final reserva = ShellConPildora.reserva(media.viewPadding);
     // En el mapa la hoja crece de la barra (dueño, 2026-10-16): la barra
     // le cede fondo, filo y sombra. Con el selector arriba la hoja se

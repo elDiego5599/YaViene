@@ -108,8 +108,6 @@ Necesitan un teléfono, una cuenta o estar presente.
      restar la hoja y la barra).
   3. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
      cercano y decir que se puede mover el mapa para buscar otro.
-  4. Al borrar o seleccionar avisos, la barra de abajo tapa el «Deshacer»
-     y otro botón que no se alcanza a ver.
 
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,

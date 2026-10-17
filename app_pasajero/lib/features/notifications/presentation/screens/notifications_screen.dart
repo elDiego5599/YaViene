@@ -473,10 +473,12 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
         TamanoAnimado(
           duracion: AppMotion.rapido,
           curva: AppMotion.curvaEntrada,
+          // Con la barra de abajo apartada, el botón queda sobre la barra
+          // de inicio del iPhone, no debajo de ella.
           child: selecting
               ? Container(
-                  padding: const EdgeInsets.fromLTRB(
-                      20, AppSpacing.xs, 20, AppSpacing.lg),
+                  padding: EdgeInsets.fromLTRB(20, AppSpacing.xs, 20,
+                      AppSpacing.lg + MediaQuery.paddingOf(context).bottom),
                   child: SizedBox(
                     width: double.infinity,
                     height: 54,
