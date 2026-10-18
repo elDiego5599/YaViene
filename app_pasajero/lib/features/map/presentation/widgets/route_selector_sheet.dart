@@ -361,6 +361,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               // tapaba el título de la vista y el «Dos pasos…» que explica
               // lo que se ilumina.
               cartaSobre: _topeDeLaTarjeta(),
+              // «Ver buses en vivo» es una píldora: su hueco también.
+              radioHueco: step == MapGuideStep.launchBuses
+                  ? AppRadius.pill
+                  : AppRadius.card,
               title: copy.title,
               message: copy.message,
               icon: copy.icon,

@@ -125,7 +125,7 @@ Necesitan un teléfono, una cuenta o estar presente.
   juntas con el tamaño) sobre el matizado, con
   la letra en píldoras blancas. Y las áreas iluminadas de la guía
   (2026-10-18): el mapa libre entre la cabecera y la hoja, la píldora
-  entera con su forma, el botón del aviso como píldora, en las listas solo
+  entera con su forma, el botón del aviso y «Ver buses en vivo» como píldoras, en las listas solo
   de la primera fila a la última, y la carta encima de la hoja si cabe. La
   maqueta del trío del hero (`.tinta-hero` en `phone-simulator.css`) sigue
   con la marca de 84 sobre tinta y la de Info con la malla. Ojo con el CSS

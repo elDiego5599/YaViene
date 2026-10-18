@@ -199,6 +199,8 @@ void main() {
             contiene(pintor(tester).hole, tester.getRect(find.byKey(verKey))),
             isTrue,
             reason: 'ver buses: el botón queda fuera');
+        expect(pintor(tester).radio, pintor(tester).hole.shortestSide / 2,
+            reason: 'ver buses: el botón no es píldora');
         expect(
             tester.getRect(find.byKey(rutaKey)).overlaps(pintor(tester).hole),
             isFalse,
