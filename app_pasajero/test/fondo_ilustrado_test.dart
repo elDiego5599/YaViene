@@ -10,8 +10,7 @@ import 'package:ya_viene_pasajero/features/splash/presentation/widgets/fondo_mat
 
 /// El fondo de Info (dueño, 2026-10-18): las ilustraciones de Barranquilla
 /// «mucho más pequeñas, en toda la pantalla», regadas sin orden y con pocos
-/// buses, sobre el matizado del arranque y con relleno de puntitos,
-/// estrellitas y espirales entre ellas. Quieto.
+/// buses, atenuadas sobre el matizado del arranque. Quieto.
 void main() {
   const pantalla = Size(390, 844);
 
@@ -135,35 +134,33 @@ void main() {
     expect(imagenes.every((i) => i.excludeFromSemantics), isTrue);
   });
 
-  // «Hay demasiadas estrellitas y caracoles, haz que se vea más sencillo
-  // pero elegante» (dueño, 2026-10-18): puntitos y alguna estrella, sin
-  // espirales, pocos y suaves.
-  testWidgets('el relleno: pocos puntitos y alguna estrella, suaves',
+  // «Atenúa un poco las imágenes en la pantalla de Info» (dueño,
+  // 2026-10-18), y sin los puntitos ni las estrellitas de los huecos: con
+  // los dibujos de fondo, sobraban.
+  testWidgets('los dibujos, atenuados y sin relleno entre ellos',
       (tester) async {
-    expect(Relleno.values.map((r) => r.name).toSet(), {'punto', 'estrella'});
-    final rellenos = PintorRelleno.piezas(pantalla);
-    final dibujos = FondoIlustrado.celdas(pantalla).length;
-    expect(rellenos.length, inInclusiveRange(dibujos ~/ 3, dibujos));
-    final estrellas = rellenos.where((r) => r.tipo == Relleno.estrella);
-    expect(estrellas.length, inInclusiveRange(1, rellenos.length ~/ 3));
-    final ancho = pantalla.width.toInt(), alto = pantalla.height.toInt();
-    late ByteData datos;
-    await tester.runAsync(() async {
-      final grabadora = ui.PictureRecorder();
-      const PintorRelleno().paint(Canvas(grabadora), pantalla);
-      final imagen = await grabadora.endRecording().toImage(ancho, alto);
-      datos = (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-    });
-    var pintados = 0, opacidad = 0;
-    for (var i = 0; i < ancho * alto; i++) {
-      final a = datos.getUint8(i * 4 + 3);
-      if (a > 0) pintados++;
-      if (a > opacidad) opacidad = a;
+    await tester
+        .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
+    final pintores = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((c) => c.painter)
+        .whereType<CustomPainter>()
+        .map((p) => p.runtimeType)
+        .toSet();
+    expect(pintores, {PintorMatizado, PintorVentana});
+    final dibujos = [
+      ...find.byType(Image).evaluate(),
+      ...find
+          .byWidgetPredicate(
+              (w) => w is CustomPaint && w.painter is PintorVentana)
+          .evaluate(),
+    ];
+    expect(dibujos, isNotEmpty);
+    for (final e in dibujos) {
+      final velo = e.findAncestorWidgetOfExactType<Opacity>();
+      expect(velo, isNotNull);
+      expect(velo!.opacity, inInclusiveRange(0.3, 0.5));
     }
-    expect(pintados, greaterThan(0));
-    expect(pintados, lessThan(ancho * alto ~/ 200));
-    // Suaves: ninguno a todo color.
-    expect(opacidad, lessThanOrEqualTo(160));
   });
 
   // «La Ventana al Mundo se ve súper oscura, cero colorida» (dueño,
@@ -197,6 +194,7 @@ void main() {
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
     await tester.pump();
     expect(tester.binding.hasScheduledFrame, isFalse);
-    expect(const PintorRelleno().shouldRepaint(const PintorRelleno()), isFalse);
+    expect(
+        const PintorMatizado().shouldRepaint(const PintorMatizado()), isFalse);
   });
 }

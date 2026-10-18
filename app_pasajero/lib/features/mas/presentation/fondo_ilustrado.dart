@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../splash/presentation/widgets/escena_arranque.dart';
 import '../../splash/presentation/widgets/fondo_matizado.dart';
@@ -35,8 +34,9 @@ typedef Celda = ({Motivo motivo, Offset centro, double lado, double giro});
 /// todo, y todo con el mismo orden no cuadra»): dibujos chicos de
 /// Barranquilla regados sin orden, con aire entre ellos, cada uno algo
 /// girado y de su tamaño, sin dos iguales juntos y con pocos buses, sobre
-/// el matizado del arranque y con puntitos y alguna estrella en los
-/// huecos. Quieto; las tarjetas blancas van por encima.
+/// el matizado del arranque. Atenuados y sin relleno en los huecos («atenúa
+/// un poco las imágenes», dueño, 2026-10-18): son fondo, lo que se lee son
+/// las tarjetas blancas de encima. Quieto.
 class FondoIlustrado extends StatelessWidget {
   const FondoIlustrado({super.key, required this.child});
 
@@ -48,6 +48,10 @@ class FondoIlustrado extends StatelessWidget {
 
   /// Lado base del cuadro de cada dibujo; varía de 0,85 a 1,15 (44–60 pt).
   static const double _lado = 52;
+
+  /// Cuánto se ven los dibujos: se reconocen, pero no le pelean a las
+  /// tarjetas.
+  static const double velo = 0.4;
 
   /// Giro máximo, a cada lado.
   static const double _giro = 15;
@@ -129,10 +133,18 @@ class FondoIlustrado extends StatelessWidget {
                 const Positioned.fill(
                   child: CustomPaint(painter: PintorMatizado()),
                 ),
-                const Positioned.fill(
-                  child: CustomPaint(painter: PintorRelleno()),
+                // Un solo velo para todos: una capa, no una por dibujo.
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: velo,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        for (final c in celdas(caja.biggest)) _dibujo(c),
+                      ],
+                    ),
+                  ),
                 ),
-                for (final c in celdas(caja.biggest)) _dibujo(c),
               ],
             ),
           ),
@@ -165,82 +177,4 @@ class FondoIlustrado extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Lo que va en los huecos entre dibujos.
-enum Relleno { punto, estrella }
-
-/// Un adorno del relleno, con su giro en radianes.
-typedef PiezaRelleno = ({
-  Relleno tipo,
-  Offset centro,
-  Color color,
-  double giro,
-});
-
-/// Los puntitos y alguna estrellita entre los dibujos, en los colores de
-/// la marca y a media luz (dueño, 2026-10-18: «demasiadas estrellitas y
-/// caracoles, que se vea más sencillo pero elegante»): pocos, regados
-/// igual que ellos, en lo que queda libre.
-class PintorRelleno extends CustomPainter {
-  const PintorRelleno();
-
-  static const List<Color> _colores = [
-    AppColors.acento,
-    AppColors.primary,
-    AppColors.coral,
-  ];
-
-  static List<PiezaRelleno> piezas(Size pantalla) {
-    final azar = math.Random(81);
-    final dibujos = FondoIlustrado.celdas(pantalla);
-    // Fuera del cuadro del dibujo más grande (30 de medio lado) y su aire.
-    bool encima(Offset p) => dibujos.any((c) => (c.centro - p).distance < 40);
-    return [
-      for (final centro
-          in FondoIlustrado.regar(azar, pantalla, 6, 64, aparte: encima))
-        (
-          // Una estrella de cada cinco; lo demás, puntitos.
-          tipo: azar.nextDouble() < 0.2 ? Relleno.estrella : Relleno.punto,
-          centro: centro,
-          color: _colores[azar.nextInt(_colores.length)],
-          giro: azar.nextDouble() * 2 * math.pi,
-        ),
-    ];
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final lleno = Paint()..isAntiAlias = true;
-    for (final p in piezas(size)) {
-      lleno.color = p.color.withValues(alpha: 0.55);
-      canvas
-        ..save()
-        ..translate(p.centro.dx, p.centro.dy)
-        ..rotate(p.giro);
-      switch (p.tipo) {
-        case Relleno.punto:
-          canvas.drawCircle(Offset.zero, 2, lleno);
-        case Relleno.estrella:
-          canvas.drawPath(_estrella(4), lleno);
-      }
-      canvas.restore();
-    }
-  }
-
-  static Path _estrella(double r) {
-    final camino = Path();
-    for (var i = 0; i < 10; i++) {
-      final radio = i.isEven ? r : r * 0.45;
-      final a = i * math.pi / 5 - math.pi / 2;
-      final punto = Offset(math.cos(a) * radio, math.sin(a) * radio);
-      i == 0
-          ? camino.moveTo(punto.dx, punto.dy)
-          : camino.lineTo(punto.dx, punto.dy);
-    }
-    return camino..close();
-  }
-
-  @override
-  bool shouldRepaint(PintorRelleno antes) => false;
 }
