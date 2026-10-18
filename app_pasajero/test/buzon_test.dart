@@ -14,7 +14,7 @@ import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
-import 'helpers/borde.dart';
+import 'helpers/barra.dart';
 
 /// El botón queda bajo el campo: en la pantalla de prueba (800×600) hay que
 /// llevarlo a la vista antes de tocarlo, como haría el pasajero.
@@ -34,14 +34,14 @@ Future<void> asentar(WidgetTester tester) async {
 
 void main() {
   /// Los fondos de las pantallas son blancos y lo blanco que va encima se
-  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, del mismo
-  /// blanco: si no, se lee como una franja de otro papel.
+  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, en reposo,
+  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
   void exigeFondoBlanco(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         AppColors.surface,
         reason: 'el fondo de el buzón');
     expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
-        AppColors.surface,
+        Colors.transparent,
         reason: 'la barra de el buzón');
   }
 
@@ -175,7 +175,7 @@ void main() {
       exigeFondoBlanco(tester);
     });
 
-    testWidgets('el formulario se funde bajo la barra al subir',
+    testWidgets('el formulario pasa bajo la barra de vidrio al subir',
         (tester) async {
       await abrir(
           tester,
@@ -183,7 +183,7 @@ void main() {
             backend: () => 'http://x',
             cliente: MockClient((_) async => http.Response('', 201)),
           ));
-      exigeBordeDesvanecido(
+      await exigeBarraVidrio(
           tester,
           find
               .descendant(

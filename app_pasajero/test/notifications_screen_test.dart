@@ -16,7 +16,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/user_locat
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
-import 'helpers/borde.dart';
+import 'helpers/barra.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
@@ -44,14 +44,14 @@ void main() {
       );
 
   /// Los fondos de las pantallas son blancos y lo blanco que va encima se
-  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, del mismo
-  /// blanco: si no, se lee como una franja de otro papel.
+  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, en reposo,
+  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
   void exigeFondoBlanco(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         AppColors.surface,
         reason: 'el fondo de Avisos');
     expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
-        AppColors.surface,
+        Colors.transparent,
         reason: 'la barra de Avisos');
   }
 
@@ -799,11 +799,17 @@ void main() {
     semantica.dispose();
   });
 
-  testWidgets('la lista se funde bajo la barra al subir', (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1')]);
+  testWidgets('la lista pasa bajo la barra de vidrio al subir', (tester) async {
+    // Un teléfono bajo, para que dos avisos no quepan y la lista se desplace.
+    tester.view.physicalSize = const Size(320, 480);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
     arm(container, 'A-1');
+    arm(container, 'A-2');
     await tester.pump();
 
-    exigeBordeDesvanecido(tester, find.text('Esperando'));
+    await exigeBarraVidrio(
+        tester, find.text('Gestiona, borra o desactiva tus avisos aquí.'));
   });
 }

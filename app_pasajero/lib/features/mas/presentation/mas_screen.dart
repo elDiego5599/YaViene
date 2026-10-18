@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../core/app_info.dart';
 import '../../../core/router/app_router.dart';
-import '../../../core/widgets/borde_desvanecido.dart';
+import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/dialogo.dart';
 import '../../legal/legal_docs.dart';
 import '../../map/presentation/providers/map_tour_provider.dart';
@@ -145,101 +145,104 @@ class MasScreen extends ConsumerWidget {
     // El fondo es claro: la hora y la batería en oscuro.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
-      child: Material(
-        type: MaterialType.transparency,
-        // El fondo pinta TODA la pantalla, también bajo la barra de
-        // estado y la píldora: la SafeArea queda solo para el contenido.
-        child: FondoIlustrado(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(margen, 26, margen, 20),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: anchoMaximo),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // La marca al centro, como en el arranque, y fija:
-                      // al bajar se escondía con lo demás (dueño,
-                      // 2026-10-16). Lo de abajo se desplaza y se disuelve
-                      // bajo ella.
-                      const Center(child: _Marca()),
-                      const SizedBox(height: 26 - BordeDesvanecido.alto),
-                      Expanded(
-                        child: BordeDesvanecido(
-                          // El pie se apoya en el fondo de la página y no
-                          // justo debajo del último grupo: pegado arriba
-                          // dejaba media pantalla vacía. En un teléfono
-                          // bajo, donde no sobra nada, todo se desplaza.
-                          child: CustomScrollView(
-                            slivers: [
-                              SliverToBoxAdapter(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    // En reposo nada cae en la franja que
-                                    // se funde.
-                                    const SizedBox(
-                                        height: BordeDesvanecido.alto),
-                                    const ActiveRouteCard(),
-                                    const SizedBox(height: AppSpacing.lg),
-                                    _grupo([
-                                      FilaMas(
-                                        icon: Icons.help_outline_outlined,
-                                        title: 'Ver guía de uso',
-                                        onTap: () => _verGuia(context, ref),
-                                      ),
-                                    ]),
-                                    const SizedBox(height: AppSpacing.md),
-                                    // Segundo grupo: lo que se consulta de
-                                    // vez en cuando. Sin cuenta, este es el
-                                    // único sitio estable donde volver a
-                                    // leer lo que se aceptó en la
-                                    // bienvenida.
-                                    _grupo([
-                                      FilaMas(
-                                        icon: Icons.lock_outline_rounded,
-                                        title: 'Privacidad',
-                                        onTap: () => context.push(
-                                            legalPath(legalPrivacidad.id)),
-                                      ),
-                                      FilaMas(
-                                        icon: Icons.description_outlined,
-                                        title: 'Términos',
-                                        onTap: () => context
-                                            .push(legalPath(legalTerminos.id)),
-                                      ),
-                                      FilaMas(
-                                        icon: Icons.info_outline_rounded,
-                                        title: 'Acerca de',
-                                        onTap: () => _acercaDe(context),
-                                      ),
-                                    ]),
-                                  ],
+      // El fondo pinta TODA la pantalla, también bajo la barra de estado y
+      // la píldora: la SafeArea queda solo para el contenido.
+      child: FondoIlustrado(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          // Lo de abajo pasa por debajo de la barra, que es de vidrio como
+          // en Avisos y Buzón (dueño, 2026-10-18).
+          extendBodyBehindAppBar: true,
+          // La marca al centro, como en el arranque, y fija: al bajar se
+          // escondía con lo demás (dueño, 2026-10-16). En reposo, 26 por
+          // encima y 26 hasta la tarjeta, como antes.
+          appBar: barraVidrio(
+            title: MediaQuery.withClampedTextScaling(
+              // El techo de los títulos de las otras barras: la barra no se
+              // estira.
+              maxScaleFactor: 1.3,
+              child: const _Marca(),
+            ),
+            automaticallyImplyLeading: false,
+            toolbarHeight: 26 + _Marca.alto + 26,
+          ),
+          // Bajo el Scaffold, que suma la barra al relleno de arriba.
+          body: Builder(
+            builder: (context) => SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(margen, 0, margen, 20),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: anchoMaximo),
+                    // El pie se apoya en el fondo de la página y no justo
+                    // debajo del último grupo: pegado arriba dejaba media
+                    // pantalla vacía. En un teléfono bajo, donde no sobra
+                    // nada, todo se desplaza.
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // En reposo, bajo la barra.
+                              SizedBox(
+                                  height: MediaQuery.paddingOf(context).top),
+                              const ActiveRouteCard(),
+                              const SizedBox(height: AppSpacing.lg),
+                              _grupo([
+                                FilaMas(
+                                  icon: Icons.help_outline_outlined,
+                                  title: 'Ver guía de uso',
+                                  onTap: () => _verGuia(context, ref),
                                 ),
-                              ),
-                              const SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    SizedBox(height: 26),
-                                    // Los créditos del mapa viven aquí
-                                    // desde que la "i" azul de MapLibre
-                                    // dejó libre su esquina para el botón
-                                    // de recentrar. OpenStreetMap y CARTO
-                                    // piden que se vean; el pie de esta
-                                    // página es donde no estorban.
-                                    _Pie(),
-                                  ],
+                              ]),
+                              const SizedBox(height: AppSpacing.md),
+                              // Segundo grupo: lo que se consulta de
+                              // vez en cuando. Sin cuenta, este es el
+                              // único sitio estable donde volver a
+                              // leer lo que se aceptó en la
+                              // bienvenida.
+                              _grupo([
+                                FilaMas(
+                                  icon: Icons.lock_outline_rounded,
+                                  title: 'Privacidad',
+                                  onTap: () => context
+                                      .push(legalPath(legalPrivacidad.id)),
                                 ),
-                              ),
+                                FilaMas(
+                                  icon: Icons.description_outlined,
+                                  title: 'Términos',
+                                  onTap: () =>
+                                      context.push(legalPath(legalTerminos.id)),
+                                ),
+                                FilaMas(
+                                  icon: Icons.info_outline_rounded,
+                                  title: 'Acerca de',
+                                  onTap: () => _acercaDe(context),
+                                ),
+                              ]),
                             ],
                           ),
                         ),
-                      ),
-                    ],
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              SizedBox(height: 26),
+                              // Los créditos del mapa viven aquí
+                              // desde que la "i" azul de MapLibre
+                              // dejó libre su esquina para el botón
+                              // de recentrar. OpenStreetMap y CARTO
+                              // piden que se vean; el pie de esta
+                              // página es donde no estorban.
+                              _Pie(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -254,6 +257,11 @@ class MasScreen extends ConsumerWidget {
 /// El logo y el nombre, arriba de Info.
 class _Marca extends StatelessWidget {
   const _Marca();
+
+  /// Lo que mide con la letra normal: el logo de 30 y 8 arriba y abajo. La
+  /// barra se mide con esto; con la letra grande el nombre crece hasta 4
+  /// más, repartidos en el aire de los lados.
+  static const double alto = 8 + 30 + 8;
 
   @override
   Widget build(BuildContext context) {

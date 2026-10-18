@@ -109,8 +109,11 @@ Necesitan un teléfono, una cuenta o estar presente.
   del mismo día: fondos blancos con sombra suave en lo blanco de encima
   (`AppShadows.soft`) y el fondo de malla de marca de la bienvenida. Y lo
   último del día: la malla respira, la lupa de la
-  búsqueda en la punta derecha (el subtítulo se queda) y lo de Avisos, Buzón y Legal
-  fundiéndose 16 px bajo su barra (`BordeDesvanecido`). El desliz
+  búsqueda en la punta derecha (el subtítulo se queda) y Avisos, Buzón,
+  Info y Legal pasando bajo una barra de vidrio como el nav de la web
+  (2026-10-18, `barra_vidrio.dart`: transparente en reposo y, con algo
+  debajo, blanco al 82 % con desenfoque 12 y saturación 1,6, su filo y
+  su sombra; opaca con más contraste). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
   arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
   pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,

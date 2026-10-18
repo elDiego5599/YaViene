@@ -6,7 +6,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
-import '../../../../core/widgets/borde_desvanecido.dart';
+import '../../../../core/widgets/barra_vidrio.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
@@ -47,14 +47,10 @@ class NotificationsScreen extends ConsumerWidget {
       // tarjetas, también blancas, se despegan por su sombra y no por un
       // fondo de otro tono.
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        // Lo que pasa debajo se funde (`BordeDesvanecido`): la barra no se
-        // oscurece ni se separa con sombra.
-        scrolledUnderElevation: 0,
-        centerTitle: true,
+      // La lista pasa por debajo de la barra, que es de vidrio (dueño,
+      // 2026-10-18).
+      extendBodyBehindAppBar: true,
+      appBar: barraVidrio(
         // La pestaña la llama "Avisos", el estado vacío dice "avisos" y el
         // botón del mapa dice "Avísame". Esta era la única pantalla que
         // usaba otra palabra para la misma cosa.
@@ -97,29 +93,20 @@ class NotificationsScreen extends ConsumerWidget {
                 ),
               ],
       ),
-      body: Column(
-        children: [
-          // Va arriba y solo con avisos: sin ellos, el estado vacío ya dice
-          // cómo armar uno.
-          if (entries.isNotEmpty) const _NotaAvisos(),
-          // Al borrar el último, la lista se apaga y el estado vacío
-          // aparece en su lugar; antes era un corte seco.
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: AppMotion.duracion(context, AppMotion.normal),
-              switchInCurve: AppMotion.curvaEntrada,
-              switchOutCurve: AppMotion.curvaSalida,
-              child: entries.isEmpty
-                  ? const _EmptyState(key: ValueKey('vacio'))
-                  : _HistoryList(
-                      key: const ValueKey('lista'),
-                      entries: entries,
-                      positions: positions,
-                      route: route,
-                    ),
-            ),
-          ),
-        ],
+      // Al borrar el último, la lista se apaga y el estado vacío aparece en
+      // su lugar; antes era un corte seco.
+      body: AnimatedSwitcher(
+        duration: AppMotion.duracion(context, AppMotion.normal),
+        switchInCurve: AppMotion.curvaEntrada,
+        switchOutCurve: AppMotion.curvaSalida,
+        child: entries.isEmpty
+            ? const _EmptyState(key: ValueKey('vacio'))
+            : _HistoryList(
+                key: const ValueKey('lista'),
+                entries: entries,
+                positions: positions,
+                route: route,
+              ),
       ),
     );
   }
@@ -138,7 +125,7 @@ class _NotaAvisos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(0, AppSpacing.xs, 0, AppSpacing.lg),
       child: Container(
         key: const ValueKey('nota-avisos'),
         width: double.infinity,
@@ -375,6 +362,9 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
     bool vivo(List<AlertHistoryEntry> grupo) =>
         grupo.any((e) => !_saliendo.containsKey(e.id));
     final filas = <Object>[
+      // La nota va arriba, con la lista: sube con ella bajo la barra. Solo
+      // con avisos: sin ellos, el estado vacío ya dice cómo armar uno.
+      const _NotaAvisos(),
       if (vivo(esperando)) 'Esperando',
       ...esperando,
       if (vivo(enviados)) 'Enviados',
@@ -384,87 +374,84 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
     return Column(
       children: [
         Expanded(
-          child: BordeDesvanecido(
-            // Al subir, la lista se disuelve bajo la barra en vez de
-            // cortarse en seco contra ella (dueño, 2026-10-16).
-            child: ListView.builder(
-              // Arriba, lo que se funde: en reposo la primera fila queda
-              // entera.
-              padding: const EdgeInsets.fromLTRB(
-                  20, BordeDesvanecido.alto, 20, AppSpacing.xl),
-              itemCount: filas.length,
-              itemBuilder: (context, index) {
-                final fila = filas[index];
-                if (fila is String) {
-                  return _Encabezado(fila, primero: index == 0);
-                }
-                final entry = fila as AlertHistoryEntry;
-                final seVa = _saliendo.containsKey(entry.id);
-                final pos = positions.cast<BusPosition?>().firstWhere(
-                      (p) => p?.busId == entry.busId,
-                      orElse: () => null,
-                    );
-                // La misma de la hoja: por la ruta, desde el punto del aviso.
-                final distanceMeters = !entry.sent && pos != null
-                    ? distanciaAlBusDesdeTuPunto(ref, pos)?.round()
-                    : null;
-                // El puesto entre los avisos, sin contar los encabezados: el
-                // escalón es entre tarjetas.
-                final orden = entries.indexOf(entry);
-                final tile = _AlertTile(
-                  entry: entry,
-                  routeName: entry.routeName ??
-                      (route?.id == entry.routeId ? route?.name : null),
-                  distanceMeters: distanceMeters,
-                  selecting: selecting && !seVa,
-                  selected: selected.contains(entry.id),
-                  onToggleSelect: () {
-                    HapticFeedback.selectionClick();
-                    ref.read(alertSelectionProvider.notifier).toggle(entry.id);
-                  },
-                  // Uno solo, a la vista y con su botón: no pregunta,
-                  // pero se puede deshacer.
-                  onDisable: () =>
-                      _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
-                );
-                if (seVa) {
-                  final grupo = entry.sent ? enviados : esperando;
-                  final primeraDelGrupo = !vivo(grupo) && grupo.first == entry;
-                  return _Salida(
-                    key: ValueKey('sale-${entry.id}'),
-                    alTerminar: () =>
-                        setState(() => _saliendo.remove(entry.id)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (primeraDelGrupo)
-                          _Encabezado(
-                            entry.sent ? 'Enviados' : 'Esperando',
-                            primero: index == 0,
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: tile,
-                        ),
-                      ],
-                    ),
+          // Al subir, la lista pasa por debajo de la barra de vidrio; en
+          // reposo empieza bajo ella.
+          child: ListView.builder(
+            padding: EdgeInsets.fromLTRB(
+                20, MediaQuery.paddingOf(context).top, 20, AppSpacing.xl),
+            itemCount: filas.length,
+            itemBuilder: (context, index) {
+              final fila = filas[index];
+              if (fila is Widget) return fila;
+              if (fila is String) {
+                // El primero va justo bajo la nota.
+                return _Encabezado(fila, primero: index == 1);
+              }
+              final entry = fila as AlertHistoryEntry;
+              final seVa = _saliendo.containsKey(entry.id);
+              final pos = positions.cast<BusPosition?>().firstWhere(
+                    (p) => p?.busId == entry.busId,
+                    orElse: () => null,
                   );
-                }
-                return Padding(
-                  // 12 entre tarjetas, como antes el separador.
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _TileEntrance(
-                    key: ValueKey(entry.id),
-                    id: entry.id,
-                    yaEntraron: _yaEntraron,
-                    // El desfase se topa a los seis primeros: más allá, la
-                    // espera del último se notaría más que el efecto.
-                    orden: orden.clamp(0, 5),
-                    child: tile,
+              // La misma de la hoja: por la ruta, desde el punto del aviso.
+              final distanceMeters = !entry.sent && pos != null
+                  ? distanciaAlBusDesdeTuPunto(ref, pos)?.round()
+                  : null;
+              // El puesto entre los avisos, sin contar los encabezados: el
+              // escalón es entre tarjetas.
+              final orden = entries.indexOf(entry);
+              final tile = _AlertTile(
+                entry: entry,
+                routeName: entry.routeName ??
+                    (route?.id == entry.routeId ? route?.name : null),
+                distanceMeters: distanceMeters,
+                selecting: selecting && !seVa,
+                selected: selected.contains(entry.id),
+                onToggleSelect: () {
+                  HapticFeedback.selectionClick();
+                  ref.read(alertSelectionProvider.notifier).toggle(entry.id);
+                },
+                // Uno solo, a la vista y con su botón: no pregunta,
+                // pero se puede deshacer.
+                onDisable: () =>
+                    _borrar(context, ref, {entry.id}, 'Aviso desactivado'),
+              );
+              if (seVa) {
+                final grupo = entry.sent ? enviados : esperando;
+                final primeraDelGrupo = !vivo(grupo) && grupo.first == entry;
+                return _Salida(
+                  key: ValueKey('sale-${entry.id}'),
+                  alTerminar: () => setState(() => _saliendo.remove(entry.id)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (primeraDelGrupo)
+                        _Encabezado(
+                          entry.sent ? 'Enviados' : 'Esperando',
+                          primero: index == 1,
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: tile,
+                      ),
+                    ],
                   ),
                 );
-              },
-            ),
+              }
+              return Padding(
+                // 12 entre tarjetas, como antes el separador.
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _TileEntrance(
+                  key: ValueKey(entry.id),
+                  id: entry.id,
+                  yaEntraron: _yaEntraron,
+                  // El desfase se topa a los seis primeros: más allá, la
+                  // espera del último se notaría más que el efecto.
+                  orden: orden.clamp(0, 5),
+                  child: tile,
+                ),
+              );
+            },
           ),
         ),
         // Barra de acciones del modo selección.
@@ -1030,59 +1017,63 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Medallón con aro: el tinte al 50 % alrededor y el disco lleno
-            // en el centro, separado por un filo blanco. Era un cuadrado
-            // redondeado de 72 sin más, más chico que todo lo que lo rodea.
-            Container(
-              width: 112,
-              height: 112,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryTint.withValues(alpha: 0.5),
-              ),
-              child: Container(
-                width: 76,
-                height: 76,
+    // Centrado en lo que queda bajo la barra, no en la pantalla entera.
+    return Padding(
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Medallón con aro: el tinte al 50 % alrededor y el disco lleno
+              // en el centro, separado por un filo blanco. Era un cuadrado
+              // redondeado de 72 sin más, más chico que todo lo que lo rodea.
+              Container(
+                width: 112,
+                height: 112,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primaryTint,
-                  border: Border.all(color: AppColors.surface, width: 4),
+                  color: AppColors.primaryTint.withValues(alpha: 0.5),
                 ),
-                // La campana repite en dibujo el título que va debajo. En la
-                // variante accesible: el verde de relleno sobre su propio
-                // tinte se queda por debajo del 3:1 que pide un icono.
-                child: const ExcludeSemantics(
-                  child: Icon(
-                    Icons.notifications_none_outlined,
-                    color: AppColors.primaryAccessible,
-                    size: 34,
+                child: Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primaryTint,
+                    border: Border.all(color: AppColors.surface, width: 4),
+                  ),
+                  // La campana repite en dibujo el título que va debajo. En la
+                  // variante accesible: el verde de relleno sobre su propio
+                  // tinte se queda por debajo del 3:1 que pide un icono.
+                  child: const ExcludeSemantics(
+                    child: Icon(
+                      Icons.notifications_none_outlined,
+                      color: AppColors.primaryAccessible,
+                      size: 34,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'No tienes avisos activos',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.subtitulo,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'En el mapa, toca un bus y activa "Avísame" para que te '
-              'notifiquemos cuando se acerque a tu ubicación.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.cuerpo.copyWith(
-                color: AppColors.textSecondary,
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'No tienes avisos activos',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.subtitulo,
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'En el mapa, toca un bus y activa "Avísame" para que te '
+                'notifiquemos cuando se acerque a tu ubicación.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.cuerpo.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

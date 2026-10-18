@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/router/app_router.dart';
-import '../../../core/widgets/borde_desvanecido.dart';
+import '../../../core/widgets/barra_vidrio.dart';
 import '../data/buzon.dart';
 
 /// El buzón del pasajero: un problema o una sugerencia, escrito en un
@@ -79,14 +79,10 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        // Lo que pasa debajo se funde (`BordeDesvanecido`): la barra no se
-        // oscurece ni se separa con sombra.
-        scrolledUnderElevation: 0,
-        centerTitle: true,
+      // El formulario pasa por debajo de la barra, que es de vidrio (dueño,
+      // 2026-10-18).
+      extendBodyBehindAppBar: true,
+      appBar: barraVidrio(
         // El techo de texto grande de la barra de Avisos, por lo mismo: la
         // barra mide 56 y no se estira.
         title: MediaQuery.withClampedTextScaling(
@@ -107,7 +103,11 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                   key: const ValueKey('buzon_gracias'),
                   alVolver: _volver,
                 )
-              : _formulario(),
+              // Bajo el Scaffold, que suma la barra al relleno de arriba.
+              : Builder(
+                  key: const ValueKey('buzon_formulario'),
+                  builder: _formulario,
+                ),
         ),
       ),
     );
@@ -116,92 +116,90 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   /// El formulario arriba, que se desplaza, y el botón abajo, fijo: con el
   /// teclado abierto el botón sube con él y sigue a la mano, y con la
   /// pantalla vacía no flota a media altura.
-  Widget _formulario() {
+  Widget _formulario(BuildContext context) {
     final problema = _tipo == TipoReporte.problema;
     return Column(
-      key: const ValueKey('buzon_formulario'),
       children: [
         Expanded(
-          child: BordeDesvanecido(
-            // Al subir, el formulario se disuelve bajo la barra en vez de
-            // cortarse en seco contra ella (dueño, 2026-10-16).
-            child: ListView(
-              // Arriba, lo que se funde: en reposo el encabezado queda
-              // entero.
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
-                  BordeDesvanecido.alto, AppSpacing.lg, AppSpacing.lg),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              children: [
-                const _Encabezado(),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _Opcion(
-                        key: const ValueKey('buzon_problema'),
-                        icono: Icons.report_gmailerrorred_outlined,
-                        texto: 'Un problema',
-                        detalle: 'Algo no funciona bien',
-                        elegida: problema,
-                        alPulsar: () =>
-                            setState(() => _tipo = TipoReporte.problema),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _Opcion(
-                        key: const ValueKey('buzon_sugerencia'),
-                        icono: Icons.lightbulb_outline_rounded,
-                        texto: 'Una sugerencia',
-                        detalle: 'Una idea para mejorar',
-                        elegida: !problema,
-                        alPulsar: () =>
-                            setState(() => _tipo = TipoReporte.sugerencia),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Tarjeta blanca con sombra suave, como las opciones: el filo
-                // solo aparece, verde, mientras se escribe.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    boxShadow: AppShadows.soft,
-                  ),
-                  child: TextField(
-                    key: const ValueKey('buzon_texto'),
-                    controller: _texto,
-                    enabled: !_enviando,
-                    minLines: 7,
-                    maxLines: 12,
-                    maxLength: Buzon.maximo,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: AppTextStyles.cuerpo
-                        .copyWith(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: problema
-                          ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
-                          : 'Qué mejorarías o qué te gustaría ver en la app.',
-                      hintStyle: AppTextStyles.cuerpo
-                          .copyWith(color: AppColors.textSecondary),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding:
-                          const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
-                      counterStyle: AppTextStyles.pie
-                          .copyWith(color: AppColors.textSecondary),
-                      enabledBorder: _filo(AppColors.hairline, 1),
-                      disabledBorder: _filo(AppColors.hairline, 1),
-                      focusedBorder: _filo(AppColors.primaryAccessible, 2),
+          // Al subir, el formulario pasa por debajo de la barra de vidrio;
+          // en reposo empieza bajo ella, con el aire que tenía.
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.lg),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              const _Encabezado(),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _Opcion(
+                      key: const ValueKey('buzon_problema'),
+                      icono: Icons.report_gmailerrorred_outlined,
+                      texto: 'Un problema',
+                      detalle: 'Algo no funciona bien',
+                      elegida: problema,
+                      alPulsar: () =>
+                          setState(() => _tipo = TipoReporte.problema),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _Opcion(
+                      key: const ValueKey('buzon_sugerencia'),
+                      icono: Icons.lightbulb_outline_rounded,
+                      texto: 'Una sugerencia',
+                      detalle: 'Una idea para mejorar',
+                      elegida: !problema,
+                      alPulsar: () =>
+                          setState(() => _tipo = TipoReporte.sugerencia),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Tarjeta blanca con sombra suave, como las opciones: el filo
+              // solo aparece, verde, mientras se escribe.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  boxShadow: AppShadows.soft,
                 ),
-                const SizedBox(height: 12),
-                const _NotaPrivacidad(),
-              ],
-            ),
+                child: TextField(
+                  key: const ValueKey('buzon_texto'),
+                  controller: _texto,
+                  enabled: !_enviando,
+                  minLines: 7,
+                  maxLines: 12,
+                  maxLength: Buzon.maximo,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppTextStyles.cuerpo
+                      .copyWith(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: problema
+                        ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
+                        : 'Qué mejorarías o qué te gustaría ver en la app.',
+                    hintStyle: AppTextStyles.cuerpo
+                        .copyWith(color: AppColors.textSecondary),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                        const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
+                    counterStyle: AppTextStyles.pie
+                        .copyWith(color: AppColors.textSecondary),
+                    enabledBorder: _filo(AppColors.hairline, 1),
+                    disabledBorder: _filo(AppColors.hairline, 1),
+                    focusedBorder: _filo(AppColors.primaryAccessible, 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const _NotaPrivacidad(),
+            ],
           ),
         ),
         // El fallo va pegado al botón fijo y no al final de la lista: así
@@ -496,61 +494,65 @@ class _Gracias extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: ExcludeSemantics(
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+    // Centrado en lo que queda bajo la barra, no en la pantalla entera.
+    return Padding(
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: ExcludeSemantics(
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check_rounded,
+                        size: 40, color: AppColors.primaryAccessible),
                   ),
-                  child: const Icon(Icons.check_rounded,
-                      size: 40, color: AppColors.primaryAccessible),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Semantics(
-              header: true,
-              liveRegion: true,
-              child: Text(
-                'Gracias, lo recibimos',
-                style: AppTextStyles.titulo,
+              const SizedBox(height: 20),
+              Semantics(
+                header: true,
+                liveRegion: true,
+                child: Text(
+                  'Gracias, lo recibimos',
+                  style: AppTextStyles.titulo,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'El equipo de Ya Viene lo va a leer.',
+                style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
                 textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'El equipo de Ya Viene lo va a leer.',
-              style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 28),
-            SizedBox(
-              height: 56,
-              child: FilledButton(
-                key: const ValueKey('buzon_volver'),
-                onPressed: alVolver,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  textStyle: AppTextStyles.boton,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
+              const SizedBox(height: 28),
+              SizedBox(
+                height: 56,
+                child: FilledButton(
+                  key: const ValueKey('buzon_volver'),
+                  onPressed: alVolver,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    textStyle: AppTextStyles.boton,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
                   ),
+                  child: const Text('Volver'),
                 ),
-                child: const Text('Volver'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../../../core/widgets/borde_desvanecido.dart';
+import '../../../../core/widgets/barra_vidrio.dart';
 import '../../legal_docs.dart';
 
 /// Un documento legal, leído dentro de la app.
@@ -20,14 +20,10 @@ class LegalScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        // Lo que pasa debajo se funde (`BordeDesvanecido`): la barra no se
-        // oscurece ni se separa con sombra.
-        scrolledUnderElevation: 0,
-        centerTitle: true,
+      // El texto pasa por debajo de la barra, que es de vidrio (dueño,
+      // 2026-10-18).
+      extendBodyBehindAppBar: true,
+      appBar: barraVidrio(
         // El mismo techo que en Avisos: la barra mide 56 y no se estira,
         // así que con el texto al triple el título se saldría por los dos
         // lados. Lo que sí crece es el documento.
@@ -46,16 +42,16 @@ class LegalScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SafeArea(
-        top: false,
-        child: BordeDesvanecido(
-          // Al subir, el texto se disuelve bajo la barra en vez de cortarse
-          // en seco contra ella (dueño, 2026-10-16).
+      // Bajo el Scaffold, que suma la barra al relleno de arriba.
+      body: Builder(
+        builder: (context) => SafeArea(
+          top: false,
+          // Al subir, el texto pasa por debajo de la barra de vidrio; en
+          // reposo la fecha empieza bajo ella, con el aire que tenía.
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               AppSpacing.lg,
-              // Arriba, lo que se funde: en reposo la fecha queda entera.
-              BordeDesvanecido.alto,
+              MediaQuery.paddingOf(context).top + AppSpacing.md,
               AppSpacing.lg,
               AppSpacing.xl,
             ),

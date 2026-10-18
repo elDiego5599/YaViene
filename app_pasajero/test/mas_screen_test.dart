@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
-import 'package:ya_viene_pasajero/core/widgets/borde_desvanecido.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
+import 'helpers/barra.dart';
 
 void main() {
   setUp(() {
@@ -230,7 +230,7 @@ void main() {
     expect(region.value, SystemUiOverlayStyle.dark);
   });
 
-  testWidgets('al bajar, «Ya Viene» se queda y lo de abajo se funde bajo él',
+  testWidgets('al bajar, «Ya Viene» se queda y lo de abajo pasa bajo la barra',
       (tester) async {
     tester.view.physicalSize = const Size(320, 480);
     tester.view.devicePixelRatio = 1;
@@ -238,31 +238,26 @@ void main() {
     await abrirMas(tester);
 
     final antes = tester.getRect(find.text('Ya Viene'));
-    final tarjetaAntes = tester.getRect(find.byType(ActiveRouteCard));
-    await tester.drag(find.byType(Scrollable).last, const Offset(0, -120));
-    await tester.pump(const Duration(seconds: 1));
-
-    expect(tester.getRect(find.text('Ya Viene')), antes);
-    expect(tester.getRect(find.byType(ActiveRouteCard)).top,
-        lessThan(tarjetaAntes.top));
-    // Las tarjetas se disuelven bajo el nombre, sin corte seco.
+    // La barra de vidrio, como en Avisos y Buzón (dueño, 2026-10-18): la
+    // marca va en ella y no se desplaza.
     expect(
         find.descendant(
-            of: find.byType(BordeDesvanecido),
-            matching: find.byType(ActiveRouteCard)),
+            of: find.byType(AppBar), matching: find.text('Ya Viene')),
         findsOneWidget);
-    expect(
-        find.descendant(
-            of: find.byType(BordeDesvanecido), matching: find.text('Ya Viene')),
-        findsNothing);
+    await exigeBarraVidrio(tester, find.byType(ActiveRouteCard));
+    expect(tester.getRect(find.text('Ya Viene')), antes);
   });
 
-  testWidgets('en reposo nada queda en la franja que se funde', (tester) async {
+  testWidgets('en reposo la tarjeta queda a 26 de la marca', (tester) async {
     await abrirMas(tester);
 
-    final borde = tester.getRect(find.byType(BordeDesvanecido));
-    final tarjeta = tester.getRect(find.byType(ActiveRouteCard));
     expect(
-        tarjeta.top - borde.top, greaterThanOrEqualTo(BordeDesvanecido.alto));
+        tester.getRect(find.byType(ActiveRouteCard)).top -
+            tester
+                .getRect(find.descendant(
+                    of: find.byType(AppBar),
+                    matching: find.byKey(MasScreen.pildoraKey)))
+                .bottom,
+        moreOrLessEquals(26, epsilon: 0.5));
   });
 }

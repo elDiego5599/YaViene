@@ -9,7 +9,7 @@ import 'package:ya_viene_pasajero/features/legal/presentation/screens/'
     'legal_screen.dart';
 
 import 'golden/golden_harness.dart';
-import 'helpers/borde.dart';
+import 'helpers/barra.dart';
 
 /// Los documentos se leen dentro de la app, sin navegador.
 ///
@@ -20,14 +20,14 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   /// Los fondos de las pantallas son blancos y lo blanco que va encima se
-  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, del mismo
-  /// blanco: si no, se lee como una franja de otro papel.
+  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, en reposo,
+  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
   void exigeFondoBlanco(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         AppColors.surface,
         reason: 'el fondo de los documentos');
     expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
-        AppColors.surface,
+        Colors.transparent,
         reason: 'la barra de los documentos');
   }
 
@@ -89,12 +89,13 @@ void main() {
     expect(find.text('Ruta no encontrada'), findsOneWidget);
   });
 
-  testWidgets('el documento se funde bajo la barra al subir', (tester) async {
+  testWidgets('el documento pasa bajo la barra de vidrio al subir',
+      (tester) async {
     fijarPantalla(tester);
     final doc = legalDocs.first;
     await tester.pumpWidget(marcoGolden(LegalScreen(doc: doc)));
     await tester.pump();
 
-    exigeBordeDesvanecido(tester, find.textContaining(doc.updated));
+    await exigeBarraVidrio(tester, find.textContaining(doc.updated));
   });
 }
