@@ -63,12 +63,12 @@ class LegalDoc {
 // Sube a 5 el 6 de octubre de 2026: el aviso ya no suena a un kilómetro sino
 // a la distancia que elige la persona, y esa distancia viaja con el punto.
 // Cambian lo que se promete y lo que sale del teléfono.
-const int kLegalVersion = 5;
+const int kLegalVersion = 6;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '6 de octubre de 2026',
+  updated: '18 de octubre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
@@ -174,6 +174,20 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'vehículo de servicio público en su recorrido, y es lo que hace '
       'posible que tú lo veas en el mapa.',
     ),
+    // El buzón (D14): `buzon.dart` manda tipo, texto, plataforma y versión;
+    // el backend (`reportes.ts`) lo guarda en cola, lo manda al Gmail del
+    // equipo y borra la fila cuando el correo sale. Sube `kLegalVersion`:
+    // es un dato nuevo que sale del teléfono.
+    LegalBlock.heading('Si nos escribes por el buzón'),
+    LegalBlock.p(
+      'El buzón de la app sirve para contarnos un problema o una sugerencia. '
+      'Lo que escribes viaja a nuestro servidor con el tipo que elegiste, si '
+      'tu teléfono es Android o iPhone y la versión de la app. No te pedimos '
+      'nombre ni forma de contactarte, y tu ubicación no va. El servidor lo '
+      'manda al correo del equipo, en Gmail, y lo borra en cuanto el correo '
+      'sale. Por eso te pedimos que no escribas datos personales: si los '
+      'escribes, se quedan en ese correo.',
+    ),
     LegalBlock.heading('Con quién se apoya la app'),
     LegalBlock.bullet(
       'OpenStreetMap y CARTO — las imágenes del mapa. Se descargan como '
@@ -187,6 +201,10 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'Firebase Cloud Messaging, de Google — solo en Android y solo para un '
       'aviso armado con la app cerrada: entrega la notificación. Lleva el '
       'bus, la ruta y la distancia, no tu ubicación.',
+    ),
+    LegalBlock.bullet(
+      'Gmail, de Google — recibe en el correo del equipo lo que mandas por '
+      'el buzón. Lleva tu mensaje, no tu ubicación.',
     ),
     LegalBlock.heading('Si usaste una versión anterior'),
     LegalBlock.p(

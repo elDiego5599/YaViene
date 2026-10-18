@@ -107,13 +107,9 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 - **La auditoría AUD16** (2026-10-18, pegada por el dueño; cada punto se
   verifica en el código antes de tocarlo):
-  1. AUD16-01: la privacidad (`legal_docs.dart` y `privacidad.html`) no
-     dice nada del buzón, que manda texto libre por correo al equipo.
   3. AUD16-03: la E2E del simulador (`e2e/ruta.e2e.ts:33-41`) espera las
      entradas viejas de «Más»; la pestaña ahora es «Info». Ya dice
      «Info»; falta correrla con la próxima build del simulador.
-  7. C1: la privacidad de la web y la de la app ya no son espejo
-     («Notificaciones» contra «Avisos», 14 contra 6 de octubre).
   8. AUD16-08: la etiqueta «Simulación» (D8) se perdió con el mapa vivo de
      la portada.
   9. AUD16-10 y la cuenta de Playwright: el carrusel espera por tiempo y no

@@ -78,8 +78,8 @@ void main() {
       // 4: el aviso de Android deja su punto en el servidor (2 de octubre).
       // 5: la distancia del aviso la elige la persona y viaja con el punto
       //    (6 de octubre).
+      // 6: el buzón (18 de octubre; lo vigila `legal_buzon_test.dart`).
       expect(kLegalVersion, greaterThanOrEqualTo(5));
-      expect(legalPrivacidad.updated, '6 de octubre de 2026');
     });
   });
 
