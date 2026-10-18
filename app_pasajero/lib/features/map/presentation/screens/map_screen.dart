@@ -258,14 +258,22 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Se hace aquí y no al pulsar «Ver buses en vivo»: en ese momento la
   /// hoja todavía era la del selector, alta, y la cámara centraba el pin en
   /// el poco mapa que ella dejaba ver; al bajar la hoja el pin se quedaba
-  /// arriba, bajo la tarjeta de la guía. Sin pin no se mueve nada: la
-  /// cámara ya enseña la ruta.
+  /// arriba, bajo la tarjeta de la guía. Con un bus a la vista encuadra el
+  /// pin con el más cercano, para que haya uno que tocar (dueño,
+  /// 2026-10-16). Sin pin no se mueve nada: la cámara ya enseña la ruta.
   void _encuadrarBuses(Rect area) {
     if (_busesEncuadrado) return;
     _busesEncuadrado = true;
     if (!ref.read(userLocationProvider).hasPosition) return;
     ref.read(mapGuideFocusProvider.notifier).state = area;
-    ref.read(mapRecenterRequestProvider.notifier).recenter();
+    final ruta = ref.read(selectedRouteProvider);
+    final cercano =
+        ruta == null ? null : ref.read(busMasCercanoProvider(ruta.id));
+    if (ruta != null && cercano != null) {
+      ref.read(enfoqueDeBusProvider.notifier).pedir(cercano.busId, ruta.id);
+    } else {
+      ref.read(mapRecenterRequestProvider.notifier).recenter();
+    }
   }
 
   bool _isMapStep(MapGuideStep? step) => isMapGuideStep(step);

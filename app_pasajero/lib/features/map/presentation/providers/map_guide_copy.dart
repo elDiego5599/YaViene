@@ -137,10 +137,11 @@ MapGuideCopy mapGuideCopy(MapGuideStep step, {TargetPlatform? plataforma}) {
       return const MapGuideCopy(
         title: 'Mira los buses',
         // «Cuánto falta» se leía como minutos; lo que abre el toque es la
-        // distancia en metros, igual que el paso siguiente.
-        message:
-            'Estos iconos representan los buses en vivo. Toca uno para ver '
-            'a qué distancia está.',
+        // distancia en metros, igual que el paso siguiente. El mapa va al
+        // más cercano (dueño, 2026-10-16): el trozo iluminado salía sin
+        // buses si el más cercano iba lejos.
+        message: 'Te mostramos el bus más cercano; mueve el mapa para buscar '
+            'otro. Toca uno para ver a qué distancia está.',
         icon: Icons.directions_bus_outlined,
       );
     case MapGuideStep.distance:

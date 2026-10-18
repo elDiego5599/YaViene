@@ -100,10 +100,6 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
-- **Para el domingo 2026-10-18** (dueño, 2026-10-16, en el iPhone):
-  3. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
-     cercano y decir que se puede mover el mapa para buscar otro.
-
 - **Lo del 2026-10-18** (dueño, en el iPhone):
   2. Espejar en la web el logo en la punta izquierda de la píldora y lo
      de Avisos (sin la nota del iPhone, «Notificación
