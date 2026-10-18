@@ -257,4 +257,87 @@ void main() {
     await tester.pump(EscenaArranque.quieta);
     expect(termino, isTrue);
   });
+
+  // «Agrégale como ciertos caracolitos y estrellas, pocas, alrededor como
+  // un tipo de arco, pero que se vea bien» (dueño, 2026-10-18).
+  group('el arco de estrellas y caracolitos', () {
+    final piezas = PintorArco.piezas;
+
+    test('pocas: estrellas y caracolitos', () {
+      expect(piezas.length, inInclusiveRange(5, 9));
+      expect(piezas.where((p) => p.tipo == Adorno.estrella).length,
+          greaterThanOrEqualTo(3));
+      expect(piezas.where((p) => p.tipo == Adorno.caracol).length,
+          greaterThanOrEqualTo(2));
+    });
+
+    test('en arco, parejo a los dos lados, por encima de la escena', () {
+      for (final p in piezas) {
+        expect((p.centro - PintorArco.centro).distance,
+            closeTo(PintorArco.radio, 0.5));
+        expect(p.centro.dy, lessThan(PintorArco.centro.dy));
+        // El espejo, con lo mismo y del mismo tamaño.
+        final espejo = Offset(300 - p.centro.dx, p.centro.dy);
+        expect(
+            piezas.any((q) =>
+                (q.centro - espejo).distance < 0.5 &&
+                q.tipo == p.tipo &&
+                q.tamano == p.tamano),
+            isTrue,
+            reason: '${p.centro}');
+      }
+    });
+
+    test('ni sobre la torre ni fuera de un teléfono de 390', () {
+      // La escena de 300 va centrada: 45 de cada lado en 390.
+      const torre = Rect.fromLTWH(48, 0, 290 * PintorVentana.aspecto, 290);
+      for (final p in piezas) {
+        final caja = Rect.fromCircle(center: p.centro, radius: p.tamano);
+        expect(caja.overlaps(torre.inflate(6)), isFalse, reason: '${p.centro}');
+        expect(caja.left, greaterThanOrEqualTo(-45 + 8));
+        expect(caja.right, lessThanOrEqualTo(300 + 45 - 8));
+      }
+    });
+
+    testWidgets('aparece con la escena y queda pintado', (tester) async {
+      Future<int> pintados(double avance) async {
+        late ByteData datos;
+        await tester.runAsync(() async {
+          final grabadora = ui.PictureRecorder();
+          final lienzo = Canvas(grabadora)..translate(60, 60);
+          PintorArco(avance).paint(lienzo, const Size(300, 300));
+          final imagen = await grabadora.endRecording().toImage(420, 420);
+          datos =
+              (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+        });
+        var n = 0;
+        for (var i = 0; i < 420 * 420; i++) {
+          if (datos.getUint8(i * 4 + 3) > 0) n++;
+        }
+        return n;
+      }
+
+      expect(await pintados(0), 0);
+      expect(await pintados(1), greaterThan(400));
+      expect(PintorArco(0.5).shouldRepaint(PintorArco(0.5)), isFalse);
+      expect(PintorArco(0.5).shouldRepaint(PintorArco(0.6)), isTrue);
+    });
+
+    testWidgets('va en la escena, detrás de la torre', (tester) async {
+      await tester.pumpWidget(const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child:
+            MaterialApp(home: Scaffold(body: Center(child: EscenaArranque()))),
+      ));
+      final pintores = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((c) => c.painter)
+          .toList();
+      final arco = pintores.indexWhere((p) => p is PintorArco);
+      expect(arco, isNonNegative);
+      expect((pintores[arco]! as PintorArco).avance, 1);
+      expect(arco, lessThan(pintores.indexWhere((p) => p is PintorVentana)));
+      await tester.pump(EscenaArranque.quieta);
+    });
+  });
 }

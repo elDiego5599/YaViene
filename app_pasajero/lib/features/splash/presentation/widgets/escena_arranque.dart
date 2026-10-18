@@ -46,6 +46,10 @@ class EscenaArranque extends StatefulWidget {
   static const marca =
       Interval(825 / 1700, 1200 / 1700, curve: Curves.easeOutCubic);
 
+  /// El arco de estrellas y caracolitos, de izquierda a derecha mientras
+  /// llega el bus.
+  static const arco = Interval(500 / 1700, 1150 / 1700);
+
   @override
   State<EscenaArranque> createState() => _EscenaArranqueState();
 }
@@ -113,6 +117,11 @@ class _EscenaArranqueState extends State<EscenaArranque>
     return Stack(
       clipBehavior: Clip.none,
       children: [
+        // Detrás de todo, el arco que la enmarca por arriba.
+        Positioned.fill(
+          child: CustomPaint(
+              painter: PintorArco(EscenaArranque.arco.transform(t))),
+        ),
         // La torre, a la izquierda del centro (torre y flor juntas quedan
         // centradas: de 48 a 252): 290 de alto y su ancho propio
         // (655 × 1755 en el dibujo de referencia).
@@ -218,6 +227,117 @@ class _EscenaArranqueState extends State<EscenaArranque>
       ),
     );
   }
+}
+
+/// Lo que lleva el arco del arranque.
+enum Adorno { estrella, caracol }
+
+/// Un adorno del arco: su centro en la escena de 300, su radio y su color.
+typedef PiezaArco = ({
+  Adorno tipo,
+  Offset centro,
+  double tamano,
+  Color color,
+});
+
+/// El arco del arranque (dueño, 2026-10-18: «unos caracolitos y estrellas,
+/// pocas, alrededor como un tipo de arco, pero que se vea bien»): siete
+/// adornos sobre un arco por encima de la torre, parejos a los dos lados
+/// y más grandes hacia arriba, la estrella del centro la mayor. Cada uno
+/// brota en su turno, de izquierda a derecha, según [avance] (0 a 1).
+class PintorArco extends CustomPainter {
+  PintorArco(this.avance);
+
+  final double avance;
+
+  /// El centro y el radio del arco: lo bastante abierto para pasar sobre
+  /// la torre (arriba queda a 30 de la escena) y sin salirse de un
+  /// teléfono de 390 por los lados.
+  static const Offset centro = Offset(150, 175);
+  static const double radio = 205;
+
+  static final List<PiezaArco> piezas = [
+    for (final (grados, tipo, tamano, color) in const [
+      // Cerrado como una corona: de 140° a 40°, y un poco más junto
+      // arriba, donde el arco pasa sobre la punta de la torre.
+      (140.0, Adorno.estrella, 6.0, AppColors.warning),
+      (125.0, Adorno.caracol, 7.0, AppColors.acento),
+      (107.0, Adorno.estrella, 7.5, AppColors.coral),
+      (90.0, Adorno.estrella, 10.0, AppColors.warning),
+      (73.0, Adorno.estrella, 7.5, AppColors.coral),
+      (55.0, Adorno.caracol, 7.0, AppColors.primary),
+      (40.0, Adorno.estrella, 6.0, AppColors.warning),
+    ])
+      (
+        tipo: tipo,
+        centro: centro +
+            Offset(math.cos(grados * math.pi / 180),
+                    -math.sin(grados * math.pi / 180)) *
+                radio,
+        tamano: tamano,
+        color: color,
+      ),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final (i, p) in piezas.indexed) {
+      // Cada uno tarda 0,4 del tramo y sale 0,1 después del anterior.
+      final brote = ((avance - i * 0.1) / 0.4).clamp(0.0, 1.0);
+      if (brote == 0) continue;
+      final pincel = Paint()
+        ..color = p.color.withValues(alpha: brote)
+        ..strokeWidth = p.tipo == Adorno.caracol ? 1.8 : 1.2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = p.tipo == Adorno.caracol
+            ? PaintingStyle.stroke
+            : PaintingStyle.fill;
+      canvas
+        ..save()
+        ..translate(p.centro.dx, p.centro.dy)
+        ..scale(Curves.easeOutBack.transform(brote))
+        ..rotate((1 - brote) * -0.6);
+      if (p.tipo == Adorno.estrella) {
+        // Rellena y con un trazo redondo encima: puntas suaves.
+        final estrella = _estrella(p.tamano);
+        canvas
+          ..drawPath(estrella, pincel)
+          ..drawPath(estrella, pincel..style = PaintingStyle.stroke);
+      } else {
+        canvas.drawPath(_caracol(p.tamano), pincel);
+      }
+      canvas.restore();
+    }
+  }
+
+  static Path _estrella(double r) {
+    final camino = Path();
+    for (var i = 0; i < 10; i++) {
+      final largo = i.isEven ? r : r * 0.45;
+      final a = i * math.pi / 5 - math.pi / 2;
+      final punto = Offset(math.cos(a), math.sin(a)) * largo;
+      i == 0
+          ? camino.moveTo(punto.dx, punto.dy)
+          : camino.lineTo(punto.dx, punto.dy);
+    }
+    return camino..close();
+  }
+
+  /// Casi dos vueltas que se abren del centro hasta [r].
+  static Path _caracol(double r) {
+    final camino = Path()..moveTo(0, 0);
+    const pasos = 32;
+    for (var i = 1; i <= pasos; i++) {
+      final t = i / pasos;
+      final a = t * 3.6 * math.pi;
+      camino.lineTo(math.cos(a) * r * t, math.sin(a) * r * t);
+    }
+    return camino;
+  }
+
+  @override
+  bool shouldRepaint(PintorArco antes) => antes.avance != avance;
 }
 
 /// La Ventana al Mundo: la cara de enfrente, de rojo arriba a azul abajo,

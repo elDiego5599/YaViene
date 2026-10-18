@@ -114,7 +114,8 @@ Necesitan un teléfono, una cuenta o estar presente.
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
   arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
   pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
-  1,7 s con medio segundo de marca), sobre el fondo matizado azul y verde
+  1,7 s con medio segundo de marca, y un arco de cinco estrellas y dos
+  caracolitos que brotan sobre la torre), sobre el fondo matizado azul y verde
   con grano (`fondo_matizado.dart`); y en Info dibujos chicos de
   Barranquilla regados sin orden por toda la pantalla (cayena, sol,
   palmera, marimonda, la torre del arranque y, pocos y separados, los
