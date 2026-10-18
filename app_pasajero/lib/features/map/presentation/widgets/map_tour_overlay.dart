@@ -20,6 +20,8 @@ class MapGuideOverlay extends StatefulWidget {
     this.targetPadding = 10,
     this.targetInsets,
     this.cartaAbajo = false,
+    this.cartaSobre,
+    this.radioHueco = AppRadius.card,
     this.centered = false,
   });
 
@@ -50,6 +52,18 @@ class MapGuideOverlay extends StatefulWidget {
   /// recentrar; arriba la carta tapaba el mapa que se está enseñando y se
   /// metía bajo la isla del teléfono.
   final bool cartaAbajo;
+
+  /// Dónde empieza lo que la carta no debe tapar aunque quede fuera del
+  /// hueco: la cara de arriba de la hoja. Con la carta arriba, su borde de
+  /// abajo queda 12 por encima; si no cabe, baja lo que haga falta y el
+  /// hueco se recorta por arriba. En la distancia y el aviso la carta tapaba
+  /// la placa y el título de la hoja que explica.
+  final double? cartaSobre;
+
+  /// El canto del hueco. Una píldora se ilumina como píldora: con el canto
+  /// de 24 de una tarjeta, la barra de búsqueda y el botón del aviso
+  /// quedaban dentro de un rectángulo que no era su forma.
+  final double radioHueco;
 
   /// Modo de cierre: sin área iluminada ni barreras; la carta queda centrada
   /// y la única acción es el botón primario ("Finalizar guía").
@@ -114,6 +128,19 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
 
   void _onMissTap() => _missTapController.forward(from: 0);
 
+  @override
+  void didUpdateWidget(MapGuideOverlay old) {
+    super.didUpdateWidget(old);
+    // Cada paso trae su texto y sus botones: la carta cambia de alto y la
+    // medida del paso anterior la ponía donde ya no cabía.
+    if (old.title != widget.title ||
+        old.message != widget.message ||
+        old.primaryLabel != widget.primaryLabel ||
+        (old.onBack == null) != (widget.onBack == null)) {
+      _cardHeight = null;
+    }
+  }
+
   /// La escala de entrada, o ninguna si el sistema pide menos movimiento.
   Animation<double> _escalaEntrada(BuildContext context) =>
       AppMotion.reducido(context)
@@ -138,7 +165,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final bounds = Offset.zero & size;
         final rawHole = widget.targetInsets?.inflateRect(widget.target) ??
             widget.target.inflate(widget.targetPadding);
-        final hole = rawHole.intersect(bounds);
+        var hole = rawHole.intersect(bounds);
         final bottomInset = MediaQuery.of(context).viewPadding.bottom;
         final topInset = MediaQuery.of(context).viewPadding.top;
         final card = _buildCard();
@@ -188,6 +215,16 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final fitsBelow =
             hole.bottom + 22 + cardHeight <= size.height - bottomInset;
         final placeAbove = !widget.cartaAbajo && (hole.top > 245 || !fitsBelow);
+        final cardTop = placeAbove
+            ? size.height -
+                _aboveBottom(hole, size, bottomInset, topInset, cardHeight) -
+                cardHeight
+            : _belowTop(hole, size, bottomInset, cardHeight);
+        // Donde la carta no cabe sin pisar el hueco, el hueco cede: lo que
+        // queda bajo la carta no se ve ni se puede tocar, y un hueco que
+        // sigue por debajo de ella ilumina lo que nadie ve.
+        hole = _recortar(hole, cardTop, cardTop + cardHeight);
+        final radio = mathMin(widget.radioHueco, hole.shortestSide / 2);
 
         return Stack(
           fit: StackFit.expand,
@@ -197,7 +234,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 opacity: _fade,
                 child: CustomPaint(
                   key: const ValueKey('guide_scrim'),
-                  painter: _SpotlightPainter(hole: hole),
+                  painter: PintorHueco(hole: hole, radio: radio),
                 ),
               ),
             ),
@@ -216,8 +253,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       opacity: _missTapPulse.value,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.card + 4),
+                          borderRadius: BorderRadius.circular(radio + 4),
                           border: const Border.fromBorderSide(
                             BorderSide(color: AppColors.coral, width: 3),
                           ),
@@ -232,12 +268,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
             Positioned(
               left: 20,
               right: 20,
-              top: placeAbove
-                  ? null
-                  : _belowTop(hole, size, bottomInset, cardHeight),
-              bottom: placeAbove
-                  ? _aboveBottom(hole, size, bottomInset, topInset, cardHeight)
-                  : null,
+              top: cardTop,
               child: ScaleTransition(
                 scale: _escalaEntrada(context),
                 child: KeyedSubtree(key: _cardKey, child: card),
@@ -264,6 +295,30 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     });
   }
 
+  /// [hole] sin la franja que tapa la carta (de [arriba] a [abajo]), con 12
+  /// de aire. Si la carta queda en medio del hueco se queda la parte más
+  /// grande; si recortar lo dejara sin sitio para un dedo, no se recorta.
+  ///
+  /// El aire sale del margen del hueco, nunca del objetivo: si la carta
+  /// deja menos de 12 hasta él, el hueco se corta justo en su borde. Con
+  /// los 12 enteros, en un SE con la letra grande la primera empresa salía
+  /// con tres puntos de su canto a oscuras.
+  Rect _recortar(Rect hole, double arriba, double abajo) {
+    if (abajo <= hole.top || arriba >= hole.bottom) return hole;
+    final objetivo = widget.target;
+    final desde =
+        abajo <= objetivo.top ? mathMin(abajo + 12, objetivo.top) : abajo + 12;
+    final hasta = arriba >= objetivo.bottom
+        ? mathMax(arriba - 12, objetivo.bottom)
+        : arriba - 12;
+    final debajo = Rect.fromLTRB(
+        hole.left, mathMax(hole.top, desde), hole.right, hole.bottom);
+    final encima = Rect.fromLTRB(
+        hole.left, hole.top, hole.right, mathMin(hole.bottom, hasta));
+    final mejor = debajo.height >= encima.height ? debajo : encima;
+    return mejor.height >= 48 ? mejor : hole;
+  }
+
   double _belowTop(
       Rect hole, Size size, double bottomInset, double cardHeight) {
     final proposed = hole.bottom + 22;
@@ -286,7 +341,9 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
 
   double _aboveBottom(Rect hole, Size size, double bottomInset, double topInset,
       double cardHeight) {
-    final proposed = size.height - hole.top + 22;
+    var proposed = size.height - hole.top + 22;
+    final sobre = widget.cartaSobre;
+    if (sobre != null) proposed = mathMax(proposed, size.height - sobre + 12);
     final minBottom = bottomInset + 12;
     // La carta queda sobre el objetivo con 22 px de aire y nunca sube tanto
     // que su borde superior se meta bajo la barra de estado: allí la isla
@@ -515,6 +572,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
 }
 
 double mathMax(double a, double b) => a > b ? a : b;
+double mathMin(double a, double b) => a < b ? a : b;
 
 class _GuideBarrier extends StatelessWidget {
   const _GuideBarrier({required this.onInvalidTap});
@@ -555,15 +613,15 @@ class _ScrimPainter extends CustomPainter {
 
 /// Un solo velo guardado en una capa: el hueco queda realmente transparente
 /// y no vuelve a oscurecerse por una segunda pintura debajo.
-class _SpotlightPainter extends CustomPainter {
-  const _SpotlightPainter({required this.hole});
+class PintorHueco extends CustomPainter {
+  const PintorHueco({required this.hole, required this.radio});
 
   final Rect hole;
+  final double radio;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rrect =
-        RRect.fromRectAndRadius(hole, const Radius.circular(AppRadius.card));
+    final rrect = RRect.fromRectAndRadius(hole, Radius.circular(radio));
     final scrim = AppColors.primaryDeep.withValues(alpha: 0.62);
 
     canvas.saveLayer(Offset.zero & size, Paint());
@@ -597,5 +655,6 @@ class _SpotlightPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SpotlightPainter oldDelegate) => oldDelegate.hole != hole;
+  bool shouldRepaint(PintorHueco oldDelegate) =>
+      oldDelegate.hole != hole || oldDelegate.radio != radio;
 }

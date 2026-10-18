@@ -12,7 +12,6 @@ class SearchPillBar extends ConsumerStatefulWidget {
   const SearchPillBar({
     super.key,
     this.pillKey,
-    this.searchActionKey,
     this.companyGuideKey,
     this.companyChoiceGuideKey,
     this.routeGuideKey,
@@ -24,7 +23,6 @@ class SearchPillBar extends ConsumerStatefulWidget {
   /// GlobalKey sobre la píldora blanca real: el tour de primer uso la mide
   /// para recortar su hueco exactamente sobre ella.
   final GlobalKey? pillKey;
-  final GlobalKey? searchActionKey;
   final GlobalKey? companyGuideKey;
   final GlobalKey? companyChoiceGuideKey;
   final GlobalKey? routeGuideKey;
@@ -125,7 +123,6 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
               ),
               Expanded(
                 child: GestureDetector(
-                  key: widget.searchActionKey,
                   behavior: HitTestBehavior.opaque,
                   onTap: _onSearchTap,
                   onTapDown: (_) => setState(() => _searchPressed = true),

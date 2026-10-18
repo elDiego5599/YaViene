@@ -206,7 +206,6 @@ void main() {
     test('constantes tienen valores esperados', () {
       expect(MapConstants.busHitRadius, 32.0);
       expect(MapConstants.guideBusRectSize, 76.0);
-      expect(MapConstants.guideBottomInset, 310.0);
     });
   });
 }

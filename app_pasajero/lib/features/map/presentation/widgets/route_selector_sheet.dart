@@ -343,15 +343,24 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         if (showOverlay)
           Positioned.fill(
             child: MapGuideOverlay(
-              target: _target!,
-              // En las listas el hueco no crece hacia arriba: la cabecera
-              // con la flecha de volver va pegada encima y quedaba medio
-              // iluminada, y tocarla sacaba de la lista en mitad de la
-              // guía. Por arriba no le hace falta aire: la lista ya lleva
-              // sus 16 de relleno antes de la primera fila.
-              targetInsets: _view == _RouteView.main
-                  ? null
-                  : const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              // En las listas se ilumina lo que va de la primera fila a la
+              // última, no la lista entera: la lista lleva 16 de fundido por
+              // cada lado y cada fila sus 12 de aire debajo, y el hueco se
+              // llevaba 38 vacíos bajo la última fila y crecía hasta la
+              // cabecera, con la flecha de volver medio iluminada (dueño,
+              // 2026-10-18: «otras que incluyen cosas extras»).
+              target: _view == _RouteView.main
+                  ? _target!
+                  : Rect.fromLTRB(
+                      _target!.left,
+                      _target!.top + _fundidoLista,
+                      _target!.right,
+                      _target!.bottom - _fundidoLista - _aireFila,
+                    ),
+              // La carta va encima de la hoja si cabe: abajo de la hoja
+              // tapaba el título de la vista y el «Dos pasos…» que explica
+              // lo que se ilumina.
+              cartaSobre: _topeDeLaTarjeta(),
               title: copy.title,
               message: copy.message,
               icon: copy.icon,
@@ -377,6 +386,16 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           ),
       ],
     );
+  }
+
+  /// Dónde empieza la hoja, en el sistema del [Stack] de la guía.
+  double? _topeDeLaTarjeta() {
+    final host = _hostKey.currentContext?.findRenderObject() as RenderBox?;
+    final hoja = _tarjetaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (host == null || hoja == null || !host.attached || !hoja.attached) {
+      return null;
+    }
+    return host.globalToLocal(hoja.localToGlobal(Offset.zero)).dy;
   }
 
   bool _isSelectionStep(MapGuideStep? step) {
@@ -771,6 +790,9 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   /// solo las que se desplazan hacia el borde.
   static const double _fundidoLista = 16;
 
+  /// El aire bajo cada fila de las listas (6 + 6, el de los pasos).
+  static const double _aireFila = AppSpacing.sm + AppSpacing.xs;
+
   Widget _listaConDesvanecido(Widget lista) {
     final conTinta = Material(
       type: MaterialType.transparency,
@@ -1138,7 +1160,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           ),
         );
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm + AppSpacing.xs),
+      padding: const EdgeInsets.only(bottom: _aireFila),
       child: Container(
         height: _kTileHeight,
         padding: const EdgeInsets.symmetric(
@@ -1233,7 +1255,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     // flotaba arriba como una etiqueta: ahora es la misma tarjeta que se
     // acaba de tocar.
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm + AppSpacing.xs),
+      padding: const EdgeInsets.only(bottom: _aireFila),
       child: Semantics(
         button: true,
         // La palomita de la derecha es lo único que distingue la fila ya

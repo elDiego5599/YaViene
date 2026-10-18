@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
@@ -23,7 +22,6 @@ import '../providers/seguimiento_segundo_plano.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/bus_semantics.dart';
-import '../utils/map_constants.dart';
 import '../widgets/bienvenida.dart';
 import '../widgets/cabecera_flotante.dart';
 import '../widgets/eta_bottom_sheet.dart';
@@ -43,7 +41,7 @@ class MapScreen extends ConsumerStatefulWidget {
 class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _mapKey = GlobalKey();
   final GlobalKey _pillKey = GlobalKey();
-  final GlobalKey _searchActionKey = GlobalKey();
+  final GlobalKey _cabeceraKey = GlobalKey();
   final GlobalKey _companyGuideKey = GlobalKey();
   final GlobalKey _companyChoiceGuideKey = GlobalKey();
   final GlobalKey _routeGuideKey = GlobalKey();
@@ -281,21 +279,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Rect? _targetFor(MapGuideStep step) {
     switch (step) {
       case MapGuideStep.location:
-        final mapRect = _rectFor(_mapKey);
-        if (mapRect == null) return null;
-        // Empieza debajo de la barra de búsqueda y el chip de ubicación: solo
-        // el área iluminada recibe el toque y el usuario no puede desviarse.
-        // La altura deja espacio abajo para la tarjeta de la guía.
-        final top = mapRect.top + 210;
-        final height = (mapRect.height * 0.5).clamp(160.0, 400.0);
-        return Rect.fromLTWH(
-          mapRect.left + 16,
-          top,
-          mapRect.width - 32,
-          height,
-        );
+        return _mapGuideArea();
       case MapGuideStep.search:
-        return _rectFor(_searchActionKey) ?? _rectFor(_pillKey);
+        // La píldora entera: logo, texto y lupa son una sola cosa a la
+        // vista; iluminar solo el texto la partía en tres.
+        return _rectFor(_pillKey);
       case MapGuideStep.buses:
         return _mapGuideArea();
       case MapGuideStep.distance:
@@ -325,37 +313,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   /// El usuario necesita poder mover el mapa y tocar cualquier bus. Se
-  /// ilumina una zona amplia del mapa, no un punto fijo que desaparece al
-  /// mover la cámara. Empieza debajo de la pill y los chips para que esas
-  /// acciones (quitar el pin, abrir la búsqueda) no queden dentro del área
-  /// iluminada y el usuario no se desvíe del flujo.
+  /// ilumina el mapa que queda libre entre la cabecera (pill y chips) y la
+  /// hoja: ni esas acciones ni la hoja entran en el área iluminada, y el
+  /// usuario no se desvía del flujo. El hueco crece 10 por lado sobre esta
+  /// caja, así que se descuentan aquí: arriba deja 2 de aire bajo la
+  /// cabecera y abajo termina justo donde empieza la hoja. Antes se medía
+  /// con números fijos (210 arriba, 310 abajo) y en un teléfono de 667 el
+  /// hueco caía a toda la pantalla, hoja incluida.
+  ///
+  /// Con el botón de recentrar a la vista, el hueco acaba 12 por encima de
+  /// él: la carta de la guía se apoya sobre la hoja y mide más que ella
+  /// (227 contra 207 en un iPhone 15), así que siempre tapa la mitad de
+  /// abajo del botón. Iluminado a medias se veía partido; entero fuera se
+  /// ve como lo que es en este paso, algo de después.
   Rect? _mapGuideArea() {
     final mapRect = _rectFor(_mapKey);
-    if (mapRect == null) return null;
-    final top = mapRect.top + 210;
-    // Deja 310 px libres abajo: la tarjeta de la guía (y la barra de
-    // navegación) no deben solapar el área iluminada.
-    final bottom = mapRect.bottom - MapConstants.guideBottomInset;
-    if (bottom - top < 220) return mapRect.deflate(12);
-    final horizontalInset = (mapRect.width * 0.08).clamp(24.0, 32.0);
-    var right = mapRect.right - horizontalInset;
-    var abajo = bottom;
-    // El botón de recentrar entra entero en el área: con el pin de espera
-    // puesto es lo primero que alguien quiere tocar al ver los buses, y
-    // quedaba partido por el borde del hueco —la mitad iluminada, la otra
-    // mitad tras el velo—. El hueco crece 10 por lado sobre esta caja, así
-    // que se descuentan aquí: por abajo termina justo donde empieza la hoja
-    // (el botón va 8 por encima de ella) y por la derecha deja 4 de aire.
+    final cabecera = _rectFor(_cabeceraKey);
+    final hoja = _rectFor(_detailGuideKey);
+    if (mapRect == null || cabecera == null || hoja == null) return null;
+    final top = cabecera.bottom + 12;
     final boton = ref.read(userLocationProvider).hasPosition
         ? _rectFor(_recenterGuideKey)
         : null;
-    if (boton != null) {
-      right = math.max(right, boton.right + 4 - 10);
-      abajo = math.max(abajo, boton.bottom + AppSpacing.sm - 10);
-    }
-    // Simétrica: la izquierda se aparta del borde lo mismo que la derecha.
-    final lado = mapRect.right - right;
-    return Rect.fromLTRB(mapRect.left + lado, top, right, abajo);
+    final abajo = boton == null ? hoja.top - 10 : boton.top - 12 - 10;
+    if (abajo - top < 48) return null;
+    final lado = (mapRect.width * 0.08).clamp(24.0, 32.0);
+    return Rect.fromLTRB(mapRect.left + lado, top, mapRect.right - lado, abajo);
   }
 
   void _skipGuide() {
@@ -470,13 +453,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             child: MediaQuery.withClampedTextScaling(
               maxScaleFactor: 2.0,
               child: CabeceraFlotante(
+                key: _cabeceraKey,
                 apartada: cabeceraApartada,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SearchPillBar(
                       pillKey: _pillKey,
-                      searchActionKey: _searchActionKey,
                       companyGuideKey: _companyGuideKey,
                       companyChoiceGuideKey: _companyChoiceGuideKey,
                       routeGuideKey: _routeGuideKey,
@@ -552,8 +535,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             Positioned.fill(
               child: MapGuideOverlay(
                 target: _guideTarget ?? Rect.zero,
-                targetPadding: visibleStep == MapGuideStep.location ? 0 : 10,
-                cartaAbajo: visibleStep == MapGuideStep.buses,
+                // Los pasos del mapa llevan la carta abajo, sobre la hoja, y
+                // dejan iluminado todo el mapa libre de encima.
+                cartaAbajo: visibleStep == MapGuideStep.location ||
+                    visibleStep == MapGuideStep.buses,
+                cartaSobre: visibleStep == MapGuideStep.distance ||
+                        visibleStep == MapGuideStep.alert
+                    ? _rectFor(_detailGuideKey)?.top
+                    : null,
+                radioHueco: visibleStep == MapGuideStep.search ||
+                        (visibleStep == MapGuideStep.alert &&
+                            !_eligiendoDistancia)
+                    ? AppRadius.pill
+                    : AppRadius.card,
                 centered: isCenteredStep,
                 title: copy.title,
                 message: copy.message,

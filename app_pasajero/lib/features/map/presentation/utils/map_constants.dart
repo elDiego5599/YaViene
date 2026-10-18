@@ -10,9 +10,6 @@ class MapConstants {
   /// Rect del área guía de buses (usado como fallback visual).
   static const double guideBusRectSize = 76.0;
 
-  /// Inset inferior que deja la tarjeta de guía sobre el mapa (evita navbar).
-  static const double guideBottomInset = 310.0;
-
   /// Ancho del icono de bus (Flat) en el canvas de 80 px.
   static const double busIconSize = 80.0;
 
