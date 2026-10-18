@@ -3,10 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-/// El fondo de la bienvenida y de la pestaña de Info (dueño,
-/// 2026-10-16): una malla de color difuminada con los colores de la marca,
-/// del verde arriba al azul y la tinta abajo, en vez de la tinta plana con
-/// su red de rutas.
+/// El fondo de la bienvenida (dueño, 2026-10-16): una malla de color
+/// difuminada con los colores de la marca, del verde arriba al azul y la
+/// tinta abajo, en vez de la tinta plana con su red de rutas.
 ///
 /// Respira (dueño, 2026-10-16: «que no fuera un fondo estático, que parezca
 /// moverse y respirar»): cada mancha da una vuelta chica alrededor de su
@@ -19,7 +18,6 @@ class FondoMalla extends StatefulWidget {
   const FondoMalla({
     super.key,
     required this.child,
-    this.suave = false,
     this.subida = 0,
   });
 
@@ -32,27 +30,17 @@ class FondoMalla extends StatefulWidget {
   /// queda abajo sin malla sigue en la tinta del final.
   final double subida;
 
-  /// Bajo un velo blanco: la de Info, que con la malla entera «se ve muy
-  /// fuerte, muy brillante» (dueño, 2026-10-16). Lleva letra de tinta.
-  final bool suave;
-
   /// El blanco de la letra chica sobre la malla: la bajada de la marca.
   /// Al 75 % la bajada medía 4,02:1 en su franja; al 90 % pasa AA
   /// (`test/fondo_malla_test.dart`).
   static const double alfaLetraChica = 0.9;
 
-  /// Lo que tapa el velo de Info: deja la marca en un tinte pastel y la
-  /// letra de encima por sobre 4,5:1 en todo el ciclo: al 88 % los créditos
-  /// grises daban 4,37:1 abajo, en el verde.
-  static const double alfaVelo = 0.9;
-
   /// Un ciclo entero de la respiración.
   static const Duration vuelta = Duration(seconds: 24);
 
   /// El pintor solo, en un momento del ciclo, para medir sus píxeles.
-  static CustomPainter pintor(
-          {double fase = 0, bool suave = false, double subida = 0}) =>
-      PintorMalla(AlwaysStoppedAnimation(fase), suave: suave, subida: subida);
+  static CustomPainter pintor({double fase = 0, double subida = 0}) =>
+      PintorMalla(AlwaysStoppedAnimation(fase), subida: subida);
 
   @override
   State<FondoMalla> createState() => _FondoMallaState();
@@ -94,7 +82,6 @@ class _FondoMallaState extends State<FondoMalla>
           child: CustomPaint(
             painter: PintorMalla(
               _ciclo ?? const AlwaysStoppedAnimation(0),
-              suave: widget.suave,
               subida: widget.subida,
             ),
           ),
@@ -107,11 +94,9 @@ class _FondoMallaState extends State<FondoMalla>
 
 /// La malla en un momento de su ciclo ([fase], de 0 a 1).
 class PintorMalla extends CustomPainter {
-  PintorMalla(this._ciclo, {this.suave = false, this.subida = 0})
-      : super(repaint: _ciclo);
+  PintorMalla(this._ciclo, {this.subida = 0}) : super(repaint: _ciclo);
 
   final Animation<double> _ciclo;
-  final bool suave;
   final double subida;
 
   double get fase => _ciclo.value;
@@ -191,15 +176,9 @@ class PintorMalla extends CustomPainter {
           ).createShader(Rect.fromCircle(center: c, radius: r)),
       );
     }
-    if (suave) {
-      canvas.drawRect(
-        todo,
-        Paint()..color = Colors.white.withValues(alpha: FondoMalla.alfaVelo),
-      );
-    }
   }
 
   @override
   bool shouldRepaint(PintorMalla antes) =>
-      antes._ciclo != _ciclo || antes.suave != suave || antes.subida != subida;
+      antes._ciclo != _ciclo || antes.subida != subida;
 }

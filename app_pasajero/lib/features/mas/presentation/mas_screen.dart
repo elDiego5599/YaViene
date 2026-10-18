@@ -10,12 +10,12 @@ import '../../../core/app_info.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/borde_desvanecido.dart';
 import '../../../core/widgets/dialogo.dart';
-import '../../../core/widgets/fondo_malla.dart';
 import '../../legal/legal_docs.dart';
 import '../../map/presentation/providers/map_tour_provider.dart';
 import '../../map/presentation/providers/map_view_state.dart';
 import '../../map/presentation/providers/tracking_providers.dart';
 import '../../map/presentation/providers/user_location_provider.dart';
+import 'fondo_mosaico.dart';
 
 /// La pestaña «Info»: la ruta que se sigue, la guía de uso y lo que se
 /// consulta de vez en cuando (lo legal, la versión y los créditos del mapa).
@@ -24,7 +24,7 @@ import '../../map/presentation/providers/user_location_provider.dart';
 ///
 /// Sin la entrada escalonada del menú: cambiar de pestaña es instantáneo en
 /// iOS, y una página que se arma por partes cada vez que se vuelve a ella
-/// se lee como lenta. Fondo de malla, la del arranque en suave, con
+/// se lee como lenta. Fondo de mosaico de dibujos (dueño, 2026-10-18), con
 /// tarjetas blancas que se despegan con su sombra (dueño, 2026-10-16).
 class MasScreen extends ConsumerWidget {
   const MasScreen({super.key});
@@ -35,8 +35,11 @@ class MasScreen extends ConsumerWidget {
   /// de un vistazo y respira a los lados.
   static const double anchoMaximo = 340;
 
+  /// La píldora blanca de la marca y de los créditos sobre el mosaico.
+  static const pildoraKey = ValueKey('mas-pildora');
+
   /// El aire a cada lado de la columna, más que el de las demás pestañas:
-  /// sobre la malla, el color que se ve a los lados es el que hace que las
+  /// sobre el mosaico, los dibujos que se ve a los lados es el que hace que las
   /// tarjetas floten.
   static const double margen = 32;
 
@@ -139,18 +142,14 @@ class MasScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // La malla suave es clara: la hora y la batería en oscuro.
+    // El mosaico es claro: la hora y la batería en oscuro.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Material(
         type: MaterialType.transparency,
-        // La malla pinta TODA la pantalla, también bajo la barra de estado
-        // y la píldora: la SafeArea queda solo para el contenido. Suave
-        // (dueño, 2026-10-16: «muy fuerte, se ve muy brillante»): la del
-        // arranque bajo un velo blanco, para que las tarjetas no compitan
-        // con ella.
-        child: FondoMalla(
-          suave: true,
+        // El mosaico pinta TODA la pantalla, también bajo la barra de
+        // estado y la píldora: la SafeArea queda solo para el contenido.
+        child: FondoMosaico(
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(margen, 26, margen, 20),
@@ -164,7 +163,7 @@ class MasScreen extends ConsumerWidget {
                       // al bajar se escondía con lo demás (dueño,
                       // 2026-10-16). Lo de abajo se desplaza y se disuelve
                       // bajo ella.
-                      const _Marca(),
+                      const Center(child: _Marca()),
                       const SizedBox(height: 26 - BordeDesvanecido.alto),
                       Expanded(
                         child: BordeDesvanecido(
@@ -258,38 +257,64 @@ class _Marca extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // El logo se anunciaba como "imagen", sin más, y justo al lado va
-        // el nombre escrito: es el mismo dato dos veces.
-        ExcludeSemantics(
-          child: SvgPicture.asset(
-            'assets/icon/ya_viene_logo.svg',
-            width: 30,
-            height: 30,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Flexible(
-          child: Semantics(
-            header: true,
-            child: Text(
-              'Ya Viene',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              // En tinta sobre la malla suave (lo mide `fondo_malla_test`).
-              style:
-                  AppTextStyles.titulo.copyWith(color: AppColors.textPrimary),
+    return _Pildora(
+      padding: const EdgeInsets.fromLTRB(14, 8, 18, 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // El logo se anunciaba como "imagen", sin más, y justo al lado va
+          // el nombre escrito: es el mismo dato dos veces.
+          ExcludeSemantics(
+            child: SvgPicture.asset(
+              'assets/icon/ya_viene_logo.svg',
+              width: 30,
+              height: 30,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 10),
+          Flexible(
+            child: Semantics(
+              header: true,
+              child: Text(
+                'Ya Viene',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                // En tinta sobre su píldora blanca (`mas_screen_test`).
+                style:
+                    AppTextStyles.titulo.copyWith(color: AppColors.textPrimary),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// La superficie de las tarjetas de Info: blanca y opaca sobre la malla, con
+/// Lo que se lee suelto sobre el mosaico va en una píldora blanca y opaca,
+/// con la sombra de las tarjetas: los dibujos no se meten detrás de la
+/// letra.
+class _Pildora extends StatelessWidget {
+  const _Pildora({required this.padding, required this.child});
+
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: MasScreen.pildoraKey,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        boxShadow: AppShadows.floating,
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+/// La superficie de las tarjetas de Info: blanca y opaca sobre el mosaico, con
 /// la sombra flotante para que se despegue (dueño, 2026-10-16: «lo que ya es
 /// blanco, ponerle sombras para diferenciar»).
 final _tarjeta = BoxDecoration(
@@ -299,7 +324,7 @@ final _tarjeta = BoxDecoration(
 );
 
 /// Pie de Info: los créditos del mapa, chicos y al centro, en el gris de la
-/// letra secundaria, que sobre la malla suave pasa AA (`fondo_malla_test`).
+/// letra secundaria sobre su píldora blanca.
 class _Pie extends StatelessWidget {
   const _Pie();
 
@@ -307,15 +332,18 @@ class _Pie extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.md),
-      child: Text(
-        // Sin «Mapa» delante: con él, «CARTO» se quedaba solo en una
-        // segunda línea. Los espacios duros pegan cada © a su nombre, para
-        // que con el texto grande se corte por las comas.
-        '©\u00A0MapLibre, ©\u00A0OpenStreetMap, ©\u00A0CARTO',
-        textAlign: TextAlign.center,
-        style: AppTextStyles.pie.copyWith(
-          color: AppColors.textSecondary,
-          height: 1.4,
+      child: _Pildora(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Text(
+          // Sin «Mapa» delante: con él, «CARTO» se quedaba solo en una
+          // segunda línea. Los espacios duros pegan cada © a su nombre, para
+          // que con el texto grande se corte por las comas.
+          '©\u00A0MapLibre, ©\u00A0OpenStreetMap, ©\u00A0CARTO',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.pie.copyWith(
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
         ),
       ),
     );

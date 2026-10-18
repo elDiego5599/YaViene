@@ -7,6 +7,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/widgets/borde_desvanecido.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/fondo_mosaico.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 void main() {
@@ -201,17 +202,28 @@ void main() {
     expect(pie.top, greaterThan(grupo.bottom));
   });
 
-  // «En la parte de info siento que está muy fuerte, se ve muy brillante, y
-  // cuando bajo se esconde el Ya Viene» (dueño, 2026-10-16).
-  testWidgets('Info lleva la malla suave, con letra de tinta', (tester) async {
+  // «En la página de info me gustaría que el fondo fuera como un mosaico»
+  // (dueño, 2026-10-18): el mosaico de dibujos, con la marca y los créditos
+  // en su píldora blanca para que se lean encima.
+  testWidgets('Info lleva el mosaico, con la letra sobre blanco',
+      (tester) async {
     await abrirMas(tester);
 
-    expect(tester.widget<FondoMalla>(find.byType(FondoMalla)).suave, isTrue);
-    expect(tester.widget<Text>(find.text('Ya Viene')).style!.color,
-        AppColors.textPrimary);
-    expect(
-        tester.widget<Text>(find.textContaining('OpenStreetMap')).style!.color,
-        AppColors.textSecondary);
+    expect(find.byType(FondoMosaico), findsOneWidget);
+    expect(find.byType(FondoMalla), findsNothing);
+    for (final (texto, color) in [
+      ('Ya Viene', AppColors.textPrimary),
+      ('OpenStreetMap', AppColors.textSecondary),
+    ]) {
+      final letra = find.textContaining(texto);
+      expect(tester.widget<Text>(letra).style!.color, color);
+      final pildora = tester.widget<DecoratedBox>(find
+          .ancestor(of: letra, matching: find.byKey(MasScreen.pildoraKey))
+          .first);
+      final fondo = (pildora.decoration as BoxDecoration).color!;
+      expect(fondo, AppColors.surface, reason: texto);
+      expect(fondo.a, 1, reason: '$texto: la píldora es opaca');
+    }
     // Fondo claro arriba: la hora y la batería en oscuro.
     final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
         find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first);

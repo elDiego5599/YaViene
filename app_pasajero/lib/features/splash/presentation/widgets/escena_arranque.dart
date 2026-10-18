@@ -22,17 +22,29 @@ class EscenaArranque extends StatefulWidget {
   /// Avisa cuando la escena quedó armada.
   final VoidCallback? alTerminar;
 
-  static const Duration duracion = Duration(milliseconds: 1250);
+  /// Lo armado tarda 1,2 s, como antes; después la marca se queda quieta
+  /// [lecturaMarca] para leerla (dueño, 2026-10-18: «que dure un
+  /// poquitito más cuando aparece el texto»).
+  static const Duration duracion = Duration(milliseconds: 1700);
+
+  /// Lo que la marca se queda entera antes de pasar a la bienvenida.
+  static const Duration lecturaMarca = Duration(milliseconds: 500);
+
+  /// El lado de la cayena en la escena de 300.
+  static const double ladoFlor = 112;
 
   /// Lo que dura armada y quieta con «Reducir movimiento», para que la
   /// marca se alcance a leer.
   static const Duration quieta = Duration(milliseconds: 700);
 
-  // Los tramos de cada pieza dentro de [duracion], en fracción.
-  static const torre = Interval(0, 0.55);
-  static const flor = Interval(0.22, 0.78, curve: Curves.easeOutBack);
-  static const bus = Interval(0.38, 0.86);
-  static const marca = Interval(0.66, 0.96, curve: Curves.easeOutCubic);
+  // Los tramos de cada pieza, en milisegundos sobre los 1.700 de
+  // [duracion]: los mismos tiempos que cuando la escena duraba 1.250.
+  static const torre = Interval(0, 687 / 1700);
+  static const flor =
+      Interval(275 / 1700, 975 / 1700, curve: Curves.easeOutBack);
+  static const bus = Interval(475 / 1700, 1075 / 1700);
+  static const marca =
+      Interval(825 / 1700, 1200 / 1700, curve: Curves.easeOutCubic);
 
   @override
   State<EscenaArranque> createState() => _EscenaArranqueState();
@@ -102,21 +114,22 @@ class _EscenaArranqueState extends State<EscenaArranque>
       clipBehavior: Clip.none,
       children: [
         // La torre, a la izquierda del centro (torre y flor juntas quedan
-        // centradas: de 38 a 262): 290 de alto y su ancho propio
+        // centradas: de 48 a 252): 290 de alto y su ancho propio
         // (655 × 1755 en el dibujo de referencia).
         Positioned(
-          left: 38,
+          left: 48,
           top: 0,
           width: 290 * PintorVentana.aspecto,
           height: 290,
           child: CustomPaint(painter: PintorVentana(torre)),
         ),
-        // La cayena, delante del filo derecho de la torre.
+        // La cayena, delante del filo derecho de la torre. De 112: a 136
+        // «se ve muy grande» (dueño, 2026-10-18).
         Positioned(
-          left: 126,
-          top: 120,
-          width: 136,
-          height: 136,
+          left: 140,
+          top: 140,
+          width: EscenaArranque.ladoFlor,
+          height: EscenaArranque.ladoFlor,
           child: CustomPaint(painter: PintorCayena(flor)),
         ),
         // El bus, delante de todo, al pie.
@@ -365,26 +378,193 @@ class PintorVentana extends CustomPainter {
   bool shouldRepaint(PintorVentana antes) => antes.avance != avance;
 }
 
-/// La cayena, la flor de Barranquilla: cinco pétalos que se abren uno tras
-/// otro según [avance] (0 a 1, con su rebote) y el pistilo al final.
+/// La cayena, la flor de Barranquilla, como la de referencia del dueño
+/// (2026-10-18: «muy grande y redonda»): cinco pétalos sueltos, angostos en
+/// la base y anchos arriba, con muescas entre uno y otro; contorno oscuro,
+/// orla clara, la estrella oscura del centro, venas finas y brillos cortos;
+/// y la columna larga que sube sobre el pétalo de arriba, con el polen
+/// amarillo y los cinco estigmas rojos en la punta. Los pétalos se abren uno
+/// tras otro según [avance] (0 a 1, con su rebote).
 class PintorCayena extends CustomPainter {
   PintorCayena(this.avance);
 
   final double avance;
 
-  static const _rojo = Color(0xFFE0312C);
-  static const _orla = Color(0xFFF0574D);
-  static const _hondo = Color(0xFFA3171A);
-  static const _trazo = Color(0xFF5E0E0E);
-  static const _polen = Color(0xFFF6C915);
+  /// Los granos de polen a lo largo de la columna.
+  static const anteras = 14;
 
-  Path _petalo(double r) => Path()
+  /// Las cabecitas rojas de la punta.
+  static const estigmas = 5;
+
+  static const _rojo = Color(0xFFE0302A);
+  static const _orla = Color(0xFFF2655B);
+  static const _hondo = Color(0xFF8E1015);
+  static const _trazo = Color(0xFF3D0A0A);
+  static const _brillo = Color(0xFFFF8F84);
+  static const _polen = Color(0xFFF6C915);
+  static const _polenBorde = Color(0xFFB7860B);
+
+  /// Un pétalo hacia arriba, con la base en el centro: angosto abajo y
+  /// ancho arriba (media anchura 0,42 del radio, no 0,72 como el redondo de
+  /// antes), para que entre pétalo y pétalo quede la muesca; el borde de
+  /// afuera en tres ondas. El mosaico de Info dibuja la suya con este mismo.
+  static Path petalo(double r) => Path()
     ..moveTo(0, 0)
-    ..cubicTo(-0.56 * r, -0.22 * r, -0.66 * r, -0.84 * r, -0.28 * r, -0.98 * r)
-    ..quadraticBezierTo(-0.1 * r, -1.06 * r, 0, -0.98 * r)
-    ..quadraticBezierTo(0.12 * r, -1.07 * r, 0.3 * r, -0.97 * r)
-    ..cubicTo(0.66 * r, -0.84 * r, 0.56 * r, -0.22 * r, 0, 0)
+    ..cubicTo(-0.14 * r, -0.08 * r, -0.44 * r, -0.34 * r, -0.42 * r, -0.62 * r)
+    ..quadraticBezierTo(-0.42 * r, -0.86 * r, -0.24 * r, -0.94 * r)
+    ..quadraticBezierTo(-0.12 * r, -1.02 * r, 0.02 * r, -0.97 * r)
+    ..quadraticBezierTo(0.16 * r, -1.03 * r, 0.27 * r, -0.92 * r)
+    ..quadraticBezierTo(0.43 * r, -0.84 * r, 0.42 * r, -0.6 * r)
+    ..cubicTo(0.44 * r, -0.34 * r, 0.14 * r, -0.08 * r, 0, 0)
     ..close();
+
+  void _unPetalo(
+      Canvas canvas, Path forma, double r, Paint relleno, math.Random azar) {
+    canvas.drawPath(forma, relleno);
+    canvas.save();
+    canvas.clipPath(forma);
+    // La orla: una franja clara por dentro del borde.
+    canvas.drawPath(
+        forma,
+        Paint()
+          ..color = _orla
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.07 * r
+          ..strokeJoin = StrokeJoin.round);
+    // La estrella del centro: muchas rayas finas y oscuras desde la base.
+    final raya = Paint()
+      ..color = _hondo.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.012 * r
+      ..strokeCap = StrokeCap.round;
+    for (var k = 0; k < 16; k++) {
+      final a = -0.5 + 1.0 * k / 15 + (azar.nextDouble() - 0.5) * 0.05;
+      final largo = (0.3 + 0.18 * azar.nextDouble()) * r;
+      canvas.drawLine(
+          Offset.zero, Offset(math.sin(a) * largo, -math.cos(a) * largo), raya);
+    }
+    // Las venas: largas, finas y curvas, de la base casi al borde.
+    final vena = Paint()
+      ..color = _trazo.withValues(alpha: 0.45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.009 * r
+      ..strokeCap = StrokeCap.round;
+    for (final a in const [-0.62, -0.36, -0.12, 0.12, 0.36, 0.62]) {
+      canvas.drawPath(
+          Path()
+            ..moveTo(a * 0.06 * r, -0.12 * r)
+            ..quadraticBezierTo(
+                a * 0.42 * r - 0.04 * r, -0.52 * r, a * 0.56 * r, -0.86 * r),
+          vena);
+    }
+    // Brillos cortos cerca del borde, donde la hoja se dobla.
+    final brillo = Paint()
+      ..color = _brillo.withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.018 * r
+      ..strokeCap = StrokeCap.round;
+    for (final (x, y, l) in const [
+      (-0.3, -0.62, 0.1),
+      (-0.16, -0.8, 0.08),
+      (0.22, -0.7, 0.1),
+      (0.3, -0.5, 0.07),
+    ]) {
+      canvas.drawLine(
+          Offset(x * r, y * r), Offset((x + l * 0.3) * r, (y - l) * r), brillo);
+    }
+    // La sombra donde se monta el pétalo siguiente.
+    canvas.drawPath(
+        Path()
+          ..moveTo(0, 0)
+          ..cubicTo(
+              0.14 * r, -0.08 * r, 0.44 * r, -0.34 * r, 0.42 * r, -0.62 * r),
+        Paint()
+          ..color = _hondo.withValues(alpha: 0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.07 * r
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2));
+    canvas.restore();
+    canvas.drawPath(
+        forma,
+        Paint()
+          ..color = _trazo
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.024 * r
+          ..strokeJoin = StrokeJoin.round);
+  }
+
+  /// La columna, larga y fina, de la base a la punta, con el polen y los
+  /// estigmas.
+  void _columna(Canvas canvas, double r, double crece) {
+    final punta = Offset(-0.04 * r, -0.7 * r * crece);
+    final control = Offset(0.05 * r, -0.36 * r * crece);
+    Offset sobre(double t) {
+      final u = 1 - t;
+      return Offset(2 * u * t * control.dx + t * t * punta.dx,
+          2 * u * t * control.dy + t * t * punta.dy);
+    }
+
+    final tallo = Path()
+      ..moveTo(0, 0)
+      ..quadraticBezierTo(control.dx, control.dy, punta.dx, punta.dy);
+    for (final (color, ancho) in [
+      (_trazo, 0.065 * r),
+      (_rojo, 0.04 * r),
+    ]) {
+      canvas.drawPath(
+          tallo,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = ancho
+            ..strokeCap = StrokeCap.round);
+    }
+    canvas.drawPath(
+        tallo,
+        Paint()
+          ..color = _brillo
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.012 * r
+          ..strokeCap = StrokeCap.round);
+    // El polen: granos en sus palitos, a los dos lados del tramo de arriba.
+    final palito = Paint()
+      ..color = _trazo
+      ..strokeWidth = 0.01 * r
+      ..strokeCap = StrokeCap.round;
+    final grano = Paint()..color = _polen;
+    final granoBorde = Paint()
+      ..color = _polenBorde
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.01 * r;
+    for (var k = 0; k < anteras; k++) {
+      final t = 0.55 + 0.33 * (k ~/ 2) / (anteras ~/ 2 - 1);
+      final lado = k.isEven ? -1.0 : 1.0;
+      final aparece = ((crece - t * 0.6) / 0.4).clamp(0.0, 1.0);
+      if (aparece <= 0) continue;
+      final base = sobre(t);
+      final fin = base +
+          Offset(lado * (0.06 + 0.03 * ((k ~/ 2).isEven ? 1 : 0)) * r,
+                  -0.025 * r) *
+              aparece;
+      canvas.drawLine(base, fin, palito);
+      final oval =
+          Rect.fromCenter(center: fin, width: 0.055 * r, height: 0.045 * r);
+      canvas
+        ..drawOval(oval, grano)
+        ..drawOval(oval, granoBorde);
+    }
+    // Los estigmas, al final de todo.
+    final abre = ((crece - 0.8) / 0.2).clamp(0.0, 1.0);
+    if (abre <= 0) return;
+    for (var k = 0; k < estigmas; k++) {
+      final a = -0.7 + 1.4 * k / (estigmas - 1);
+      final cabeza =
+          punta + Offset(math.sin(a), -math.cos(a)) * (0.08 * r * abre);
+      canvas.drawLine(punta, cabeza, palito);
+      canvas.drawCircle(cabeza, 0.028 * r, Paint()..color = _trazo);
+      canvas.drawCircle(cabeza, 0.018 * r, Paint()..color = _rojo);
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -395,72 +575,28 @@ class PintorCayena extends CustomPainter {
     canvas.translate(centro.dx, centro.dy);
     // La flor entera gira un poco al abrir.
     canvas.rotate(-0.35 * (1 - avance.clamp(0.0, 1.0)));
-    final forma = _petalo(r);
+    final forma = petalo(r);
     final relleno = Paint()
       ..shader = const RadialGradient(
-        colors: [_hondo, _rojo, _orla],
-        stops: [0, 0.5, 1],
+        colors: [_hondo, _rojo, _rojo, _orla],
+        stops: [0, 0.3, 0.8, 1],
       ).createShader(Rect.fromCircle(center: Offset.zero, radius: r));
-    final borde = Paint()
-      ..color = _trazo
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3
-      ..strokeJoin = StrokeJoin.round;
-    final vena = Paint()
-      ..color = _hondo.withValues(alpha: 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.9
-      ..strokeCap = StrokeCap.round;
     for (var i = 0; i < 5; i++) {
       // Cada pétalo, con su turno: abre desde el centro y gira a su sitio.
-      final p = ((avance - i * 0.09) / 0.64).clamp(0.0, 1.2);
+      // Todos terminan en su tamaño (1) cuando la flor termina; solo el
+      // rebote los pasa un poco.
+      final desde = i * 0.09;
+      final p = ((avance - desde) / (1 - desde)).clamp(0.0, 1.2);
       if (p <= 0) continue;
       canvas.save();
       canvas.rotate(i * 2 * math.pi / 5 - 0.5 * (1 - p.clamp(0.0, 1.0)));
       canvas.scale(p);
-      canvas.drawPath(forma, relleno);
-      for (final a in [-0.3, -0.1, 0.12, 0.3]) {
-        canvas.drawLine(Offset(a * 0.2 * r, -0.2 * r),
-            Offset(a * r * 0.9, -0.82 * r), vena);
-      }
-      canvas.drawPath(forma, borde);
+      _unPetalo(canvas, forma, r, relleno, math.Random(i));
       canvas.restore();
     }
-    // El pistilo crece al final, con su polen.
-    final pistilo = ((avance - 0.62) / 0.38).clamp(0.0, 1.0);
-    if (pistilo > 0) {
-      final punta = Offset(0.06 * r, -0.66 * r * pistilo);
-      canvas.drawLine(
-          Offset.zero,
-          punta,
-          Paint()
-            ..color = _trazo
-            ..strokeWidth = 0.09 * r
-            ..strokeCap = StrokeCap.round);
-      canvas.drawLine(
-          Offset.zero,
-          punta,
-          Paint()
-            ..color = _rojo
-            ..strokeWidth = 0.06 * r
-            ..strokeCap = StrokeCap.round);
-      final grano = Paint()..color = _polen;
-      final granoBorde = Paint()
-        ..color = _trazo
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.6;
-      for (var k = 0; k < 8; k++) {
-        final y = 0.5 + 0.06 * (k ~/ 2);
-        final lado = k.isEven ? -1 : 1;
-        final o = Offset(punta.dx * y + lado * 0.07 * r, punta.dy * y);
-        canvas.drawCircle(o, 0.035 * r, grano);
-        canvas.drawCircle(o, 0.035 * r, granoBorde);
-      }
-      for (var k = -1; k <= 1; k++) {
-        final o = punta + Offset(k * 0.06 * r, -0.04 * r * (1 - k.abs()));
-        canvas.drawCircle(o, 0.032 * r, Paint()..color = _hondo);
-      }
-    }
+    // La columna crece al final.
+    final crece = ((avance - 0.62) / 0.38).clamp(0.0, 1.0);
+    if (crece > 0) _columna(canvas, r, crece);
     canvas.restore();
   }
 

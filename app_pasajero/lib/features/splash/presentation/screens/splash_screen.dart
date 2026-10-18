@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/app_state.dart';
 import '../../../onboarding/onboarding_flow.dart';
 import '../widgets/escena_arranque.dart';
+import '../widgets/fondo_matizado.dart';
 
 /// Pantalla de arranque: deja el estado de la sesión anterior limpio, pinta
 /// la escena de Barranquilla con la marca ([EscenaArranque]) y sigue a la
@@ -46,15 +47,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Blanco, como las pantallas de arranque nativas, así el relevo no salta.
+    // Blanco detrás, como las pantallas de arranque nativas, así el relevo
+    // no salta; el matizado entra encima en un fundido corto.
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-        child: EscenaArranque(
-          alTerminar: () {
-            if (!_escena.isCompleted) _escena.complete();
-          },
-        ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const FondoMatizado(),
+          Center(
+            child: EscenaArranque(
+              alTerminar: () {
+                if (!_escena.isCompleted) _escena.complete();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

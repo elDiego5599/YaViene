@@ -102,7 +102,6 @@ void main() {
   testWidgets('el fondo es la malla del arranque', (tester) async {
     await abrir(tester);
     final malla = tester.widget<FondoMalla>(find.byType(FondoMalla));
-    expect(malla.suave, isFalse);
     expect(malla.subida, subidaMalla);
   });
 

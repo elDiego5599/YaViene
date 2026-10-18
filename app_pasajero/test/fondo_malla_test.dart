@@ -9,7 +9,7 @@ import 'package:ya_viene_pasajero/core/widgets/ink_hero.dart';
 
 import 'helpers/contraste.dart';
 
-/// El fondo del arranque y de la pestaña de Info (dueño, 2026-10-16): una
+/// El fondo de la bienvenida (dueño, 2026-10-16): una
 /// malla de color difuminada, como la de Lifesum, con los colores de la
 /// marca. Lo que va encima es blanco, así que se mide sobre los píxeles de
 /// verdad, no a ojo.
@@ -18,12 +18,11 @@ void main() {
 
   /// Pinta la malla y devuelve el color de cada punto pedido.
   Future<Color Function(double x, double y)> pintar(WidgetTester tester,
-      {double fase = 0, bool suave = false}) async {
+      {double fase = 0}) async {
     late ByteData datos;
     await tester.runAsync(() async {
       final grabadora = ui.PictureRecorder();
-      FondoMalla.pintor(fase: fase, suave: suave)
-          .paint(Canvas(grabadora), pantalla);
+      FondoMalla.pintor(fase: fase).paint(Canvas(grabadora), pantalla);
       final imagen = await grabadora
           .endRecording()
           .toImage(pantalla.width.toInt(), pantalla.height.toInt());
@@ -60,79 +59,32 @@ void main() {
   const fases = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
 
   testWidgets('la bajada del arranque se lee en blanco (AA)', (tester) async {
-   for (final fase in fases) {
-    final en = await pintar(tester, fase: fase);
-    // Bajo el logo de 84 (cae entre y=308 y y=391 de 844): el nombre y la
-    // bajada, entre 0,47 y 0,58 de alto, centrados.
-    // La bajada va en el blanco tenue de `InkHero`, no en blanco pleno.
-    expect(peorBlanco(en, 0.25, 0.75, 0.47, 0.58, alfa: InkHero.alfaBajada),
-        greaterThanOrEqualTo(4.5),
-        reason: 'fase $fase');
-   }
+    for (final fase in fases) {
+      final en = await pintar(tester, fase: fase);
+      // Bajo el logo de 84 (cae entre y=308 y y=391 de 844): el nombre y la
+      // bajada, entre 0,47 y 0,58 de alto, centrados.
+      // La bajada va en el blanco tenue de `InkHero`, no en blanco pleno.
+      expect(peorBlanco(en, 0.25, 0.75, 0.47, 0.58, alfa: InkHero.alfaBajada),
+          greaterThanOrEqualTo(4.5),
+          reason: 'fase $fase');
+    }
   });
 
   testWidgets('el disco verde del logo no se pierde en la malla',
       (tester) async {
-   for (final fase in fases) {
-    final en = await pintar(tester, fase: fase);
-    // Alrededor del disco, a un paso de su borde.
-    for (final (x, y) in const [
-      (0.5, 0.35),
-      (0.34, 0.415),
-      (0.66, 0.415),
-      (0.5, 0.48),
-    ]) {
-      expect(contraste(AppColors.primary, en(x, y)), greaterThanOrEqualTo(1.6),
-          reason: 'en ($x, $y), fase $fase, el fondo se parece al verde');
-    }
-   }
-  });
-
-  /// El peor contraste de una letra opaca en una franja.
-  double peorLetra(Color letra, Color Function(double, double) en, double x0,
-      double x1, double y0, double y1) {
-    var peor = double.infinity;
-    for (var y = y0; y <= y1; y += 0.01) {
-      for (var x = x0; x <= x1; x += 0.02) {
-        final c = contraste(letra, en(x, y));
-        if (c < peor) peor = c;
+    for (final fase in fases) {
+      final en = await pintar(tester, fase: fase);
+      // Alrededor del disco, a un paso de su borde.
+      for (final (x, y) in const [
+        (0.5, 0.35),
+        (0.34, 0.415),
+        (0.66, 0.415),
+        (0.5, 0.48),
+      ]) {
+        expect(
+            contraste(AppColors.primary, en(x, y)), greaterThanOrEqualTo(1.6),
+            reason: 'en ($x, $y), fase $fase, el fondo se parece al verde');
       }
-    }
-    return peor;
-  }
-
-  // Info «se ve muy fuerte, muy brillante» (dueño, 2026-10-16): lleva la
-  // misma malla bajo un velo blanco, y encima letra de tinta.
-  testWidgets('en Info, el nombre de arriba se lee en tinta (AA)',
-      (tester) async {
-    for (final fase in fases) {
-      final en = await pintar(tester, fase: fase, suave: true);
-      expect(peorLetra(AppColors.textPrimary, en, 0.05, 0.95, 0.06, 0.16),
-          greaterThanOrEqualTo(4.5),
-          reason: 'fase $fase');
-    }
-  });
-
-  testWidgets('en Info, los créditos chicos de abajo pasan AA',
-      (tester) async {
-    for (final fase in fases) {
-      final en = await pintar(tester, fase: fase, suave: true);
-      expect(peorLetra(AppColors.textSecondary, en, 0.1, 0.9, 0.80, 0.86),
-          greaterThanOrEqualTo(4.5),
-          reason: 'fase $fase');
-    }
-  });
-
-  testWidgets('en Info es suave: claro y poco saturado, pero con color',
-      (tester) async {
-    final fuerte = await pintar(tester);
-    final suave = await pintar(tester, suave: true);
-    for (final (x, y) in const [(0.1, 0.05), (0.5, 0.4), (0.9, 0.7)]) {
-      final c = HSLColor.fromColor(suave(x, y));
-      expect(c.lightness, greaterThan(0.85), reason: 'en ($x, $y)');
-      // No es blanco plano: la marca se sigue notando.
-      expect(suave(x, y), isNot(Colors.white));
-      expect(HSLColor.fromColor(fuerte(x, y)).lightness, lessThan(0.5));
     }
   });
 

@@ -107,16 +107,19 @@ Necesitan un teléfono, una cuenta o estar presente.
   números comentados, y la hoja del mapa que crece de ella (20 por lado,
   cantos de 32, apoyada sobre su hueco, la barra fundida en ella). Y lo
   del mismo día: fondos blancos con sombra suave en lo blanco de encima
-  (`AppShadows.soft`) y el fondo de malla de marca de la bienvenida y de
-  Info. Y lo último del día: la malla respira (fuerte en la bienvenida,
-  suave en Info con «Ya Viene» fijo arriba), la lupa de la
+  (`AppShadows.soft`) y el fondo de malla de marca de la bienvenida. Y lo
+  último del día: la malla respira, la lupa de la
   búsqueda en la punta derecha (el subtítulo se queda) y lo de Avisos, Buzón y Legal
   fundiéndose 16 px bajo su barra (`BordeDesvanecido`). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
-  arranque nuevo (2026-10-18): blanco, con la Ventana al Mundo, la cayena
-  y el bus de Sobusa (`escena_arranque.dart`); la maqueta del trío del
-  hero (`.tinta-hero` en `phone-simulator.css`) sigue con la marca de 84
-  sobre tinta. Ojo con el CSS al 98 %.
+  arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
+  pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
+  1,7 s con medio segundo de marca), sobre el fondo matizado azul y verde
+  con grano (`fondo_matizado.dart`); y en Info el mosaico de dibujos de
+  Barranquilla (`fondo_mosaico.dart`) con la letra en píldoras blancas. La
+  maqueta del trío del hero (`.tinta-hero` en `phone-simulator.css`) sigue
+  con la marca de 84 sobre tinta y la de Info con la malla. Ojo con el CSS
+  al 98 %.
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`
