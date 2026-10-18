@@ -13,6 +13,7 @@ import '../../../../core/services/bus_notification_service.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../notifications/presentation/providers/abrir_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
+import '../providers/guia_atras.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
@@ -353,16 +354,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.read(mapGuideProvider.notifier).complete(step);
   }
 
-  /// F14: retrocede un paso de la guía — antes solo se podía avanzar o
-  /// saltarla entera, sin forma de repasar la instrucción anterior.
-  void _goBackGuideStep(MapGuideStep step) {
-    final previousIndex = step.index - 1;
-    if (previousIndex < 0) return;
-    ref
-        .read(mapGuideProvider.notifier)
-        .moveTo(MapGuideStep.values[previousIndex]);
-  }
-
   void _chooseAnotherBus() async {
     ref.read(selectedBusesProvider.notifier).clear();
     await ref.read(mapGuideProvider.notifier).moveTo(MapGuideStep.buses);
@@ -552,9 +543,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     : () => alertBlockedCopy
                         ? _chooseAnotherBus()
                         : _completeInfoStep(visibleStep),
-                onBack: mapGuideStepIndex(guide, visibleStep) > 0
-                    ? () => _goBackGuideStep(visibleStep)
-                    : null,
+                onBack: pasoAnterior(guide, visibleStep,
+                            hayPunto: ref.watch(userLocationProvider
+                                .select((l) => l.hasPosition))) ==
+                        null
+                    ? null
+                    : () => volverEnGuia(ref.read, visibleStep),
                 onSkip: _skipGuide,
               ),
             ),

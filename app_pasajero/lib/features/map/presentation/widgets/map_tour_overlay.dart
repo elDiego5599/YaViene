@@ -347,7 +347,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     // Sombra del sistema + hairline, sin Material ni elevation.
     return Container(
       key: const ValueKey('guide_card'),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -465,7 +465,10 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               ),
             ),
           ],
-          const SizedBox(height: AppSpacing.sm),
+          // Sin respiro propio: los botones miden 48 para el dedo y traen
+          // 6 de aire por arriba y por abajo alrededor de la letra. Con el
+          // respiro de antes la tarjeta crecía 12 y en el paso de los buses
+          // pisaba el área iluminada.
           // F14: "Atrás" solo aparece si hay un paso previo al que volver.
           if (!widget.centered)
             Row(
@@ -482,7 +485,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.textBody,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      minimumSize: const Size(0, 36),
+                      minimumSize: const Size(0, 48),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       textStyle: AppTextStyles.etiqueta,
                     ),
@@ -498,7 +501,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 22),
-                    minimumSize: const Size(0, 36),
+                    minimumSize: const Size(0, 48),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(isLast ? 'Cerrar guía' : 'Saltar guía'),

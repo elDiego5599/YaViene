@@ -10,8 +10,10 @@ import '../../../../core/widgets/aviso_fallo.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
+import '../providers/guia_atras.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
+import '../providers/user_location_provider.dart';
 import 'map_tour_overlay.dart';
 
 /// Selector compacto de empresa y ruta, a pantalla completa.
@@ -359,6 +361,17 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
               onPrimary: copy.primaryLabel == null
                   ? null
                   : () => ref.read(mapGuideProvider.notifier).complete(step),
+              onBack: pasoAnterior(guide, step,
+                          hayPunto: ref.watch(userLocationProvider
+                              .select((l) => l.hasPosition))) ==
+                      null
+                  ? null
+                  : () {
+                      // La vista vuelve a la principal: en una lista, el
+                      // hueco del paso de antes caía sobre esa lista.
+                      _irA(_RouteView.main);
+                      volverEnGuia(ref.read, step);
+                    },
               onSkip: () => ref.read(mapGuideProvider.notifier).skip(),
             ),
           ),

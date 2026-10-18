@@ -173,6 +173,44 @@ void main() {
     expect(find.text('Elige tu ruta'), findsOneWidget);
   });
 
+  Future<void> asentar(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
+  // Los pasos del selector no tenían «Atrás»: el 3, el 4 y el 5 de la guía
+  // eran los únicos sin él.
+  testWidgets('Atrás en el selector vuelve a la vista y al paso de antes',
+      (tester) async {
+    await setup(tester);
+    await pumpSheet(tester);
+
+    await tester.tap(find.text('Empresa'));
+    await asentar(tester);
+    await tester.tap(find.text('Sobusa'));
+    await asentar(tester);
+    expect(guide.state.step, MapGuideStep.route);
+
+    // Desde la lista de rutas: vuelve a la empresa y a la vista principal,
+    // con el hueco sobre «Empresa» y no sobre la lista que ya no está.
+    await tester.tap(find.text('Ruta'));
+    await asentar(tester);
+    await tester.tap(find.byKey(const ValueKey('guide_back')));
+    await asentar(tester);
+    expect(guide.state.step, MapGuideStep.company);
+    expect(find.text('Elige una empresa'), findsOneWidget);
+    expect(find.text('Elige tu ruta'), findsOneWidget);
+
+    // Desde la empresa vuelve a la búsqueda, que vive en el mapa: el
+    // selector se cierra solo.
+    await tester.tap(find.byKey(const ValueKey('guide_back')));
+    await asentar(tester);
+    expect(guide.state.step, MapGuideStep.search);
+    expect(find.text('Elige tu ruta'), findsNothing);
+    expect(find.text('abrir'), findsOneWidget);
+  });
+
   testWidgets('al lanzar buses la guía cierra el selector de forma natural',
       (tester) async {
     await setup(tester);

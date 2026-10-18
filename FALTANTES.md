@@ -108,8 +108,6 @@ Necesitan un teléfono, una cuenta o estar presente.
      cercano y decir que se puede mover el mapa para buscar otro.
 
 - **Lo del 2026-10-18** (dueño, en el iPhone):
-  1. La guía tiene muchos errores, casi todos con el botón «Atrás»:
-     reproducirlos uno por uno, con su prueba roja, y arreglar la causa.
   2. Espejar en la web el logo en la punta izquierda de la píldora y lo
      de Avisos (sin la nota del iPhone, «Notificación
      enviada: 6 oct, 17:35») y quitar el «·» de lo que se lee en la web.
@@ -127,8 +125,6 @@ Necesitan un teléfono, una cuenta o estar presente.
      ninguna prueba (5→50 sobrevive).
   5. AUD16-05: con un GPS real (una posición cada 5–15 s) el bus se
      desliza 1 s fijo (`bus_motion.dart`), se congela y salta.
-  6. AUD16-06: «Atrás» y «Saltar guía» miden 36 de alto
-     (`map_tour_overlay.dart`); el mínimo es 48.
   7. C1: la privacidad de la web y la de la app ya no son espejo
      («Notificaciones» contra «Avisos», 14 contra 6 de octubre).
   8. AUD16-08: la etiqueta «Simulación» (D8) se perdió con el mapa vivo de

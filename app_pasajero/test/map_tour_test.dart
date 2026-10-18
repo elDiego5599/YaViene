@@ -563,6 +563,33 @@ void main() {
       expect(skipped, isTrue);
     });
 
+    // «Atrás» y «Saltar guía» medían 36 de alto: debajo de los 48 que
+    // piden Android y la propia app para todo lo que se toca (AUD16-06).
+    testWidgets('Atrás y Saltar guía se tocan con 48 de alto', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MapGuideOverlay(
+              target: const Rect.fromLTWH(160, 260, 100, 64),
+              title: 'Elige tu ruta',
+              message: 'Después selecciona la ruta.',
+              icon: Icons.alt_route_outlined,
+              stepIndex: 3,
+              stepCount: 9,
+              onBack: () {},
+              onSkip: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 450));
+      for (final clave in ['guide_back', 'guide_skip']) {
+        expect(tester.getSize(find.byKey(ValueKey(clave))).height,
+            greaterThanOrEqualTo(48),
+            reason: clave);
+      }
+    });
+
     testWidgets('el paso final queda centrado y solo permite finalizar',
         (tester) async {
       var outsideTap = false;
