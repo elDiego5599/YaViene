@@ -278,7 +278,7 @@ void main() {
     final hora = '${vence.hour.toString().padLeft(2, '0')}:'
         '${vence.minute.toString().padLeft(2, '0')}';
     expect(
-      find.text('Esperando señal del bus · el aviso sigue hasta las $hora'),
+      find.text('Esperando señal del bus, el aviso sigue hasta las $hora'),
       findsOneWidget,
     );
   });
@@ -293,7 +293,29 @@ void main() {
     await tester.pump();
 
     expectAviso('A-1');
-    expect(find.textContaining('Notificación enviada'), findsOneWidget);
+    // «Notificación enviada: 6 oct, 17:35» (dueño, 2026-10-18), sin «·».
+    final enviado = container.read(alertHistoryProvider).single.sentAt!;
+    const meses = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic'
+    ];
+    final hora = '${enviado.hour.toString().padLeft(2, '0')}:'
+        '${enviado.minute.toString().padLeft(2, '0')}';
+    expect(
+      find.text('Notificación enviada: ${enviado.day} '
+          '${meses[enviado.month - 1]}, $hora'),
+      findsOneWidget,
+    );
     expect(find.text('Desactivar'), findsNothing);
     // «Enviado» a la derecha repetía, en gris y más chico, lo que la línea
     // de debajo del nombre ya dice con fecha y hora. Lo enviado ya no tiene
@@ -345,29 +367,26 @@ void main() {
     expect(container.read(alertHistoryProvider), isEmpty);
   });
 
-  // D4-a: en iPhone el aviso solo suena con la app abierta (la app no
-  // declara `UIBackgroundModes` y no hay push). La pantalla de avisos lo
-  // dice, con avisos o sin ellos.
-  const soloConLaAppAbierta = 'En iPhone el aviso suena con la app abierta.';
-
-  testWidgets('en iPhone dice que el aviso suena con la app abierta',
+  // La nota «En iPhone el aviso suena con la app abierta.» se fue (dueño,
+  // 2026-10-18): la pestaña Avisos es la lista, sin advertencias encima.
+  testWidgets('en iPhone la pestaña no lleva la nota de la app abierta',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
       final container = await pumpScreen(tester, [bus('A-1')]);
-      expect(find.text(soloConLaAppAbierta), findsOneWidget);
+      expect(find.textContaining('app abierta'), findsNothing);
 
       arm(container, 'A-1');
       await tester.pump();
       expectAviso('A-1');
-      expect(find.text(soloConLaAppAbierta), findsOneWidget);
+      expect(find.textContaining('app abierta'), findsNothing);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
   });
 
   // Sobre blanco, una tarjeta blanca sin sombra es solo su filo: también
-  // lo que ya sonó y la nota del iPhone se despegan del fondo.
+  // lo que ya sonó se despega del fondo.
   testWidgets('las tarjetas de Avisos se despegan del blanco con sombra',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
@@ -387,26 +406,9 @@ void main() {
             as BoxDecoration;
         expect(caja.boxShadow, isNotEmpty, reason: 'la tarjeta de $id');
       }
-      final nota = tester
-          .widgetList<Container>(find.ancestor(
-              of: find.text(soloConLaAppAbierta),
-              matching: find.byType(Container)))
-          .map((c) => c.decoration)
-          .whereType<BoxDecoration>()
-          .firstWhere((d) => d.borderRadius != null);
-      expect(nota.boxShadow, isNotEmpty, reason: 'la nota del iPhone');
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
-  });
-
-  testWidgets('en Android no lo dice', (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1')]);
-    expect(find.text(soloConLaAppAbierta), findsNothing);
-
-    arm(container, 'A-1');
-    await tester.pump();
-    expect(find.text(soloConLaAppAbierta), findsNothing);
   });
 
   // Rediseño del centro de avisos (dueño, 2026-09-30: «la noto bastante

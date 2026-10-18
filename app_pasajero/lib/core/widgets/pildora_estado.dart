@@ -62,11 +62,10 @@ class PildoraDatos {
   /// La píldora entera, dicha en una frase.
   ///
   /// En pantalla son tres bloques —el rótulo, la pista en gris y el
-  /// botón— y sueltos se leerían como tres cosas sin relación, con el
-  /// punto medio del separador pronunciado en voz alta.
+  /// botón— y sueltos se leerían como tres cosas sin relación.
   String get dicha {
     final partes = <String>[
-      dicho ?? text.replaceAll(' · ', ', '),
+      dicho ?? text,
       if (sub != null) sub!,
       if (actionLabel != null && onAction != null) actionLabel!,
     ];

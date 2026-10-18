@@ -51,7 +51,7 @@ class BusPosition extends Equatable {
   /// - una fecha del futuro más allá de la holgura del reloj;
   /// - una posición en vivo más vieja de lo que el servidor da por viva. Las
   ///   de un bus sin señal no tienen tope: su fecha vieja es justo lo que se
-  ///   enseña («Sin señal · hace 2 h»).
+  ///   enseña («Sin señal desde hace 2 h»).
   static BusPosition? tryParse(Map<String, dynamic> json) {
     try {
       return _leer(json);

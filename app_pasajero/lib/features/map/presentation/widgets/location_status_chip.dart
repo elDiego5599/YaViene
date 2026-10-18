@@ -201,7 +201,7 @@ class LocationStatusChip extends ConsumerWidget {
       key: 'gps-near',
       icon: Icons.my_location_outlined,
       iconColor: AppColors.primaryAccessible,
-      text: 'Usando tu ubicación · $nearbyCount '
+      text: 'Usando tu ubicación, $nearbyCount '
           'bus${nearbyCount == 1 ? '' : 'es'} cerca',
       tint: AppColors.primaryTint,
     ));

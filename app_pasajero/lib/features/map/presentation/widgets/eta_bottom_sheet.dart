@@ -146,7 +146,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           setState(() => _eleccionVista = null);
         }
       });
-    // Refresca el texto "Sin señal · hace X min" de un bus fantasma: sin
+    // Refresca el texto "Sin señal desde hace X min" de un bus fantasma: sin
     // posiciones nuevas la UI no se reconstruye sola.
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
@@ -1073,7 +1073,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               style:
                   AppTextStyles.subtitulo.copyWith(color: AppColors.textBody)),
           const SizedBox(height: AppSpacing.xs),
-          Text("$busLabel · conserva su última posición",
+          Text("$busLabel: conserva su última posición",
               style: AppTextStyles.etiqueta
                   .copyWith(color: AppColors.textSecondary)),
           const SizedBox(height: AppSpacing.lg),
@@ -2044,10 +2044,10 @@ String? _staleLabel(BusPosition? bus) {
   if (bus == null || !bus.isGhostBus) return null;
   final minutes = DateTime.now().difference(bus.timestamp).inMinutes;
   if (minutes < 1) return 'Sin señal ahora mismo';
-  if (minutes == 1) return 'Sin señal · hace 1 min';
-  if (minutes < 60) return 'Sin señal · hace $minutes min';
+  if (minutes == 1) return 'Sin señal desde hace 1 min';
+  if (minutes < 60) return 'Sin señal desde hace $minutes min';
   final hours = minutes ~/ 60;
-  return 'Sin señal · hace $hours h';
+  return 'Sin señal desde hace $hours h';
 }
 
 /// Un estado vacío que además es un botón: se anuncia como uno (título y

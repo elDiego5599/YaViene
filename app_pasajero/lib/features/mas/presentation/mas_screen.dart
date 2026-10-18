@@ -310,8 +310,8 @@ class _Pie extends StatelessWidget {
       child: Text(
         // Sin «Mapa» delante: con él, «CARTO» se quedaba solo en una
         // segunda línea. Los espacios duros pegan cada © a su nombre, para
-        // que con el texto grande se corte por los puntos.
-        '©\u00A0MapLibre · ©\u00A0OpenStreetMap · ©\u00A0CARTO',
+        // que con el texto grande se corte por las comas.
+        '©\u00A0MapLibre, ©\u00A0OpenStreetMap, ©\u00A0CARTO',
         textAlign: TextAlign.center,
         style: AppTextStyles.pie.copyWith(
           color: AppColors.textSecondary,

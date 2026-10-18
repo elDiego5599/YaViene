@@ -99,11 +99,6 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // En iPhone el aviso solo suena con la app abierta: la app no
-          // declara `UIBackgroundModes` y no hay push. Va arriba y en los
-          // dos estados, no al fondo de una lista que puede no verse entera.
-          if (Theme.of(context).platform == TargetPlatform.iOS)
-            const _SoloConLaAppAbierta(),
           // Al borrar el último, la lista se apaga y el estado vacío
           // aparece en su lugar; antes era un corte seco.
           Expanded(
@@ -122,63 +117,6 @@ class NotificationsScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// La nota que en iPhone dice cuándo suena el aviso. La web dice la misma
-/// frase en el paso del aviso (`index.html`, paso 3).
-///
-/// Era una línea gris suelta bajo la barra, que se leía como un pie de
-/// página puesto arriba por error. Ahora es la misma nota que la hoja de
-/// distancia (`_NotaHoja` en `eta_bottom_sheet.dart`): tarjeta blanca con
-/// filo y baldosa de 30, para que una advertencia se vea igual en toda la
-/// app.
-class _SoloConLaAppAbierta extends StatelessWidget {
-  const _SoloConLaAppAbierta();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.sm),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.hairline),
-          boxShadow: AppShadows.soft,
-        ),
-        child: Row(
-          children: [
-            // El par tinte/tinta de los medallones, que ya pasa los 3:1. El
-            // glifo no se lee: la frase lo dice todo.
-            ExcludeSemantics(
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(
-                  Icons.phone_iphone_outlined,
-                  size: 18,
-                  color: AppColors.primaryAccessible,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'En iPhone el aviso suena con la app abierta.',
-                style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -731,24 +669,24 @@ class _AlertTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final sent = entry.sent;
     final subtitle = sent
-        ? 'Notificación enviada · ${_formatTime(entry.sentAt!)}'
+        ? 'Notificación enviada: ${_formatTime(entry.sentAt!)}'
         : distanceMeters != null
             ? 'Está a ${distanciaAviso(distanceMeters!)} $restoDistancia'
             // Sin posición del bus puede ser que se fue al patio, donde lo
             // ocultan y nadie sabe cuándo vuelve. El aviso no espera para
             // siempre (vence a las `vidaDeUnAviso` de armado): se dice hasta
             // cuándo, para que nadie cuente con él pasada esa hora.
-            : 'Esperando señal del bus · el aviso sigue hasta las '
+            : 'Esperando señal del bus, el aviso sigue hasta las '
                 '${_hora(entry.createdAt.add(vidaDeUnAviso))}';
 
-    // La fila entera, dicha de un tirón: el punto medio del separador se
-    // pronuncia, y el guion de la placa no dice qué es cada mitad.
+    // La fila entera, dicha de un tirón: el guion de la placa no dice qué
+    // es cada mitad.
     final dichoBus = routePlateSpoken(
       busId: entry.busId,
       routeName: routeName,
       routeId: entry.routeId,
     );
-    final dicha = '$dichoBus. ${subtitle.replaceAll(' · ', ', ')}';
+    final dicha = '$dichoBus. $subtitle';
 
     // Un aviso ya enviado no lleva acción: «Enviado» a la derecha repetía
     // lo que el subtítulo dice con fecha y hora, y una fila que solo
@@ -1102,7 +1040,7 @@ String _formatTime(DateTime d) {
     'nov',
     'dic',
   ];
-  return '${d.day} ${months[d.month - 1]} · ${_hora(d)}';
+  return '${d.day} ${months[d.month - 1]}, ${_hora(d)}';
 }
 
 String _hora(DateTime d) {
@@ -1112,9 +1050,9 @@ String _hora(DateTime d) {
 }
 
 /// Lo que sigue a la cifra en la franja de un aviso que espera.
-const restoDistancia = 'de tu ubicación · esperando aviso';
+const restoDistancia = 'de tu ubicación, esperando aviso';
 
-/// «Está a 14 km de tu ubicación · esperando aviso», siempre en una fila.
+/// «Está a 14 km de tu ubicación, esperando aviso», siempre en una fila.
 /// La cifra cambia con cada posición del bus: en un hueco de ancho fijo y
 /// con cifras tabulares, «9 m» y «14 km» miden lo mismo y el resto no se
 /// corre ni salta de fila. Si el teléfono es angosto, la fila entera se

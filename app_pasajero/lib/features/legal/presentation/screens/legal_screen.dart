@@ -119,7 +119,7 @@ class _Bloque extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.only(right: 10),
                   child: Text(
-                    '·',
+                    '•',
                     style: AppTextStyles.cuerpo.copyWith(
                       color: AppColors.primaryAccessible,
                     ),

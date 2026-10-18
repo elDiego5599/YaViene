@@ -107,6 +107,36 @@ Necesitan un teléfono, una cuenta o estar presente.
   3. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
      cercano y decir que se puede mover el mapa para buscar otro.
 
+- **Lo del 2026-10-18** (dueño, en el iPhone):
+  1. En la píldora de búsqueda de arriba, el logo de la app a la izquierda
+     (el mismo archivo, sin tocarlo) para que no quede ese hueco.
+  2. La guía tiene muchos errores, casi todos con el botón «Atrás»:
+     reproducirlos uno por uno, con su prueba roja, y arreglar la causa.
+  3. Espejar en la web lo de Avisos (sin la nota del iPhone, «Notificación
+     enviada: 6 oct, 17:35») y quitar el «·» de lo que se lee en la web.
+
+- **La auditoría AUD16** (2026-10-18, pegada por el dueño; cada punto se
+  verifica en el código antes de tocarlo):
+  1. AUD16-01: la privacidad (`legal_docs.dart` y `privacidad.html`) no
+     dice nada del buzón, que manda texto libre por correo al equipo.
+  2. AUD16-02: `tool/compilar-panel-web.sh:58` escribe `«$api»` sin llaves
+     y el bash 3.2 del Mac muere con `unbound variable`; deja rojas 6
+     pruebas del panel.
+  3. AUD16-03: la E2E del simulador (`e2e/ruta.e2e.ts:33-41`) espera las
+     entradas viejas de «Más»; la pestaña ahora es «Info».
+  4. AUD16-04: `MAX_ATTEMPTS=5` del outbox del backend no está fijado por
+     ninguna prueba (5→50 sobrevive).
+  5. AUD16-05: con un GPS real (una posición cada 5–15 s) el bus se
+     desliza 1 s fijo (`bus_motion.dart`), se congela y salta.
+  6. AUD16-06: «Atrás» y «Saltar guía» miden 36 de alto
+     (`map_tour_overlay.dart`); el mínimo es 48.
+  7. C1: la privacidad de la web y la de la app ya no son espejo
+     («Notificaciones» contra «Avisos», 14 contra 6 de octubre).
+  8. AUD16-08: la etiqueta «Simulación» (D8) se perdió con el mapa vivo de
+     la portada.
+  9. AUD16-10 y la cuenta de Playwright: el carrusel espera por tiempo y no
+     por estado; la cifra de pruebas cambió sin que nadie dijera por qué.
+
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,
   Avisos, Buzón, Info). Las maquetas del pasajero en `YaVieneWeb` (rama
