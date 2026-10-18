@@ -55,7 +55,7 @@ csp() {
   elif [[ "$api" =~ ^http://(localhost|127\.0\.0\.1)(:[0-9]+)?$ ]]; then
     ws="ws://${api#http://}"
   else
-    echo "«$api» no es un origen: https://host[:puerto], sin barra ni ruta" >&2
+    echo "«${api}» no es un origen: https://host[:puerto], sin barra ni ruta" >&2
     exit 2
   fi
   printf '%s' \

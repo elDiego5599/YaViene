@@ -142,6 +142,7 @@ class _ControlMapState extends ConsumerState<ControlMap>
         // Sin rumbo conocido, el bus avanza sin girar.
         toHeading: bus.heading ?? desde.$3,
         start: momento,
+        duration: BusMotion.tramoEntre(previo.capturedAt, bus.capturedAt),
       );
     }
     if (_tramos.isNotEmpty && !reloj.isActive) reloj.start();

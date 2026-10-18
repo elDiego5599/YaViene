@@ -32,11 +32,11 @@ test('con Sobusa C11 el mapa muestra la ruta y pide el punto', async ({ screen }
   await expect(screen.getByText(/^Toca el mapa para indicar dónde estás/)).toBeVisible();
 });
 
-test('la barra de abajo lleva a Más con sus cuatro entradas', async ({ screen }) => {
-  for (const pestana of ['Mapa', 'Avisos', 'Buzón', 'Más']) {
+test('la barra de abajo lleva a Info con sus cuatro entradas', async ({ screen }) => {
+  for (const pestana of ['Mapa', 'Avisos', 'Buzón', 'Info']) {
     await expect(screen.getByRole('button', new RegExp(`^${pestana}(, \\d+ activos?)?, pestaña`))).toBeVisible();
   }
-  await screen.getByRole('button', /^Más, pestaña/).tap();
+  await screen.getByRole('button', /^Info, pestaña/).tap();
   for (const nombre of ['Ver guía de uso', 'Privacidad', 'Términos', 'Acerca de']) {
     await expect(screen.getByRole('button', new RegExp(`^${nombre}$`))).toBeVisible();
   }

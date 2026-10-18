@@ -109,15 +109,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   verifica en el código antes de tocarlo):
   1. AUD16-01: la privacidad (`legal_docs.dart` y `privacidad.html`) no
      dice nada del buzón, que manda texto libre por correo al equipo.
-  2. AUD16-02: `tool/compilar-panel-web.sh:58` escribe `«$api»` sin llaves
-     y el bash 3.2 del Mac muere con `unbound variable`; deja rojas 6
-     pruebas del panel.
   3. AUD16-03: la E2E del simulador (`e2e/ruta.e2e.ts:33-41`) espera las
-     entradas viejas de «Más»; la pestaña ahora es «Info».
-  4. AUD16-04: `MAX_ATTEMPTS=5` del outbox del backend no está fijado por
-     ninguna prueba (5→50 sobrevive).
-  5. AUD16-05: con un GPS real (una posición cada 5–15 s) el bus se
-     desliza 1 s fijo (`bus_motion.dart`), se congela y salta.
+     entradas viejas de «Más»; la pestaña ahora es «Info». Ya dice
+     «Info»; falta correrla con la próxima build del simulador.
   7. C1: la privacidad de la web y la de la app ya no son espejo
      («Notificaciones» contra «Avisos», 14 contra 6 de octubre).
   8. AUD16-08: la etiqueta «Simulación» (D8) se perdió con el mapa vivo de

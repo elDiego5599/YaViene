@@ -917,6 +917,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // Sin rumbo conocido, el bus avanza sin girar.
         toHeading: pos.heading ?? from.$3,
         start: now,
+        duration: BusMotion.tramoDe(prev, pos),
       );
     }
 

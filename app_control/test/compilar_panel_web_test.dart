@@ -70,6 +70,20 @@ void main() {
         expect(r.stdout, isEmpty);
       });
     }
+
+    // El bash 3.2 de macOS, en un locale UTF-8, leía «$api» como una variable
+    // `api` seguida del primer byte de «»» y moría con «unbound variable»
+    // antes de decir qué estaba mal (AUD16-02).
+    test('el error dice qué origen sobra también en un locale UTF-8', () {
+      final r = Process.runSync(
+        '/bin/bash',
+        [_script, '--csp', 'http://api.ejemplo.co'],
+        environment: {'LC_ALL': 'en_US.UTF-8'},
+      );
+
+      expect(r.exitCode, 2, reason: '${r.stderr}');
+      expect(r.stderr, contains('«http://api.ejemplo.co» no es un origen'));
+    });
   });
 
   group('--revisar', () {

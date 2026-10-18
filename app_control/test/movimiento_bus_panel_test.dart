@@ -1,6 +1,6 @@
 // Los buses del panel se deslizan entre dos fijaciones GPS como en el
-// pasajero (`BusMotion`, 1 s por tramo). Antes saltaban de un punto al
-// siguiente en cada paquete (dueño, 2026-10-07).
+// pasajero (`BusMotion`, lo que tardó la fijación, de 1 a 15 s). Antes
+// saltaban de un punto al siguiente en cada paquete (dueño, 2026-10-07).
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -27,7 +27,7 @@ class _FakeFleetApi extends FleetApi {
   Future<List<FleetRoute>> fetchRoutes(String? token) async => const [];
 }
 
-FleetBus _bus(double lon, double heading) => FleetBus(
+FleetBus _bus(double lon, double heading, {int? capturedAt}) => FleetBus(
   busId: 'B-1',
   companyId: 'c-1',
   visible: true,
@@ -35,6 +35,7 @@ FleetBus _bus(double lon, double heading) => FleetBus(
   lat: 10.9639,
   lon: lon,
   heading: heading,
+  capturedAt: capturedAt,
 );
 
 /// Un bus en línea que avanza cuando la prueba lo pide.
@@ -46,6 +47,12 @@ class _FlotaMovil extends FleetNotifier {
   void avanzar() => state = FleetState(buses: {'B-1': _bus(-74.79, 100)});
 
   void seguir() => state = FleetState(buses: {'B-1': _bus(-74.78, 100)});
+
+  /// Dos fijaciones de un GPS real, capturadas con 8 s de diferencia.
+  void conGps() =>
+      state = FleetState(buses: {'B-1': _bus(-74.80, 80, capturedAt: 0)});
+  void ochoSegundosDespues() =>
+      state = FleetState(buses: {'B-1': _bus(-74.79, 80, capturedAt: 8000)});
 }
 
 void main() {
@@ -166,6 +173,30 @@ void main() {
     final container = await montar(tester, reducido: true);
     (container.read(fleetProvider.notifier) as _FlotaMovil).avanzar();
     await tester.pump();
+    expect(marcador(tester).point.longitude, closeTo(-74.79, 1e-9));
+    await desmontar(tester);
+  });
+
+  // Con un GPS real llega una posición cada 5–15 s: deslizarse 1 s y
+  // esperar quieto el resto hacía que el bus se congelara y saltara
+  // (AUD16-05). El tramo dura lo que tardó la fijación.
+  testWidgets('con fijaciones cada 8 s, el bus tarda 8 s en llegar', (
+    tester,
+  ) async {
+    final container = await montar(tester);
+    final flota = container.read(fleetProvider.notifier) as _FlotaMovil;
+    flota.conGps();
+    await tester.pump();
+    flota.ochoSegundosDespues();
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 4));
+    expect(
+      marcador(tester).point.longitude,
+      closeTo(-74.795, 2e-4),
+      reason: 'a los 4 s va por la mitad, no ya parado en la meta',
+    );
+    await tester.pump(const Duration(milliseconds: 4100));
     expect(marcador(tester).point.longitude, closeTo(-74.79, 1e-9));
     await desmontar(tester);
   });

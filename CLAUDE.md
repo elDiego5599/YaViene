@@ -254,8 +254,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   cabecera no gustó), filo entre buses centrado en la barra y sombras
   realzadas en tinta (`sombraCabecera` / `sombraTarjeta` /
   `sombraFlotante`; la maqueta web no las copia, por el presupuesto)
-  (dueño, 2026-10-07); los buses se deslizan 1 s entre fijaciones como
-  en el pasajero (`BusMotion` en el core, 2026-10-07) y la ruta elegida
+  (dueño, 2026-10-07); los buses se deslizan entre fijaciones lo que
+  tardó la fijación (1–15 s, AUD16-05) como en el pasajero (`BusMotion` en el core, 2026-10-07) y la ruta elegida
   lleva su recorrido como en el pasajero (`rutas.json` vive en el core,
   `kRutasAsset`); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
