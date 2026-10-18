@@ -15,7 +15,7 @@ import '../../map/presentation/providers/map_tour_provider.dart';
 import '../../map/presentation/providers/map_view_state.dart';
 import '../../map/presentation/providers/tracking_providers.dart';
 import '../../map/presentation/providers/user_location_provider.dart';
-import 'fondo_mosaico.dart';
+import 'fondo_ilustrado.dart';
 
 /// La pestaña «Info»: la ruta que se sigue, la guía de uso y lo que se
 /// consulta de vez en cuando (lo legal, la versión y los créditos del mapa).
@@ -24,7 +24,7 @@ import 'fondo_mosaico.dart';
 ///
 /// Sin la entrada escalonada del menú: cambiar de pestaña es instantáneo en
 /// iOS, y una página que se arma por partes cada vez que se vuelve a ella
-/// se lee como lenta. Fondo de mosaico de dibujos (dueño, 2026-10-18), con
+/// se lee como lenta. Fondo de ilustraciones (dueño, 2026-10-18), con
 /// tarjetas blancas que se despegan con su sombra (dueño, 2026-10-16).
 class MasScreen extends ConsumerWidget {
   const MasScreen({super.key});
@@ -35,12 +35,12 @@ class MasScreen extends ConsumerWidget {
   /// de un vistazo y respira a los lados.
   static const double anchoMaximo = 340;
 
-  /// La píldora blanca de la marca y de los créditos sobre el mosaico.
+  /// La píldora blanca de la marca y de los créditos sobre las ilustraciones.
   static const pildoraKey = ValueKey('mas-pildora');
 
   /// El aire a cada lado de la columna, más que el de las demás pestañas:
-  /// sobre el mosaico, los dibujos que se ve a los lados es el que hace que las
-  /// tarjetas floten.
+  /// sobre las ilustraciones, el fondo que se ve a los lados es el que hace
+  /// que las tarjetas floten.
   static const double margen = 32;
 
   /// Un solo bloque para las acciones, con filos finos entre filas.
@@ -142,14 +142,14 @@ class MasScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // El mosaico es claro: la hora y la batería en oscuro.
+    // El fondo es claro: la hora y la batería en oscuro.
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Material(
         type: MaterialType.transparency,
-        // El mosaico pinta TODA la pantalla, también bajo la barra de
+        // El fondo pinta TODA la pantalla, también bajo la barra de
         // estado y la píldora: la SafeArea queda solo para el contenido.
-        child: FondoMosaico(
+        child: FondoIlustrado(
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(margen, 26, margen, 20),
@@ -291,8 +291,8 @@ class _Marca extends StatelessWidget {
   }
 }
 
-/// Lo que se lee suelto sobre el mosaico va en una píldora blanca y opaca,
-/// con la sombra de las tarjetas: los dibujos no se meten detrás de la
+/// Lo que se lee suelto sobre las ilustraciones va en una píldora blanca y
+/// opaca, con la sombra de las tarjetas: los dibujos no se meten detrás de la
 /// letra.
 class _Pildora extends StatelessWidget {
   const _Pildora({required this.padding, required this.child});
@@ -314,7 +314,7 @@ class _Pildora extends StatelessWidget {
   }
 }
 
-/// La superficie de las tarjetas de Info: blanca y opaca sobre el mosaico, con
+/// La superficie de las tarjetas de Info: blanca y opaca sobre el fondo, con
 /// la sombra flotante para que se despegue (dueño, 2026-10-16: «lo que ya es
 /// blanco, ponerle sombras para diferenciar»).
 final _tarjeta = BoxDecoration(

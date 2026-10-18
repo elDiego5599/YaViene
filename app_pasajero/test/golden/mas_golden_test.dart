@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 import 'golden_harness.dart';
@@ -14,9 +15,9 @@ import 'golden_harness.dart';
 ///
 /// Sustituye al menú lateral (dueño, 2026-10-16): página entera en vez de
 /// cajón, sin la X ni las filas de Avisos y Buzón, que ahora son pestañas.
-/// El mosaico de dibujos de fondo (dueño, 2026-10-18) y las tarjetas
-/// blancas con sombra en una columna angosta (dueño, 2026-10-16). Sin cuenta (D3), la ruta activa es
-/// lo primero.
+/// Las ilustraciones de fondo (dueño, 2026-10-18) y las tarjetas blancas
+/// con sombra en una columna angosta (dueño, 2026-10-16). Sin cuenta (D3),
+/// la ruta activa es lo primero.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -44,6 +45,15 @@ void main() {
         ),
       ),
     );
+    // Las ilustraciones del fondo se decodifican fuera del reloj falso;
+    // sin esto la foto saldría sin ellas.
+    await tester.runAsync(() async {
+      for (final p in FondoIlustrado.piezas) {
+        if (p.asset == null) continue;
+        await precacheImage(
+            AssetImage(p.asset!), tester.element(find.byType(MasScreen)));
+      }
+    });
     await tester.pump();
   }
 

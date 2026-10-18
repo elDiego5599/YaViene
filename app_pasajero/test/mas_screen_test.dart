@@ -7,7 +7,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/widgets/borde_desvanecido.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
-import 'package:ya_viene_pasajero/features/mas/presentation/fondo_mosaico.dart';
+import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 
 void main() {
@@ -202,14 +202,14 @@ void main() {
     expect(pie.top, greaterThan(grupo.bottom));
   });
 
-  // «En la página de info me gustaría que el fondo fuera como un mosaico»
-  // (dueño, 2026-10-18): el mosaico de dibujos, con la marca y los créditos
-  // en su píldora blanca para que se lean encima.
-  testWidgets('Info lleva el mosaico, con la letra sobre blanco',
+  // «Mejor con las fotos animadas» (dueño, 2026-10-18): las ilustraciones
+  // en vez del mosaico, con la marca y los créditos en su píldora blanca
+  // para que se lean encima.
+  testWidgets('Info lleva las ilustraciones, con la letra sobre blanco',
       (tester) async {
     await abrirMas(tester);
 
-    expect(find.byType(FondoMosaico), findsOneWidget);
+    expect(find.byType(FondoIlustrado), findsOneWidget);
     expect(find.byType(FondoMalla), findsNothing);
     for (final (texto, color) in [
       ('Ya Viene', AppColors.textPrimary),

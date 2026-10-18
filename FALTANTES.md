@@ -115,8 +115,10 @@ Necesitan un teléfono, una cuenta o estar presente.
   arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
   pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
   1,7 s con medio segundo de marca), sobre el fondo matizado azul y verde
-  con grano (`fondo_matizado.dart`); y en Info el mosaico de dibujos de
-  Barranquilla (`fondo_mosaico.dart`) con la letra en píldoras blancas. La
+  con grano (`fondo_matizado.dart`); y en Info las ilustraciones de
+  Barranquilla (cayena, sol, la torre del arranque, palmera, marimonda y
+  dos buses, `fondo_ilustrado.dart`) sobre el matizado, con la letra en
+  píldoras blancas. La
   maqueta del trío del hero (`.tinta-hero` en `phone-simulator.css`) sigue
   con la marca de 84 sobre tinta y la de Info con la malla. Ojo con el CSS
   al 98 %.

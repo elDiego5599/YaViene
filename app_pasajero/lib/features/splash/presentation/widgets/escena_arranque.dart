@@ -297,7 +297,7 @@ class PintorVentana extends CustomPainter {
       final altura = f / (_filas - 1);
       for (var c = 0; c < columnas; c++) {
         // El color sigue la altura, con un vecino al azar para que se vea
-        // a mano, como el mosaico.
+        // a mano, como el de la torre de verdad.
         final i =
             ((altura + (azar.nextDouble() - 0.5) * 0.16) * (colores.length - 1))
                 .round()
@@ -407,8 +407,8 @@ class PintorCayena extends CustomPainter {
   /// Un pétalo hacia arriba, con la base en el centro: angosto abajo y
   /// ancho arriba (media anchura 0,42 del radio, no 0,72 como el redondo de
   /// antes), para que entre pétalo y pétalo quede la muesca; el borde de
-  /// afuera en tres ondas. El mosaico de Info dibuja la suya con este mismo.
-  static Path petalo(double r) => Path()
+  /// afuera en tres ondas.
+  static Path _petalo(double r) => Path()
     ..moveTo(0, 0)
     ..cubicTo(-0.14 * r, -0.08 * r, -0.44 * r, -0.34 * r, -0.42 * r, -0.62 * r)
     ..quadraticBezierTo(-0.42 * r, -0.86 * r, -0.24 * r, -0.94 * r)
@@ -575,7 +575,7 @@ class PintorCayena extends CustomPainter {
     canvas.translate(centro.dx, centro.dy);
     // La flor entera gira un poco al abrir.
     canvas.rotate(-0.35 * (1 - avance.clamp(0.0, 1.0)));
-    final forma = petalo(r);
+    final forma = _petalo(r);
     final relleno = Paint()
       ..shader = const RadialGradient(
         colors: [_hondo, _rojo, _rojo, _orla],
