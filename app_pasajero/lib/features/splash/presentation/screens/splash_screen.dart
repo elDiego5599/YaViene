@@ -2,16 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/providers/app_state.dart';
-import '../../../../core/widgets/entrance.dart';
-import '../../../../core/widgets/fondo_malla.dart';
-import '../../../../core/widgets/ink_hero.dart';
 import '../../../onboarding/onboarding_flow.dart';
+import '../widgets/escena_arranque.dart';
 
-/// Pantalla de arranque: deja el estado de la sesión anterior limpio, muestra
-/// la marca un momento y sigue a la bienvenida (primera vez) o al mapa. No
-/// hay cuenta que esperar: el pasajero entra sin iniciar sesión.
+/// Pantalla de arranque: deja el estado de la sesión anterior limpio, pinta
+/// la escena de Barranquilla con la marca ([EscenaArranque]) y sigue a la
+/// bienvenida (primera vez) o al mapa. No hay cuenta que esperar: el
+/// pasajero entra sin iniciar sesión.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -31,54 +29,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
   }
 
+  /// Se completa cuando la escena quedó armada.
+  final _escena = Completer<void>();
+
   Future<void> _start() async {
     // Arranque limpio pero NO destructivo: se quita estado efímero en memoria
     // (selecciones, avisos, sockets) y se conserva el pin manual guardado,
     // que es lo único que sobrevive al reabrir la app (la ruta se vuelve a
     // elegir cada vez). El pin solo se borra cuando el usuario lo quita.
-    await resetTransientState(ref);
-    // Tiempo mínimo de marca para que se vea el logo con calma.
-    await Future<void>.delayed(const Duration(milliseconds: 900));
+    // Se sigue cuando están las dos cosas: el estado limpio y la escena
+    // entera (dueño, 2026-10-18: breve, pero que se vea completa).
+    await Future.wait([resetTransientState(ref), _escena.future]);
     if (!mounted) return;
     await goToHome(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Blanco, como las pantallas de arranque nativas, así el relevo no salta.
     return Scaffold(
-      backgroundColor: AppColors.ink,
-      // La malla de la marca, quieta (dueño, 2026-10-16); la misma imagen
-      // que pintan las pantallas de arranque nativas, así el relevo no salta.
-      body: FondoMalla(
-        child: Center(
-          // La marca no aparece de golpe: sube un poco y se funde, y el
-          // indicador de carga entra después, cuando ya se leyó el nombre.
-          // El splash dura 900 ms como mínimo, así que la entrada termina
-          // con margen antes de que se cambie de pantalla.
-          child: ScreenEntrance(
-            // El logo NO entra: ya está en pantalla. La pantalla de arranque
-            // nativa lo dibuja en este mismo sitio y a este mismo tamaño
-            // (`LaunchScreen.storyboard`, 84 pt a -72,5 del centro), así que
-            // fundirlo desde cero convertiría el relevo en un parpadeo. Lo
-            // que entra es lo que la pantalla nativa no puede dibujar.
-            builder: (context, entra) => InkHero(
-              logoSize: 84,
-              spacingAfterLogo: 20,
-              entradaEscalonada: entra,
-              trailing: entra(
-                const IndicadorCarga(
-                  size: 26,
-                  color: Color.fromRGBO(255, 255, 255, 0.75),
-                  // Es la única pieza de esta pantalla que dice que algo
-                  // está pasando. Sin rótulo, el arranque es la marca y
-                  // un silencio.
-                  semanticsLabel: 'Abriendo Ya Viene',
-                ),
-                start: 0.55,
-                begin: Offset.zero,
-              ),
-            ),
-          ),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: EscenaArranque(
+          alTerminar: () {
+            if (!_escena.isCompleted) _escena.complete();
+          },
         ),
       ),
     );

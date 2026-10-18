@@ -1,58 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'entrance.dart';
 import 'fondo_malla.dart';
 
-/// F12: logo + halo + wordmark + tagline, compartido por splash y
-/// onboarding. Antes cada pantalla repetía el mismo bloque con constantes
-/// ligeramente distintas (tamaños de fuente, espaciados) sin ningún motivo
-/// para divergir entre sí.
+/// F12: logo + halo + wordmark + tagline de la bienvenida. El logo vuela
+/// hasta aquí desde el arranque (`EscenaArranque`), con la misma etiqueta.
 class InkHero extends StatelessWidget {
-  const InkHero({
-    super.key,
-    this.logoSize = 88,
-    this.spacingAfterLogo = 18,
-    this.trailing,
-    this.heroTag = marcaHeroTag,
-    this.entradaEscalonada,
-  });
+  const InkHero({super.key});
 
-  /// Etiqueta del `Hero` del logo. Compartida por splash y bienvenida, que
-  /// es lo que hace que el logo vuele de una a otra en vez de saltar.
+  /// Etiqueta del `Hero` del logo. Compartida por el arranque y la
+  /// bienvenida, que es lo que hace que el logo vuele de uno a otra en vez
+  /// de saltar.
   static const String marcaHeroTag = 'ya-viene-marca';
 
   /// Lo que se apaga la bajada frente al nombre: el de la letra chica sobre
-  /// la malla del arranque, donde tiene que pasar AA.
+  /// la malla de la bienvenida, donde tiene que pasar AA.
   static const double alfaBajada = FondoMalla.alfaLetraChica;
 
-  /// El dibujo sí se mide por pantalla, y no es capricho: en el arranque
-  /// tiene que medir exactamente lo que mide en la pantalla nativa que
-  /// releva (84, en el storyboard y en `launch_background.xml`). El nombre
-  /// y la tagline no, porque la pantalla nativa no escribe nada: esos van
-  /// en su rol y miden lo mismo en todas.
-  final double logoSize;
-  final double spacingAfterLogo;
-
-  /// Contenido extra debajo de la tagline (p. ej. el spinner del splash).
-  final Widget? trailing;
-
-  /// En `null` el logo no vuela. Dos `Hero` con la misma etiqueta dentro de
-  /// una misma pantalla revientan en tiempo de ejecución, así que quien
-  /// necesite un segundo `InkHero` a la vez lo apaga aquí.
-  final String? heroTag;
-
-  /// Anima las piezas por separado y **deja el logo quieto**.
-  ///
-  /// Es para el splash, que es la pantalla que releva a la de arranque
-  /// nativa. Esa ya dibuja el logo, en el mismo sitio y del mismo tamaño;
-  /// si Flutter lo volviera a fundir desde cero, el relevo se vería como un
-  /// parpadeo. Así el logo no se mueve y lo que entra es lo que la pantalla
-  /// nativa no puede dibujar: el nombre, la tagline y el indicador.
-  ///
-  /// Quien no lo pase (la bienvenida) sigue envolviendo el bloque entero
-  /// por fuera, como antes.
-  final Entrada? entradaEscalonada;
+  static const double _lado = 88;
 
   /// Solo vuela el logo, no el bloque entero: el texto tendría que volver a
   /// componerse en cada cuadro del vuelo para caber en un ancho que cambia,
@@ -77,21 +42,12 @@ class InkHero extends StatelessWidget {
       child: ExcludeSemantics(
         child: SvgPicture.asset(
           'assets/icon/ya_viene_logo.svg',
-          width: logoSize,
-          height: logoSize,
+          width: _lado,
+          height: _lado,
         ),
       ),
     );
-    final tag = heroTag;
-    if (tag == null) return marca;
-    return Hero(tag: tag, child: marca);
-  }
-
-  /// Aplica la entrada si la hay; si no, devuelve la pieza tal cual.
-  Widget _quiza(Widget pieza, double start) {
-    final entrada = entradaEscalonada;
-    if (entrada == null) return pieza;
-    return entrada(pieza, start: start, begin: const Offset(0, 0.06));
+    return Hero(tag: marcaHeroTag, child: marca);
   }
 
   @override
@@ -100,28 +56,18 @@ class InkHero extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _logo(),
-        SizedBox(height: spacingAfterLogo),
-        _quiza(
-          Text(
-            'Ya Viene',
-            style: AppTextStyles.marca.copyWith(color: Colors.white),
-          ),
-          0.10,
+        const SizedBox(height: 18),
+        Text(
+          'Ya Viene',
+          style: AppTextStyles.marca.copyWith(color: Colors.white),
         ),
         const SizedBox(height: AppSpacing.xs),
-        _quiza(
-          Text(
-            'Tu ciudad en tiempo real.',
-            style: AppTextStyles.cuerpoFuerte.copyWith(
-              color: Colors.white.withValues(alpha: alfaBajada),
-            ),
+        Text(
+          'Tu ciudad en tiempo real.',
+          style: AppTextStyles.cuerpoFuerte.copyWith(
+            color: Colors.white.withValues(alpha: alfaBajada),
           ),
-          0.22,
         ),
-        if (trailing != null) ...[
-          const SizedBox(height: AppSpacing.xl),
-          trailing!,
-        ],
       ],
     );
   }

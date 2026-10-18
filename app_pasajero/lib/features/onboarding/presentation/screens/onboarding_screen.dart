@@ -20,7 +20,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 /// Cuánto sube la malla en la bienvenida: lo que deja la bajada de la marca
-/// sobre el tono donde se lee en el arranque (`FondoMalla.subida`).
+/// sobre el tono donde se lee (`FondoMalla.subida`).
 const double subidaMalla = 0.24;
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
@@ -65,8 +65,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.ink,
-      // La misma malla que respira en el arranque (dueño, 2026-10-16): la
-      // bienvenida lo releva, y un fondo distinto se leía como otra app.
+      // La malla de la marca, que respira (dueño, 2026-10-16).
       body: FondoMalla(
         subida: subidaMalla,
         child: SafeArea(

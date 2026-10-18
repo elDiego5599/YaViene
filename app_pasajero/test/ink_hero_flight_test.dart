@@ -14,7 +14,7 @@ GoRouter _router() => GoRouter(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const InkHero(logoSize: 84),
+                  const InkHero(),
                   TextButton(
                     onPressed: () => context.replace('/b'),
                     child: const Text('ir'),
@@ -56,12 +56,5 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(logoEnSuSitio, findsOneWidget);
-  });
-
-  testWidgets('con la etiqueta en null el logo no vuela', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: InkHero(heroTag: null)),
-    ));
-    expect(find.byType(Hero), findsNothing);
   });
 }

@@ -3,22 +3,5 @@
      genérico en todos los dispositivos, porque minSdk es 24. Si tocas uno,
      toca el otro. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- La malla del splash de Flutter, estirada (`fondo_malla.dart`; la
-         prueba `fondo_malla_nativo_test.dart` la mantiene igual). -->
     <item android:drawable="@color/splash_background" />
-    <item>
-        <bitmap android:src="@drawable/fondo_malla" android:gravity="fill" />
-    </item>
-<!-- 84dp y no 128: es el tamaño exacto al que el splash de Flutter dibuja
-     el logo (`InkHero(logoSize: 84)`). Y `bottom=145dp` lo sube 72,5dp sobre
-     el centro —la mitad del hueco— porque en el splash el logo encabeza una
-     columna centrada con el nombre, la tagline y el indicador debajo. Con el
-     tamaño y el sitio de antes, el relevo entre la pantalla nativa y la de
-     Flutter se veía como un salto del logo. -->
-    <item
-        android:gravity="center"
-        android:width="84dp"
-        android:height="84dp"
-        android:bottom="145dp"
-        android:drawable="@drawable/ic_splash_logo" />
 </layer-list>

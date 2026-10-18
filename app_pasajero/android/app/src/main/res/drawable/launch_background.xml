@@ -1,28 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Pantalla de arranque en Android 24–30 (en 31+ manda values-v31/styles.xml).
-  Antes era un color plano: la app abría en un rectángulo azul vacío y de
-  golpe aparecía el splash de Flutter con el logo. Ahora arranca ya con el
-  logo en el mismo sitio y sobre el mismo fondo, así que el relevo entre la
-  pantalla nativa y la de Flutter no se ve.
+  Blanca y vacía (dueño, 2026-10-18): el arranque de Flutter
+  (`escena_arranque.dart`) empieza en blanco y arma la escena desde cero, así
+  que el relevo no se ve. `test/arranque_nativo_test.dart` lo vigila.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- La malla del splash de Flutter, estirada (`fondo_malla.dart`; la
-         prueba `fondo_malla_nativo_test.dart` la mantiene igual). -->
     <item android:drawable="@color/splash_background" />
-    <item>
-        <bitmap android:src="@drawable/fondo_malla" android:gravity="fill" />
-    </item>
-<!-- 84dp y no 128: es el tamaño exacto al que el splash de Flutter dibuja
-     el logo (`InkHero(logoSize: 84)`). Y `bottom=145dp` lo sube 72,5dp sobre
-     el centro —la mitad del hueco— porque en el splash el logo encabeza una
-     columna centrada con el nombre, la tagline y el indicador debajo. Con el
-     tamaño y el sitio de antes, el relevo entre la pantalla nativa y la de
-     Flutter se veía como un salto del logo. -->
-    <item
-        android:gravity="center"
-        android:width="84dp"
-        android:height="84dp"
-        android:bottom="145dp"
-        android:drawable="@drawable/ic_splash_logo" />
 </layer-list>

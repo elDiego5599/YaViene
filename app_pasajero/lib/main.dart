@@ -12,8 +12,6 @@ import 'config.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_transitions.dart';
 import 'core/services/bus_notification_service.dart';
-import 'core/widgets/fondo_malla.dart';
-import 'core/widgets/ink_hero.dart';
 import 'features/notifications/data/avisos_push.dart';
 import 'features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
@@ -84,13 +82,9 @@ BackendUrl _backendUrl(String elegida) => BackendUrl(
 
 /// Primer cuadro de la app mientras se resuelve el backend.
 ///
-/// Es una copia de la pantalla de arranque nativa, no una pantalla nueva: la
-/// misma malla de color y el logo de 84 en el mismo sitio, así que el relevo
-/// nativa → Flutter no se nota. Para que el logo caiga justo donde después lo
-/// deja el splash se usa el mismo `InkHero` con las mismas medidas; el nombre
-/// y la tagline van montados pero invisibles (ocupan su hueco y no se leen),
-/// porque el splash los hace entrar y, si ya estuvieran a la vista, se
-/// apagarían un instante en el relevo.
+/// Es una copia de la pantalla de arranque nativa, no una pantalla nueva: el
+/// mismo blanco vacío (dueño, 2026-10-18), donde después empieza la escena
+/// del arranque, así que los relevos nativa → esta → splash no se notan.
 class _ArranqueTemprano extends StatefulWidget {
   const _ArranqueTemprano();
 
@@ -123,43 +117,21 @@ class _ArranqueTempranoState extends State<_ArranqueTemprano> {
     super.dispose();
   }
 
-  /// Monta la pieza con su tamaño pero sin mostrarla. Con opacidad 0,
-  /// `Opacity` la saca también del árbol de accesibilidad.
-  static Widget _invisible(
-    Widget child, {
-    double start = 0,
-    Offset begin = Offset.zero,
-  }) =>
-      Opacity(opacity: 0, child: child);
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: Scaffold(
-        backgroundColor: AppColors.ink,
-        body: FondoMalla(
-          child: Center(
-            child: InkHero(
-              // Las mismas medidas que SplashScreen y que la pantalla nativa.
-              logoSize: 84,
-              spacingAfterLogo: 20,
-              // Sin vuelo: esta app se desmonta entera cuando llega la de
-              // verdad, no hay pantalla a la que volar.
-              heroTag: null,
-              entradaEscalonada: _invisible,
-              trailing: AnimatedOpacity(
-                opacity: _lento ? 1 : 0,
-                duration: AppMotion.normal,
-                // El mismo tamaño que el indicador del splash: con otro, la
-                // columna mediría distinto y el logo quedaría corrido.
-                child: const IndicadorCarga(
-                  size: 26,
-                  color: Color.fromRGBO(255, 255, 255, 0.75),
-                  semanticsLabel: 'Conectando con Ya Viene',
-                ),
-              ),
+        backgroundColor: Colors.white,
+        body: Center(
+          child: AnimatedOpacity(
+            opacity: _lento ? 1 : 0,
+            duration: AppMotion.normal,
+            child: const IndicadorCarga(
+              size: 26,
+              color: AppColors.ink,
+              semanticsLabel: 'Conectando con Ya Viene',
             ),
           ),
         ),

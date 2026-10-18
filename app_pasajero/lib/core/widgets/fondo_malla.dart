@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-/// El fondo del arranque, de la bienvenida y de la pestaña de Info (dueño,
+/// El fondo de la bienvenida y de la pestaña de Info (dueño,
 /// 2026-10-16): una malla de color difuminada con los colores de la marca,
 /// del verde arriba al azul y la tinta abajo, en vez de la tinta plana con
 /// su red de rutas.
@@ -11,9 +11,9 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 /// Respira (dueño, 2026-10-16: «que no fuera un fondo estático, que parezca
 /// moverse y respirar»): cada mancha da una vuelta chica alrededor de su
 /// sitio y crece y mengua un poco, en un ciclo de [vuelta]. Lento a
-/// propósito —lejos del ciclo de cinco segundos que marea— y empieza en la
-/// misma foto que la pantalla de arranque nativa, para que el relevo no
-/// salte. Con «Reducir movimiento» se queda quieta en esa foto. Cada color
+/// propósito —lejos del ciclo de cinco segundos que marea— y empieza
+/// siempre en la misma foto. Con «Reducir movimiento» se queda quieta en
+/// esa foto. Cada color
 /// está medido en todo el ciclo (`test/fondo_malla_test.dart`).
 class FondoMalla extends StatefulWidget {
   const FondoMalla({
@@ -26,7 +26,7 @@ class FondoMalla extends StatefulWidget {
   final Widget child;
 
   /// Cuánto sube la malla, en fracción del alto. La bienvenida pone la
-  /// marca más arriba que el arranque, porque abajo va su hoja: subiendo la
+  /// marca más arriba del centro, porque abajo va su hoja: subiendo la
   /// malla con ella, la bajada cae en el mismo tono hondo donde se lee y no
   /// en el verde vivo de arriba (`test/onboarding_hoja_test.dart`). Lo que
   /// queda abajo sin malla sigue en la tinta del final.
@@ -36,7 +36,7 @@ class FondoMalla extends StatefulWidget {
   /// fuerte, muy brillante» (dueño, 2026-10-16). Lleva letra de tinta.
   final bool suave;
 
-  /// El blanco de la letra chica sobre la malla: la bajada del arranque.
+  /// El blanco de la letra chica sobre la malla: la bajada de la marca.
   /// Al 75 % la bajada medía 4,02:1 en su franja; al 90 % pasa AA
   /// (`test/fondo_malla_test.dart`).
   static const double alfaLetraChica = 0.9;
@@ -66,7 +66,7 @@ class _FondoMallaState extends State<FondoMalla>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // La preferencia puede cambiar con la app abierta: se para donde va (un
-    // salto a la foto de arranque sería justo el movimiento que se pidió
+    // salto a la foto inicial sería justo el movimiento que se pidió
     // quitar) y vuelve a andar si se apaga.
     if (AppMotion.reducido(context)) {
       _ciclo?.stop();
@@ -169,7 +169,7 @@ class PintorMalla extends CustomPainter {
     for (final (i, (color, centro, radio)) in _manchas.indexed) {
       // Una vuelta chica alrededor del sitio, unas a un lado y otras al
       // otro, cada una desde su punto del círculo. Restar el arranque deja
-      // la fase 0 donde siempre estuvo: la imagen nativa. Vueltas enteras,
+      // la fase 0 donde siempre estuvo: la foto quieta. Vueltas enteras,
       // para que el final del ciclo empalme con el principio.
       final sentido = i.isEven ? 1 : -1;
       final desde = i * 0.7;
@@ -201,7 +201,5 @@ class PintorMalla extends CustomPainter {
 
   @override
   bool shouldRepaint(PintorMalla antes) =>
-      antes._ciclo != _ciclo ||
-      antes.suave != suave ||
-      antes.subida != subida;
+      antes._ciclo != _ciclo || antes.suave != suave || antes.subida != subida;
 }

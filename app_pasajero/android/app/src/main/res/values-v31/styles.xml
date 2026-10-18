@@ -8,15 +8,14 @@
       tamaño— sobre el disco verde de marca, que es lo mismo que se ve luego en
       el splash de Flutter.
 
-      `windowBackground` es la malla del splash de Flutter para que, cuando
-      el sistema retira su pantalla, lo que queda detrás mientras Flutter
-      dibuja la primera trama sea esa malla y no un blanco. El fondo del
-      sistema solo admite un color: el del centro de la malla.
+      `windowBackground` es el mismo blanco: cuando el sistema retira su
+      pantalla, lo que queda detrás mientras Flutter dibuja la primera trama
+      es el blanco donde empieza la escena del arranque (dueño, 2026-10-18).
     -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
-        <item name="android:windowBackground">@drawable/fondo_malla_ventana</item>
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 </resources>

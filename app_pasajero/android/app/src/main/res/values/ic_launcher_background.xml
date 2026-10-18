@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#00A859</color>
-    <!-- El centro de la malla del arranque (`fondo_malla.dart`). -->
-    <color name="splash_background">#0A6E66</color>
+    <!-- El blanco donde empieza la escena del arranque (`escena_arranque.dart`). -->
+    <color name="splash_background">#FFFFFF</color>
 </resources>
