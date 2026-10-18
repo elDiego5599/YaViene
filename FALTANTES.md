@@ -108,11 +108,10 @@ Necesitan un teléfono, una cuenta o estar presente.
      cercano y decir que se puede mover el mapa para buscar otro.
 
 - **Lo del 2026-10-18** (dueño, en el iPhone):
-  1. En la píldora de búsqueda de arriba, el logo de la app a la izquierda
-     (el mismo archivo, sin tocarlo) para que no quede ese hueco.
-  2. La guía tiene muchos errores, casi todos con el botón «Atrás»:
+  1. La guía tiene muchos errores, casi todos con el botón «Atrás»:
      reproducirlos uno por uno, con su prueba roja, y arreglar la causa.
-  3. Espejar en la web lo de Avisos (sin la nota del iPhone, «Notificación
+  2. Espejar en la web el logo en la punta izquierda de la píldora y lo
+     de Avisos (sin la nota del iPhone, «Notificación
      enviada: 6 oct, 17:35») y quitar el «·» de lo que se lee en la web.
 
 - **La auditoría AUD16** (2026-10-18, pegada por el dueño; cada punto se

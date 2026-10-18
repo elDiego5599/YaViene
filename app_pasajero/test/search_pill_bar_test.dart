@@ -58,6 +58,39 @@ void main() {
     expect((lupa.center.dy - pill.center.dy).abs(), lessThan(2));
   });
 
+  // Dueño, 2026-10-18: «del lado izquierdo en la pill de arriba podemos
+  // poner el logito de la app para no dejar ese espacio vacío». El mismo
+  // archivo del logo, sin tocarlo, concéntrico con la punta redonda de la
+  // píldora: su centro queda a medio alto del filo izquierdo.
+  testWidgets('el logo llena la punta izquierda, concéntrico con ella',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await montarPill(tester);
+
+    // La píldora es la primera caja decorada: su fondo blanco con filo.
+    final pill = tester.getRect(find
+        .descendant(
+            of: find.byType(SearchPillBar), matching: find.byType(DecoratedBox))
+        .first);
+    expect(pill.height, 60);
+    final logo = find.byKey(const ValueKey('pill-logo'));
+    expect(logo, findsOneWidget);
+    final r = tester.getRect(logo);
+    expect(r.width, r.height);
+    expect(r.center.dy, closeTo(pill.center.dy, 0.5));
+    expect(r.center.dx - pill.left, closeTo(pill.height / 2, 0.5));
+    // El aire alrededor del logo, el mismo arriba, abajo y a la izquierda.
+    expect(r.left - pill.left, closeTo(r.top - pill.top, 0.5));
+    expect(r.top - pill.top, greaterThanOrEqualTo(10));
+    // El nombre ya lo dice el botón: el logo no se anuncia aparte.
+    expect(
+        find.descendant(
+            of: find.byType(SearchPillBar),
+            matching: find.bySemanticsLabel(RegExp('[Ll]ogo|[Ii]magen'))),
+        findsNothing);
+    handle.dispose();
+  });
+
   testWidgets('tocar la lupa también abre la búsqueda', (tester) async {
     final container = await montarPill(tester);
     final abierta = <bool>[];

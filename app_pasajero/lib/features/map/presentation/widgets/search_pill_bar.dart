@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/latido.dart';
 import '../providers/map_view_state.dart';
@@ -96,9 +97,32 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           ),
           child: Row(
             children: [
-              // Lo que mide la punta derecha (la lupa o la X): con él, el
-              // texto queda en el centro de la píldora, haya ruta o no.
-              const SizedBox(width: 48),
+              // La punta izquierda lleva el logo (dueño, 2026-10-18: que no
+              // quede ese hueco). Mide lo mismo que la punta derecha (la
+              // lupa o la X), así el texto sigue en el centro de la píldora.
+              // El logo, de 36, va concéntrico con la punta redonda: la
+              // píldora mide 60, así que su centro va a 30 del borde de
+              // afuera (1 de filo + 8 de relleno + 21 dentro del hueco, que
+              // es Alignment -0,5 en un hueco de 48) y le quedan 12 de aire
+              // arriba, abajo y a la izquierda. El nombre ya lo dice el
+              // botón: el logo no se anuncia.
+              ExcludeSemantics(
+                child: SizedBox(
+                  width: 48,
+                  // `heightFactor: 1`: sin él, el hueco se come todo el
+                  // alto y la píldora crece hasta llenar la pantalla.
+                  child: Align(
+                    alignment: const Alignment(-0.5, 0),
+                    heightFactor: 1,
+                    child: SvgPicture.asset(
+                      'assets/icon/ya_viene_logo.svg',
+                      key: const ValueKey('pill-logo'),
+                      width: 36,
+                      height: 36,
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: GestureDetector(
                   key: widget.searchActionKey,
