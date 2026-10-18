@@ -303,6 +303,51 @@ void main() {
         lessThanOrEqualTo(barra.top));
   });
 
+  // «Cuando borro un aviso la pill de abajo queda solapando el cuadrito
+  // del mensaje de deshacer» (dueño, 2026-10-18): se borra seleccionando,
+  // con la barra apartada; el aviso sale y la barra vuelve debajo de él.
+  // El aviso sigue a la barra mientras se ve, no la mide una vez al salir.
+  testWidgets('el «Deshacer» sube cuando la barra vuelve, y baja si se va',
+      (tester) async {
+    await abrir(tester, '/notifications');
+    final pantalla = ProviderScope.containerOf(
+        tester.element(find.byType(NotificationsScreen)));
+    pantalla.read(alertSelectionProvider.notifier).enter();
+    await tester.pumpAndSettle();
+    expect(find.byType(PildoraNavegacion), findsNothing);
+
+    mostrarAviso(
+        tester.element(find.byType(NotificationsScreen)), 'Aviso borrado',
+        accion: ('Deshacer', (_) {}));
+    pantalla.read(alertSelectionProvider.notifier).clear();
+    await tester.pumpAndSettle();
+
+    final barra = tester.getRect(find.byType(PildoraNavegacion));
+    expect(tester.getRect(find.byType(AvisoTarjeta)).bottom,
+        lessThanOrEqualTo(barra.top));
+
+    // Y al revés: si la barra se aparta, el aviso no se queda flotando
+    // donde ella estaba.
+    pantalla.read(alertSelectionProvider.notifier).enter();
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(AvisoTarjeta)).bottom,
+        greaterThan(barra.top));
+  });
+
+  testWidgets('con el «Deshacer» abajo, la barra sigue respondiendo',
+      (tester) async {
+    final (router, _) = await abrir(tester, '/notifications');
+    mostrarAviso(
+        tester.element(find.byType(NotificationsScreen)), 'Aviso borrado',
+        accion: ('Deshacer', (_) {}));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(
+        of: find.byType(PildoraNavegacion), matching: find.text('Buzón')));
+    await tester.pumpAndSettle();
+    expect(camino(router), '/buzon');
+  });
+
   testWidgets('con la rueda de la distancia abierta la barra se aparta',
       (tester) async {
     final (_, container) = await abrir(tester, '/map');

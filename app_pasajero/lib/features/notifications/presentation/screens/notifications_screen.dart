@@ -99,6 +99,9 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          // Va arriba y solo con avisos: sin ellos, el estado vacío ya dice
+          // cómo armar uno.
+          if (entries.isNotEmpty) const _NotaAvisos(),
           // Al borrar el último, la lista se apaga y el estado vacío
           // aparece en su lugar; antes era un corte seco.
           Expanded(
@@ -117,6 +120,63 @@ class NotificationsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// La nota de arriba: qué se hace en esta pestaña (dueño, 2026-10-18:
+/// «vuélvele a colocar el texto de antes, pero pones algo como gestiona,
+/// borra, desactiva tus avisos aquí, con su icono»). Es la tarjeta que
+/// decía «En iPhone el aviso suena con la app abierta»: la misma nota que
+/// la hoja de distancia (`_NotaHoja` en `eta_bottom_sheet.dart`), tarjeta
+/// blanca con filo y baldosa de 30, para que una nota se vea igual en toda
+/// la app.
+class _NotaAvisos extends StatelessWidget {
+  const _NotaAvisos();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, AppSpacing.xs, 20, AppSpacing.sm),
+      child: Container(
+        key: const ValueKey('nota-avisos'),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.hairline),
+          boxShadow: AppShadows.soft,
+        ),
+        child: Row(
+          children: [
+            // El par tinte/tinta de los medallones, que ya pasa los 3:1. El
+            // glifo no se lee: la frase lo dice todo.
+            ExcludeSemantics(
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTint,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: const Icon(
+                  Icons.edit_notifications_outlined,
+                  size: 18,
+                  color: AppColors.primaryAccessible,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Gestiona, borra o desactiva tus avisos aquí.',
+                style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -891,11 +951,15 @@ class _AlertTile extends StatelessWidget {
 
     // En modo selección se marca tocando la tarjeta entera, como en Fotos:
     // el círculo solo es un blanco chico. Para el lector de pantalla el
-    // círculo, con su nombre, es el control.
+    // círculo, con su nombre, es el control. Y dejándola presionada se
+    // entra a la selección con ella marcada (dueño, 2026-10-18), como en
+    // Fotos o Mail; ya seleccionando, marca igual que el toque. El lector
+    // de pantalla entra por «Seleccionar».
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       excludeFromSemantics: true,
       onTap: selecting ? onToggleSelect : null,
+      onLongPress: onToggleSelect,
       child: tarjeta,
     );
   }

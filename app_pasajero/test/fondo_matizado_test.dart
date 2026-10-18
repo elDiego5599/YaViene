@@ -42,13 +42,31 @@ void main() {
     exigeContraste(peor, 7, 'La tinta sobre el fondo matizado');
   });
 
+  // «Hazlos un poco más claros para que se vean más elegantes y
+  // sofisticados» (dueño, 2026-10-18): era 0,81 de luminancia media y 0,66
+  // en lo más hondo de una mancha.
+  testWidgets('claro y sutil: el matiz susurra, no pinta', (tester) async {
+    final px = await pintar(tester);
+    var suma = 0.0, hondo = 1.0;
+    for (final c in px) {
+      final l = luminancia(c);
+      suma += l;
+      if (l < hondo) hondo = l;
+    }
+    expect(suma / px.length, greaterThanOrEqualTo(0.87),
+        reason: 'media ${suma / px.length}');
+    expect(hondo, greaterThanOrEqualTo(0.76), reason: 'lo más hondo $hondo');
+  });
+
   testWidgets('no es blanco liso: tiene zonas azulitas y verdecitas',
       (tester) async {
     final px = await pintar(tester);
     var azul = 0, verde = 0, blanco = 0;
     for (final c in px) {
-      if (c.b - c.g > 0.02 && c.b - c.r > 0.06) azul++;
-      if (c.g - c.b > 0.02 && c.g - c.r > 0.04) verde++;
+      // Umbrales a la medida del matiz más claro (dueño, 2026-10-18): el
+      // tono se nota, apenas.
+      if (c.b - c.g > 0.015 && c.b - c.r > 0.035) azul++;
+      if (c.g - c.b > 0.012 && c.g - c.r > 0.025) verde++;
       if (c.r > 0.99 && c.g > 0.99 && c.b > 0.99) blanco++;
     }
     expect(azul, greaterThan(px.length ~/ 6), reason: 'azul $azul');

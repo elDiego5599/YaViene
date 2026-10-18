@@ -7,8 +7,10 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 /// El fondo del arranque (dueño, 2026-10-18: «texturizado matizado, que
 /// tenga como azulito con verde suavecito»): manchas grandes y difusas de
 /// azul y verde muy claros sobre un blanco frío, con grano fino encima para
-/// que se lea como papel y no como degradado de pantalla. Quieto: lo que se
-/// mueve es la escena de encima.
+/// que se lea como papel y no como degradado de pantalla. Claro y sutil
+/// («más claros, para que se vean más elegantes y sofisticados», dueño,
+/// 2026-10-18): el matiz susurra. Quieto: lo que se mueve es la escena de
+/// encima.
 ///
 /// Entra en un fundido corto sobre el blanco del arranque nativo, para que
 /// el relevo no salte. Con «Reducir movimiento» sale entero de una vez.
@@ -39,19 +41,19 @@ class PintorMatizado extends CustomPainter {
   const PintorMatizado();
 
   /// Un blanco apenas frío, para que el matiz no se vea a parches.
-  static const _base = Color(0xFFF3F8FA);
+  static const _base = Color(0xFFF7FAFC);
 
   /// (color, centro en fracción de la pantalla, radio en fracción del ancho):
   /// el azul arriba a la izquierda y abajo, el verde cruzado a la derecha.
   static const _manchas = [
-    (Color(0xFFD3E4F6), Offset(0.05, 0.08), 1.0),
-    (Color(0xFFD2EFDF), Offset(1.0, 0.32), 0.95),
-    (Color(0xFFD8E6F8), Offset(0.1, 0.72), 0.85),
-    (Color(0xFFD6F1E3), Offset(0.85, 0.98), 0.9),
+    (Color(0xFFE5EFFA), Offset(0.05, 0.08), 1.0),
+    (Color(0xFFE4F5EC), Offset(1.0, 0.32), 0.95),
+    (Color(0xFFE8F0FB), Offset(0.1, 0.72), 0.85),
+    (Color(0xFFE6F7EE), Offset(0.85, 0.98), 0.9),
   ];
 
-  static const _azul = Color(0xFFC9DCF3);
-  static const _verde = Color(0xFFC8EBD7);
+  static const _azul = Color(0xFFDFEAF8);
+  static const _verde = Color(0xFFDEF3E7);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -81,7 +83,7 @@ class PintorMatizado extends CustomPainter {
         r,
         nube
           ..color = (i.isEven ? _azul : _verde)
-              .withValues(alpha: 0.35 + azar.nextDouble() * 0.3),
+              .withValues(alpha: 0.3 + azar.nextDouble() * 0.25),
       );
     }
     // El grano: puntos de un píxel, claros y oscuros, casi invisibles uno
@@ -100,7 +102,7 @@ class PintorMatizado extends CustomPainter {
     canvas.drawPoints(ui.PointMode.points, claros,
         punto..color = Colors.white.withValues(alpha: 0.5));
     canvas.drawPoints(ui.PointMode.points, oscuros,
-        punto..color = AppColors.ink.withValues(alpha: 0.05));
+        punto..color = AppColors.ink.withValues(alpha: 0.03));
   }
 
   @override

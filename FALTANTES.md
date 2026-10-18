@@ -116,7 +116,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
   1,7 s con medio segundo de marca, y un arco de cinco estrellas y dos
   caracolitos que brotan sobre la torre), sobre el fondo matizado azul y verde
-  con grano (`fondo_matizado.dart`); y en Info dibujos chicos de
+  con grano (`fondo_matizado.dart`, más claro y sutil desde el mismo día);
+  y en Avisos, arriba, la nota «Gestiona, borra o desactiva tus avisos
+  aquí.» con su ícono, y dejar presionado un aviso lo selecciona; y en Info dibujos chicos de
   Barranquilla regados sin orden por toda la pantalla (cayena, sol,
   palmera, marimonda, la torre del arranque y, pocos y separados, los
   buses de Sobusa, Coolitoral, Transmetro y Sodis; de 44 a 60, a 70 entre

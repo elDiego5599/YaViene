@@ -120,23 +120,34 @@ void mostrarAviso(
         elevation: 0,
         padding: EdgeInsets.zero,
         behavior: SnackBarBehavior.floating,
-        // 16 a los lados y abajo: el margen de las píldoras del mapa. Y,
-        // dentro de las pestañas, lo que la barra de abajo le suma al
-        // relleno de la pantalla sobre la barra de inicio, que el
-        // `SnackBar` no cuenta: si no, el aviso y su «Deshacer» salían bajo
-        // la barra (dueño, 2026-10-16).
-        margin: EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          0,
-          AppSpacing.md,
-          AppSpacing.md +
-              math.max(
-                  0,
-                  MediaQuery.paddingOf(context).bottom -
-                      MediaQuery.viewPaddingOf(context).bottom),
-        ),
+        // 16 a los lados y abajo: el margen de las píldoras del mapa.
+        margin: const EdgeInsets.fromLTRB(
+            AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
         duration: duracionDeAviso(mensaje),
-        content: AvisoTarjeta(mensaje: mensaje, icono: icono, accion: accion),
+        content: _SobreLaBarra(
+          child: AvisoTarjeta(mensaje: mensaje, icono: icono, accion: accion),
+        ),
       ),
     );
+}
+
+/// Dentro de las pestañas, lo que la barra de abajo le suma al relleno de
+/// la pantalla sobre la barra de inicio, que el `SnackBar` no cuenta: si
+/// no, el aviso y su «Deshacer» salían bajo la barra (dueño, 2026-10-16).
+/// Se lee en vivo y no al mostrarlo: la barra se aparta al seleccionar
+/// avisos y vuelve al borrarlos, justo cuando sale el «Deshacer» (dueño,
+/// 2026-10-18: «la pill de abajo queda solapando el cuadrito»).
+class _SobreLaBarra extends StatelessWidget {
+  const _SobreLaBarra({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final barra = math.max(
+        0.0,
+        MediaQuery.paddingOf(context).bottom -
+            MediaQuery.viewPaddingOf(context).bottom);
+    return Padding(padding: EdgeInsets.only(bottom: barra), child: child);
+  }
 }

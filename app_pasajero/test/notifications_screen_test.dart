@@ -368,7 +368,7 @@ void main() {
   });
 
   // La nota «En iPhone el aviso suena con la app abierta.» se fue (dueño,
-  // 2026-10-18): la pestaña Avisos es la lista, sin advertencias encima.
+  // 2026-10-18); en su sitio va la de qué se hace aquí (abajo).
   testWidgets('en iPhone la pestaña no lleva la nota de la app abierta',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
@@ -479,6 +479,65 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Selecciona avisos'), findsOneWidget);
     expect(container.read(activeAlertsProvider), {'A-1', 'A-2'});
+  });
+
+  // «Haz que en avisos, si se deja presionado un aviso, se seleccione»
+  // (dueño, 2026-10-18): como en Fotos o Mail, la pulsación larga abre la
+  // selección con ese aviso ya marcado.
+  testWidgets('dejar presionado un aviso lo selecciona', (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
+    arm(container, 'A-1');
+    arm(container, 'A-2');
+    await tester.pump();
+    final ruta =
+        find.descendant(of: aviso('A-2'), matching: find.text('Ruta 1'));
+
+    await tester.longPress(ruta);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Borrar 1'), findsOneWidget);
+    expect(find.text('Cancelar'), findsOneWidget);
+    await tester.tap(find.text('Borrar 1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Borrar'));
+    await tester.pumpAndSettle();
+    expect(container.read(activeAlertsProvider), {'A-1'});
+
+    // Ya seleccionando, la pulsación larga marca y desmarca como el toque.
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pump(const Duration(milliseconds: 300));
+    final otra =
+        find.descendant(of: aviso('A-1'), matching: find.text('Ruta 1'));
+    await tester.longPress(otra);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Borrar 1'), findsOneWidget);
+    await tester.longPress(otra);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Selecciona avisos'), findsOneWidget);
+  });
+
+  // «Vuélvele a colocar el texto de antes, pero pones algo como gestiona,
+  // borra, desactiva tus avisos aquí, con su icono» (dueño, 2026-10-18):
+  // la tarjeta de la nota vuelve arriba, ahora en los dos teléfonos.
+  testWidgets('arriba, la nota de qué se hace aquí, con su icono',
+      (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    const texto = 'Gestiona, borra o desactiva tus avisos aquí.';
+    // Sin avisos, el estado vacío ya dice cómo armar uno.
+    expect(find.text(texto), findsNothing);
+
+    arm(container, 'A-1');
+    await tester.pump();
+    expect(find.text(texto), findsOneWidget);
+    final nota = find.ancestor(
+        of: find.text(texto),
+        matching: find.byKey(const ValueKey('nota-avisos')));
+    expect(
+        find.descendant(
+            of: nota, matching: find.byIcon(Icons.edit_notifications_outlined)),
+        findsOneWidget);
+    // Arriba de la lista.
+    expect(tester.getRect(nota).bottom,
+        lessThanOrEqualTo(tester.getRect(aviso('A-1')).top));
   });
 
   testWidgets('la campana del estado vacío pasa el 3:1 sobre su medallón',
