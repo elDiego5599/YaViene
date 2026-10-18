@@ -35,7 +35,7 @@ typedef Celda = ({Motivo motivo, Offset centro, double lado, double giro});
 /// todo, y todo con el mismo orden no cuadra»): dibujos chicos de
 /// Barranquilla regados sin orden, con aire entre ellos, cada uno algo
 /// girado y de su tamaño, sin dos iguales juntos y con pocos buses, sobre
-/// el matizado del arranque y con puntitos, estrellitas y espirales en los
+/// el matizado del arranque y con puntitos y alguna estrella en los
 /// huecos. Quieto; las tarjetas blancas van por encima.
 class FondoIlustrado extends StatelessWidget {
   const FondoIlustrado({super.key, required this.child});
@@ -168,7 +168,7 @@ class FondoIlustrado extends StatelessWidget {
 }
 
 /// Lo que va en los huecos entre dibujos.
-enum Relleno { punto, estrella, espiral }
+enum Relleno { punto, estrella }
 
 /// Un adorno del relleno, con su giro en radianes.
 typedef PiezaRelleno = ({
@@ -178,8 +178,10 @@ typedef PiezaRelleno = ({
   double giro,
 });
 
-/// Los puntitos, estrellitas y espirales entre los dibujos, en los colores
-/// de la marca: regados igual que ellos, en lo que queda libre.
+/// Los puntitos y alguna estrellita entre los dibujos, en los colores de
+/// la marca y a media luz (dueño, 2026-10-18: «demasiadas estrellitas y
+/// caracoles, que se vea más sencillo pero elegante»): pocos, regados
+/// igual que ellos, en lo que queda libre.
 class PintorRelleno extends CustomPainter {
   const PintorRelleno();
 
@@ -187,19 +189,19 @@ class PintorRelleno extends CustomPainter {
     AppColors.acento,
     AppColors.primary,
     AppColors.coral,
-    AppColors.warning,
   ];
 
   static List<PiezaRelleno> piezas(Size pantalla) {
     final azar = math.Random(81);
     final dibujos = FondoIlustrado.celdas(pantalla);
     // Fuera del cuadro del dibujo más grande (30 de medio lado) y su aire.
-    bool encima(Offset p) => dibujos.any((c) => (c.centro - p).distance < 36);
+    bool encima(Offset p) => dibujos.any((c) => (c.centro - p).distance < 40);
     return [
       for (final centro
-          in FondoIlustrado.regar(azar, pantalla, 6, 24, aparte: encima))
+          in FondoIlustrado.regar(azar, pantalla, 6, 64, aparte: encima))
         (
-          tipo: Relleno.values[azar.nextInt(Relleno.values.length)],
+          // Una estrella de cada cinco; lo demás, puntitos.
+          tipo: azar.nextDouble() < 0.2 ? Relleno.estrella : Relleno.punto,
           centro: centro,
           color: _colores[azar.nextInt(_colores.length)],
           giro: azar.nextDouble() * 2 * math.pi,
@@ -210,23 +212,17 @@ class PintorRelleno extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final lleno = Paint()..isAntiAlias = true;
-    final trazo = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
-      ..strokeCap = StrokeCap.round;
     for (final p in piezas(size)) {
-      final color = p.color.withValues(alpha: 0.85);
+      lleno.color = p.color.withValues(alpha: 0.55);
       canvas
         ..save()
         ..translate(p.centro.dx, p.centro.dy)
         ..rotate(p.giro);
       switch (p.tipo) {
         case Relleno.punto:
-          canvas.drawCircle(Offset.zero, 3, lleno..color = color);
+          canvas.drawCircle(Offset.zero, 2, lleno);
         case Relleno.estrella:
-          canvas.drawPath(_estrella(5.5), lleno..color = color);
-        case Relleno.espiral:
-          canvas.drawPath(_espiral(6), trazo..color = color);
+          canvas.drawPath(_estrella(4), lleno);
       }
       canvas.restore();
     }
@@ -243,18 +239,6 @@ class PintorRelleno extends CustomPainter {
           : camino.lineTo(punto.dx, punto.dy);
     }
     return camino..close();
-  }
-
-  /// Una vuelta y media que se abre del centro hacia [r].
-  static Path _espiral(double r) {
-    final camino = Path()..moveTo(0, 0);
-    const pasos = 24;
-    for (var i = 1; i <= pasos; i++) {
-      final t = i / pasos;
-      final a = t * 3 * math.pi;
-      camino.lineTo(math.cos(a) * r * t, math.sin(a) * r * t);
-    }
-    return camino;
   }
 
   @override

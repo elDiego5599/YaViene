@@ -119,8 +119,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   Barranquilla regados sin orden por toda la pantalla (cayena, sol,
   palmera, marimonda, la torre del arranque y, pocos y separados, los
   buses de Sobusa, Coolitoral, Transmetro y Sodis; de 44 a 60, a 70 entre
-  centros, sin dos iguales juntos, con puntitos, estrellitas y espirales
-  en los huecos; `fondo_ilustrado.dart`) sobre el matizado, con
+  centros, sin dos iguales juntos, con pocos puntitos y alguna estrella a
+  media luz en los huecos; `fondo_ilustrado.dart`; la torre adelgaza sus
+  juntas con el tamaño) sobre el matizado, con
   la letra en píldoras blancas. La
   maqueta del trío del hero (`.tinta-hero` en `phone-simulator.css`) sigue
   con la marca de 84 sobre tinta y la de Info con la malla. Ojo con el CSS

@@ -135,15 +135,17 @@ void main() {
     expect(imagenes.every((i) => i.excludeFromSemantics), isTrue);
   });
 
-  testWidgets('el relleno: puntitos, estrellitas y espirales de colores',
+  // «Hay demasiadas estrellitas y caracoles, haz que se vea más sencillo
+  // pero elegante» (dueño, 2026-10-18): puntitos y alguna estrella, sin
+  // espirales, pocos y suaves.
+  testWidgets('el relleno: pocos puntitos y alguna estrella, suaves',
       (tester) async {
-    expect(Relleno.values.map((r) => r.name).toSet(),
-        containsAll(['punto', 'estrella', 'espiral']));
+    expect(Relleno.values.map((r) => r.name).toSet(), {'punto', 'estrella'});
     final rellenos = PintorRelleno.piezas(pantalla);
-    expect(rellenos.length,
-        greaterThan(FondoIlustrado.celdas(pantalla).length ~/ 2));
-    expect(rellenos.map((r) => r.tipo).toSet(), Relleno.values.toSet());
-    // Pinta de verdad: hay color donde antes era transparente.
+    final dibujos = FondoIlustrado.celdas(pantalla).length;
+    expect(rellenos.length, inInclusiveRange(dibujos ~/ 3, dibujos));
+    final estrellas = rellenos.where((r) => r.tipo == Relleno.estrella);
+    expect(estrellas.length, inInclusiveRange(1, rellenos.length ~/ 3));
     final ancho = pantalla.width.toInt(), alto = pantalla.height.toInt();
     late ByteData datos;
     await tester.runAsync(() async {
@@ -152,13 +154,42 @@ void main() {
       final imagen = await grabadora.endRecording().toImage(ancho, alto);
       datos = (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
     });
-    var pintados = 0;
+    var pintados = 0, opacidad = 0;
     for (var i = 0; i < ancho * alto; i++) {
-      if (datos.getUint8(i * 4 + 3) > 0) pintados++;
+      final a = datos.getUint8(i * 4 + 3);
+      if (a > 0) pintados++;
+      if (a > opacidad) opacidad = a;
     }
-    expect(pintados, greaterThan(ancho * alto ~/ 100));
-    // Y chico: no le quita sitio a los dibujos.
-    expect(pintados, lessThan(ancho * alto ~/ 12));
+    expect(pintados, greaterThan(0));
+    expect(pintados, lessThan(ancho * alto ~/ 200));
+    // Suaves: ninguno a todo color.
+    expect(opacidad, lessThanOrEqualTo(160));
+  });
+
+  // «La Ventana al Mundo se ve súper oscura, cero colorida» (dueño,
+  // 2026-10-18): chica, las juntas del arranque taparían los colores.
+  testWidgets('la Ventana al Mundo chica conserva sus colores', (tester) async {
+    for (final alto in [60.0, 290.0]) {
+      final w = (alto * PintorVentana.aspecto).round(), h = alto.round();
+      late ByteData datos;
+      await tester.runAsync(() async {
+        final grabadora = ui.PictureRecorder();
+        PintorVentana(1)
+            .paint(Canvas(grabadora), Size(w.toDouble(), h.toDouble()));
+        final imagen = await grabadora.endRecording().toImage(w, h);
+        datos = (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      });
+      var visibles = 0, oscuros = 0;
+      for (var i = 0; i < w * h; i++) {
+        if (datos.getUint8(i * 4 + 3) < 200) continue;
+        visibles++;
+        final r = datos.getUint8(i * 4),
+            g = datos.getUint8(i * 4 + 1),
+            b = datos.getUint8(i * 4 + 2);
+        if (0.2126 * r + 0.7152 * g + 0.0722 * b < 70) oscuros++;
+      }
+      expect(oscuros / visibles, lessThan(0.12), reason: 'alto $alto');
+    }
   });
 
   testWidgets('quieto: no pide cuadros ni se repinta', (tester) async {

@@ -276,6 +276,10 @@ class PintorVentana extends CustomPainter {
   static const _apagado = Color(0xFFEDEFF2);
   static const _junta = Color(0xFF20242B);
 
+  /// El alto al que se dibujó: las juntas y el marco engrosan o adelgazan
+  /// con el dibujo, si no, chica en Info, las juntas tapan los colores.
+  static const double _altoBase = 290;
+
   Path _poligono(List<Offset> puntos, Size s) => Path()
     ..addPolygon(
         [for (final p in puntos) Offset(p.dx * s.width, p.dy * s.height)],
@@ -289,10 +293,11 @@ class PintorVentana extends CustomPainter {
     canvas.clipPath(borde);
     final ancho = (x1 - x0) * s.width / columnas;
     final alto = s.height / _filas;
+    final escala = s.height / _altoBase;
     final junta = Paint()
       ..color = _junta
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.6;
+      ..strokeWidth = 0.6 * escala;
     for (var f = 0; f < _filas; f++) {
       final altura = f / (_filas - 1);
       for (var c = 0; c < columnas; c++) {
@@ -327,7 +332,7 @@ class PintorVentana extends CustomPainter {
         Paint()
           ..color = _junta
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2
+          ..strokeWidth = 1.2 * escala
           ..strokeJoin = StrokeJoin.round);
   }
 
@@ -338,7 +343,8 @@ class PintorVentana extends CustomPainter {
         Curves.easeOutCubic.transform((avance / 0.25).clamp(0.0, 1.0));
     canvas.saveLayer(
         Offset.zero & size, Paint()..color = Color.fromRGBO(0, 0, 0, asoma));
-    canvas.translate(0, 14 * (1 - asoma));
+    final escala = size.height / _altoBase;
+    canvas.translate(0, 14 * escala * (1 - asoma));
     _cara(canvas, size, _lado, 0.70, 1, 4, _coloresLado, 7);
     _cara(canvas, size, _frente, 0, 0.74, 9, _coloresFrente, 3);
     // La ventana: el marco y el concreto de adentro.
@@ -364,13 +370,13 @@ class PintorVentana extends CustomPainter {
         Paint()
           ..color = const Color(0xFFD6D2CB)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4);
+          ..strokeWidth = 2.4 * escala);
     canvas.drawRect(
-        v.inflate(1.2),
+        v.inflate(1.2 * escala),
         Paint()
           ..color = _junta
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.8);
+          ..strokeWidth = 0.8 * escala);
     canvas.restore();
   }
 
