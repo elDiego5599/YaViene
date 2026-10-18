@@ -31,21 +31,20 @@ enum Motivo {
 typedef Celda = ({Motivo motivo, Offset centro, double lado, double giro});
 
 /// El fondo de Info (dueño, 2026-10-18: «mucho más pequeños, en toda la
-/// pantalla, con más buses diferentes y más de cada cosa»): un papel de
-/// dibujos chicos de Barranquilla en hileras corridas, cada uno algo
-/// girado y de su tamaño, sin dos iguales juntos, sobre el matizado del
-/// arranque y con puntitos, estrellitas y espirales en los huecos. Quieto;
-/// las tarjetas blancas van por encima.
+/// pantalla»; y luego «es demasiado, reduce la cantidad de buses sobre
+/// todo, y todo con el mismo orden no cuadra»): dibujos chicos de
+/// Barranquilla regados sin orden, con aire entre ellos, cada uno algo
+/// girado y de su tamaño, sin dos iguales juntos y con pocos buses, sobre
+/// el matizado del arranque y con puntitos, estrellitas y espirales en los
+/// huecos. Quieto; las tarjetas blancas van por encima.
 class FondoIlustrado extends StatelessWidget {
   const FondoIlustrado({super.key, required this.child});
 
   final Widget child;
 
-  /// Distancia entre dibujos de una hilera; las hileras van a √3/2 de ella
-  /// y corridas media celda, así los seis vecinos quedan a la misma
-  /// distancia y no se abre una calle vacía.
-  static const double celda = 64;
-  static const double _fila = celda * 0.875;
+  /// Lo mínimo entre los centros de dos dibujos: deja al menos 10 pt entre
+  /// los dos más grandes, y unos 45 en un teléfono de 390 × 844.
+  static const double separacion = 70;
 
   /// Lado base del cuadro de cada dibujo; varía de 0,85 a 1,15 (44–60 pt).
   static const double _lado = 52;
@@ -53,48 +52,67 @@ class FondoIlustrado extends StatelessWidget {
   /// Giro máximo, a cada lado.
   static const double _giro = 15;
 
-  /// Corrimiento máximo del centro, para que no se vea cuadriculado.
-  static const double _corrimiento = 6;
+  /// Cuánto sale cada uno frente a los demás: un bus por cada tres de lo
+  /// otro, así entre los cuatro buses son uno de cada cinco dibujos.
+  static int _peso(Motivo m) => _esBus(m) ? 1 : 3;
 
-  /// Los dibujos de una pantalla de [pantalla], con una hilera y una
-  /// columna de más por cada orilla para que nada quede cortado en seco.
-  /// Siempre los mismos: la semilla es fija.
+  static bool _esBus(Motivo m) => m.name.startsWith('bus');
+
+  /// Los dibujos de una pantalla de [pantalla], también un poco por fuera
+  /// de las orillas para que nada quede cortado en seco. Siempre los
+  /// mismos: la semilla es fija.
   static List<Celda> celdas(Size pantalla) {
     final azar = math.Random(18);
-    final columnas = (pantalla.width / celda).ceil() + 2;
-    final filas = (pantalla.height / _fila).ceil() + 2;
-    final puestos = <(int, int), Motivo>{};
     final usos = {for (final m in Motivo.values) m: 0};
     final celdas = <Celda>[];
-    for (var f = -1; f < filas; f++) {
-      final impar = f.isOdd;
-      for (var c = -1; c < columnas; c++) {
-        // Los vecinos ya puestos: el de la izquierda y los dos de arriba.
-        final arriba = impar ? [c, c + 1] : [c - 1, c];
-        final vecinos = {
-          puestos[(f, c - 1)],
-          for (final a in arriba) puestos[(f - 1, a)],
-        };
-        final libres =
-            Motivo.values.where((m) => !vecinos.contains(m)).toList();
-        final menos = libres.map((m) => usos[m]!).reduce(math.min);
-        final candidatos = libres.where((m) => usos[m] == menos).toList();
-        final motivo = candidatos[azar.nextInt(candidatos.length)];
-        puestos[(f, c)] = motivo;
-        usos[motivo] = usos[motivo]! + 1;
-        double centrado() => (azar.nextDouble() * 2 - 1) * _corrimiento;
-        celdas.add((
-          motivo: motivo,
-          centro: Offset(
-            c * celda + (impar ? celda / 2 : 0) + centrado(),
-            f * _fila + centrado(),
-          ),
-          lado: _lado * (0.85 + azar.nextDouble() * 0.3),
-          giro: (azar.nextDouble() * 2 - 1) * _giro,
-        ));
+    for (final centro in regar(azar, pantalla, 8, separacion)) {
+      final vecinos = {
+        for (final c in celdas)
+          if ((c.centro - centro).distance <= separacion * 1.5) c.motivo,
+      };
+      // Un bus no va junto a otro bus, salvo que no quede más remedio.
+      final hayBus = vecinos.any(_esBus);
+      var libres = Motivo.values.where((m) => !vecinos.contains(m));
+      if (hayBus && libres.any((m) => !_esBus(m))) {
+        libres = libres.where((m) => !_esBus(m));
       }
+      double cuota(Motivo m) => usos[m]! / _peso(m);
+      final menos = libres.map(cuota).reduce(math.min);
+      final candidatos = libres.where((m) => cuota(m) == menos).toList();
+      final motivo = candidatos[azar.nextInt(candidatos.length)];
+      usos[motivo] = usos[motivo]! + 1;
+      celdas.add((
+        motivo: motivo,
+        centro: centro,
+        lado: _lado * (0.85 + azar.nextDouble() * 0.3),
+        giro: (azar.nextDouble() * 2 - 1) * _giro,
+      ));
     }
     return celdas;
+  }
+
+  /// Puntos regados al azar sobre [pantalla] (y [distancia] por fuera), a
+  /// no menos de [distancia] entre ellos ni de lo que [aparte] rechace, y
+  /// sin calvas: se prueba cada punto de una rejilla de [paso] en desorden,
+  /// así que donde cabía uno más, quedó.
+  static List<Offset> regar(
+    math.Random azar,
+    Size pantalla,
+    double paso,
+    double distancia, {
+    bool Function(Offset)? aparte,
+  }) {
+    final rejilla = [
+      for (var y = -distancia; y <= pantalla.height + distancia; y += paso)
+        for (var x = -distancia; x <= pantalla.width + distancia; x += paso)
+          Offset(x, y),
+    ]..shuffle(azar);
+    final puestos = <Offset>[];
+    for (final p in rejilla) {
+      if (aparte != null && aparte(p)) continue;
+      if (puestos.every((q) => (q - p).distance >= distancia)) puestos.add(p);
+    }
+    return puestos;
   }
 
   @override
@@ -161,8 +179,7 @@ typedef PiezaRelleno = ({
 });
 
 /// Los puntitos, estrellitas y espirales entre los dibujos, en los colores
-/// de la marca: uno en cada triángulo que dejan tres dibujos vecinos, que
-/// es donde más lejos queda cualquiera de ellos.
+/// de la marca: regados igual que ellos, en lo que queda libre.
 class PintorRelleno extends CustomPainter {
   const PintorRelleno();
 
@@ -175,31 +192,19 @@ class PintorRelleno extends CustomPainter {
 
   static List<PiezaRelleno> piezas(Size pantalla) {
     final azar = math.Random(81);
-    const celda = FondoIlustrado.celda;
-    const fila = FondoIlustrado._fila;
-    final columnas = (pantalla.width / celda).ceil() + 2;
-    final filas = (pantalla.height / fila).ceil() + 2;
-    final piezas = <PiezaRelleno>[];
-    for (var f = -1; f < filas; f++) {
-      final x0 = f.isOdd ? celda / 2 : 0.0;
-      for (var c = -1; c < columnas; c++) {
-        // Los dos triángulos que tienen por lado a este dibujo y al de su
-        // derecha: su centro está a media celda y a un tercio de hilera.
-        for (final lado in const [-1, 1]) {
-          double corrido() => (azar.nextDouble() * 2 - 1) * 3;
-          piezas.add((
-            tipo: Relleno.values[azar.nextInt(Relleno.values.length)],
-            centro: Offset(
-              c * celda + x0 + celda / 2 + corrido(),
-              f * fila + lado * fila / 3 + corrido(),
-            ),
-            color: _colores[azar.nextInt(_colores.length)],
-            giro: azar.nextDouble() * 2 * math.pi,
-          ));
-        }
-      }
-    }
-    return piezas;
+    final dibujos = FondoIlustrado.celdas(pantalla);
+    // Fuera del cuadro del dibujo más grande (30 de medio lado) y su aire.
+    bool encima(Offset p) => dibujos.any((c) => (c.centro - p).distance < 36);
+    return [
+      for (final centro
+          in FondoIlustrado.regar(azar, pantalla, 6, 24, aparte: encima))
+        (
+          tipo: Relleno.values[azar.nextInt(Relleno.values.length)],
+          centro: centro,
+          color: _colores[azar.nextInt(_colores.length)],
+          giro: azar.nextDouble() * 2 * math.pi,
+        ),
+    ];
   }
 
   @override

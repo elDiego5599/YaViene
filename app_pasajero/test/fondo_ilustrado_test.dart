@@ -9,44 +9,66 @@ import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_ar
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/fondo_matizado.dart';
 
 /// El fondo de Info (dueño, 2026-10-18): las ilustraciones de Barranquilla
-/// «mucho más pequeñas, en toda la pantalla, con más buses diferentes y más
-/// de cada cosa», como un papel de dibujos, sobre el matizado del arranque
-/// y con relleno de puntitos, estrellitas y espirales entre ellas. Quieto.
+/// «mucho más pequeñas, en toda la pantalla», regadas sin orden y con pocos
+/// buses, sobre el matizado del arranque y con relleno de puntitos,
+/// estrellitas y espirales entre ellas. Quieto.
 void main() {
   const pantalla = Size(390, 844);
 
-  testWidgets('nueve dibujos, los cuatro buses, y todos en un teléfono',
+  testWidgets('nueve dibujos, pocos buses, y todos en un teléfono',
       (tester) async {
     expect(Motivo.values, hasLength(9));
-    expect(Motivo.values.where((m) => m.name.startsWith('bus')), hasLength(4));
+    final buses = Motivo.values.where((m) => m.name.startsWith('bus'));
+    expect(buses, hasLength(4));
     final cuenta = <Motivo, int>{};
+    var dentro = 0;
     for (final c in FondoIlustrado.celdas(pantalla)) {
       if ((Offset.zero & pantalla).contains(c.centro)) {
+        dentro++;
         cuenta[c.motivo] = (cuenta[c.motivo] ?? 0) + 1;
       }
     }
     expect(cuenta.keys.toSet(), Motivo.values.toSet());
-    // «Más de cada cosa»: ninguno sale solo una o dos veces.
-    for (final MapEntry(:key, :value) in cuenta.entries) {
-      expect(value, greaterThanOrEqualTo(6), reason: '$key $value');
+    // «Es demasiado, reduce la cantidad de buses sobre todo» (dueño,
+    // 2026-10-18): menos dibujos, y los buses, entre los cuatro, no pasan
+    // de uno de cada cuatro.
+    expect(dentro, inInclusiveRange(40, 62));
+    final deBus = buses.map((m) => cuenta[m]!).reduce((a, b) => a + b);
+    expect(deBus, lessThanOrEqualTo(dentro ~/ 4), reason: '$deBus/$dentro');
+    for (final m in Motivo.values) {
+      final minimo = m.name.startsWith('bus') ? 2 : 4;
+      expect(cuenta[m], greaterThanOrEqualTo(minimo), reason: '$m');
     }
   });
 
-  testWidgets('chicos y por toda la pantalla, sin huecos', (tester) async {
+  testWidgets('chicos, regados sin orden y sin huecos', (tester) async {
     final celdas = FondoIlustrado.celdas(pantalla);
+    const r = FondoIlustrado.separacion;
     for (final c in celdas) {
       expect(c.lado, inInclusiveRange(40, 62), reason: '${c.lado}');
     }
-    // Cualquier punto de la pantalla tiene un dibujo cerca.
+    // Con aire: ninguno pegado a otro.
+    for (final a in celdas) {
+      for (final b in celdas) {
+        if (identical(a, b)) continue;
+        expect((a.centro - b.centro).distance, greaterThanOrEqualTo(r));
+      }
+    }
+    // Pero sin calvas: cualquier punto tiene un dibujo a poco más de [r]
+    // (lo que mide la rejilla de donde se sacan).
     for (var y = 0.0; y <= pantalla.height; y += 10) {
       for (var x = 0.0; x <= pantalla.width; x += 10) {
         final p = Offset(x, y);
         final cerca = celdas
             .map((c) => (c.centro - p).distance)
             .reduce((a, b) => a < b ? a : b);
-        expect(cerca, lessThan(FondoIlustrado.celda * 0.75), reason: '$p');
+        expect(cerca, lessThan(r * 1.1), reason: '$p');
       }
     }
+    // «Todo con el mismo orden no cuadra»: no van en hileras. Si fueran
+    // en filas, muchos compartirían altura.
+    final alturas = celdas.map((c) => (c.centro.dy / 4).round()).toList();
+    expect(alturas.toSet().length, greaterThan(alturas.length * 0.7));
   });
 
   testWidgets('dos vecinos nunca repiten dibujo', (tester) async {
@@ -55,12 +77,12 @@ void main() {
     for (final a in celdas) {
       for (final b in celdas) {
         final d = (a.centro - b.centro).distance;
-        if (d == 0 || d > FondoIlustrado.celda * 1.3) continue;
+        if (identical(a, b) || d > FondoIlustrado.separacion * 1.5) continue;
         pares++;
         expect(a.motivo, isNot(b.motivo), reason: '${a.centro} ${b.centro}');
       }
     }
-    expect(pares, greaterThan(200));
+    expect(pares, greaterThan(100));
   });
 
   testWidgets('las fotos existen, livianas y nítidas al tamaño en que van',
