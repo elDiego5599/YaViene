@@ -37,9 +37,20 @@ MapGuideCopy guideCopyFor(
   required bool limitReached,
   required bool isBlocked,
   bool routeTooFar = false,
+  bool eligiendoDistancia = false,
   TargetPlatform? plataforma,
 }) {
   if (step == MapGuideStep.alert) {
+    // Con la rueda abierta la guía ilumina solo la tarjeta del bus: se
+    // sigue con «Guardar» de la rueda, no con un botón de la guía.
+    if (eligiendoDistancia) {
+      return const MapGuideCopy(
+        title: 'Elige a qué distancia',
+        message: 'Gira la rueda hasta la distancia a la que quieres el '
+            'aviso y toca «Guardar».',
+        icon: Icons.straighten_outlined,
+      );
+    }
     if (hasActiveAlert) {
       return const MapGuideCopy(
         title: 'Aviso ya activado',

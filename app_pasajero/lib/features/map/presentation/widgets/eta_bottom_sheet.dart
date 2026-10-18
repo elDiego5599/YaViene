@@ -33,6 +33,7 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
     super.key,
     this.alertKey,
+    this.ruedaKey,
     this.metricKey,
     this.metricUnitKey,
     this.detailKey,
@@ -45,6 +46,10 @@ class EtaBottomSheet extends ConsumerStatefulWidget {
   /// GlobalKey sobre el botón de aviso: el tour de primer uso lo mide para
   /// abrir su hueco sobre él cuando el usuario toca su primer bus.
   final GlobalKey? alertKey;
+
+  /// La tarjeta del bus entera, que con la rueda abierta es lo que ilumina
+  /// el paso del aviso de la guía: la rueda y sus dos botones.
+  final GlobalKey? ruedaKey;
   final GlobalKey? metricKey;
   final GlobalKey? metricUnitKey;
   final GlobalKey? detailKey;
@@ -1219,6 +1224,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // pliega, así que no tiene una versión corta que ajustar.
       padding: EdgeInsets.fromLTRB(AppSpacing.lg, 6, AppSpacing.lg, aireAbajo),
       child: Column(
+        key: widget.ruedaKey,
         mainAxisSize: MainAxisSize.min,
         children: [
           // Sin franja de color arriba (diseño «A», dueño 2026-09-30): el

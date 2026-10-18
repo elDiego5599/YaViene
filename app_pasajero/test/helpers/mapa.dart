@@ -3,7 +3,8 @@
 // El socket es un repositorio de mentira al que la prueba le empuja fotos
 // de posiciones; la ubicación la mueve la prueba; el aviso «suena» sin
 // tocar el plugin de notificaciones y el servicio de fondo anota lo que se
-// le pide en vez de arrancar nada.
+// le pide en vez de arrancar nada. El permiso de notificaciones se da sin
+// preguntar: el plugin no contesta en las pruebas.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/domain/repositories/realtime_repository.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/screens/map_screen.dart';
@@ -143,6 +145,10 @@ class MapaDePrueba {
       realtimeServiceProvider.overrideWithValue(repo),
       userLocationProvider.overrideWith((ref) => UbicacionDePrueba()),
       servicioDeFondoProvider.overrideWithValue(servicio),
+      alertToggleProvider.overrideWith(
+        (ref) =>
+            AlertToggleController(ref, requestPermission: () async => true),
+      ),
       proximityAlertsProvider.overrideWith(
         (ref) => ProximityAlertsNotifier(
           ref,

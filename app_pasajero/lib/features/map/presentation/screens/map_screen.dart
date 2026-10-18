@@ -53,6 +53,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _metricUnitGuideKey = GlobalKey();
   final GlobalKey _detailGuideKey = GlobalKey();
   final GlobalKey _alertGuideKey = GlobalKey();
+  final GlobalKey _ruedaGuideKey = GlobalKey();
   final GlobalKey _recenterGuideKey = GlobalKey();
 
   Rect? _guideTarget;
@@ -209,11 +210,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   void _onEligiendoDistancia(bool eligiendo) {
     if (!mounted || _eligiendoDistancia == eligiendo) return;
-    setState(() => _eligiendoDistancia = eligiendo);
+    // Sin objetivo hasta medir el nuevo: si no, la copia de la rueda salía
+    // un cuadro sobre el hueco del botón.
+    setState(() {
+      _eligiendoDistancia = eligiendo;
+      _measuredGuideStep = null;
+    });
     ref.read(eligiendoDistanciaProvider.notifier).state = eligiendo;
-    // Al volver, el botón del aviso está otra vez en su sitio: se mide de
-    // nuevo, que la tarjeta cambió de alto en medio.
-    if (!eligiendo) _scheduleGuideMeasurement(ref.read(mapGuideProvider).step);
+    // La tarjeta cambia de alto al abrir y al cerrar la rueda, y en el paso
+    // del aviso el objetivo pasa del botón a la rueda y vuelve: se mide de
+    // nuevo.
+    _scheduleGuideMeasurement(ref.read(mapGuideProvider).step);
   }
 
   void _onGuideAlertBlocked(bool blocked) {
@@ -291,6 +298,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // El objetivo abarca el número grande y su unidad ("km de ti").
         return metric.expandToInclude(unit);
       case MapGuideStep.alert:
+        // Mientras elige la distancia, la tarjeta del bus con la rueda y
+        // sus dos botones; el botón del aviso ya no está.
+        return _rectFor(_eligiendoDistancia ? _ruedaGuideKey : _alertGuideKey);
       case MapGuideStep.background:
         return _rectFor(_alertGuideKey);
       case MapGuideStep.company:
@@ -367,6 +377,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         limitReached: alertLimitReached,
         isBlocked: _alertBlocked,
         routeTooFar: routeTooFar,
+        eligiendoDistancia: _eligiendoDistancia,
         plataforma: Theme.of(context).platform,
       );
 
@@ -401,8 +412,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ? null
         : _copyFor(
             step, selectedBusHasActiveAlert, alertLimitReached, routeTooFar);
+    // Con la rueda abierta la guía se aparta, salvo en el paso del aviso:
+    // ahí la rueda es el paso, y sin la guía quedaba toda la pantalla
+    // encendida y tocable (dueño, 2026-10-16).
     final showMapGuide = copy != null &&
-        !_eligiendoDistancia &&
+        (!_eligiendoDistancia || step == MapGuideStep.alert) &&
         _isMapStep(step) &&
         (step == MapGuideStep.background ||
             (_guideTarget != null && _measuredGuideStep == step));
@@ -500,6 +514,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             right: 0,
             child: EtaBottomSheet(
               alertKey: _alertGuideKey,
+              ruedaKey: _ruedaGuideKey,
               metricKey: _metricGuideKey,
               metricUnitKey: _metricUnitGuideKey,
               detailKey: _detailGuideKey,
@@ -543,10 +558,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     : () => alertBlockedCopy
                         ? _chooseAnotherBus()
                         : _completeInfoStep(visibleStep),
-                onBack: pasoAnterior(guide, visibleStep,
-                            hayPunto: ref.watch(userLocationProvider
-                                .select((l) => l.hasPosition))) ==
-                        null
+                // Con la rueda abierta no hay «Atrás»: volver a la distancia
+                // dejaría la rueda a medias y la guía escondida; la rueda
+                // se cierra con su propio «Solo esta vez».
+                onBack: _eligiendoDistancia ||
+                        pasoAnterior(guide, visibleStep,
+                                hayPunto: ref.watch(userLocationProvider
+                                    .select((l) => l.hasPosition))) ==
+                            null
                     ? null
                     : () => volverEnGuia(ref.read, visibleStep),
                 onSkip: _skipGuide,

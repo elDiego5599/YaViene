@@ -101,9 +101,6 @@ Necesitan un teléfono, una cuenta o estar presente.
 ## Lo que puedo hacer yo
 
 - **Para el domingo 2026-10-18** (dueño, 2026-10-16, en el iPhone):
-  1. La guía, en el paso de la distancia, cuando el pasajero nunca ha
-     puesto ni guardado una: queda iluminada toda el área y se puede tocar
-     cualquier cosa. Debe iluminar solo la rueda.
   3. En la guía, el paso «toca un bus» debe llevar el mapa al bus más
      cercano y decir que se puede mover el mapa para buscar otro.
 
