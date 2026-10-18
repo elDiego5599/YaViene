@@ -48,10 +48,10 @@ void main() {
     // Las ilustraciones del fondo se decodifican fuera del reloj falso;
     // sin esto la foto saldría sin ellas.
     await tester.runAsync(() async {
-      for (final p in FondoIlustrado.piezas) {
-        if (p.asset == null) continue;
+      for (final m in Motivo.values) {
+        if (m.asset == null) continue;
         await precacheImage(
-            AssetImage(p.asset!), tester.element(find.byType(MasScreen)));
+            AssetImage(m.asset!), tester.element(find.byType(MasScreen)));
       }
     });
     await tester.pump();
