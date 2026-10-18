@@ -100,17 +100,6 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
-- **Lo del 2026-10-18** (dueño, en el iPhone):
-  2. Espejar en la web el logo en la punta izquierda de la píldora y lo
-     de Avisos (sin la nota del iPhone, «Notificación
-     enviada: 6 oct, 17:35») y quitar el «·» de lo que se lee en la web.
-
-- **La auditoría AUD16** (2026-10-18, pegada por el dueño; cada punto se
-  verifica en el código antes de tocarlo):
-  3. AUD16-03: la E2E del simulador (`e2e/ruta.e2e.ts:33-41`) espera las
-     entradas viejas de «Más»; la pestaña ahora es «Info». Ya dice
-     «Info»; falta correrla con la próxima build del simulador.
-
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,
   Avisos, Buzón, Info). Las maquetas del pasajero en `YaVieneWeb` (rama
@@ -154,8 +143,8 @@ Necesitan un teléfono, una cuenta o estar presente.
   ubicación con un aviso del pin anterior y sin ancla. Revisar si se
   quitan (con `inventario-estados.md`) o si falta un estado de verdad.
 
-Ojo con la web: el CSS va en 118,3 de 121 KB (98 %; dueño, 2026-10-16: puede
-subir) y la carpeta `dist` en 717,8 de 797. Cualquier cambio de la web se
+Ojo con la web: el CSS va en 118,5 de 121 KB (98 %; dueño, 2026-10-16: puede
+subir) y la carpeta `dist` en 719,2 de 797. Cualquier cambio de la web se
 mide antes de sumarlo.
 
 ## El día antes y el día del pitch
