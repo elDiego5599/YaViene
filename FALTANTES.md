@@ -110,8 +110,6 @@ Necesitan un teléfono, una cuenta o estar presente.
   3. AUD16-03: la E2E del simulador (`e2e/ruta.e2e.ts:33-41`) espera las
      entradas viejas de «Más»; la pestaña ahora es «Info». Ya dice
      «Info»; falta correrla con la próxima build del simulador.
-  9. AUD16-10 y la cuenta de Playwright: el carrusel espera por tiempo y no
-     por estado; la cifra de pruebas cambió sin que nadie dijera por qué.
 
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,

@@ -172,8 +172,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 - **Web** (2026-10-13): `npm run typecheck` limpio (3 configs), **413 en Vitest**,
   cobertura 99,3 / 94,3 / 100 / 99,8 sobre el trinquete 98 / 90 / 100 / 99
   (`vite.config.ts`; `npm test` no la mide, `npm run test:cobertura` sí),
-  Playwright **122 + 18 saltadas** (`carrusel-lamina.spec.ts` vigila
-  cuadro a cuadro que texto y cuadro no se separen). Presupuestos: dist
+  Playwright **130 + 26 saltadas** al 2026-10-18 (`carrusel-lamina.spec.ts`
+  vigila cuadro a cuadro que texto y cuadro no se separen, y espera por
+  estado, no por reloj: estable con 12 hilos). Presupuestos: dist
   702,1/797 (88 %), JS 44,7/66, CSS 110,0/121 (91 %), primera visita
   394,6/560 y el video
   del hero 4.941/5.090 (**97 %**, tope propio): todo cambio web se mide
