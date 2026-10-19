@@ -147,7 +147,13 @@ Necesitan un teléfono, una cuenta o estar presente.
   de la primera fila a la última, y la carta encima de la hoja si cabe. La
   maqueta del trío del hero (`.tinta-hero` en `phone-simulator.css`) sigue
   con la marca de 84 sobre tinta y la de Info con la malla. Ojo con el CSS
-  al 98 %.
+  al 98 %. Y el lote siguiente del mismo día: títulos de sección como Salud
+  del iPhone (`titulo_seccion.dart`, 22 en negrita, 28 arriba y 10 abajo)
+  en Avisos, Info (Ayuda, Información) y Buzón (Tipo de mensaje, Tu
+  mensaje); Seleccionar y Cancelar en píldoras compactas (cara de 36,
+  toque de 48) a ras de las tarjetas; las opciones del buzón con su color
+  sin elegir (problema en coral, sugerencia en ámbar), y los créditos del
+  mapa dentro de Acerca de, sin la píldora del pie de Info.
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`
@@ -155,7 +161,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   (`revisarAvisos` en `YaVieneBackend/src/avisos_push.ts`) sigue en línea
   recta. Con la app cerrada, un bus a 400 m en recta y a 3 km por la ruta
   todavía avisa antes de tiempo. Falta portar la medida al backend con sus
-  mismas pruebas (la U de 1500 × 400 m del core).
+  mismas pruebas (la U de 1500 × 400 m del core y, del 2026-10-18, el paso
+  más próximo entre los mínimos locales a 150 m del más cercano: sin él,
+  un punto entre la ida y la vuelta daba 31,7 km con el bus a la vista).
 
 - **La tarjeta del aviso activo con el texto al doble** (hallado el
   2026-10-07, ya estaba en `9d0f3a0`): desde el 2026-10-16 ya no se sale
