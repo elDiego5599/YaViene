@@ -126,7 +126,7 @@ class NotificationsScreen extends ConsumerWidget {
                   key: ValueKey('avisos-cabecera'),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceMuted,
-                    border: Border(bottom: BorderSide(color: AppColors.filo)),
+                    border: Border(bottom: _raya),
                   ),
                 ),
               ),
@@ -1192,3 +1192,8 @@ class _LineaDistancia extends StatelessWidget {
     );
   }
 }
+
+// La raya de la cabecera, sutil (dueño, 2026-10-19: «que no se note
+// mucho»): media línea de la tinta (#0B1628) al 8 % (0x14), que sobre el
+// gris queda #DFE2E7, más clara que el filo de las tarjetas (#D0D4DC).
+const _raya = BorderSide(color: Color(0x140B1628), width: 0.5);

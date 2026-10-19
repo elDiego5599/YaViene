@@ -241,7 +241,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   la marca al 20 %, como Stripe o Linear) y una raya del mismo filo en
   cada tarjeta de Avisos; el mensaje del buzón sin raya, con la nota de
   privacidad fuera. Arriba, bajo la barra, una cabecera gris
-  (`surfaceMuted`) con raya de filo; la nota «Gestiona…» con su cuadro.
+  (`surfaceMuted`) con una raya sutil (media línea de tinta al 8 %); la nota «Gestiona…» con su cuadro.
   Fondo blanco con trama de puntos (`FondoTexturizado`, tinta al 7 %,
   contraste medido en el archivo) en arranque, bienvenida, Avisos, Buzón
   e Info (dueño, 2026-10-19; el matizado azul y verde se fue).

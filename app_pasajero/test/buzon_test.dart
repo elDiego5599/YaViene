@@ -181,7 +181,11 @@ void main() {
           .widget<DecoratedBox>(find.byKey(const ValueKey('buzon-cabecera')));
       final decoracion = cabecera.decoration as BoxDecoration;
       expect(decoracion.color, AppColors.surfaceMuted);
-      expect(decoracion.border, isNotNull);
+      // «Que no se note mucho, algo sutil» (dueño, 2026-10-19): media
+      // línea de tinta al 8 %, más clara que el filo de las tarjetas.
+      final raya = (decoracion.border! as Border).bottom;
+      expect(raya.width, lessThanOrEqualTo(0.5));
+      expect(raya.color.a, lessThanOrEqualTo(0.1));
     });
 
     // «Quiero como separadores que dividan las cosas, que se vea fino»
