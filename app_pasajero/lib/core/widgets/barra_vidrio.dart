@@ -177,9 +177,15 @@ class _FondoVidrioState extends State<FondoVidrio> {
 /// donde le da la luz y una sombra que lo despega. Con más contraste, blanco
 /// opaco con filo de tinta y sin desenfoque.
 class PildoraVidrio extends StatelessWidget {
-  const PildoraVidrio({super.key, required this.child});
+  const PildoraVidrio({super.key, required this.child, this.compacta = false});
 
   final Widget child;
+
+  /// Para un texto («Seleccionar», «Cancelar»): la cara mide 36, como las
+  /// píldoras de las tarjetas, y el toque sigue en 48 alrededor (dueño,
+  /// 2026-10-18: «demasiado grande»). Sin aire por los lados: quien la pone
+  /// la alinea con el contenido.
+  final bool compacta;
 
   static const caraKey = ValueKey('pildora-vidrio');
 
@@ -202,12 +208,45 @@ class PildoraVidrio extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final opaca = MediaQuery.highContrastOf(context);
-    final boton = ConstrainedBox(
-      // 48: el mínimo tocable de Android, que también cumple los 44 de iOS.
-      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-      child: Center(widthFactor: 1, heightFactor: 1, child: child),
+    if (compacta) {
+      // La cara va detrás del botón, 6 más baja por arriba y por abajo: el
+      // toque es de 48 (el mínimo de Android, que cumple los 44 de iOS) y
+      // lo que se ve, de 36.
+      return Center(
+        widthFactor: 1,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+                top: 6, bottom: 6, child: _vidrio(context, const SizedBox())),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              child: Center(widthFactor: 1, heightFactor: 1, child: child),
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Center(
+        widthFactor: 1,
+        child: _vidrio(
+          context,
+          ConstrainedBox(
+            // 48: el mínimo tocable de Android, que también cumple los 44 de
+            // iOS.
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            child: Center(widthFactor: 1, heightFactor: 1, child: child),
+          ),
+        ),
+      ),
     );
+  }
+
+  /// La sombra, el desenfoque y la cara alrededor de [contenido].
+  Widget _vidrio(BuildContext context, Widget contenido) {
+    final opaca = MediaQuery.highContrastOf(context);
     final cara = DecoratedBox(
       key: caraKey,
       decoration: BoxDecoration(
@@ -218,31 +257,24 @@ class PildoraVidrio extends StatelessWidget {
           width: opaca ? 1 : 0.8,
         ),
       ),
-      child: boton,
+      child: contenido,
     );
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Center(
-        widthFactor: 1,
-        child: DecoratedBox(
-          decoration:
-              const BoxDecoration(borderRadius: _forma, boxShadow: sombra),
-          // Recortada a la píldora: sin el recorte, el desenfoque se come
-          // toda la pantalla.
-          child: opaca
-              ? cara
-              : ClipRRect(
-                  borderRadius: _forma,
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.compose(
-                      outer: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      inner: _saturar,
-                    ),
-                    child: cara,
-                  ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(borderRadius: _forma, boxShadow: sombra),
+      // Recortada a la píldora: sin el recorte, el desenfoque se come toda
+      // la pantalla.
+      child: opaca
+          ? cara
+          : ClipRRect(
+              borderRadius: _forma,
+              child: BackdropFilter(
+                filter: ui.ImageFilter.compose(
+                  outer: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  inner: _saturar,
                 ),
-        ),
-      ),
+                child: cara,
+              ),
+            ),
     );
   }
 }

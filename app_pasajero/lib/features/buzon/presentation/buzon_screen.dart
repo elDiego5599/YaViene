@@ -5,6 +5,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
+import '../../../core/widgets/titulo_seccion.dart';
 import '../data/buzon.dart';
 
 /// El buzón del pasajero: un problema o una sugerencia, escrito en un
@@ -132,7 +133,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
               const _Encabezado(),
-              const SizedBox(height: AppSpacing.lg),
+              // Dos bloques con su título, como Salud del iPhone (dueño,
+              // 2026-10-18: «separaciones entre títulos»).
+              const TituloSeccion('Tipo de mensaje'),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -142,6 +145,8 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                       icono: Icons.report_gmailerrorred_outlined,
                       texto: 'Un problema',
                       detalle: 'Algo no funciona bien',
+                      tinta: AppColors.coralAccessible,
+                      tinte: AppColors.coralLight,
                       elegida: problema,
                       alPulsar: () =>
                           setState(() => _tipo = TipoReporte.problema),
@@ -154,6 +159,8 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                       icono: Icons.lightbulb_outline_rounded,
                       texto: 'Una sugerencia',
                       detalle: 'Una idea para mejorar',
+                      tinta: AppColors.warningAccessible,
+                      tinte: AppColors.warningLight,
                       elegida: !problema,
                       alPulsar: () =>
                           setState(() => _tipo = TipoReporte.sugerencia),
@@ -161,7 +168,7 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const TituloSeccion('Tu mensaje'),
               // Tarjeta blanca con sombra suave, como las opciones: el filo
               // solo aparece, verde, mientras se escribe.
               DecoratedBox(
@@ -332,9 +339,12 @@ class _NotaPrivacidad extends StatelessWidget {
 }
 
 /// Una de las dos opciones: tarjeta blanca con sombra suave, ícono en su
-/// círculo, nombre y una línea que lo explica. La elegida toma el tinte y
-/// el filo verdes de la ruta activa del menú y una marca en la esquina; el
-/// cambio se anima (y no, con «Reducir movimiento»).
+/// círculo, nombre y una línea que lo explica. Cada una tiene su color
+/// también sin elegir, el problema en coral y la sugerencia en ámbar (dueño,
+/// 2026-10-18: «todo parece igual y del mismo color»): el círculo va en su
+/// tinte claro con el ícono en su tinta. La elegida llena el círculo, toma
+/// el tinte y el filo de su color y una marca en la esquina; el cambio se
+/// anima (y no, con «Reducir movimiento»).
 class _Opcion extends StatelessWidget {
   const _Opcion({
     super.key,
@@ -343,6 +353,8 @@ class _Opcion extends StatelessWidget {
     required this.detalle,
     required this.elegida,
     required this.alPulsar,
+    required this.tinta,
+    required this.tinte,
   });
 
   final IconData icono;
@@ -350,6 +362,12 @@ class _Opcion extends StatelessWidget {
   final String detalle;
   final bool elegida;
   final VoidCallback alPulsar;
+
+  /// El color de la opción, que da 3:1 con [tinte] y con el blanco.
+  final Color tinta;
+
+  /// Su versión clara, de fondo.
+  final Color tinte;
 
   @override
   Widget build(BuildContext context) {
@@ -368,10 +386,10 @@ class _Opcion extends StatelessWidget {
         duration: duracion,
         curve: AppMotion.curvaEntrada,
         decoration: BoxDecoration(
-          color: elegida ? AppColors.primaryTint : Colors.white,
+          color: elegida ? tinte : Colors.white,
           borderRadius: radio,
           border: Border.all(
-            color: elegida ? AppColors.primaryAccessible : AppColors.hairline,
+            color: elegida ? tinta : AppColors.hairline,
             width: elegida ? 2 : 1,
           ),
           boxShadow: elegida ? null : AppShadows.soft,
@@ -393,23 +411,17 @@ class _Opcion extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: elegida
-                              ? AppColors.primary
-                              : AppColors.primaryDeep.withValues(alpha: 0.06),
+                          color: elegida ? tinta : tinte,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(icono,
-                            size: 22,
-                            color: elegida ? Colors.white : AppColors.textBody),
+                            size: 22, color: elegida ? Colors.white : tinta),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         texto,
-                        style: AppTextStyles.cuerpoFuerte.copyWith(
-                          color: elegida
-                              ? AppColors.primaryDeep
-                              : AppColors.textPrimary,
-                        ),
+                        style: AppTextStyles.cuerpoFuerte
+                            .copyWith(color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -427,8 +439,8 @@ class _Opcion extends StatelessWidget {
                     scale: elegida ? 1 : 0,
                     duration: duracion,
                     curve: AppMotion.curvaEntrada,
-                    child: const Icon(Icons.check_circle_rounded,
-                        size: 22, color: AppColors.primaryAccessible),
+                    child: Icon(Icons.check_circle_rounded,
+                        size: 22, color: tinta),
                   ),
                 ),
               ],

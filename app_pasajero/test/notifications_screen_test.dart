@@ -12,6 +12,7 @@ import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/core/widgets/placa_bus.dart';
+import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
@@ -444,6 +445,11 @@ void main() {
     expect(tester.getSemantics(esperando),
         isSemantics(label: 'Esperando', isHeader: true));
     semantica.dispose();
+    // Con el título de sección de las páginas, como Salud del iPhone.
+    for (final t in [esperando, enviados]) {
+      expect(find.ancestor(of: t, matching: find.byType(TituloSeccion)),
+          findsOneWidget);
+    }
   });
 
   testWidgets('sin avisos enviados no sale el grupo «Enviados»',
@@ -821,5 +827,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(enPildora('Cancelar'), findsOneWidget);
     expect(enPildora('Borrar todas'), findsOneWidget);
+  });
+  testWidgets(
+      'Seleccionar y Cancelar son píldoras compactas, a ras de las '
+      'tarjetas', (tester) async {
+    // Dueño, 2026-10-18: «el boton de seleccionar en aviso esta demasiado
+    // grande». Medía 48 de alto (el doble de su letra) y quedaba a 6 del
+    // borde. Ahora la cara mide 36, como «Desactivar» en la tarjeta, y su
+    // filo cae a 20, donde empiezan y acaban las tarjetas; el toque sigue
+    // en 48.
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    final ancho = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+
+    // La cara va detrás del texto, en la misma píldora.
+    Rect cara(String texto) => tester.getRect(find.descendant(
+        of: find
+            .ancestor(
+                of: find.text(texto), matching: find.byType(PildoraVidrio))
+            .first,
+        matching: find.byKey(PildoraVidrio.caraKey)));
+    Size toque(String texto) => tester.getSize(find
+        .ancestor(of: find.text(texto), matching: find.byType(TextButton))
+        .first);
+
+    expect(cara('Seleccionar').height, 36);
+    expect(cara('Seleccionar').right, ancho - 20);
+    expect(toque('Seleccionar').height, greaterThanOrEqualTo(48));
+
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pumpAndSettle();
+    expect(cara('Cancelar').height, 36);
+    expect(cara('Cancelar').left, 20);
+    expect(toque('Cancelar').height, greaterThanOrEqualTo(48));
+    expect(cara('Borrar todas').right, ancho - 20);
   });
 }

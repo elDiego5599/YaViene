@@ -10,6 +10,7 @@ import '../../../../core/widgets/barra_vidrio.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
+import '../../../../core/widgets/titulo_seccion.dart';
 import '../../../map/presentation/providers/distancia_al_bus.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/widgets/alert_guards.dart' show avisosAlTope;
@@ -68,19 +69,26 @@ class NotificationsScreen extends ConsumerWidget {
         // Seleccionando, a la izquierda va «Cancelar»: antes no había cómo
         // salir de la selección sin borrar (dueño, 2026-10-02).
         // Los botones flotan en sus píldoras de vidrio, como en iOS 26.
+        // Las píldoras de texto caen a 20 del borde, donde empiezan y acaban
+        // las tarjetas.
         leadingWidth: selecting ? 124 : null,
         leading: selecting
-            ? MediaQuery.withClampedTextScaling(
-                maxScaleFactor: 1.3,
-                child: PildoraVidrio(
-                    child: TextButton(
-                  onPressed: ref.read(alertSelectionProvider.notifier).clear,
-                  style: TextButton.styleFrom(
-                    textStyle: AppTextStyles.etiqueta,
-                    foregroundColor: AppColors.primaryDeep,
+            ? Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.3,
+                    child: PildoraVidrio(
+                        compacta: true,
+                        child: TextButton(
+                          onPressed:
+                              ref.read(alertSelectionProvider.notifier).clear,
+                          style: estiloPildora(AppColors.primaryDeep),
+                          child: const Text('Cancelar'),
+                        )),
                   ),
-                  child: const Text('Cancelar'),
-                )),
+                ),
               )
             // Fuera de la selección no hay flecha: Avisos es una pestaña de
             // la barra de abajo y no hay detrás a dónde volver.
@@ -91,8 +99,10 @@ class NotificationsScreen extends ConsumerWidget {
             : [
                 MediaQuery.withClampedTextScaling(
                   maxScaleFactor: 1.3,
-                  child: const PildoraVidrio(child: _SelectAction()),
+                  child: const PildoraVidrio(
+                      compacta: true, child: _SelectAction()),
                 ),
+                const SizedBox(width: 20),
               ],
       ),
       // Al borrar el último, la lista se apaga y el estado vacío aparece en
@@ -235,6 +245,19 @@ void _borrar(
   );
 }
 
+/// El texto de una [PildoraVidrio] compacta: 14 de aire por lado y 48 de
+/// toque, que la píldora no pinta entero.
+@visibleForTesting
+ButtonStyle estiloPildora(Color color) => TextButton.styleFrom(
+      textStyle: AppTextStyles.etiqueta,
+      foregroundColor: color,
+      disabledForegroundColor: AppColors.textSecondary,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      minimumSize: const Size(48, 48),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      shape: const StadiumBorder(),
+    );
+
 /// Acción "Seleccionar"/"Borrar todas" en la barra superior.
 class _SelectAction extends ConsumerWidget {
   const _SelectAction();
@@ -254,11 +277,7 @@ class _SelectAction extends ConsumerWidget {
           ref.read(alertSelectionProvider.notifier).enter();
         }
       },
-      style: TextButton.styleFrom(
-        textStyle: AppTextStyles.etiqueta,
-        foregroundColor: selecting ? AppColors.error : AppColors.primaryDeep,
-        disabledForegroundColor: AppColors.textSecondary,
-      ),
+      style: estiloPildora(selecting ? AppColors.error : AppColors.primaryDeep),
       child: Text(selecting ? 'Borrar todas' : 'Seleccionar'),
     );
   }
@@ -387,7 +406,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
               if (fila is Widget) return fila;
               if (fila is String) {
                 // El primero va justo bajo la nota.
-                return _Encabezado(fila, primero: index == 1);
+                return TituloSeccion(fila, primero: index == 1);
               }
               final entry = fila as AlertHistoryEntry;
               final seVa = _saliendo.containsKey(entry.id);
@@ -428,7 +447,7 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (primeraDelGrupo)
-                        _Encabezado(
+                        TituloSeccion(
                           entry.sent ? 'Enviados' : 'Esperando',
                           primero: index == 1,
                         ),
@@ -496,43 +515,6 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
               : const SizedBox(width: double.infinity),
         ),
       ],
-    );
-  }
-}
-
-/// El encabezado de un grupo de avisos: «Esperando» o «Enviados».
-///
-/// En `etiqueta` y en el gris secundario, como los rótulos de sección de
-/// iOS: ordena sin competir con el nombre de la ruta, que va en
-/// `subtitulo`. Es encabezado también para el lector de pantalla.
-class _Encabezado extends StatelessWidget {
-  const _Encabezado(this.texto, {required this.primero});
-
-  final String texto;
-
-  /// El primero va pegado a lo de arriba; el segundo se separa del grupo
-  /// anterior lo bastante para que se lea como otro grupo y no como otra
-  /// tarjeta.
-  final bool primero;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xs,
-        primero ? AppSpacing.sm : AppSpacing.md,
-        AppSpacing.xs,
-        AppSpacing.sm,
-      ),
-      child: Semantics(
-        header: true,
-        child: Text(
-          texto,
-          style: AppTextStyles.etiqueta.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ),
     );
   }
 }

@@ -22,6 +22,11 @@ typedef Proyeccion = ({double avance, double desvio});
 /// `rutas.json` cierran a 0–33 m).
 const double _cierreCircular = 50;
 
+/// Pasos hasta esto más lejos que el más cercano también son del punto: la
+/// ruta que vuelve a pasar a una cuadra y media trae el bus antes que la
+/// vuelta entera (dueño, 2026-10-18: decía 31,7 km con el bus a la vista).
+const double _caminable = 150;
+
 /// Velocidad más alta que se le cree a un bus urbano, 90 km/h: acota cuánto
 /// pudo avanzar entre dos posiciones.
 const double _vMax = 25;
@@ -208,15 +213,26 @@ class RutaMedible {
   }
 
   /// Cada paso de la ruta cerca de [p]: en una calle de ida y vuelta, el
-  /// punto cae en las dos. Pasos a menos de [_empate] del más cercano; los
-  /// tramos seguidos que caen en el mismo sitio (una esquina) son un paso.
+  /// punto cae en las dos. Un paso es donde la ruta más se acerca a [p]
+  /// antes de alejarse otra vez (ningún tramo vecino queda más cerca), a
+  /// menos de [_caminable] del más cercano; los tramos seguidos que caen en
+  /// el mismo sitio (una esquina) son un paso.
   List<Proyeccion> _pasos(GeoPoint p) {
     final (px, py) = _plano(p);
     final todas = _proyecciones(px, py).toList();
     final mejor = todas.map((c) => c.desvio).reduce(math.min);
+    final n = todas.length;
+    bool minimo(int i) {
+      final antes = i > 0 ? i - 1 : (circular ? n - 1 : null);
+      final despues = i < n - 1 ? i + 1 : (circular ? 0 : null);
+      return (antes == null || todas[i].desvio <= todas[antes].desvio) &&
+          (despues == null || todas[i].desvio <= todas[despues].desvio);
+    }
+
     final cerca = [
-      for (final c in todas)
-        if (c.desvio <= mejor + _empate) (avance: c.avance, desvio: c.desvio)
+      for (var i = 0; i < n; i++)
+        if (todas[i].desvio <= mejor + _caminable && minimo(i))
+          (avance: todas[i].avance, desvio: todas[i].desvio)
     ]..sort((a, b) => a.avance.compareTo(b.avance));
     const mismoPaso = 2 * _empate;
     final pasos = <Proyeccion>[];

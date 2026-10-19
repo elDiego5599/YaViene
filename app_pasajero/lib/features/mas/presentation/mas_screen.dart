@@ -10,6 +10,7 @@ import '../../../core/app_info.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/dialogo.dart';
+import '../../../core/widgets/titulo_seccion.dart';
 import '../../legal/legal_docs.dart';
 import '../../map/presentation/providers/map_tour_provider.dart';
 import '../../map/presentation/providers/map_view_state.dart';
@@ -18,7 +19,8 @@ import '../../map/presentation/providers/user_location_provider.dart';
 import 'fondo_ilustrado.dart';
 
 /// La pestaña «Info»: la ruta que se sigue, la guía de uso y lo que se
-/// consulta de vez en cuando (lo legal, la versión y los créditos del mapa).
+/// consulta de vez en cuando (lo legal y, en Acerca de, la versión y los
+/// créditos del mapa).
 /// Es lo que quedó del menú lateral cuando Avisos y el buzón pasaron a ser
 /// pestañas de la píldora de abajo (dueño, 2026-10-16).
 ///
@@ -35,7 +37,7 @@ class MasScreen extends ConsumerWidget {
   /// de un vistazo y respira a los lados.
   static const double anchoMaximo = 340;
 
-  /// La píldora blanca de la marca y de los créditos sobre las ilustraciones.
+  /// La píldora blanca de la marca sobre las ilustraciones.
   static const pildoraKey = ValueKey('mas-pildora');
 
   /// El aire a cada lado de la columna, más que el de las demás pestañas:
@@ -83,8 +85,12 @@ class MasScreen extends ConsumerWidget {
         icono: Icons.info_outline_rounded,
         titulo: 'Ya Viene',
         detalle: 'Versión $kAppVersion',
+        // Los créditos del mapa van aquí y no sueltos en Info (dueño,
+        // 2026-10-18: «quita la pill de MapLibre y eso ponlo dentro de
+        // Acerca de»). Los espacios duros pegan cada © a su nombre.
         mensaje: 'Piloto en Barranquilla. Las posiciones salen del GPS que '
-            'va instalado en cada bus.',
+            'va instalado en cada bus.\n\n'
+            'Mapa: ©\u00A0MapLibre, ©\u00A0OpenStreetMap, ©\u00A0CARTO',
         principal: DialogoAccion(
           'Cerrar',
           () => Navigator.pop(dialogContext),
@@ -175,10 +181,8 @@ class MasScreen extends ConsumerWidget {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: anchoMaximo),
-                    // El pie se apoya en el fondo de la página y no justo
-                    // debajo del último grupo: pegado arriba dejaba media
-                    // pantalla vacía. En un teléfono bajo, donde no sobra
-                    // nada, todo se desplaza.
+                    // En un teléfono bajo, donde no sobra nada, todo se
+                    // desplaza.
                     child: CustomScrollView(
                       slivers: [
                         SliverToBoxAdapter(
@@ -189,7 +193,7 @@ class MasScreen extends ConsumerWidget {
                               SizedBox(
                                   height: MediaQuery.paddingOf(context).top),
                               const ActiveRouteCard(),
-                              const SizedBox(height: AppSpacing.lg),
+                              const TituloSeccion('Ayuda'),
                               _grupo([
                                 FilaMas(
                                   icon: Icons.help_outline_outlined,
@@ -197,7 +201,7 @@ class MasScreen extends ConsumerWidget {
                                   onTap: () => _verGuia(context, ref),
                                 ),
                               ]),
-                              const SizedBox(height: AppSpacing.md),
+                              const TituloSeccion('Información'),
                               // Segundo grupo: lo que se consulta de
                               // vez en cuando. Sin cuenta, este es el
                               // único sitio estable donde volver a
@@ -222,22 +226,6 @@ class MasScreen extends ConsumerWidget {
                                   onTap: () => _acercaDe(context),
                                 ),
                               ]),
-                            ],
-                          ),
-                        ),
-                        const SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(height: 26),
-                              // Los créditos del mapa viven aquí
-                              // desde que la "i" azul de MapLibre
-                              // dejó libre su esquina para el botón
-                              // de recentrar. OpenStreetMap y CARTO
-                              // piden que se vean; el pie de esta
-                              // página es donde no estorban.
-                              _Pie(),
                             ],
                           ),
                         ),
@@ -330,33 +318,6 @@ final _tarjeta = BoxDecoration(
   borderRadius: BorderRadius.circular(AppRadius.lg),
   boxShadow: AppShadows.floating,
 );
-
-/// Pie de Info: los créditos del mapa, chicos y al centro, en el gris de la
-/// letra secundaria sobre su píldora blanca.
-class _Pie extends StatelessWidget {
-  const _Pie();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.md),
-      child: _Pildora(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        child: Text(
-          // Sin «Mapa» delante: con él, «CARTO» se quedaba solo en una
-          // segunda línea. Los espacios duros pegan cada © a su nombre, para
-          // que con el texto grande se corte por las comas.
-          '©\u00A0MapLibre, ©\u00A0OpenStreetMap, ©\u00A0CARTO',
-          textAlign: TextAlign.center,
-          style: AppTextStyles.pie.copyWith(
-            color: AppColors.textSecondary,
-            height: 1.4,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Pieza central de Info: la ruta que el usuario está siguiendo, con sus
 /// terminales unidos por una línea de ida y vuelta. Sin ruta seleccionada

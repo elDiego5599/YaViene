@@ -8,6 +8,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
+import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
@@ -131,8 +132,6 @@ void main() {
     expect(find.textContaining(kAppVersion), findsWidgets);
   });
 
-  // El pie iba pegado al último grupo y debajo quedaba media pantalla de
-  // tinta vacía. Ahora baja hasta el fondo de la página.
   testWidgets('Info va en una columna angosta y centrada, no de borde a borde',
       (tester) async {
     tester.view.physicalSize = const Size(430, 932);
@@ -175,18 +174,44 @@ void main() {
     }
   });
 
-  testWidgets('el pie de Más se apoya abajo del todo', (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  // «Quita la pill de MapLibre y eso ponlo dentro de Acerca de» (dueño,
+  // 2026-10-18): la página acaba en su último grupo.
+  testWidgets('los créditos del mapa van en Acerca de, no sueltos en Info',
+      (tester) async {
     await abrirMas(tester);
+    expect(find.textContaining('OpenStreetMap'), findsNothing);
 
-    final pie = tester.getRect(find.textContaining('OpenStreetMap'));
-    final pagina = tester.getRect(find.byType(MasScreen));
-    expect(pagina.bottom - pie.bottom, lessThan(48));
+    await tester.ensureVisible(find.text('Acerca de'));
+    await tester.pump();
+    await tester.tap(find.text('Acerca de'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.textContaining(kAppVersion), findsWidgets);
+    expect(
+        find.textContaining(
+            '©\u00A0MapLibre, ©\u00A0OpenStreetMap, ©\u00A0CARTO'),
+        findsOneWidget);
   });
 
-  testWidgets('en una pantalla baja el pie no se monta encima', (tester) async {
+  testWidgets('cada grupo de Info lleva su título de sección', (tester) async {
+    await abrirMas(tester);
+    double y(Finder f) => tester.getTopLeft(f).dy;
+    for (final (titulo, primeraFila) in [
+      ('Ayuda', 'Ver guía de uso'),
+      ('Información', 'Privacidad'),
+    ]) {
+      final t = find.text(titulo);
+      expect(find.ancestor(of: t, matching: find.byType(TituloSeccion)),
+          findsOneWidget,
+          reason: titulo);
+      expect(y(t), lessThan(y(find.text(primeraFila))), reason: titulo);
+    }
+    expect(y(find.text('Ayuda')),
+        greaterThan(tester.getRect(find.byType(ActiveRouteCard)).bottom));
+  });
+
+  testWidgets('en una pantalla baja se llega al último grupo sin desbordes',
+      (tester) async {
     tester.view.physicalSize = const Size(320, 480);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -194,15 +219,12 @@ void main() {
 
     expect(tester.takeException(), isNull);
     await tester.dragUntilVisible(
-      find.textContaining('OpenStreetMap'),
+      find.text('Acerca de'),
       find.byType(Scrollable).last,
       const Offset(0, -80),
     );
-    // El fondo anima sin fin: se deja correr la inercia a mano.
     await tester.pump(const Duration(seconds: 1));
-    final grupo = tester.getRect(find.text('Acerca de'));
-    final pie = tester.getRect(find.textContaining('OpenStreetMap'));
-    expect(pie.top, greaterThan(grupo.bottom));
+    expect(tester.takeException(), isNull);
   });
 
   // «Mejor con las fotos animadas» (dueño, 2026-10-18): las ilustraciones
@@ -220,7 +242,6 @@ void main() {
     expect(find.byType(FondoMalla), findsNothing);
     for (final (texto, color) in [
       ('Ya Viene', AppColors.textPrimary),
-      ('OpenStreetMap', AppColors.textSecondary),
     ]) {
       final letra = find.textContaining(texto);
       expect(tester.widget<Text>(letra).style!.color, color);

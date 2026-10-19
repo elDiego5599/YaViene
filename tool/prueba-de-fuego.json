@@ -636,6 +636,24 @@
     "que": "un punto lejos de la ruta no se mide por ella"
   },
   {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "const double _caminable = 150;",
+    "a": "const double _caminable = 0;",
+    "que": "la ruta que vuelve a pasar cerca trae el bus antes que la vuelta entera"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "const double _caminable = 150;",
+    "a": "const double _caminable = 200;",
+    "que": "una calle a más de 150 m del paso más cercano no es el mismo sitio"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (todas[i].desvio <= mejor + _caminable && minimo(i))",
+    "a": "if (todas[i].desvio <= mejor + _caminable)",
+    "que": "antes de una esquina no hay un paso falso"
+  },
+  {
     "archivo": "app_pasajero/lib/features/map/presentation/utils/geo.dart",
     "de": "seguidor?.distancia(bus, GeoPoint(lat: lat, lon: lon)) ??",
     "a": "null ??",

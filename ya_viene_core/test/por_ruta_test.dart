@@ -106,6 +106,40 @@ void main() {
     });
   });
 
+  group('la ruta pasa dos veces cerca del punto: cuenta el próximo paso', () {
+    // Rectángulo circular de 1000 × 200: este por y = 0, norte, oeste por
+    // y = 200 y bajada al inicio. 2400 m.
+    final rect = RutaMedible.de(
+        [_m(0, 0), _m(1000, 0), _m(1000, 200), _m(0, 200), _m(0, 10)])!;
+
+    test('pasado el paso más cercano, el de enfrente viene antes', () {
+      // El punto en (500, 80): a 80 m de la ida y a 120 de la vuelta. El bus
+      // en x = 700 de la ida ya dejó atrás el paso de 80 (dueño, 2026-10-18:
+      // decía 31,7 km con el bus a la vista). Faltan 300 + 200 + 500 de
+      // ruta y 120 de desvío, no la vuelta entera.
+      final s = SeguidorRuta(rect);
+      expect(s.distancia(_bus(700, 0, rumbo: 90), _m(500, 80)),
+          closeTo(1120, 5));
+    });
+
+    test('antes de la esquina no hay otro paso: la ruta sigue acercándose', () {
+      // El punto en (990, 100), junto a la subida por x = 1000. La ida le
+      // queda a 100 en x = 990, pero de ahí la ruta se le acerca más: el
+      // paso es la subida, a 10. Del bus en x = 900: 100 + 100 + 10.
+      final s = SeguidorRuta(rect);
+      expect(s.distancia(_bus(900, 0, rumbo: 90), _m(990, 100)),
+          closeTo(210, 5));
+    });
+
+    test('un paso a más de 150 m del más cercano ya no es el mismo sitio', () {
+      // El punto en (500, 20): la vuelta le queda a 180, 160 más que la ida.
+      // Esa calle es otra: se espera la ida de la vuelta siguiente.
+      final s = SeguidorRuta(rect);
+      expect(s.distancia(_bus(700, 0, rumbo: 90), _m(500, 20)),
+          closeTo(2220, 5));
+    });
+  });
+
   group('el ruido del GPS no manda al bus a la vuelta siguiente', () {
     // El bus parado en el punto: unos metros de error lo ponen detrás, y
     // sin tolerancia faltaría una vuelta entera (o, en la abierta, nada).

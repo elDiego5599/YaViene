@@ -12,9 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppColors;
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
 import 'helpers/barra.dart';
+import 'helpers/contraste.dart';
 
 /// El botón queda bajo el campo: en la pantalla de prueba (800×600) hay que
 /// llevarlo a la vista antes de tocarlo, como haría el pasajero.
@@ -189,6 +191,76 @@ void main() {
               .descendant(
                   of: find.byType(ListView), matching: find.byType(Text))
               .first);
+    });
+
+    // «En la parte de sugerencias todo parece igual y del mismo color»
+    // (dueño, 2026-10-18): cada opción lleva su color también sin elegir,
+    // el problema en coral y la sugerencia en ámbar, y la página se parte
+    // en dos bloques con su título.
+    testWidgets('cada opción tiene su color, elegida o no', (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+            backend: () => 'http://x',
+            cliente: MockClient((_) async => http.Response('', 201)),
+          ));
+      (Color, Color) circulo(String clave, IconData icono) {
+        final ic = find.descendant(
+            of: find.byKey(ValueKey(clave)), matching: find.byIcon(icono));
+        final caja = tester.widget<AnimatedContainer>(find
+            .ancestor(of: ic, matching: find.byType(AnimatedContainer))
+            .first);
+        return (
+          (caja.decoration! as BoxDecoration).color!,
+          tester.widget<Icon>(ic).color!,
+        );
+      }
+
+      void exige(String clave, IconData icono, Color fondo, Color tinta) {
+        final (f, t) = circulo(clave, icono);
+        expect((f, t), (fondo, tinta), reason: clave);
+        exigeContraste(contraste(t, f), 3, '$clave: ícono sobre su círculo');
+      }
+
+      const problema = ('buzon_problema', Icons.report_gmailerrorred_outlined);
+      const sugerencia = ('buzon_sugerencia', Icons.lightbulb_outline_rounded);
+      // Arranca en «Un problema».
+      exige(problema.$1, problema.$2, AppColors.coralAccessible, Colors.white);
+      exige(sugerencia.$1, sugerencia.$2, AppColors.warningLight,
+          AppColors.warningAccessible);
+
+      await tester.tap(find.byKey(const ValueKey('buzon_sugerencia')));
+      await tester.pumpAndSettle();
+      exige(problema.$1, problema.$2, AppColors.coralLight,
+          AppColors.coralAccessible);
+      exige(sugerencia.$1, sugerencia.$2, AppColors.warningAccessible,
+          Colors.white);
+    });
+
+    testWidgets('las opciones y el campo llevan su título de sección',
+        (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+            backend: () => 'http://x',
+            cliente: MockClient((_) async => http.Response('', 201)),
+          ));
+      double y(Finder f) => tester.getTopLeft(f).dy;
+      for (final (titulo, debajo) in [
+        ('Tipo de mensaje', find.byKey(const ValueKey('buzon_problema'))),
+        ('Tu mensaje', find.byKey(const ValueKey('buzon_texto'))),
+      ]) {
+        final t = find.text(titulo);
+        expect(find.ancestor(of: t, matching: find.byType(TituloSeccion)),
+            findsOneWidget,
+            reason: titulo);
+        expect(y(t), lessThan(y(debajo)), reason: titulo);
+      }
+      expect(
+          y(find.text('Tu mensaje')),
+          greaterThan(tester
+              .getRect(find.byKey(const ValueKey('buzon_problema')))
+              .bottom));
     });
 
     FilledButton boton(WidgetTester tester) =>
