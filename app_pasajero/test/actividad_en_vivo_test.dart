@@ -49,8 +49,8 @@ void main() {
   const lat = 10.9878;
   const lon = -74.7889;
   // 0,0135° de latitud son unos 1.500 m.
-  BusPosition bus(double dLat) => BusPosition(
-        busId: 'A-1',
+  BusPosition bus(double dLat, {String busId = 'A-1'}) => BusPosition(
+        busId: busId,
         routeId: 'R1',
         lat: lat + dLat,
         lon: lon,
@@ -225,6 +225,19 @@ void main() {
     await armado(contenedor());
 
     expect(mantenerVivo.inicios, 1);
+  });
+
+  test('la actividad incluye la placa derivada del id del bus', () async {
+    posiciones = [bus(0.0135, busId: 'BUS-SQA223')];
+    final c = contenedor();
+    final avisos = c.read(proximityAlertsProvider.notifier);
+    c.read(activeAlertsProvider.notifier).activateAlert('BUS-SQA223');
+    avisos.armAlert('BUS-SQA223', 'R1');
+    await Future<void>.delayed(Duration.zero);
+
+    await avisos.check();
+
+    expect(enVivo.mostrados.single.placa, 'SQA223');
   });
 
   test('desarmar el último aviso detiene el mantenimiento en vivo', () async {

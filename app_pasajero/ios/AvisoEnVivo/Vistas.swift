@@ -11,10 +11,16 @@ enum Tinta {
 
 enum Textos {
   static func titulo(atributos: AvisoAtributos, estado: AvisoAtributos.ContentState) -> String {
-    if estado.llego {
-      return atributos.ruta.isEmpty ? "Tu bus está cerca de ti" : "Tu bus de la ruta \(atributos.ruta) está cerca de ti"
+    estado.llego ? "Tu bus está cerca de ti" : "Está a \(estado.distancia) de ti"
+  }
+
+  static func subtitulo(atributos: AvisoAtributos) -> String {
+    switch (atributos.ruta.isEmpty, atributos.placa.isEmpty) {
+    case (false, false): "\(atributos.ruta) · \(atributos.placa)"
+    case (false, true): atributos.ruta
+    case (true, false): atributos.placa
+    case (true, true): ""
     }
-    return "Tu bus está a \(estado.distancia)"
   }
 
   static func accesibilidad(atributos: AvisoAtributos, estado: AvisoAtributos.ContentState) -> String {
@@ -33,9 +39,9 @@ struct TarjetaBloqueada: View {
     VStack(alignment: .leading, spacing: 16) {
       HStack(spacing: 12) {
         Ficha(atributos: atributos, alto: 40)
-        ContenidoAviso(atributos: atributos, estado: estado, caduco: caduco, tituloGrande: true)
+        ContenidoAviso(atributos: atributos, estado: estado)
       }
-      .opacity(caduco && !estado.llego ? 0.5 : 1)
+      .opacity(caduco ? 0.5 : 1)
       Pista(
         atributos: atributos,
         estado: estado,
@@ -58,35 +64,10 @@ struct IslaLider: View {
   let caduco: Bool
 
   var body: some View {
-    Ficha(atributos: atributos, alto: 40)
+    Ficha(atributos: atributos, alto: 44)
       .padding(.leading, 6)
       .frame(maxHeight: .infinity, alignment: .center)
       .opacity(caduco ? 0.5 : 1)
-  }
-}
-
-struct IslaCentro: View {
-  let atributos: AvisoAtributos
-  let estado: AvisoAtributos.ContentState
-  let caduco: Bool
-
-  var body: some View {
-    Group {
-      if estado.llego {
-        Text(Textos.titulo(atributos: atributos, estado: estado))
-          .font(.subheadline.weight(.semibold))
-          .foregroundStyle(.white)
-          .lineLimit(2)
-          .multilineTextAlignment(.center)
-      } else {
-        Text(atributos.ruta.isEmpty ? Textos.titulo(atributos: atributos, estado: estado) : atributos.ruta)
-          .font(.headline)
-          .foregroundStyle(.white)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
-      }
-    }
-    .opacity(caduco ? 0.5 : 1)
   }
 }
 
@@ -96,17 +77,7 @@ struct IslaCola: View {
   let caduco: Bool
 
   var body: some View {
-    Group {
-      if estado.llego {
-        Image(systemName: "bell.fill")
-          .font(.system(size: 28, weight: .semibold))
-          .foregroundStyle(Tinta.verde)
-      } else {
-        Cifra(texto: estado.distancia, tamano: 26, color: .white, tamanoUnidad: 15, peso: .semibold)
-          .fixedSize()
-      }
-    }
-    .frame(maxWidth: .infinity, alignment: .trailing)
+    ContenidoAviso(atributos: atributos, estado: estado)
     .padding(.trailing, 6)
     .opacity(caduco ? 0.5 : 1)
   }
@@ -131,30 +102,28 @@ struct IslaAbajo: View {
   }
 }
 
-private struct ContenidoAviso: View {
+struct ContenidoAviso: View {
   let atributos: AvisoAtributos
   let estado: AvisoAtributos.ContentState
-  let caduco: Bool
-  let tituloGrande: Bool
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(Textos.titulo(atributos: atributos, estado: estado))
-        .font(tituloGrande
-          ? .system(size: 20, weight: .semibold, design: .rounded)
-          : .title3.weight(.semibold))
+        .font(.system(size: 22, weight: .semibold))
         .foregroundStyle(.white)
-        .lineLimit(estado.llego ? 2 : 1)
-        .minimumScaleFactor(tituloGrande ? 0.8 : 0.75)
+        .monospacedDigit()
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
         .numericTransition()
-      if !estado.llego && !atributos.ruta.isEmpty {
-        Text(atributos.ruta)
-          .font(tituloGrande ? .system(size: 13, weight: .medium) : .subheadline)
+      let subtitulo = Textos.subtitulo(atributos: atributos)
+      if !subtitulo.isEmpty {
+        Text(subtitulo)
+          .font(.subheadline)
           .foregroundStyle(Tinta.secundaria)
           .lineLimit(1)
       }
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .fixedSize(horizontal: false, vertical: true)
   }
 }
 

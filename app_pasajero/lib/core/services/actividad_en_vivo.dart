@@ -14,6 +14,7 @@ import '../../features/notifications/presentation/providers/distancia_aviso_prov
 class EstadoEnVivo {
   const EstadoEnVivo({
     required this.busId,
+    required this.placa,
     required this.codigo,
     required this.ruta,
     required this.color,
@@ -24,6 +25,9 @@ class EstadoEnVivo {
   });
 
   final String busId;
+
+  /// Placa del bus, derivada de su identificador cuando tiene prefijo BUS-.
+  final String placa;
 
   /// El código de la ficha (B18); `null` si la ruta no trae uno.
   final String? codigo;
@@ -53,6 +57,7 @@ class EstadoEnVivo {
 
   Map<String, Object?> aMapa() => {
         'busId': busId,
+        'placa': placa,
         'codigo': codigo,
         'ruta': ruta,
         'color': color,

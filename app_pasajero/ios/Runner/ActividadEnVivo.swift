@@ -63,6 +63,7 @@ private enum Gestor {
     guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
     let atributos = AvisoAtributos(
       busId: busId,
+      placa: datos["placa"] as? String ?? "",
       codigo: datos["codigo"] as? String ?? "",
       ruta: datos["ruta"] as? String ?? "",
       color: (datos["color"] as? NSNumber)?.intValue ?? 0xFF14274E

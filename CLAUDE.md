@@ -248,7 +248,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso
   armado pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
-  `actividad_en_vivo.dart`): fondo negro como Uber, ficha en el color de
+  `actividad_en_vivo.dart`): fondo negro como Uber, arriba «Está a X de
+  ti» y debajo la ruta y la placa (como Uber, dueño, 2026-10-19), ficha en el color de
   la empresa, cifra de la hoja y una pista verde con el mismo bus del
   mapa (la cápsula de `createFlatTransitMarker`, girada) que avanza hacia tu punto, con la campana donde suena el aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para

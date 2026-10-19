@@ -473,6 +473,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     final entrada = _entradaActiva(busId);
     final estado = EstadoEnVivo(
       busId: busId,
+      placa: busPlaca(busId),
       codigo: codigoRuta(entrada?.routeName),
       ruta: nombreSinCodigo(entrada?.routeName),
       color: colorFicha(companyId: entrada?.companyId).toARGB32(),
