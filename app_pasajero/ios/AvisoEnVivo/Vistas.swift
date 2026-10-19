@@ -52,31 +52,71 @@ struct TarjetaBloqueada: View {
   }
 }
 
-struct IslaExpandida: View {
+struct IslaLider: View {
   let atributos: AvisoAtributos
   let estado: AvisoAtributos.ContentState
   let caduco: Bool
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 10) {
-        Ficha(atributos: atributos, alto: 36)
-        ContenidoAviso(atributos: atributos, estado: estado, caduco: caduco, tituloGrande: true)
-      }
+    Ficha(atributos: atributos, alto: 44)
+      .padding(.leading, 6)
+      .frame(maxHeight: .infinity, alignment: .center)
       .opacity(caduco && !estado.llego ? 0.5 : 1)
+  }
+}
 
-      Pista(
-        atributos: atributos,
-        estado: estado,
-        muestraRotulos: !estado.llego,
-        caduco: caduco
-      )
+struct IslaCola: View {
+  let atributos: AvisoAtributos
+  let estado: AvisoAtributos.ContentState
+  let caduco: Bool
+
+  var body: some View {
+    Group {
+      if estado.llego {
+        Image(systemName: "bell.fill")
+          .font(.system(size: 28, weight: .semibold))
+          .foregroundStyle(Tinta.verde)
+      } else {
+        Cifra(texto: estado.distancia, tamano: 30, color: .white, tamanoUnidad: 15, peso: .semibold)
+      }
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 8)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(Text(Textos.accesibilidad(atributos: atributos, estado: estado)))
+    .frame(maxWidth: .infinity, alignment: .trailing)
+    .padding(.trailing, 6)
+    .opacity(caduco ? 0.5 : 1)
+  }
+}
+
+struct IslaAbajo: View {
+  let atributos: AvisoAtributos
+  let estado: AvisoAtributos.ContentState
+  let caduco: Bool
+
+  private var titulo: String {
+    if estado.llego { return Textos.titulo(atributos: atributos, estado: estado) }
+    return atributos.ruta.isEmpty
+      ? Textos.titulo(atributos: atributos, estado: estado)
+      : atributos.ruta
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text(titulo)
+        .font(.headline)
+        .foregroundStyle(.white)
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
+        .opacity(caduco && !estado.llego ? 0.5 : 1)
+
+      Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
+        .padding(.horizontal, 4)
+
+      if !estado.llego {
+        RotulosPista(estado: estado, caduco: caduco)
+      }
+    }
+    .padding(.top, 8)
+    .padding(.horizontal, 8)
+    .padding(.bottom, 6)
   }
 }
 
@@ -133,11 +173,11 @@ struct Minima: View {
 }
 
 private struct Cifra: View {
-  let texto: String; let tamano: CGFloat; var color: Color; var conUnidad = true; var tamanoUnidad: CGFloat? = nil
+  let texto: String; let tamano: CGFloat; var color: Color; var conUnidad = true; var tamanoUnidad: CGFloat? = nil; var peso: Font.Weight = .bold
   var body: some View {
     let partes = texto.split(separator: " ", maxSplits: 1).map(String.init)
     HStack(alignment: .firstTextBaseline, spacing: 3) {
-      Text(partes.first ?? texto).font(.system(size: tamano, weight: .bold, design: .rounded)).monospacedDigit().foregroundStyle(color)
+      Text(partes.first ?? texto).font(.system(size: tamano, weight: peso, design: .rounded)).monospacedDigit().foregroundStyle(color)
       if conUnidad && partes.count > 1 {
         // 13 pt en la isla amplia separa unidad y cifra con jerarquía suave.
         Text(partes[1]).font(.system(size: tamanoUnidad ?? (tamano == 24 ? 13 : tamano * 0.72), weight: .semibold)).foregroundStyle(Tinta.secundaria)
@@ -194,23 +234,33 @@ private struct Pista: View {
       }
       .frame(height: altura)
       if muestraRotulos && !estado.llego {
-        HStack(spacing: 6) {
-          Image(systemName: "bell.fill")
-            .font(.system(size: 10, weight: .semibold))
-          Text(caduco ? "Sin datos nuevos, abre Ya Viene" : estado.aviso)
-            .lineLimit(1)
-            .minimumScaleFactor(0.9)
-            .layoutPriority(1)
-          Spacer(minLength: 4)
-          Text("Tu punto")
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-        }
-        // Subheadline iguala ambas etiquetas a la fila de la tarjeta.
-        .font(.subheadline)
-        .foregroundStyle(Tinta.secundaria)
+        RotulosPista(estado: estado, caduco: caduco)
       }
     }.accessibilityHidden(true)
+  }
+}
+
+
+private struct RotulosPista: View {
+  let estado: AvisoAtributos.ContentState
+  let caduco: Bool
+
+  var body: some View {
+    HStack(spacing: 6) {
+      Image(systemName: "bell.fill")
+        .font(.system(size: 10, weight: .semibold))
+      Text(caduco ? "Sin datos nuevos, abre Ya Viene" : estado.aviso)
+        .lineLimit(1)
+        .minimumScaleFactor(0.9)
+        .layoutPriority(1)
+      Spacer(minLength: 4)
+      Text("Tu punto")
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+    // Subheadline iguala ambas etiquetas a la fila de la tarjeta.
+    .font(.subheadline)
+    .foregroundStyle(Tinta.secundaria)
   }
 }
 
