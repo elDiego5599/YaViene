@@ -33,37 +33,15 @@ struct TarjetaBloqueada: View {
     VStack(alignment: .leading, spacing: 16) {
       HStack(spacing: 12) {
         Ficha(atributos: atributos, alto: 40)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(Textos.titulo(atributos: atributos, estado: estado))
-            // 20 pt da jerarquía al dato principal y cabe en una línea.
-            .font(.system(size: 20, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white)
-            .lineLimit(estado.llego ? 2 : 1)
-            .minimumScaleFactor(0.8)
-            .numericTransition()
-          if !estado.llego && !atributos.ruta.isEmpty {
-            // 13 pt mantiene la ruta como contexto secundario.
-            Text(atributos.ruta).font(.system(size: 13, weight: .medium)).foregroundStyle(Tinta.secundaria).lineLimit(1)
-          }
-        }
+        ContenidoAviso(atributos: atributos, estado: estado, caduco: caduco, tituloGrande: true)
       }
       .opacity(caduco && !estado.llego ? 0.5 : 1)
-      if !estado.llego {
-        Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
-        HStack {
-          Image(systemName: "bell.fill")
-            // 10 pt deja el icono del aviso discreto junto al rótulo.
-            .font(.system(size: 10, weight: .semibold))
-          Text(caduco ? "Sin datos nuevos, abre Ya Viene" : estado.aviso)
-          Spacer()
-          Text("Tu punto")
-        }
-        // 12 pt permite leer los rótulos sin competir con la distancia.
-        .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(Tinta.secundaria)
-      } else {
-        Pista(atributos: atributos, estado: estado, muestraRotulos: false)
-      }
+      Pista(
+        atributos: atributos,
+        estado: estado,
+        muestraRotulos: !estado.llego,
+        caduco: caduco
+      )
     }
     .padding(.horizontal, 18)
     .padding(.vertical, 16)
@@ -76,42 +54,53 @@ struct TarjetaBloqueada: View {
 
 struct IslaLider: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
-  var body: some View { Ficha(atributos: atributos, alto: 30).padding(.leading, 4).opacity(caduco ? 0.5 : 1) }
-}
-
-struct IslaCola: View {
-  let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
   var body: some View {
-    Group {
-      if estado.llego { Image(systemName: "bell.fill").font(.system(size: 20, weight: .semibold)).foregroundStyle(Tinta.verde) }
-      else { Cifra(texto: estado.distancia, tamano: 24, color: .white).opacity(caduco ? 0.5 : 1) }
-    }
+    Ficha(atributos: atributos, alto: 40)
+      .opacity(caduco && !estado.llego ? 0.5 : 1)
   }
 }
 
 struct IslaCentro: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
   var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(estado.llego ? "Está cerca de ti" : atributos.ruta)
-        // 14 pt conserva el nombre de ruta en una línea en la isla.
-        .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
-      if estado.llego && !atributos.ruta.isEmpty {
-        // 11 pt añade contexto de ruta sin llenar de nuevo la isla.
-        Text(atributos.ruta).font(.system(size: 11, weight: .medium)).foregroundStyle(Tinta.secundaria).lineLimit(1)
-      }
-    }
-    .opacity(caduco && !estado.llego ? 0.5 : 1)
+    ContenidoAviso(atributos: atributos, estado: estado, caduco: caduco, tituloGrande: false)
+      .opacity(caduco && !estado.llego ? 0.5 : 1)
   }
 }
 
 struct IslaAbajo: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
   var body: some View {
-    if !estado.llego {
-      Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
-        .padding(.horizontal, 4).padding(.top, 6)
+    Pista(atributos: atributos, estado: estado, muestraRotulos: !estado.llego, caduco: caduco)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 10)
+  }
+}
+
+private struct ContenidoAviso: View {
+  let atributos: AvisoAtributos
+  let estado: AvisoAtributos.ContentState
+  let caduco: Bool
+  let tituloGrande: Bool
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(Textos.titulo(atributos: atributos, estado: estado))
+        .font(tituloGrande
+          ? .system(size: 20, weight: .semibold, design: .rounded)
+          : .title3.weight(.semibold))
+        .foregroundStyle(.white)
+        .lineLimit(estado.llego ? 2 : 1)
+        .minimumScaleFactor(tituloGrande ? 0.8 : 0.75)
+        .numericTransition()
+      if !estado.llego && !atributos.ruta.isEmpty {
+        Text(atributos.ruta)
+          .font(tituloGrande ? .system(size: 13, weight: .medium) : .subheadline)
+          .foregroundStyle(Tinta.secundaria)
+          .lineLimit(1)
+      }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 
@@ -172,7 +161,7 @@ private struct Pista: View {
   var caduco = false
   private let altura: CGFloat = 22
   var body: some View {
-    VStack(spacing: 5) {
+    VStack(spacing: muestraRotulos ? 16 : 5) {
       GeometryReader { geo in
         let w = geo.size.width
         let inicio: CGFloat = 3
@@ -201,10 +190,20 @@ private struct Pista: View {
         }
       }
       .frame(height: altura)
-      if muestraRotulos {
-        HStack { Text("Bus"); Spacer(); Text("Tu punto") }
-          // 11 pt deja los extremos secundarios y legibles.
-          .font(.system(size: 11, weight: .medium)).foregroundStyle(Tinta.secundaria)
+      if muestraRotulos && !estado.llego {
+        HStack(spacing: 6) {
+          Image(systemName: "bell.fill")
+            .font(.system(size: 10, weight: .semibold))
+          Text(caduco ? "Sin datos nuevos, abre Ya Viene" : estado.aviso)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+          Spacer(minLength: 4)
+          Text("Tu punto")
+            .lineLimit(1)
+        }
+        // 12 pt mantiene la fila secundaria legible sin competir con la cifra.
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(Tinta.secundaria)
       }
     }.accessibilityHidden(true)
   }
