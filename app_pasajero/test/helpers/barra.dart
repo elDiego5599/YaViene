@@ -8,12 +8,6 @@ BoxDecoration vidrio(WidgetTester tester) => tester
         of: find.byType(FondoVidrio), matching: find.byType(DecoratedBox)))
     .decoration as BoxDecoration;
 
-/// Cuánto se ve la cara: 0 en reposo, 1 con algo debajo.
-double velo(WidgetTester tester) => tester
-    .widget<AnimatedOpacity>(find.descendant(
-        of: find.byType(FondoVidrio), matching: find.byType(AnimatedOpacity)))
-    .opacity;
-
 /// Las capas de desenfoque de la barra, de la más alta a la más baja.
 List<Rect> capasDesenfoque(WidgetTester tester) {
   final filtros = find.descendant(
@@ -30,8 +24,8 @@ bool desenfoca(WidgetTester tester) => capasDesenfoque(tester).isNotEmpty;
 
 /// La pantalla lleva la barra de vidrio y lo de abajo pasa por debajo de
 /// ella (dueño, 2026-10-18: «como el nav de la web»): en reposo [primero]
-/// queda entero bajo la barra, y al bajar algo se mete detrás de ella y la
-/// barra se vuelve vidrio.
+/// queda entero bajo la barra, y al bajar algo se mete detrás del vidrio,
+/// que ya estaba puesto (dueño, 2026-10-19: prenderse al bajar se veía).
 Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
   expect(find.byType(FondoVidrio), findsOneWidget);
   expect(
@@ -43,7 +37,8 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
   final barra = tester.getRect(find.byType(AppBar));
   expect(tester.getRect(primero).top, greaterThanOrEqualTo(barra.bottom - 0.5),
       reason: 'en reposo la barra tapa lo primero');
-  expect(velo(tester), 0);
+  final capas = capasDesenfoque(tester);
+  expect(capas, isNotEmpty, reason: 'el vidrio está desde el reposo');
 
   final antes = tester.getRect(primero).top;
   await tester.drag(find.byType(Scrollable).first, const Offset(0, -40));
@@ -52,5 +47,5 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
       reason: 'lo de abajo no se desplaza');
   expect(tester.getRect(primero).top, lessThan(barra.bottom),
       reason: 'lo de abajo no pasa por debajo de la barra');
-  expect(velo(tester), greaterThan(0));
+  expect(capasDesenfoque(tester), capas, reason: 'al bajar no cambia');
 }

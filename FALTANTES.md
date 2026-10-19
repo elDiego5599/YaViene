@@ -112,10 +112,10 @@ Necesitan un teléfono, una cuenta o estar presente.
   búsqueda en la punta derecha (el subtítulo se queda) y Avisos, Buzón,
   Info y Legal pasando bajo una barra de vidrio como el nav de la web
   (2026-10-18, `barra_vidrio.dart`, como iOS 26 con WhatsApp de
-  referencia: sin lámina; en reposo nada y, con algo debajo, un velo
-  blanco que se desvanece hasta cero al pie de la barra sobre un
-  desenfoque progresivo (de 4 arriba a 1,5 abajo, en seis bandas), el
-  título con
+  referencia: sin lámina; siempre puesta, sin prenderse al bajar
+  (2026-10-19: prenderse se veía pobre), un velo blanco que se desvanece
+  hasta cero al pie de la barra sobre un desenfoque progresivo (de 8
+  arriba a 0 abajo, en diez capas que se suman), el título con
   halo y los botones en píldoras de vidrio de 48 con desenfoque 10 y
   saturación 1,8; opaca con más contraste). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
@@ -156,6 +156,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   toque de 48) a ras de las tarjetas; las opciones del buzón con su color
   sin elegir (problema en coral, sugerencia en ámbar), y los créditos del
   mapa dentro de Acerca de, sin la píldora del pie de Info.
+  Y del 2026-10-19: con un bus tocado, la píldora de tu punto y de
+  cuántos buses hay cerca se va (si la maqueta del mapa la dibuja con un
+  bus elegido).
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`
@@ -163,9 +166,18 @@ Necesitan un teléfono, una cuenta o estar presente.
   (`revisarAvisos` en `YaVieneBackend/src/avisos_push.ts`) sigue en línea
   recta. Con la app cerrada, un bus a 400 m en recta y a 3 km por la ruta
   todavía avisa antes de tiempo. Falta portar la medida al backend con sus
-  mismas pruebas (la U de 1500 × 400 m del core y, del 2026-10-18, el paso
+  mismas pruebas (la U de 1500 × 400 m del core; del 2026-10-18, el paso
   más próximo entre los mínimos locales a 150 m del más cercano: sin él,
-  un punto entre la ida y la vuelta daba 31,7 km con el bus a la vista).
+  un punto entre la ida y la vuelta daba 31,7 km con el bus a la vista; y
+  del 2026-10-19, la distancia al paso más cerca, venga o ya haya pasado,
+  sin contar nunca la vuelta entera: con el bus 80 m pasado se sumaba la
+  vuelta y salían 20 km).
+
+- **`alongroute` con la regla del 2026-10-19**: la librería publicada
+  (`YaViene/alongroute`) sigue midiendo hacia adelante hasta el próximo
+  paso, que en una circular cuenta la vuelta entera si el bus ya pasó.
+  Falta portarle la regla nueva del core (el paso más cerca, adelante o
+  atrás) con sus pruebas, y su README.
 
 - **La tarjeta del aviso activo con el texto al doble** (hallado el
   2026-10-07, ya estaba en `9d0f3a0`): desde el 2026-10-16 ya no se sale

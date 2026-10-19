@@ -1017,12 +1017,13 @@ void main() {
       expect(sonaron.single.distanceMeters, closeTo(800, 10));
     });
 
-    test('un bus que ya dejó atrás el punto de una ruta abierta suena en recta',
+    test('un bus que ya dejó atrás el punto suena con lo que lo dejó atrás',
         () async {
-      // No se sabe qué sentido espera la persona (dueño, 2026-10-08): mejor
-      // que suene de más. Recta: √(750² + 200²) ≈ 776 m, dentro del 1 km.
+      // No se sabe qué sentido espera la persona: mejor que suene de más.
+      // Del 2650 al 1700 de la ruta abierta, 950 m, dentro del 1 km (en
+      // recta, 776; dueño, 2026-10-19).
       final sonaron = await barrer(bus(750, 400, 270), m(1500, 200));
-      expect(sonaron.single.distanceMeters, closeTo(776, 10));
+      expect(sonaron.single.distanceMeters, closeTo(950, 10));
     });
   });
 }

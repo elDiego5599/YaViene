@@ -29,8 +29,13 @@ class LocationStatusChip extends ConsumerWidget {
     final notifier = ref.read(userLocationProvider.notifier);
     final pinHint =
         ref.watch(pinDragLearnedProvider) ? null : 'Arrástralo para moverlo';
+    // Con un bus tocado la hoja ya dice a qué distancia viene: la píldora
+    // de tu punto y de cuántos buses hay cerca sobra (dueño, 2026-10-19).
+    // Sin ubicación se queda, porque dice el problema y su salida.
+    final busTocado = ref.watch(selectedBusesProvider).isNotEmpty;
 
     final PildoraDatos? pill = switch (location.mode) {
+      _ when busTocado && location.hasPosition => null,
       UserLocationMode.locating => const PildoraDatos(
           key: 'locating',
           icon: Icons.my_location_outlined,
@@ -94,8 +99,6 @@ class LocationStatusChip extends ConsumerWidget {
         ),
     };
 
-    if (pill == null) return const SizedBox.shrink();
-
     return AnimatedSwitcher(
       duration: AppMotion.normal,
       switchInCurve: AppMotion.curvaEntrada,
@@ -110,8 +113,11 @@ class LocationStatusChip extends ConsumerWidget {
           child: SlideTransition(position: slide, child: child),
         );
       },
-      child: KeyedSubtree(
-          key: ValueKey(pill.key), child: PildoraEstado(data: pill)),
+      // Sin píldora, el hueco también cruza: se va con el mismo fundido.
+      child: pill == null
+          ? const SizedBox.shrink(key: ValueKey('sin-pildora'))
+          : KeyedSubtree(
+              key: ValueKey(pill.key), child: PildoraEstado(data: pill)),
     );
   }
 

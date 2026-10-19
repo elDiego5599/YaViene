@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/selected_buses_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_tour_overlay.dart';
@@ -640,7 +641,8 @@ void main() {
   });
 
   group('LocationStatusChip: Quitar y Usar GPS', () {
-    Future<void> montar(WidgetTester tester, _FakeLocation location) async {
+    Future<ProviderContainer> montar(
+        WidgetTester tester, _FakeLocation location) async {
       final container = ProviderContainer(overrides: [
         userLocationProvider.overrideWith((ref) => location),
       ]);
@@ -655,7 +657,34 @@ void main() {
           ),
         ),
       );
+      return container;
     }
+
+    // El dueño, 2026-10-19: con un bus tocado la hoja ya dice a qué
+    // distancia viene; la píldora de cuántos buses hay cerca sobra y tapa.
+    testWidgets('al tocar un bus la píldora se va; al soltarlo vuelve',
+        (tester) async {
+      final container = await montar(tester, _FakeLocation());
+      expect(find.text('Usando tu ubicación'), findsOneWidget);
+      container.read(selectedBusesProvider.notifier).toggleBus('BUS-SQA223');
+      await tester.pumpAndSettle();
+      expect(find.text('Usando tu ubicación'), findsNothing);
+      expect(find.text('Quitar'), findsNothing);
+      container.read(selectedBusesProvider.notifier).clear();
+      await tester.pumpAndSettle();
+      expect(find.text('Usando tu ubicación'), findsOneWidget);
+    });
+
+    testWidgets('con un bus tocado, un problema de ubicación sí se dice',
+        (tester) async {
+      final container = await montar(
+          tester,
+          _FakeLocation(
+              const UserLocationState(mode: UserLocationMode.denied)));
+      container.read(selectedBusesProvider.notifier).toggleBus('BUS-SQA223');
+      await tester.pumpAndSettle();
+      expect(find.text('Sin ubicación'), findsOneWidget);
+    });
 
     // El dueño, 2026-10-07: «Fijar» clavaba el pin donde ya estaba y
     // «Quitar» volvía al GPS en el mismo sitio; ninguno se veía hacer nada.

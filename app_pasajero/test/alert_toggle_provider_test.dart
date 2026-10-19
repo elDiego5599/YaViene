@@ -680,22 +680,22 @@ void main() {
       expect(result.outcome, AlertToggleOutcome.activated);
     });
 
-    test('un bus que ya pasó el punto se cuenta hasta su vuelta siguiente',
+    test('un bus que ya pasó el punto no se cuenta hasta su vuelta siguiente',
         () async {
       // La U cerrada en una vuelta de 3800 m. El bus va en el 2650 y el
-      // punto está en el 1700: 1150 hasta el cierre y 1700 más, 2850. La
-      // rueda deja 200 m con él: hasta 2600. En recta serían 776 m (hasta
-      // 500); no se sabe qué sentido espera la persona (dueño, 2026-10-08).
+      // punto está en el 1700: 950 hacia atrás, no 2850 hasta la vuelta
+      // siguiente (dueño, 2026-10-19). La rueda deja 200 m con él: hasta
+      // 700.
       final c =
           await montar(bus(750, 400, 270), m(1500, 200), ruta: [...u, m(0, 0)]);
       int? hasta;
       final result = await c.read(alertToggleProvider).toggle('A-1',
           elegirDistancia: (_, h) async {
         hasta = h;
-        return (metros: 1000, guardar: false);
+        return (metros: 500, guardar: false);
       });
 
-      expect(hasta, 2600);
+      expect(hasta, 700);
       expect(result.outcome, AlertToggleOutcome.activated);
     });
   });

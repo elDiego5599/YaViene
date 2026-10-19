@@ -95,14 +95,14 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('un bus que ya pasó el punto cuenta hasta su vuelta siguiente',
+  testWidgets('un bus que ya pasó el punto no cuenta la vuelta entera',
       (tester) async {
-    // La U cerrada: 3800 m. El bus en el 2650, el pin en el 1700: 1150
-    // hasta el cierre y 1700 más, 2850 m (en recta, 776).
+    // La U cerrada: 3800 m. El bus en el 2650, el pin en el 1700: 950 hacia
+    // atrás, no 2850 hasta la vuelta siguiente (en recta, 776).
     await montar(tester,
         bus: _m(750, 400), rumbo: 270, pin: _m(1500, 200), circular: true);
 
-    expect(find.bySemanticsLabel(RegExp(r'^A 2,[89] kilómetros de ti$')),
+    expect(find.bySemanticsLabel(RegExp(r'^A 9[45]\d metros de ti$')),
         findsOneWidget);
     expect(find.textContaining('ya pasó'), findsNothing);
     expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);

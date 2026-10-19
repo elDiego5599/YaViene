@@ -7,7 +7,7 @@ import 'tracking_providers.dart';
 import 'user_location_provider.dart';
 
 /// Distancia del punto de espera a [bus] por su recorrido, como la mide el
-/// aviso, hasta su próximo paso; null si no se puede medir. La hoja y
+/// aviso, hasta su paso más cerca; null si no se puede medir. La hoja y
 /// Avisos la toman de aquí: medida en dos sitios, la hoja decía 13,4 km por
 /// la ruta y Avisos 10 km en recta del mismo bus (dueño, 2026-10-16).
 ///

@@ -36,10 +36,6 @@ const double _vMax = 25;
 const double _ventanaAtras = 50;
 const double _ventanaAdelante = 100;
 
-/// Un bus hasta 30 m pasado el punto sigue ahí: es el error del GPS, no
-/// que le falte otra vuelta.
-const double _ruidoAtras = 30;
-
 /// Dos tramos a menos de esto en desvío son la misma calle (ida y vuelta,
 /// un carril por sentido): ahí decide el rumbo, no la cercanía.
 const double _empate = 15;
@@ -106,17 +102,11 @@ class RutaMedible {
     return RutaMedible._(x, y, acum, circular, lat0, lon0, kx);
   }
 
-  /// Metros hacia adelante de [desde] a [hasta]: con la vuelta en la
-  /// circular; null en la abierta si [hasta] queda atrás. Menos de
-  /// [_ruidoAtras] por detrás es el error del GPS: 0, no una vuelta entera.
-  double? _adelante(double desde, double hasta) {
-    final d = hasta - desde;
-    if (circular) {
-      final a = d % largo;
-      return largo - a < _ruidoAtras ? 0 : a;
-    }
-    if (d < 0) return d > -_ruidoAtras ? 0 : null;
-    return d;
+  /// Metros de ruta entre [desde] y [hasta], hacia adelante o hacia atrás,
+  /// lo que sea menos: en la circular, también cruzando el inicio.
+  double _entre(double desde, double hasta) {
+    final d = (hasta - desde).abs();
+    return circular ? math.min(d, largo - d) : d;
   }
 
   /// Cada tramo con la proyección de ([px], [py]) sobre él.
@@ -253,25 +243,19 @@ class RutaMedible {
     return pasos;
   }
 
-  /// Los metros que le faltan al bus en [avanceBus] para pasar por [p]: los
-  /// de ruta hasta el próximo paso por [p] más el desvío del punto a la
-  /// línea. Null si [p] está a más de [desvioPuntoMaximo] de la ruta o, en
-  /// la abierta, si el bus ya dejó atrás todos los pasos.
+  /// Los metros de ruta del bus en [avanceBus] al paso por [p] más cerca,
+  /// venga o ya haya pasado, más el desvío del punto a la línea. Null si [p]
+  /// está a más de [desvioPuntoMaximo] de la ruta.
   ///
-  /// Nunca dice «ya pasó»: en una calle de ida y vuelta no se sabe qué
-  /// sentido espera la persona, así que en la circular se cuenta hasta la
-  /// vuelta siguiente; qué bus elige es cosa suya (dueño, 2026-10-08).
+  /// Nunca cuenta la vuelta entera: un bus que acaba de pasar decía 20 km
+  /// con el bus a la vista; se muestra lo que hay y qué bus elige es cosa
+  /// de la persona (dueño, 2026-10-19).
   double? medir(double avanceBus, GeoPoint p) {
     final pasos = _pasos(p);
     if (pasos.first.desvio > desvioPuntoMaximo) return null;
-    double? faltan;
-    for (final paso in pasos) {
-      final adelante = _adelante(avanceBus, paso.avance);
-      if (adelante == null) continue;
-      final metros = adelante + paso.desvio;
-      if (faltan == null || metros < faltan) faltan = metros;
-    }
-    return faltan;
+    return pasos
+        .map((paso) => _entre(avanceBus, paso.avance) + paso.desvio)
+        .reduce(math.min);
   }
 }
 

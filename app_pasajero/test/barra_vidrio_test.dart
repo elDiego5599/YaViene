@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -39,22 +41,34 @@ void main() {
         ),
       );
 
-  testWidgets('en reposo no se ve y con algo debajo es vidrio', (tester) async {
+  testWidgets('el vidrio está siempre: al bajar no se prende nada',
+      (tester) async {
     await tester.pumpWidget(pantalla());
     await tester.pumpAndSettle();
 
     expect(tester.widget<AppBar>(find.byType(AppBar)).systemOverlayStyle,
         SystemUiOverlayStyle.dark,
         reason: 'la hora en oscuro sobre lo blanco');
-    expect(velo(tester), 0, reason: 'en reposo no se ve');
     expect(tester.getRect(find.text('fila 0')).top,
         greaterThanOrEqualTo(tester.getRect(find.byType(AppBar)).bottom),
         reason: 'en reposo la barra no tapa nada');
+    // Antes se prendía al empezar a bajar y se veía el salto (dueño,
+    // 2026-10-19): ni animación ni estado, la misma cara siempre.
+    expect(
+        find.descendant(
+            of: find.byType(FondoVidrio),
+            matching: find.byWidgetPredicate((w) =>
+                w is ImplicitlyAnimatedWidget || w is TweenAnimationBuilder)),
+        findsNothing);
+    final barra = tester.getRect(find.byType(AppBar));
+    final enReposo = capasDesenfoque(tester);
+    final veloEnReposo = vidrio(tester);
 
     await tester.drag(find.byType(ListView), const Offset(0, -300));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(capasDesenfoque(tester), enReposo, reason: 'al bajar no cambia');
+    expect(vidrio(tester), veloEnReposo);
 
-    expect(velo(tester), 1);
     // Sin lámina: el velo se desvanece hacia abajo y deja leer lo de
     // debajo; ni sombra de barra.
     final cara = vidrio(tester);
@@ -65,16 +79,25 @@ void main() {
     expect(degradado.colors.first.a, lessThanOrEqualTo(0.9));
     // El desenfoque es progresivo, como el borde de iOS 26: capas
     // recortadas que arrancan arriba y bajan cada una menos, así arriba
-    // se suman todas y al pie apenas una.
-    final barra = tester.getRect(find.byType(AppBar));
+    // se suman todas y al pie apenas una. Con 6 se veían las franjas.
     final capas = capasDesenfoque(tester);
-    expect(capas.length, greaterThanOrEqualTo(4));
+    expect(capas.length, greaterThanOrEqualTo(10));
     expect(capas.first.height, closeTo(barra.height, 0.5),
         reason: 'la de abajo llega al pie de la barra');
     for (var i = 0; i < capas.length; i++) {
       expect(capas[i].top, closeTo(barra.top, 0.5));
       if (i > 0) expect(capas[i].height, lessThan(capas[i - 1].height));
     }
+    // El sigma sumado crece parejo: ningún escalón de más de un punto.
+    var antes = 0.0;
+    for (var k = 0; k < FondoVidrio.capas.length; k++) {
+      final suma = math.sqrt(FondoVidrio.capas
+          .take(k + 1)
+          .fold(0.0, (a, c) => a + c.$2 * c.$2));
+      expect(suma - antes, lessThanOrEqualTo(1.0));
+      antes = suma;
+    }
+    expect(antes, closeTo(8, 0.01), reason: 'tras la hora');
     expect(
         find.descendant(
             of: find.byType(FondoVidrio), matching: find.byType(ClipRect)),
@@ -89,12 +112,6 @@ void main() {
         findsWidgets);
     final titulo = tester.renderObject<RenderParagraph>(find.text('Título'));
     expect(titulo.text.style!.color!.a, 1);
-
-    // De vuelta arriba se apaga otra vez.
-    await tester.drag(find.byType(ListView), const Offset(0, 600));
-    await tester.pumpAndSettle();
-    expect(velo(tester), 0);
-    expect(desenfoca(tester), isFalse, reason: 'en reposo no desenfoca');
   });
 
   testWidgets('con más contraste es opaca y sin desenfoque', (tester) async {
@@ -102,7 +119,6 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -300));
     await tester.pumpAndSettle();
 
-    expect(velo(tester), 1);
     expect(vidrio(tester).color, Colors.white);
     expect(vidrio(tester).gradient, isNull);
     expect(desenfoca(tester), isFalse);

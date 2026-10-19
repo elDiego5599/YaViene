@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
+import 'ficha_ruta.dart';
 
 /// El aviso que alguien tocó: el bus y su ruta, para dejar el mapa como
 /// estaba cuando sonó.
@@ -178,16 +180,20 @@ class BusNotificationService {
     final ruta = rutaLegible(routeName, routeId);
     try {
       if (!await puedeAvisar()) return false;
+      final ficha = await _ficha(codigoRuta(routeName));
+      final adjunto =
+          ficha == null || defaultTargetPlatform != TargetPlatform.iOS
+              ? null
+              : await _adjuntar(ficha);
       await _plugin.show(
         id: _stableNotificationId(busId),
         // El texto es el del glosario (`aviso.app`); glosario_test lo ata.
         title: ruta == null
             ? 'Tu bus está cerca de ti'
             : 'Tu bus de la ruta $ruta está cerca de ti',
-        payload: routeId == null || routeId.isEmpty
-            ? null
-            : carga(busId, routeId),
-        notificationDetails: const NotificationDetails(
+        payload:
+            routeId == null || routeId.isEmpty ? null : carga(busId, routeId),
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
@@ -199,8 +205,13 @@ class BusNotificationService {
             // llegar a la vez. Es la misma notificación (mismo id) y la
             // segunda no vuelve a sonar.
             onlyAlertOnce: true,
+            largeIcon: ficha == null ? null : ByteArrayAndroidBitmap(ficha),
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: DarwinNotificationDetails(
+            attachments: [
+              if (adjunto != null) DarwinNotificationAttachment(adjunto),
+            ],
+          ),
         ),
       );
       return true;
@@ -209,6 +220,37 @@ class BusNotificationService {
       // El aviso falla blando: nunca debe tumbar el flujo del mapa. Pero el
       // fallo se cuenta, para que el aviso siga armado y se reintente.
       return false;
+    }
+  }
+
+  /// La ficha con el código de la ruta (B18, C16) que el aviso lleva de
+  /// ícono (dueño, 2026-10-19). Si no hay código o no se pudo pintar, el
+  /// aviso sale igual, sin ficha: nunca se pierde por un ícono.
+  static Future<Uint8List?> _ficha(String? codigo) async {
+    if (codigo == null) return null;
+    try {
+      return await fichaRuta(codigo);
+    } catch (e) {
+      debugPrint('no se pudo pintar la ficha de $codigo: $e');
+      return null;
+    }
+  }
+
+  /// iOS no deja cambiar el ícono de la app en el aviso: la ficha va como
+  /// imagen adjunta, que el sistema enseña a la derecha. Pide un archivo y
+  /// se lo lleva a su almacén al mostrarlo, así que se escribe uno nuevo
+  /// cada vez.
+  static Future<String?> _adjuntar(Uint8List ficha) async {
+    try {
+      final archivo = File(
+        '${Directory.systemTemp.path}/ficha-'
+        '${DateTime.now().microsecondsSinceEpoch}.png',
+      );
+      await archivo.writeAsBytes(ficha, flush: true);
+      return archivo.path;
+    } catch (e) {
+      debugPrint('no se pudo guardar la ficha del aviso: $e');
+      return null;
     }
   }
 

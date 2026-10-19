@@ -48,3 +48,13 @@ String routePlateSpoken({
   if (route == null) return placa.isEmpty ? '' : 'Bus $placa';
   return placa.isEmpty ? route : '$route, bus $placa';
 }
+
+/// El código de la ruta, el primer pedazo de su nombre («B18 Tcherassi» da
+/// B18): es lo que dice la ficha del aviso. Un nombre que no empieza por un
+/// código (una letra y hasta tres cifras) no da ninguno.
+String? codigoRuta(String? routeName) {
+  final primero = routeName?.trim().split(RegExp(r'\s+')).first ?? '';
+  return RegExp(r'^[A-Za-z]\d{1,3}$').hasMatch(primero)
+      ? primero.toUpperCase()
+      : null;
+}

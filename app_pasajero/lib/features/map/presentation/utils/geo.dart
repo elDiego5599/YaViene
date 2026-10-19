@@ -14,10 +14,10 @@ double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
   return 2 * _earthRadiusMeters * asin(sqrt(safeA));
 }
 
-/// Distancia de [bus] al punto ([lat], [lon]) por el recorrido, hasta su
-/// próximo paso. Sin [seguidor], si el bus o el punto quedan lejos de la
-/// ruta o si una ruta abierta ya lo dejó atrás, en línea recta: es lo que
-/// se sabe, y nunca es más que por la ruta.
+/// Distancia de [bus] al punto ([lat], [lon]) por el recorrido, hasta el
+/// paso más cerca, venga o ya haya pasado. Sin [seguidor] o si el bus o el
+/// punto quedan lejos de la ruta, en línea recta: es lo que se sabe, y
+/// nunca es más que por la ruta.
 double distanciaAlBus(
   SeguidorRuta? seguidor,
   BusPosition bus,

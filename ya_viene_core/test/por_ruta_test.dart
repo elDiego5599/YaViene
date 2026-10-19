@@ -48,14 +48,14 @@ void main() {
     expect(s.distancia(bus, _m(200, 4)), closeTo(304, 5));
   });
 
-  test('ida y vuelta: yendo al este, la persona lo espera a la vuelta', () {
-    // No se sabe si la persona espera la ida o la vuelta (dueño,
-    // 2026-10-08): se cuenta hasta el próximo paso. Del 500 de la ida al
-    // 1000, 8 de giro y 800 de vuelta hasta x = 200, más 4 de desvío.
+  test('ida y vuelta: yendo al este, ya pasó a 300 m: dice 300', () {
+    // Ya pasó por la persona: lo que hay es la distancia por la ruta hacia
+    // atrás, no la vuelta hasta el próximo paso (dueño, 2026-10-19: decía
+    // 20 km con el bus a la vista). Del 500 al 200 de la ida, más 4.
     final s = SeguidorRuta(idaYVuelta);
     final bus = _bus(500, 2, rumbo: 90);
     expect(s.avanceDe(bus), closeTo(500, 5));
-    expect(s.distancia(bus, _m(200, 4)), closeTo(1312, 5));
+    expect(s.distancia(bus, _m(200, 4)), closeTo(304, 5));
   });
 
   test('con avance previo solo busca en la ventana: no salta de carril', () {
@@ -75,11 +75,14 @@ void main() {
     expect(s.distancia(bus, _m(0, 400)), closeTo(3400, 5));
   });
 
-  test('ruta abierta: un punto que el bus ya dejó atrás no se mide', () {
+  test('ruta abierta: el punto que el bus ya dejó atrás se mide hacia atrás',
+      () {
+    // Del avance 2650 (x = 750 de la vuelta) al 1700 (la subida, y = 200).
     final u =
         RutaMedible.de([_m(0, 0), _m(1500, 0), _m(1500, 400), _m(0, 400)])!;
     final s = SeguidorRuta(u);
-    expect(s.distancia(_bus(750, 400, rumbo: 270), _m(1500, 200)), isNull);
+    expect(s.distancia(_bus(750, 400, rumbo: 270), _m(1500, 200)),
+        closeTo(950, 5));
   });
 
   group('circular: pasar del final al inicio no es retroceder', () {
@@ -100,26 +103,34 @@ void main() {
       final bus = _bus(20, 0, segundos: 3);
       expect(s.avanceDe(bus), closeTo(20, 5));
       expect(s.distancia(bus, _m(100, 0)), closeTo(80, 5));
-      // Y lo que dejó 80 m atrás, antes del final, es la vuelta siguiente:
-      // de 20 a 1940.
-      expect(s.distancia(bus, _m(0, 60)), closeTo(1920, 5));
+      // Y lo que dejó atrás, antes del final, se cuenta hacia atrás
+      // cruzando el inicio: de 20 a 1940, 80 m.
+      expect(s.distancia(bus, _m(0, 60)), closeTo(80, 5));
     });
   });
 
-  group('la ruta pasa dos veces cerca del punto: cuenta el próximo paso', () {
+  group('la ruta pasa dos veces cerca del punto: cuenta el paso más cerca',
+      () {
     // Rectángulo circular de 1000 × 200: este por y = 0, norte, oeste por
     // y = 200 y bajada al inicio. 2400 m.
     final rect = RutaMedible.de(
         [_m(0, 0), _m(1000, 0), _m(1000, 200), _m(0, 200), _m(0, 10)])!;
 
-    test('pasado el paso más cercano, el de enfrente viene antes', () {
+    test('pasado el paso más cercano, cuenta lo que lo dejó atrás', () {
       // El punto en (500, 80): a 80 m de la ida y a 120 de la vuelta. El bus
-      // en x = 700 de la ida ya dejó atrás el paso de 80 (dueño, 2026-10-18:
-      // decía 31,7 km con el bus a la vista). Faltan 300 + 200 + 500 de
-      // ruta y 120 de desvío, no la vuelta entera.
+      // en x = 700 de la ida lo pasó hace 200 m: 200 + 80, ni el paso de
+      // enfrente (1120) ni la vuelta entera.
       final s = SeguidorRuta(rect);
-      expect(s.distancia(_bus(700, 0, rumbo: 90), _m(500, 80)),
-          closeTo(1120, 5));
+      expect(
+          s.distancia(_bus(700, 0, rumbo: 90), _m(500, 80)), closeTo(280, 5));
+    });
+
+    test('viniendo de lejos, el paso de enfrente cuenta hacia adelante', () {
+      // El bus en x = 900 de la vuelta, rumbo oeste: 400 hasta x = 500 y 120
+      // de desvío; hacia atrás, a la ida, serían 800 + 80.
+      final s = SeguidorRuta(rect);
+      expect(s.distancia(_bus(900, 200, rumbo: 270), _m(500, 80)),
+          closeTo(520, 5));
     });
 
     test('antes de la esquina no hay otro paso: la ruta sigue acercándose', () {
@@ -133,37 +144,36 @@ void main() {
 
     test('un paso a más de 150 m del más cercano ya no es el mismo sitio', () {
       // El punto en (500, 20): la vuelta le queda a 180, 160 más que la ida.
-      // Esa calle es otra: se espera la ida de la vuelta siguiente.
+      // Esa calle es otra: el bus en x = 300 de la vuelta, a 200 de x = 500,
+      // no cuenta 200 + 180 sino el paso por la ida: 500 hasta el inicio,
+      // 500 de ida y 20 de desvío.
       final s = SeguidorRuta(rect);
-      expect(s.distancia(_bus(700, 0, rumbo: 90), _m(500, 20)),
-          closeTo(2220, 5));
+      expect(s.distancia(_bus(300, 200, rumbo: 270), _m(500, 20)),
+          closeTo(1020, 5));
     });
   });
 
-  group('el ruido del GPS no manda al bus a la vuelta siguiente', () {
-    // El bus parado en el punto: unos metros de error lo ponen detrás, y
-    // sin tolerancia faltaría una vuelta entera (o, en la abierta, nada).
-    test('circular: 10 m pasado el punto, está ahí', () {
+  group('pasado el punto nunca es la vuelta siguiente', () {
+    // El bus parado en el punto: unos metros de error lo ponen detrás.
+    test('circular: 10 m pasado el punto, a 10 m', () {
       final cuadrado = RutaMedible.de(
           [_m(0, 0), _m(500, 0), _m(500, 500), _m(0, 500), _m(0, 10)])!;
       final s = SeguidorRuta(cuadrado);
-      expect(s.distancia(_bus(110, 0, rumbo: 90), _m(100, 0)), closeTo(0, 5));
+      expect(s.distancia(_bus(110, 0, rumbo: 90), _m(100, 0)), closeTo(10, 5));
     });
 
-    test('abierta: 10 m pasado el punto, está ahí', () {
+    test('abierta: 10 m pasado el punto, a 10 m', () {
       final u =
           RutaMedible.de([_m(0, 0), _m(1500, 0), _m(1500, 400), _m(0, 400)])!;
       final s = SeguidorRuta(u);
-      expect(s.distancia(_bus(510, 0, rumbo: 90), _m(500, 0)), closeTo(0, 5));
+      expect(s.distancia(_bus(510, 0, rumbo: 90), _m(500, 0)), closeTo(10, 5));
     });
 
-    test('circular: 60 m pasado, ya es la vuelta siguiente', () {
+    test('circular: 60 m pasado, a 60 m y no a la vuelta entera', () {
       final cuadrado = RutaMedible.de(
           [_m(0, 0), _m(500, 0), _m(500, 500), _m(0, 500), _m(0, 10)])!;
       final s = SeguidorRuta(cuadrado);
-      // 2000 de vuelta menos los 60 que ya anduvo.
-      expect(
-          s.distancia(_bus(160, 0, rumbo: 90), _m(100, 0)), closeTo(1940, 5));
+      expect(s.distancia(_bus(160, 0, rumbo: 90), _m(100, 0)), closeTo(60, 5));
     });
   });
 

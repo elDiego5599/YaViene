@@ -245,12 +245,16 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   La distancia al bus se mide **por la ruta**, no en línea recta (A2,
   2026-10-08; `SeguidorRuta` en `ya_viene_core/lib/core/geo/por_ruta.dart`,
   compartido por `seguidorRutaProvider`): hoja, rueda, validación y aviso.
-  Sin estado «Ya pasó» (dueño, 2026-10-08): cuenta hasta el próximo paso
-  (la vuelta siguiente en una circular; en una abierta ya pasada, en
-  recta) y nunca bloquea el aviso por eso; si no se puede medir (bus a más de 60 m de la ruta
+  Sin estado «Ya pasó» (dueño, 2026-10-08): cuenta hasta el paso más
+  cerca, venga o ya haya pasado, y nunca la vuelta entera (dueño,
+  2026-10-19: con el bus recién pasado salían 20 km), y nunca bloquea el
+  aviso por eso; si no se puede medir (bus a más de 60 m de la ruta
   o punto a más de 300 m), cae a la línea recta. El push del servidor
   sigue en recta (FALTANTES). La idea se publica aparte, en inglés, en
   `elDiego5599/alongroute` (`YaViene/alongroute`).
+  El aviso lleva la ficha de la ruta (B18, C16; `ficha_ruta.dart`): en
+  Android de ícono grande, en iOS de imagen adjunta (dueño, 2026-10-19).
+  Con un bus tocado se va la píldora de tu punto y buses cerca.
 - **Panel**: tablero con fondo y cabecera blancos (el degradado en la
   cabecera no gustó), filo entre buses centrado en la barra y sombras
   realzadas en tinta (`sombraCabecera` / `sombraTarjeta` /

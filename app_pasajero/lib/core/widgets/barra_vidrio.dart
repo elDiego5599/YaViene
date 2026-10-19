@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -52,26 +53,36 @@ const halo = [
   Shadow(color: Color(0xB3FFFFFF), blurRadius: 14),
 ];
 
-/// La cara de [barraVidrio]: el borde de desplazamiento de iOS 26. En
-/// reposo no se ve; con algo debajo, lo de abajo se desenfoca más cuanto más
-/// arriba (dueño, 2026-10-18: «en vez de completamente transparentes, como
-/// un tipo de blur») y un velo blanco que tras la hora cubre lo justo para
-/// leerla se desvanece hasta nada al pie de la barra. Con más contraste,
-/// opaca.
-class FondoVidrio extends StatefulWidget {
+/// La cara de [barraVidrio]: el borde de desplazamiento de iOS 26. Siempre
+/// puesta, como en iOS: en reposo solo tiene blanco debajo y no se nota, y
+/// lo que sube se va desenfocando poco a poco al meterse. Antes se prendía
+/// al empezar a bajar y se veía el salto (dueño, 2026-10-19: «se ve como se
+/// activa cuando uno baja, se ve bastante pobre»). Lo de abajo se desenfoca
+/// más cuanto más arriba y un velo blanco que tras la hora cubre lo justo
+/// para leerla se desvanece hasta nada al pie de la barra. Con más
+/// contraste, opaca.
+class FondoVidrio extends StatelessWidget {
   const FondoVidrio({super.key});
 
+  /// Cuántas capas: con 10, cada una suma menos de un punto de sigma y el
+  /// paso de una a otra no se ve (con 6 se veían las franjas).
+  static const _n = 10;
+
+  /// Sigma tras la hora, donde se suman todas.
+  static const _sigmaArriba = 8.0;
+
   /// El desenfoque progresivo, como (hasta qué fracción de la barra baja,
-  /// sigma) por capa. Las capas arrancan todas arriba y se suman: al pie,
-  /// sigma 1,5, lo que basta para que no se vea el corte; tras la hora,
-  /// unos 7,5 (la raíz de la suma de los cuadrados).
-  static const capas = [
-    (1.0, 1.5),
-    (0.85, 2.0),
-    (0.7, 2.5),
-    (0.55, 3.0),
-    (0.4, 3.5),
-    (0.25, 4.0),
+  /// sigma) por capa. Las capas arrancan todas arriba y se suman como
+  /// gaussianas (la raíz de la suma de los cuadrados): a una fracción f de
+  /// la barra contando desde el pie, el sigma total crece parejo, de 0,8 al
+  /// pie a 8 arriba.
+  static final capas = [
+    for (var k = 1; k <= _n; k++)
+      (
+        1 - (k - 1) / _n,
+        math.sqrt(math.pow(_sigmaArriba * k / _n, 2) -
+            math.pow(_sigmaArriba * (k - 1) / _n, 2)),
+      ),
   ];
 
   /// El velo, de arriba abajo: 88 % tras la hora, 55 % a media barra y nada
@@ -84,88 +95,36 @@ class FondoVidrio extends StatefulWidget {
   );
 
   @override
-  State<FondoVidrio> createState() => _FondoVidrioState();
-}
-
-class _FondoVidrioState extends State<FondoVidrio> {
-  ScrollNotificationObserverState? _observador;
-  bool _debajo = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // El mismo aviso que usa `AppBar` para saber si hay algo debajo.
-    _observador?.removeListener(_alDesplazar);
-    _observador = ScrollNotificationObserver.maybeOf(context);
-    _observador?.addListener(_alDesplazar);
-  }
-
-  @override
-  void dispose() {
-    _observador?.removeListener(_alDesplazar);
-    super.dispose();
-  }
-
-  void _alDesplazar(ScrollNotification aviso) {
-    if (aviso is! ScrollUpdateNotification ||
-        !defaultScrollNotificationPredicate(aviso)) {
-      return;
-    }
-    final m = aviso.metrics;
-    final debajo = switch (m.axisDirection) {
-      AxisDirection.up => m.extentAfter > 0,
-      AxisDirection.down => m.extentBefore > 0,
-      _ => _debajo,
-    };
-    if (debajo != _debajo) setState(() => _debajo = debajo);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final opaca = MediaQuery.highContrastOf(context);
-    final duracion = AppMotion.duracion(context, AppMotion.normal);
     return Stack(
       fit: StackFit.expand,
       children: [
         if (!opaca)
-          // El desenfoque entra y sale con el velo, subiendo el sigma: una
-          // opacidad encima no apagaría lo que el filtro ya tomó de atrás.
-          TweenAnimationBuilder<double>(
-            tween: Tween(end: _debajo ? 1 : 0),
-            duration: duracion,
-            curve: Curves.easeOut,
-            builder: (context, t, _) => t == 0
-                ? const SizedBox.shrink()
-                : LayoutBuilder(
-                    builder: (context, caja) => Stack(
-                      children: [
-                        for (final (fraccion, sigma) in FondoVidrio.capas)
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: caja.maxHeight * fraccion,
-                            child: ClipRect(
-                              child: BackdropFilter(
-                                filter: ui.ImageFilter.blur(
-                                    sigmaX: sigma * t, sigmaY: sigma * t),
-                                child: const SizedBox.expand(),
-                              ),
-                            ),
-                          ),
-                      ],
+          LayoutBuilder(
+            builder: (context, caja) => Stack(
+              children: [
+                for (final (fraccion, sigma) in capas)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: caja.maxHeight * fraccion,
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter:
+                            ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                        child: const SizedBox.expand(),
+                      ),
                     ),
                   ),
+              ],
+            ),
           ),
-        AnimatedOpacity(
-          opacity: _debajo ? 1 : 0,
-          duration: duracion,
-          curve: Curves.easeOut,
-          child: DecoratedBox(
-            decoration: opaca
-                ? const BoxDecoration(color: Colors.white)
-                : const BoxDecoration(gradient: FondoVidrio.velo),
-          ),
+        DecoratedBox(
+          decoration: opaca
+              ? const BoxDecoration(color: Colors.white)
+              : const BoxDecoration(gradient: velo),
         ),
       ],
     );
