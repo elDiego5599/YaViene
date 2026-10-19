@@ -9,8 +9,8 @@ import '../../../../core/widgets/ink_hero.dart';
 /// La escena del arranque (dueño, 2026-10-18): Barranquilla se arma sobre
 /// blanco y el bus llega. La Ventana al Mundo se enciende en ola, de abajo
 /// arriba, sobre su isla de pasto con arbustos; la cayena abre sus cinco
-/// pétalos; el bus de Sobusa viene de lejos y frena de frente («ya
-/// viene»); y queda la marca.
+/// pétalos; el bus (sin empresa: Ya Viene es de todas) viene de lejos y
+/// frena de frente («ya viene»); y queda la marca.
 ///
 /// Breve a propósito (dueño: «2 segundos es mucho»): [duracion] entera,
 /// con las piezas solapadas. Con «Reducir movimiento» se pinta ya armada y

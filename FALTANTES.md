@@ -120,7 +120,10 @@ Necesitan un teléfono, una cuenta o estar presente.
   saturación 1,8; opaca con más contraste). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
   arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
-  pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
+  pétalos sueltos (112 de lado) y un bus sin empresa, verde, con el
+  letrero de Barranquilla y las franjas de la bandera (`escena_arranque.dart`;
+  el nombre de Sobusa hacía creer que la app era solo de ellos,
+  `bus_arranque_test.dart`,
   1,7 s con medio segundo de marca, sin adornos), con la torre sobre su
   isla de pasto con canto, briznas y cuatro arbustos floridos, y una calle
   de frente bajo el bus, con bordillos y raya blanca (`PintorSuelo`), sobre el
@@ -128,12 +131,15 @@ Necesitan un teléfono, una cuenta o estar presente.
   y luego con algo de su color de vuelta el mismo día);
   y en Avisos, arriba, la nota «Gestiona, borra o desactiva tus avisos
   aquí.» con su ícono, y dejar presionado un aviso lo selecciona; y en Info dibujos chicos de
-  Barranquilla regados sin orden por toda la pantalla (cayena, sol,
-  palmera, marimonda, la torre del arranque y, pocos y separados, los
-  buses de Sobusa, Coolitoral, Transmetro y Sodis; de 44 a 60, a 70 entre
-  centros, sin dos iguales juntos, al 72 % y sin relleno en los huecos; `fondo_ilustrado.dart`; la torre adelgaza sus
-  juntas con el tamaño) sobre el matizado, con
-  la letra en píldoras blancas. Y lo que lee el pasajero va sin «», rayas
+  Barranquilla regados sin orden solo arriba, detrás del logo, que se
+  apagan antes de la tarjeta (franja de 200 bajo el borde seguro, enteros
+  los primeros 80; cayena, sol, palmera, marimonda, la torre del arranque
+  y, pocos y separados, los buses de Sobusa y Coolitoral, las empresas de
+  la app; de 44 a 60, a 70 entre centros, sin dos iguales juntos, al 72 %
+  y sin relleno en los huecos; `fondo_ilustrado.dart`; la torre adelgaza
+  sus juntas con el tamaño) sobre el matizado, con la letra en píldoras
+  blancas; y la tarjeta de la ruta activa con su chevrón lleva al mapa
+  (sin ruta, abre el selector), se hunde al tocarla y vibra. Y lo que lee el pasajero va sin «», rayas
   ni -- (2026-10-18; `textos_sin_signos_test.dart`, y lo legal de la web
   en `coherencia.test.ts`): el rango de la rueda dice «0,7 a 1,2 km». Y las áreas iluminadas de la guía
   (2026-10-18): el mapa libre entre la cabecera y la hoja, la píldora

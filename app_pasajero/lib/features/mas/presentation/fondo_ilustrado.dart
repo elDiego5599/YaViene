@@ -13,10 +13,10 @@ enum Motivo {
   palmera('info_palmera'),
   marimonda('info_marimonda'),
   ventana(null),
+  // Solo los buses de las empresas que están en la app: uno de Transmetro
+  // o de Sodis prometería rutas que no hay (revisión externa, 2026-10-18).
   busSobusa('info_sobusa'),
-  busCoolitoral('info_coolitoral'),
-  busTransmetro('info_transmetro'),
-  busSodis('info_sodis');
+  busCoolitoral('info_coolitoral');
 
   const Motivo(this._archivo);
 
@@ -36,7 +36,9 @@ typedef Celda = ({Motivo motivo, Offset centro, double lado, double giro});
 /// girado y de su tamaño, sin dos iguales juntos y con pocos buses, sobre
 /// el matizado del arranque. Atenuados y sin relleno en los huecos («atenúa
 /// un poco las imágenes», dueño, 2026-10-18): son fondo, lo que se lee son
-/// las tarjetas blancas de encima. Quieto.
+/// las tarjetas blancas de encima. Solo arriba, detrás de la marca, y se
+/// apagan hacia las tarjetas: en toda la pantalla hacían ruido (revisión
+/// externa, 2026-10-18). Quieto.
 class FondoIlustrado extends StatelessWidget {
   const FondoIlustrado({super.key, required this.child});
 
@@ -54,23 +56,46 @@ class FondoIlustrado extends StatelessWidget {
   /// que son blancas y opacas.
   static const double velo = 0.72;
 
+  /// Hasta dónde llegan los dibujos, por debajo de la barra de estado: se
+  /// ven enteros detrás de la marca y se apagan sobre la tarjeta de la ruta,
+  /// que en un teléfono va de 98 a 214 desde ahí.
+  static const double franja = 200;
+
+  /// Hasta dónde se ven enteros: la píldora de la marca acaba en 76.
+  static const double _enteros = 80;
+
+  /// El degradado con que se apagan en una caja de [caja], para [arriba]
+  /// de barra de estado.
+  static LinearGradient desvanecido(Size caja, {double arriba = 0}) {
+    double donde(double y) => ((arriba + y) / caja.height).clamp(0.0, 1.0);
+    return LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: const [Colors.white, Colors.white, Color(0x00FFFFFF)],
+      stops: [0, donde(_enteros), donde(franja)],
+    );
+  }
+
   /// Giro máximo, a cada lado.
   static const double _giro = 15;
 
   /// Cuánto sale cada uno frente a los demás: un bus por cada tres de lo
-  /// otro, así entre los cuatro buses son uno de cada cinco dibujos.
+  /// otro.
   static int _peso(Motivo m) => _esBus(m) ? 1 : 3;
 
   static bool _esBus(Motivo m) => m.name.startsWith('bus');
 
-  /// Los dibujos de una pantalla de [pantalla], también un poco por fuera
+  /// Los dibujos de una pantalla de [pantalla], de arriba hasta la
+  /// [franja] bajo [arriba] de barra de estado, también un poco por fuera
   /// de las orillas para que nada quede cortado en seco. Siempre los
   /// mismos: la semilla es fija.
-  static List<Celda> celdas(Size pantalla) {
+  static List<Celda> celdas(Size pantalla, {double arriba = 0}) {
     final azar = math.Random(18);
     final usos = {for (final m in Motivo.values) m: 0};
     final celdas = <Celda>[];
-    for (final centro in regar(azar, pantalla, 8, separacion)) {
+    final hasta = arriba + franja;
+    for (final centro
+        in regar(azar, pantalla, 8, separacion, aparte: (p) => p.dy > hasta)) {
       final vecinos = {
         for (final c in celdas)
           if ((c.centro - centro).distance <= separacion * 1.5) c.motivo,
@@ -122,6 +147,7 @@ class FondoIlustrado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final arriba = MediaQuery.paddingOf(context).top;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -136,13 +162,19 @@ class FondoIlustrado extends StatelessWidget {
                 ),
                 // Un solo velo para todos: una capa, no una por dibujo.
                 Positioned.fill(
-                  child: Opacity(
-                    opacity: velo,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        for (final c in celdas(caja.biggest)) _dibujo(c),
-                      ],
+                  child: ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (r) =>
+                        desvanecido(r.size, arriba: arriba).createShader(r),
+                    child: Opacity(
+                      opacity: velo,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          for (final c in celdas(caja.biggest, arriba: arriba))
+                            _dibujo(c),
+                        ],
+                      ),
                     ),
                   ),
                 ),

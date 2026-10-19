@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
+import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 import 'helpers/barra.dart';
@@ -210,6 +213,10 @@ void main() {
     await abrirMas(tester);
 
     expect(find.byType(FondoIlustrado), findsOneWidget);
+    // Los dibujos se apagan antes de que acabe la tarjeta de la ruta: lo
+    // demás va sobre el matizado limpio.
+    expect(FondoIlustrado.franja,
+        lessThanOrEqualTo(tester.getRect(find.byType(ActiveRouteCard)).bottom));
     expect(find.byType(FondoMalla), findsNothing);
     for (final (texto, color) in [
       ('Ya Viene', AppColors.textPrimary),
@@ -259,5 +266,69 @@ void main() {
                     matching: find.byKey(MasScreen.pildoraKey)))
                 .bottom,
         moreOrLessEquals(26, epsilon: 0.5));
+  });
+
+  /// La tarjeta parece un botón: tocarla lleva al mapa (revisión externa,
+  /// 2026-10-18: «la tarjeta de ruta activa no lleva al mapa»). Sin ruta,
+  /// además abre el selector, como «Escoge empresa y ruta» en la hoja.
+  Future<ProviderContainer> abrirConMapa(WidgetTester tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final subs = [
+      container.listen<RouteInfo?>(selectedRouteProvider, (_, __) {}),
+      container.listen<int>(pedirSelectorProvider, (_, __) {}),
+    ];
+    addTearDown(() {
+      for (final s in subs) {
+        s.close();
+      }
+    });
+    final router = GoRouter(initialLocation: '/info', routes: [
+      GoRoute(path: '/info', builder: (_, __) => const MasScreen()),
+      GoRoute(path: AppRoutes.map, builder: (_, __) => const Text('el mapa')),
+    ]);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(routerConfig: router),
+    ));
+    await tester.pump();
+    return container;
+  }
+
+  testWidgets('la tarjeta de la ruta activa lleva al mapa', (tester) async {
+    final container = await abrirConMapa(tester);
+    container.read(selectedRouteProvider.notifier).select(const RouteInfo(
+          id: 'R1',
+          name: 'B18 Tcherassi',
+          companyId: 'C1',
+          terminalA: 'Mallorquín',
+          terminalB: 'La Playa',
+        ));
+    await tester.pump();
+    expect(
+        tester.getSemantics(find.byType(ActiveRouteCard)),
+        matchesSemantics(
+            isButton: true,
+            hasTapAction: true,
+            label: 'Ruta activa: B18 Tcherassi, entre Mallorquín y La Playa',
+            hint: 'Ver en el mapa'));
+
+    await tester.tap(find.byType(ActiveRouteCard));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('el mapa'), findsOneWidget);
+    expect(container.read(pedirSelectorProvider), 0,
+        reason: 'con ruta no se abre el selector');
+  });
+
+  testWidgets('sin ruta, la tarjeta abre el selector en el mapa',
+      (tester) async {
+    final container = await abrirConMapa(tester);
+    await tester.tap(find.byType(ActiveRouteCard));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('el mapa'), findsOneWidget);
+    expect(container.read(pedirSelectorProvider), 1);
   });
 }

@@ -9,16 +9,19 @@ import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_ar
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/fondo_matizado.dart';
 
 /// El fondo de Info (dueño, 2026-10-18): las ilustraciones de Barranquilla
-/// «mucho más pequeñas, en toda la pantalla», regadas sin orden y con pocos
-/// buses, atenuadas sobre el matizado del arranque. Quieto.
+/// chicas, regadas sin orden y con pocos buses, atenuadas sobre el
+/// matizado del arranque. Solo arriba, detrás de la marca, y se apagan
+/// hacia las tarjetas: en toda la pantalla hacían ruido (revisión externa,
+/// 2026-10-18). Quieto.
 void main() {
   const pantalla = Size(390, 844);
 
-  testWidgets('nueve dibujos, pocos buses, y todos en un teléfono',
+  testWidgets('siete dibujos, solo buses de empresas de la app',
       (tester) async {
-    expect(Motivo.values, hasLength(9));
+    expect(Motivo.values, hasLength(7));
+    // Un bus de una empresa que no está en la app promete lo que no hay.
     final buses = Motivo.values.where((m) => m.name.startsWith('bus'));
-    expect(buses, hasLength(4));
+    expect(buses, {Motivo.busSobusa, Motivo.busCoolitoral});
     final cuenta = <Motivo, int>{};
     var dentro = 0;
     for (final c in FondoIlustrado.celdas(pantalla)) {
@@ -28,16 +31,31 @@ void main() {
       }
     }
     expect(cuenta.keys.toSet(), Motivo.values.toSet());
-    // «Es demasiado, reduce la cantidad de buses sobre todo» (dueño,
-    // 2026-10-18): menos dibujos, y los buses, entre los cuatro, no pasan
-    // de uno de cada cuatro.
-    expect(dentro, inInclusiveRange(40, 62));
+    expect(dentro, inInclusiveRange(12, 24));
     final deBus = buses.map((m) => cuenta[m]!).reduce((a, b) => a + b);
     expect(deBus, lessThanOrEqualTo(dentro ~/ 4), reason: '$deBus/$dentro');
-    for (final m in Motivo.values) {
-      final minimo = m.name.startsWith('bus') ? 2 : 4;
-      expect(cuenta[m], greaterThanOrEqualTo(minimo), reason: '$m');
+  });
+
+  testWidgets('solo arriba: ninguno cae debajo de la franja', (tester) async {
+    for (final c in FondoIlustrado.celdas(pantalla)) {
+      expect(c.centro.dy, lessThanOrEqualTo(FondoIlustrado.franja),
+          reason: '${c.centro}');
     }
+  });
+
+  testWidgets('se apaga hacia abajo, del todo al pie de la franja',
+      (tester) async {
+    await tester
+        .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
+    final mascara = tester.widget<ShaderMask>(find.byType(ShaderMask));
+    expect(mascara.blendMode, BlendMode.dstIn);
+    final dibujo = find.byType(Image).first;
+    expect(find.ancestor(of: dibujo, matching: find.byType(ShaderMask)),
+        findsOneWidget);
+    final degradado = FondoIlustrado.desvanecido(const Size(390, 844));
+    expect(degradado.colors.first.a, 1);
+    expect(degradado.colors.last.a, 0);
+    expect(degradado.stops!.last * 844, closeTo(FondoIlustrado.franja, 0.5));
   });
 
   testWidgets('chicos, regados sin orden y sin huecos', (tester) async {
@@ -55,7 +73,7 @@ void main() {
     }
     // Pero sin calvas: cualquier punto tiene un dibujo a poco más de [r]
     // (lo que mide la rejilla de donde se sacan).
-    for (var y = 0.0; y <= pantalla.height; y += 10) {
+    for (var y = 0.0; y <= FondoIlustrado.franja; y += 10) {
       for (var x = 0.0; x <= pantalla.width; x += 10) {
         final p = Offset(x, y);
         final cerca = celdas
@@ -65,9 +83,13 @@ void main() {
       }
     }
     // «Todo con el mismo orden no cuadra»: no van en hileras. Si fueran
-    // en filas, muchos compartirían altura.
-    final alturas = celdas.map((c) => (c.centro.dy / 4).round()).toList();
-    expect(alturas.toSet().length, greaterThan(alturas.length * 0.7));
+    // en filas, muchos compartirían altura; regados, no pasan de tres (en
+    // pantalla: la orilla de la rejilla, por fuera, sí es una fila).
+    final porAltura = <double, int>{};
+    for (final c in celdas.where((c) => c.centro.dy >= 0)) {
+      porAltura[c.centro.dy] = (porAltura[c.centro.dy] ?? 0) + 1;
+    }
+    expect(porAltura.values.every((n) => n <= 3), isTrue, reason: '$porAltura');
   });
 
   testWidgets('dos vecinos nunca repiten dibujo', (tester) async {
@@ -81,7 +103,7 @@ void main() {
         expect(a.motivo, isNot(b.motivo), reason: '${a.centro} ${b.centro}');
       }
     }
-    expect(pares, greaterThan(100));
+    expect(pares, greaterThan(20));
   });
 
   testWidgets('las fotos existen, livianas y nítidas al tamaño en que van',

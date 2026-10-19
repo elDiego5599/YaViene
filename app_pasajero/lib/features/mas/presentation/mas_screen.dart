@@ -361,11 +361,33 @@ class _Pie extends StatelessWidget {
 /// Pieza central de Info: la ruta que el usuario está siguiendo, con sus
 /// terminales unidos por una línea de ida y vuelta. Sin ruta seleccionada
 /// muestra el estado vacío.
-class ActiveRouteCard extends ConsumerWidget {
+///
+/// Tocarla lleva al mapa, que es donde vive la ruta; sin ruta, además abre
+/// el selector, como «Escoge empresa y ruta» en la hoja (revisión externa,
+/// 2026-10-18: parecía un botón y no hacía nada). Al tocarla se hunde como
+/// las tarjetas del selector.
+class ActiveRouteCard extends ConsumerStatefulWidget {
   const ActiveRouteCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ActiveRouteCard> createState() => _ActiveRouteCardState();
+}
+
+class _ActiveRouteCardState extends ConsumerState<ActiveRouteCard> {
+  bool _pressed = false;
+
+  void _abrir() {
+    HapticFeedback.selectionClick();
+    if (ref.read(selectedRouteProvider) == null) {
+      ref.read(pedirSelectorProvider.notifier).state++;
+    }
+    context.go(AppRoutes.map);
+  }
+
+  void _hundir(bool hundida) => setState(() => _pressed = hundida);
+
+  @override
+  Widget build(BuildContext context) {
     final route = ref.watch(selectedRouteProvider);
     final hasRoute = route != null;
     final a = route?.terminalA ?? '';
@@ -381,47 +403,80 @@ class ActiveRouteCard extends ConsumerWidget {
             : 'Ruta activa: ${route.name}';
 
     return Semantics(
+      button: true,
       label: dicha,
+      hint: hasRoute ? 'Ver en el mapa' : 'Elegir ruta en el mapa',
+      // Sin esto, `excludeSemantics` se llevaría la acción del gesto y el
+      // doble toque de VoiceOver no haría nada.
+      onTap: _abrir,
       excludeSemantics: true,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: _tarjeta,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ruta activa',
-              style: AppTextStyles.etiqueta.copyWith(
-                letterSpacing: 1.2,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (hasRoute) ...[
-              Text(
-                route.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.titulo,
-              ),
-              if (showTerminals) ...[
-                const SizedBox(height: 14),
-                TerminalsLine(a: a, b: b),
-              ],
-            ] else ...[
-              Text(
-                'Sin ruta activa',
-                style: AppTextStyles.cuerpoFuerte,
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Elige tu ruta en el mapa',
-                style: AppTextStyles.pie,
-              ),
-            ],
-          ],
+      child: GestureDetector(
+        onTap: _abrir,
+        onTapDown: (_) => _hundir(true),
+        onTapUp: (_) => _hundir(false),
+        onTapCancel: () => _hundir(false),
+        behavior: HitTestBehavior.opaque,
+        // 0,975: lo mismo que se hunden las tarjetas del selector.
+        child: AnimatedScale(
+          scale: _pressed ? 0.975 : 1,
+          duration: AppMotion.instante,
+          curve: AppMotion.curvaSalida,
+          child: _tarjetaRuta(route, hasRoute, showTerminals, a, b),
         ),
+      ),
+    );
+  }
+
+  Widget _tarjetaRuta(
+      RouteInfo? route, bool hasRoute, bool showTerminals, String a, String b) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: _tarjeta,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // El chevrón dice que la tarjeta se toca, como una fila de
+          // Ajustes.
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Ruta activa',
+                  style: AppTextStyles.etiqueta.copyWith(
+                    letterSpacing: 1.2,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 22, color: AppColors.textSecondary),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasRoute) ...[
+            Text(
+              route!.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.titulo,
+            ),
+            if (showTerminals) ...[
+              const SizedBox(height: 14),
+              TerminalsLine(a: a, b: b),
+            ],
+          ] else ...[
+            Text(
+              'Sin ruta activa',
+              style: AppTextStyles.cuerpoFuerte,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Elige tu ruta en el mapa',
+              style: AppTextStyles.pie,
+            ),
+          ],
+        ],
       ),
     );
   }
