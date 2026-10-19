@@ -52,6 +52,7 @@ void main() {
               required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters,
             }) async =>
                 true),
@@ -241,6 +242,32 @@ void main() {
     );
     final guardado = jsonDecode(prefs.getString('alert_history')!) as List;
     expect(guardado, hasLength(3));
+  });
+
+  // La ficha del aviso va en el color de su empresa, el de «Elige empresa»
+  // (dueño, 2026-10-19): el aviso guarda de qué empresa es, porque al
+  // reabrir la app la ruta elegida puede ser otra.
+  test('el aviso guarda su empresa y vuelve con ella al reabrir la app',
+      () async {
+    final first = buildContainer();
+    addTearDown(first.dispose);
+    arm(first, 'A-1');
+    expect(first.read(alertHistoryProvider).single.companyId, 'C1');
+    await first.read(alertHistoryProvider.notifier).guardado;
+
+    final second = buildContainer();
+    addTearDown(second.dispose);
+    await second.read(proximityAlertsProvider.notifier).restore();
+    expect(second.read(alertHistoryProvider).single.companyId, 'C1');
+  });
+
+  test('un aviso de antes, sin empresa, se lee igual', () {
+    final e = AlertHistoryEntry.fromJson({
+      'busId': 'A-1',
+      'routeId': 'R1',
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    expect(e.companyId, isNull);
   });
 
   // Cada aviso guarda la distancia a la que se armó: es lo único que la

@@ -39,7 +39,7 @@ void main() {
 
   test('ninguna se viste de aviso: ni rojo, ni naranja, ni ámbar', () {
     // El coral es «sin conexión» y el ámbar «cuidado» (ver
-    // `_companyPalette` en el selector): una ruta no puede decir eso.
+    // `coloresEmpresa`): una ruta no puede decir eso.
     for (final color in coloresRuta.values) {
       final tono = HSVColor.fromColor(color).hue;
       expect(tono < 15 || tono > 60, isTrue, reason: '$color, tono $tono');

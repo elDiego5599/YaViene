@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/core/utils/color_ruta.dart';
+import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
@@ -48,12 +48,14 @@ void main() {
         companyId: 'C1',
       );
 
-  /// Los fondos de las pantallas son blancos y lo blanco que va encima se
-  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, en reposo,
-  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
-  void exigeFondoBlanco(WidgetTester tester) {
+  /// Avisos y el buzón van en gris agrupado, como los Ajustes de iOS, con
+  /// sus tarjetas blancas encima sin sombra (dueño, 2026-10-19: «todo es
+  /// blanco plano, no hay separadores»; antes, 2026-10-16, todo blanco). La
+  /// barra de arriba, en reposo, deja ver ese gris: es de vidrio (dueño,
+  /// 2026-10-18).
+  void exigeFondoAgrupado(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-        AppColors.surface,
+        AppColors.fondoAgrupado,
         reason: 'el fondo de Avisos');
     expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
         Colors.transparent,
@@ -84,6 +86,7 @@ void main() {
               required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters,
             }) async =>
                 true),
@@ -124,10 +127,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Avisos va sobre blanco', (tester) async {
+  testWidgets('Avisos va sobre el gris agrupado', (tester) async {
     await pumpScreen(tester, const []);
     await tester.pump();
-    exigeFondoBlanco(tester);
+    exigeFondoAgrupado(tester);
   });
 
   /// La tarjeta de un aviso. La ruta va escrita y la placa en su lámina
@@ -189,7 +192,7 @@ void main() {
 
   testWidgets('la tarjeta lleva la ficha de la ruta y el nombre sin código',
       (tester) async {
-    // Como el ícono del aviso: C16 en su cuadro del color de la ruta en vez
+    // Como el ícono del aviso: C16 en su cuadro del color de la empresa en vez
     // del bus, y al lado solo «Calle 72 Uninorte» (dueño, 2026-10-19).
     final container = await pumpScreen(tester, [bus('A-1')]);
     container.read(selectedRouteProvider.notifier).select(const RouteInfo(
@@ -212,7 +215,9 @@ void main() {
         .widget<Container>(
             find.descendant(of: ficha, matching: find.byType(Container)).first)
         .decoration! as BoxDecoration;
-    expect(cara.color, coloresRuta['C16']);
+    // En el color de su empresa, el mismo de su insignia en «Elige
+    // empresa» (dueño, 2026-10-19).
+    expect(cara.color, colorEmpresa('C1'));
     // El lector sigue diciendo la ruta entera.
     expect(
         find.descendant(
@@ -427,9 +432,11 @@ void main() {
     }
   });
 
-  // Sobre blanco, una tarjeta blanca sin sombra es solo su filo: también
-  // lo que ya sonó se despega del fondo.
-  testWidgets('las tarjetas de Avisos se despegan del blanco con sombra',
+  // Sobre el gris agrupado las tarjetas son blancas y planas, como en
+  // Ajustes de iOS: sin sombra ni filo, y dentro una raya fina de un píxel
+  // separa lo que el aviso es (ruta y placa) de cómo va (dueño, 2026-10-19:
+  // «quiero como separadores q dividan las cosas, que se vea fino»).
+  testWidgets('las tarjetas de Avisos son planas, con su raya fina dentro',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
@@ -443,11 +450,43 @@ void main() {
       expect(container.read(alertHistoryProvider).where((e) => e.sent),
           hasLength(1));
 
+      final pixel = 1 / tester.view.devicePixelRatio;
       for (final id in ['A-1', 'A-2']) {
         final caja = tester.widget<AnimatedContainer>(aviso(id)).decoration!
             as BoxDecoration;
-        expect(caja.boxShadow, isNotEmpty, reason: 'la tarjeta de $id');
+        expect(caja.color, AppColors.surface, reason: 'la tarjeta de $id');
+        expect(caja.boxShadow ?? const [], isEmpty,
+            reason: 'la tarjeta de $id');
+        expect((caja.border! as Border).top.color, Colors.transparent,
+            reason: 'el filo de la tarjeta de $id');
+
+        final raya = find.descendant(
+            of: aviso(id), matching: find.byKey(const ValueKey('aviso-raya')));
+        expect(raya, findsOneWidget, reason: 'la raya de $id');
+        final divisor = tester.widget<Divider>(raya);
+        expect(divisor.color, AppColors.separador);
+        expect(divisor.thickness, pixel);
+        // Entre la placa y el estado (la raya trae su aire arriba).
+        expect(
+            tester.getRect(raya).top,
+            greaterThanOrEqualTo(tester
+                .getRect(find.descendant(
+                    of: aviso(id), matching: find.byType(PlacaBus)))
+                .bottom));
       }
+      // El estado ya no va en su franja arena: la raya hace de separación.
+      expect(
+          find.byWidgetPredicate((w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).color == AppColors.arena),
+          findsNothing);
+      // Y la nota de arriba, tarjeta plana como las demás.
+      final nota = tester
+          .widget<Container>(find.byKey(const ValueKey('nota-avisos')))
+          .decoration! as BoxDecoration;
+      expect(nota.boxShadow ?? const [], isEmpty);
+      expect(nota.border, isNull);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show Color;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
+import '../utils/color_empresa.dart';
 import 'ficha_ruta.dart';
 
 /// El aviso que alguien tocó: el bus y su ruta, para dejar el mapa como
@@ -176,11 +178,13 @@ class BusNotificationService {
     required String busId,
     String? routeName,
     String? routeId,
+    String? companyId,
   }) async {
     final ruta = rutaLegible(routeName, routeId);
     try {
       if (!await puedeAvisar()) return false;
-      final ficha = await _ficha(codigoRuta(routeName));
+      final ficha = await _ficha(codigoRuta(routeName),
+          colorFicha(companyId: companyId, routeName: routeName));
       final adjunto =
           ficha == null || defaultTargetPlatform != TargetPlatform.iOS
               ? null
@@ -226,10 +230,10 @@ class BusNotificationService {
   /// La ficha con el código de la ruta (B18, C16) que el aviso lleva de
   /// ícono (dueño, 2026-10-19). Si no hay código o no se pudo pintar, el
   /// aviso sale igual, sin ficha: nunca se pierde por un ícono.
-  static Future<Uint8List?> _ficha(String? codigo) async {
+  static Future<Uint8List?> _ficha(String? codigo, Color color) async {
     if (codigo == null) return null;
     try {
-      return await fichaRuta(codigo);
+      return await fichaRuta(codigo, color);
     } catch (e) {
       debugPrint('no se pudo pintar la ficha de $codigo: $e');
       return null;

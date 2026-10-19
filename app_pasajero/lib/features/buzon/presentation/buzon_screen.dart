@@ -13,8 +13,9 @@ import '../data/buzon.dart';
 ///
 /// Pantalla entera y no una ventana: hay un teclado abierto y un texto de
 /// hasta mil caracteres, y en una ventana sobre el mapa el teclado se come
-/// la mitad. La barra es la de Avisos, el fondo blanco de las pantallas
-/// claras y el botón el verde lleno de la entrada.
+/// la mitad. La barra es la de Avisos, el fondo el gris agrupado de
+/// Avisos con tarjetas blancas planas, y el botón el verde lleno de la
+/// entrada.
 ///
 /// Sin campo de contacto a propósito (Ley 1581): el equipo no contesta por
 /// aquí, y la nota de abajo pide que no se escriban datos personales.
@@ -79,7 +80,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      // El gris agrupado de Ajustes del iPhone, como Avisos: las tarjetas
+      // blancas se separan solas, sin sombras (dueño, 2026-10-19).
+      backgroundColor: AppColors.fondoAgrupado,
       // El formulario pasa por debajo de la barra, que es de vidrio (dueño,
       // 2026-10-18).
       extendBodyBehindAppBar: true,
@@ -169,43 +172,58 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                 ],
               ),
               const TituloSeccion('Tu mensaje'),
-              // Tarjeta blanca con sombra suave, como las opciones: el filo
-              // solo aparece, verde, mientras se escribe.
+              // Tarjeta blanca y plana, como las opciones: el filo solo
+              // aparece, verde, mientras se escribe. La nota de privacidad
+              // va dentro, bajo una raya de un píxel (dueño, 2026-10-19:
+              // «separadores que dividan las cosas, que se vea fino»).
               DecoratedBox(
+                key: const ValueKey('buzon_tarjeta'),
                 decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(AppRadius.card),
-                  boxShadow: AppShadows.soft,
                 ),
-                child: TextField(
-                  key: const ValueKey('buzon_texto'),
-                  controller: _texto,
-                  enabled: !_enviando,
-                  minLines: 7,
-                  maxLines: 12,
-                  maxLength: Buzon.maximo,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: AppTextStyles.cuerpo
-                      .copyWith(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: problema
-                        ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
-                        : 'Qué mejorarías o qué te gustaría ver en la app.',
-                    hintStyle: AppTextStyles.cuerpo
-                        .copyWith(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding:
-                        const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
-                    counterStyle: AppTextStyles.pie
-                        .copyWith(color: AppColors.textSecondary),
-                    enabledBorder: _filo(AppColors.hairline, 1),
-                    disabledBorder: _filo(AppColors.hairline, 1),
-                    focusedBorder: _filo(AppColors.primaryAccessible, 2),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      key: const ValueKey('buzon_texto'),
+                      controller: _texto,
+                      enabled: !_enviando,
+                      minLines: 7,
+                      maxLines: 12,
+                      maxLength: Buzon.maximo,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: AppTextStyles.cuerpo
+                          .copyWith(color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: problema
+                            ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
+                            : 'Qué mejorarías o qué te gustaría ver en la app.',
+                        hintStyle: AppTextStyles.cuerpo
+                            .copyWith(color: AppColors.textSecondary),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.fromLTRB(
+                            20, 18, 20, AppSpacing.md),
+                        counterStyle: AppTextStyles.pie
+                            .copyWith(color: AppColors.textSecondary),
+                        enabledBorder: _filo(Colors.transparent, 1),
+                        disabledBorder: _filo(Colors.transparent, 1),
+                        focusedBorder: _filo(AppColors.primaryAccessible, 2),
+                      ),
+                    ),
+                    // Con sangría a la izquierda, como las celdas del iPhone.
+                    Divider(
+                      key: const ValueKey('buzon_raya'),
+                      height: 1,
+                      indent: 20,
+                      thickness: 1 / MediaQuery.devicePixelRatioOf(context),
+                      color: AppColors.separador,
+                    ),
+                    const _NotaPrivacidad(),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              const _NotaPrivacidad(),
             ],
           ),
         ),
@@ -302,19 +320,16 @@ class _Encabezado extends StatelessWidget {
   }
 }
 
-/// El candado y la nota en una pastilla arena oscura: se ve, pero no
+/// El candado y la nota, al pie de la tarjeta del mensaje: se ve, pero no
 /// compite con el campo.
 class _NotaPrivacidad extends StatelessWidget {
   const _NotaPrivacidad();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primaryDeep.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
+    return Padding(
+      // A la par del texto del campo (20 por lado).
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -338,7 +353,7 @@ class _NotaPrivacidad extends StatelessWidget {
   }
 }
 
-/// Una de las dos opciones: tarjeta blanca con sombra suave, ícono en su
+/// Una de las dos opciones: tarjeta blanca y plana sobre el gris, ícono en su
 /// círculo, nombre y una línea que lo explica. Cada una tiene su color
 /// también sin elegir, el problema en coral y la sugerencia en ámbar (dueño,
 /// 2026-10-18: «todo parece igual y del mismo color»): el círculo va en su
@@ -389,10 +404,11 @@ class _Opcion extends StatelessWidget {
           color: elegida ? tinte : Colors.white,
           borderRadius: radio,
           border: Border.all(
-            color: elegida ? tinta : AppColors.hairline,
-            width: elegida ? 2 : 1,
+            // Transparente y no ausente: el ancho no cambia al elegir y
+            // el contenido no salta.
+            color: elegida ? tinta : Colors.transparent,
+            width: 2,
           ),
-          boxShadow: elegida ? null : AppShadows.soft,
         ),
         child: Material(
           type: MaterialType.transparency,

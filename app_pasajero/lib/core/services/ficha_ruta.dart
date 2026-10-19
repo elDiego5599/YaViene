@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../utils/color_ruta.dart';
 import '../widgets/ficha_ruta.dart';
 
 /// Lado de la ficha en píxeles. El ícono grande de Android se pinta a 64 dp
@@ -12,8 +11,9 @@ import '../widgets/ficha_ruta.dart';
 /// miniatura sin perder nitidez.
 const int ladoFicha = 192;
 
-/// La ficha de la ruta para el aviso, la de [FichaRuta] pintada en un PNG.
-Future<Uint8List> fichaRuta(String codigo) async {
+/// La ficha de la ruta para el aviso, la de [FichaRuta] pintada en un PNG,
+/// sobre [color] (`colorFicha`).
+Future<Uint8List> fichaRuta(String codigo, Color color) async {
   const lado = ladoFicha * 1.0;
   final grabadora = ui.PictureRecorder();
   final lienzo = Canvas(grabadora);
@@ -22,7 +22,7 @@ Future<Uint8List> fichaRuta(String codigo) async {
       const Rect.fromLTWH(0, 0, lado, lado),
       const Radius.circular(lado * radioFicha),
     ),
-    Paint()..color = colorRuta(codigo),
+    Paint()..color = color,
   );
   final texto = TextPainter(
     text: TextSpan(

@@ -227,6 +227,15 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (`EstiloRuta`), sus paradas, su bus, la seña de tocar el bus y su fila
   del selector (`tinteRuta`). Sin código, azul de botón. La web lo espeja
   en el teléfono (`src/data/color-ruta.ts`).
+  La ficha de la ruta del aviso (bandeja y tarjeta de Avisos) va en el
+  color de su empresa del selector (`colorEmpresa`,
+  `app_pasajero/lib/core/utils/color_empresa.dart`; el aviso guarda su
+  `companyId`; los de antes, sin empresa, caen al de la ruta).
+- **Avisos y Buzón** (dueño, 2026-10-19, «separadores que dividan las
+  cosas, que se vea fino»): sobre el gris agrupado del iPhone
+  (`AppColors.fondoAgrupado`, #F2F2F7) con tarjetas blancas planas, sin
+  sombra, partidas por una raya de un píxel (`AppColors.separador`,
+  #C6C6C8, `1 / devicePixelRatio`).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y

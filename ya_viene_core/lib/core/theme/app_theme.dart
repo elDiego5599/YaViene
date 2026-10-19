@@ -58,6 +58,18 @@ abstract class AppColors {
   /// raya sucia, y este desaparece salvo justo donde tiene que estar.
   static const Color hairline = Color(0x1414274E);
 
+  /// El gris de las listas agrupadas, el systemGroupedBackground de iOS:
+  /// bajo Avisos y el buzón, para que sus tarjetas blancas se despeguen sin
+  /// sombra, como en Ajustes (dueño, 2026-10-19: «todo es blanco plano, no
+  /// hay separadores»). El blanco encima da 1,12:1: lo justo para leer la
+  /// tarjeta como una pieza, no tanto que pese.
+  static const Color fondoAgrupado = Color(0xFFF2F2F7);
+
+  /// La raya fina que divide lo de dentro de una tarjeta agrupada: el
+  /// opaqueSeparator de iOS, a un píxel físico. Sobre el blanco da 1,71:1;
+  /// [divider] y [hairline] a ese grosor no se ven.
+  static const Color separador = Color(0xFFC6C6C8);
+
   /// Texto sobre [ink]. Blanco puro sobre azul muy oscuro vibra; este
   /// gris casi blanco se apoya sin zumbar.
   static const Color textOnInk = Color(0xFFF8FAFC);

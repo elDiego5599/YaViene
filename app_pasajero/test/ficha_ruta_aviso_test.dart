@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_pasajero/core/services/bus_notification_service.dart';
 import 'package:ya_viene_pasajero/core/services/ficha_ruta.dart';
 import 'package:ya_viene_pasajero/core/utils/bus_labels.dart';
-import 'package:ya_viene_pasajero/core/utils/color_ruta.dart';
+import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 
 const _canal = MethodChannel('dexterous.com/flutter/local_notifications');
 
@@ -37,17 +37,22 @@ void main() {
     expect(nombreSinCodigo(null), isNull);
   });
 
-  testWidgets('la ficha del aviso va en el color de su ruta', (tester) async {
+  testWidgets('la ficha del aviso va en el color de su empresa',
+      (tester) async {
     await tester.runAsync(() async {
-      final png = await fichaRuta('C16');
+      final png = await fichaRuta('C16', colorEmpresa('C1'));
       final cuadro = await (await ui.instantiateImageCodec(png)).getNextFrame();
       final rgba =
           (await cuadro.image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
       // Un píxel del fondo, arriba al centro: lejos del código y de las
       // esquinas redondeadas.
       const i = (10 * ladoFicha + ladoFicha ~/ 2) * 4;
-      final c = coloresRuta['C16']!;
-      expect([rgba.getUint8(i), rgba.getUint8(i + 1), rgba.getUint8(i + 2)], [
+      final c = colorEmpresa('C1');
+      expect([
+        rgba.getUint8(i),
+        rgba.getUint8(i + 1),
+        rgba.getUint8(i + 2)
+      ], [
         (c.r * 255).round(),
         (c.g * 255).round(),
         (c.b * 255).round(),

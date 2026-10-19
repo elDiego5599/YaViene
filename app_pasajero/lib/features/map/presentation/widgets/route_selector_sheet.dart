@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/utils/color_empresa.dart';
 import '../../../../core/utils/color_ruta.dart';
 import '../../../../core/widgets/aviso_fallo.dart';
 import '../../../../core/widgets/entrance.dart';
@@ -870,7 +871,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                     _compactTile(
                       icon: Icons.business_outlined,
                       iconColor: Colors.white,
-                      iconBackground: _companyColor(company.id),
+                      iconBackground: colorEmpresa(company.id),
                       // V2: insignia de iniciales con color determinístico — se
                       // reconoce la fila antes de leer el nombre, como en Bolt.
                       badgeInitials: _companyInitials(company.name),
@@ -1385,29 +1386,6 @@ String? _routeSubtitle(RouteInfo? route) {
   final b = route.terminalB ?? '';
   if (a.isEmpty && b.isEmpty) return null;
   return '$a ↔ $b';
-}
-
-/// Los seis colores con los que puede salir una empresa.
-///
-/// Antes se tomaban prestados de los tokens semánticos, y ahí estaba el
-/// problema: el naranja es el de «cuidado» y el coral el de «sin conexión».
-/// Una empresa de buses aparecía vestida de aviso, con el mismo color que
-/// usa la app para decir que algo va mal. Este es un escalón de azul noche
-/// a verde: seis peldaños que se distinguen entre sí sin que ninguno
-/// signifique nada más en el resto de la app, y todos lo bastante oscuros
-/// para llevar letra blanca encima.
-const _companyPalette = [
-  Color(0xFF14274E), // noche
-  Color(0xFF22406F), // marino
-  Color(0xFF1C5670), // petróleo
-  Color(0xFF0F6A65), // verde azulado
-  Color(0xFF1C6B4C), // bosque
-  Color(0xFF3B6B2E), // oliva
-];
-
-Color _companyColor(String companyId) {
-  final hash = companyId.codeUnits.fold<int>(0, (sum, c) => sum + c);
-  return _companyPalette[hash % _companyPalette.length];
 }
 
 /// El código de una ruta y lo que queda del nombre sin él.

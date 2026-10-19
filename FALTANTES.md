@@ -159,7 +159,13 @@ Necesitan un teléfono, una cuenta o estar presente.
   mapa dentro de Acerca de, sin la píldora del pie de Info.
   Y del 2026-10-19: con un bus tocado, la píldora de tu punto y de
   cuántos buses hay cerca se va (si la maqueta del mapa la dibuja con un
-  bus elegido).
+  bus elegido). Y luego, el mismo día: Avisos y Buzón sobre el gris
+  agrupado del iPhone (`fondoAgrupado`, #F2F2F7) con tarjetas blancas
+  planas, sin sombra, y una raya de un píxel (`separador`, #C6C6C8) que
+  parte cada tarjeta de Avisos y deja la nota de privacidad al pie de la
+  del mensaje del buzón; y la ficha de la ruta del aviso en el color de
+  su empresa del selector (`colorEmpresa`), si la maqueta de Avisos la
+  dibuja.
 
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`

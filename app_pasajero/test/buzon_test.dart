@@ -35,12 +35,14 @@ Future<void> asentar(WidgetTester tester) async {
 }
 
 void main() {
-  /// Los fondos de las pantallas son blancos y lo blanco que va encima se
-  /// despega con sombra (dueño, 2026-10-16). La barra de arriba, en reposo,
-  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
-  void exigeFondoBlanco(WidgetTester tester) {
+  /// Avisos y el buzón van en gris agrupado, como los Ajustes de iOS, con
+  /// sus tarjetas blancas encima sin sombra (dueño, 2026-10-19: «todo es
+  /// blanco plano, no hay separadores»; antes, 2026-10-16, todo blanco). La
+  /// barra de arriba, en reposo, deja ver ese gris: es de vidrio (dueño,
+  /// 2026-10-18).
+  void exigeFondoAgrupado(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-        AppColors.surface,
+        AppColors.fondoAgrupado,
         reason: 'el fondo de el buzón');
     expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
         Colors.transparent,
@@ -167,14 +169,61 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('el buzón va sobre blanco', (tester) async {
+    testWidgets('el buzón va sobre el gris agrupado', (tester) async {
       await abrir(
           tester,
           Buzon(
             backend: () => 'http://x',
             cliente: MockClient((_) async => http.Response('', 201)),
           ));
-      exigeFondoBlanco(tester);
+      exigeFondoAgrupado(tester);
+    });
+
+    // «Quiero como separadores que dividan las cosas, que se vea fino»
+    // (dueño, 2026-10-19): sobre el gris, tarjetas blancas planas, y la
+    // nota de privacidad dentro de la del mensaje, bajo una raya de un
+    // píxel, como una celda de Ajustes del iPhone.
+    testWidgets('las tarjetas son planas y la nota va bajo su raya fina',
+        (tester) async {
+      await abrir(
+          tester,
+          Buzon(
+            backend: () => 'http://x',
+            cliente: MockClient((_) async => http.Response('', 201)),
+          ));
+      final sugerencia = tester.widget<AnimatedContainer>(find
+          .descendant(
+              of: find.byKey(const ValueKey('buzon_sugerencia')),
+              matching: find.byType(AnimatedContainer))
+          .first);
+      final deco = sugerencia.decoration! as BoxDecoration;
+      expect(deco.color, Colors.white);
+      expect(deco.boxShadow, isNull);
+      expect((deco.border! as Border).top.color, Colors.transparent);
+
+      final tarjeta = find.byKey(const ValueKey('buzon_tarjeta'));
+      final caja =
+          tester.widget<DecoratedBox>(tarjeta).decoration as BoxDecoration;
+      expect(caja.color, Colors.white);
+      expect(caja.boxShadow, isNull);
+      final campo =
+          tester.widget<TextField>(find.byKey(const ValueKey('buzon_texto')));
+      expect(campo.decoration!.enabledBorder!.borderSide.color,
+          Colors.transparent);
+
+      final raya = find.byKey(const ValueKey('buzon_raya'));
+      expect(find.descendant(of: tarjeta, matching: raya), findsOneWidget);
+      final divisor = tester.widget<Divider>(raya);
+      expect(divisor.color, AppColors.separador);
+      expect(divisor.thickness, 1 / tester.view.devicePixelRatio);
+      final nota = find.textContaining('No incluyas datos personales');
+      expect(find.descendant(of: tarjeta, matching: nota), findsOneWidget);
+      expect(tester.getTopLeft(nota).dy, greaterThan(tester.getRect(raya).top));
+      expect(
+          tester.getRect(raya).top,
+          greaterThanOrEqualTo(tester
+              .getRect(find.byKey(const ValueKey('buzon_texto')))
+              .bottom));
     });
 
     testWidgets('el formulario pasa bajo la barra de vidrio al subir',

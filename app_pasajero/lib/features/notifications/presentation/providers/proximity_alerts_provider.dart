@@ -27,6 +27,7 @@ typedef BusNearNotifier = Future<bool> Function({
   required String busId,
   String? routeName,
   String? routeId,
+  String? companyId,
   required int distanceMeters,
 });
 
@@ -132,6 +133,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     required String busId,
     String? routeName,
     String? routeId,
+    String? companyId,
     // La distancia ya no se dice en el aviso (dueño, 2026-10-02); llega
     // igual porque las pruebas miden con ella cuándo sonó.
     required int distanceMeters,
@@ -140,6 +142,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         busId: busId,
         routeName: routeName,
         routeId: routeId,
+        companyId: companyId,
       );
 
   /// BusIds que ya notificaron su acercamiento (armados): no vuelven a
@@ -339,6 +342,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             busId,
             routeId: routeId,
             routeName: _ref.read(selectedRouteProvider)?.name,
+            companyId: switch (_ref.read(selectedRouteProvider)?.companyId) {
+              final String id when id.isNotEmpty => id,
+              _ => null,
+            },
             refLat: ancla?.$1,
             refLon: ancla?.$2,
             radioM: radioM,
@@ -577,6 +584,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       busId: busId,
       routeName: _entradaActiva(busId)?.routeName,
       routeId: _alertRoutes[busId],
+      companyId: _entradaActiva(busId)?.companyId,
       distanceMeters: distancia,
     );
     if (!mounted || _servidor[busId] != avisoId) return;
@@ -704,10 +712,12 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       for (final entry in fire.entries) {
         // Nombre de ruta y placa del bus para el texto de la notificación.
         String? routeName;
+        String? companyId;
         for (final e in _ref.read(alertHistoryProvider)) {
           // El que espera: un enviado del mismo bus puede ser de otra ruta.
           if (e.busId == entry.key && !e.sent) {
             routeName = e.routeName;
+            companyId = e.companyId;
             break;
           }
         }
@@ -715,6 +725,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           busId: entry.key,
           routeName: routeName,
           routeId: _alertRoutes[entry.key],
+          companyId: companyId,
           distanceMeters: entry.value,
         );
         if (!mounted) return;
@@ -793,6 +804,7 @@ Future<void> atenderPushEnFondo(
       busId: busId,
       routeName: entrada.routeName,
       routeId: entrada.routeId,
+      companyId: entrada.companyId,
       distanceMeters: distancia,
     );
     if (!mostrado) return;

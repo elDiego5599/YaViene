@@ -34,6 +34,7 @@ void main() {
               required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters,
             }) async =>
                 true),

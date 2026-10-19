@@ -15,6 +15,10 @@ class AlertHistoryEntry {
   final String busId;
   final String routeId;
   final String? routeName;
+
+  /// La empresa de la ruta: su ficha va en el color de la empresa, el de
+  /// «Elige empresa» (dueño, 2026-10-19). `null` en los avisos de antes.
+  final String? companyId;
   final DateTime createdAt;
 
   /// Punto de espera al que quedó fijado el aviso (pin manual). Se guarda con
@@ -42,6 +46,7 @@ class AlertHistoryEntry {
     required this.busId,
     required this.routeId,
     this.routeName,
+    this.companyId,
     required this.createdAt,
     this.sentAt,
     this.refLat,
@@ -65,6 +70,7 @@ class AlertHistoryEntry {
         busId: busId,
         routeId: routeId,
         routeName: routeName,
+        companyId: companyId,
         createdAt: createdAt,
         sentAt: sentAt ?? this.sentAt,
         refLat: refLat ?? this.refLat,
@@ -79,6 +85,7 @@ class AlertHistoryEntry {
         busId: busId,
         routeId: routeId,
         routeName: routeName,
+        companyId: companyId,
         createdAt: createdAt,
         sentAt: sentAt,
         refLat: refLat,
@@ -91,6 +98,7 @@ class AlertHistoryEntry {
         'busId': busId,
         'routeId': routeId,
         'routeName': routeName,
+        if (companyId != null) 'companyId': companyId,
         'createdAt': createdAt.toIso8601String(),
         'sentAt': sentAt?.toIso8601String(),
         'refLat': refLat,
@@ -104,6 +112,12 @@ class AlertHistoryEntry {
       busId: json['busId'] as String,
       routeId: json['routeId'] as String? ?? '',
       routeName: json['routeName'] as String?,
+      // Lo que no se entiende se queda sin empresa, en el color de la
+      // ruta: perder el aviso por su color sería peor.
+      companyId: switch (json['companyId']) {
+        final String id when id.isNotEmpty => id,
+        _ => null,
+      },
       createdAt: DateTime.parse(json['createdAt'] as String),
       sentAt: json['sentAt'] == null
           ? null
@@ -258,6 +272,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     String busId, {
     required String routeId,
     String? routeName,
+    String? companyId,
     double? refLat,
     double? refLon,
     int radioM = distanciaAvisoInicial,
@@ -266,6 +281,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
       busId: busId,
       routeId: routeId,
       routeName: routeName,
+      companyId: companyId,
       createdAt: DateTime.now(),
       refLat: refLat,
       refLon: refLon,

@@ -58,6 +58,7 @@ void main() {
               {required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters}) async {
             fired.add((busId: busId, distanceMeters: distanceMeters));
             return true;
@@ -103,6 +104,7 @@ void main() {
                     {required String busId,
                     String? routeName,
                     String? routeId,
+                    String? companyId,
                     required int distanceMeters}) async =>
                 true,
             retirar: (busId) async => retirados.add(busId),
@@ -143,6 +145,7 @@ void main() {
               {required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters}) {
             llamadas++;
             return suelta.future;
@@ -226,6 +229,7 @@ void main() {
               {required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters}) async {
             intentos += 1;
             return false;
@@ -291,6 +295,7 @@ void main() {
               {required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
             return true;
@@ -364,6 +369,7 @@ void main() {
                 {required String busId,
                 String? routeName,
                 String? routeId,
+                String? companyId,
                 required int distanceMeters}) async {
               localFired.add(busId);
               return true;
@@ -443,6 +449,7 @@ void main() {
                   {required String busId,
                   String? routeName,
                   String? routeId,
+                  String? companyId,
                   required int distanceMeters}) async {
                 sonados.add(distanceMeters);
                 return true;
@@ -577,6 +584,7 @@ void main() {
                 {required String busId,
                 String? routeName,
                 String? routeId,
+                String? companyId,
                 required int distanceMeters}) async {
               localFired.add(busId);
               return true;
@@ -764,6 +772,7 @@ void main() {
               {required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
             return true;
@@ -827,6 +836,7 @@ void main() {
               {required String busId,
               String? routeName,
               String? routeId,
+              String? companyId,
               required int distanceMeters}) async {
             localFired.add((busId: busId, distanceMeters: distanceMeters));
             return true;
@@ -899,6 +909,7 @@ void main() {
                 {required String busId,
                 String? routeName,
                 String? routeId,
+                String? companyId,
                 required int distanceMeters}) async {
               fired.add((busId: busId, distanceMeters: distanceMeters));
               return true;
@@ -991,6 +1002,7 @@ void main() {
                   {required String busId,
                   String? routeName,
                   String? routeId,
+                  String? companyId,
                   required int distanceMeters}) async {
                 sonaron.add((busId: busId, distanceMeters: distanceMeters));
                 return true;

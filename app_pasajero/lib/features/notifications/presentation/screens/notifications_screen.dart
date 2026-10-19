@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/utils/color_empresa.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/barra_vidrio.dart';
@@ -45,10 +46,10 @@ class NotificationsScreen extends ConsumerWidget {
     final selecting = ref.watch(alertSelectionProvider).active;
 
     return Scaffold(
-      // Blanco, como el resto de pantallas claras (dueño, 2026-10-16): las
-      // tarjetas, también blancas, se despegan por su sombra y no por un
-      // fondo de otro tono.
-      backgroundColor: AppColors.surface,
+      // El gris de las listas agrupadas de iOS, con las tarjetas blancas
+      // y planas encima (dueño, 2026-10-19: «todo es blanco plano, no hay
+      // separadores»; antes, 2026-10-16, todo blanco y con sombra).
+      backgroundColor: AppColors.fondoAgrupado,
       // La lista pasa por debajo de la barra, que es de vidrio (dueño,
       // 2026-10-18).
       extendBodyBehindAppBar: true,
@@ -143,11 +144,11 @@ class _NotaAvisos extends StatelessWidget {
         key: const ValueKey('nota-avisos'),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        // Plana, como las tarjetas de los avisos: sobre el gris se despega
+        // sola.
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.hairline),
-          boxShadow: AppShadows.soft,
         ),
         child: Row(
           children: [
@@ -793,12 +794,18 @@ class _AlertTile extends StatelessWidget {
     final codigo = codigoRuta(routeName);
     final fila = Row(
       children: [
-        // La ficha de la ruta, la misma del ícono del aviso (dueño,
-        // 2026-10-19). Sin código de ruta, el medallón de 44 de antes, verde
-        // siempre: un aviso que llegó es un acierto, no algo apagado
-        // (dueño, 2026-10-02).
+        // La ficha de la ruta, la misma del ícono del aviso, en el color de
+        // su empresa (dueño, 2026-10-19). Sin código de ruta, el medallón
+        // de 44 de antes, verde siempre: un aviso que llegó es un acierto,
+        // no algo apagado (dueño, 2026-10-02).
         if (codigo != null)
-          ExcludeSemantics(child: FichaRuta(codigo))
+          ExcludeSemantics(
+            child: FichaRuta(
+              codigo,
+              color:
+                  colorFicha(companyId: entry.companyId, routeName: routeName),
+            ),
+          )
         else
           Container(
             width: 44,
@@ -850,34 +857,36 @@ class _AlertTile extends StatelessWidget {
       ],
     );
 
-    // El estado en una franja arena dentro de la tarjeta blanca: separa lo
-    // que el aviso es (ruta y placa) de cómo va. Ya se dice en `dicha`; aquí
-    // no se vuelve a leer.
+    // Cómo va el aviso, bajo una raya fina que lo separa de lo que es (ruta
+    // y placa), como las filas de Ajustes de iOS (dueño, 2026-10-19:
+    // «separadores q dividan las cosas, que se vea fino»). Antes iba en una
+    // franja arena. Ya se dice en `dicha`; aquí no se vuelve a leer.
     final estado = ExcludeSemantics(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.arena,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Row(
-          children: [
-            Icon(iconoEstado, size: 16, color: tintaEstado),
-            const SizedBox(width: AppSpacing.sm),
-            // `pie` en el gris de cuerpo y no en el secundario: es letra
-            // chica y es lo que el pasajero vino a mirar.
-            Expanded(
-              child: distanceMeters == null
-                  ? Text(
-                      subtitle,
-                      style:
-                          AppTextStyles.pie.copyWith(color: AppColors.textBody),
-                    )
-                  : _LineaDistancia(distanceMeters!),
-            ),
-          ],
-        ),
+      child: Row(
+        children: [
+          Icon(iconoEstado, size: 16, color: tintaEstado),
+          const SizedBox(width: AppSpacing.sm),
+          // `pie` en el gris de cuerpo y no en el secundario: es letra
+          // chica y es lo que el pasajero vino a mirar.
+          Expanded(
+            child: distanceMeters == null
+                ? Text(
+                    subtitle,
+                    style:
+                        AppTextStyles.pie.copyWith(color: AppColors.textBody),
+                  )
+                : _LineaDistancia(distanceMeters!),
+          ),
+        ],
       ),
+    );
+
+    final raya = Divider(
+      key: const ValueKey('aviso-raya'),
+      // 12 arriba y 12 abajo, el aire que había entre la fila y la franja.
+      height: 12 * 2,
+      thickness: 1 / MediaQuery.devicePixelRatioOf(context),
+      color: AppColors.separador,
     );
 
     final tarjeta = AnimatedContainer(
@@ -893,29 +902,19 @@ class _AlertTile extends StatelessWidget {
                 AppColors.acento.withValues(alpha: 0.06), AppColors.surface)
             : AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
+        // Sin sombra ni filo: sobre el gris la tarjeta se lee sola. El
+        // filo, transparente, se queda para que marcar no la mueva.
         border: Border.all(
           color: selected && selecting
               ? AppColors.acento.withValues(alpha: 0.45)
-              : AppColors.hairline,
+              : Colors.transparent,
         ),
-        // Lo que espera se levanta del fondo con la sombra de las píldoras
-        // del mapa; lo enviado, con la suave: sobre el blanco una tarjeta
-        // sin sombra es solo su filo, pero lo que ya sonó va un paso atrás.
-        boxShadow: sent
-            ? AppShadows.soft
-            : [
-                BoxShadow(
-                  color: AppColors.primaryDeep.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           fila,
-          const SizedBox(height: 12),
+          raya,
           estado,
           if (accion != null && accionAbajo) ...[
             const SizedBox(height: AppSpacing.sm),
