@@ -26,6 +26,7 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 import 'alert_guards.dart' as guards;
+import 'barra_avance.dart';
 import 'map_recenter_button.dart';
 import 'rueda_distancia.dart';
 import 'sena_tocar_bus.dart';
@@ -1218,6 +1219,21 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               style: AppTextStyles.cuerpoFuerte
                   .copyWith(color: AppColors.textSecondary),
             ),
+            // Lo que falta, dibujado: el bus en camino a tu punto, como la
+            // barra de vuelo de Flighty (dueño, 2026-10-19). Con el aviso
+            // puesto marca dónde va a sonar.
+            if (MediaQuery.sizeOf(context).height >=
+                BarraAvance.pantallaMinima) ...[
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: BarraAvance(
+                  metros: distance!,
+                  color: colorRuta(route?.name),
+                  aviso: isActive ? radio.toDouble() : null,
+                ),
+              ),
+            ],
           ],
         ],
       ),

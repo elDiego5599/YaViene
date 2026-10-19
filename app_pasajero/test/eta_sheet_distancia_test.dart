@@ -19,6 +19,7 @@ import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/barra_avance.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_recenter_button.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/distancia_aviso_provider.dart';
@@ -891,6 +892,41 @@ void main() {
       await c.read(distanciaAvisoProvider.notifier).guardar(3000);
       await tester.pumpAndSettle();
       expect(colorCifra(), AppColors.warningAccessible);
+    });
+  });
+
+  // Como la barra de vuelo de Flighty (dueño, 2026-10-19): bajo la cifra,
+  // el bus en camino a tu punto, en el color de su ruta.
+  group('la barra de avance', () {
+    testWidgets('en el teléfono más bajo no va: ahí no cabe', (tester) async {
+      await montar(tester, metros: 2500, tamano: const Size(320, 568));
+      expect(find.byType(BarraAvance), findsNothing);
+    });
+
+    testWidgets('va bajo la cifra con lo que falta y el color de la ruta',
+        (tester) async {
+      await montar(tester, metros: 2500);
+      final barra = tester.widget<BarraAvance>(find.byType(BarraAvance));
+      expect(barra.metros, closeTo(2500, 5));
+      expect(barra.color, AppColors.acento, reason: 'Ruta 1 no trae código');
+      expect(barra.aviso, isNull);
+      expect(tester.getRect(find.byType(BarraAvance)).top,
+          greaterThan(tester.getRect(find.byType(CifraViva)).bottom),
+          reason: 'debajo del número');
+      expect(find.descendant(of: tarjeta, matching: find.byType(BarraAvance)),
+          findsOneWidget);
+    });
+
+    testWidgets('con el aviso puesto marca dónde va a sonar', (tester) async {
+      await montar(tester, metros: 2500);
+      await tester.tap(find.text('Avisarme cuando esté cerca'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BarraAvance), findsNothing,
+          reason: 'la rueda ocupa el sitio de la cifra');
+      await girarA(tester, 1000);
+      await tester.tap(find.text('Guardar'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<BarraAvance>(find.byType(BarraAvance)).aviso, 1000);
     });
   });
 }
