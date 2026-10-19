@@ -4,7 +4,7 @@ enum Tinta {
   static let secundaria = Color(red: 0x9B / 255, green: 0xA3 / 255, blue: 0xAF / 255)
   static let carril = Color.white.opacity(0.16)
   static let verde = Color(red: 0x00, green: 0xA8 / 255, blue: 0x59 / 255)
-  static let rojoBus = Color(red: 0xE5 / 255, green: 0x53 / 255, blue: 0x4B / 255)
+  static let rojoBus = Color(red: 0xE8 / 255, green: 0x6A / 255, blue: 0x5E / 255)
   static let vidrio = Color(red: 0x1A / 255, green: 0x1D / 255, blue: 0x22 / 255)
   static let nodo = Color(red: 0x2A / 255, green: 0x2E / 255, blue: 0x35 / 255)
 }
@@ -197,7 +197,7 @@ private struct Pista: View {
             .overlay(Circle().stroke(caduco ? Color.white.opacity(0.2) : .white, lineWidth: 2.5).padding(0.5))
             .overlay(Circle().stroke(caduco ? Color.clear : Tinta.verde.opacity(0.6), lineWidth: 1).padding(-3))
             .position(x: fin, y: altura / 2)
-          AutobusDesdeArriba(caduco: caduco).frame(width: 34, height: 14).position(x: centroBus, y: altura / 2)
+          AutobusDesdeArriba(caduco: caduco).frame(width: 34, height: 18).position(x: centroBus, y: altura / 2)
         }
       }
       .frame(height: altura)
@@ -212,49 +212,63 @@ private struct Pista: View {
 
 private struct AutobusDesdeArriba: View {
   var caduco = false
-  var body: some View {
-    ZStack(alignment: .leading) {
-      RoundedRectangle(cornerRadius: 3.2, style: .continuous)
-        .fill(LinearGradient(
-          colors: caduco ? [Color.white.opacity(0.35), Color.white.opacity(0.35)] : [Color(red: 0xF2 / 255, green: 0x75 / 255, blue: 0x6B / 255), Tinta.rojoBus],
-          startPoint: .top,
-          endPoint: .bottom
-        ))
-        .overlay(RoundedRectangle(cornerRadius: 3.2, style: .continuous).stroke(.black.opacity(caduco ? 0.15 : 0.45), lineWidth: 0.6))
-        .shadow(color: caduco ? .clear : .black.opacity(0.38), radius: 2, y: 1)
-      // El parabrisas ancho abraza el frente redondeado, orientado a la derecha.
-      UneParabrisas().fill(caduco ? Color.white.opacity(0.18) : Tinta.vidrio)
-        .frame(width: 8, height: 9).frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, 1)
-      // Ventana trasera estrecha, separada del parabrisas.
-      RoundedRectangle(cornerRadius: 1).fill(caduco ? Color.white.opacity(0.18) : Tinta.vidrio)
-        .frame(width: 2.5, height: 6).padding(.leading, 2)
-      // Dos tapas claras de techo ayudan a leer la silueta como autobús.
-      HStack(spacing: 2) {
-        RoundedRectangle(cornerRadius: 1.2).fill(caduco ? Color.white.opacity(0.35) : Tinta.rojoBus.opacity(0.62)).frame(width: 5, height: 3)
-        RoundedRectangle(cornerRadius: 1.2).fill(caduco ? Color.white.opacity(0.35) : Tinta.rojoBus.opacity(0.62)).frame(width: 5, height: 3)
-      }.frame(maxWidth: .infinity, maxHeight: .infinity)
-      // Los espejos sobresalen apenas en las esquinas delanteras.
-      VStack(spacing: 6) {
-        Capsule().fill(caduco ? Color.white.opacity(0.35) : Tinta.rojoBus).frame(width: 3, height: 1).offset(x: 1)
-        Capsule().fill(caduco ? Color.white.opacity(0.35) : Tinta.rojoBus).frame(width: 3, height: 1).offset(x: 1)
-      }.frame(maxWidth: .infinity, alignment: .trailing).offset(x: 1)
-    }
-    .saturation(caduco ? 0 : 1)
-    .accessibilityHidden(true)
-  }
-}
 
-private struct UneParabrisas: Shape {
-  func path(in rect: CGRect) -> Path {
-    var path = Path()
-    path.move(to: CGPoint(x: rect.minX + 1, y: rect.minY))
-    path.addLine(to: CGPoint(x: rect.maxX - 2, y: rect.minY))
-    path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + 2), control: CGPoint(x: rect.maxX, y: rect.minY))
-    path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - 2))
-    path.addQuadCurve(to: CGPoint(x: rect.maxX - 2, y: rect.maxY), control: CGPoint(x: rect.maxX, y: rect.maxY))
-    path.addLine(to: CGPoint(x: rect.minX + 1, y: rect.maxY))
-    path.closeSubpath()
-    return path
+  private let anchoBase: CGFloat = 32
+  private let altoBase: CGFloat = 60
+
+  var body: some View {
+    Canvas { context, size in
+      let escalaX = size.width / anchoBase
+      let escalaY = size.height / altoBase
+      var dibujo = context
+      dibujo.scaleBy(x: escalaX, y: escalaY)
+
+      let capsula = Path(roundedRect: CGRect(x: 0, y: 0, width: anchoBase, height: altoBase), cornerRadius: anchoBase / 2)
+
+      if !caduco {
+        dibujo.drawLayer { capa in
+          capa.addFilter(.blur(radius: altoBase * 0.04))
+          capa.fill(capsula, with: .color(.black.opacity(0.24)))
+        }
+      }
+
+      if caduco {
+        dibujo.fill(capsula, with: .color(.white.opacity(0.35)))
+      } else {
+        let frente = Color(red: 0xE8 / 255, green: 0x6A / 255, blue: 0x5E / 255)
+        let claro = Color(red: 0xEF / 255, green: 0x97 / 255, blue: 0x8E / 255)
+        dibujo.fill(
+          capsula,
+          with: .linearGradient(
+            Gradient(colors: [claro, frente]),
+            startPoint: CGPoint(x: anchoBase / 2, y: 0),
+            endPoint: CGPoint(x: anchoBase / 2, y: altoBase)
+          )
+        )
+      }
+
+      dibujo.stroke(
+        capsula,
+        with: .color(.white.opacity(caduco ? 0.5 : 0.92)),
+        lineWidth: 2.6
+      )
+
+      if !caduco {
+        var parabrisas = dibujo
+        parabrisas.clip(to: capsula)
+        let ventana = CGRect(
+          x: (anchoBase - anchoBase * 0.72) / 2,
+          y: altoBase * 0.26 - altoBase * 0.26 / 2,
+          width: anchoBase * 0.72,
+          height: altoBase * 0.26
+        )
+        parabrisas.fill(Path(ellipseIn: ventana), with: .color(.white.opacity(0.3)))
+      }
+    }
+    .frame(width: 18, height: 34)
+    .rotationEffect(.degrees(90))
+    .frame(width: 34, height: 18)
+    .accessibilityHidden(true)
   }
 }
 

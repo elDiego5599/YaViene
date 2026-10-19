@@ -249,8 +249,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   armado pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
   `actividad_en_vivo.dart`): fondo negro como Uber, ficha en el color de
-  la empresa, cifra de la hoja y una pista verde con el bus visto desde
-  arriba que avanza hacia tu punto, con la campana donde suena el aviso;
+  la empresa, cifra de la hoja y una pista verde con el mismo bus del
+  mapa (la cápsula de `createFlatTransitMarker`, girada) que avanza hacia tu punto, con la campana donde suena el aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
   está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
