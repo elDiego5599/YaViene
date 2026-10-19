@@ -14,13 +14,19 @@ double velo(WidgetTester tester) => tester
         of: find.byType(FondoVidrio), matching: find.byType(AnimatedOpacity)))
     .opacity;
 
-/// Si la barra desenfoca lo que pasa debajo.
-bool desenfoca(WidgetTester tester) {
-  final filtro = find.descendant(
+/// Las capas de desenfoque de la barra, de la más alta a la más baja.
+List<Rect> capasDesenfoque(WidgetTester tester) {
+  final filtros = find.descendant(
       of: find.byType(FondoVidrio), matching: find.byType(BackdropFilter));
-  return filtro.evaluate().isNotEmpty &&
-      tester.widget<BackdropFilter>(filtro).enabled;
+  return [
+    for (final e in filtros.evaluate())
+      if ((e.widget as BackdropFilter).enabled)
+        tester.getRect(find.byWidget(e.widget)),
+  ]..sort((a, b) => b.height.compareTo(a.height));
 }
+
+/// Si la barra desenfoca lo que pasa debajo.
+bool desenfoca(WidgetTester tester) => capasDesenfoque(tester).isNotEmpty;
 
 /// La pantalla lleva la barra de vidrio y lo de abajo pasa por debajo de
 /// ella (dueño, 2026-10-18: «como el nav de la web»): en reposo [primero]

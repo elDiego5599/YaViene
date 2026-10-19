@@ -113,14 +113,17 @@ Necesitan un teléfono, una cuenta o estar presente.
   Info y Legal pasando bajo una barra de vidrio como el nav de la web
   (2026-10-18, `barra_vidrio.dart`, como iOS 26 con WhatsApp de
   referencia: sin lámina; en reposo nada y, con algo debajo, un velo
-  blanco que se desvanece hasta cero al pie de la barra, el título con
+  blanco que se desvanece hasta cero al pie de la barra sobre un
+  desenfoque progresivo (de 4 arriba a 1,5 abajo, en seis bandas), el
+  título con
   halo y los botones en píldoras de vidrio de 48 con desenfoque 10 y
   saturación 1,8; opaca con más contraste). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
   arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
   pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
   1,7 s con medio segundo de marca, sin adornos), con la torre sobre su
-  isla de pasto con cuatro arbustos floridos (`PintorSuelo`), sobre el
+  isla de pasto con canto, briznas y cuatro arbustos floridos, y una calle
+  de frente bajo el bus, con bordillos y raya blanca (`PintorSuelo`), sobre el
   fondo matizado azul y verde con grano (`fondo_matizado.dart`, aclarado
   y luego con algo de su color de vuelta el mismo día);
   y en Avisos, arriba, la nota «Gestiona, borra o desactiva tus avisos

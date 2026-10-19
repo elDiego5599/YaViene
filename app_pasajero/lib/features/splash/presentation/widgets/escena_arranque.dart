@@ -395,34 +395,62 @@ class PintorVentana extends CustomPainter {
   bool shouldRepaint(PintorVentana antes) => antes.avance != avance;
 }
 
-/// El suelo de la escena: una isla de pasto, con el mismo contorno oscuro
-/// de la torre, y sus arbustos redondos con alguna flor. Asoma con la torre
-/// según [avance] (0 a 1): la isla crece desde su centro y los arbustos
-/// brotan uno tras otro, con su rebote.
+/// El suelo de la escena: una isla de pasto con su canto de tierra, el
+/// mismo contorno oscuro de la torre, una calle de frente al centro por
+/// donde llega el bus (dueño, 2026-10-18: «donde está el bus, en el centro,
+/// haz como una calle» y «que se vea de frente, todo más bonito y
+/// detallado», con la raya del medio blanca) y sus arbustos con hojas y
+/// florecitas. Asoma con la torre según [avance] (0 a 1): la isla crece
+/// desde su centro y los arbustos brotan uno tras otro, con su rebote.
 class PintorSuelo extends CustomPainter {
   PintorSuelo(this.avance);
 
   final double avance;
 
   /// Los arbustos, por (centro en fracción del ancho, tamaño relativo):
-  /// dos a cada lado del bus, el de dentro más chico.
+  /// dos a cada lado de la calle, el de dentro más chico.
   static const _matas = [
     (0.09, 1.0),
     (0.27, 0.8),
-    (0.76, 0.85),
-    (0.93, 1.05),
+    (0.73, 0.85),
+    (0.92, 1.05),
   ];
 
   static int get arbustos => _matas.length;
 
-  static const _pasto = Color(0xFF8DCB63);
+  /// La calle: por dónde corre al frente, en fracción del ancho. El bus de
+  /// 104 va centrado en la isla de 280, de 0,314 a 0,686, y la calle le
+  /// deja una orilla a cada lado. Va de frente: simétrica, se angosta hacia
+  /// atrás y su raya del medio sube derecha.
+  static const (double, double) calle = (0.29, 0.71);
+  static const (double, double) _calleAtras = (0.455, 0.545);
+
+  static const _pasto = Color(0xFF94D167);
   static const _pastoHondo = Color(0xFF5DAE4E);
+  static const _canto = Color(0xFF3E8E45);
+  static const _cantoHondo = Color(0xFF2F7439);
+  static const _brizna = Color(0xFF4C9E46);
+  static const _briznaClara = Color(0xFFCDEB8E);
   static const _hoja = Color(0xFF2FA35B);
   static const _hojaClara = Color(0xFF6CC060);
-  static const _brillo = Color(0xFFA8D96A);
+  static const _hojaOscura = Color(0xFF1F7A43);
+  static const _brillo = Color(0xFFB4DE76);
   static const _flor = Color(0xFFE8262B);
   static const _centro = Color(0xFFF9D71C);
+  static const _asfalto = Color(0xFF6A7077);
+  static const _asfaltoHondo = Color(0xFF50565D);
+  static const _asfaltoCanto = Color(0xFF484D54);
+  static const _bordillo = Color(0xFFE4E1DA);
+  static const _bordilloCara = Color(0xFFB9B4AB);
+  static const _raya = Colors.white;
   static const _junta = Color(0xFF20242B);
+
+  /// Lo que mide el canto de la isla, en fracción del alto.
+  static const double _grueso = 0.09;
+
+  /// Dónde arranca la calle atrás, en fracción del alto: en el borde de la
+  /// isla, a la derecha del pie de la torre.
+  static const double _arriba = 0.3;
 
   /// La altura del borde de arriba de la isla en [x] (0 a 1): sube al
   /// centro, donde se paran la torre y la flor.
@@ -454,15 +482,37 @@ class PintorSuelo extends CustomPainter {
       ..cubicTo(w * 1.01, h * 0.98, w * 0.8, h * 0.99, w / 2, h * 0.99)
       ..cubicTo(w * 0.2, h * 0.99, -w * 0.01, h * 0.98, 0, _borde(0) * h)
       ..close();
-    canvas.drawPath(
-        isla,
-        Paint()
-          ..shader = const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_pasto, _pastoHondo],
-          ).createShader(Offset.zero & size));
-    canvas.drawPath(isla, contorno);
+    // La cara de arriba es la isla sin su canto: lo que queda de ella
+    // corrida hacia arriba.
+    final cara = Path.combine(
+        PathOperation.intersect, isla, isla.shift(Offset(0, -_grueso * h)));
+    canvas
+      ..drawPath(
+          isla,
+          Paint()
+            ..shader = const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_canto, _cantoHondo],
+            ).createShader(Rect.fromLTRB(0, h * 0.8, w, h)))
+      ..drawPath(
+          cara,
+          Paint()
+            ..shader = const RadialGradient(
+              center: Alignment(0, -0.9),
+              radius: 1.1,
+              colors: [_pasto, _pastoHondo],
+            ).createShader(Offset.zero & size));
+    _briznas(canvas, size, cara, escala);
+    _calle(canvas, size, isla, cara, escala);
+    canvas
+      ..drawPath(
+          cara,
+          Paint()
+            ..color = _junta
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.6 * escala)
+      ..drawPath(isla, contorno);
     canvas.restore();
 
     for (var i = 0; i < _matas.length; i++) {
@@ -470,50 +520,227 @@ class PintorSuelo extends CustomPainter {
       final p = Curves.easeOutBack
           .transform(((avance - 0.25 - 0.08 * i) / 0.35).clamp(0.0, 1.0));
       if (p <= 0) continue;
-      final r = 12 * escala * t;
-      final base = Offset(x * w, _borde(x) * h + 2 * escala);
-      canvas.save();
-      canvas.translate(base.dx, base.dy);
-      canvas.scale(p);
-      // Tres bolas: dos a los lados y una más alta en el medio.
-      final bolas = [
-        Rect.fromCircle(center: Offset(-0.75 * r, -0.55 * r), radius: 0.8 * r),
-        Rect.fromCircle(center: Offset(0.75 * r, -0.5 * r), radius: 0.75 * r),
-        Rect.fromCircle(center: Offset(0, -1.0 * r), radius: r),
-      ];
-      final mata = Path();
-      for (final b in bolas) {
-        mata.addOval(b);
-      }
-      final silueta = Path.combine(PathOperation.union, mata,
-          Path()..addRect(Rect.fromLTRB(-1.4 * r, -0.6 * r, 1.4 * r, 0)));
-      final recorte = Path.combine(PathOperation.intersect, silueta,
-          Path()..addRect(Rect.fromLTRB(-2 * r, -3 * r, 2 * r, 0)));
-      canvas.drawPath(
-          recorte,
+      _arbusto(canvas, Offset(x * w, _borde(x) * h + 2 * escala),
+          12 * escala * t, p, escala, i + 1, contorno);
+    }
+  }
+
+  /// La textura del pasto: rayitas finas desparejas, claras atrás y
+  /// hondas al frente, y la sombra del pie de la torre.
+  void _briznas(Canvas canvas, Size size, Path cara, double escala) {
+    final w = size.width, h = size.height;
+    canvas.save();
+    canvas.clipPath(cara);
+    canvas.drawOval(
+        Rect.fromLTRB(0.17 * w, 0.18 * h, 0.5 * w, 0.42 * h),
+        Paint()
+          ..color = _canto.withValues(alpha: 0.6)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2.4 * escala));
+    final azar = math.Random(11);
+    for (var i = 0; i < 160; i++) {
+      final x = azar.nextDouble();
+      final y = _borde(x) + (0.95 - _borde(x)) * azar.nextDouble();
+      final cerca = ((y - 0.42) / 0.5).clamp(0.0, 1.0);
+      final largo = (1.0 + 1.6 * cerca + azar.nextDouble()) * escala;
+      final ladeo = (azar.nextDouble() - 0.5) * 1.4 * escala;
+      final base = Offset(x * w, y * h);
+      canvas.drawLine(
+          base,
+          base + Offset(ladeo, -largo),
           Paint()
-            ..shader = const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_hojaClara, _hoja],
-            ).createShader(Rect.fromLTRB(-r, -2 * r, r, 0)));
-      // Un brillo arriba a la izquierda de cada bola, donde da el sol.
-      final brillo = Paint()..color = _brillo.withValues(alpha: 0.9);
-      for (final b in bolas) {
-        canvas.drawCircle(b.center + Offset(-b.width * 0.18, -b.height * 0.2),
-            b.width * 0.13, brillo);
-      }
-      canvas.drawPath(recorte, contorno);
-      // Dos florecitas rojas.
-      for (final f in [
-        Offset(-0.55 * r, -0.95 * r),
-        Offset(0.5 * r, -1.35 * r)
-      ]) {
-        canvas.drawCircle(f, 0.2 * r, Paint()..color = _flor);
-        canvas.drawCircle(f, 0.08 * r, Paint()..color = _centro);
-      }
+            ..color = (azar.nextDouble() > cerca ? _briznaClara : _brizna)
+                .withValues(alpha: 0.5 + 0.35 * azar.nextDouble())
+            ..strokeWidth = 0.6 * escala
+            ..strokeCap = StrokeCap.round);
+    }
+    canvas.restore();
+  }
+
+  /// La calle, de frente: asfalto con su grano que se oscurece al
+  /// acercarse, bordillos claros con su cara a cada orilla, la raya blanca
+  /// del medio en trazos que se alargan al frente, y su corte en el canto.
+  void _calle(Canvas canvas, Size size, Path isla, Path cara, double escala) {
+    final w = size.width, h = size.height;
+    final (l, r) = calle;
+    final (la, ra) = _calleAtras;
+    double x(double atras, double frente, double y) =>
+        (atras + (frente - atras) * (y - _arriba) / (1 - _arriba)) * w;
+    Offset orilla(double atras, double frente, double y) =>
+        Offset(x(atras, frente, y), y * h);
+    Path franja(double desdeAtras, double desdeFrente, double hastaAtras,
+            double hastaFrente) =>
+        Path()
+          ..moveTo(x(desdeAtras, desdeFrente, _arriba), _arriba * h)
+          ..lineTo(x(hastaAtras, hastaFrente, _arriba), _arriba * h)
+          ..lineTo(x(hastaAtras, hastaFrente, 1.02), 1.02 * h)
+          ..lineTo(x(desdeAtras, desdeFrente, 1.02), 1.02 * h)
+          ..close();
+    final via = franja(la, l, ra, r);
+    final arriba = Rect.fromLTRB(0, _arriba * h, w, h);
+
+    // En el canto, la calle corta la tierra: asfalto hondo.
+    canvas.save();
+    canvas.clipPath(Path.combine(PathOperation.difference, isla, cara));
+    canvas.drawPath(via, Paint()..color = _asfaltoCanto);
+    canvas.restore();
+
+    canvas.save();
+    canvas.clipPath(cara);
+    canvas.drawPath(
+        via,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_asfalto, _asfaltoHondo],
+          ).createShader(arriba));
+    // El grano del asfalto.
+    canvas.save();
+    canvas.clipPath(via);
+    final azar = math.Random(3);
+    final grano = Paint();
+    for (var i = 0; i < 90; i++) {
+      final y = _arriba + (1 - _arriba) * azar.nextDouble();
+      final px = x(l, l, 0) + (x(r, r, 0) - x(l, l, 0)) * azar.nextDouble();
+      canvas.drawCircle(
+          Offset(px, y * h),
+          (0.25 + 0.35 * azar.nextDouble()) * escala,
+          grano
+            ..color = (azar.nextBool() ? Colors.white : _junta)
+                .withValues(alpha: 0.08));
+    }
+    canvas.restore();
+    // Los bordillos: un filo claro y, hacia la calle, su cara en sombra.
+    const ancho = 0.022, frenteBordillo = 0.012;
+    for (final lado in [-1, 1]) {
+      final (atras, frente) = lado < 0 ? (la, l) : (ra, r);
+      final afuera = franja(
+          atras - ancho * lado * 0.5, frente - ancho * lado, atras, frente);
+      final adentro = franja(atras, frente, atras + frenteBordillo * lado * 0.5,
+          frente + frenteBordillo * lado);
+      canvas
+        ..drawPath(adentro, Paint()..color = _bordilloCara)
+        ..drawPath(afuera, Paint()..color = _bordillo);
+      final filo = Paint()
+        ..color = _junta
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.7 * escala;
+      canvas
+        ..drawLine(
+            orilla(atras - ancho * lado * 0.5, frente - ancho * lado, _arriba),
+            orilla(atras - ancho * lado * 0.5, frente - ancho * lado, 1.02),
+            filo)
+        ..drawLine(
+            orilla(atras + frenteBordillo * lado * 0.5,
+                frente + frenteBordillo * lado, _arriba),
+            orilla(atras + frenteBordillo * lado * 0.5,
+                frente + frenteBordillo * lado, 1.02),
+            filo);
+    }
+    // La raya del medio: derecha, en trazos que crecen al acercarse.
+    final raya = Paint()..color = _raya;
+    var y = _arriba + 0.06;
+    while (y < 1) {
+      final largo = 0.04 + 0.12 * (y - _arriba);
+      final fin = math.min(y + largo, 1.02);
+      final media = (0.7 + 1.3 * (y - _arriba)) * escala;
+      final mediaFin = (0.7 + 1.3 * (fin - _arriba)) * escala;
+      canvas.drawPath(
+          Path()
+            ..moveTo(w / 2 - media, y * h)
+            ..lineTo(w / 2 + media, y * h)
+            ..lineTo(w / 2 + mediaFin, fin * h)
+            ..lineTo(w / 2 - mediaFin, fin * h)
+            ..close(),
+          raya);
+      y = fin + largo * 0.8;
+    }
+    canvas.restore();
+  }
+
+  /// Un arbusto: tres bolas apretadas, sombreado de la luz a lo hondo, con
+  /// hojitas claras arriba a la izquierda y oscuras abajo, el pliegue entre
+  /// bola y bola, su sombra en el pasto y dos cayenitas de cinco pétalos.
+  void _arbusto(Canvas canvas, Offset base, double r, double p, double escala,
+      int semilla, Paint contorno) {
+    canvas.save();
+    canvas.translate(base.dx, base.dy);
+    canvas.scale(p);
+    canvas.drawOval(
+        Rect.fromLTRB(-1.5 * r, -0.25 * r, 1.7 * r, 0.3 * r),
+        Paint()
+          ..color = _canto.withValues(alpha: 0.75)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 1.4 * escala));
+    final bolas = [
+      Rect.fromCircle(center: Offset(-0.75 * r, -0.55 * r), radius: 0.8 * r),
+      Rect.fromCircle(center: Offset(0.75 * r, -0.5 * r), radius: 0.75 * r),
+      Rect.fromCircle(center: Offset(0, -1.0 * r), radius: r),
+    ];
+    final mata = Path();
+    for (final b in bolas) {
+      mata.addOval(b);
+    }
+    final silueta = Path.combine(PathOperation.union, mata,
+        Path()..addRect(Rect.fromLTRB(-1.4 * r, -0.6 * r, 1.4 * r, 0)));
+    final recorte = Path.combine(PathOperation.intersect, silueta,
+        Path()..addRect(Rect.fromLTRB(-2 * r, -3 * r, 2 * r, 0)));
+    canvas.drawPath(
+        recorte,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [_hojaClara, _hoja, _hojaOscura],
+          ).createShader(Rect.fromLTRB(-1.5 * r, -2 * r, 1.5 * r, 0)));
+    canvas.save();
+    canvas.clipPath(recorte);
+    final azar = math.Random(semilla);
+    for (var i = 0; i < 26; i++) {
+      final hx = (azar.nextDouble() * 2.8 - 1.4) * r;
+      final hy = -azar.nextDouble() * 2 * r;
+      final sol = (-hx / r - hy / r * 0.5) > 0.4;
+      canvas.save();
+      canvas
+        ..translate(hx, hy)
+        ..rotate(azar.nextDouble() * math.pi);
+      canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset.zero, width: 0.36 * r, height: 0.18 * r),
+          Paint()
+            ..color = (sol ? _brillo : _hojaOscura)
+                .withValues(alpha: sol ? 0.8 : 0.45));
       canvas.restore();
     }
+    final pliegue = Paint()
+      ..color = _hojaOscura.withValues(alpha: 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6 * escala
+      ..strokeCap = StrokeCap.round;
+    for (final b in bolas.take(2)) {
+      canvas.drawArc(b.deflate(b.width * 0.04), math.pi * 1.5, math.pi * 0.45,
+          false, pliegue);
+    }
+    canvas.drawRect(
+        Rect.fromLTRB(-2 * r, -0.3 * r, 2 * r, 0),
+        Paint()
+          ..color = _hojaOscura.withValues(alpha: 0.35)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 1.2 * escala));
+    canvas.restore();
+    canvas.drawPath(recorte, contorno);
+    // Dos cayenitas de cinco pétalos, como la flor grande.
+    for (final (f, t) in [
+      (Offset(-0.55 * r, -0.95 * r), 1.0),
+      (Offset(0.5 * r, -1.35 * r), 0.85)
+    ]) {
+      final petalo = Paint()..color = _flor;
+      for (var k = 0; k < 5; k++) {
+        final a = -math.pi / 2 + k * 2 * math.pi / 5;
+        canvas.drawCircle(f + Offset(math.cos(a), math.sin(a)) * 0.13 * r * t,
+            0.12 * r * t, petalo);
+      }
+      canvas.drawCircle(f, 0.07 * r * t, Paint()..color = _centro);
+    }
+    canvas.restore();
   }
 
   @override

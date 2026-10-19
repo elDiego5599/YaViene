@@ -8,8 +8,10 @@ import 'helpers/barra.dart';
 
 /// La barra del título como la de iOS 26 (dueño, 2026-10-18, con WhatsApp
 /// de referencia: «se puede ver perfectamente el texto cuando bajo»): sin
-/// lámina; con algo debajo, solo un velo que se desvanece hacia abajo, y
-/// los botones en píldoras de vidrio. Con más contraste, opaca.
+/// lámina; con algo debajo, un desenfoque que crece hacia arriba y un velo
+/// que se desvanece hacia abajo («las hiciste completamente transparentes
+/// en vez de darle como un tipo de blur»), y los botones en píldoras de
+/// vidrio. Con más contraste, opaca.
 void main() {
   Widget pantalla({bool contraste = false}) => MediaQuery(
         data: MediaQueryData(
@@ -54,16 +56,31 @@ void main() {
 
     expect(velo(tester), 1);
     // Sin lámina: el velo se desvanece hacia abajo y deja leer lo de
-    // debajo; nada de desenfoque ni sombra de barra.
+    // debajo; ni sombra de barra.
     final cara = vidrio(tester);
     expect(cara.color, isNull);
     expect(cara.boxShadow, isNull);
     final degradado = cara.gradient! as LinearGradient;
     expect(degradado.colors.last.a, 0, reason: 'abajo no tapa');
     expect(degradado.colors.first.a, lessThanOrEqualTo(0.9));
-    expect(desenfoca(tester), isFalse);
-    // Lo de abajo pasa por debajo de la barra, y el título sigue entero.
+    // El desenfoque es progresivo, como el borde de iOS 26: capas
+    // recortadas que arrancan arriba y bajan cada una menos, así arriba
+    // se suman todas y al pie apenas una.
     final barra = tester.getRect(find.byType(AppBar));
+    final capas = capasDesenfoque(tester);
+    expect(capas.length, greaterThanOrEqualTo(4));
+    expect(capas.first.height, closeTo(barra.height, 0.5),
+        reason: 'la de abajo llega al pie de la barra');
+    for (var i = 0; i < capas.length; i++) {
+      expect(capas[i].top, closeTo(barra.top, 0.5));
+      if (i > 0) expect(capas[i].height, lessThan(capas[i - 1].height));
+    }
+    expect(
+        find.descendant(
+            of: find.byType(FondoVidrio), matching: find.byType(ClipRect)),
+        findsNWidgets(capas.length),
+        reason: 'sin recorte el desenfoque se come la pantalla');
+    // Lo de abajo pasa por debajo de la barra, y el título sigue entero.
     expect(
         find.byWidgetPredicate((w) =>
             w is Text &&
@@ -77,6 +94,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, 600));
     await tester.pumpAndSettle();
     expect(velo(tester), 0);
+    expect(desenfoca(tester), isFalse, reason: 'en reposo no desenfoca');
   });
 
   testWidgets('con más contraste es opaca y sin desenfoque', (tester) async {
@@ -87,6 +105,7 @@ void main() {
     expect(velo(tester), 1);
     expect(vidrio(tester).color, Colors.white);
     expect(vidrio(tester).gradient, isNull);
+    expect(desenfoca(tester), isFalse);
   });
 
   Widget conPildora({bool contraste = false}) => MediaQuery(

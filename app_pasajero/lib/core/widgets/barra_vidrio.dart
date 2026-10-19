@@ -53,11 +53,26 @@ const halo = [
 ];
 
 /// La cara de [barraVidrio]: el borde de desplazamiento de iOS 26. En
-/// reposo no se ve; con algo debajo, un velo blanco que arriba, tras la
-/// hora, cubre lo justo para leerla y se desvanece hasta nada al pie de la
-/// barra: lo de abajo se sigue leyendo. Con más contraste, opaca.
+/// reposo no se ve; con algo debajo, lo de abajo se desenfoca más cuanto más
+/// arriba (dueño, 2026-10-18: «en vez de completamente transparentes, como
+/// un tipo de blur») y un velo blanco que tras la hora cubre lo justo para
+/// leerla se desvanece hasta nada al pie de la barra. Con más contraste,
+/// opaca.
 class FondoVidrio extends StatefulWidget {
   const FondoVidrio({super.key});
+
+  /// El desenfoque progresivo, como (hasta qué fracción de la barra baja,
+  /// sigma) por capa. Las capas arrancan todas arriba y se suman: al pie,
+  /// sigma 1,5, lo que basta para que no se vea el corte; tras la hora,
+  /// unos 7,5 (la raíz de la suma de los cuadrados).
+  static const capas = [
+    (1.0, 1.5),
+    (0.85, 2.0),
+    (0.7, 2.5),
+    (0.55, 3.0),
+    (0.4, 3.5),
+    (0.25, 4.0),
+  ];
 
   /// El velo, de arriba abajo: 88 % tras la hora, 55 % a media barra y nada
   /// al pie.
@@ -107,15 +122,52 @@ class _FondoVidrioState extends State<FondoVidrio> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: _debajo ? 1 : 0,
-      duration: AppMotion.duracion(context, AppMotion.normal),
-      curve: Curves.easeOut,
-      child: DecoratedBox(
-        decoration: MediaQuery.highContrastOf(context)
-            ? const BoxDecoration(color: Colors.white)
-            : const BoxDecoration(gradient: FondoVidrio.velo),
-      ),
+    final opaca = MediaQuery.highContrastOf(context);
+    final duracion = AppMotion.duracion(context, AppMotion.normal);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (!opaca)
+          // El desenfoque entra y sale con el velo, subiendo el sigma: una
+          // opacidad encima no apagaría lo que el filtro ya tomó de atrás.
+          TweenAnimationBuilder<double>(
+            tween: Tween(end: _debajo ? 1 : 0),
+            duration: duracion,
+            curve: Curves.easeOut,
+            builder: (context, t, _) => t == 0
+                ? const SizedBox.shrink()
+                : LayoutBuilder(
+                    builder: (context, caja) => Stack(
+                      children: [
+                        for (final (fraccion, sigma) in FondoVidrio.capas)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: caja.maxHeight * fraccion,
+                            child: ClipRect(
+                              child: BackdropFilter(
+                                filter: ui.ImageFilter.blur(
+                                    sigmaX: sigma * t, sigmaY: sigma * t),
+                                child: const SizedBox.expand(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+          ),
+        AnimatedOpacity(
+          opacity: _debajo ? 1 : 0,
+          duration: duracion,
+          curve: Curves.easeOut,
+          child: DecoratedBox(
+            decoration: opaca
+                ? const BoxDecoration(color: Colors.white)
+                : const BoxDecoration(gradient: FondoVidrio.velo),
+          ),
+        ),
+      ],
     );
   }
 }

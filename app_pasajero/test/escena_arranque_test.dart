@@ -337,5 +337,55 @@ void main() {
     expect(verdes.length, greaterThan(px.length ~/ 4),
         reason: 'verdes ${verdes.length}');
     expect(PintorSuelo(1).shouldRepaint(PintorSuelo(0.5)), isTrue);
+    // «Donde está el bus, en el centro, haz como una calle» (dueño,
+    // 2026-10-18): asfalto gris bajo el bus, de frente y con su raya blanca
+    // al medio, y pasto a los lados.
+    Color en(double x, double y) => px[(y * h).round() * w + (x * w).round()];
+    bool asfalto(Color c) =>
+        c.a > 0.9 &&
+        (c.r - c.g).abs() < 0.06 &&
+        (c.g - c.b).abs() < 0.08 &&
+        c.r > 0.25 &&
+        c.r < 0.5;
+    for (final x in [0.4, 0.6]) {
+      expect(asfalto(en(x, 0.8)), isTrue,
+          reason: 'sin calle en $x: ${en(x, 0.8)}');
+    }
+    final (desde, hasta) = PintorSuelo.calle;
+    final bajoBus = [
+      for (var y = (h * 0.6).round(); y < h * 0.85; y++)
+        for (var x = (w * desde).round(); x < w * hasta; x++) px[y * w + x]
+    ];
+    expect(bajoBus.where(asfalto).length, greaterThan(bajoBus.length ~/ 2));
+    final raya = [
+      for (var y = (h * 0.4).round(); y < h * 0.85; y++)
+        for (var x = (w * 0.47).round(); x < w * 0.53; x++) px[y * w + x]
+    ].where((c) => c.r > 0.9 && c.g > 0.9 && c.b > 0.9);
+    expect(raya.length, greaterThan(10), reason: 'sin raya blanca');
+    // De frente: en cada fila, la calle queda partida por el medio.
+    for (final y in [0.45, 0.6, 0.8]) {
+      final fila = [
+        for (var x = 0; x < w; x++)
+          if (asfalto(px[(y * h).round() * w + x])) x
+      ];
+      final medio = (fila.first + fila.last) / 2;
+      expect((medio - w / 2).abs(), lessThan(2),
+          reason: 'la calle se ladea en $y: ${fila.first} a ${fila.last}');
+    }
+    expect(asfalto(en(0.1, 0.85)), isFalse,
+        reason: 'la calle es solo al centro');
+  });
+
+  testWidgets('la calle queda justo bajo el bus', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(body: Center(child: EscenaArranque()))));
+    await tester.pump(const Duration(seconds: 2));
+    final s = tester.getRect(find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is PintorSuelo));
+    final bus = tester.getRect(find.descendant(
+        of: find.byType(EscenaArranque), matching: find.byType(Image)));
+    final (desde, hasta) = PintorSuelo.calle;
+    expect(s.left + s.width * desde, lessThanOrEqualTo(bus.left + 4));
+    expect(s.left + s.width * hasta, greaterThanOrEqualTo(bus.right - 4));
   });
 }
