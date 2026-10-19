@@ -1,15 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/entrance.dart';
-import '../../../../core/widgets/fondo_malla.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../legal/legal_acceptance.dart';
 import '../../../legal/legal_docs.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
+import '../../../splash/presentation/widgets/fondo_matizado.dart';
 import '../../onboarding_flow.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -18,10 +19,6 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
-
-/// Cuánto sube la malla en la bienvenida: lo que deja la bajada de la marca
-/// sobre el tono donde se lee (`FondoMalla.subida`).
-const double subidaMalla = 0.24;
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _requesting = false;
@@ -64,10 +61,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ink,
-      // La malla de la marca, que respira (dueño, 2026-10-16).
-      body: FondoMalla(
-        subida: subidaMalla,
+      backgroundColor: AppColors.surface,
+      body: _FondoBienvenida(
         child: SafeArea(
           bottom: false,
           child: LayoutBuilder(
@@ -109,7 +104,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   topRight: Radius.circular(AppRadius.sheet),
                                 ),
                                 // Hacia arriba: la hoja está abajo y la sombra
-                                // que la despega cae sobre la noche.
+                                // que la despega cae sobre el matizado.
                                 // `AppShadows.floating` es la de una tarjeta
                                 // sobre el suelo —hacia abajo— y aquí se
                                 // perdía bajo el filo de la pantalla (R-14).
@@ -265,6 +260,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// El matizado del arranque detrás de la bienvenida («la página del
+/// onboarding debe tener el mismo degradado que la de carga», dueño,
+/// 2026-10-18). Claro: la hora y la batería en oscuro.
+class _FondoBienvenida extends StatelessWidget {
+  final Widget child;
+
+  const _FondoBienvenida({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [const FondoMatizado(), child],
       ),
     );
   }

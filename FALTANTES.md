@@ -107,8 +107,8 @@ Necesitan un teléfono, una cuenta o estar presente.
   números comentados, y la hoja del mapa que crece de ella (20 por lado,
   cantos de 32, apoyada sobre su hueco, la barra fundida en ella). Y lo
   del mismo día: fondos blancos con sombra suave en lo blanco de encima
-  (`AppShadows.soft`) y el fondo de malla de marca de la bienvenida. Y lo
-  último del día: la malla respira, la lupa de la
+  (`AppShadows.soft`). Y lo
+  último del día: la lupa de la
   búsqueda en la punta derecha (el subtítulo se queda) y Avisos, Buzón,
   Info y Legal pasando bajo una barra de vidrio como el nav de la web
   (2026-10-18, `barra_vidrio.dart`, como iOS 26 con WhatsApp de
@@ -128,7 +128,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   isla de pasto con canto, briznas y cuatro arbustos floridos, y una calle
   de frente bajo el bus, con bordillos y raya blanca (`PintorSuelo`), sobre el
   fondo matizado azul y verde con grano (`fondo_matizado.dart`, aclarado
-  y luego con algo de su color de vuelta el mismo día);
+  y luego con algo de su color de vuelta el mismo día), que es también
+  el fondo de la bienvenida, con el nombre en tinta y la bajada en
+  `textBody` (la malla oscura se fue);
   y en Avisos, arriba, la nota «Gestiona, borra o desactiva tus avisos
   aquí.» con su ícono, y dejar presionado un aviso lo selecciona; y en Info dibujos chicos de
   Barranquilla regados sin orden solo arriba, detrás del logo, que se
@@ -137,7 +139,7 @@ Necesitan un teléfono, una cuenta o estar presente.
   y, pocos y separados, los buses de Sobusa y Coolitoral, las empresas de
   la app; de 44 a 60, a 70 entre centros, sin dos iguales juntos, al 72 %
   y sin relleno en los huecos; `fondo_ilustrado.dart`; la torre adelgaza
-  sus juntas con el tamaño) sobre el matizado, con la letra en píldoras
+  sus juntas con el tamaño) sobre blanco, con la letra en píldoras
   blancas; y la tarjeta de la ruta activa con su chevrón lleva al mapa
   (sin ruta, abre el selector), se hunde al tocarla y vibra. Y lo que lee el pasajero va sin «», rayas
   ni -- (2026-10-18; `textos_sin_signos_test.dart`, y lo legal de la web
@@ -146,7 +148,7 @@ Necesitan un teléfono, una cuenta o estar presente.
   entera con su forma, el botón del aviso y «Ver buses en vivo» como píldoras, en las listas solo
   de la primera fila a la última, y la carta encima de la hoja si cabe. La
   maqueta del trío del hero (`.tinta-hero` en `phone-simulator.css`) sigue
-  con la marca de 84 sobre tinta y la de Info con la malla. Ojo con el CSS
+  con la marca de 84 sobre tinta. Ojo con el CSS
   al 98 %. Y el lote siguiente del mismo día: títulos de sección como Salud
   del iPhone (`titulo_seccion.dart`, 22 en negrita, 28 arriba y 10 abajo)
   en Avisos, Info (Ayuda, Información) y Buzón (Tipo de mensaje, Tu

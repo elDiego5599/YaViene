@@ -4,13 +4,15 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_arranque.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/fondo_matizado.dart';
 
 /// El fondo de Info (dueño, 2026-10-18): las ilustraciones de Barranquilla
-/// chicas, regadas sin orden y con pocos buses, atenuadas sobre el
-/// matizado del arranque. Solo arriba, detrás de la marca, y se apagan
+/// chicas, regadas sin orden y con pocos buses, atenuadas sobre blanco
+/// («déjalo con las figuritas pero blanco en vez del degradado», dueño,
+/// 2026-10-18). Solo arriba, detrás de la marca, y se apagan
 /// hacia las tarjetas: en toda la pantalla hacían ruido (revisión externa,
 /// 2026-10-18). Quieto.
 void main() {
@@ -143,13 +145,17 @@ void main() {
     expect(torres.every((p) => p.avance == 1), isTrue);
   });
 
-  testWidgets('sobre el matizado, sin anunciarse al lector de pantalla',
+  testWidgets('sobre blanco, sin anunciarse al lector de pantalla',
       (tester) async {
     await tester
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
     expect(
         find.byWidgetPredicate(
             (w) => w is CustomPaint && w.painter is PintorMatizado),
+        findsNothing);
+    expect(
+        find.byWidgetPredicate(
+            (w) => w is ColoredBox && w.color == AppColors.surface),
         findsOneWidget);
     final imagenes = tester.widgetList<Image>(find.byType(Image)).toList();
     expect(imagenes, isNotEmpty);
@@ -169,7 +175,7 @@ void main() {
         .whereType<CustomPainter>()
         .map((p) => p.runtimeType)
         .toSet();
-    expect(pintores, {PintorMatizado, PintorVentana});
+    expect(pintores, {PintorVentana});
     final dibujos = [
       ...find.byType(Image).evaluate(),
       ...find
@@ -218,7 +224,5 @@ void main() {
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
     await tester.pump();
     expect(tester.binding.hasScheduledFrame, isFalse);
-    expect(
-        const PintorMatizado().shouldRepaint(const PintorMatizado()), isFalse);
   });
 }

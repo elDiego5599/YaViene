@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../splash/presentation/widgets/escena_arranque.dart';
-import '../../splash/presentation/widgets/fondo_matizado.dart';
 
 /// Los dibujos de Barranquilla del fondo de Info. La Ventana al Mundo no es
 /// foto: es la torre del arranque, ya armada (dueño, 2026-10-18).
@@ -34,7 +34,8 @@ typedef Celda = ({Motivo motivo, Offset centro, double lado, double giro});
 /// todo, y todo con el mismo orden no cuadra»): dibujos chicos de
 /// Barranquilla regados sin orden, con aire entre ellos, cada uno algo
 /// girado y de su tamaño, sin dos iguales juntos y con pocos buses, sobre
-/// el matizado del arranque. Atenuados y sin relleno en los huecos («atenúa
+/// blanco («déjalo con las figuritas pero blanco en vez del degradado»,
+/// dueño, 2026-10-18). Atenuados y sin relleno en los huecos («atenúa
 /// un poco las imágenes», dueño, 2026-10-18): son fondo, lo que se lee son
 /// las tarjetas blancas de encima. Solo arriba, detrás de la marca, y se
 /// apagan hacia las tarjetas: en toda la pantalla hacían ruido (revisión
@@ -158,7 +159,7 @@ class FondoIlustrado extends StatelessWidget {
               clipBehavior: Clip.hardEdge,
               children: [
                 const Positioned.fill(
-                  child: CustomPaint(painter: PintorMatizado()),
+                  child: ColoredBox(color: AppColors.surface),
                 ),
                 // Un solo velo para todos: una capa, no una por dibujo.
                 Positioned.fill(

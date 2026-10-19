@@ -1,15 +1,15 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
-import 'package:ya_viene_pasajero/core/widgets/ink_hero.dart';
 import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
     'onboarding_screen.dart';
+import 'package:ya_viene_pasajero/features/splash/presentation/widgets/'
+    'fondo_matizado.dart';
 
 import 'golden/golden_harness.dart';
 import 'helpers/contraste.dart';
@@ -69,8 +69,8 @@ void main() {
 
   testWidgets('el labio de la hoja proyecta su sombra hacia arriba',
       (tester) async {
-    // La hoja está abajo y la noche arriba: la sombra que la separa cae
-    // sobre la noche. `AppShadows.floating` es la de una tarjeta que flota
+    // La hoja está abajo y el matizado arriba: la sombra que la separa cae
+    // sobre el matizado. `AppShadows.floating` es la de una tarjeta que flota
     // sobre el suelo —hacia abajo— y aquí se perdía bajo el borde de la
     // pantalla (R-14).
     await abrir(tester);
@@ -97,48 +97,46 @@ void main() {
     }
   });
 
-  // «En la pestaña de onboarding debería estar el mismo fondo» (dueño,
-  // 2026-10-16): la malla que respira del arranque, no la noche con rutas.
-  testWidgets('el fondo es la malla del arranque', (tester) async {
+  // «La página del onboarding debe tener el mismo degradado que la de
+  // carga» (dueño, 2026-10-18): el matizado claro del arranque, no la malla
+  // oscura. Con fondo claro, la hora y la batería en oscuro.
+  testWidgets('el fondo es el matizado del arranque', (tester) async {
     await abrir(tester);
-    final malla = tester.widget<FondoMalla>(find.byType(FondoMalla));
-    expect(malla.subida, subidaMalla);
+    expect(find.byType(FondoMatizado), findsOneWidget);
+    final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+        find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first);
+    expect(region.value, SystemUiOverlayStyle.dark);
   });
 
-  testWidgets('el nombre y la bajada se leen sobre la malla en todo el ciclo',
+  testWidgets('el nombre y la bajada se leen sobre el matizado',
       (tester) async {
     await abrir(tester);
     final pantalla = tester.view.physicalSize;
     final piezas = [
-      (find.text('Ya Viene'), Colors.white, 3.0),
-      (
-        find.text('Tu ciudad en tiempo real.'),
-        Colors.white.withValues(alpha: InkHero.alfaBajada),
-        4.5,
-      ),
+      (find.text('Ya Viene'), AppColors.ink, 4.5),
+      (find.text('Tu ciudad en tiempo real.'), AppColors.textBody, 4.5),
     ];
-    final cajas = [for (final (f, _, _) in piezas) tester.getRect(f)];
-    for (var fase = 0.0; fase < 1; fase += 0.125) {
-      late ByteData datos;
-      await tester.runAsync(() async {
-        final grabadora = ui.PictureRecorder();
-        FondoMalla.pintor(fase: fase, subida: subidaMalla)
-            .paint(Canvas(grabadora), pantalla);
-        final imagen = await grabadora
-            .endRecording()
-            .toImage(pantalla.width.toInt(), pantalla.height.toInt());
-        datos = (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-      });
-      for (final (i, (_, letra, minimo)) in piezas.indexed) {
-        final caja = cajas[i];
-        for (var y = caja.top; y <= caja.bottom; y += 4) {
-          for (var x = caja.left; x <= caja.right; x += 6) {
-            final j = (y.floor() * pantalla.width.toInt() + x.floor()) * 4;
-            final fondo = Color.fromARGB(255, datos.getUint8(j),
-                datos.getUint8(j + 1), datos.getUint8(j + 2));
-            exigeContraste(contraste(Color.alphaBlend(letra, fondo), fondo),
-                minimo, 'pieza $i en ($x, $y), fase $fase');
-          }
+    for (final (f, letra, _) in piezas) {
+      expect(tester.widget<Text>(f).style!.color, letra);
+    }
+    late ByteData datos;
+    await tester.runAsync(() async {
+      final grabadora = ui.PictureRecorder();
+      const PintorMatizado().paint(Canvas(grabadora), pantalla);
+      final imagen = await grabadora
+          .endRecording()
+          .toImage(pantalla.width.toInt(), pantalla.height.toInt());
+      datos = (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    });
+    for (final (i, (f, letra, minimo)) in piezas.indexed) {
+      final caja = tester.getRect(f);
+      for (var y = caja.top; y <= caja.bottom; y += 4) {
+        for (var x = caja.left; x <= caja.right; x += 6) {
+          final j = (y.floor() * pantalla.width.toInt() + x.floor()) * 4;
+          final fondo = Color.fromARGB(255, datos.getUint8(j),
+              datos.getUint8(j + 1), datos.getUint8(j + 2));
+          exigeContraste(
+              contraste(letra, fondo), minimo, 'pieza $i en ($x, $y)');
         }
       }
     }

@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
-import 'package:ya_viene_pasajero/core/widgets/fondo_malla.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
@@ -236,10 +235,9 @@ void main() {
 
     expect(find.byType(FondoIlustrado), findsOneWidget);
     // Los dibujos se apagan antes de que acabe la tarjeta de la ruta: lo
-    // demás va sobre el matizado limpio.
+    // demás va sobre el blanco limpio.
     expect(FondoIlustrado.franja,
         lessThanOrEqualTo(tester.getRect(find.byType(ActiveRouteCard)).bottom));
-    expect(find.byType(FondoMalla), findsNothing);
     for (final (texto, color) in [
       ('Ya Viene', AppColors.textPrimary),
     ]) {

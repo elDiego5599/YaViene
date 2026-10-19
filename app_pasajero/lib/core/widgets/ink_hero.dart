@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'fondo_malla.dart';
 
 /// F12: logo + halo + wordmark + tagline de la bienvenida. El logo vuela
 /// hasta aquí desde el arranque (`EscenaArranque`), con la misma etiqueta.
+/// Sobre el matizado del arranque: el nombre en tinta, como allá, y la
+/// bajada en `textBody`: en `textSecondary` quedaba en 4,48:1 sobre el
+/// azul de arriba (AA medido, `test/onboarding_hoja_test.dart`).
 class InkHero extends StatelessWidget {
   const InkHero({super.key});
 
@@ -12,10 +14,6 @@ class InkHero extends StatelessWidget {
   /// bienvenida, que es lo que hace que el logo vuele de uno a otra en vez
   /// de saltar.
   static const String marcaHeroTag = 'ya-viene-marca';
-
-  /// Lo que se apaga la bajada frente al nombre: el de la letra chica sobre
-  /// la malla de la bienvenida, donde tiene que pasar AA.
-  static const double alfaBajada = FondoMalla.alfaLetraChica;
 
   static const double _lado = 88;
 
@@ -59,13 +57,13 @@ class InkHero extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           'Ya Viene',
-          style: AppTextStyles.marca.copyWith(color: Colors.white),
+          style: AppTextStyles.marca.copyWith(color: AppColors.ink),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           'Tu ciudad en tiempo real.',
           style: AppTextStyles.cuerpoFuerte.copyWith(
-            color: Colors.white.withValues(alpha: alfaBajada),
+            color: AppColors.textBody,
           ),
         ),
       ],
