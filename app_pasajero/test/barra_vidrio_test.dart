@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -41,7 +42,7 @@ void main() {
         ),
       );
 
-  testWidgets('el vidrio está siempre: al bajar no se prende nada',
+  testWidgets('el vidrio sale al bajar, de a poco, y se va al subir',
       (tester) async {
     await tester.pumpWidget(pantalla());
     await tester.pumpAndSettle();
@@ -52,23 +53,38 @@ void main() {
     expect(tester.getRect(find.text('fila 0')).top,
         greaterThanOrEqualTo(tester.getRect(find.byType(AppBar)).bottom),
         reason: 'en reposo la barra no tapa nada');
-    // Antes se prendía al empezar a bajar y se veía el salto (dueño,
-    // 2026-10-19): ni animación ni estado, la misma cara siempre.
-    expect(
-        find.descendant(
-            of: find.byType(FondoVidrio),
-            matching: find.byWidgetPredicate((w) =>
-                w is ImplicitlyAnimatedWidget || w is TweenAnimationBuilder)),
-        findsNothing);
-    final barra = tester.getRect(find.byType(AppBar));
-    final enReposo = capasDesenfoque(tester);
-    final veloEnReposo = vidrio(tester);
+    // En reposo no hay vidrio: solo sale al bajar (dueño, 2026-10-19).
+    expect(desenfoca(tester), isFalse);
+    expect(FondoVidrio.velo.colors.map((c) => c.a), everyElement(lessThan(1)));
+    expect(tester.widget<Opacity>(find.byKey(FondoVidrio.veloKey)).opacity, 0);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    // Sigue al dedo, no a un reloj: a medio camino, a medias, y subir lo
+    // devuelve por el mismo camino.
+    final lista = tester.state<ScrollableState>(find.byType(Scrollable));
+    lista.position.jumpTo(FondoVidrio.recorrido / 2);
     await tester.pump();
-    expect(capasDesenfoque(tester), enReposo, reason: 'al bajar no cambia');
-    expect(vidrio(tester), veloEnReposo);
+    expect(desenfoca(tester), isTrue);
+    final medio =
+        tester.widget<Opacity>(find.byKey(FondoVidrio.veloKey)).opacity;
+    expect(medio, closeTo(0.5, 0.01));
+    expect(filtros(tester), [
+      for (final (_, sigma) in FondoVidrio.capas)
+        ui.ImageFilter.blur(sigmaX: sigma / 2, sigmaY: sigma / 2),
+    ]);
+    lista.position.jumpTo(300);
+    await tester.pump();
+    expect(tester.widget<Opacity>(find.byKey(FondoVidrio.veloKey)).opacity, 1);
+    expect(filtros(tester), [
+      for (final (_, sigma) in FondoVidrio.capas)
+        ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+    ]);
+    lista.position.jumpTo(0);
+    await tester.pump();
+    expect(desenfoca(tester), isFalse, reason: 'al subir se va');
+    lista.position.jumpTo(300);
+    await tester.pump();
 
+    final barra = tester.getRect(find.byType(AppBar));
     // Sin lámina: el velo se desvanece hacia abajo y deja leer lo de
     // debajo; ni sombra de barra.
     final cara = vidrio(tester);
@@ -79,22 +95,24 @@ void main() {
     expect(degradado.colors.first.a, lessThanOrEqualTo(0.9));
     // El desenfoque es progresivo, como el borde de iOS 26: capas
     // recortadas que arrancan arriba y bajan cada una menos, así arriba
-    // se suman todas y al pie apenas una. Con 6 se veían las franjas.
+    // se suman todas y al pie apenas una.
     final capas = capasDesenfoque(tester);
-    expect(capas.length, greaterThanOrEqualTo(10));
+    expect(capas.length, FondoVidrio.capas.length);
     expect(capas.first.height, closeTo(barra.height, 0.5),
         reason: 'la de abajo llega al pie de la barra');
     for (var i = 0; i < capas.length; i++) {
       expect(capas[i].top, closeTo(barra.top, 0.5));
       if (i > 0) expect(capas[i].height, lessThan(capas[i - 1].height));
     }
-    // El sigma sumado crece parejo: ningún escalón de más de un punto.
+    // El sigma sumado crece sin escalones de más de un punto, y al pie
+    // arranca casi en cero: con 0,8 de golpe se veía la raya recta entre
+    // lo desenfocado y lo nítido (dueño, 2026-10-19).
     var antes = 0.0;
     for (var k = 0; k < FondoVidrio.capas.length; k++) {
-      final suma = math.sqrt(FondoVidrio.capas
-          .take(k + 1)
-          .fold(0.0, (a, c) => a + c.$2 * c.$2));
+      final suma = math.sqrt(
+          FondoVidrio.capas.take(k + 1).fold(0.0, (a, c) => a + c.$2 * c.$2));
       expect(suma - antes, lessThanOrEqualTo(1.0));
+      if (k == 0) expect(suma, lessThan(0.1), reason: 'la raya del pie');
       antes = suma;
     }
     expect(antes, closeTo(8, 0.01), reason: 'tras la hora');
@@ -183,3 +201,13 @@ void main() {
     expect(cara.color, Colors.white);
   });
 }
+
+/// Los desenfoques de la barra, en el orden de [FondoVidrio.capas].
+List<ui.ImageFilter> filtros(WidgetTester tester) => [
+      for (final e in find
+          .descendant(
+              of: find.byType(FondoVidrio),
+              matching: find.byType(BackdropFilter))
+          .evaluate())
+        (e.widget as BackdropFilter).filter!,
+    ];

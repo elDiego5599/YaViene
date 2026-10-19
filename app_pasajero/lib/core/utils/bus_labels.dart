@@ -58,3 +58,13 @@ String? codigoRuta(String? routeName) {
       ? primero.toUpperCase()
       : null;
 }
+
+/// El nombre de la ruta sin su código («C16 Calle 72 Uninorte» da «Calle 72
+/// Uninorte»), para ir al lado de la ficha que ya dice C16. Sin código, o si
+/// el nombre no es más que el código, queda entero.
+String? nombreSinCodigo(String? routeName) {
+  final nombre = routeName?.trim();
+  if (nombre == null || codigoRuta(nombre) == null) return nombre;
+  final resto = nombre.split(RegExp(r'\s+')).skip(1).join(' ');
+  return resto.isEmpty ? nombre : resto;
+}

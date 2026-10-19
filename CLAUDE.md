@@ -253,7 +253,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   sigue en recta (FALTANTES). La idea se publica aparte, en inglés, en
   `elDiego5599/alongroute` (`YaViene/alongroute`).
   El aviso lleva la ficha de la ruta (B18, C16; `ficha_ruta.dart`): en
-  Android de ícono grande, en iOS de imagen adjunta (dueño, 2026-10-19).
+  Android de ícono grande, en iOS de imagen adjunta, y en la tarjeta de
+  Avisos en vez del bus, con el nombre sin el código (dueño, 2026-10-19).
+  Por la ruta cuentan todos los pasos a 300 m o menos del punto, no solo
+  el más cercano (el pin entre dos calles daba 15,6 km). La barra de
+  vidrio sale al bajar, al paso del dedo, y en reposo no hay nada.
   Con un bus tocado se va la píldora de tu punto y buses cerca.
 - **Panel**: tablero con fondo y cabecera blancos (el degradado en la
   cabecera no gustó), filo entre buses centrado en la barra y sombras

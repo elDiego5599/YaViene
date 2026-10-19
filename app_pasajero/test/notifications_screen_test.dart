@@ -11,6 +11,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
+import 'package:ya_viene_pasajero/core/widgets/ficha_ruta.dart';
 import 'package:ya_viene_pasajero/core/widgets/placa_bus.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
@@ -183,6 +184,43 @@ void main() {
     await pumpScreen(tester, const []);
 
     expect(find.text('No tienes avisos activos'), findsOneWidget);
+  });
+
+  testWidgets('la tarjeta lleva la ficha de la ruta y el nombre sin código',
+      (tester) async {
+    // Como el ícono del aviso: C16 en su cuadro azul en vez del bus, y al
+    // lado solo «Calle 72 Uninorte» (dueño, 2026-10-19).
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    container.read(selectedRouteProvider.notifier).select(const RouteInfo(
+        id: 'R1', name: 'C16 Calle 72 Uninorte', companyId: 'C1'));
+    arm(container, 'A-1');
+    await tester.pump();
+
+    expectAviso('A-1', ruta: 'Calle 72 Uninorte');
+    final ficha =
+        find.descendant(of: aviso('A-1'), matching: find.byType(FichaRuta));
+    expect(ficha, findsOneWidget);
+    expect(
+        find.descendant(of: ficha, matching: find.text('C16')), findsOneWidget);
+    expect(
+        find.descendant(
+            of: aviso('A-1'),
+            matching: find.byIcon(Icons.directions_bus_filled_outlined)),
+        findsNothing);
+    final cara = tester
+        .widget<Container>(
+            find.descendant(of: ficha, matching: find.byType(Container)).first)
+        .decoration! as BoxDecoration;
+    expect(cara.color, AppColors.acento);
+    // El lector sigue diciendo la ruta entera.
+    expect(
+        find.descendant(
+            of: aviso('A-1'),
+            matching: find.byWidgetPredicate((w) =>
+                w is Semantics &&
+                (w.properties.label ?? '')
+                    .startsWith('C16 Calle 72 Uninorte, bus A-1.'))),
+        findsOneWidget);
   });
 
   testWidgets('desactivar un aviso activo lo borra de la lista',

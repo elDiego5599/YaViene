@@ -22,11 +22,6 @@ typedef Proyeccion = ({double avance, double desvio});
 /// `rutas.json` cierran a 0–33 m).
 const double _cierreCircular = 50;
 
-/// Pasos hasta esto más lejos que el más cercano también son del punto: la
-/// ruta que vuelve a pasar a una cuadra y media trae el bus antes que la
-/// vuelta entera (dueño, 2026-10-18: decía 31,7 km con el bus a la vista).
-const double _caminable = 150;
-
 /// Velocidad más alta que se le cree a un bus urbano, 90 km/h: acota cuánto
 /// pudo avanzar entre dos posiciones.
 const double _vMax = 25;
@@ -205,12 +200,13 @@ class RutaMedible {
   /// Cada paso de la ruta cerca de [p]: en una calle de ida y vuelta, el
   /// punto cae en las dos. Un paso es donde la ruta más se acerca a [p]
   /// antes de alejarse otra vez (ningún tramo vecino queda más cerca), a
-  /// menos de [_caminable] del más cercano; los tramos seguidos que caen en
-  /// el mismo sitio (una esquina) son un paso.
+  /// [desvioPuntoMaximo] o menos; los tramos seguidos que caen en el mismo
+  /// sitio (una esquina) son un paso. Todos cuentan, no solo el más
+  /// cercano: el pin entre dos calles de la ruta decía 15,6 km por la que
+  /// tenía enfrente con el bus a 2 km por la otra (dueño, 2026-10-19).
   List<Proyeccion> _pasos(GeoPoint p) {
     final (px, py) = _plano(p);
     final todas = _proyecciones(px, py).toList();
-    final mejor = todas.map((c) => c.desvio).reduce(math.min);
     final n = todas.length;
     bool minimo(int i) {
       final antes = i > 0 ? i - 1 : (circular ? n - 1 : null);
@@ -221,7 +217,7 @@ class RutaMedible {
 
     final cerca = [
       for (var i = 0; i < n; i++)
-        if (todas[i].desvio <= mejor + _caminable && minimo(i))
+        if (todas[i].desvio <= desvioPuntoMaximo && minimo(i))
           (avance: todas[i].avance, desvio: todas[i].desvio)
     ]..sort((a, b) => a.avance.compareTo(b.avance));
     const mismoPaso = 2 * _empate;
@@ -252,7 +248,7 @@ class RutaMedible {
   /// de la persona (dueño, 2026-10-19).
   double? medir(double avanceBus, GeoPoint p) {
     final pasos = _pasos(p);
-    if (pasos.first.desvio > desvioPuntoMaximo) return null;
+    if (pasos.isEmpty) return null;
     return pasos
         .map((paso) => _entre(avanceBus, paso.avance) + paso.desvio)
         .reduce(math.min);

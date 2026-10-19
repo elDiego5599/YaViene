@@ -26,6 +26,12 @@ void main() {
     expect(codigoRuta('Calle 72'), isNull);
     expect(codigoRuta(''), isNull);
     expect(codigoRuta(null), isNull);
+    // Al lado de la ficha va el nombre sin el código.
+    expect(nombreSinCodigo('C16 Calle 72 Uninorte'), 'Calle 72 Uninorte');
+    expect(nombreSinCodigo(' B18  Tcherassi'), 'Tcherassi');
+    expect(nombreSinCodigo('Ruta 106'), 'Ruta 106');
+    expect(nombreSinCodigo('C16'), 'C16');
+    expect(nombreSinCodigo(null), isNull);
   });
 
   late Map<String, Object?> mostrada;

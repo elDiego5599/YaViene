@@ -112,10 +112,11 @@ Necesitan un teléfono, una cuenta o estar presente.
   búsqueda en la punta derecha (el subtítulo se queda) y Avisos, Buzón,
   Info y Legal pasando bajo una barra de vidrio como el nav de la web
   (2026-10-18, `barra_vidrio.dart`, como iOS 26 con WhatsApp de
-  referencia: sin lámina; siempre puesta, sin prenderse al bajar
-  (2026-10-19: prenderse se veía pobre), un velo blanco que se desvanece
-  hasta cero al pie de la barra sobre un desenfoque progresivo (de 8
-  arriba a 0 abajo, en diez capas que se suman), el título con
+  referencia: sin lámina; en reposo no hay nada y al bajar sale de a
+  poco, al paso del dedo en 40 px, y se va igual al subir (2026-10-19), un
+  velo blanco que se desvanece hasta cero al pie de la barra sobre un
+  desenfoque progresivo (8·f², de 8 arriba a casi 0 al pie, sin la raya
+  recta de antes, en 16 capas que se suman), el título con
   halo y los botones en píldoras de vidrio de 48 con desenfoque 10 y
   saturación 1,8; opaca con más contraste). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
@@ -166,9 +167,10 @@ Necesitan un teléfono, una cuenta o estar presente.
   (`revisarAvisos` en `YaVieneBackend/src/avisos_push.ts`) sigue en línea
   recta. Con la app cerrada, un bus a 400 m en recta y a 3 km por la ruta
   todavía avisa antes de tiempo. Falta portar la medida al backend con sus
-  mismas pruebas (la U de 1500 × 400 m del core; del 2026-10-18, el paso
-  más próximo entre los mínimos locales a 150 m del más cercano: sin él,
-  un punto entre la ida y la vuelta daba 31,7 km con el bus a la vista; y
+  mismas pruebas (la U de 1500 × 400 m del core; del 2026-10-18 y
+  2026-10-19, cuentan todos los pasos a 300 m o menos del punto, no solo
+  el más cercano: un punto entre la ida y la vuelta daba 31,7 km y luego
+  15,6 km con el bus a la vista; y
   del 2026-10-19, la distancia al paso más cerca, venga o ya haya pasado,
   sin contar nunca la vuelta entera: con el bus 80 m pasado se sumaba la
   vuelta y salían 20 km).

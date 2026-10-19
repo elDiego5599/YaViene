@@ -109,8 +109,7 @@ void main() {
     });
   });
 
-  group('la ruta pasa dos veces cerca del punto: cuenta el paso más cerca',
-      () {
+  group('la ruta pasa dos veces cerca del punto: cuenta el paso más cerca', () {
     // Rectángulo circular de 1000 × 200: este por y = 0, norte, oeste por
     // y = 200 y bajada al inicio. 2400 m.
     final rect = RutaMedible.de(
@@ -138,18 +137,26 @@ void main() {
       // queda a 100 en x = 990, pero de ahí la ruta se le acerca más: el
       // paso es la subida, a 10. Del bus en x = 900: 100 + 100 + 10.
       final s = SeguidorRuta(rect);
-      expect(s.distancia(_bus(900, 0, rumbo: 90), _m(990, 100)),
-          closeTo(210, 5));
+      expect(
+          s.distancia(_bus(900, 0, rumbo: 90), _m(990, 100)), closeTo(210, 5));
     });
 
-    test('un paso a más de 150 m del más cercano ya no es el mismo sitio', () {
+    test('fuera de la ruta cuenta el paso que trae el bus más cerca', () {
       // El punto en (500, 20): la vuelta le queda a 180, 160 más que la ida.
-      // Esa calle es otra: el bus en x = 300 de la vuelta, a 200 de x = 500,
-      // no cuenta 200 + 180 sino el paso por la ida: 500 hasta el inicio,
-      // 500 de ida y 20 de desvío.
+      // El bus en x = 300 de la vuelta pasó x = 500 hace 200 m: 200 + 180,
+      // no la vuelta por la ida, 1020 (dueño, 2026-10-19: 15,6 km con el
+      // bus a 2 km y el pin entre dos calles de la ruta).
       final s = SeguidorRuta(rect);
       expect(s.distancia(_bus(300, 200, rumbo: 270), _m(500, 20)),
-          closeTo(1020, 5));
+          closeTo(380, 5));
+    });
+
+    test('sobre la ruta, la otra calle a 200 m también cuenta', () {
+      // El punto en la ida (500, 0); el bus en la vuelta, x = 300, a 200
+      // de pasarle enfrente: 200 + 200, no 1000 por la ida.
+      final s = SeguidorRuta(rect);
+      expect(
+          s.distancia(_bus(300, 200, rumbo: 270), _m(500, 0)), closeTo(400, 5));
     });
   });
 

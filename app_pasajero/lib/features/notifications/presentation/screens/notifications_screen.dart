@@ -8,6 +8,7 @@ import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/barra_vidrio.dart';
 import '../../../../core/widgets/dialogo.dart';
+import '../../../../core/widgets/ficha_ruta.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
 import '../../../../core/widgets/titulo_seccion.dart';
@@ -789,33 +790,36 @@ class _AlertTile extends StatelessWidget {
             ? (Icons.near_me_outlined, AppColors.primaryAccessible)
             : (Icons.schedule, AppColors.warningAccessible);
 
+    final codigo = codigoRuta(routeName);
     final fila = Row(
       children: [
-        // Medallón de 44 (era 48 con radio de 16: casi un círculo que no
-        // llegaba a serlo). Verde siempre: la campana de lo que ya sonó iba
-        // en gris, pero un aviso que llegó es un acierto, no algo apagado
-        // (dueño, 2026-10-02). Lo vigente ya se distingue por el bus, la
-        // distancia en vivo y el grupo «Esperando».
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primaryTint,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: ExcludeSemantics(
-            child: Icon(
-              sent
-                  ? Icons.notifications_active_outlined
-                  : Icons.directions_bus_filled_outlined,
-              // El glifo va en la variante accesible: sobre su propio
-              // tinte, el color de relleno se queda en 2,8:1 y la norma
-              // pide 3:1 hasta para un icono.
-              color: AppColors.primaryAccessible,
-              size: 22,
+        // La ficha de la ruta, la misma del ícono del aviso (dueño,
+        // 2026-10-19). Sin código de ruta, el medallón de 44 de antes, verde
+        // siempre: un aviso que llegó es un acierto, no algo apagado
+        // (dueño, 2026-10-02).
+        if (codigo != null)
+          ExcludeSemantics(child: FichaRuta(codigo))
+        else
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.primaryTint,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: ExcludeSemantics(
+              child: Icon(
+                sent
+                    ? Icons.notifications_active_outlined
+                    : Icons.directions_bus_filled_outlined,
+                // El glifo va en la variante accesible: sobre su propio
+                // tinte, el color de relleno se queda en 2,8:1 y la norma
+                // pide 3:1 hasta para un icono.
+                color: AppColors.primaryAccessible,
+                size: 22,
+              ),
             ),
           ),
-        ),
         const SizedBox(width: 14),
         Expanded(
           child: Semantics(
@@ -829,7 +833,8 @@ class _AlertTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  rutaLegible(routeName, entry.routeId) ?? 'Bus',
+                  rutaLegible(nombreSinCodigo(routeName), entry.routeId) ??
+                      'Bus',
                   style: AppTextStyles.subtitulo,
                 ),
                 const SizedBox(height: 6),

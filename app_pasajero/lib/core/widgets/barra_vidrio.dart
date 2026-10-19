@@ -53,20 +53,24 @@ const halo = [
   Shadow(color: Color(0xB3FFFFFF), blurRadius: 14),
 ];
 
-/// La cara de [barraVidrio]: el borde de desplazamiento de iOS 26. Siempre
-/// puesta, como en iOS: en reposo solo tiene blanco debajo y no se nota, y
-/// lo que sube se va desenfocando poco a poco al meterse. Antes se prendía
-/// al empezar a bajar y se veía el salto (dueño, 2026-10-19: «se ve como se
-/// activa cuando uno baja, se ve bastante pobre»). Lo de abajo se desenfoca
-/// más cuanto más arriba y un velo blanco que tras la hora cubre lo justo
-/// para leerla se desvanece hasta nada al pie de la barra. Con más
-/// contraste, opaca.
-class FondoVidrio extends StatelessWidget {
+/// La cara de [barraVidrio]: el borde de desplazamiento de iOS 26. En
+/// reposo no hay nada; al bajar sale de a poco, al paso del dedo, y al
+/// subir se va por el mismo camino (dueño, 2026-10-19: «solo debería salir
+/// cuando se baja, suavemente, que no se note mucho»). Antes se prendía de
+/// golpe y se veía el salto. Lo de abajo se desenfoca más cuanto más
+/// arriba, desde casi nada al pie (con 0,8 de golpe se veía la raya recta
+/// entre lo desenfocado y lo nítido), y un velo blanco que tras la hora
+/// cubre lo justo para leerla se desvanece hasta nada al pie de la barra.
+/// Con más contraste, opaca.
+class FondoVidrio extends StatefulWidget {
   const FondoVidrio({super.key});
 
-  /// Cuántas capas: con 10, cada una suma menos de un punto de sigma y el
+  /// Los píxeles de desplazamiento en que el vidrio sale entero.
+  static const recorrido = 40.0;
+
+  /// Cuántas capas: con 16, cada una suma menos de un punto de sigma y el
   /// paso de una a otra no se ve (con 6 se veían las franjas).
-  static const _n = 10;
+  static const _n = 16;
 
   /// Sigma tras la hora, donde se suman todas.
   static const _sigmaArriba = 8.0;
@@ -74,14 +78,14 @@ class FondoVidrio extends StatelessWidget {
   /// El desenfoque progresivo, como (hasta qué fracción de la barra baja,
   /// sigma) por capa. Las capas arrancan todas arriba y se suman como
   /// gaussianas (la raíz de la suma de los cuadrados): a una fracción f de
-  /// la barra contando desde el pie, el sigma total crece parejo, de 0,8 al
-  /// pie a 8 arriba.
+  /// la barra contando desde el pie, el sigma total es 8·f², de 0,03 al pie
+  /// a 8 arriba, sin escalón al pie.
   static final capas = [
     for (var k = 1; k <= _n; k++)
       (
         1 - (k - 1) / _n,
-        math.sqrt(math.pow(_sigmaArriba * k / _n, 2) -
-            math.pow(_sigmaArriba * (k - 1) / _n, 2)),
+        math.sqrt(math.pow(_sigmaArriba * k * k / (_n * _n), 2) -
+            math.pow(_sigmaArriba * (k - 1) * (k - 1) / (_n * _n), 2)),
       ),
   ];
 
@@ -94,6 +98,40 @@ class FondoVidrio extends StatelessWidget {
     stops: [0, 0.5, 1],
   );
 
+  static const veloKey = ValueKey('velo-vidrio');
+
+  @override
+  State<FondoVidrio> createState() => _FondoVidrioState();
+}
+
+class _FondoVidrioState extends State<FondoVidrio> {
+  ScrollNotificationObserverState? _observador;
+
+  /// Cuánto salió el vidrio, de 0 en reposo a 1.
+  double _t = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // El mismo aviso con que la AppBar sabe que algo le pasa debajo.
+    _observador?.removeListener(_alDesplazar);
+    _observador = ScrollNotificationObserver.maybeOf(context);
+    _observador?.addListener(_alDesplazar);
+  }
+
+  @override
+  void dispose() {
+    _observador?.removeListener(_alDesplazar);
+    super.dispose();
+  }
+
+  void _alDesplazar(ScrollNotification aviso) {
+    if (aviso.depth != 0 || aviso.metrics.axis != Axis.vertical) return;
+    final t =
+        (aviso.metrics.extentBefore / FondoVidrio.recorrido).clamp(0.0, 1.0);
+    if (t != _t) setState(() => _t = t);
+  }
+
   @override
   Widget build(BuildContext context) {
     final opaca = MediaQuery.highContrastOf(context);
@@ -104,7 +142,7 @@ class FondoVidrio extends StatelessWidget {
           LayoutBuilder(
             builder: (context, caja) => Stack(
               children: [
-                for (final (fraccion, sigma) in capas)
+                for (final (fraccion, sigma) in FondoVidrio.capas)
                   Positioned(
                     top: 0,
                     left: 0,
@@ -112,8 +150,9 @@ class FondoVidrio extends StatelessWidget {
                     height: caja.maxHeight * fraccion,
                     child: ClipRect(
                       child: BackdropFilter(
-                        filter:
-                            ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                        enabled: _t > 0,
+                        filter: ui.ImageFilter.blur(
+                            sigmaX: sigma * _t, sigmaY: sigma * _t),
                         child: const SizedBox.expand(),
                       ),
                     ),
@@ -121,10 +160,14 @@ class FondoVidrio extends StatelessWidget {
               ],
             ),
           ),
-        DecoratedBox(
-          decoration: opaca
-              ? const BoxDecoration(color: Colors.white)
-              : const BoxDecoration(gradient: velo),
+        Opacity(
+          key: FondoVidrio.veloKey,
+          opacity: _t,
+          child: DecoratedBox(
+            decoration: opaca
+                ? const BoxDecoration(color: Colors.white)
+                : const BoxDecoration(gradient: FondoVidrio.velo),
+          ),
         ),
       ],
     );

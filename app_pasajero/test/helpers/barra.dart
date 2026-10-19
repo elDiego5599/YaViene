@@ -24,8 +24,8 @@ bool desenfoca(WidgetTester tester) => capasDesenfoque(tester).isNotEmpty;
 
 /// La pantalla lleva la barra de vidrio y lo de abajo pasa por debajo de
 /// ella (dueño, 2026-10-18: «como el nav de la web»): en reposo [primero]
-/// queda entero bajo la barra, y al bajar algo se mete detrás del vidrio,
-/// que ya estaba puesto (dueño, 2026-10-19: prenderse al bajar se veía).
+/// queda entero bajo la barra y sin vidrio, y al bajar algo se mete detrás
+/// y el vidrio sale (dueño, 2026-10-19).
 Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
   expect(find.byType(FondoVidrio), findsOneWidget);
   expect(
@@ -37,8 +37,7 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
   final barra = tester.getRect(find.byType(AppBar));
   expect(tester.getRect(primero).top, greaterThanOrEqualTo(barra.bottom - 0.5),
       reason: 'en reposo la barra tapa lo primero');
-  final capas = capasDesenfoque(tester);
-  expect(capas, isNotEmpty, reason: 'el vidrio está desde el reposo');
+  expect(desenfoca(tester), isFalse, reason: 'en reposo no hay vidrio');
 
   final antes = tester.getRect(primero).top;
   await tester.drag(find.byType(Scrollable).first, const Offset(0, -40));
@@ -47,5 +46,5 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
       reason: 'lo de abajo no se desplaza');
   expect(tester.getRect(primero).top, lessThan(barra.bottom),
       reason: 'lo de abajo no pasa por debajo de la barra');
-  expect(capasDesenfoque(tester), capas, reason: 'al bajar no cambia');
+  expect(desenfoca(tester), isTrue, reason: 'al bajar sale el vidrio');
 }
