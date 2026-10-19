@@ -58,10 +58,36 @@ struct IslaLider: View {
   let caduco: Bool
 
   var body: some View {
-    Ficha(atributos: atributos, alto: 44)
+    Ficha(atributos: atributos, alto: 40)
       .padding(.leading, 6)
       .frame(maxHeight: .infinity, alignment: .center)
-      .opacity(caduco && !estado.llego ? 0.5 : 1)
+      .opacity(caduco ? 0.5 : 1)
+  }
+}
+
+struct IslaCentro: View {
+  let atributos: AvisoAtributos
+  let estado: AvisoAtributos.ContentState
+  let caduco: Bool
+
+  var body: some View {
+    Group {
+      if estado.llego {
+        Text(Textos.titulo(atributos: atributos, estado: estado))
+          .font(.subheadline.weight(.semibold))
+          .foregroundStyle(.white)
+          .lineLimit(2)
+          .multilineTextAlignment(.center)
+      } else {
+        Text(atributos.ruta.isEmpty ? Textos.titulo(atributos: atributos, estado: estado) : atributos.ruta)
+          .font(.headline)
+          .foregroundStyle(.white)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+      }
+    }
+    .frame(maxWidth: .infinity)
+    .opacity(caduco ? 0.5 : 1)
   }
 }
 
@@ -77,7 +103,7 @@ struct IslaCola: View {
           .font(.system(size: 28, weight: .semibold))
           .foregroundStyle(Tinta.verde)
       } else {
-        Cifra(texto: estado.distancia, tamano: 30, color: .white, tamanoUnidad: 15, peso: .semibold)
+        Cifra(texto: estado.distancia, tamano: 26, color: .white, tamanoUnidad: 15, peso: .semibold)
       }
     }
     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -91,32 +117,17 @@ struct IslaAbajo: View {
   let estado: AvisoAtributos.ContentState
   let caduco: Bool
 
-  private var titulo: String {
-    if estado.llego { return Textos.titulo(atributos: atributos, estado: estado) }
-    return atributos.ruta.isEmpty
-      ? Textos.titulo(atributos: atributos, estado: estado)
-      : atributos.ruta
-  }
-
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Text(titulo)
-        .font(.headline)
-        .foregroundStyle(.white)
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-        .opacity(caduco && !estado.llego ? 0.5 : 1)
-
+    VStack(alignment: .leading, spacing: 10) {
       Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
         .padding(.horizontal, 4)
-
       if !estado.llego {
         RotulosPista(estado: estado, caduco: caduco)
       }
     }
-    .padding(.top, 8)
+    .padding(.top, 4)
     .padding(.horizontal, 8)
-    .padding(.bottom, 6)
+    .padding(.bottom, 4)
   }
 }
 
@@ -149,7 +160,7 @@ private struct ContenidoAviso: View {
 
 struct CompactaLider: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
-  var body: some View { Ficha(atributos: atributos, alto: 20).opacity(caduco ? 0.5 : 1) }
+  var body: some View { LogoYaViene(lado: 22).opacity(caduco ? 0.5 : 1) }
 }
 
 struct CompactaCola: View {
@@ -166,9 +177,26 @@ struct Minima: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
   var body: some View {
     Group {
-      if estado.llego { Image(systemName: "bell.fill").font(.system(size: 12, weight: .semibold)).foregroundStyle(Tinta.verde) }
-      else { Ficha(atributos: atributos, alto: 16).opacity(caduco ? 0.5 : 1) }
+      if estado.llego {
+        Image(systemName: "bell.fill")
+          .font(.system(size: 12, weight: .semibold))
+          .foregroundStyle(Tinta.verde)
+      } else {
+        LogoYaViene(lado: 20)
+      }
     }
+    .opacity(caduco ? 0.5 : 1)
+  }
+}
+
+private struct LogoYaViene: View {
+  let lado: CGFloat
+
+  var body: some View {
+    Image("LogoYaViene")
+      .resizable()
+      .frame(width: lado, height: lado)
+      .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
   }
 }
 

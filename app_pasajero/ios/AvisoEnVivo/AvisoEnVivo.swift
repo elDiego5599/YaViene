@@ -22,7 +22,7 @@ struct AvisoEnVivo: Widget {
           IslaLider(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
         }
         DynamicIslandExpandedRegion(.center) {
-          EmptyView()
+          IslaCentro(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
         }
         DynamicIslandExpandedRegion(.trailing) {
           IslaCola(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)

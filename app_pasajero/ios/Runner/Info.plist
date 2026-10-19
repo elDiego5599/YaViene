@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Para centrar el mapa donde estás y calcular cuántos metros te separan del bus. Tu ubicación no sale del teléfono.</string>
 	<key>NSSupportsLiveActivities</key>

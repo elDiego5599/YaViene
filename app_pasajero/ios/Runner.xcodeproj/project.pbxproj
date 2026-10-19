@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A37923150AC945FCAD4FEBCB /* AvisoEnVivo Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06D7DCFAE1EE48B8AA1D8C9F /* Assets.xcassets */; };
 		12B935B3E5DBE1E7512A93D7 /* AvisoEnVivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB8EDF59A769CEDF35827AE /* AvisoEnVivo.swift */; };
 		A1D74C0293E64B11A9C3D075 /* Vistas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D74C0293E64B11A9C3D076 /* Vistas.swift */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
@@ -71,6 +72,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		06D7DCFAE1EE48B8AA1D8C9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		04C7C50652835FE220FD7AFE /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		0CD10A88E991FD15AA6FC2BE /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -159,6 +161,7 @@
 		82BC6C6F73968F93B4E5DE3A /* AvisoEnVivo */ = {
 			isa = PBXGroup;
 			children = (
+				06D7DCFAE1EE48B8AA1D8C9F /* Assets.xcassets */,
 				ABAEF99D300F3461FD10157F /* AvisoAtributos.swift */,
 				4DB8EDF59A769CEDF35827AE /* AvisoEnVivo.swift */,
 				A1D74C0293E64B11A9C3D076 /* Vistas.swift */,
@@ -375,6 +378,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A37923150AC945FCAD4FEBCB /* AvisoEnVivo Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

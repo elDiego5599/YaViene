@@ -254,7 +254,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
   está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
-  dice. Con la app cerrada no se pone al día (APNs, FALTANTES).
+  dice. Con un aviso armado la app pide la ubicación en segundo plano
+  (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
+  la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
+  del todo no se pone al día (APNs, FALTANTES). La isla cerrada lleva el
+  ícono de Ya Viene (`LogoYaViene`).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y

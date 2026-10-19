@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/actividad_en_vivo.dart';
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../../core/services/mantener_vivo.dart';
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/color_empresa.dart';
 import '../../../../core/utils/distancia.dart';
@@ -71,8 +72,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     AvisosPush? push,
     RetirarAviso? retirar,
     ActividadEnVivo enVivo = const ActividadEnVivoCanal(),
+    ServicioMantenerVivo? mantenerVivo,
     Future<void> Function()? sentir,
   })  : _enVivo = enVivo,
+        _mantenerVivo = mantenerVivo ?? MantenerVivoGeolocator(),
         _sentir = sentir ?? _dobleToque,
         _notify = notify ?? _defaultNotify,
         _permiso = permiso ?? BusNotificationService.puedeAvisar,
@@ -91,6 +94,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// La pantalla bloqueada y la Dynamic Island de cada aviso armado.
   final ActividadEnVivo _enVivo;
 
+  /// Stream de ubicación de fondo mientras hay avisos armados en iOS.
+  final ServicioMantenerVivo _mantenerVivo;
+
   /// Lo que se siente en la mano cuando suena un aviso ([_dobleToque]).
   final Future<void> Function() _sentir;
 
@@ -107,9 +113,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     } catch (_) {}
   }
 
-  /// Lo último que se le mandó a la actividad de cada bus: se manda solo
-  /// cuando cambia lo que se lee, no en cada barrido.
-  final _enVivoMostrado = <String, String>{};
+  /// Clave y hora del último envío de la actividad de cada bus. Los estados
+  /// iguales se reenvían cada 30 s para renovar su vigencia en iOS.
+  final _enVivoMostrado = <String, (String, DateTime)>{};
 
   /// Reloj con el que se decide si un aviso venció (inyectable en tests:
   /// esperar tres horas de verdad no es una prueba).
@@ -354,7 +360,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     required int radioM,
   }) {
     _monitoringPaused = false;
+    final primerAviso = _alertRoutes.isEmpty;
     _alertRoutes[busId] = routeId;
+    if (primerAviso) unawaited(_mantenerVivo.iniciar());
     _alertRadios[busId] = radioM;
     // Re-armado limpio: si este bus ya notificó su acercamiento antes (quedó
     // marcado en `state`), se borra esa marca para que pueda volver a sonar
@@ -421,6 +429,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       _seguidorSubs.remove(routeId)?.close();
       _routePositions.remove(routeId);
     }
+    if (_alertRoutes.isEmpty) unawaited(_mantenerVivo.detener());
   }
 
   /// Limpia el registro de avisos disparados/rearmados. Lo que el servidor
@@ -428,6 +437,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// re-arma enseguida, con el mismo identificador.
   void clear() {
     _monitoringPaused = false;
+    unawaited(_mantenerVivo.detener());
     for (final busId in [..._enVivoMostrado.keys]) {
       _terminarEnVivo(busId, llego: false);
     }
@@ -446,6 +456,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   @override
   void dispose() {
+    unawaited(_mantenerVivo.detener());
     _timer?.cancel();
     _timerPush?.cancel();
     _mensajes?.cancel();
@@ -471,9 +482,16 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       avance: EstadoEnVivo.avanceDe(metros),
       avanceAviso: EstadoEnVivo.avanceDe(radio.toDouble()),
     );
-    final clave = '${estado.distancia}|${estado.aviso}|${estado.ruta}';
-    if (_enVivoMostrado[busId] == clave) return;
-    _enVivoMostrado[busId] = clave;
+    final clave = '${estado.distancia}|${estado.aviso}|${estado.ruta}|'
+        '${estado.avance.toStringAsFixed(2)}';
+    final ahora = _ahora();
+    final ultimo = _enVivoMostrado[busId];
+    if (ultimo != null &&
+        ultimo.$1 == clave &&
+        ahora.difference(ultimo.$2) < const Duration(seconds: 30)) {
+      return;
+    }
+    _enVivoMostrado[busId] = (clave, ahora);
     unawaited(_enVivo.mostrar(estado));
   }
 

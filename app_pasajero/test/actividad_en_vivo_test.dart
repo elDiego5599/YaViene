@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/services/actividad_en_vivo.dart';
+import 'package:ya_viene_pasajero/core/services/mantener_vivo.dart';
 import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
@@ -22,6 +23,17 @@ class _EnVivoFalso implements ActividadEnVivo {
   @override
   Future<void> terminar(String busId, {required bool llego}) async =>
       terminados.add((busId: busId, llego: llego));
+}
+
+class _MantenerVivoFalso implements ServicioMantenerVivo {
+  int inicios = 0;
+  int paradas = 0;
+
+  @override
+  Future<void> iniciar() async => inicios++;
+
+  @override
+  Future<void> detener() async => paradas++;
 }
 
 void main() {
@@ -49,9 +61,10 @@ void main() {
       );
 
   late _EnVivoFalso enVivo;
+  late _MantenerVivoFalso mantenerVivo;
   late List<BusPosition> posiciones;
 
-  ProviderContainer contenedor() {
+  ProviderContainer contenedor({DateTime Function()? ahora}) {
     final c = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       busPositionsSourceProvider.overrideWith(
@@ -67,7 +80,9 @@ void main() {
                     required int distanceMeters}) async =>
                 true,
             retirar: (_) async {},
+            ahora: ahora,
             enVivo: enVivo,
+            mantenerVivo: mantenerVivo,
           )),
     ]);
     addTearDown(c.dispose);
@@ -98,6 +113,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     enVivo = _EnVivoFalso();
+    mantenerVivo = _MantenerVivoFalso();
     posiciones = [bus(0.0135)];
   });
 
@@ -140,6 +156,37 @@ void main() {
     expect(enVivo.mostrados, hasLength(1));
   });
 
+  test('reenviar la actividad a los 30 segundos aunque no cambie la distancia',
+      () async {
+    var reloj = DateTime.now();
+    final avisos = await armado(contenedor(ahora: () => reloj));
+
+    await avisos.check();
+    reloj = reloj.add(const Duration(seconds: 31));
+    await avisos.check();
+
+    expect(enVivo.mostrados, hasLength(2));
+    expect(enVivo.mostrados[0].distancia, enVivo.mostrados[1].distancia);
+    expect(enVivo.mostrados[0].avance, enVivo.mostrados[1].avance);
+  });
+
+  test('el avance actualiza la actividad dentro del mismo paso de distancia',
+      () async {
+    final c = contenedor();
+    final avisos = await armado(c);
+    await avisos.check();
+
+    posiciones = [bus(0.0133)];
+    c.invalidate(busPositionsSourceProvider('R1'));
+    await Future<void>.delayed(Duration.zero);
+    await avisos.check();
+
+    expect(enVivo.mostrados, hasLength(2));
+    expect(enVivo.mostrados[0].distancia, enVivo.mostrados[1].distancia);
+    expect(enVivo.mostrados[0].avance.toStringAsFixed(2),
+        isNot(enVivo.mostrados[1].avance.toStringAsFixed(2)));
+  });
+
   test('«Cambiar» manda la distancia nueva del aviso', () async {
     final avisos = await armado(contenedor());
     await avisos.check();
@@ -172,5 +219,51 @@ void main() {
     avisos.disarmAlert('A-1');
 
     expect(enVivo.terminados, [(busId: 'A-1', llego: false)]);
+  });
+
+  test('armar el primer aviso inicia el mantenimiento en vivo', () async {
+    await armado(contenedor());
+
+    expect(mantenerVivo.inicios, 1);
+  });
+
+  test('desarmar el último aviso detiene el mantenimiento en vivo', () async {
+    final avisos = await armado(contenedor());
+
+    avisos.disarmAlert('A-1');
+
+    expect(mantenerVivo.paradas, 1);
+  });
+
+  test('dos avisos comparten un stream de mantenimiento', () async {
+    final c = contenedor();
+    final avisos = await armado(c);
+
+    avisos.armAlert('A-2', 'R2');
+    await Future<void>.delayed(Duration.zero);
+    avisos.disarmAlert('A-1');
+
+    expect(mantenerVivo.inicios, 1);
+    expect(mantenerVivo.paradas, 0);
+
+    avisos.disarmAlert('A-2');
+    expect(mantenerVivo.paradas, 1);
+  });
+
+  test('clear detiene el mantenimiento en vivo', () async {
+    final avisos = await armado(contenedor());
+
+    avisos.clear();
+
+    expect(mantenerVivo.paradas, 1);
+  });
+
+  test('dispose detiene el mantenimiento en vivo', () async {
+    final c = contenedor();
+    await armado(c);
+
+    c.dispose();
+
+    expect(mantenerVivo.paradas, 1);
   });
 }
