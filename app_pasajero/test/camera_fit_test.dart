@@ -142,4 +142,38 @@ void main() {
       );
     });
   });
+
+  // Al tocar un bus la cámara va hasta él con resorte, como en Mapas de
+  // iOS (dueño, 2026-10-19).
+  group('puntoDelViaje', () {
+    const desde = (lat: 11.0, lon: -74.8);
+    const hasta = (lat: 11.01, lon: -74.79);
+
+    test('arranca donde estaba y acaba en el bus', () {
+      final inicio = puntoDelViaje(desde, hasta, Duration.zero);
+      expect(inicio.lat, desde.lat);
+      expect(inicio.lon, desde.lon);
+      final fin = puntoDelViaje(desde, hasta, kViajeCamara);
+      expect(fin.lat, hasta.lat);
+      expect(fin.lon, hasta.lon);
+      final despues = puntoDelViaje(desde, hasta, kViajeCamara * 2);
+      expect(despues.lat, hasta.lat);
+    });
+
+    test('con resorte: arranca quieta, nunca se pasa del bus', () {
+      final ms = kViajeCamara.inMilliseconds;
+      var antes = desde.lat;
+      for (var t = 0; t <= ms; t += 16) {
+        final p = puntoDelViaje(desde, hasta, Duration(milliseconds: t));
+        expect(p.lat, greaterThanOrEqualTo(antes - 1e-12));
+        expect(p.lat, lessThanOrEqualTo(hasta.lat + 1e-12));
+        antes = p.lat;
+      }
+      // Un resorte va más rápido que la recta en la primera mitad.
+      final mitad =
+          puntoDelViaje(desde, hasta, Duration(milliseconds: ms ~/ 2));
+      expect(
+          (mitad.lat - desde.lat) / (hasta.lat - desde.lat), greaterThan(0.6));
+    });
+  });
 }

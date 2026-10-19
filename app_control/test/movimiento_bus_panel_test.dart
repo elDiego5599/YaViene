@@ -135,8 +135,10 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 500));
     expect(marcador(tester).point.longitude, closeTo(-74.795, 2e-4));
-    // A medio tramo va a 90°: entre 80 y 100. sin(-90°) en la matriz.
-    expect(rumbo(tester), closeTo(-1, 1e-2));
+    // El giro va con resorte (`BusMotion.giro`, 800 ms): a medio tramo ya
+    // casi mira a 100°, no a 90° como un giro lineal. sin(-100°) en la
+    // matriz es -0,985; a 90° sería -1.
+    expect(rumbo(tester), closeTo(-0.985, 5e-3));
 
     await tester.pump(const Duration(milliseconds: 600));
     expect(marcador(tester).point.longitude, closeTo(-74.79, 1e-9));

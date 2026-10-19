@@ -3,6 +3,7 @@ import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:firebase_messaging/firebase_messaging.dart' show RemoteMessage;
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/services/actividad_en_vivo.dart';
@@ -70,7 +71,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     AvisosPush? push,
     RetirarAviso? retirar,
     ActividadEnVivo enVivo = const ActividadEnVivoCanal(),
+    Future<void> Function()? sentir,
   })  : _enVivo = enVivo,
+        _sentir = sentir ?? _dobleToque,
         _notify = notify ?? _defaultNotify,
         _permiso = permiso ?? BusNotificationService.puedeAvisar,
         _retirar = retirar ?? BusNotificationService.retirar,
@@ -87,6 +90,22 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   /// La pantalla bloqueada y la Dynamic Island de cada aviso armado.
   final ActividadEnVivo _enVivo;
+
+  /// Lo que se siente en la mano cuando suena un aviso ([_dobleToque]).
+  final Future<void> Function() _sentir;
+
+  /// Dos toques fuertes, como una alarma que suena: uno solo se confunde
+  /// con cualquier botón. Con la app cerrada no hace nada; ahí vibra la
+  /// notificación.
+  static Future<void> _dobleToque() async {
+    // Sin la plataforma (pruebas de lógica, aislado de fondo) no hay mano que
+    // sentir: el aviso suena igual.
+    try {
+      await HapticFeedback.heavyImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 140));
+      await HapticFeedback.heavyImpact();
+    } catch (_) {}
+  }
 
   /// Lo último que se le mandó a la actividad de cada bus: se manda solo
   /// cuando cambia lo que se lee, no en cada barrido.
@@ -632,6 +651,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     if (!mounted || _servidor[busId] != avisoId) return;
     if (mostrado) {
       _anotarPermiso(true);
+      unawaited(_sentir());
       _yaSono(busId);
     } else {
       // No se vio: el aviso sigue armado aquí y en el servidor, que lo
@@ -778,6 +798,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           continue;
         }
         enviados.add(entry.key);
+        unawaited(_sentir());
         _terminarEnVivo(entry.key, llego: true);
         // El aviso ya se envió: pasa a "enviado" en el historial, sale de la
         // lista de alertas activas (visible en la pantalla de

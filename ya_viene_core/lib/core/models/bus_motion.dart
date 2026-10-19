@@ -2,6 +2,7 @@
 // Vive en el core porque la usan el mapa del pasajero y el del panel: los
 // dos deslizan el bus de una fijación a la siguiente (dueño, 2026-10-07).
 
+import '../theme/app_motion.dart';
 import 'bus_position.dart';
 
 /// Tramo de animación de un bus entre dos fijaciones GPS.
@@ -56,19 +57,25 @@ class BusMotion {
           : tramoEntre(antes.timestamp.millisecondsSinceEpoch,
               ahora.timestamp.millisecondsSinceEpoch);
 
+  /// Lo que tarda el bus en girar a su rumbo nuevo, con [Resorte]: gira
+  /// en la esquina y luego sigue derecho, no de lado todo el tramo.
+  static const Duration giro = Duration(milliseconds: 800);
+
   bool isFinished(DateTime now) => now.difference(start) >= duration;
 }
 
-/// Interpola linealmente lat/lon y el heading por el arco más corto.
+/// Interpola linealmente lat/lon en el tramo, y el heading por el arco más
+/// corto con el resorte de la app en [BusMotion.giro].
 (double, double, double) displayOf(BusMotion motion, DateTime now) {
-  final t = (now.difference(motion.start).inMilliseconds /
-          motion.duration.inMilliseconds)
-      .clamp(0.0, 1.0);
+  final ms = now.difference(motion.start).inMilliseconds;
+  final t = (ms / motion.duration.inMilliseconds).clamp(0.0, 1.0);
+  final g = AppMotion.curvaCambio
+      .transform((ms / BusMotion.giro.inMilliseconds).clamp(0.0, 1.0));
   double lerp(double a, double b) => a + (b - a) * t;
   var delta = (motion.toHeading - motion.fromHeading) % 360;
   if (delta > 180) delta -= 360;
   if (delta < -180) delta += 360;
-  final heading = (motion.fromHeading + delta * t + 360) % 360;
+  final heading = (motion.fromHeading + delta * g + 360) % 360;
   return (
     lerp(motion.fromLat, motion.toLat),
     lerp(motion.fromLon, motion.toLon),

@@ -49,11 +49,12 @@ void main() {
     expect(at0.$1, closeTo(10, 0.01));
     expect(at0.$2, closeTo(20, 0.01));
     expect(at0.$3, closeTo(350, 0.01));
-    // t=0.5 -> heading 350 -> 10 por arco corto (20 grados, +10 desde 350)
     final atHalf = displayOf(m, start.add(const Duration(milliseconds: 500)));
     expect(atHalf.$1, closeTo(15, 0.01));
     expect(atHalf.$2, closeTo(30, 0.01));
-    expect(atHalf.$3, closeTo(0, 0.01));
+    // 350 -> 10 por arco corto: pasa por 0, nunca por 180.
+    final girando = displayOf(m, start.add(const Duration(milliseconds: 100)));
+    expect(girando.$3 > 350 || girando.$3 < 10, isTrue);
     // t=1
     final at1 = displayOf(m, start.add(const Duration(milliseconds: 1000)));
     expect(at1.$1, closeTo(20, 0.01));
@@ -72,8 +73,40 @@ void main() {
       toHeading: 350,
       start: start,
     );
-    final atHalf = displayOf(m, start.add(const Duration(milliseconds: 500)));
-    expect(atHalf.$3, closeTo(0, 0.01));
+    final girando = displayOf(m, start.add(const Duration(milliseconds: 100)));
+    expect(girando.$3 > 350 || girando.$3 < 10, isTrue);
+    expect(displayOf(m, start.add(BusMotion.giro)).$3, closeTo(350, 0.01));
+  });
+
+  // El bus gira en la esquina, no a lo largo del tramo: con un GPS cada 8 s
+  // el giro lineal duraba 8 s y el bus avanzaba de lado. Gira con el
+  // resorte de la app, sin pasarse (dueño, 2026-10-19).
+  test('el giro va con resorte: arranca quieto, no se pasa y acaba pronto', () {
+    final start = DateTime(2024, 1, 1, 12, 0, 0);
+    final m = BusMotion(
+      fromLat: 0,
+      fromLon: 0,
+      fromHeading: 0,
+      toLat: 1,
+      toLon: 1,
+      toHeading: 90,
+      start: start,
+      duration: const Duration(seconds: 8),
+    );
+    double rumbo(int ms) =>
+        displayOf(m, start.add(Duration(milliseconds: ms))).$3;
+    expect(rumbo(0), closeTo(0, 0.01));
+    // Más que el lineal de 8 s (1,1°), menos que un salto.
+    expect(rumbo(100), inExclusiveRange(10, 60));
+    var antes = 0.0;
+    for (var ms = 0; ms <= BusMotion.giro.inMilliseconds; ms += 10) {
+      final r = rumbo(ms);
+      expect(r, greaterThanOrEqualTo(antes - 1e-9));
+      expect(r, lessThanOrEqualTo(90 + 1e-9));
+      antes = r;
+    }
+    expect(rumbo(BusMotion.giro.inMilliseconds), closeTo(90, 0.01));
+    expect(BusMotion.giro, lessThan(BusMotion.minimo));
   });
 
   test('pasado el segundo el bus se queda en su destino', () {

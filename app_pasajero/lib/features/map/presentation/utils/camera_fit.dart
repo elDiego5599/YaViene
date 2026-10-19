@@ -6,6 +6,8 @@
 // ruta echaba la cámara fuera de la ciudad y a un zoom donde no se distingue
 // nada. Ahora se enmarca lo que está vivo: los buses y el punto de espera.
 
+import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
+
 /// Un punto a enmarcar, sin depender de los tipos de MapLibre para que esto
 /// se pueda probar sin mapa.
 typedef FitPoint = ({double lat, double lon});
@@ -91,4 +93,20 @@ FitBounds? avisoBounds({
 }) {
   if (rutaEnMapa != rutaDelAviso || bus == null) return null;
   return liveViewportBounds([bus, if (espera != null) espera]);
+}
+
+/// Lo que tarda la cámara en llegar al bus tocado.
+const Duration kViajeCamara = Duration(milliseconds: 600);
+
+/// Dónde va la cámara a [t] de empezar el viaje de [desde] a [hasta].
+///
+/// Con `AppMotion.curvaCambio`, el resorte sin rebote: arranca quieta, va
+/// rápido al principio y se posa en el bus sin pasarse.
+FitPoint puntoDelViaje(FitPoint desde, FitPoint hasta, Duration t) {
+  final g = AppMotion.curvaCambio.transform(
+      (t.inMicroseconds / kViajeCamara.inMicroseconds).clamp(0.0, 1.0));
+  return (
+    lat: desde.lat + (hasta.lat - desde.lat) * g,
+    lon: desde.lon + (hasta.lon - desde.lon) * g,
+  );
 }

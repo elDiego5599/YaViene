@@ -91,6 +91,47 @@ void main() {
     expect(fired.single.distanceMeters, lessThan(500));
   });
 
+  // Con la app abierta el aviso también se siente: dos toques, como el
+  // de una alarma que suena (dueño, 2026-10-19). Si no se vio, nada.
+  for (final mostrado in [true, false]) {
+    test('el aviso que suena se siente en la mano (mostrado: $mostrado)',
+        () async {
+      var sentidos = 0;
+      final c = ProviderContainer(overrides: [
+        userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+        busPositionsSourceProvider.overrideWith(
+          (ref, routeId) => Stream.value([busA]),
+        ),
+        proximityAlertsProvider.overrideWith((ref) => ProximityAlertsNotifier(
+              ref,
+              notify: (
+                      {required String busId,
+                      String? routeName,
+                      String? routeId,
+                      String? companyId,
+                      required int distanceMeters}) async =>
+                  mostrado,
+              sentir: () async => sentidos++,
+            )),
+      ]);
+      addTearDown(c.dispose);
+      (c.read(userLocationProvider.notifier) as _TestUserLocation)
+          .set(userHere);
+      final sub = c.listen<AsyncValue<List<BusPosition>>>(
+        busPositionsSourceProvider('R1'),
+        (_, __) {},
+      );
+      addTearDown(sub.close);
+      await Future<void>.delayed(Duration.zero);
+      c.read(selectedRouteProvider.notifier).select(route());
+      c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
+
+      await c.read(proximityAlertsProvider.notifier).check();
+
+      expect(sentidos, mostrado ? 1 : 0);
+    });
+  }
+
   // Con `onlyAlertOnce`, una notificación vieja del bus en la bandeja
   // callaría la nueva: armar el aviso otra vez la retira. Re-armar lo que ya
   // estaba (abrir la app, «Deshacer») no toca la bandeja.
