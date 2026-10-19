@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/utils/color_ruta.dart';
 import '../../../../core/widgets/aviso_fallo.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/sheet_handle.dart';
@@ -948,17 +949,19 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 // que solo se distinguen leyendo; «B18», «C11», «C16» es
                 // exactamente lo que el pasajero busca en el parabrisas.
                 final codigo = _routeCode(route.name);
+                final color = colorRuta(route.name);
                 return entra(
                     start: _escalonFila(i),
                     _compactTile(
                       icon: Icons.alt_route_outlined,
-                      iconColor: AppColors.primary,
-                      iconBackground: AppColors.primaryTint,
+                      iconColor: color,
+                      iconBackground: tinteRuta(color),
                       badgeInitials: codigo?.code,
-                      // Verde oscuro sobre el verde claro de la insignia: la
-                      // empresa lleva tinta sólida y letra blanca, la ruta va
-                      // en voz más baja. Son dos niveles, no dos etiquetas.
-                      badgeColor: AppColors.primaryAccessible,
+                      // El color de la ruta sobre su tinte: el mismo de su
+                      // ficha, su trazo y su bus (dueño, 2026-10-19). La
+                      // empresa lleva tinta sólida y letra blanca, la ruta
+                      // va en voz más baja. Dos niveles, no dos etiquetas.
+                      badgeColor: color,
                       title: codigo?.rest ?? route.name,
                       subtitle: _routeSubtitle(route) ?? 'Tiempo real',
                       dicho: '${route.name}${_terminalesDichos(route)}',

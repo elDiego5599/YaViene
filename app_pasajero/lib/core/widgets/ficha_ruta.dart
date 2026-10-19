@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../utils/color_ruta.dart';
+
 /// El radio de la ficha, como fracción del lado: el 22 % de los íconos de
 /// app, para que no parezca un botón.
 const double radioFicha = 0.22;
@@ -10,10 +12,10 @@ const double radioFicha = 0.22;
 /// fichas se lean igual.
 const double letraFicha = 0.4;
 
-/// La ficha de la ruta: un cuadro azul de botón (#1E56A8,
-/// `AppColors.acento`) con el código en blanco, que contrasta 7,1:1. La
-/// misma que lleva el aviso de ícono (`fichaRuta`), en la tarjeta de
-/// Avisos en vez del bus (dueño, 2026-10-19).
+/// La ficha de la ruta: un cuadro del color de la ruta (`colorRuta`) con
+/// el código en blanco, a 5:1 o más. La misma que lleva el aviso de ícono
+/// (`fichaRuta`), en la tarjeta de Avisos en vez del bus (dueño,
+/// 2026-10-19).
 class FichaRuta extends StatelessWidget {
   const FichaRuta(this.codigo, {super.key, this.lado = 44});
 
@@ -26,7 +28,7 @@ class FichaRuta extends StatelessWidget {
         height: lado,
         padding: EdgeInsets.symmetric(horizontal: lado * 0.06),
         decoration: BoxDecoration(
-          color: AppColors.acento,
+          color: colorRuta(codigo),
           borderRadius: BorderRadius.circular(lado * radioFicha),
         ),
         // Con el texto del sistema grande el código se encoge para caber:

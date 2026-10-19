@@ -221,8 +221,12 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (sin rebote, arrancan quietas); `curvaRebote` (0,7, se pasa 4,6 %) solo
   para lo que se acaba de marcar. Nada sin curva; nada de `easeOutBack`
   fuera de la escena del arranque y la seña de tocar el bus.
-- **Ruta del mapa** verde sobre orla blanca, igual en la web («El producto»)
-  y en el pasajero (`EstiloRuta`).
+- **Color de la ruta** (dueño, 2026-10-19, como Transit): cada ruta lleva
+  el suyo (`coloresRuta` en `app_pasajero/lib/core/utils/color_ruta.dart`;
+  sin rojo, naranja ni ámbar) en su ficha, su trazo sobre orla blanca
+  (`EstiloRuta`), sus paradas, su bus, la seña de tocar el bus y su fila
+  del selector (`tinteRuta`). Sin código, azul de botón. La web lo espeja
+  en el teléfono (`src/data/color-ruta.ts`).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y

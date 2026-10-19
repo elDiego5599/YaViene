@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/utils/color_ruta.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
@@ -188,8 +189,8 @@ void main() {
 
   testWidgets('la tarjeta lleva la ficha de la ruta y el nombre sin código',
       (tester) async {
-    // Como el ícono del aviso: C16 en su cuadro azul en vez del bus, y al
-    // lado solo «Calle 72 Uninorte» (dueño, 2026-10-19).
+    // Como el ícono del aviso: C16 en su cuadro del color de la ruta en vez
+    // del bus, y al lado solo «Calle 72 Uninorte» (dueño, 2026-10-19).
     final container = await pumpScreen(tester, [bus('A-1')]);
     container.read(selectedRouteProvider.notifier).select(const RouteInfo(
         id: 'R1', name: 'C16 Calle 72 Uninorte', companyId: 'C1'));
@@ -211,7 +212,7 @@ void main() {
         .widget<Container>(
             find.descendant(of: ficha, matching: find.byType(Container)).first)
         .decoration! as BoxDecoration;
-    expect(cara.color, AppColors.acento);
+    expect(cara.color, coloresRuta['C16']);
     // El lector sigue diciendo la ruta entera.
     expect(
         find.descendant(

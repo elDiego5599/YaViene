@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../utils/color_ruta.dart';
 import '../widgets/ficha_ruta.dart';
 
 /// Lado de la ficha en píxeles. El ícono grande de Android se pinta a 64 dp
@@ -21,7 +22,7 @@ Future<Uint8List> fichaRuta(String codigo) async {
       const Rect.fromLTWH(0, 0, lado, lado),
       const Radius.circular(lado * radioFicha),
     ),
-    Paint()..color = AppColors.acento,
+    Paint()..color = colorRuta(codigo),
   );
   final texto = TextPainter(
     text: TextSpan(

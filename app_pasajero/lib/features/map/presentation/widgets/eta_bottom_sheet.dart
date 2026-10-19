@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/utils/color_ruta.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/cifra_viva.dart';
@@ -920,7 +921,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // El bus del mapa con su toque, en vez de la mano (dueño,
       // 2026-09-27). Es el estado que más se ve: el que queda con la ruta
       // puesta y los buses en el mapa.
-      dibujo = const SenaTocarBus(key: ValueKey('sena-tocar-bus'));
+      dibujo = SenaTocarBus(
+        key: const ValueKey('sena-tocar-bus'),
+        color: colorRuta(route.name),
+      );
     }
 
     // Sin ruta, el bloque entero abre el selector: la gente tocaba el
