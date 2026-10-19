@@ -204,7 +204,7 @@ class RutaMedible {
   /// sitio (una esquina) son un paso. Todos cuentan, no solo el más
   /// cercano: el pin entre dos calles de la ruta decía 15,6 km por la que
   /// tenía enfrente con el bus a 2 km por la otra (dueño, 2026-10-19).
-  List<Proyeccion> _pasos(GeoPoint p) {
+  List<Proyeccion> _pasos(GeoPoint p, double maximo) {
     final (px, py) = _plano(p);
     final todas = _proyecciones(px, py).toList();
     final n = todas.length;
@@ -217,7 +217,7 @@ class RutaMedible {
 
     final cerca = [
       for (var i = 0; i < n; i++)
-        if (todas[i].desvio <= desvioPuntoMaximo && minimo(i))
+        if (todas[i].desvio <= maximo && minimo(i))
           (avance: todas[i].avance, desvio: todas[i].desvio)
     ]..sort((a, b) => a.avance.compareTo(b.avance));
     const mismoPaso = 2 * _empate;
@@ -246,12 +246,16 @@ class RutaMedible {
   /// Nunca cuenta la vuelta entera: un bus que acaba de pasar decía 20 km
   /// con el bus a la vista; se muestra lo que hay y qué bus elige es cosa
   /// de la persona (dueño, 2026-10-19).
-  double? medir(double avanceBus, GeoPoint p) {
-    final pasos = _pasos(p);
+  double? medir(double avanceBus, GeoPoint p) => _desde([avanceBus], p);
+
+  /// [medir] desde el más cerca de varios avances del bus.
+  double? _desde(List<double> avances, GeoPoint p) {
+    final pasos = _pasos(p, desvioPuntoMaximo);
     if (pasos.isEmpty) return null;
-    return pasos
-        .map((paso) => _entre(avanceBus, paso.avance) + paso.desvio)
-        .reduce(math.min);
+    return [
+      for (final a in avances)
+        for (final paso in pasos) _entre(a, paso.avance) + paso.desvio
+    ].reduce(math.min);
   }
 }
 
@@ -291,8 +295,17 @@ class SeguidorRuta {
 
   /// Lo que le falta a [bus] por la ruta hasta [punto], o null si no se
   /// sabe: el bus fuera de la ruta o el punto lejos de ella.
+  ///
+  /// Se mide desde cada paso de la ruta por donde está el bus, no solo
+  /// desde su carril: dos buses lado a lado, uno de ida y otro de vuelta,
+  /// decían 10 y 29 km, porque al de la vuelta se le contaba la vuelta que
+  /// le faltaba (dueño, 2026-10-19). Están en la misma calle y dicen lo
+  /// mismo.
   double? distancia(BusPosition bus, GeoPoint punto) {
     final avance = avanceDe(bus);
-    return avance == null ? null : ruta.medir(avance, punto);
+    if (avance == null) return null;
+    final aqui =
+        ruta._pasos(GeoPoint(lat: bus.lat, lon: bus.lon), desvioBusMaximo);
+    return ruta._desde([avance, for (final p in aqui) p.avance], punto);
   }
 }

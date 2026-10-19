@@ -216,6 +216,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   #2563EB se probó y no gustó (`a28e448`). Degradado del 404 y del login del
   panel #17325F→#00A859. En el panel la tinta es #17325F e INGRESAR va
   verde. El ícono de «Escoge empresa y ruta» va gris (el verde no gustó).
+- **Movimiento**: resortes como los de iOS (`Resorte` en `app_motion.dart`,
+  dueño, 2026-10-19). `curvaEntrada` y `curvaCambio` amortiguadas del todo
+  (sin rebote, arrancan quietas); `curvaRebote` (0,7, se pasa 4,6 %) solo
+  para lo que se acaba de marcar. Nada sin curva; nada de `easeOutBack`
+  fuera de la escena del arranque y la seña de tocar el bus.
 - **Ruta del mapa** verde sobre orla blanca, igual en la web («El producto»)
   y en el pasajero (`EstiloRuta`).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
@@ -247,7 +252,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   compartido por `seguidorRutaProvider`): hoja, rueda, validación y aviso.
   Sin estado «Ya pasó» (dueño, 2026-10-08): cuenta hasta el paso más
   cerca, venga o ya haya pasado, y nunca la vuelta entera (dueño,
-  2026-10-19: con el bus recién pasado salían 20 km), y nunca bloquea el
+  2026-10-19: con el bus recién pasado salían 20 km), se mide desde cada
+  paso de la ruta por donde está el bus (dos buses lado a lado, uno de
+  ida y otro de vuelta, dicen lo mismo; dueño, 2026-10-19: daban 10 y
+  29 km), y nunca bloquea el
   aviso por eso; si no se puede medir (bus a más de 60 m de la ruta
   o punto a más de 300 m), cae a la línea recta. El push del servidor
   sigue en recta (FALTANTES). La idea se publica aparte, en inglés, en

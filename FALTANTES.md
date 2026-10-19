@@ -173,13 +173,16 @@ Necesitan un teléfono, una cuenta o estar presente.
   15,6 km con el bus a la vista; y
   del 2026-10-19, la distancia al paso más cerca, venga o ya haya pasado,
   sin contar nunca la vuelta entera: con el bus 80 m pasado se sumaba la
-  vuelta y salían 20 km).
+  vuelta y salían 20 km; y desde cada paso de la ruta por donde está el
+  bus, no solo su carril: dos buses lado a lado, de ida y de vuelta,
+  daban 10 y 29 km).
 
 - **`alongroute` con la regla del 2026-10-19**: la librería publicada
   (`YaViene/alongroute`) sigue midiendo hacia adelante hasta el próximo
   paso, que en una circular cuenta la vuelta entera si el bus ya pasó.
   Falta portarle la regla nueva del core (el paso más cerca, adelante o
-  atrás) con sus pruebas, y su README.
+  atrás, medido desde todos los pasos por donde está el bus) con sus
+  pruebas, y su README.
 
 - **La tarjeta del aviso activo con el texto al doble** (hallado el
   2026-10-07, ya estaba en `9d0f3a0`): desde el 2026-10-16 ya no se sale

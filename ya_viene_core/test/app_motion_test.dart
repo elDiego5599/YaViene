@@ -46,4 +46,38 @@ void main() {
       Duration.zero,
     );
   });
+
+  group('resorte', () {
+    List<double> muestras(Curve c) =>
+        [for (var i = 0; i <= 200; i++) c.transform(i / 200)];
+
+    test('amortiguado del todo: sube sin pasarse y arranca quieto', () {
+      final v = muestras(const Resorte());
+      for (var i = 1; i < v.length; i++) {
+        expect(v[i], greaterThanOrEqualTo(v[i - 1]));
+        expect(v[i], lessThanOrEqualTo(1));
+      }
+      // Arranca desde el reposo, sin el tirón de una curva que sale
+      // disparada: el primer 1 % recorre menos del 1 %.
+      expect(v[2], lessThan(0.01));
+      // Y a la mitad ya casi llegó: lo que queda es la frenada.
+      expect(v[100], greaterThan(0.9));
+      // Sin salto al final.
+      expect(1 - v[199], lessThan(0.002));
+    });
+
+    test('con rebote: se pasa poco y vuelve', () {
+      final v = muestras(const Resorte(amortiguacion: 0.7));
+      final pico = v.reduce((a, b) => a > b ? a : b);
+      expect(pico, greaterThan(1.02));
+      expect(pico, lessThan(1.06));
+      expect((1 - v[199]).abs(), lessThan(0.002));
+    });
+
+    test('las curvas de entrada y de cambio son el resorte', () {
+      expect(AppMotion.curvaEntrada, isA<Resorte>());
+      expect(AppMotion.curvaCambio, isA<Resorte>());
+      expect(AppMotion.curvaRebote, isA<Resorte>());
+    });
+  });
 }

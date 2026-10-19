@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 /// Cómo se mueve la app.
@@ -94,14 +96,16 @@ abstract final class AppMotion {
   /// en pantalla, y lo que está siempre no puede tener prisa.
   static const Duration latido = Duration(milliseconds: 1800);
 
-  /// Entra: arranca suelto y frena al llegar, que es como se mueve algo que
-  /// pesa.
+  /// Entra: un resorte amortiguado del todo, como los de iOS (WWDC 2018,
+  /// «Designing Fluid Interfaces»: amortiguación 1, sin rebote).
   ///
-  /// Es la desaceleración enfatizada de Material 3, no `easeOutCubic`: esa
-  /// frena de forma pareja y lo que llega parece clavarse en su sitio; esta
-  /// recorre casi todo el camino de entrada y se toma la última parte con
-  /// calma, que es donde el ojo mira.
-  static const Curve curvaEntrada = Cubic(0.05, 0.7, 0.1, 1.0);
+  /// Antes era la desaceleración enfatizada de Material 3, que sale
+  /// disparada: la mitad del camino en el primer 10 %. Se leía como un
+  /// golpe que luego frena. El resorte arranca desde el reposo, toma
+  /// velocidad y se asienta sin pasarse; a la mitad del tiempo ya llegó al
+  /// 96 %, y lo que queda es la frenada, donde el ojo mira (dueño,
+  /// 2026-10-19: todo lo más suave y elegante posible).
+  static const Curve curvaEntrada = Resorte();
 
   /// Sale: espejo de [curvaEntrada], para que ida y vuelta no se sientan de
   /// dos aplicaciones distintas. La aceleración enfatizada de Material 3:
@@ -115,11 +119,52 @@ abstract final class AppMotion {
   static const Curve curvaSalida = Cubic(0.3, 0.0, 0.8, 0.15);
 
   /// Algo que cambia de tamaño sin irse: la hoja de abajo que crece al
-  /// tocar un bus, una tarjeta que gana una línea. Arranca y llega con
-  /// suavidad, porque ni viene de fuera ni se va.
-  static const Curve curvaCambio = Curves.easeInOutCubicEmphasized;
+  /// tocar un bus, una tarjeta que gana una línea. El mismo resorte que
+  /// [curvaEntrada]: en iOS crecer y llegar son el mismo movimiento.
+  static const Curve curvaCambio = Resorte();
+
+  /// Lo que la persona acaba de marcar y responde con un rebote corto: el
+  /// chulito de un aviso. Un resorte con amortiguación 0,7 se pasa un 4,6 %
+  /// y vuelve una sola vez; `easeOutBack` se pasaba un 10 % y se leía de
+  /// caricatura.
+  static const Curve curvaRebote = Resorte(amortiguacion: 0.7);
 
   /// Va y vuelve sin parar —pulsos, latidos, esqueletos de carga—: sin
   /// arranque ni frenada marcados, o se oye el bucle.
   static const Curve curvaCiclo = Curves.easeInOut;
+}
+
+/// Un resorte como curva: el recorrido de una masa que parte del reposo
+/// hacia su sitio, en el tiempo que dure la animación.
+///
+/// Con [amortiguacion] 1 llega sin pasarse (lo amortiguado del todo de
+/// iOS); por debajo de 1 se pasa y vuelve. La rigidez se escoge para que al
+/// final del tiempo quede menos de 0,05 % por recorrer, y la curva se
+/// estira ese resto para terminar justo en 1, sin salto.
+class Resorte extends Curve {
+  const Resorte({this.amortiguacion = 1})
+      : assert(amortiguacion > 0 && amortiguacion <= 1);
+
+  /// 1 sin rebote; 0,7 un rebote corto.
+  final double amortiguacion;
+
+  /// Lo que se deja por recorrer al final, antes de estirar.
+  static const double _resto = 0.0005;
+
+  double _x(double t) {
+    final z = amortiguacion;
+    if (z == 1) {
+      // (1 + w) e^-w = 0,0005 con w = 10.
+      const w = 10.0;
+      return 1 - (1 + w * t) * math.exp(-w * t);
+    }
+    final w = math.log(1 / _resto) / z;
+    final wd = w * math.sqrt(1 - z * z);
+    return 1 -
+        math.exp(-z * w * t) *
+            (math.cos(wd * t) + z * w / wd * math.sin(wd * t));
+  }
+
+  @override
+  double transformInternal(double t) => _x(t) / _x(1);
 }

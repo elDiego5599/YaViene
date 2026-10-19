@@ -408,6 +408,7 @@ class _Opcion extends StatelessWidget {
                     children: [
                       AnimatedContainer(
                         duration: duracion,
+                        curve: AppMotion.curvaCambio,
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(

@@ -58,6 +58,25 @@ void main() {
     expect(s.distancia(bus, _m(200, 4)), closeTo(304, 5));
   });
 
+  test('dos buses lado a lado, uno de ida y otro de vuelta, dicen lo mismo',
+      () {
+    // La ida va por y = 0 hasta x = 2000, sube, vuelve por arriba y baja a
+    // la vuelta por y = 8 desde x = 1000. La persona en (1800, 0) solo la
+    // pasa la ida. El bus de la vuelta en x = 500 está al lado del de la
+    // ida: por la ruta desde su carril serían 2,3 km, la vuelta que le
+    // falta; pero está en la misma calle que el otro, a 1,3 km (dueño,
+    // 2026-10-19: 10 y 29 km con los dos buses juntos).
+    final ruta = RutaMedible.de([
+      _m(0, 0), _m(2000, 0), _m(2000, 1000), _m(1000, 1000), //
+      _m(1000, 8), _m(0, 8),
+    ])!;
+    final s = SeguidorRuta(ruta);
+    final ida = _bus(500, 0, rumbo: 90);
+    final vuelta = _bus(500, 8, rumbo: 270);
+    expect(s.distancia(ida, _m(1800, 0)), closeTo(1300, 5));
+    expect(SeguidorRuta(ruta).distancia(vuelta, _m(1800, 0)), closeTo(1300, 5));
+  });
+
   test('con avance previo solo busca en la ventana: no salta de carril', () {
     final s = SeguidorRuta(idaYVuelta);
     expect(s.avanceDe(_bus(400, 0, rumbo: 90)), closeTo(400, 5));

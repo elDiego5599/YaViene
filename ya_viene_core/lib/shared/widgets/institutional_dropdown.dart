@@ -81,6 +81,7 @@ class _ModernDropDownState<T> extends State<ModernDropDown<T>> {
       children: [
         AnimatedDefaultTextStyle(
           duration: AppMotion.rapido,
+          curve: AppMotion.curvaCambio,
           style: AppTextStyles.label.copyWith(
             color: _isActive ? AppColors.primaryDeep : AppColors.textSecondary,
           ),

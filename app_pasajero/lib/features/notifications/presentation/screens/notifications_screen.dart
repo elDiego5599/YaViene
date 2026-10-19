@@ -986,10 +986,10 @@ class _CirculoSeleccion extends StatelessWidget {
               width: 1.5,
             ),
           ),
-          // El chulito entra con un rebote corto, como en iOS.
+          // El chulito entra con un rebote corto de resorte, como en iOS.
           child: AnimatedScale(
             duration: duracion,
-            curve: marcado ? Curves.easeOutBack : AppMotion.curvaSalida,
+            curve: marcado ? AppMotion.curvaRebote : AppMotion.curvaSalida,
             scale: marcado ? 1 : 0,
             child: marcado
                 ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)

@@ -271,6 +271,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
         child: AnimatedOpacity(
           opacity: _searchPressed ? 0.5 : 1,
           duration: AppMotion.instante,
+          curve: AppMotion.curvaEntrada,
           child: const SizedBox(
             width: 48,
             height: 48,
@@ -324,6 +325,7 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
           message: semanticLabel,
           child: AnimatedContainer(
             duration: AppMotion.instante,
+            curve: AppMotion.curvaEntrada,
             width: 48,
             height: 48,
             decoration: BoxDecoration(

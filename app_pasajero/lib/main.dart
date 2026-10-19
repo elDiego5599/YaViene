@@ -128,6 +128,7 @@ class _ArranqueTempranoState extends State<_ArranqueTemprano> {
           child: AnimatedOpacity(
             opacity: _lento ? 1 : 0,
             duration: AppMotion.normal,
+            curve: AppMotion.curvaEntrada,
             child: const IndicadorCarga(
               size: 26,
               color: AppColors.ink,

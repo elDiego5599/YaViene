@@ -127,6 +127,8 @@ class _SelectionSegment<T> extends StatelessWidget {
             children: [
               AnimatedSwitcher(
                 duration: AppMotion.rapido,
+                switchInCurve: AppMotion.curvaEntrada,
+                switchOutCurve: AppMotion.curvaSalida,
                 child: Icon(
                   option.icon,
                   key: ValueKey('${option.label}-$isSelected'),
@@ -212,6 +214,7 @@ class SelectionChip extends StatelessWidget {
               ],
               AnimatedDefaultTextStyle(
                 duration: AppMotion.rapido,
+                curve: AppMotion.curvaCambio,
                 style: AppTextStyles.label.copyWith(
                   color: isSelected ? Colors.white : AppColors.textSecondary,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
