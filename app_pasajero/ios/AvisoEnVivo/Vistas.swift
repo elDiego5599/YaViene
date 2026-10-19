@@ -64,22 +64,14 @@ struct IslaLider: View {
   let caduco: Bool
 
   var body: some View {
-    Ficha(atributos: atributos, alto: 44)
+    HStack(alignment: .center, spacing: 8) {
+      Ficha(atributos: atributos, alto: 44)
+      ContenidoAviso(atributos: atributos, estado: estado)
+    }
+      .fixedSize(horizontal: true, vertical: false)
       .padding(.leading, 6)
       .frame(maxHeight: .infinity, alignment: .center)
       .opacity(caduco ? 0.5 : 1)
-  }
-}
-
-struct IslaCola: View {
-  let atributos: AvisoAtributos
-  let estado: AvisoAtributos.ContentState
-  let caduco: Bool
-
-  var body: some View {
-    ContenidoAviso(atributos: atributos, estado: estado)
-    .padding(.trailing, 6)
-    .opacity(caduco ? 0.5 : 1)
   }
 }
 
@@ -121,6 +113,7 @@ struct ContenidoAviso: View {
           .font(.subheadline)
           .foregroundStyle(Tinta.secundaria)
           .lineLimit(1)
+          .minimumScaleFactor(0.7)
       }
     }
     .fixedSize(horizontal: false, vertical: true)
