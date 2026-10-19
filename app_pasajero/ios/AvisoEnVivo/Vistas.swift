@@ -83,10 +83,9 @@ struct IslaCentro: View {
           .font(.headline)
           .foregroundStyle(.white)
           .lineLimit(1)
-          .minimumScaleFactor(0.8)
+          .minimumScaleFactor(0.7)
       }
     }
-    .frame(maxWidth: .infinity)
     .opacity(caduco ? 0.5 : 1)
   }
 }
@@ -104,6 +103,7 @@ struct IslaCola: View {
           .foregroundStyle(Tinta.verde)
       } else {
         Cifra(texto: estado.distancia, tamano: 26, color: .white, tamanoUnidad: 15, peso: .semibold)
+          .fixedSize()
       }
     }
     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -196,7 +196,7 @@ private struct LogoYaViene: View {
     Image("LogoYaViene")
       .resizable()
       .frame(width: lado, height: lado)
-      .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+      .clipShape(Circle())
   }
 }
 
@@ -221,7 +221,7 @@ private struct Ficha: View {
       if atributos.codigo.isEmpty { Image(systemName: "bus.fill").font(.system(size: alto * 0.5, weight: .semibold)) }
       else { Text(atributos.codigo).font(.system(size: alto * 0.47, weight: .heavy, design: .rounded)).tracking(-0.2).lineLimit(1) }
     }
-    .foregroundStyle(.white).padding(.horizontal, alto * 0.23).frame(minWidth: alto, minHeight: alto, maxHeight: alto)
+    .foregroundStyle(.white).padding(.horizontal, alto * 0.23).frame(minWidth: alto, minHeight: alto, maxHeight: alto).fixedSize()
     // 0,26 del alto crea una ficha compacta con esquinas continuas.
     .background(RoundedRectangle(cornerRadius: alto * 0.26, style: .continuous).fill(atributos.colorFicha))
   }
