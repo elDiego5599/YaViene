@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/widgets/latido.dart';
 
@@ -13,10 +14,7 @@ import '../../../../core/widgets/latido.dart';
 /// (map_markers.dart), con sus mismas proporciones, color, anillo blanco y
 /// parabrisas. Los anillos van en el color del bus porque salen de él.
 class SenaTocarBus extends StatelessWidget {
-  const SenaTocarBus({super.key, this.lado = 56, required this.color});
-
-  /// El color del bus: el de su ruta (`colorRuta`), como en el mapa.
-  final Color color;
+  const SenaTocarBus({super.key, this.lado = 56});
 
   /// El lado del medallón en que se dibuja: los anillos llegan hasta su
   /// borde y no se salen.
@@ -73,22 +71,17 @@ class SenaTocarBus extends StatelessWidget {
       pausa: pausa,
       builder: (context, t, quieto, _) => CustomPaint(
         size: Size.square(lado),
-        painter: _PintorToque(t: t, quieto: quieto, color: color),
+        painter: _PintorToque(t: t, quieto: quieto),
       ),
     );
   }
 }
 
 class _PintorToque extends CustomPainter {
-  const _PintorToque({
-    required this.t,
-    required this.quieto,
-    required this.color,
-  });
+  const _PintorToque({required this.t, required this.quieto});
 
   final double t;
   final bool quieto;
-  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -137,8 +130,8 @@ class _PintorToque extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color.lerp(color, Colors.white, 0.3)!,
-            color,
+            Color.lerp(AppColors.busActive, Colors.white, 0.3)!,
+            AppColors.busActive,
           ],
         ).createShader(capsula.outerRect),
     );
@@ -172,11 +165,11 @@ class _PintorToque extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.4
-        ..color = color.withValues(alpha: opacidad),
+        ..color = AppColors.busActive.withValues(alpha: opacidad),
     );
   }
 
   @override
   bool shouldRepaint(_PintorToque viejo) =>
-      viejo.t != t || viejo.quieto != quieto || viejo.color != color;
+      viejo.t != t || viejo.quieto != quieto;
 }

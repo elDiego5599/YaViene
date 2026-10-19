@@ -40,7 +40,7 @@ void main() {
       // bus según a dónde vaya, y si además es de su color se lee como una
       // estela roja (dueño, 2026-09-30). Tiene que ser gris y centrada.
       final bytes =
-          await createFlatTransitMarker(AppColors.acento, isGhost: false);
+          await createFlatTransitMarker(AppColors.busActive, isGhost: false);
       final codec = await ui.instantiateImageCodec(bytes);
       final imagen = (await codec.getNextFrame()).image;
       final datos = (await imagen.toByteData())!;

@@ -80,9 +80,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // El gris agrupado de Ajustes del iPhone, como Avisos: las tarjetas
-      // blancas se separan solas, sin sombras (dueño, 2026-10-19).
-      backgroundColor: AppColors.fondoAgrupado,
+      // Blanco como Avisos, con las tarjetas partidas por el filo azul
+      // noche de la app y sin sombras (dueño, 2026-10-19).
+      backgroundColor: AppColors.surface,
       // El formulario pasa por debajo de la barra, que es de vidrio (dueño,
       // 2026-10-18).
       extendBodyBehindAppBar: true,
@@ -172,58 +172,44 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                 ],
               ),
               const TituloSeccion('Tu mensaje'),
-              // Tarjeta blanca y plana, como las opciones: el filo solo
-              // aparece, verde, mientras se escribe. La nota de privacidad
-              // va dentro, bajo una raya de un píxel (dueño, 2026-10-19:
-              // «separadores que dividan las cosas, que se vea fino»).
+              // Con el filo de la app, como las opciones, y verde mientras
+              // se escribe. Sin raya dentro (dueño, 2026-10-19: no gustó):
+              // la nota de privacidad va fuera, bajo el campo.
               DecoratedBox(
                 key: const ValueKey('buzon_tarjeta'),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      key: const ValueKey('buzon_texto'),
-                      controller: _texto,
-                      enabled: !_enviando,
-                      minLines: 7,
-                      maxLines: 12,
-                      maxLength: Buzon.maximo,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: AppTextStyles.cuerpo
-                          .copyWith(color: AppColors.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: problema
-                            ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
-                            : 'Qué mejorarías o qué te gustaría ver en la app.',
-                        hintStyle: AppTextStyles.cuerpo
-                            .copyWith(color: AppColors.textSecondary),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.fromLTRB(
-                            20, 18, 20, AppSpacing.md),
-                        counterStyle: AppTextStyles.pie
-                            .copyWith(color: AppColors.textSecondary),
-                        enabledBorder: _filo(Colors.transparent, 1),
-                        disabledBorder: _filo(Colors.transparent, 1),
-                        focusedBorder: _filo(AppColors.primaryAccessible, 2),
-                      ),
-                    ),
-                    // Con sangría a la izquierda, como las celdas del iPhone.
-                    Divider(
-                      key: const ValueKey('buzon_raya'),
-                      height: 1,
-                      indent: 20,
-                      thickness: 1 / MediaQuery.devicePixelRatioOf(context),
-                      color: AppColors.separador,
-                    ),
-                    const _NotaPrivacidad(),
-                  ],
+                child: TextField(
+                  key: const ValueKey('buzon_texto'),
+                  controller: _texto,
+                  enabled: !_enviando,
+                  minLines: 7,
+                  maxLines: 12,
+                  maxLength: Buzon.maximo,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppTextStyles.cuerpo
+                      .copyWith(color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: problema
+                        ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
+                        : 'Qué mejorarías o qué te gustaría ver en la app.',
+                    hintStyle: AppTextStyles.cuerpo
+                        .copyWith(color: AppColors.textSecondary),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                        const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
+                    counterStyle: AppTextStyles.pie
+                        .copyWith(color: AppColors.textSecondary),
+                    enabledBorder: _filo(AppColors.filo, 1),
+                    disabledBorder: _filo(AppColors.filo, 1),
+                    focusedBorder: _filo(AppColors.primaryAccessible, 2),
+                  ),
                 ),
               ),
+              const _NotaPrivacidad(),
             ],
           ),
         ),
@@ -320,7 +306,7 @@ class _Encabezado extends StatelessWidget {
   }
 }
 
-/// El candado y la nota, al pie de la tarjeta del mensaje: se ve, pero no
+/// El candado y la nota, bajo la tarjeta del mensaje: se ve, pero no
 /// compite con el campo.
 class _NotaPrivacidad extends StatelessWidget {
   const _NotaPrivacidad();
@@ -403,12 +389,12 @@ class _Opcion extends StatelessWidget {
         decoration: BoxDecoration(
           color: elegida ? tinte : Colors.white,
           borderRadius: radio,
-          border: Border.all(
-            // Transparente y no ausente: el ancho no cambia al elegir y
-            // el contenido no salta.
-            color: elegida ? tinta : Colors.transparent,
-            width: 2,
-          ),
+          // El filo mide 1 siempre, para que el contenido no salte al
+          // elegir; la elegida suma por fuera otro de su color, que no
+          // ocupa sitio, y queda de 2.
+          border: Border.all(color: elegida ? tinta : AppColors.filo),
+          boxShadow:
+              elegida ? [BoxShadow(color: tinta, spreadRadius: 1)] : null,
         ),
         child: Material(
           type: MaterialType.transparency,

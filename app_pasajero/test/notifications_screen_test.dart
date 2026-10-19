@@ -48,14 +48,14 @@ void main() {
         companyId: 'C1',
       );
 
-  /// Avisos y el buzón van en gris agrupado, como los Ajustes de iOS, con
-  /// sus tarjetas blancas encima sin sombra (dueño, 2026-10-19: «todo es
-  /// blanco plano, no hay separadores»; antes, 2026-10-16, todo blanco). La
-  /// barra de arriba, en reposo, deja ver ese gris: es de vidrio (dueño,
-  /// 2026-10-18).
-  void exigeFondoAgrupado(WidgetTester tester) {
+  /// Avisos y el buzón van en blanco, con sus tarjetas partidas por el filo
+  /// azul noche de la app y sin sombra (dueño, 2026-10-19: «mejor devuelve
+  /// el blanco de las páginas y pones divisiones con colores de la app»;
+  /// el gris agrupado de iOS no gustó). La barra de arriba, en reposo,
+  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
+  void exigeFondoBlanco(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
-        AppColors.fondoAgrupado,
+        AppColors.surface,
         reason: 'el fondo de Avisos');
     expect(tester.widget<AppBar>(find.byType(AppBar)).backgroundColor,
         Colors.transparent,
@@ -64,7 +64,7 @@ void main() {
 
   Future<ProviderContainer> pumpScreen(
       WidgetTester tester, List<BusPosition> buses,
-      {List<GeoPoint>? ruta, double lat = userLat}) async {
+      {List<GeoPoint>? ruta, double lat = userLat, double abajo = 0}) async {
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       if (ruta != null)
@@ -112,7 +112,17 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: NotificationsScreen()),
+        // [abajo] es lo que la píldora le quita a la pestaña
+        // (`ShellConPildora.reserva`), que le llega como relleno de abajo.
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              padding: MediaQuery.paddingOf(context).copyWith(bottom: abajo),
+            ),
+            child: child!,
+          ),
+          home: const NotificationsScreen(),
+        ),
       ),
     );
     return container;
@@ -130,7 +140,7 @@ void main() {
   testWidgets('Avisos va sobre el gris agrupado', (tester) async {
     await pumpScreen(tester, const []);
     await tester.pump();
-    exigeFondoAgrupado(tester);
+    exigeFondoBlanco(tester);
   });
 
   /// La tarjeta de un aviso. La ruta va escrita y la placa en su lámina
@@ -183,6 +193,29 @@ void main() {
       findsOneWidget,
     );
   }
+
+  testWidgets('el último aviso sube del todo, por encima de la píldora',
+      (tester) async {
+    // La píldora flota sobre la lista: sin su alto en el relleno de abajo,
+    // la lista no bajaba del todo y la píldora tapaba el último aviso
+    // (dueño, 2026-10-19).
+    tester.view.physicalSize = const Size(320, 420);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const reserva = 100.0;
+    final container =
+        await pumpScreen(tester, [bus('A-1'), bus('A-2')], abajo: reserva);
+    arm(container, 'A-1');
+    arm(container, 'A-2');
+    await asentar(tester);
+    await tester.drag(find.byType(ListView), const Offset(0, -2000));
+    await asentar(tester);
+    final ultimo = tester.getRect(aviso('A-2')).bottom >
+            tester.getRect(aviso('A-1')).bottom
+        ? aviso('A-2')
+        : aviso('A-1');
+    expect(tester.getRect(ultimo).bottom, lessThanOrEqualTo(420 - reserva));
+  });
 
   testWidgets('estado vacío sin avisos ni historial', (tester) async {
     await pumpScreen(tester, const []);
@@ -432,11 +465,11 @@ void main() {
     }
   });
 
-  // Sobre el gris agrupado las tarjetas son blancas y planas, como en
-  // Ajustes de iOS: sin sombra ni filo, y dentro una raya fina de un píxel
-  // separa lo que el aviso es (ruta y placa) de cómo va (dueño, 2026-10-19:
-  // «quiero como separadores q dividan las cosas, que se vea fino»).
-  testWidgets('las tarjetas de Avisos son planas, con su raya fina dentro',
+  // Blancas sobre blanco, sin sombra: las parte el filo azul noche de la
+  // app, y dentro una raya del mismo color separa lo que el aviso es (ruta
+  // y placa) de cómo va (dueño, 2026-10-19: «devuelve el blanco de las
+  // páginas y pones divisiones con colores de la app»).
+  testWidgets('las tarjetas de Avisos llevan el filo de la app, y su raya',
       (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
@@ -450,22 +483,23 @@ void main() {
       expect(container.read(alertHistoryProvider).where((e) => e.sent),
           hasLength(1));
 
-      final pixel = 1 / tester.view.devicePixelRatio;
       for (final id in ['A-1', 'A-2']) {
         final caja = tester.widget<AnimatedContainer>(aviso(id)).decoration!
             as BoxDecoration;
         expect(caja.color, AppColors.surface, reason: 'la tarjeta de $id');
         expect(caja.boxShadow ?? const [], isEmpty,
             reason: 'la tarjeta de $id');
-        expect((caja.border! as Border).top.color, Colors.transparent,
+        expect((caja.border! as Border).top.color, AppColors.filo,
+            reason: 'el filo de la tarjeta de $id');
+        expect((caja.border! as Border).top.width, 1,
             reason: 'el filo de la tarjeta de $id');
 
         final raya = find.descendant(
             of: aviso(id), matching: find.byKey(const ValueKey('aviso-raya')));
         expect(raya, findsOneWidget, reason: 'la raya de $id');
         final divisor = tester.widget<Divider>(raya);
-        expect(divisor.color, AppColors.separador);
-        expect(divisor.thickness, pixel);
+        expect(divisor.color, AppColors.filo);
+        expect(divisor.thickness, 1);
         // Entre la placa y el estado (la raya trae su aire arriba).
         expect(
             tester.getRect(raya).top,

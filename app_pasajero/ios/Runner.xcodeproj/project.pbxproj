@@ -7,16 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12B935B3E5DBE1E7512A93D7 /* AvisoEnVivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB8EDF59A769CEDF35827AE /* AvisoEnVivo.swift */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		3F198FD3D5CBB750614CEBE3 /* AvisoAtributos.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAEF99D300F3461FD10157F /* AvisoAtributos.swift */; };
+		4745B86E5E8BA0641882D868 /* AvisoAtributos.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAEF99D300F3461FD10157F /* AvisoAtributos.swift */; };
+		5D208A13AD93F334160166ED /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1B9B2254337EF228BC4CB02 /* Foundation.framework */; };
+		652D80E71C611E1C435E5009 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A661AAA757D2C2AF4BD0ED01 /* SwiftUI.framework */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		7D6E0B118224D7CA07491CA4 /* ActividadEnVivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AFB27F2ED50BB9FC7B7046 /* ActividadEnVivo.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		9A5F25A381482385C8C40899 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDC12D0020758A48F9C5F2F0 /* WidgetKit.framework */; };
 		ECB439A3193028E2C99278C0 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8905AB367BC9A7CD4DEC0ECB /* Pods_Runner.framework */; };
+		ED899369AE2E9F4DBEB6F285 /* AvisoEnVivo.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BF3C6AFCAA3FA167FC416879 /* AvisoEnVivo.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FE9B9AC91D3F8C42DBC068C1 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B3AA307B291835F513FC644D /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -28,9 +36,27 @@
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
 		};
+		ECF78BF1952CC4822D4DAA83 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 261B5BF215F3B1F2D400EAB4;
+			remoteInfo = AvisoEnVivo;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		1176D9F0B7D1FBFAEB18B19B /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				ED899369AE2E9F4DBEB6F285 /* AvisoEnVivo.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -50,7 +76,9 @@
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		33AFB27F2ED50BB9FC7B7046 /* ActividadEnVivo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ActividadEnVivo.swift; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		4DB8EDF59A769CEDF35827AE /* AvisoEnVivo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AvisoEnVivo.swift; sourceTree = "<group>"; };
 		5954C210D5AE0553E8377666 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		5A954DDEC562098478A15F91 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -58,6 +86,7 @@
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		7DBD0C7BDAD21A6D27CD7CC4 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8905AB367BC9A7CD4DEC0ECB /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
@@ -67,11 +96,26 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9AD07A74E663594C7F854B55 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		A661AAA757D2C2AF4BD0ED01 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		ABAEF99D300F3461FD10157F /* AvisoAtributos.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AvisoAtributos.swift; sourceTree = "<group>"; };
+		B1B9B2254337EF228BC4CB02 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		B3AA307B291835F513FC644D /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF3C6AFCAA3FA167FC416879 /* AvisoEnVivo.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AvisoEnVivo.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDC12D0020758A48F9C5F2F0 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		EE23E4A59EE974F69FE60DDB /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		411324C97FA94B30C335B7B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D208A13AD93F334160166ED /* Foundation.framework in Frameworks */,
+				9A5F25A381482385C8C40899 /* WidgetKit.framework in Frameworks */,
+				652D80E71C611E1C435E5009 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -97,6 +141,7 @@
 			children = (
 				8905AB367BC9A7CD4DEC0ECB /* Pods_Runner.framework */,
 				B3AA307B291835F513FC644D /* Pods_RunnerTests.framework */,
+				97716244429770F11E4AA07B /* iOS */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -107,6 +152,17 @@
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 			);
 			path = RunnerTests;
+			sourceTree = "<group>";
+		};
+		82BC6C6F73968F93B4E5DE3A /* AvisoEnVivo */ = {
+			isa = PBXGroup;
+			children = (
+				ABAEF99D300F3461FD10157F /* AvisoAtributos.swift */,
+				4DB8EDF59A769CEDF35827AE /* AvisoEnVivo.swift */,
+				7DBD0C7BDAD21A6D27CD7CC4 /* Info.plist */,
+			);
+			name = AvisoEnVivo;
+			path = AvisoEnVivo;
 			sourceTree = "<group>";
 		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
@@ -121,6 +177,16 @@
 			name = Flutter;
 			sourceTree = "<group>";
 		};
+		97716244429770F11E4AA07B /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				B1B9B2254337EF228BC4CB02 /* Foundation.framework */,
+				DDC12D0020758A48F9C5F2F0 /* WidgetKit.framework */,
+				A661AAA757D2C2AF4BD0ED01 /* SwiftUI.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 		97C146E51CF9000F007C117D = {
 			isa = PBXGroup;
 			children = (
@@ -130,6 +196,7 @@
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				BD0B44F3E000C463BCD7B8F0 /* Pods */,
 				037F8450294AE533E7170D13 /* Frameworks */,
+				82BC6C6F73968F93B4E5DE3A /* AvisoEnVivo */,
 			);
 			sourceTree = "<group>";
 		};
@@ -138,6 +205,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				BF3C6AFCAA3FA167FC416879 /* AvisoEnVivo.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -154,6 +222,7 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				33AFB27F2ED50BB9FC7B7046 /* ActividadEnVivo.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -174,6 +243,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		261B5BF215F3B1F2D400EAB4 /* AvisoEnVivo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 375193D92ADAFF98984BCAA7 /* Build configuration list for PBXNativeTarget "AvisoEnVivo" */;
+			buildPhases = (
+				5DC23908139A1E3AA367B987 /* Sources */,
+				411324C97FA94B30C335B7B8 /* Frameworks */,
+				DE8E2BC07EBA583602E2CCE0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AvisoEnVivo;
+			productName = AvisoEnVivo;
+			productReference = BF3C6AFCAA3FA167FC416879 /* AvisoEnVivo.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -203,12 +289,14 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				1176D9F0B7D1FBFAEB18B19B /* Embed Foundation Extensions */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				6A60126FF586439A5A79931F /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				65FEDCB61F0027D311DE9674 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -256,6 +344,7 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				261B5BF215F3B1F2D400EAB4 /* AvisoEnVivo */,
 			);
 		};
 /* End PBXProject section */
@@ -276,6 +365,13 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DE8E2BC07EBA583602E2CCE0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -385,6 +481,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5DC23908139A1E3AA367B987 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4745B86E5E8BA0641882D868 /* AvisoAtributos.swift in Sources */,
+				12B935B3E5DBE1E7512A93D7 /* AvisoEnVivo.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -392,6 +497,8 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				3F198FD3D5CBB750614CEBE3 /* AvisoAtributos.swift in Sources */,
+				7D6E0B118224D7CA07491CA4 /* ActividadEnVivo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -402,6 +509,12 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+		};
+		65FEDCB61F0027D311DE9674 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AvisoEnVivo;
+			target = 261B5BF215F3B1F2D400EAB4 /* AvisoEnVivo */;
+			targetProxy = ECF78BF1952CC4822D4DAA83 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -546,6 +659,61 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = Profile;
+		};
+		3D45437E8E0738E5D2F9FE74 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 2ZA2XUUSJ3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AvisoEnVivo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yaviene.yaviene.AvisoEnVivo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5C9F073E23CC2DE99738C732 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 2ZA2XUUSJ3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AvisoEnVivo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yaviene.yaviene.AvisoEnVivo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Profile;
 		};
@@ -705,6 +873,34 @@
 			};
 			name = Release;
 		};
+		A5FFB854A6F19437B7755659 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9740EEB31CF90195004384FC /* Generated.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 2ZA2XUUSJ3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AvisoEnVivo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.yaviene.yaviene.AvisoEnVivo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -714,6 +910,16 @@
 				331C8088294A63A400263BE5 /* Debug */,
 				331C8089294A63A400263BE5 /* Release */,
 				331C808A294A63A400263BE5 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		375193D92ADAFF98984BCAA7 /* Build configuration list for PBXNativeTarget "AvisoEnVivo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A5FFB854A6F19437B7755659 /* Release */,
+				3D45437E8E0738E5D2F9FE74 /* Debug */,
+				5C9F073E23CC2DE99738C732 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

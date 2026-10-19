@@ -221,21 +221,28 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (sin rebote, arrancan quietas); `curvaRebote` (0,7, se pasa 4,6 %) solo
   para lo que se acaba de marcar. Nada sin curva; nada de `easeOutBack`
   fuera de la escena del arranque y la seña de tocar el bus.
-- **Color de la ruta** (dueño, 2026-10-19, como Transit): cada ruta lleva
-  el suyo (`coloresRuta` en `app_pasajero/lib/core/utils/color_ruta.dart`;
-  sin rojo, naranja ni ámbar) en su ficha, su trazo sobre orla blanca
-  (`EstiloRuta`), sus paradas, su bus, la seña de tocar el bus y su fila
-  del selector (`tinteRuta`). Sin código, azul de botón. La web lo espeja
-  en el teléfono (`src/data/color-ruta.ts`).
-  La ficha de la ruta del aviso (bandeja y tarjeta de Avisos) va en el
-  color de su empresa del selector (`colorEmpresa`,
+- **Ruta y bus**: la ruta del mapa en verde sobre orla blanca
+  (`EstiloRuta`) y el bus en su rojo (`AppColors.busActive`); el color por
+  ruta, como Transit, se probó y no gustó (dueño, 2026-10-19). La barra de
+  avance bajo la cifra de la hoja tampoco gustó (2026-10-19): solo queda en
+  la actividad en vivo. Solo la ficha de la ruta del
+  aviso (bandeja, tarjeta de Avisos y actividad en vivo) va en el color de
+  su empresa en «Elige empresa» (`colorEmpresa`,
   `app_pasajero/lib/core/utils/color_empresa.dart`; el aviso guarda su
-  `companyId`; los de antes, sin empresa, caen al de la ruta).
-- **Avisos y Buzón** (dueño, 2026-10-19, «separadores que dividan las
-  cosas, que se vea fino»): sobre el gris agrupado del iPhone
-  (`AppColors.fondoAgrupado`, #F2F2F7) con tarjetas blancas planas, sin
-  sombra, partidas por una raya de un píxel (`AppColors.separador`,
-  #C6C6C8, `1 / devicePixelRatio`).
+  `companyId`; los de antes, sin empresa, en el azul de botón).
+- **Avisos y Buzón** (dueño, 2026-10-19, «divisiones con colores de la
+  app»; el gris agrupado del iPhone no gustó): fondo blanco, tarjetas
+  planas sin sombra con su filo (`AppColors.filo`, #D0D4DC, la tinta de
+  la marca al 20 %, como Stripe o Linear) y una raya del mismo filo en
+  cada tarjeta de Avisos; el mensaje del buzón sin raya, con la nota de
+  privacidad fuera.
+- **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso
+  armado pone la suya en la pantalla bloqueada y la Dynamic Island
+  (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
+  `actividad_en_vivo.dart`): ficha en el color de la empresa, cifra de
+  la hoja y la barra de lo que falta. Al sonar dice «Tu bus de la ruta X
+  está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
+  dice. Con la app cerrada no se pone al día (APNs, FALTANTES).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y

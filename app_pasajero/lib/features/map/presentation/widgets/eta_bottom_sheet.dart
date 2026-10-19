@@ -7,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
-import '../../../../core/utils/color_ruta.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/cifra_viva.dart';
@@ -26,7 +25,6 @@ import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 import 'alert_guards.dart' as guards;
-import 'barra_avance.dart';
 import 'map_recenter_button.dart';
 import 'rueda_distancia.dart';
 import 'sena_tocar_bus.dart';
@@ -922,10 +920,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // El bus del mapa con su toque, en vez de la mano (dueño,
       // 2026-09-27). Es el estado que más se ve: el que queda con la ruta
       // puesta y los buses en el mapa.
-      dibujo = SenaTocarBus(
-        key: const ValueKey('sena-tocar-bus'),
-        color: colorRuta(route.name),
-      );
+      dibujo = const SenaTocarBus(key: ValueKey('sena-tocar-bus'));
     }
 
     // Sin ruta, el bloque entero abre el selector: la gente tocaba el
@@ -1219,21 +1214,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               style: AppTextStyles.cuerpoFuerte
                   .copyWith(color: AppColors.textSecondary),
             ),
-            // Lo que falta, dibujado: el bus en camino a tu punto, como la
-            // barra de vuelo de Flighty (dueño, 2026-10-19). Con el aviso
-            // puesto marca dónde va a sonar.
-            if (MediaQuery.sizeOf(context).height >=
-                BarraAvance.pantallaMinima) ...[
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: BarraAvance(
-                  metros: distance!,
-                  color: colorRuta(route?.name),
-                  aviso: isActive ? radio.toDouble() : null,
-                ),
-              ),
-            ],
           ],
         ],
       ),

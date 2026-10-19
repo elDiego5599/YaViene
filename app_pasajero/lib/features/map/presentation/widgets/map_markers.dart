@@ -12,29 +12,24 @@ const kBusIconId = 'bus-icon-active';
 const kBusGhostIconId = 'bus-icon-ghost';
 const kUserPinIconId = 'user-pin-icon';
 
-/// Hornea los íconos del mapa: el bus en el color de su ruta ([color],
-/// `colorRuta`), el bus sin señal en gris y el pin.
-Future<void> loadBusIcons(
-    MapLibreMapController? controller, Color color) async {
+Future<void> loadBusIcons(MapLibreMapController? controller) async {
   if (controller == null) return;
   try {
+    final activeBytes = await createFlatTransitMarker(
+      AppColors.busActive,
+      isGhost: false,
+    );
     final ghostBytes = await createFlatTransitMarker(
       AppColors.textDisabled,
       isGhost: true,
     );
-    await pintarBus(controller, color);
+    await controller.addImage(kBusIconId, activeBytes);
     await controller.addImage(kBusGhostIconId, ghostBytes);
     await controller.addImage(kUserPinIconId, await createPinMarker());
   } catch (e) {
     debugPrint('Error generando iconos Flat: $e');
   }
 }
-
-/// El bus con señal en [color]. Se vuelve a hornear al cambiar de ruta:
-/// `addImage` con el mismo id reemplaza el sprite de todos los buses.
-Future<void> pintarBus(MapLibreMapController controller, Color color) async =>
-    controller.addImage(
-        kBusIconId, await createFlatTransitMarker(color, isGhost: false));
 
 Future<Uint8List> createPinMarker() async {
   const size = 80;

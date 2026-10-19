@@ -35,6 +35,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   privacidad. El iPhone sale cuando haya push remoto (dueño, 2026-10-06):
   por eso su nota ya no pide dejar la app abierta y dice a qué distancia
   avisa, con su «Cambiar».
+  Lo mismo para la actividad en vivo del aviso (pantalla bloqueada y
+  Dynamic Island, 2026-10-19): hoy la pone al día la app mientras corre;
+  con la app cerrada se queda quieta y a los 2 minutos dice que no tiene
+  datos nuevos. Con la cuenta: pedir el token de la actividad
+  (`pushType: .token` en `ios/Runner/ActividadEnVivo.swift`), mandarlo al
+  servidor con el aviso y que `revisarAvisos` la ponga al día por APNs
+  (tipo `liveactivity`, la clave .p8).
 
 ## Lo que tienes que decidir tú
 
@@ -159,11 +166,11 @@ Necesitan un teléfono, una cuenta o estar presente.
   mapa dentro de Acerca de, sin la píldora del pie de Info.
   Y del 2026-10-19: con un bus tocado, la píldora de tu punto y de
   cuántos buses hay cerca se va (si la maqueta del mapa la dibuja con un
-  bus elegido). Y luego, el mismo día: Avisos y Buzón sobre el gris
-  agrupado del iPhone (`fondoAgrupado`, #F2F2F7) con tarjetas blancas
-  planas, sin sombra, y una raya de un píxel (`separador`, #C6C6C8) que
-  parte cada tarjeta de Avisos y deja la nota de privacidad al pie de la
-  del mensaje del buzón; y la ficha de la ruta del aviso en el color de
+  bus elegido). Y luego, el mismo día: Avisos y Buzón en blanco, con
+  tarjetas planas, sin sombra, y su filo en el color de la app (`filo`,
+  #D0D4DC); una raya del mismo filo parte cada tarjeta de Avisos, y la
+  del mensaje del buzón va sin raya, con la nota de privacidad fuera,
+  debajo; y la ficha de la ruta del aviso en el color de
   su empresa del selector (`colorEmpresa`), si la maqueta de Avisos la
   dibuja.
 

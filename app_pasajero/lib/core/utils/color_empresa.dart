@@ -1,6 +1,6 @@
 import 'package:flutter/painting.dart';
 
-import 'color_ruta.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 
 /// Los seis colores con los que puede salir una empresa.
 ///
@@ -29,6 +29,6 @@ Color colorEmpresa(String companyId) {
 }
 
 /// El color de la ficha de un aviso: el de su empresa; en un aviso de
-/// antes, que no sabe de qué empresa es, el de su ruta.
-Color colorFicha({String? companyId, String? routeName}) =>
-    companyId == null ? colorRuta(routeName) : colorEmpresa(companyId);
+/// antes, que no sabe de qué empresa es, el azul de botón de siempre.
+Color colorFicha({String? companyId}) =>
+    companyId == null ? AppColors.acento : colorEmpresa(companyId);

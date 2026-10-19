@@ -58,17 +58,13 @@ abstract class AppColors {
   /// raya sucia, y este desaparece salvo justo donde tiene que estar.
   static const Color hairline = Color(0x1414274E);
 
-  /// El gris de las listas agrupadas, el systemGroupedBackground de iOS:
-  /// bajo Avisos y el buzón, para que sus tarjetas blancas se despeguen sin
-  /// sombra, como en Ajustes (dueño, 2026-10-19: «todo es blanco plano, no
-  /// hay separadores»). El blanco encima da 1,12:1: lo justo para leer la
-  /// tarjeta como una pieza, no tanto que pese.
-  static const Color fondoAgrupado = Color(0xFFF2F2F7);
-
-  /// La raya fina que divide lo de dentro de una tarjeta agrupada: el
-  /// opaqueSeparator de iOS, a un píxel físico. Sobre el blanco da 1,71:1;
-  /// [divider] y [hairline] a ese grosor no se ven.
-  static const Color separador = Color(0xFFC6C6C8);
+  /// El filo que parte las tarjetas blancas sobre el blanco de Avisos y el
+  /// buzón (dueño, 2026-10-19: «devuelve el blanco de las páginas y pones
+  /// divisiones con colores de la app»; el gris agrupado de iOS no gustó).
+  /// Es [primaryDeep], el azul noche de la marca, al 20 % sobre blanco, y
+  /// opaco para que dos filos encimados no se oscurezcan. Da 1,5:1 con el
+  /// blanco, el filo de las tarjetas de Stripe o Linear: se ve sin pesar.
+  static const Color filo = Color(0xFFD0D4DC);
 
   /// Texto sobre [ink]. Blanco puro sobre azul muy oscuro vibra; este
   /// gris casi blanco se apoya sin zumbar.
@@ -98,6 +94,13 @@ abstract class AppColors {
   /// [surfaceMuted]— sin acercarse a [textBody], que pesa como párrafo.
   static const Color textSecondary = Color(0xFF5E6B82);
   static const Color textDisabled = Color(0xFF94A3B8);
+
+  /// Rojo del bus en vivo sobre el mapa. Comparte el valor de [coral] —
+  /// es el rojo cálido de la marca — pero vive aparte a propósito: [coral]
+  /// significa "excepción" (bus sin señal, aviso crítico) y esto significa
+  /// "bus activo y reportando". Si algún día se separan de color, se cambia
+  /// aquí sin tocar la semántica de las excepciones.
+  static const Color busActive = Color(0xFFE86A5E);
 
   static const Color busGhost = Color(0xFF94A3B8);
   static const Color error = Color(0xFFDC2626);

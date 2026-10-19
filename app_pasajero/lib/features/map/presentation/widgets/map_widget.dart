@@ -7,7 +7,6 @@ import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import '../../../../core/utils/color_ruta.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/pin_hint_provider.dart';
@@ -20,7 +19,7 @@ import '../utils/map_constants.dart' show MapConstants;
 import 'estilo_ruta.dart';
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
-import 'map_markers.dart' show loadBusIcons, pintarBus;
+import 'map_markers.dart' show loadBusIcons;
 import 'map_pin_utils.dart' show radiusCircleFeature;
 import 'map_placeholders.dart';
 import 'tap_debouncer.dart';
@@ -495,7 +494,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     if (oldWidget.routeId != widget.routeId && _layersReady) {
       _hasFitInitialRoute = false;
       if (widget.routeId != null) {
-        _pintarRuta();
         reloadMapData();
         _setupBusSubscription(widget.routeId!);
         // El punto de espera no depende de los buses, así que el encuadre
@@ -579,19 +577,18 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // La orla va primero, debajo: es lo que despega la línea de las calles.
     await _mapController!
         .addLineLayer(_kRouteSourceId, _kRouteCasingLayerId, EstiloRuta.orla);
-    final color = _colorPintado;
     await _mapController!
-        .addLineLayer(_kRouteSourceId, _kRouteLayerId, EstiloRuta.linea(color));
+        .addLineLayer(_kRouteSourceId, _kRouteLayerId, EstiloRuta.linea);
 
     await _mapController!.addSource(
         _kStopsFijaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
     await _mapController!.addCircleLayer(
-        _kStopsFijaSourceId, _kStopsFijaLayerId, EstiloRuta.paradaFija(color));
+        _kStopsFijaSourceId, _kStopsFijaLayerId, EstiloRuta.paradaFija);
 
     await _mapController!.addSource(_kStopsInformalSourceId,
         const GeojsonSourceProperties(data: emptyGeoJson));
     await _mapController!.addCircleLayer(_kStopsInformalSourceId,
-        _kStopsInformalLayerId, EstiloRuta.paradaInformal(color));
+        _kStopsInformalLayerId, EstiloRuta.paradaInformal);
 
     await _mapController!.addSource(
         _kBusSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
@@ -833,33 +830,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
   }
 
-  Future<void> _loadBusIcons() {
-    _colorPintado = colorRuta(ref.read(selectedRouteProvider)?.name);
-    return loadBusIcons(_mapController, _colorPintado);
-  }
-
-  /// El color con que van la línea, las paradas y el bus: el de la ruta
-  /// elegida (`colorRuta`).
-  Color _colorPintado = AppColors.acento;
-
-  /// Repinta la línea, las paradas y el bus al cambiar de ruta.
-  Future<void> _pintarRuta() async {
-    final c = _mapController;
-    final color = colorRuta(ref.read(selectedRouteProvider)?.name);
-    if (c == null || !_layersReady || color == _colorPintado) return;
-    _colorPintado = color;
-    try {
-      await Future.wait([
-        c.setLayerProperties(_kRouteLayerId, EstiloRuta.linea(color)),
-        c.setLayerProperties(_kStopsFijaLayerId, EstiloRuta.paradaFija(color)),
-        c.setLayerProperties(
-            _kStopsInformalLayerId, EstiloRuta.paradaInformal(color)),
-        pintarBus(c, color),
-      ]);
-    } catch (e) {
-      debugPrint('MapWidget._pintarRuta error: $e');
-    }
-  }
+  Future<void> _loadBusIcons() => loadBusIcons(_mapController);
 
   Future<void> _applyMapBottomInset(double bottomInset,
       {bool animated = true}) async {

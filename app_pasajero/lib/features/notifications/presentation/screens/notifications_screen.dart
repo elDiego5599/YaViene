@@ -46,10 +46,10 @@ class NotificationsScreen extends ConsumerWidget {
     final selecting = ref.watch(alertSelectionProvider).active;
 
     return Scaffold(
-      // El gris de las listas agrupadas de iOS, con las tarjetas blancas
-      // y planas encima (dueño, 2026-10-19: «todo es blanco plano, no hay
-      // separadores»; antes, 2026-10-16, todo blanco y con sombra).
-      backgroundColor: AppColors.fondoAgrupado,
+      // Blanco, con las tarjetas partidas por el filo azul noche de la app
+      // (dueño, 2026-10-19: «devuelve el blanco de las páginas y pones
+      // divisiones con colores de la app»; el gris agrupado no gustó).
+      backgroundColor: AppColors.surface,
       // La lista pasa por debajo de la barra, que es de vidrio (dueño,
       // 2026-10-18).
       extendBodyBehindAppBar: true,
@@ -398,10 +398,18 @@ class _HistoryListState extends ConsumerState<_HistoryList> {
       children: [
         Expanded(
           // Al subir, la lista pasa por debajo de la barra de vidrio; en
-          // reposo empieza bajo ella.
+          // reposo empieza bajo ella. Abajo pasa igual bajo la píldora, que
+          // le llega como relleno (`ShellConPildora`): sin él, el último
+          // aviso quedaba tapado (dueño, 2026-10-19). Seleccionando, la
+          // píldora se aparta y el botón de borrar ya guarda la barra de
+          // inicio.
           child: ListView.builder(
             padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.paddingOf(context).top, 20, AppSpacing.xl),
+                20,
+                MediaQuery.paddingOf(context).top,
+                20,
+                AppSpacing.xl +
+                    (selecting ? 0 : MediaQuery.paddingOf(context).bottom)),
             itemCount: filas.length,
             itemBuilder: (context, index) {
               final fila = filas[index];
@@ -802,8 +810,7 @@ class _AlertTile extends StatelessWidget {
           ExcludeSemantics(
             child: FichaRuta(
               codigo,
-              color:
-                  colorFicha(companyId: entry.companyId, routeName: routeName),
+              color: colorFicha(companyId: entry.companyId),
             ),
           )
         else
@@ -857,10 +864,10 @@ class _AlertTile extends StatelessWidget {
       ],
     );
 
-    // Cómo va el aviso, bajo una raya fina que lo separa de lo que es (ruta
-    // y placa), como las filas de Ajustes de iOS (dueño, 2026-10-19:
-    // «separadores q dividan las cosas, que se vea fino»). Antes iba en una
-    // franja arena. Ya se dice en `dicha`; aquí no se vuelve a leer.
+    // Cómo va el aviso, bajo una raya en el filo de la app que lo separa de
+    // lo que es (ruta y placa) (dueño, 2026-10-19: «divisiones con colores
+    // de la app»). Antes iba en una franja arena. Ya se dice en `dicha`;
+    // aquí no se vuelve a leer.
     final estado = ExcludeSemantics(
       child: Row(
         children: [
@@ -881,12 +888,12 @@ class _AlertTile extends StatelessWidget {
       ),
     );
 
-    final raya = Divider(
-      key: const ValueKey('aviso-raya'),
+    const raya = Divider(
+      key: ValueKey('aviso-raya'),
       // 12 arriba y 12 abajo, el aire que había entre la fila y la franja.
       height: 12 * 2,
-      thickness: 1 / MediaQuery.devicePixelRatioOf(context),
-      color: AppColors.separador,
+      thickness: 1,
+      color: AppColors.filo,
     );
 
     final tarjeta = AnimatedContainer(
@@ -902,12 +909,12 @@ class _AlertTile extends StatelessWidget {
                 AppColors.acento.withValues(alpha: 0.06), AppColors.surface)
             : AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        // Sin sombra ni filo: sobre el gris la tarjeta se lee sola. El
-        // filo, transparente, se queda para que marcar no la mueva.
+        // Sin sombra: blanca sobre blanco, la parte su filo. Marcada, el
+        // filo toma el azul del círculo, del mismo ancho: no se mueve.
         border: Border.all(
           color: selected && selecting
               ? AppColors.acento.withValues(alpha: 0.45)
-              : Colors.transparent,
+              : AppColors.filo,
         ),
       ),
       child: Column(

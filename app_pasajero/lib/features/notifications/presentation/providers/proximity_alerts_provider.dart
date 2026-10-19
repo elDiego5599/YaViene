@@ -5,7 +5,11 @@ import 'package:firebase_messaging/firebase_messaging.dart' show RemoteMessage;
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/services/actividad_en_vivo.dart';
 import '../../../../core/services/bus_notification_service.dart';
+import '../../../../core/utils/bus_labels.dart';
+import '../../../../core/utils/color_empresa.dart';
+import '../../../../core/utils/distancia.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
 import '../../../map/presentation/utils/geo.dart';
@@ -65,7 +69,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     DateTime Function()? ahora,
     AvisosPush? push,
     RetirarAviso? retirar,
-  })  : _notify = notify ?? _defaultNotify,
+    ActividadEnVivo enVivo = const ActividadEnVivoCanal(),
+  })  : _enVivo = enVivo,
+        _notify = notify ?? _defaultNotify,
         _permiso = permiso ?? BusNotificationService.puedeAvisar,
         _retirar = retirar ?? BusNotificationService.retirar,
         _ahora = ahora ?? DateTime.now,
@@ -78,6 +84,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   final BusNearNotifier _notify;
   final PermisoDeAvisos _permiso;
   final RetirarAviso _retirar;
+
+  /// La pantalla bloqueada y la Dynamic Island de cada aviso armado.
+  final ActividadEnVivo _enVivo;
+
+  /// Lo último que se le mandó a la actividad de cada bus: se manda solo
+  /// cuando cambia lo que se lee, no en cada barrido.
+  final _enVivoMostrado = <String, String>{};
 
   /// Reloj con el que se decide si un aviso venció (inyectable en tests:
   /// esperar tres horas de verdad no es una prueba).
@@ -374,6 +387,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// Olvida la ruta del bus; si era el último aviso de esa ruta, se cierra la
   /// suscripción (se desuscribe del socket).
   void disarmAlert(String busId) {
+    _terminarEnVivo(busId, llego: false);
     final enServidor = _servidor.remove(busId);
     if (enServidor != null) {
       _porBorrar.add(enServidor);
@@ -395,6 +409,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// re-arma enseguida, con el mismo identificador.
   void clear() {
     _monitoringPaused = false;
+    for (final busId in [..._enVivoMostrado.keys]) {
+      _terminarEnVivo(busId, llego: false);
+    }
     state = {};
     _servidor.clear();
     _alertRoutes.clear();
@@ -422,6 +439,30 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     super.dispose();
   }
 
+  void _mostrarEnVivo(String busId, double metros, int radio) {
+    final entrada = _entradaActiva(busId);
+    final estado = EstadoEnVivo(
+      busId: busId,
+      codigo: codigoRuta(entrada?.routeName),
+      ruta: nombreSinCodigo(entrada?.routeName),
+      color: colorFicha(companyId: entrada?.companyId).toARGB32(),
+      // La cifra de la hoja, con su decimal pasados 10 km.
+      distancia: _cifraDeLaHoja(metros),
+      aviso: 'Te avisamos a ${distanciaAviso(radio)}',
+      avance: EstadoEnVivo.avanceDe(metros),
+      avanceAviso: EstadoEnVivo.avanceDe(radio.toDouble()),
+    );
+    final clave = '${estado.distancia}|${estado.aviso}|${estado.ruta}';
+    if (_enVivoMostrado[busId] == clave) return;
+    _enVivoMostrado[busId] = clave;
+    unawaited(_enVivo.mostrar(estado));
+  }
+
+  void _terminarEnVivo(String busId, {required bool llego}) {
+    if (_enVivoMostrado.remove(busId) == null) return;
+    unawaited(_enVivo.terminar(busId, llego: llego));
+  }
+
   /// La entrada que espera de [busId] en el historial.
   AlertHistoryEntry? _entradaActiva(String busId) {
     for (final e in _ref.read(alertHistoryProvider)) {
@@ -434,6 +475,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// fuera de los activos y marcado como avisado, igual que si hubiera
   /// sonado aquí.
   void _yaSono(String busId) {
+    _terminarEnVivo(busId, llego: true);
     _ref.read(alertHistoryProvider.notifier).markSent(busId);
     _ref.read(activeAlertsProvider.notifier).deactivateAlert(busId);
     disarmAlert(busId);
@@ -700,6 +742,8 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         if (distance > radio + margenRearmeMetros) rearm.add(busId);
       } else if (distance <= radio) {
         fire[busId] = distance.round();
+      } else {
+        _mostrarEnVivo(busId, distance, radio);
       }
     }
 
@@ -734,6 +778,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           continue;
         }
         enviados.add(entry.key);
+        _terminarEnVivo(entry.key, llego: true);
         // El aviso ya se envió: pasa a "enviado" en el historial, sale de la
         // lista de alertas activas (visible en la pantalla de
         // Notificaciones) y se libera la suscripción de su ruta.
@@ -815,4 +860,11 @@ Future<void> atenderPushEnFondo(
   } finally {
     contenedor.dispose();
   }
+}
+
+/// La distancia como la dice la hoja («10,6 km», «850 m»): la actividad en
+/// vivo la espeja, y [distanciaAviso] quita el decimal desde 10 km.
+String _cifraDeLaHoja(double metros) {
+  final (cifra, unidad) = distanciaPartes(metros, '');
+  return '$cifra ${unidad.trim()}';
 }

@@ -62,13 +62,16 @@ void main() {
       // firebase_core y firebase_messaging (los avisos con la app cerrada,
       // D13) exigen iOS 15 desde Xcode, aunque en iPhone todavía no se usan:
       // con 13 la app no compila. Las tres configuraciones del proyecto y el
-      // Podfile dicen lo mismo.
+      // Podfile dicen lo mismo. La extensión de la actividad en vivo
+      // (`AvisoEnVivo`) pide 16.2, lo que pide ActivityKit; la app sigue
+      // abriendo en 15 sin ella.
       final proyecto = _leer('ios/Runner.xcodeproj/project.pbxproj');
       final minimos = RegExp(r'IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);')
           .allMatches(proyecto)
           .map((m) => m.group(1))
-          .toList();
-      expect(minimos, ['15.0', '15.0', '15.0']);
+          .toList()
+        ..sort();
+      expect(minimos, ['15.0', '15.0', '15.0', '16.2', '16.2', '16.2']);
       expect(_leer('ios/Podfile'), contains("platform :ios, '15.0'"));
     });
   });

@@ -3,8 +3,8 @@
 // calculan, no se miran.
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
-import 'package:ya_viene_pasajero/core/utils/color_ruta.dart';
 
 double _contraste(Color a, Color b) {
   final la = a.computeLuminance(), lb = b.computeLuminance();
@@ -30,9 +30,8 @@ void main() {
   });
 
   test('la ficha del aviso va en el color de su empresa', () {
-    expect(colorFicha(companyId: 'EMP-01', routeName: 'C16 Calle 72'),
-        colorEmpresa('EMP-01'));
-    // Un aviso de antes no sabe su empresa: queda en el de su ruta.
-    expect(colorFicha(routeName: 'C16 Calle 72'), colorRuta('C16 Calle 72'));
+    expect(colorFicha(companyId: 'EMP-01'), colorEmpresa('EMP-01'));
+    // Un aviso de antes no sabe su empresa: queda en el azul de siempre.
+    expect(colorFicha(), AppColors.acento);
   });
 }

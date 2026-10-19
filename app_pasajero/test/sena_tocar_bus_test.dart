@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/sena_tocar_bus.dart';
 
 /// El bus con su toque del estado «Toca un bus en el mapa».
@@ -9,7 +8,7 @@ void main() {
       tester.pumpWidget(
         MediaQuery(
           data: MediaQueryData(disableAnimations: reducido),
-          child: const Center(child: SenaTocarBus(color: AppColors.acento)),
+          child: const Center(child: SenaTocarBus()),
         ),
       );
 

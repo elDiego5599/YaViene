@@ -184,7 +184,7 @@ class BusNotificationService {
     try {
       if (!await puedeAvisar()) return false;
       final ficha = await _ficha(codigoRuta(routeName),
-          colorFicha(companyId: companyId, routeName: routeName));
+          colorFicha(companyId: companyId));
       final adjunto =
           ficha == null || defaultTargetPlatform != TargetPlatform.iOS
               ? null
