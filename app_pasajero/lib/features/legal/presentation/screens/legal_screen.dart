@@ -31,15 +31,18 @@ class LegalScreen extends StatelessWidget {
           maxScaleFactor: 1.3,
           child: Text(doc.title),
         ),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_outlined,
-            size: 20,
-            semanticLabel: 'Volver',
+        // La flecha flota en su píldora de vidrio, como en iOS 26.
+        leading: PildoraVidrio(
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_outlined,
+              size: 20,
+              semanticLabel: 'Volver',
+            ),
+            tooltip: 'Volver',
+            color: AppColors.textPrimary,
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          tooltip: 'Volver',
-          color: AppColors.textPrimary,
-          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       // Bajo el Scaffold, que suma la barra al relleno de arriba.

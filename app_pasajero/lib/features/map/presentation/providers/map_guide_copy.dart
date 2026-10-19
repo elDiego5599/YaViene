@@ -47,7 +47,7 @@ MapGuideCopy guideCopyFor(
       return const MapGuideCopy(
         title: 'Elige a qué distancia',
         message: 'Gira la rueda hasta la distancia a la que quieres el '
-            'aviso y toca «Guardar».',
+            'aviso y toca Guardar.',
         icon: Icons.straighten_outlined,
       );
     }

@@ -26,7 +26,7 @@ void main() {
   group('la privacidad y el segundo plano', () {
     test('el documento dice qué pasa cuando sales de la app', () {
       final texto = textoDe(legalPrivacidad);
-      expect(texto, contains('solo mientras la uso'));
+      expect(texto, contains('solo mientras la usas'));
       expect(texto, contains('no el de segundo plano'));
       expect(
         texto,

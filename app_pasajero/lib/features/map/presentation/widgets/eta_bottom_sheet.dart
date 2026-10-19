@@ -1398,7 +1398,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     };
     // Sin relleno propio a los lados: la tarjeta ya trae sus 24, y desde
     // que va a lo ancho de la barra (20 menos por lado) los 16 de más
-    // partían «700 m–1,2 km» en dos líneas con el texto al doble.
+    // partían «0,7 a 1,2 km» en dos líneas con el texto al doble.
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1448,16 +1448,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     );
   }
 
-  /// «1,5–2,2 km», con la unidad una vez si es la misma: «De 1,5 km a
-  /// 2,2 km» con el texto al doble se parte en dos líneas y la tarjeta deja
-  /// de caber en un iPhone 13.
+  /// «1,5 a 2,2 km», con la unidad una vez, sin raya (dueño, 2026-10-18):
+  /// «De 1,5 km a 2,2 km» con el texto al doble se parte en dos líneas y la
+  /// tarjeta deja de caber en un iPhone 13. Si solo la punta de arriba
+  /// llega al kilómetro, la de abajo también va en km («0,7 a 1,2 km»):
+  /// «700 m a 1,2 km» tampoco cabe. Las dos son múltiplos de 100 m.
   static String _rango(int desde, int hasta) {
-    final de = distanciaAviso(desde);
     final a = distanciaAviso(hasta);
-    final unidad = a.substring(a.lastIndexOf(' '));
-    return de.endsWith(unidad)
-        ? '${de.substring(0, de.length - unidad.length)}–$a'
-        : '$de–$a';
+    final enKm = a.endsWith(' km');
+    final de = enKm
+        ? (desde / 1000).toStringAsFixed(1).replaceAll('.', ',')
+        : distanciaAviso(desde).replaceAll(' m', '');
+    return '$de a $a';
   }
 
   /// Lo de debajo de la tarjeta mientras pregunta: «Guardar» en el sitio y

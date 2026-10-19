@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/features/legal/legal_docs.dart';
 import 'package:ya_viene_pasajero/features/legal/presentation/screens/'
     'legal_screen.dart';
@@ -96,6 +97,11 @@ void main() {
     await tester.pumpWidget(marcoGolden(LegalScreen(doc: doc)));
     await tester.pump();
 
+    // La flecha de volver flota en su píldora, como en iOS 26.
+    expect(
+        find.ancestor(
+            of: find.byTooltip('Volver'), matching: find.byType(PildoraVidrio)),
+        findsOneWidget);
     await exigeBarraVidrio(tester, find.textContaining(doc.updated));
   });
 }

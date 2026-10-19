@@ -8,8 +8,9 @@ import '../../../../core/widgets/ink_hero.dart';
 
 /// La escena del arranque (dueño, 2026-10-18): Barranquilla se arma sobre
 /// blanco y el bus llega. La Ventana al Mundo se enciende en ola, de abajo
-/// arriba; la cayena abre sus cinco pétalos; el bus de Sobusa viene de
-/// lejos y frena de frente («ya viene»); y queda la marca.
+/// arriba, sobre su isla de pasto con arbustos; la cayena abre sus cinco
+/// pétalos; el bus de Sobusa viene de lejos y frena de frente («ya
+/// viene»); y queda la marca.
 ///
 /// Breve a propósito (dueño: «2 segundos es mucho»): [duracion] entera,
 /// con las piezas solapadas. Con «Reducir movimiento» se pinta ya armada y
@@ -122,6 +123,16 @@ class _EscenaArranqueState extends State<EscenaArranque>
           width: 290 * PintorVentana.aspecto,
           height: 290,
           child: CustomPaint(painter: PintorVentana(torre)),
+        ),
+        // El suelo (dueño, 2026-10-18: «como su suelo con arbusticos»): una
+        // isla de pasto donde se paran la torre y la flor, delante del pie
+        // de la torre, que queda sembrada, y detrás del bus.
+        Positioned(
+          left: 10,
+          right: 10,
+          top: 250,
+          height: 56,
+          child: CustomPaint(painter: PintorSuelo(torre)),
         ),
         // La cayena, delante del filo derecho de la torre. De 112: a 136
         // «se ve muy grande» (dueño, 2026-10-18).
@@ -382,6 +393,131 @@ class PintorVentana extends CustomPainter {
 
   @override
   bool shouldRepaint(PintorVentana antes) => antes.avance != avance;
+}
+
+/// El suelo de la escena: una isla de pasto, con el mismo contorno oscuro
+/// de la torre, y sus arbustos redondos con alguna flor. Asoma con la torre
+/// según [avance] (0 a 1): la isla crece desde su centro y los arbustos
+/// brotan uno tras otro, con su rebote.
+class PintorSuelo extends CustomPainter {
+  PintorSuelo(this.avance);
+
+  final double avance;
+
+  /// Los arbustos, por (centro en fracción del ancho, tamaño relativo):
+  /// dos a cada lado del bus, el de dentro más chico.
+  static const _matas = [
+    (0.09, 1.0),
+    (0.27, 0.8),
+    (0.76, 0.85),
+    (0.93, 1.05),
+  ];
+
+  static int get arbustos => _matas.length;
+
+  static const _pasto = Color(0xFF8DCB63);
+  static const _pastoHondo = Color(0xFF5DAE4E);
+  static const _hoja = Color(0xFF2FA35B);
+  static const _hojaClara = Color(0xFF6CC060);
+  static const _brillo = Color(0xFFA8D96A);
+  static const _flor = Color(0xFFE8262B);
+  static const _centro = Color(0xFFF9D71C);
+  static const _junta = Color(0xFF20242B);
+
+  /// La altura del borde de arriba de la isla en [x] (0 a 1): sube al
+  /// centro, donde se paran la torre y la flor.
+  static double _borde(double x) => 0.72 - 0.3 * math.sin(math.pi * x);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (avance <= 0) return;
+    final w = size.width, h = size.height;
+    final escala = h / 56;
+    final crece =
+        Curves.easeOutCubic.transform((avance / 0.35).clamp(0.0, 1.0));
+    final contorno = Paint()
+      ..color = _junta
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2 * escala
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.save();
+    canvas.translate(w / 2, h * 0.75);
+    canvas.scale(crece, crece);
+    canvas.translate(-w / 2, -h * 0.75);
+    final isla = Path()..moveTo(0, _borde(0) * h);
+    for (var i = 1; i <= 40; i++) {
+      final x = i / 40;
+      isla.lineTo(x * w, _borde(x) * h);
+    }
+    isla
+      ..cubicTo(w * 1.01, h * 0.98, w * 0.8, h * 0.99, w / 2, h * 0.99)
+      ..cubicTo(w * 0.2, h * 0.99, -w * 0.01, h * 0.98, 0, _borde(0) * h)
+      ..close();
+    canvas.drawPath(
+        isla,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_pasto, _pastoHondo],
+          ).createShader(Offset.zero & size));
+    canvas.drawPath(isla, contorno);
+    canvas.restore();
+
+    for (var i = 0; i < _matas.length; i++) {
+      final (x, t) = _matas[i];
+      final p = Curves.easeOutBack
+          .transform(((avance - 0.25 - 0.08 * i) / 0.35).clamp(0.0, 1.0));
+      if (p <= 0) continue;
+      final r = 12 * escala * t;
+      final base = Offset(x * w, _borde(x) * h + 2 * escala);
+      canvas.save();
+      canvas.translate(base.dx, base.dy);
+      canvas.scale(p);
+      // Tres bolas: dos a los lados y una más alta en el medio.
+      final bolas = [
+        Rect.fromCircle(center: Offset(-0.75 * r, -0.55 * r), radius: 0.8 * r),
+        Rect.fromCircle(center: Offset(0.75 * r, -0.5 * r), radius: 0.75 * r),
+        Rect.fromCircle(center: Offset(0, -1.0 * r), radius: r),
+      ];
+      final mata = Path();
+      for (final b in bolas) {
+        mata.addOval(b);
+      }
+      final silueta = Path.combine(PathOperation.union, mata,
+          Path()..addRect(Rect.fromLTRB(-1.4 * r, -0.6 * r, 1.4 * r, 0)));
+      final recorte = Path.combine(PathOperation.intersect, silueta,
+          Path()..addRect(Rect.fromLTRB(-2 * r, -3 * r, 2 * r, 0)));
+      canvas.drawPath(
+          recorte,
+          Paint()
+            ..shader = const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_hojaClara, _hoja],
+            ).createShader(Rect.fromLTRB(-r, -2 * r, r, 0)));
+      // Un brillo arriba a la izquierda de cada bola, donde da el sol.
+      final brillo = Paint()..color = _brillo.withValues(alpha: 0.9);
+      for (final b in bolas) {
+        canvas.drawCircle(b.center + Offset(-b.width * 0.18, -b.height * 0.2),
+            b.width * 0.13, brillo);
+      }
+      canvas.drawPath(recorte, contorno);
+      // Dos florecitas rojas.
+      for (final f in [
+        Offset(-0.55 * r, -0.95 * r),
+        Offset(0.5 * r, -1.35 * r)
+      ]) {
+        canvas.drawCircle(f, 0.2 * r, Paint()..color = _flor);
+        canvas.drawCircle(f, 0.08 * r, Paint()..color = _centro);
+      }
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(PintorSuelo antes) => antes.avance != avance;
 }
 
 /// La cayena, la flor de Barranquilla, como la de referencia del dueño

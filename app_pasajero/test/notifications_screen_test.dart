@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
+import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/core/widgets/placa_bus.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
@@ -16,6 +17,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/user_locat
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
+
 import 'helpers/barra.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
@@ -809,7 +811,15 @@ void main() {
     arm(container, 'A-2');
     await tester.pump();
 
+    // Los botones de la barra flotan en sus píldoras, como en iOS 26.
+    Finder enPildora(String texto) => find.ancestor(
+        of: find.text(texto), matching: find.byType(PildoraVidrio));
+    expect(enPildora('Seleccionar'), findsOneWidget);
     await exigeBarraVidrio(
         tester, find.text('Gestiona, borra o desactiva tus avisos aquí.'));
+    await tester.tap(find.text('Seleccionar'));
+    await tester.pumpAndSettle();
+    expect(enPildora('Cancelar'), findsOneWidget);
+    expect(enPildora('Borrar todas'), findsOneWidget);
   });
 }

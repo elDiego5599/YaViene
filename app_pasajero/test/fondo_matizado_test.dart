@@ -44,7 +44,8 @@ void main() {
 
   // «Hazlos un poco más claros para que se vean más elegantes y
   // sofisticados» (dueño, 2026-10-18): era 0,81 de luminancia media y 0,66
-  // en lo más hondo de una mancha.
+  // en lo más hondo de una mancha; quedó en 0,87 y 0,76, y luego «devuélvele
+  // un poco el color»: a medio camino.
   testWidgets('claro y sutil: el matiz susurra, no pinta', (tester) async {
     final px = await pintar(tester);
     var suma = 0.0, hondo = 1.0;
@@ -53,9 +54,9 @@ void main() {
       suma += l;
       if (l < hondo) hondo = l;
     }
-    expect(suma / px.length, greaterThanOrEqualTo(0.87),
+    expect(suma / px.length, greaterThanOrEqualTo(0.83),
         reason: 'media ${suma / px.length}');
-    expect(hondo, greaterThanOrEqualTo(0.76), reason: 'lo más hondo $hondo');
+    expect(hondo, greaterThanOrEqualTo(0.7), reason: 'lo más hondo $hondo');
   });
 
   testWidgets('no es blanco liso: tiene zonas azulitas y verdecitas',
@@ -63,10 +64,10 @@ void main() {
     final px = await pintar(tester);
     var azul = 0, verde = 0, blanco = 0;
     for (final c in px) {
-      // Umbrales a la medida del matiz más claro (dueño, 2026-10-18): el
-      // tono se nota, apenas.
-      if (c.b - c.g > 0.015 && c.b - c.r > 0.035) azul++;
-      if (c.g - c.b > 0.012 && c.g - c.r > 0.025) verde++;
+      // Umbrales a la medida del matiz (dueño, 2026-10-18: «devuélvele un
+      // poco el color»): el tono se nota.
+      if (c.b - c.g > 0.022 && c.b - c.r > 0.05) azul++;
+      if (c.g - c.b > 0.018 && c.g - c.r > 0.04) verde++;
       if (c.r > 0.99 && c.g > 0.99 && c.b > 0.99) blanco++;
     }
     expect(azul, greaterThan(px.length ~/ 6), reason: 'azul $azul');

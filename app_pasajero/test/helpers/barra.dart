@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 
-/// La cara de la barra de vidrio: su color y su sombra de ahora.
+/// La cara de la barra de vidrio: su velo o, con más contraste, su blanco.
 BoxDecoration vidrio(WidgetTester tester) => tester
-    .widget<AnimatedContainer>(find.descendant(
-        of: find.byType(FondoVidrio), matching: find.byType(AnimatedContainer)))
-    .decoration! as BoxDecoration;
+    .widget<DecoratedBox>(find.descendant(
+        of: find.byType(FondoVidrio), matching: find.byType(DecoratedBox)))
+    .decoration as BoxDecoration;
+
+/// Cuánto se ve la cara: 0 en reposo, 1 con algo debajo.
+double velo(WidgetTester tester) => tester
+    .widget<AnimatedOpacity>(find.descendant(
+        of: find.byType(FondoVidrio), matching: find.byType(AnimatedOpacity)))
+    .opacity;
 
 /// Si la barra desenfoca lo que pasa debajo.
 bool desenfoca(WidgetTester tester) {
@@ -31,7 +37,7 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
   final barra = tester.getRect(find.byType(AppBar));
   expect(tester.getRect(primero).top, greaterThanOrEqualTo(barra.bottom - 0.5),
       reason: 'en reposo la barra tapa lo primero');
-  expect(vidrio(tester).color!.a, 0);
+  expect(velo(tester), 0);
 
   final antes = tester.getRect(primero).top;
   await tester.drag(find.byType(Scrollable).first, const Offset(0, -40));
@@ -40,5 +46,5 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
       reason: 'lo de abajo no se desplaza');
   expect(tester.getRect(primero).top, lessThan(barra.bottom),
       reason: 'lo de abajo no pasa por debajo de la barra');
-  expect(vidrio(tester).color!.a, greaterThan(0));
+  expect(velo(tester), greaterThan(0));
 }

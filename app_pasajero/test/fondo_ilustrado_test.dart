@@ -159,7 +159,9 @@ void main() {
     for (final e in dibujos) {
       final velo = e.findAncestorWidgetOfExactType<Opacity>();
       expect(velo, isNotNull);
-      expect(velo!.opacity, inInclusiveRange(0.3, 0.5));
+      // «Quedó demasiado opaca, nada visualmente atractiva» (dueño,
+      // 2026-10-18): al 40 % se perdían; vivos, sin pelearle a las tarjetas.
+      expect(velo!.opacity, inInclusiveRange(0.65, 0.8));
     }
   });
 

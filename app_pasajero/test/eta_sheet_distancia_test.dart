@@ -341,8 +341,8 @@ void main() {
       });
     }
 
-    // «700 m–1,2 km», con las dos unidades, es la línea más larga: en una
-    // sola línea y con la tarjeta entera, con el texto al doble y en el
+    // «0,7 a 1,2 km», con la punta de abajo en km, es la línea más larga:
+    // en una sola línea y con la tarjeta entera, con el texto al doble y en el
     // teléfono más bajo.
     for (final (tamano, escala) in [
       (const Size(390, 844), 2.0),
@@ -356,7 +356,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        final linea = find.text('700 m–1,2 km');
+        final linea = find.text('0,7 a 1,2 km');
         final alto =
             AppTextStyles.pie.fontSize! * AppTextStyles.pie.height! * escala;
         expect(tester.getSize(linea).height, closeTo(alto, 1),
@@ -818,7 +818,7 @@ void main() {
       await montar(tester, metros: 2450, rutaKm: 1.45);
       await tester.tap(find.text('Avisarme cuando esté cerca'));
       await tester.pumpAndSettle();
-      expect(find.text('1,5–2,2 km'), findsOneWidget);
+      expect(find.text('1,5 a 2,2 km'), findsOneWidget);
     });
 
     // La ruta a 1,45 km y el bus ya a 1,6: lo que deja el bus no la alcanza.

@@ -49,9 +49,10 @@ class FondoIlustrado extends StatelessWidget {
   /// Lado base del cuadro de cada dibujo; varía de 0,85 a 1,15 (44–60 pt).
   static const double _lado = 52;
 
-  /// Cuánto se ven los dibujos: se reconocen, pero no le pelean a las
-  /// tarjetas.
-  static const double velo = 0.4;
+  /// Cuánto se ven los dibujos: vivos, con su color (dueño, 2026-10-18: al
+  /// 40 % la página «quedó demasiado opaca»), sin pelearle a las tarjetas,
+  /// que son blancas y opacas.
+  static const double velo = 0.72;
 
   /// Giro máximo, a cada lado.
   static const double _giro = 15;

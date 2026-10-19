@@ -260,7 +260,8 @@ void main() {
 
   // «Quita las estrellas y caracoles de la pantalla de carga» (dueño,
   // 2026-10-18): antes tenía un arco de siete encima de la torre.
-  testWidgets('sin adornos: solo la torre y la cayena se pintan',
+  // Luego pidió el suelo con arbustos: eso sí, y nada más.
+  testWidgets('sin adornos: solo la torre, su suelo y la cayena se pintan',
       (tester) async {
     await tester.pumpWidget(const MediaQuery(
       data: MediaQueryData(disableAnimations: true),
@@ -274,7 +275,67 @@ void main() {
         .whereType<CustomPainter>()
         .map((p) => p.runtimeType)
         .toSet();
-    expect(pintores, {PintorVentana, PintorCayena});
+    expect(pintores, {PintorVentana, PintorSuelo, PintorCayena});
     await tester.pump(EscenaArranque.quieta);
+  });
+
+  // «Que la Ventana al Mundo tuviera como su suelo con arbusticos» (dueño,
+  // 2026-10-18): la torre y la flor se paran en una isla de pasto.
+  testWidgets('la torre se para en un suelo con arbustos', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(body: Center(child: EscenaArranque()))));
+    await tester.pump(const Duration(seconds: 2));
+
+    final suelo = find
+        .byWidgetPredicate((w) => w is CustomPaint && w.painter is PintorSuelo);
+    final torre = find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is PintorVentana);
+    expect(suelo, findsOneWidget);
+    final s = tester.getRect(suelo), t = tester.getRect(torre);
+    expect(s.top, lessThan(t.bottom), reason: 'la torre queda en el aire');
+    expect(s.bottom, greaterThan(t.bottom),
+        reason: 'la torre queda en el aire');
+    expect(s.left, lessThan(t.left));
+    expect(PintorSuelo.arbustos, greaterThanOrEqualTo(3));
+    // Va detrás del bus y de la flor: no los tapa.
+    final pila = tester.widget<Stack>(find
+        .descendant(
+            of: find.byType(EscenaArranque), matching: find.byType(Stack))
+        .first);
+    final orden = [
+      for (final h in pila.children)
+        ((h as Positioned).child is CustomPaint)
+            ? ((h.child as CustomPaint).painter).runtimeType
+            : Widget,
+    ];
+    expect(orden, [PintorVentana, PintorSuelo, PintorCayena, Widget]);
+  });
+
+  testWidgets('el suelo es verde y aparece con la torre', (tester) async {
+    const w = 280, h = 56;
+    Future<List<Color>> pintar(double avance) async {
+      late ByteData datos;
+      await tester.runAsync(() async {
+        final grabadora = ui.PictureRecorder();
+        PintorSuelo(avance)
+            .paint(Canvas(grabadora), Size(w.toDouble(), h.toDouble()));
+        final imagen = await grabadora.endRecording().toImage(w, h);
+        datos = (await imagen.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      });
+      return [
+        for (var i = 0; i < w * h; i++)
+          Color.fromARGB(datos.getUint8(i * 4 + 3), datos.getUint8(i * 4),
+              datos.getUint8(i * 4 + 1), datos.getUint8(i * 4 + 2)),
+      ];
+    }
+
+    expect((await pintar(0)).every((c) => c.a == 0), isTrue,
+        reason: 'antes de la torre no hay suelo');
+    final px = await pintar(1);
+    final verdes =
+        px.where((c) => c.a > 0.9 && c.g - c.r > 0.15 && c.g - c.b > 0.1);
+    expect(verdes.length, greaterThan(px.length ~/ 4),
+        reason: 'verdes ${verdes.length}');
+    expect(PintorSuelo(1).shouldRepaint(PintorSuelo(0.5)), isTrue);
   });
 }

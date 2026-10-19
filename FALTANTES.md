@@ -111,22 +111,28 @@ Necesitan un teléfono, una cuenta o estar presente.
   último del día: la malla respira, la lupa de la
   búsqueda en la punta derecha (el subtítulo se queda) y Avisos, Buzón,
   Info y Legal pasando bajo una barra de vidrio como el nav de la web
-  (2026-10-18, `barra_vidrio.dart`: transparente en reposo y, con algo
-  debajo, blanco al 82 % con desenfoque 12 y saturación 1,6, su filo y
-  su sombra; opaca con más contraste). El desliz
+  (2026-10-18, `barra_vidrio.dart`, como iOS 26 con WhatsApp de
+  referencia: sin lámina; en reposo nada y, con algo debajo, un velo
+  blanco que se desvanece hasta cero al pie de la barra, el título con
+  halo y los botones en píldoras de vidrio de 48 con desenfoque 10 y
+  saturación 1,8; opaca con más contraste). El desliz
   entre pestañas no se espeja: las maquetas no cambian de pantalla. Y el
   arranque nuevo (2026-10-18): la Ventana al Mundo, la cayena de cinco
   pétalos sueltos (112 de lado) y el bus de Sobusa (`escena_arranque.dart`,
-  1,7 s con medio segundo de marca, sin adornos), sobre el fondo matizado azul y verde
-  con grano (`fondo_matizado.dart`, más claro y sutil desde el mismo día);
+  1,7 s con medio segundo de marca, sin adornos), con la torre sobre su
+  isla de pasto con cuatro arbustos floridos (`PintorSuelo`), sobre el
+  fondo matizado azul y verde con grano (`fondo_matizado.dart`, aclarado
+  y luego con algo de su color de vuelta el mismo día);
   y en Avisos, arriba, la nota «Gestiona, borra o desactiva tus avisos
   aquí.» con su ícono, y dejar presionado un aviso lo selecciona; y en Info dibujos chicos de
   Barranquilla regados sin orden por toda la pantalla (cayena, sol,
   palmera, marimonda, la torre del arranque y, pocos y separados, los
   buses de Sobusa, Coolitoral, Transmetro y Sodis; de 44 a 60, a 70 entre
-  centros, sin dos iguales juntos, al 40 % y sin relleno en los huecos; `fondo_ilustrado.dart`; la torre adelgaza sus
+  centros, sin dos iguales juntos, al 72 % y sin relleno en los huecos; `fondo_ilustrado.dart`; la torre adelgaza sus
   juntas con el tamaño) sobre el matizado, con
-  la letra en píldoras blancas. Y las áreas iluminadas de la guía
+  la letra en píldoras blancas. Y lo que lee el pasajero va sin «», rayas
+  ni -- (2026-10-18; `textos_sin_signos_test.dart`, y lo legal de la web
+  en `coherencia.test.ts`): el rango de la rueda dice «0,7 a 1,2 km». Y las áreas iluminadas de la guía
   (2026-10-18): el mapa libre entre la cabecera y la hoja, la píldora
   entera con su forma, el botón del aviso y «Ver buses en vivo» como píldoras, en las listas solo
   de la primera fila a la última, y la carta encima de la hoja si cabe. La

@@ -82,9 +82,9 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'hacen dentro del aparato.',
     ),
     LegalBlock.p(
-      'Para ver los buses, lo único que tu teléfono le pide al servidor es '
-      '«mándame las posiciones de esta ruta». Dónde estás tú no viaja en esa '
-      'petición.',
+      'Para ver los buses, lo único que tu teléfono le pide al servidor son '
+      'las posiciones de la ruta que tienes abierta. Dónde estás tú no viaja '
+      'en esa petición.',
     ),
     // El único caso en que la ubicación sale (D13 del backend): el punto se
     // redondea a tres decimales en `avisos_push.dart` y el servidor borra la
@@ -92,8 +92,8 @@ const LegalDoc legalPrivacidad = LegalDoc(
     LegalBlock.p(
       'La excepción es el aviso en Android, para que suene con la app '
       'cerrada. Mientras tienes uno armado, tu teléfono le deja al servidor el '
-      'punto desde el que esperas —el que marcaste a mano o tu última '
-      'posición—, redondeado a unos 100 metros, y lo pone al día cada 20 '
+      'punto desde el que esperas (el que marcaste a mano o tu última '
+      'posición), redondeado a unos 100 metros, y lo pone al día cada 20 '
       'segundos mientras la app está abierta. Con él van el bus y la ruta del '
       'aviso, la distancia a la que pediste que te avise y el código con el '
       'que Firebase Cloud Messaging le hace llegar la notificación a tu '
@@ -106,16 +106,16 @@ const LegalDoc legalPrivacidad = LegalDoc(
     LegalBlock.p(
       'Cuando activas el aviso, la app compara tu posición con la del bus '
       'mientras lo ves moverse, y cuando entra a la distancia que elijas (de '
-      '500 metros a 3 kilómetros) lanza una notificación local —la crea el '
-      'teléfono, no la manda un servidor—. Solo si cierras la app en Android '
+      '500 metros a 3 kilómetros) lanza una notificación local: la crea el '
+      'teléfono, no la manda un servidor. Solo si cierras la app en Android '
       'mide el servidor, con el punto de arriba, y la notificación llega por '
       'Firebase Cloud Messaging.',
     ),
     LegalBlock.p(
       'Cuando sales de la app sin cerrarla y tienes un aviso activo, en '
-      'Android el seguimiento sigue vivo —verás una notificación fija que lo '
-      'dice— pero tu ubicación deja de actualizarse: la app pide el permiso '
-      'de ubicación «solo mientras la uso» y no el de segundo plano, así que '
+      'Android el seguimiento sigue vivo (verás una notificación fija que lo '
+      'dice), pero tu ubicación deja de actualizarse: la app pide el permiso '
+      'de ubicación solo mientras la usas y no el de segundo plano, así que '
       'la distancia se mide contra el último punto que conoció, o contra el '
       'punto de espera que hayas marcado a mano. Si cierras la app del todo, '
       'el seguimiento se detiene y la notificación desaparece: el aviso queda '
@@ -136,7 +136,7 @@ const LegalDoc legalPrivacidad = LegalDoc(
     ),
     LegalBlock.bullet(
       'El punto de espera que hayas marcado a mano, para no tener que '
-      'volver a marcarlo. Lo quitas con «Quitar», en el mismo mapa.',
+      'volver a marcarlo. Lo quitas con el botón Quitar, en el mismo mapa.',
     ),
     LegalBlock.bullet(
       'Tus avisos. Por cada bus al que le activaste uno: el bus, la ruta, '
@@ -190,20 +190,20 @@ const LegalDoc legalPrivacidad = LegalDoc(
     ),
     LegalBlock.heading('Con quién se apoya la app'),
     LegalBlock.bullet(
-      'OpenStreetMap y CARTO — las imágenes del mapa. Se descargan como '
+      'OpenStreetMap y CARTO: las imágenes del mapa. Se descargan como '
       'cualquier imagen de una página; no llevan quién eres.',
     ),
     LegalBlock.bullet(
-      'Servidores propios — las posiciones de los buses pasan por '
+      'Servidores propios: las posiciones de los buses pasan por '
       'infraestructura nuestra, no por un servicio ajeno.',
     ),
     LegalBlock.bullet(
-      'Firebase Cloud Messaging, de Google — solo en Android y solo para un '
+      'Firebase Cloud Messaging, de Google: solo en Android y solo para un '
       'aviso armado con la app cerrada: entrega la notificación. Lleva el '
       'bus, la ruta y la distancia, no tu ubicación.',
     ),
     LegalBlock.bullet(
-      'Gmail, de Google — recibe en el correo del equipo lo que mandas por '
+      'Gmail, de Google: recibe en el correo del equipo lo que mandas por '
       'el buzón. Lleva tu mensaje, no tu ubicación.',
     ),
     LegalBlock.heading('Si usaste una versión anterior'),

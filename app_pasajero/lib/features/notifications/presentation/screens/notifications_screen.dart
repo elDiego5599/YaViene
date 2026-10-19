@@ -67,18 +67,20 @@ class NotificationsScreen extends ConsumerWidget {
         ),
         // Seleccionando, a la izquierda va «Cancelar»: antes no había cómo
         // salir de la selección sin borrar (dueño, 2026-10-02).
-        leadingWidth: selecting ? 104 : null,
+        // Los botones flotan en sus píldoras de vidrio, como en iOS 26.
+        leadingWidth: selecting ? 124 : null,
         leading: selecting
             ? MediaQuery.withClampedTextScaling(
                 maxScaleFactor: 1.3,
-                child: TextButton(
+                child: PildoraVidrio(
+                    child: TextButton(
                   onPressed: ref.read(alertSelectionProvider.notifier).clear,
                   style: TextButton.styleFrom(
                     textStyle: AppTextStyles.etiqueta,
                     foregroundColor: AppColors.primaryDeep,
                   ),
                   child: const Text('Cancelar'),
-                ),
+                )),
               )
             // Fuera de la selección no hay flecha: Avisos es una pestaña de
             // la barra de abajo y no hay detrás a dónde volver.
@@ -89,7 +91,7 @@ class NotificationsScreen extends ConsumerWidget {
             : [
                 MediaQuery.withClampedTextScaling(
                   maxScaleFactor: 1.3,
-                  child: const _SelectAction(),
+                  child: const PildoraVidrio(child: _SelectAction()),
                 ),
               ],
       ),
