@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppColors;
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
 import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
@@ -35,11 +36,8 @@ Future<void> asentar(WidgetTester tester) async {
 }
 
 void main() {
-  /// Avisos y el buzón van en blanco, con sus tarjetas partidas por el filo
-  /// azul noche de la app y sin sombra (dueño, 2026-10-19: «mejor devuelve
-  /// el blanco de las páginas y pones divisiones con colores de la app»;
-  /// el gris agrupado de iOS no gustó). La barra de arriba, en reposo,
-  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
+  /// El contenido sigue blanco y la cabecera usa el gris de superficie
+  /// apagada, con una división bajo el título (dueño, 2026-10-19).
   void exigeFondoBlanco(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         AppColors.surface,
@@ -169,7 +167,8 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('el buzón va sobre el gris agrupado', (tester) async {
+    testWidgets('el buzón separa la cabecera gris del contenido blanco',
+        (tester) async {
       await abrir(
           tester,
           Buzon(
@@ -177,10 +176,16 @@ void main() {
             cliente: MockClient((_) async => http.Response('', 201)),
           ));
       exigeFondoBlanco(tester);
+      expect(find.byType(FondoTexturizado), findsOneWidget);
+      final cabecera = tester
+          .widget<DecoratedBox>(find.byKey(const ValueKey('buzon-cabecera')));
+      final decoracion = cabecera.decoration as BoxDecoration;
+      expect(decoracion.color, AppColors.surfaceMuted);
+      expect(decoracion.border, isNotNull);
     });
 
     // «Quiero como separadores que dividan las cosas, que se vea fino»
-    // (dueño, 2026-10-19): sobre el gris, tarjetas blancas planas, y la
+    // (dueño, 2026-10-19): tarjetas blancas planas, y la
     // nota de privacidad dentro de la del mensaje, bajo una raya de un
     // píxel, como una celda de Ajustes del iPhone.
     testWidgets(

@@ -40,7 +40,9 @@ Future<void> exigeBarraVidrio(WidgetTester tester, Finder primero) async {
   expect(desenfoca(tester), isFalse, reason: 'en reposo no hay vidrio');
 
   final antes = tester.getRect(primero).top;
-  await tester.drag(find.byType(Scrollable).first, const Offset(0, -40));
+  // 80, no 40: el arrastre pierde su holgura de toque (18) y lo primero
+  // puede ir más abajo que la barra (la nota de Avisos deja 16 bajo la raya).
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, -80));
   await tester.pumpAndSettle();
   expect(tester.getRect(primero).top, lessThan(antes),
       reason: 'lo de abajo no se desplaza');

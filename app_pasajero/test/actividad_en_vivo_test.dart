@@ -116,6 +116,8 @@ void main() {
     expect(e.aviso, 'Te avisamos a 1,0 km');
     expect(e.avance, closeTo(0.5, 0.02));
     expect(e.avanceAviso, closeTo(2 / 3, 0.001));
+    expect(e.aMapa()['avance'], e.avance);
+    expect(e.aMapa()['avanceAviso'], e.avanceAviso);
     expect(enVivo.terminados, isEmpty);
   });
 

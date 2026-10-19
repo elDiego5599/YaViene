@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
@@ -42,6 +43,7 @@ void main() {
 
   testWidgets('abre con sus secciones', (tester) async {
     await abrirMas(tester);
+    expect(find.byType(FondoTexturizado), findsOneWidget);
 
     expect(find.text('Ya Viene'), findsOneWidget);
     expect(find.text('Sin ruta activa'), findsOneWidget);

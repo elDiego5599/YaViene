@@ -6,11 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/entrance.dart';
+import '../../../../core/widgets/fondo_texturizado.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../legal/legal_acceptance.dart';
 import '../../../legal/legal_docs.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
-import '../../../splash/presentation/widgets/fondo_matizado.dart';
 import '../../onboarding_flow.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -279,7 +279,7 @@ class _FondoBienvenida extends StatelessWidget {
       value: SystemUiOverlayStyle.dark,
       child: Stack(
         fit: StackFit.expand,
-        children: [const FondoMatizado(), child],
+        children: [const FondoTexturizado(), child],
       ),
     );
   }

@@ -13,6 +13,7 @@ import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/core/widgets/ficha_ruta.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/placa_bus.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
@@ -48,11 +49,8 @@ void main() {
         companyId: 'C1',
       );
 
-  /// Avisos y el buzón van en blanco, con sus tarjetas partidas por el filo
-  /// azul noche de la app y sin sombra (dueño, 2026-10-19: «mejor devuelve
-  /// el blanco de las páginas y pones divisiones con colores de la app»;
-  /// el gris agrupado de iOS no gustó). La barra de arriba, en reposo,
-  /// deja ver ese blanco: es de vidrio (dueño, 2026-10-18).
+  /// El contenido sigue blanco y la cabecera usa el gris de superficie
+  /// apagada, con una división bajo el título (dueño, 2026-10-19).
   void exigeFondoBlanco(WidgetTester tester) {
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
         AppColors.surface,
@@ -137,10 +135,17 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Avisos va sobre el gris agrupado', (tester) async {
+  testWidgets('Avisos separa la cabecera gris del contenido blanco',
+      (tester) async {
     await pumpScreen(tester, const []);
     await tester.pump();
     exigeFondoBlanco(tester);
+    expect(find.byType(FondoTexturizado), findsOneWidget);
+    final cabecera = tester
+        .widget<DecoratedBox>(find.byKey(const ValueKey('avisos-cabecera')));
+    final decoracion = cabecera.decoration as BoxDecoration;
+    expect(decoracion.color, AppColors.surfaceMuted);
+    expect(decoracion.border, isNotNull);
   });
 
   /// La tarjeta de un aviso. La ruta va escrita y la placa en su lámina
@@ -515,12 +520,13 @@ void main() {
               w.decoration is BoxDecoration &&
               (w.decoration! as BoxDecoration).color == AppColors.arena),
           findsNothing);
-      // Y la nota de arriba, tarjeta plana como las demás.
+      // Y la nota de arriba, plana y con su filo, como las demás (dueño,
+      // 2026-10-19: «devuélvele el cuadrito al gestiona»).
       final nota = tester
           .widget<Container>(find.byKey(const ValueKey('nota-avisos')))
           .decoration! as BoxDecoration;
       expect(nota.boxShadow ?? const [], isEmpty);
-      expect(nota.border, isNull);
+      expect(nota.border, Border.all(color: AppColors.filo));
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
@@ -655,6 +661,9 @@ void main() {
         find.descendant(
             of: nota, matching: find.byIcon(Icons.edit_notifications_outlined)),
         findsOneWidget);
+    final decoracion =
+        tester.widget<Container>(nota).decoration as BoxDecoration;
+    expect(decoracion.border, isNotNull);
     // Arriba de la lista.
     expect(tester.getRect(nota).bottom,
         lessThanOrEqualTo(tester.getRect(aviso('A-1')).top));

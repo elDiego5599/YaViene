@@ -140,9 +140,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   1,7 s con medio segundo de marca, sin adornos), con la torre sobre su
   isla de pasto con canto, briznas y cuatro arbustos floridos, y una calle
   de frente bajo el bus, con bordillos y raya blanca (`PintorSuelo`), sobre el
-  fondo matizado azul y verde con grano (`fondo_matizado.dart`, aclarado
-  y luego con algo de su color de vuelta el mismo día), que es también
-  el fondo de la bienvenida, con el nombre en tinta y la bajada en
+  blanco con trama de puntos (`FondoTexturizado`, 2026-10-19; el matizado
+  azul y verde se fue), que es también el fondo de la bienvenida, Avisos,
+  Buzón e Info, con el nombre en tinta y la bajada en
   `textBody` (la malla oscura se fue);
   y en Avisos, arriba, la nota «Gestiona, borra o desactiva tus avisos
   aquí.» con su ícono, y dejar presionado un aviso lo selecciona; y en Info dibujos chicos de

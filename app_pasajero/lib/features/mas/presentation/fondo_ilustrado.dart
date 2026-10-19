@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../core/widgets/fondo_texturizado.dart';
 import '../../splash/presentation/widgets/escena_arranque.dart';
 
 /// Los dibujos de Barranquilla del fondo de Info. La Ventana al Mundo no es
@@ -158,9 +158,7 @@ class FondoIlustrado extends StatelessWidget {
             builder: (context, caja) => Stack(
               clipBehavior: Clip.hardEdge,
               children: [
-                const Positioned.fill(
-                  child: ColoredBox(color: AppColors.surface),
-                ),
+                const Positioned.fill(child: FondoTexturizado()),
                 // Un solo velo para todos: una capa, no una por dibujo.
                 Positioned.fill(
                   child: ShaderMask(

@@ -6,10 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
     'onboarding_screen.dart';
-import 'package:ya_viene_pasajero/features/splash/presentation/widgets/'
-    'fondo_matizado.dart';
 
 import 'golden/golden_harness.dart';
 import 'helpers/contraste.dart';
@@ -39,6 +38,7 @@ void main() {
 
   testWidgets('sin subtítulo ni letra chica bajo cada razón', (tester) async {
     await abrir(tester);
+    expect(find.byType(FondoTexturizado), findsOneWidget);
 
     for (final ido in [
       'Así sabemos qué buses vienen hacia ti y te avisamos antes de que '
@@ -100,9 +100,11 @@ void main() {
   // «La página del onboarding debe tener el mismo degradado que la de
   // carga» (dueño, 2026-10-18): el matizado claro del arranque, no la malla
   // oscura. Con fondo claro, la hora y la batería en oscuro.
-  testWidgets('el fondo es el matizado del arranque', (tester) async {
+  testWidgets('el fondo blanco texturizado conserva la barra clara',
+      (tester) async {
     await abrir(tester);
-    expect(find.byType(FondoMatizado), findsOneWidget);
+    // Cambio a fondo blanco texturizado (dueño, 2026-10-19).
+    expect(find.byType(FondoTexturizado), findsOneWidget);
     final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
         find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first);
     expect(region.value, SystemUiOverlayStyle.dark);
@@ -122,7 +124,7 @@ void main() {
     late ByteData datos;
     await tester.runAsync(() async {
       final grabadora = ui.PictureRecorder();
-      const PintorMatizado().paint(Canvas(grabadora), pantalla);
+      const PintorFondoTexturizado().paint(Canvas(grabadora), pantalla);
       final imagen = await grabadora
           .endRecording()
           .toImage(pantalla.width.toInt(), pantalla.height.toInt());

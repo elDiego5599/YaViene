@@ -240,12 +240,17 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   planas sin sombra con su filo (`AppColors.filo`, #D0D4DC, la tinta de
   la marca al 20 %, como Stripe o Linear) y una raya del mismo filo en
   cada tarjeta de Avisos; el mensaje del buzón sin raya, con la nota de
-  privacidad fuera.
+  privacidad fuera. Arriba, bajo la barra, una cabecera gris
+  (`surfaceMuted`) con raya de filo; la nota «Gestiona…» con su cuadro.
+  Fondo blanco con trama de puntos (`FondoTexturizado`, tinta al 7 %,
+  contraste medido en el archivo) en arranque, bienvenida, Avisos, Buzón
+  e Info (dueño, 2026-10-19; el matizado azul y verde se fue).
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso
   armado pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
-  `actividad_en_vivo.dart`): ficha en el color de la empresa, cifra de
-  la hoja y la barra de lo que falta. Al sonar dice «Tu bus de la ruta X
+  `actividad_en_vivo.dart`): fondo negro como Uber, ficha en el color de
+  la empresa, cifra de la hoja y una pista con el bus que avanza hacia tu
+  punto, con la raya blanca donde suena el aviso. Al sonar dice «Tu bus de la ruta X
   está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
   dice. Con la app cerrada no se pone al día (APNs, FALTANTES).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),

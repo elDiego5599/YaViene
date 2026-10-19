@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
+
 import '../../../../core/providers/app_state.dart';
+import '../../../../core/widgets/fondo_texturizado.dart';
 import '../../../onboarding/onboarding_flow.dart';
 import '../widgets/escena_arranque.dart';
-import '../widgets/fondo_matizado.dart';
 
 /// Pantalla de arranque: deja el estado de la sesión anterior limpio, pinta
 /// la escena de Barranquilla con la marca ([EscenaArranque]) y sigue a la
@@ -47,14 +49,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Blanco detrás, como las pantallas de arranque nativas, así el relevo
-    // no salta; el matizado entra encima en un fundido corto.
+    // El blanco texturizado conserva el relevo visual con el arranque nativo.
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const FondoMatizado(),
+          const FondoTexturizado(),
           Center(
             child: EscenaArranque(
               alTerminar: () {

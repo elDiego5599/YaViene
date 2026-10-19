@@ -9,12 +9,12 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/ink_hero.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/screens/splash_screen.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_arranque.dart';
-import 'package:ya_viene_pasajero/features/splash/presentation/widgets/fondo_matizado.dart';
 
 /// El arranque (dueño, 2026-10-18): fondo blanco, Barranquilla que se arma
 /// —la Ventana al Mundo, la cayena y el bus— y la marca. Breve: la escena
@@ -73,17 +73,16 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  // «Que en la pantalla de carga no se vea el blanco liso» (dueño,
-  // 2026-10-18): el matizado va debajo de la escena; el blanco del Scaffold
-  // queda detrás, para el relevo con el arranque nativo.
-  testWidgets('el arranque lleva el fondo matizado debajo de la escena',
+  // Cambio del fondo liso a textura blanca (dueño, 2026-10-19): la textura
+  // va debajo de la escena para conservar el relevo con el arranque nativo.
+  testWidgets('el arranque lleva el fondo texturizado debajo de la escena',
       (tester) async {
     await abrir(tester);
     await tester.pump();
     final pila = tester.widget<Stack>(find
         .descendant(of: find.byType(SplashScreen), matching: find.byType(Stack))
         .first);
-    expect(pila.children.first, isA<FondoMatizado>());
+    expect(pila.children.first, isA<FondoTexturizado>());
     expect(
         find.descendant(
             of: find.byWidget(pila), matching: find.byType(EscenaArranque)),

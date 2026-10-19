@@ -10,6 +10,7 @@ import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/barra_vidrio.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/ficha_ruta.dart';
+import '../../../../core/widgets/fondo_texturizado.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
 import '../../../../core/widgets/titulo_seccion.dart';
@@ -109,18 +110,42 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       // Al borrar el último, la lista se apaga y el estado vacío aparece en
       // su lugar; antes era un corte seco.
-      body: AnimatedSwitcher(
-        duration: AppMotion.duracion(context, AppMotion.normal),
-        switchInCurve: AppMotion.curvaEntrada,
-        switchOutCurve: AppMotion.curvaSalida,
-        child: entries.isEmpty
-            ? const _EmptyState(key: ValueKey('vacio'))
-            : _HistoryList(
-                key: const ValueKey('lista'),
-                entries: entries,
-                positions: positions,
-                route: route,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: FondoTexturizado()),
+          // El gris de la cabecera con su raya: bajo el título, hasta donde
+          // termina la barra (el relleno de arriba del cuerpo ya la suma).
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Builder(
+              builder: (context) => SizedBox(
+                height: MediaQuery.paddingOf(context).top,
+                child: const DecoratedBox(
+                  key: ValueKey('avisos-cabecera'),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    border: Border(bottom: BorderSide(color: AppColors.filo)),
+                  ),
+                ),
               ),
+            ),
+          ),
+          AnimatedSwitcher(
+            duration: AppMotion.duracion(context, AppMotion.normal),
+            switchInCurve: AppMotion.curvaEntrada,
+            switchOutCurve: AppMotion.curvaSalida,
+            child: entries.isEmpty
+                ? const _EmptyState(key: ValueKey('vacio'))
+                : _HistoryList(
+                    key: const ValueKey('lista'),
+                    entries: entries,
+                    positions: positions,
+                    route: route,
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -139,16 +164,17 @@ class _NotaAvisos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, AppSpacing.xs, 0, AppSpacing.lg),
+      // 16 bajo la raya de la cabecera, para que la nota no quede pegada.
+      padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, 0, AppSpacing.lg),
       child: Container(
         key: const ValueKey('nota-avisos'),
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        // Plana, como las tarjetas de los avisos: sobre el gris se despega
-        // sola.
+        // El filo devuelve el contorno de la nota sobre el fondo blanco.
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.filo),
         ),
         child: Row(
           children: [

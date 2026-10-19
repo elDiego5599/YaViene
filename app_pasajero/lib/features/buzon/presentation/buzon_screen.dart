@@ -5,6 +5,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
+import '../../../core/widgets/fondo_texturizado.dart';
 import '../../../core/widgets/titulo_seccion.dart';
 import '../data/buzon.dart';
 
@@ -98,20 +99,44 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: AnimatedSwitcher(
-          duration: AppMotion.duracion(context, AppMotion.normal),
-          switchInCurve: AppMotion.curvaEntrada,
-          switchOutCurve: AppMotion.curvaSalida,
-          child: _recibido
-              ? _Gracias(
-                  key: const ValueKey('buzon_gracias'),
-                  alVolver: _volver,
-                )
-              // Bajo el Scaffold, que suma la barra al relleno de arriba.
-              : Builder(
-                  key: const ValueKey('buzon_formulario'),
-                  builder: _formulario,
+        child: Stack(
+          children: [
+            const Positioned.fill(child: FondoTexturizado()),
+            // El gris de la cabecera con su raya: bajo el título, hasta donde
+            // termina la barra (el relleno de arriba del cuerpo ya la suma).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Builder(
+                builder: (context) => SizedBox(
+                  height: MediaQuery.paddingOf(context).top,
+                  child: const DecoratedBox(
+                    key: ValueKey('buzon-cabecera'),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      border: Border(bottom: BorderSide(color: AppColors.filo)),
+                    ),
+                  ),
                 ),
+              ),
+            ),
+            AnimatedSwitcher(
+              duration: AppMotion.duracion(context, AppMotion.normal),
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaSalida,
+              child: _recibido
+                  ? _Gracias(
+                      key: const ValueKey('buzon_gracias'),
+                      alVolver: _volver,
+                    )
+                  // Bajo el Scaffold, que suma la barra al relleno de arriba.
+                  : Builder(
+                      key: const ValueKey('buzon_formulario'),
+                      builder: _formulario,
+                    ),
+            ),
+          ],
         ),
       ),
     );

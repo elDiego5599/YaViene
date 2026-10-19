@@ -4,10 +4,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_arranque.dart';
-import 'package:ya_viene_pasajero/features/splash/presentation/widgets/fondo_matizado.dart';
 
 /// El fondo de Info (dueño, 2026-10-18): las ilustraciones de Barranquilla
 /// chicas, regadas sin orden y con pocos buses, atenuadas sobre blanco
@@ -149,14 +148,8 @@ void main() {
       (tester) async {
     await tester
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
-    expect(
-        find.byWidgetPredicate(
-            (w) => w is CustomPaint && w.painter is PintorMatizado),
-        findsNothing);
-    expect(
-        find.byWidgetPredicate(
-            (w) => w is ColoredBox && w.color == AppColors.surface),
-        findsOneWidget);
+    // El blanco con su trama, como Avisos y Buzón (dueño, 2026-10-19).
+    expect(find.byType(FondoTexturizado), findsOneWidget);
     final imagenes = tester.widgetList<Image>(find.byType(Image)).toList();
     expect(imagenes, isNotEmpty);
     expect(imagenes.every((i) => i.excludeFromSemantics), isTrue);
@@ -164,7 +157,8 @@ void main() {
 
   // «Atenúa un poco las imágenes en la pantalla de Info» (dueño,
   // 2026-10-18), y sin los puntitos ni las estrellitas de los huecos: con
-  // los dibujos de fondo, sobraban.
+  // los dibujos de fondo, sobraban. La trama fija del blanco no es relleno
+  // de los huecos: va pareja en toda la pantalla (dueño, 2026-10-19).
   testWidgets('los dibujos, atenuados y sin relleno entre ellos',
       (tester) async {
     await tester
@@ -175,7 +169,7 @@ void main() {
         .whereType<CustomPainter>()
         .map((p) => p.runtimeType)
         .toSet();
-    expect(pintores, {PintorVentana});
+    expect(pintores, {PintorFondoTexturizado, PintorVentana});
     final dibujos = [
       ...find.byType(Image).evaluate(),
       ...find
