@@ -177,12 +177,9 @@ Necesitan un teléfono, una cuenta o estar presente.
   bus, no solo su carril: dos buses lado a lado, de ida y de vuelta,
   daban 10 y 29 km).
 
-- **`alongroute` con la regla del 2026-10-19**: la librería publicada
-  (`YaViene/alongroute`) sigue midiendo hacia adelante hasta el próximo
-  paso, que en una circular cuenta la vuelta entera si el bus ya pasó.
-  Falta portarle la regla nueva del core (el paso más cerca, adelante o
-  atrás, medido desde todos los pasos por donde está el bus) con sus
-  pruebas, y su README.
+- **`alongroute` con la regla del 2026-10-19**: portada en TS y Dart con
+  sus vectores, README y diseño (`83a7571`, solo local). Falta que el
+  dueño diga si se sube a su `main`, que lanza su CI.
 
 - **La tarjeta del aviso activo con el texto al doble** (hallado el
   2026-10-07, ya estaba en `9d0f3a0`): desde el 2026-10-16 ya no se sale
