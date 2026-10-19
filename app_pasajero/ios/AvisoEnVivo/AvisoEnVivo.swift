@@ -19,14 +19,16 @@ struct AvisoEnVivo: Widget {
     } dynamicIsland: { contexto in
       DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
-          IslaLider(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
-            .dynamicIsland(verticalPlacement: .belowIfTooWide)
+          EmptyView()
         }
         DynamicIslandExpandedRegion(.center) {
-          IslaCentro(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
+          EmptyView()
+        }
+        DynamicIslandExpandedRegion(.trailing) {
+          EmptyView()
         }
         DynamicIslandExpandedRegion(.bottom) {
-          IslaAbajo(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
+          IslaExpandida(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
         }
       } compactLeading: {
         CompactaLider(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)

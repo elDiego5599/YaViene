@@ -52,28 +52,31 @@ struct TarjetaBloqueada: View {
   }
 }
 
-struct IslaLider: View {
-  let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
-  var body: some View {
-    Ficha(atributos: atributos, alto: 40)
-      .opacity(caduco && !estado.llego ? 0.5 : 1)
-  }
-}
+struct IslaExpandida: View {
+  let atributos: AvisoAtributos
+  let estado: AvisoAtributos.ContentState
+  let caduco: Bool
 
-struct IslaCentro: View {
-  let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
   var body: some View {
-    ContenidoAviso(atributos: atributos, estado: estado, caduco: caduco, tituloGrande: false)
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 10) {
+        Ficha(atributos: atributos, alto: 36)
+        ContenidoAviso(atributos: atributos, estado: estado, caduco: caduco, tituloGrande: true)
+      }
       .opacity(caduco && !estado.llego ? 0.5 : 1)
-  }
-}
 
-struct IslaAbajo: View {
-  let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; let caduco: Bool
-  var body: some View {
-    Pista(atributos: atributos, estado: estado, muestraRotulos: !estado.llego, caduco: caduco)
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
+      Pista(
+        atributos: atributos,
+        estado: estado,
+        muestraRotulos: !estado.llego,
+        caduco: caduco
+      )
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(Text(Textos.accesibilidad(atributos: atributos, estado: estado)))
   }
 }
 
@@ -196,13 +199,15 @@ private struct Pista: View {
             .font(.system(size: 10, weight: .semibold))
           Text(caduco ? "Sin datos nuevos, abre Ya Viene" : estado.aviso)
             .lineLimit(1)
-            .minimumScaleFactor(0.75)
+            .minimumScaleFactor(0.9)
+            .layoutPriority(1)
           Spacer(minLength: 4)
           Text("Tu punto")
             .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
         }
-        // 12 pt mantiene la fila secundaria legible sin competir con la cifra.
-        .font(.system(size: 12, weight: .medium))
+        // Subheadline iguala ambas etiquetas a la fila de la tarjeta.
+        .font(.subheadline)
         .foregroundStyle(Tinta.secundaria)
       }
     }.accessibilityHidden(true)
