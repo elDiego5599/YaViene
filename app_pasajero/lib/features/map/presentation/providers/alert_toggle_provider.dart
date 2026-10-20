@@ -253,7 +253,7 @@ class AlertToggleController {
         hasPosition: true,
         bus: null,
         busDistanceMeters: null,
-        activeAlertsCount: 2,
+        activeAlertsCount: maxAvisosActivos,
         radioCercaM: distanciaAvisoInicial,
         radioRutaM: distanciaAvisoInicial,
       )!;

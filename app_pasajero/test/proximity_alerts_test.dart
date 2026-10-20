@@ -551,23 +551,21 @@ void main() {
       expect(sonados, isEmpty);
     });
 
-    test('cambiar la distancia de un aviso armado mide con la nueva', () async {
+    test('cambiar la distancia del bus seguido mide con la nueva', () async {
       armar(500);
-      c.read(activeAlertsProvider.notifier).activateAlert('B-2');
-      avisos.armAlert('B-2', 'R1', radioM: 1500);
+      expect(
+          c.read(activeAlertsProvider.notifier).activateAlert('B-2'), isFalse);
       await busEn(a800);
       expect(sonados, isEmpty);
 
       avisos.cambiarRadio('A-1', 1000);
 
       expect(avisos.radioDe('A-1'), 1000);
-      // Uno por uno: la hoja dice «Solo se cambia la distancia de este
-      // aviso», y el otro aviso puesto sigue a la suya.
-      expect(avisos.radioDe('B-2'), 1500);
+      expect(avisos.radioDe('B-2'), isNull);
       final historial = {
         for (final e in c.read(alertHistoryProvider)) e.busId: e.radioM
       };
-      expect(historial, {'A-1': 1000, 'B-2': 1500});
+      expect(historial, {'A-1': 1000});
       await busEn(a800);
       expect(sonados, hasLength(1));
     });
@@ -901,7 +899,7 @@ void main() {
     expect(localFired.single.distanceMeters, lessThan(50));
   });
 
-  test('cada aviso guarda el pin con el que se armó', () async {
+  test('el bus seguido conserva el pin con el que se armó', () async {
     final notifier =
         container.read(userLocationProvider.notifier) as _TestUserLocation;
     container.read(selectedRouteProvider.notifier).select(route());
@@ -915,20 +913,21 @@ void main() {
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
 
-    // Se mueve el pin y se arma OTRO bus: este segundo aviso se fija al pin
-    // nuevo, y el primero no se entera.
+    // Al mover el pin y elegir otro bus, no se cambia el seguimiento activo.
     notifier.set(UserLocationState(
       mode: UserLocationMode.manual,
       lat: 6.35,
       lon: -75.55,
       updatedAt: DateTime.now(),
     ));
-    container.read(activeAlertsProvider.notifier).toggleAlert('A-2');
-    container.read(proximityAlertsProvider.notifier).armAlert('A-2', 'R1');
+    expect(
+      container.read(activeAlertsProvider.notifier).activateAlert('A-2'),
+      isFalse,
+    );
 
     final alerts = container.read(proximityAlertsProvider.notifier);
     expect(alerts.anchorFor('A-1'), (6.2442, -75.5812));
-    expect(alerts.anchorFor('A-2'), (6.35, -75.55));
+    expect(alerts.anchorFor('A-2'), isNull);
   });
 
   // Un bus que se va a descansar al patio se oculta del mapa y nadie sabe

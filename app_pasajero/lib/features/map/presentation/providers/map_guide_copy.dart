@@ -28,7 +28,7 @@ bool isMapGuideStep(MapGuideStep? step) {
 }
 
 // Copia final por paso, con overrides para el paso de alerta (aviso ya
-// activo, límite de 2, ruta que no pasa cerca, o bloqueado por señal/
+// activo, límite de seguimiento, ruta que no pasa cerca, o bloqueado por señal/
 // cercanía). Antes vivía en map_screen.dart; ahora está junto al resto de
 // copias para encontrarlo.
 MapGuideCopy guideCopyFor(
@@ -62,9 +62,8 @@ MapGuideCopy guideCopyFor(
     }
     if (limitReached) {
       return const MapGuideCopy(
-        title: 'Ya tienes 2 avisos activos',
-        message: 'Desactiva uno o espera a que termine para activar otro. '
-            'Recuerda no cerrar la aplicación ni salirte de la guía.',
+        title: 'Ya sigues un bus',
+        message: 'Quita su aviso o espera a que suene para seguir otro.',
         icon: Icons.notifications_off_outlined,
         primaryLabel: 'Continuar',
       );

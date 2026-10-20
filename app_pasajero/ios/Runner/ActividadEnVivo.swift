@@ -3,7 +3,7 @@ import Flutter
 import Foundation
 
 /// El lado nativo de `actividad_en_vivo.dart`: pone, pone al día y quita la
-/// actividad en vivo de cada aviso armado. Antes de iOS 16.2, o con las
+/// actividad en vivo del bus seguido. Antes de iOS 16.2, o con las
 /// actividades apagadas en Ajustes, no hace nada: el aviso suena igual.
 enum ActividadEnVivo {
   static func registrar(con registrador: FlutterPluginRegistrar) {

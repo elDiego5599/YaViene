@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 /// El aviso corto de abajo: lo que la app dice sin preguntar nada —«ya
-/// tienes 2 avisos activos», «el bus ya está cerca»—.
+/// sigues un bus», «el bus ya está cerca»—.
 ///
 /// Antes era el `SnackBar` de fábrica con el tema encima: una barra tinta
 /// que se leía como un mensaje del sistema, no de la app (dueño,

@@ -11,6 +11,9 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_p
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
 
+const _mensajeTope = 'Ya sigues un bus: quita su aviso o espera a que suene '
+    'para seguir otro';
+
 /// Los avisos de la hoja con diseño propio (dueño, 2026-09-28: «los pop ups
 /// y warning en todas las apps deben ser con diseño propio»). Lo que la
 /// regla rechaza sale en la tarjeta de aviso de la app, no en el SnackBar de
@@ -89,7 +92,7 @@ void main() {
       tester,
       const AlertToggleResult(
         AlertToggleOutcome.rejected,
-        message: 'Ya tienes 2 avisos activos',
+        message: _mensajeTope,
       ),
     );
 
@@ -98,7 +101,7 @@ void main() {
     expect(
       find.descendant(
         of: aviso,
-        matching: find.text('Ya tienes 2 avisos activos'),
+        matching: find.text(_mensajeTope),
       ),
       findsOneWidget,
     );
@@ -135,12 +138,12 @@ void main() {
       tester,
       const AlertToggleResult(
         AlertToggleOutcome.rejected,
-        message: 'Ya tienes 2 avisos activos',
+        message: _mensajeTope,
       ),
     );
 
     expect(
-      find.bySemanticsLabel(RegExp('Ya tienes 2 avisos activos')),
+      find.bySemanticsLabel(RegExp('Ya sigues un bus')),
       findsOneWidget,
     );
     await tester.pump(const Duration(seconds: 8));

@@ -248,18 +248,15 @@ void main() {
     expect(mantenerVivo.paradas, 1);
   });
 
-  test('dos avisos comparten un stream de mantenimiento', () async {
+  test('el segundo bus no toma el stream de mantenimiento', () async {
     final c = contenedor();
     final avisos = await armado(c);
 
-    avisos.armAlert('A-2', 'R2');
-    await Future<void>.delayed(Duration.zero);
-    avisos.disarmAlert('A-1');
-
+    expect(c.read(activeAlertsProvider.notifier).activateAlert('A-2'), isFalse);
+    expect(c.read(activeAlertsProvider), {'A-1'});
     expect(mantenerVivo.inicios, 1);
-    expect(mantenerVivo.paradas, 0);
 
-    avisos.disarmAlert('A-2');
+    avisos.disarmAlert('A-1');
     expect(mantenerVivo.paradas, 1);
   });
 

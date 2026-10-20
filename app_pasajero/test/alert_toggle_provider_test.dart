@@ -334,7 +334,6 @@ void main() {
       requester: () async {
         final alerts = race!.read(activeAlertsProvider.notifier);
         alerts.activateAlert('X-1');
-        alerts.activateAlert('X-2');
         return true;
       },
     );
@@ -348,7 +347,10 @@ void main() {
         .toggle('A-1', elegirDistancia: _unaVez(1000));
 
     expect(result.outcome, AlertToggleOutcome.limitReached);
-    expect(result.message, contains('2 avisos activos'));
+    expect(
+        result.message,
+        'Ya sigues un bus: quita su aviso o espera a que suene para '
+        'seguir otro');
     expect(container.read(activeAlertsProvider), isNot(contains('A-1')));
   });
 
@@ -548,16 +550,18 @@ void main() {
         expect(result.message, contains('3 km como mucho'));
       });
 
-      test('ya hay 2 avisos activos', () async {
+      test('ya sigues un bus', () async {
         final container = await listo();
         final alerts = container.read(activeAlertsProvider.notifier);
         alerts.activateAlert('X-1');
-        alerts.activateAlert('X-2');
         final result = await container
             .read(alertToggleProvider)
             .toggle('A-1', elegirDistancia: _noPreguntes);
         expect(result.outcome, AlertToggleOutcome.rejected);
-        expect(result.message, contains('2 avisos activos'));
+        expect(
+            result.message,
+            'Ya sigues un bus: quita su aviso o espera a que suene para '
+            'seguir otro');
       });
     });
 

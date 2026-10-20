@@ -70,8 +70,9 @@ void main() {
   }
 
   void arm(ProviderContainer c, String busId) {
-    c.read(activeAlertsProvider.notifier).toggleAlert(busId);
-    c.read(proximityAlertsProvider.notifier).armAlert(busId, 'R1');
+    if (c.read(activeAlertsProvider.notifier).activateAlert(busId)) {
+      c.read(proximityAlertsProvider.notifier).armAlert(busId, 'R1');
+    }
   }
 
   /// Deja emitir el stream de posiciones (Stream.value emite por microtask).
@@ -164,7 +165,6 @@ void main() {
     arm(first, 'A-1');
     await drain();
     await first.read(proximityAlertsProvider.notifier).check();
-    first.read(activeAlertsProvider.notifier).toggleAlert('A-1');
     // A-1 ya envió; se arma A-2 y se deja activo. El fixture solo trae a
     // A-1 en el stream, así que A-2 queda esperando.
     arm(first, 'A-2');
@@ -182,6 +182,28 @@ void main() {
     expect(history.firstWhere((e) => e.busId == 'A-2').sent, isFalse);
     // Solo el activo se re-armó; el enviado no.
     expect(second.read(activeAlertsProvider), {'A-2'});
+  });
+
+  test('restore descarta el segundo seguimiento activo antiguo', () async {
+    final previous = buildContainer();
+    addTearDown(previous.dispose);
+    final history = previous.read(alertHistoryProvider.notifier);
+    history.upsert('A-1', routeId: 'R1');
+    history.upsert('A-2', routeId: 'R1');
+    await history.guardado;
+
+    final current = buildContainer();
+    addTearDown(current.dispose);
+    await current.read(proximityAlertsProvider.notifier).restore();
+
+    expect(current.read(activeAlertsProvider), {'A-1'});
+    expect(
+      current
+          .read(alertHistoryProvider)
+          .where((entry) => !entry.sent)
+          .map((entry) => entry.busId),
+      ['A-1'],
+    );
   });
 
   test('restore() es idempotente: no duplica avisos ya armados', () async {

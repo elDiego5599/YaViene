@@ -255,28 +255,26 @@ void main() {
     expect(find.byIcon(Icons.notifications_off_outlined), findsNothing);
   });
 
-  testWidgets('máximo 2 avisos activos: el tercero muestra el mensaje',
+  testWidgets('un bus activo bloquea el seguimiento de un segundo bus',
       (tester) async {
     final container = await pumpHero(
       tester,
-      [busAt(0.02), busAt(0.02, busId: 'B-1'), busAt(0.02, busId: 'C-1')],
+      [busAt(0.02), busAt(0.02, busId: 'B-1')],
     );
-    // Dos avisos ya armados (el botón pide permiso de notificaciones, que no
-    // se puede conceder en test: se arman directo por los notifiers).
+    // El botón pide permiso del sistema; el aviso existente se arma directo.
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
-    container.read(activeAlertsProvider.notifier).toggleAlert('B-1');
-    container.read(proximityAlertsProvider.notifier).armAlert('B-1', 'R1');
     await tester.pump();
 
-    // Tercer bus seleccionado: el botón debe explicar el límite, no armar.
+    // Segundo bus seleccionado: debe explicar el límite, no armarlo.
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
-    container.read(selectedBusesProvider.notifier).toggleBus('C-1');
+    container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
     await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pump();
 
-    expect(find.textContaining('Ya tienes 2 avisos activos'), findsOneWidget);
-    expect(container.read(activeAlertsProvider), isNot(contains('C-1')));
+    expect(find.textContaining('Ya sigues un bus'), findsOneWidget);
+    expect(container.read(activeAlertsProvider), {'A-1'});
+    expect(container.read(activeAlertsProvider), isNot(contains('B-1')));
   });
 }

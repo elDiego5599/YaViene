@@ -11,9 +11,9 @@ void main() {
     addTearDown(avisos.dispose);
 
     expect(avisos.activateAlert('A-1'), isTrue);
-    expect(avisos.activateAlert('A-2'), isTrue);
+    expect(avisos.activateAlert('A-2'), isFalse);
     expect(avisos.activateAlert('A-1'), isTrue);
     expect(avisos.activateAlert('A-3'), isFalse);
-    expect(avisos.state, {'A-1', 'A-2'});
+    expect(avisos.state, {'A-1'});
   });
 }

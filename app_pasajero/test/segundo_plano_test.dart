@@ -39,8 +39,7 @@ void main() {
     await mapa.desmontar(tester);
   });
 
-  testWidgets('el primer aviso lo enciende y quitar el último lo apaga',
-      (tester) async {
+  testWidgets('armar el aviso lo enciende y quitarlo lo apaga', (tester) async {
     final mapa = await MapaDePrueba.montar(tester);
     mapa.repo.foto([10.95, 10.94]);
     await tester.pump(const Duration(milliseconds: 300));
@@ -49,13 +48,7 @@ void main() {
     await tester.pump();
     expect(mapa.servicio.pedidos, ['encender']);
 
-    armar(mapa, 'BUS-SQA221');
     quitar(mapa, 'BUS-SQA220');
-    await tester.pump();
-    expect(mapa.servicio.pedidos, ['encender'],
-        reason: 'queda un aviso armado: el servicio sigue');
-
-    quitar(mapa, 'BUS-SQA221');
     await tester.pump();
     expect(mapa.servicio.pedidos, ['encender', 'apagar']);
     await mapa.desmontar(tester);

@@ -127,7 +127,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 12. El estado vacío `empty-pick-bus` es intencional, no se «arregla».
 13. D3: el pasajero no tiene cuenta. Firebase en el pasajero existe solo
     para los avisos con la app cerrada (D13, FCM, solo Android).
-14. Máximo 2 avisos activos; sin estado «va pasando»; la guía no se
+14. Se sigue un solo bus a la vez (`maxAvisosActivos`); sin estado «va pasando»; la guía no se
     reanuda sola tras un cierre a medias.
 15. Las decisiones D1–D14 (`YaVieneBackend/docs/decisiones/`) también son
     reglas. D2 (el equipo GPS) espera la respuesta del AMB a la PQRS.
@@ -246,7 +246,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   contraste medido en el archivo) en arranque, bienvenida, Avisos, Buzón
   e Info (dueño, 2026-10-19; el matizado azul y verde se fue).
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso
-  armado pone la suya en la pantalla bloqueada y la Dynamic Island
+  armado (se sigue un solo bus a la vez) pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
   `actividad_en_vivo.dart`): fondo negro como Uber, arriba «Está a X de
   ti» y debajo la ruta y la placa (como Uber, dueño, 2026-10-19), ficha en el color de

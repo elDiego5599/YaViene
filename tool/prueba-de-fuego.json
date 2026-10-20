@@ -613,15 +613,15 @@
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "return largo - a < _ruidoAtras ? 0 : a;",
-    "a": "return a;",
-    "que": "en la circular, el ruido del GPS no manda al bus a la vuelta siguiente"
+    "de": "return circular ? math.min(d, largo - d) : d;",
+    "a": "return d;",
+    "que": "en la circular, un bus recién pasado no cuenta la vuelta entera"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (d < 0) return d > -_ruidoAtras ? 0 : null;",
-    "a": "if (d < 0) return null;",
-    "que": "en la abierta, el ruido del GPS no da el punto por dejado atrás"
+    "de": "return ruta._desde([avance, for (final p in aqui) p.avance], punto);",
+    "a": "return ruta._desde([avance], punto);",
+    "que": "dos buses lado a lado, uno de ida y otro de vuelta, dicen lo mismo"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
@@ -631,26 +631,20 @@
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (pasos.first.desvio > desvioPuntoMaximo) return null;",
-    "a": "if (false) return null;",
+    "de": "final pasos = _pasos(p, desvioPuntoMaximo);",
+    "a": "final pasos = _pasos(p, double.infinity);",
     "que": "un punto lejos de la ruta no se mide por ella"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "const double _caminable = 150;",
-    "a": "const double _caminable = 0;",
-    "que": "la ruta que vuelve a pasar cerca trae el bus antes que la vuelta entera"
+    "de": "].reduce(math.min);",
+    "a": "].first;",
+    "que": "todos los pasos por el punto cuentan, no solo el primero"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "const double _caminable = 150;",
-    "a": "const double _caminable = 200;",
-    "que": "una calle a más de 150 m del paso más cercano no es el mismo sitio"
-  },
-  {
-    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (todas[i].desvio <= mejor + _caminable && minimo(i))",
-    "a": "if (todas[i].desvio <= mejor + _caminable)",
+    "de": "if (todas[i].desvio <= maximo && minimo(i))",
+    "a": "if (todas[i].desvio <= maximo)",
     "que": "antes de una esquina no hay un paso falso"
   },
   {
@@ -658,5 +652,11 @@
     "de": "seguidor?.distancia(bus, GeoPoint(lat: lat, lon: lon)) ??",
     "a": "null ??",
     "que": "la app mide la distancia por la ruta, no en línea recta"
+  },
+  {
+    "archivo": "app_pasajero/lib/features/map/presentation/providers/active_alerts_provider.dart",
+    "de": "const int maxAvisosActivos = 1;",
+    "a": "const int maxAvisosActivos = 2;",
+    "que": "se sigue un solo bus a la vez"
   }
 ]

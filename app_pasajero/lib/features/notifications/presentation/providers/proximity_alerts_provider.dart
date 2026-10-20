@@ -59,10 +59,10 @@ const pausaSinPush = Duration(minutes: 10);
 /// mostrar y lo lee la hoja del mapa para decirlo (auditoría 2026-09, H2).
 final avisosSinPermisoProvider = StateProvider<bool>((ref) => false);
 
-/// Vigila el bus con alerta activa (selección única) y dispara una notificación
+/// Vigila el bus con aviso activo (selección única) y dispara una notificación
 /// local cuando entra a la distancia de su aviso (la que eligió la persona)
-/// de la ubicación del usuario (GPS o pin). Cada bus notifica por separado y
-/// solo una vez por acercamiento.
+/// de la ubicación del usuario (GPS o pin). Solo avisa una vez por
+/// acercamiento.
 class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   ProximityAlertsNotifier(
     this._ref, {
@@ -91,7 +91,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   final PermisoDeAvisos _permiso;
   final RetirarAviso _retirar;
 
-  /// La pantalla bloqueada y la Dynamic Island de cada aviso armado.
+  /// La pantalla bloqueada y la Dynamic Island del bus que se sigue.
   final ActividadEnVivo _enVivo;
 
   /// Stream de ubicación de fondo mientras hay avisos armados en iOS.
@@ -113,7 +113,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     } catch (_) {}
   }
 
-  /// Clave y hora del último envío de la actividad de cada bus. Los estados
+  /// Clave y hora del último envío de la actividad del bus seguido. Los estados
   /// iguales se reenvían cada 30 s para renovar su vigencia en iOS.
   final _enVivoMostrado = <String, (String, DateTime)>{};
 
@@ -134,8 +134,8 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   final _servidor = <String, String>{};
 
   /// Avisos del servidor que hay que borrar y todavía no se pudo (sin red al
-  /// desarmar). Se reintentan en cada vuelta: un huérfano ocupa uno de los
-  /// dos cupos del teléfono y podría sonar por un aviso ya retirado.
+  /// desarmar). Se reintentan en cada vuelta: un huérfano ocupa el cupo del
+  /// teléfono y podría sonar por un aviso ya retirado.
   final _porBorrar = <String>{};
 
   /// Hasta cuándo no se arma nada en el servidor ([pausaSinPush]).
@@ -218,10 +218,19 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       await _ref.read(alertHistoryProvider.notifier).load();
       final entries = _ref.read(alertHistoryProvider);
       for (final e in entries) {
-        if (!e.sent) rearmar(e);
+        if (!e.sent && !rearmar(e)) {
+          // El cupo o los datos impiden rearmarlo: no dejes una alerta
+          // pendiente sin vigía ni su copia antigua en el servidor.
+          final id = e.servidorId;
+          if (id != null) _porBorrar.add(id);
+          _ref.read(alertHistoryProvider.notifier).remove(e.busId);
+        }
       }
     } finally {
       _monitoringPaused = false;
+    }
+    if (_push != null && _porBorrar.isNotEmpty) {
+      unawaited(sincronizarPush());
     }
     // Al abrir la app con avisos armados se mira si pueden sonar: el
     // permiso se pudo quitar en Ajustes mientras la app estaba cerrada.
@@ -232,7 +241,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
 
   /// Vuelve a armar un aviso que está en el historial, con su ancla de
   /// entonces. Lo usan [restore] y el «Deshacer» de la pantalla de avisos.
-  /// `false` si no cabe: ya hay 2 activos.
+  /// `false` si ya se sigue otro bus.
   bool rearmar(AlertHistoryEntry e) {
     if (e.routeId.isEmpty) return false;
     final wasMonitoring =

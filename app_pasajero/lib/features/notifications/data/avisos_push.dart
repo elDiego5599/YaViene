@@ -172,8 +172,8 @@ class AvisosPush {
   }
 
   /// Borra el aviso del servidor. `false` si no se pudo (sin red): quien
-  /// llama lo vuelve a intentar, porque un aviso huérfano ocupa uno de los
-  /// dos cupos del teléfono hasta que vence.
+  /// llama lo vuelve a intentar, porque un aviso huérfano ocupa el cupo del
+  /// teléfono hasta que vence.
   Future<bool> borrar(String id) async {
     try {
       final r = await _cliente

@@ -126,9 +126,16 @@ void main() {
     return container;
   }
 
-  void arm(ProviderContainer c, String busId) {
-    c.read(activeAlertsProvider.notifier).toggleAlert(busId);
-    c.read(proximityAlertsProvider.notifier).armAlert(busId, 'R1');
+  bool arm(ProviderContainer c, String busId) {
+    final armado = c.read(activeAlertsProvider.notifier).activateAlert(busId);
+    if (armado) c.read(proximityAlertsProvider.notifier).armAlert(busId, 'R1');
+    return armado;
+  }
+
+  void historicoSonado(ProviderContainer c, String busId) {
+    final history = c.read(alertHistoryProvider.notifier);
+    history.upsert(busId, routeId: 'R1');
+    history.markSent(busId);
   }
 
   setUp(() {
@@ -215,7 +222,7 @@ void main() {
     final container =
         await pumpScreen(tester, [bus('A-1'), bus('A-2')], abajo: reserva);
     arm(container, 'A-1');
-    arm(container, 'A-2');
+    historicoSonado(container, 'A-2');
     await asentar(tester);
     await tester.drag(find.byType(ListView), const Offset(0, -2000));
     await asentar(tester);
@@ -417,7 +424,7 @@ void main() {
       (tester) async {
     final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
     arm(container, 'A-1');
-    arm(container, 'A-2');
+    historicoSonado(container, 'A-2');
     await tester.pump();
 
     await tester.tap(find.text('Seleccionar'));
@@ -434,13 +441,13 @@ void main() {
 
     expect(aviso('A-1'), findsNothing);
     expectAviso('A-2');
-    expect(container.read(activeAlertsProvider), {'A-2'});
+    expect(container.read(activeAlertsProvider), isEmpty);
   });
 
   testWidgets('borrar todas limpia historial y desactiva todo', (tester) async {
     final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
-    arm(container, 'A-1');
-    arm(container, 'A-2');
+    historicoSonado(container, 'A-1');
+    historicoSonado(container, 'A-2');
     await tester.pump();
 
     await tester.tap(find.text('Seleccionar'));
@@ -485,6 +492,7 @@ void main() {
       final container = await pumpScreen(
           tester, [bus('A-1'), bus('A-2', lat: userLat + 0.05)]);
       arm(container, 'A-1');
+      await container.read(proximityAlertsProvider.notifier).check();
       arm(container, 'A-2');
       await tester.pump();
       await container.read(proximityAlertsProvider.notifier).check();
@@ -542,13 +550,11 @@ void main() {
   // medallón.
   testWidgets('los avisos van en dos grupos: esperando arriba, enviados abajo',
       (tester) async {
-    // A-2 lejos (unos 5 km al norte): sigue esperando. A-1 encima: suena.
+    // A-1 ya sonó; A-2 lejos (unos 5 km al norte) sigue esperando.
     final container =
         await pumpScreen(tester, [bus('A-1'), bus('A-2', lat: userLat + 0.05)]);
-    arm(container, 'A-1');
+    historicoSonado(container, 'A-1');
     arm(container, 'A-2');
-    await tester.pump();
-    await container.read(proximityAlertsProvider.notifier).check();
     await tester.pump();
 
     final esperando = find.text('Esperando');
@@ -586,7 +592,7 @@ void main() {
   testWidgets('en modo selección, tocar la tarjeta entera la marca',
       (tester) async {
     final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
-    arm(container, 'A-1');
+    historicoSonado(container, 'A-1');
     arm(container, 'A-2');
     await tester.pump();
     final ruta =
@@ -608,7 +614,7 @@ void main() {
     await tester.tap(ruta);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Selecciona avisos'), findsOneWidget);
-    expect(container.read(activeAlertsProvider), {'A-1', 'A-2'});
+    expect(container.read(activeAlertsProvider), {'A-2'});
   });
 
   // «Haz que en avisos, si se deja presionado un aviso, se seleccione»
@@ -616,7 +622,7 @@ void main() {
   // selección con ese aviso ya marcado.
   testWidgets('dejar presionado un aviso lo selecciona', (tester) async {
     final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
-    arm(container, 'A-1');
+    historicoSonado(container, 'A-1');
     arm(container, 'A-2');
     await tester.pump();
     final ruta =
@@ -630,7 +636,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Borrar'));
     await tester.pumpAndSettle();
-    expect(container.read(activeAlertsProvider), {'A-1'});
+    expect(container.read(activeAlertsProvider), isEmpty);
 
     // Ya seleccionando, la pulsación larga marca y desmarca como el toque.
     await tester.tap(find.text('Seleccionar'));
@@ -734,13 +740,11 @@ void main() {
 
   testWidgets('deshacer «Borrar todas» devuelve enviados y activos en su sitio',
       (tester) async {
-    // A-1 encima: suena. A-2 lejos: sigue esperando.
+    // A-1 ya sonó; A-2 lejos sigue esperando.
     final container =
         await pumpScreen(tester, [bus('A-1'), bus('A-2', lat: userLat + 0.05)]);
-    arm(container, 'A-1');
+    historicoSonado(container, 'A-1');
     arm(container, 'A-2');
-    await tester.pump();
-    await container.read(proximityAlertsProvider.notifier).check();
     await tester.pump();
     final antes = container.read(alertHistoryProvider);
 
@@ -761,24 +765,23 @@ void main() {
     expectAviso('A-2');
   });
 
-  testWidgets('deshacer no pasa del tope de 2 avisos activos', (tester) async {
+  testWidgets('deshacer no pasa del tope de un bus activo', (tester) async {
     final container = await pumpScreen(tester, const []);
     arm(container, 'A-1');
     await tester.pump();
 
     await tester.tap(find.text('Desactivar'));
     await tester.pump();
-    // Mientras tanto se armaron otros dos: ya no cabe.
+    // Mientras tanto se armó otro bus: el aviso deshecho ya no cabe.
     arm(container, 'A-2');
-    arm(container, 'A-3');
     await deshacer(tester);
 
-    expect(container.read(activeAlertsProvider), {'A-2', 'A-3'});
+    expect(container.read(activeAlertsProvider), {'A-2'});
     expect(container.read(alertHistoryProvider).map((e) => e.busId).toSet(),
-        {'A-2', 'A-3'});
+        {'A-2'});
     // Primero se va la tarjeta del «Deshacer», luego entra la del tope.
     await tester.pump(const Duration(milliseconds: 750));
-    expect(find.textContaining('Ya tienes 2 avisos activos'), findsOneWidget);
+    expect(find.textContaining('Ya sigues un bus'), findsOneWidget);
   });
 
   testWidgets('la campana de un aviso enviado va en verde', (tester) async {
@@ -866,7 +869,7 @@ void main() {
       (tester) async {
     final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
     arm(container, 'A-1');
-    arm(container, 'A-2');
+    historicoSonado(container, 'A-2');
     await tester.pump(const Duration(milliseconds: 800));
     final abajo = tester.getTopLeft(aviso('A-2')).dy;
 
@@ -875,7 +878,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 120));
     expect(aviso('A-1'), findsOneWidget, reason: 'aún se está yendo');
     expect(container.read(alertHistoryProvider).map((e) => e.busId), ['A-2']);
-    expect(find.text('Desactivar'), findsNWidgets(2));
+    expect(find.text('Desactivar'), findsOneWidget);
     final opacidad = tester
         .widgetList<FadeTransition>(find.ancestor(
             of: aviso('A-1'), matching: find.byType(FadeTransition)))
@@ -933,13 +936,14 @@ void main() {
   });
 
   testWidgets('la lista pasa bajo la barra de vidrio al subir', (tester) async {
-    // Un teléfono bajo, para que dos avisos no quepan y la lista se desplace.
+    // Un teléfono bajo, para que las dos filas no quepan y la lista se
+    // desplace.
     tester.view.physicalSize = const Size(320, 480);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
     arm(container, 'A-1');
-    arm(container, 'A-2');
+    historicoSonado(container, 'A-2');
     await tester.pump();
 
     // Los botones de la barra flotan en sus píldoras, como en iOS 26.

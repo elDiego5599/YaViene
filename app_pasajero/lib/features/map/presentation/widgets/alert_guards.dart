@@ -6,6 +6,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../notifications/presentation/providers/distancia_aviso_provider.dart'
     show distanciaAvisoMaxima;
+import '../providers/active_alerts_provider.dart';
 
 /// Devuelve el mensaje de error si no se puede armar el aviso, o null si
 /// todo está bien. No muestra SnackBars ni pide permisos: solo valida.
@@ -59,14 +60,13 @@ String? validateAlertActivation({
     return 'El bus ${bus.busId} ya está a menos de '
         '${distanciaAviso(radioCercaM)}; no se puede activar el aviso';
   }
-  if (activeAlertsCount >= 2) return avisosAlTope;
+  if (activeAlertsCount >= maxAvisosActivos) return avisosAlTope;
   return null;
 }
 
-/// Lo que se dice al pasar del tope de 2 avisos activos: al armar uno y al
-/// deshacer un borrado cuando ya se armaron otros dos.
-const avisosAlTope = 'Ya tienes 2 avisos activos: desactiva uno o espera a '
-    'que termine para activar otro. Recuerda no cerrar la aplicación';
+/// Lo que se dice cuando ya sigues un bus y quieres seguir otro.
+const avisosAlTope = 'Ya sigues un bus: quita su aviso o espera a que suene '
+    'para seguir otro';
 
 /// Lo que se dice cuando el bus ya va más cerca de lo que la ruta se acerca
 /// al punto: lo que el bus todavía no ha pasado no alcanza la ruta y ninguna

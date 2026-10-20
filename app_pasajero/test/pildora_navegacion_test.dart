@@ -175,17 +175,18 @@ void main() {
     expect(find.byType(BuzonScreen), findsOneWidget);
   });
 
-  testWidgets('con avisos puestos, la pestaña lleva la cuenta', (tester) async {
-    await abrir(tester, '/mas', avisos: {'b1', 'b2'});
+  testWidgets('con un aviso activo, la pestaña lleva la cuenta',
+      (tester) async {
+    await abrir(tester, '/mas', avisos: {'b1'});
 
     expect(
       find.descendant(
         of: find.byType(PildoraNavegacion),
-        matching: find.text('2'),
+        matching: find.text('1'),
       ),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel(RegExp(r'^Avisos, 2 activos, pestaña 2 de 4')),
+    expect(find.bySemanticsLabel(RegExp(r'^Avisos, 1 activo, pestaña 2 de 4')),
         findsOneWidget);
   });
 

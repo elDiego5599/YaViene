@@ -31,14 +31,16 @@ void main() {
       expect(copy.primaryLabel, 'Continuar');
     });
 
-    test('alert con limite de 2', () {
+    test('alert cuando ya sigue un bus', () {
       final copy = guideCopyFor(
         MapGuideStep.alert,
         hasActiveAlert: false,
         limitReached: true,
         isBlocked: false,
       );
-      expect(copy.title, 'Ya tienes 2 avisos activos');
+      expect(copy.title, 'Ya sigues un bus');
+      expect(copy.message,
+          'Quita su aviso o espera a que suene para seguir otro.');
       expect(copy.primaryLabel, 'Continuar');
     });
 
