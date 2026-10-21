@@ -94,8 +94,7 @@ MapGuideCopy guideCopyFor(
   return mapGuideCopy(step, plataforma: plataforma);
 }
 
-/// [plataforma] decide el último paso (iPhone no avisa con la app en el
-/// fondo); por defecto, la del teléfono.
+/// [plataforma] decide el último paso; por defecto, la del teléfono.
 MapGuideCopy mapGuideCopy(MapGuideStep step, {TargetPlatform? plataforma}) {
   switch (step) {
     case MapGuideStep.location:
@@ -163,17 +162,12 @@ MapGuideCopy mapGuideCopy(MapGuideStep step, {TargetPlatform? plataforma}) {
         icon: Icons.notifications_active_outlined,
       );
     case MapGuideStep.background:
-      // En iPhone el aviso solo suena con la app abierta: la app no declara
-      // `UIBackgroundModes` y no hay push, así que iOS la suspende al
-      // cambiar de app o bloquear el teléfono. Prometer que «seguirá
-      // pendiente» hacía perder el bus (auditoría 2026-09, H3). Lo mismo
-      // dicen Notificaciones y la privacidad.
       if ((plataforma ?? defaultTargetPlatform) == TargetPlatform.iOS) {
         return const MapGuideCopy(
-          title: 'Deja Ya Viene abierta',
-          message: 'En iPhone el aviso solo suena con Ya Viene abierta y la '
-              'pantalla encendida. Si cambias de aplicación o bloqueas el '
-              'teléfono, no te llegará.',
+          title: 'Puedes bloquear el teléfono',
+          message: 'Con un aviso activo, Ya Viene seguirá actualizando la '
+              'distancia en la pantalla bloqueada. Si cierras la app del todo, '
+              'dejará de actualizarse.',
           icon: Icons.smartphone_outlined,
           primaryLabel: 'Finalizar guía',
         );

@@ -227,8 +227,9 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               Positioned.fill(child: _GuideBarrier(onInvalidTap: () {})),
               Center(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md + AppSpacing.xs,
+                  ),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 380),
                     // Se funde a la vez que crece: sin fundido, empezar en
@@ -463,7 +464,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     // Sombra del sistema + hairline, sin Material ni elevation.
     return Container(
       key: const ValueKey('guide_card'),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md + AppSpacing.xs,
+        18,
+        AppSpacing.md + AppSpacing.xs,
+        10,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -559,7 +565,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               ),
             ),
             if (widget.primaryLabel != null && widget.onPrimary != null) ...[
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -578,7 +584,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 ),
               ),
             ] else ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 6),
               Center(
                 child: Text(
                   'Toca el área iluminada para continuar',
@@ -588,10 +594,9 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 ),
               ),
             ],
-            // Sin respiro propio: los botones miden 48 para el dedo y traen
-            // 6 de aire por arriba y por abajo alrededor de la letra. Con el
-            // respiro de antes la tarjeta crecía 12 y en el paso de los buses
-            // pisaba el área iluminada.
+            // El espacio de 8 pt se compensa arriba de la nota o Continuar:
+            // la tarjeta conserva su alto y deja un hueco visible de 8 pt.
+            if (!widget.centered) const SizedBox(height: AppSpacing.sm),
             // F14: "Atrás" solo aparece si hay un paso previo al que volver.
             if (!widget.centered)
               Row(

@@ -86,20 +86,21 @@ void main() {
     });
   });
 
-  // En iPhone el aviso solo suena con la app abierta: no hay
-  // `UIBackgroundModes` ni push. El último paso decía «Ya Viene seguirá
-  // pendiente del bus» en todas partes, y quien le hacía caso en un iPhone
-  // cambiaba de app y perdía el bus (auditoría 2026-09, H3).
+  // Con el aviso activo, iOS mantiene la ubicación y muestra la actividad en
+  // vivo en la pantalla bloqueada. Cerrar la app del todo corta la
+  // actualización.
   group('el paso de segundo plano según el teléfono', () {
     tearDown(() => debugDefaultTargetPlatformOverride = null);
 
-    test('en iPhone pide dejar la app abierta', () {
+    test('en iPhone explica la distancia en pantalla bloqueada', () {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       final copy = mapGuideCopy(MapGuideStep.background);
-      expect(copy.title, 'Deja Ya Viene abierta');
-      expect(copy.message, contains('solo suena con Ya Viene abierta'));
-      expect(copy.message, isNot(contains('seguirá pendiente')));
-      expect(copy.message, isNot(contains('cambiar de aplicación')));
+      expect(copy.title, 'Puedes bloquear el teléfono');
+      expect(
+        copy.message,
+        contains('distancia en la pantalla bloqueada'),
+      );
+      expect(copy.message, contains('cierras la app del todo'));
     });
 
     test('en Android no cambia', () {

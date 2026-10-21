@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/map_guide_copy.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/selected_buses_provider.dart';
@@ -566,6 +567,87 @@ void main() {
       expect(primary, isTrue);
       await tester.tap(find.byKey(const ValueKey('guide_skip')));
       expect(skipped, isTrue);
+    });
+
+    testWidgets('hay 8 puntos entre la nota y la fila de acciones',
+        (tester) async {
+      await pumpGuide(
+        tester,
+        onSkip: () {},
+        onTargetTap: (_) {},
+      );
+      final nota =
+          tester.getRect(find.text('Toca el área iluminada para continuar'));
+      final acciones = tester.getRect(find.byKey(const ValueKey('guide_skip')));
+      expect(acciones.top - nota.bottom, greaterThanOrEqualTo(8));
+    });
+
+    testWidgets('hay 8 puntos entre Continuar y la fila de acciones',
+        (tester) async {
+      await pumpGuide(
+        tester,
+        onSkip: () {},
+        onTargetTap: (_) {},
+        primaryLabel: 'Continuar',
+        onPrimary: () {},
+      );
+      final boton = tester.getRect(find.byKey(const ValueKey('guide_primary')));
+      final acciones = tester.getRect(find.byKey(const ValueKey('guide_skip')));
+      expect(acciones.top - boton.bottom, greaterThanOrEqualTo(8));
+    });
+
+    testWidgets('el último paso conserva el ancho de la primera tarjeta',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      Widget paso(int index) => MaterialApp(
+            home: Scaffold(
+              body: MapGuideOverlay(
+                target: Rect.zero,
+                centered: index == 7,
+                title:
+                    index == 0 ? 'Empieza aquí' : 'Puedes bloquear el teléfono',
+                message: 'Texto de prueba para medir la tarjeta.',
+                icon: Icons.smartphone_outlined,
+                stepIndex: index,
+                stepCount: 8,
+                primaryLabel: index == 7 ? 'Finalizar guía' : null,
+                onPrimary: index == 7 ? () {} : null,
+                onSkip: () {},
+              ),
+            ),
+          );
+
+      await tester.pumpWidget(paso(0));
+      await tester.pump(const Duration(milliseconds: 450));
+      final tarjeta = find.byKey(const ValueKey('guide_card'));
+      final anchoInicial = tester.getRect(tarjeta).width;
+      await tester.pumpWidget(paso(7));
+      await tester.pump(const Duration(milliseconds: 450));
+      final anchoFinal = tester.getRect(tarjeta).width;
+      expect(anchoFinal, anchoInicial);
+    });
+
+    test('el último paso cuenta lo que hace cada teléfono', () {
+      final ios =
+          mapGuideCopy(MapGuideStep.background, plataforma: TargetPlatform.iOS);
+      expect(ios.title, 'Puedes bloquear el teléfono');
+      expect(
+        ios.message,
+        'Con un aviso activo, Ya Viene seguirá actualizando '
+        'la distancia en '
+        'la pantalla bloqueada. Si cierras la app del todo, dejará de '
+        'actualizarse.',
+      );
+      expect(ios.message, isNot(contains('pantalla encendida')));
+
+      final android = mapGuideCopy(MapGuideStep.background,
+          plataforma: TargetPlatform.android);
+      expect(android.title, 'Sigue con lo tuyo');
+      expect(android.message, contains('seguirá pendiente del bus'));
+      expect(android.message, contains('cerrar la app del todo'));
     });
 
     // «Atrás» y «Saltar guía» medían 36 de alto: debajo de los 48 que
