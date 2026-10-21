@@ -18,8 +18,15 @@ Future<void> asentar(WidgetTester tester) async {
 }
 
 void main() {
-  Future<MapaDePrueba> abrir(WidgetTester tester) async {
-    final mapa = await MapaDePrueba.montar(tester, bienvenida: true);
+  Future<MapaDePrueba> abrir(
+    WidgetTester tester, {
+    bool conPosicionInicial = true,
+  }) async {
+    final mapa = await MapaDePrueba.montar(
+      tester,
+      bienvenida: true,
+      conPosicionInicial: conPosicionInicial,
+    );
     await asentar(tester);
     return mapa;
   }
@@ -74,6 +81,28 @@ void main() {
 
     expect(find.byType(VentanaBienvenida), findsNothing);
     // La ubicación ya está: la guía empieza en la búsqueda.
+    expect(mapa.container.read(mapGuideProvider).step, MapGuideStep.search);
+
+    await mapa.desmontar(tester);
+  });
+
+  testWidgets('la posición que llega durante la bienvenida salta ubicación',
+      (tester) async {
+    final mapa = await abrir(tester, conPosicionInicial: false);
+
+    expect(mapa.container.read(mapGuideProvider).includesLocation, isTrue);
+    expect(mapa.container.read(mapGuideProvider).step, isNull);
+    expect(find.byType(VentanaBienvenida), findsOneWidget);
+
+    // La actualización llega mientras el diálogo está abierto: el listener
+    // todavía no puede completar el paso de ubicación, que aún no existe.
+    mapa.ubicacion.leerGps(puntoDeEspera.$1, puntoDeEspera.$2);
+    await asentar(tester);
+    expect(find.byType(VentanaBienvenida), findsOneWidget);
+
+    await tester.tap(find.text('Ver la guía'));
+    await asentar(tester);
+
     expect(mapa.container.read(mapGuideProvider).step, MapGuideStep.search);
 
     await mapa.desmontar(tester);

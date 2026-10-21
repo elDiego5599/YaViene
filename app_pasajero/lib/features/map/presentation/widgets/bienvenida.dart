@@ -125,13 +125,18 @@ class VentanaBienvenida extends StatelessWidget {
               onPressed: alVerGuia,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textPrimary,
                 textStyle: AppTextStyles.boton,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              child: const Text('Ver la guía'),
+              child: Text(
+                'Ver la guía',
+                style: AppTextStyles.boton.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.xs),

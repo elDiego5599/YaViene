@@ -416,7 +416,9 @@ void main() {
           AppColors.primary,
           reason: 'enviando no es apagado: el verde se queda');
       expect(estilo.foregroundColor!.resolve({WidgetState.disabled}),
-          Colors.white);
+          AppColors.textPrimary,
+          reason:
+              'el blanco sobre el verde #00A859 da 3,11:1, bajo el mínimo AA');
       expect(boton(tester).onPressed, isNull,
           reason: 'un segundo toque no manda dos veces');
 

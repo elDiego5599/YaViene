@@ -78,12 +78,18 @@ class RepoDePrueba implements RealtimeRepository {
 
 /// La ubicación la pone la prueba: arranca con el pin en [puntoDeEspera].
 class UbicacionDePrueba extends UserLocationNotifier {
+  UbicacionDePrueba({this.conPosicionInicial = true});
+
+  final bool conPosicionInicial;
+
   @override
-  Future<void> initialize() async => state = UserLocationState(
-        mode: UserLocationMode.manual,
-        lat: puntoDeEspera.$1,
-        lon: puntoDeEspera.$2,
-      );
+  Future<void> initialize() async => state = conPosicionInicial
+      ? UserLocationState(
+          mode: UserLocationMode.manual,
+          lat: puntoDeEspera.$1,
+          lon: puntoDeEspera.$2,
+        )
+      : const UserLocationState(mode: UserLocationMode.denied);
 
   /// Una lectura nueva del GPS.
   void leerGps(double lat, double lon) => state = UserLocationState(
@@ -129,6 +135,7 @@ class MapaDePrueba {
   static Future<MapaDePrueba> montar(
     WidgetTester tester, {
     bool bienvenida = false,
+    bool conPosicionInicial = true,
   }) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_seen': true,
@@ -143,7 +150,9 @@ class MapaDePrueba {
     final container = ProviderContainer(overrides: [
       backendUrlProvider.overrideWith(() => BackendUrl.fija('http://x')),
       realtimeServiceProvider.overrideWithValue(repo),
-      userLocationProvider.overrideWith((ref) => UbicacionDePrueba()),
+      userLocationProvider.overrideWith(
+        (ref) => UbicacionDePrueba(conPosicionInicial: conPosicionInicial),
+      ),
       servicioDeFondoProvider.overrideWithValue(servicio),
       alertToggleProvider.overrideWith(
         (ref) =>

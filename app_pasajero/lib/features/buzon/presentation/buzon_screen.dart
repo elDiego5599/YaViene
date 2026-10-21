@@ -264,10 +264,11 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                     onPressed: _listo ? _enviar : null,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textPrimary,
                       disabledBackgroundColor:
                           _enviando ? AppColors.primary : null,
-                      disabledForegroundColor: _enviando ? Colors.white : null,
+                      disabledForegroundColor:
+                          _enviando ? AppColors.textPrimary : null,
                       textStyle: AppTextStyles.boton,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -290,15 +291,16 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                   ),
                 ),
                 if (_enviando)
-                  const Positioned(
+                  Positioned(
                     left: 28,
                     right: 28,
                     bottom: 0,
                     child: ExcludeSemantics(
                       child: LinearProgressIndicator(
                         minHeight: 2,
-                        color: Colors.white,
-                        backgroundColor: Colors.white24,
+                        color: AppColors.textPrimary,
+                        backgroundColor:
+                            AppColors.textPrimary.withValues(alpha: 0.24),
                       ),
                     ),
                   ),
@@ -582,7 +584,7 @@ class _Gracias extends StatelessWidget {
                   onPressed: alVolver,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.textPrimary,
                     textStyle: AppTextStyles.boton,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.pill),

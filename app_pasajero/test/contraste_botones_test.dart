@@ -13,6 +13,8 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/'
 import 'package:ya_viene_pasajero/features/map/presentation/providers/'
     'user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
+    'bienvenida.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'eta_bottom_sheet.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/'
     'map_tour_overlay.dart';
@@ -141,6 +143,38 @@ void main() {
       contraste(letraDe(tester, boton), fondoDeBoton(tester, boton)),
       4.5,
       'el CTA de la bienvenida',
+    );
+  });
+
+  testWidgets('la bienvenida y onboarding usan tinta sobre el verde de marca',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: VentanaBienvenida(alVerGuia: () {}, alIrALaApp: () {}),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 450));
+
+    final guia = find.text('Ver la guía');
+    exigeContraste(contraste(letraDe(tester, guia), AppColors.primary), 4.5,
+        'Ver la guía sobre el verde de marca');
+
+    await tester.pumpWidget(
+      ProviderScope(child: marcoGoldenRuteado(const OnboardingScreen())),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.tap(find.byKey(const ValueKey('legal_accept')));
+    await tester.pump();
+
+    final ubicacion = find.text('Permitir ubicación');
+    exigeContraste(
+      contraste(letraDe(tester, ubicacion), AppColors.primary),
+      4.5,
+      'Permitir ubicación sobre el verde de marca',
     );
   });
 

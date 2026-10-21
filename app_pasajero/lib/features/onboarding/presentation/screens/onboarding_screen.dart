@@ -198,7 +198,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.primary,
-                                          foregroundColor: Colors.white,
+                                          foregroundColor:
+                                              AppColors.textPrimary,
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
@@ -215,7 +216,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                             : _allowLocation,
                                         child: _requesting
                                             ? const IndicadorCarga(
-                                                color: Colors.white,
+                                                color: AppColors.textPrimary,
                                                 // El botón se queda sin
                                                 // texto mientras el
                                                 // sistema pregunta.
@@ -224,7 +225,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                               )
                                             : Text(
                                                 'Permitir ubicación',
-                                                style: AppTextStyles.boton,
+                                                style: AppTextStyles.boton
+                                                    .copyWith(
+                                                  color: AppColors.textPrimary,
+                                                ),
                                               ),
                                       ),
                                     ),

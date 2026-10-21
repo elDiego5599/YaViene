@@ -164,7 +164,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted) return;
     }
     final guide = ref.read(mapGuideProvider);
-    if (location.hasPosition && guide.step == MapGuideStep.location) {
+    // La bienvenida puede quedarse abierta mientras llega el GPS. El valor
+    // leído antes del diálogo ya no refleja la ubicación actual.
+    final currentLocation = ref.read(userLocationProvider);
+    if (currentLocation.hasPosition && guide.step == MapGuideStep.location) {
       await ref.read(mapGuideProvider.notifier).complete(MapGuideStep.location);
     }
     _scheduleGuideMeasurement(ref.read(mapGuideProvider).step);
