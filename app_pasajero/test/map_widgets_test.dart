@@ -33,62 +33,8 @@ void main() {
       expect(active, isNot(equals(ghost)));
     });
 
-    test('el bus cenital tiene frente vidriado y tamaño de sprite nítido',
+    test('la sombra del bus es neutra y pareja: no deja estela al girar',
         () async {
-      final bytes =
-          await createFlatTransitMarker(AppColors.busActive, isGhost: false);
-      final codec = await ui.instantiateImageCodec(bytes);
-      final image = (await codec.getNextFrame()).image;
-      expect((image.width, image.height), (192, 192));
-      final data = (await image.toByteData())!;
-      (int, int, int, int) pixel(int x, int y) {
-        final i = (y * image.width + x) * 4;
-        return (
-          data.getUint8(i),
-          data.getUint8(i + 1),
-          data.getUint8(i + 2),
-          data.getUint8(i + 3)
-        );
-      }
-
-      // En el frente (parte superior) el parabrisas ocupa el centro; más
-      // abajo queda techo rojo, no una segunda ventana del mismo tamaño.
-      final windshield = pixel(96, 36);
-      final roof = pixel(96, 98);
-      // La luneta va de y = 150 a 164 en el PNG (67 a 74 del dibujo, × 2,
-      // más 16 de margen).
-      final rearWindow = pixel(96, 157);
-      expect(windshield.$1, lessThan(90));
-      expect(windshield.$3, lessThan(120));
-      expect(roof.$1, greaterThan(150));
-      expect(roof.$4, 255);
-      expect(rearWindow.$1, lessThan(90));
-      expect(rearWindow.$3, lessThan(120));
-    });
-
-    test('el fantasma no tiene sombra fuera de la carrocería', () async {
-      final bytes =
-          await createFlatTransitMarker(AppColors.textDisabled, isGhost: true);
-      final codec = await ui.instantiateImageCodec(bytes);
-      final image = (await codec.getNextFrame()).image;
-      expect((image.width, image.height), (192, 192));
-      final data = (await image.toByteData())!;
-      // La carrocería va de x = 62 a 130 y de y = 16 a 176; el filo de 1,3
-      // del dibujo sale 1,3 px por fuera. Dos px más allá ya no hay nada.
-      for (final point in const [
-        (96, 7),
-        (96, 9),
-        (59, 96),
-        (133, 96),
-        (96, 178)
-      ]) {
-        final i = (point.$2 * image.width + point.$1) * 4;
-        expect(data.getUint8(i + 3), 0,
-            reason: 'pixel ${point.$1},${point.$2}');
-      }
-    });
-
-    test('la sombra activa es gris y simétrica respecto al centro', () async {
       // El ícono gira con el rumbo (`iconRotationAlignment: 'map'`): una
       // sombra corrida hacia «abajo» del dibujo queda detrás o delante del
       // bus según a dónde vaya, y si además es de su color se lee como una
@@ -98,7 +44,9 @@ void main() {
       final codec = await ui.instantiateImageCodec(bytes);
       final imagen = (await codec.getNextFrame()).image;
       final datos = (await imagen.toByteData())!;
-      // PNG 192 × 192; carrocería centrada en (96, 96), de 68 × 160.
+      // 96 × 96, la cápsula de 32 × 60 centrada: de 32 a 64 y de 18 a 78.
+      // La fila 18 − d cubre la franja entre d − 1 y d del borde de arriba;
+      // su espejo abajo es la 77 + d (y a la derecha, la columna 63 + d).
       (int, int, int, int) pixel(int x, int y) {
         final i = (y * imagen.width + x) * 4;
         return (
@@ -109,27 +57,11 @@ void main() {
         );
       }
 
-      var peso = 0;
-      var sumaX = 0;
-      var sumaY = 0;
-      for (var y = 0; y < imagen.height; y++) {
-        for (var x = 0; x < imagen.width; x++) {
-          if (x >= 62 && x <= 129 && y >= 16 && y <= 175) continue;
-          final alpha = pixel(x, y).$4;
-          peso += alpha;
-          sumaX += x * alpha;
-          sumaY += y * alpha;
-        }
-      }
-      expect(peso, greaterThan(0));
-      expect((sumaX / peso - 95.5).abs(), lessThan(0.6));
-      expect((sumaY / peso - 95.5).abs(), lessThan(0.6));
-
-      for (final d in [2, 3, 4, 5]) {
-        final arriba = pixel(96, 15 - d);
-        final abajo = pixel(96, 176 + d);
-        final izquierda = pixel(61 - d, 96);
-        final derecha = pixel(130 + d, 96);
+      for (final d in [2, 3, 4]) {
+        final arriba = pixel(48, 18 - d);
+        final abajo = pixel(48, 77 + d);
+        final izquierda = pixel(32 - d, 48);
+        final derecha = pixel(63 + d, 48);
         // Pareja: lo mismo por los cuatro lados.
         expect((arriba.$4 - abajo.$4).abs(), lessThanOrEqualTo(2),
             reason: 'a $d del borde, arriba $arriba y abajo $abajo');
@@ -142,7 +74,7 @@ void main() {
         }
       }
       // Y existe: el bus se despega del mapa.
-      expect(pixel(96, 181).$4, greaterThan(0));
+      expect(pixel(48, 81).$4, greaterThan(0));
     });
   });
 

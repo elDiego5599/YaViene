@@ -235,15 +235,6 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   su empresa en «Elige empresa» (`colorEmpresa`,
   `app_pasajero/lib/core/utils/color_empresa.dart`; el aviso guarda su
   `companyId`; los de antes, sin empresa, en el azul de botón).
-- **Bus cenital premium** (dueño, 2026-10-21): carrocería urbana alargada
-  34 × 80, frente al norte, parabrisas oscuro con brillo, luneta, dos
-  equipos de aire y luces; techo rojo con luz de arriba a la izquierda,
-  filo blanco de 1,3 unidades (2,6 px horneados, 0,42 pt a zoom 13) para separarlo de
-  CARTO Voyager. Sprite de 192 px dibujado al doble; `iconSize` compensado
-  para mantener 26 pt suelto y 31,2 elegido a zoom 13. Sombra de contacto
-  gris sin dirección, centrada; el fantasma conserva la silueta plana sin
-  sombra. La seña comparte `drawTransitBus`; SwiftUI de la actividad en vivo
-  la reproduce a su tamaño.
 - **Avisos y Buzón** (dueño, 2026-10-19, «divisiones con colores de la
   app»; el gris agrupado del iPhone no gustó): fondo blanco, tarjetas
   planas sin sombra con su filo (`AppColors.filo`, #D0D4DC, la tinta de
@@ -258,9 +249,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   armado (se sigue un solo bus a la vez) pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
   `actividad_en_vivo.dart`): fondo negro como Uber, arriba «Está a X de
-  ti» y debajo la ruta y la placa (como Uber, dueño, 2026-10-19), el logo de Ya Viene
-  cuadradito en vez de la ficha (dueño, 2026-10-21), cifra de la hoja y una pista verde con el mismo bus del
-  mapa (la cápsula de `createFlatTransitMarker`, girada) que avanza hacia tu punto, con la campana donde suena el aviso;
+  ti» solo, sin la ruta ni la placa (dueño, 2026-10-21), el logo de Ya Viene
+  cuadradito en vez de la ficha (dueño, 2026-10-21), cifra de la hoja y una pista verde, un poco más abajo, con un bus
+  visto de lado, rojo y con el frente hacia tu punto, que solo vive ahí
+  (`AutobusDeLado`; el de arriba no gustó, dueño, 2026-10-21) y avanza hacia tu punto, con la campana donde suena el aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
   está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
@@ -269,8 +261,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
   del todo no se pone al día (APNs, FALTANTES). La isla lleva el ícono de
   Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y
-  abierta; abierta lleva «Está a X de ti» y debajo la ruta y la placa,
-  como la pantalla bloqueada (dueño, 2026-10-21).
+  abierta; abierta lleva solo «Está a X de ti», como la pantalla
+  bloqueada (dueño, 2026-10-21).
   Tocar la actividad abre el mapa con ese bus, su empresa y su ruta; por bus
   solo queda viva la actividad del bus seguido.
 - **Vidrio de las barras**: el fondo usa como máximo cuatro filtros

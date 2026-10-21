@@ -729,14 +729,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // expresión; el tamaño según selección se elige en el output
             // con un 'case' en formato plano (cond → valor, else).
             //
-            // Suelto, el bus va de 0,4125 a zoom 11 a 0,5625 a zoom 15;
-            // elegido, 1,2 veces eso: 0,495 y 0,675. La silueta mide 80 px
-            // en el dibujo (160 en el PNG de 192), así que a zoom 13 queda
-            // en 26 pt: (160 × 0,4875) / 3. Elegido mide 31,2 pt.
+            // Suelto, el bus va de 1,1 a zoom 11 a 1,5 a zoom 15; elegido,
+            // 1,2 veces eso: 1,32 y 1,8. La cápsula son 60 px de dibujo que
+            // entran a 3 por punto, así que a zoom 13, el de mirar el
+            // barrio, uno suelto mide 26 puntos y uno elegido 31,2.
             //
-            // El suelto conserva los 26 pt fijados para reconocer el bus
-            // antes de tocarlo; el elegido crece 20 % porque ya lo marcan
-            // el halo y el latido, sin tapar la calle por la que va.
+            // El suelto se quedaba en 17 puntos y después en 20,4 (0,7 y
+            // 1,0, luego 0,84 y 1,2), más chico que la cabeza del pin, y
+            // costaba encontrarlo antes de tocarlo, que es justo cuando hay
+            // que verlo. El elegido crece menos porque ya lo marcan el halo
+            // y el latido: con la proporción de antes, 1,27, a zoom 15 habría
+            // pasado de 38 puntos y taparía la calle por la que va.
             'interpolate',
             ['linear'],
             ['zoom'],
@@ -748,8 +751,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 ['get', 'isSelected'],
                 true
               ],
-              0.495,
-              0.4125
+              1.32,
+              1.1
             ],
             15,
             [
@@ -759,8 +762,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                 ['get', 'isSelected'],
                 true
               ],
-              0.675,
-              0.5625
+              1.8,
+              1.5
             ]
           ],
           iconAllowOverlap: true,

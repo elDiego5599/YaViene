@@ -105,113 +105,78 @@ Future<Uint8List> createFlatTransitMarker(
   Color baseColor, {
   required bool isGhost,
 }) async {
-  // El lienzo se duplica (96 → 192 px) y el mismo dibujo se escala: MapLibre
-  // conserva el tamaño en pantalla, pero las ventanas y filos no se hornean
-  // a resolución baja.
-  const size = 192;
+  // Silueta alargada tipo inDrive/Uber: una cápsula de un solo color, sin
+  // ventanas ni llantas — el detalle se pierde a los ~28px reales en el
+  // mapa, así que la forma y el color son todo lo que tiene que comunicar.
+  // Se hornea una sola vez por ícono y se reusa como sprite nativo de
+  // MapLibre para cada bus en pantalla.
+  const size = 96;
+  const center = size / 2.0;
+  const w = 32.0;
+  const h = 60.0;
+
   final pictureRecorder = ui.PictureRecorder();
   final canvas = Canvas(pictureRecorder);
-  canvas.scale(2);
-  drawTransitBus(canvas, const Rect.fromLTWH(31, 8, 34, 80), baseColor,
-      isGhost: isGhost);
+
+  final capsule = RRect.fromRectAndRadius(
+    const Rect.fromLTWH(center - w / 2, center - h / 2, w, h),
+    const Radius.circular(w / 2),
+  );
+
+  if (!isGhost) {
+    // Sombra de contacto: gris, corta y centrada, la de un objeto que se
+    // posa sobre el mapa. Antes era del color del bus y corrida 3 hacia
+    // abajo, y como el ícono gira con el rumbo (`iconRotationAlignment:
+    // 'map'`), ese «abajo» quedaba detrás del bus según a dónde fuera: una
+    // estela roja que al dueño le pareció rarísima (2026-09-30). Centrada
+    // no tiene dirección, así que gire como gire el bus se ve igual. El
+    // desenfoque de 2,4 (h × 0,04) despega la cápsula sin ensuciar la
+    // calle; a 1,254 de escala son 3 puntos en pantalla.
+    canvas.drawRRect(
+      capsule,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.24)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, h * 0.04),
+    );
+  }
+
+  // Degradado sutil (más claro arriba) para que no se vea una silueta plana.
+  final top = isGhost ? baseColor : Color.lerp(baseColor, Colors.white, 0.3)!;
+  canvas.drawRRect(
+    capsule,
+    Paint()
+      ..shader = ui.Gradient.linear(
+        const Offset(center, center - h / 2),
+        const Offset(center, center + h / 2),
+        [top, baseColor],
+      ),
+  );
+
+  // Anillo blanco: separa el ícono de cualquier fondo de mapa.
+  canvas.drawRRect(
+    capsule,
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.6
+      ..color = Colors.white.withValues(alpha: isGhost ? 0.5 : 0.92),
+  );
+
+  if (!isGhost) {
+    // Insinúa un parabrisas: un óvalo tenue cerca del extremo, nada más.
+    canvas.save();
+    canvas.clipRRect(capsule);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: const Offset(center, center - h * 0.26),
+        width: w * 0.72,
+        height: h * 0.26,
+      ),
+      Paint()..color = Colors.white.withValues(alpha: 0.3),
+    );
+    canvas.restore();
+  }
+
   final img = await pictureRecorder.endRecording().toImage(size, size);
   final data = await img.toByteData(format: ui.ImageByteFormat.png);
   return data?.buffer.asUint8List() ?? Uint8List(0);
-}
-
-/// Pinta el bus cenital en [bounds]. El frente mira al borde superior: rumbo
-/// 0 de MapLibre es norte. También lo usa la seña para que el espejo no derive.
-void drawTransitBus(Canvas canvas, Rect bounds, Color baseColor,
-    {required bool isGhost}) {
-  canvas.save();
-  canvas.translate(bounds.left, bounds.top);
-  canvas.scale(bounds.width / 34, bounds.height / 80);
-  const body = Rect.fromLTWH(0, 0, 34, 80);
-  final shell =
-      RRect.fromRectAndRadius(body, const Radius.circular(AppRadius.sm));
-
-  if (!isGhost) {
-    // Sombra gris de contacto, centrada y sin dirección: al girar con el
-    // rumbo del mapa no queda detrás del bus ni se convierte en una estela.
-    canvas.drawRRect(
-        shell,
-        Paint()
-          ..color = const Color(0xFF30343B).withValues(alpha: 0.30)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.2));
-  }
-
-  final topLeft = isGhost
-      ? Color.lerp(baseColor, Colors.white, 0.12)!
-      : Color.lerp(baseColor, Colors.white, 0.34)!;
-  final sideDark = isGhost
-      ? Color.lerp(baseColor, Colors.black, 0.08)!
-      : Color.lerp(baseColor, Colors.black, 0.25)!;
-  canvas.drawRRect(
-      shell,
-      Paint()
-        ..shader = ui.Gradient.linear(const Offset(0, 0), const Offset(34, 0),
-            [topLeft, baseColor, sideDark], const [0.0, 0.58, 1.0]));
-
-  // Filo de 1,3 unidades (2,6 px ya horneados): a zoom 13 son 0,42 pt
-  // sobre el bus de 26 pt, suficiente para separarlo de CARTO Voyager.
-  canvas.drawRRect(
-      shell,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.3
-        ..color = Colors.white.withValues(alpha: isGhost ? 0.48 : 0.94));
-
-  if (!isGhost) {
-    canvas.save();
-    canvas.clipRRect(shell);
-    // Parabrisas delantero: banda ancha de vidrio oscuro, con reflejo arriba.
-    final windshield = RRect.fromRectAndRadius(
-        const Rect.fromLTWH(4, 5, 26, 15),
-        const Radius.circular(AppRadius.busParabrisas));
-    canvas.drawRRect(
-        windshield,
-        Paint()
-          ..shader = ui.Gradient.linear(
-              const Offset(7, 5),
-              const Offset(27, 20),
-              const [Color(0xFF172936), Color(0xFF344D5C)]));
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(const Rect.fromLTWH(7, 7, 12, 2),
-            const Radius.circular(AppRadius.busBrillo)),
-        Paint()..color = Colors.white.withValues(alpha: 0.48));
-    // Luneta trasera menor, separada del frente por el techo rojo.
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(const Rect.fromLTWH(8, 67, 18, 7),
-            const Radius.circular(AppRadius.busLuneta)),
-        Paint()..color = const Color(0xFF253A47));
-    // Dos equipos bajos de aire en el techo, con lamas discretas.
-    for (final y in [28.0, 40.0]) {
-      final hatch = RRect.fromRectAndRadius(Rect.fromLTWH(7, y, 20, 8),
-          const Radius.circular(AppRadius.busEscotilla));
-      canvas.drawRRect(hatch, Paint()..color = sideDark);
-      for (final lineY in [y + 2.0, y + 4.0, y + 6.0]) {
-        canvas.drawLine(
-            Offset(10, lineY),
-            Offset(24, lineY),
-            Paint()
-              ..color = Colors.white.withValues(alpha: 0.20)
-              ..strokeWidth = 0.8);
-      }
-    }
-    // Luces delanteras pequeñas y cálidas, una a cada lado del parabrisas.
-    for (final x in [4.0, 30.0]) {
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTWH(x - 1.1, 2, 2.2, 3),
-              const Radius.circular(AppRadius.busBrillo)),
-          Paint()..color = const Color(0xFFFFF2C2));
-    }
-    canvas.restore();
-  } else {
-    // El fantasma conserva la carrocería, pero queda plano y sin sombra.
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(const Rect.fromLTWH(7, 9, 20, 62),
-            const Radius.circular(AppRadius.busFantasma)),
-        Paint()..color = Colors.white.withValues(alpha: 0.10));
-  }
-  canvas.restore();
 }

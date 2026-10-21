@@ -27,15 +27,6 @@ enum Textos {
     estado.llego ? "Tu bus está cerca de ti" : "Está a \(estado.distancia) de ti"
   }
 
-  static func subtitulo(atributos: AvisoAtributos) -> String {
-    switch (atributos.ruta.isEmpty, atributos.placa.isEmpty) {
-    case (false, false): "\(atributos.ruta) · \(atributos.placa)"
-    case (false, true): atributos.ruta
-    case (true, false): atributos.placa
-    case (true, true): ""
-    }
-  }
-
   static func accesibilidad(atributos: AvisoAtributos, estado: AvisoAtributos.ContentState) -> String {
     if estado.llego { return Textos.titulo(atributos: atributos, estado: estado) }
     let ruta = atributos.ruta.isEmpty ? "tu ruta" : "Ruta \(atributos.ruta)"
@@ -49,7 +40,9 @@ struct TarjetaBloqueada: View {
   let caduco: Bool
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    // 22 entre el texto y la pista: el bus de lado asoma 4 sobre ella y con
+    // 16 la línea quedaba pegada al título (dueño, 2026-10-21).
+    VStack(alignment: .leading, spacing: 22) {
       HStack(spacing: 12) {
         LogoYaViene(lado: 40)
         ContenidoAviso(atributos: atributos, estado: estado)
@@ -78,8 +71,8 @@ struct IslaLider: View {
 
   var body: some View {
     HStack(alignment: .center, spacing: 8) {
-      // Abierta, la isla muestra el logo, la distancia y debajo la ruta con
-      // la placa, igual que la pantalla bloqueada (dueño, 2026-10-21).
+      // Abierta, la isla muestra el logo y la distancia, igual que la
+      // pantalla bloqueada (dueño, 2026-10-21).
       LogoYaViene(lado: 44)
       ContenidoAviso(atributos: atributos, estado: estado)
     }
@@ -103,7 +96,9 @@ struct IslaAbajo: View {
         RotulosPista(estado: estado, caduco: caduco)
       }
     }
-    .padding(.top, 4)
+    // 10 arriba: los 4 de antes más los 4 que el bus asoma sobre la pista,
+    // y la línea un poco más abajo (dueño, 2026-10-21).
+    .padding(.top, 10)
     .padding(.horizontal, 8)
     .padding(.bottom, 4)
   }
@@ -114,6 +109,7 @@ struct ContenidoAviso: View {
   let estado: AvisoAtributos.ContentState
 
   var body: some View {
+    // Solo la distancia, sin la ruta ni la placa debajo (dueño, 2026-10-21).
     VStack(alignment: .leading, spacing: 2) {
       Text(Textos.titulo(atributos: atributos, estado: estado))
         .font(.system(size: 22, weight: .semibold))
@@ -122,14 +118,6 @@ struct ContenidoAviso: View {
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .numericTransition()
-      let subtitulo = Textos.subtitulo(atributos: atributos)
-      if !subtitulo.isEmpty {
-        Text(subtitulo)
-          .font(.subheadline)
-          .foregroundStyle(Tinta.secundaria)
-          .lineLimit(1)
-          .minimumScaleFactor(0.7)
-      }
     }
     .fixedSize(horizontal: false, vertical: true)
   }
@@ -223,7 +211,9 @@ private struct Pista: View {
             .overlay(Circle().stroke(caduco ? Color.white.opacity(0.2) : .white, lineWidth: 2.5).padding(0.5))
             .overlay(Circle().stroke(caduco ? Color.clear : Tinta.verde.opacity(0.6), lineWidth: 1).padding(-3))
             .position(x: fin, y: altura / 2)
-          AutobusDesdeArriba(caduco: caduco).frame(width: 34, height: 18).position(x: centroBus, y: altura / 2)
+          // Las ruedas sobre la pista: su borde de abajo cae 15,25 bajo el
+          // tope del bus de 16, así que el centro va 7 sobre la línea.
+          AutobusDeLado(caduco: caduco).frame(width: 34, height: 16).position(x: centroBus, y: altura / 2 - 7)
         }
       }
       .frame(height: altura)
@@ -258,80 +248,84 @@ private struct RotulosPista: View {
   }
 }
 
-private struct AutobusDesdeArriba: View {
+/// El bus de la actividad en vivo, visto de lado con el frente a la
+/// derecha, hacia tu punto (dueño, 2026-10-21). Solo vive aquí: en el mapa
+/// sigue la cápsula de `createFlatTransitMarker`. Dibujado en 68 × 32 y
+/// pintado a la mitad, 34 × 16 pt.
+private struct AutobusDeLado: View {
   var caduco = false
 
-  private let anchoBase: CGFloat = 34
-  private let altoBase: CGFloat = 80
+  private let ancho: CGFloat = 68
+  private let alto: CGFloat = 32
 
   var body: some View {
     Canvas { context, size in
-      let escalaX = size.width / anchoBase
-      let escalaY = size.height / altoBase
-      var dibujo = context
-      dibujo.scaleBy(x: escalaX, y: escalaY)
+      var d = context
+      d.scaleBy(x: size.width / ancho, y: size.height / alto)
 
-      let carroceria = Path(roundedRect: CGRect(x: 0, y: 0, width: anchoBase, height: altoBase), cornerRadius: 8)
-
-      if !caduco {
-        dibujo.drawLayer { capa in
-          // Sombra de contacto gris, centrada y sin dirección como en el mapa.
-          capa.addFilter(.blur(radius: 3.2))
-          capa.fill(carroceria, with: .color(Color(red: 0x30 / 255, green: 0x34 / 255, blue: 0x3B / 255).opacity(0.30)))
-        }
-      }
-
-      if caduco {
-        dibujo.fill(carroceria, with: .color(Color(red: 0x94 / 255, green: 0xA3 / 255, blue: 0xB8 / 255).opacity(0.58)))
-      } else {
-        // El rojo lleno y encima la luz: blanco al 34 % a la izquierda, nada
-        // al 58 % y negro al 25 % a la derecha, el mismo lerp del mapa.
-        dibujo.fill(carroceria, with: .color(Tinta.rojoBus))
-        dibujo.fill(
-          carroceria,
-          with: .linearGradient(
-            Gradient(stops: [
-              .init(color: .white.opacity(0.34), location: 0),
-              .init(color: .clear, location: 0.58),
-              .init(color: .black.opacity(0.25), location: 1),
-            ]),
-            startPoint: .zero,
-            endPoint: CGPoint(x: anchoBase, y: 0)
-          )
+      // Carrocería: la trasera casi recta (radio 4) y el frente más romo
+      // arriba (9), como el morro de un bus urbano.
+      let caja = Path(
+        roundedRect: CGRect(x: 1, y: 3, width: 66, height: 23),
+        cornerRadii: RectangleCornerRadii(topLeading: 4, bottomLeading: 3, bottomTrailing: 3, topTrailing: 9),
+        style: .continuous
+      )
+      let rojo = caduco ? Color(red: 0x5C / 255, green: 0x61 / 255, blue: 0x69 / 255) : Tinta.rojoBus
+      d.fill(caja, with: .color(rojo))
+      // Luz de arriba: el techo 22 % más claro y el faldón 22 % más oscuro.
+      d.fill(
+        caja,
+        with: .linearGradient(
+          Gradient(stops: [
+            .init(color: .white.opacity(0.22), location: 0),
+            .init(color: .clear, location: 0.45),
+            .init(color: .black.opacity(0.22), location: 1),
+          ]),
+          startPoint: CGPoint(x: 0, y: 3),
+          endPoint: CGPoint(x: 0, y: 26)
         )
-      }
-
-      dibujo.stroke(
-        carroceria,
-        with: .color(.white.opacity(caduco ? 0.5 : 0.92)),
-        lineWidth: 1.3
       )
 
+      var dentro = d
+      dentro.clip(to: caja)
+      let vidrio = caduco ? Color(red: 0x2A / 255, green: 0x2E / 255, blue: 0x35 / 255) : Tinta.vidrio
+      // Cinco ventanas de pasajeros de 7 con parales de 2.
+      for i in 0..<5 {
+        let x = 5 + CGFloat(i) * 9
+        dentro.fill(Path(roundedRect: CGRect(x: x, y: 7, width: 7, height: 8), cornerRadius: 1.5), with: .color(vidrio))
+      }
+      // La puerta de adelante, de dos hojas, hasta el faldón.
+      dentro.fill(Path(roundedRect: CGRect(x: 50, y: 7, width: 6, height: 16), cornerRadius: 1.5), with: .color(vidrio))
+      dentro.fill(Path(CGRect(x: 52.75, y: 7, width: 0.5, height: 16)), with: .color(rojo.opacity(0.9)))
+      // El parabrisas, alto, siguiendo el morro.
+      dentro.fill(
+        Path(roundedRect: CGRect(x: 58, y: 6, width: 8, height: 12),
+             cornerRadii: RectangleCornerRadii(topLeading: 1.5, bottomLeading: 1.5, bottomTrailing: 1, topTrailing: 6),
+             style: .continuous),
+        with: .color(vidrio)
+      )
       if !caduco {
-        var techo = dibujo
-        techo.clip(to: carroceria)
-        let vidrio = Color(red: 0x17 / 255, green: 0x29 / 255, blue: 0x36 / 255)
-        let parabrisas = Path(roundedRect: CGRect(x: 4, y: 5, width: 26, height: 15), cornerRadius: 5)
-        techo.fill(parabrisas, with: .linearGradient(Gradient(colors: [vidrio, Color(red: 0x34 / 255, green: 0x4D / 255, blue: 0x5C / 255)]), startPoint: CGPoint(x: 7, y: 5), endPoint: CGPoint(x: 27, y: 20)))
-        techo.fill(Path(roundedRect: CGRect(x: 7, y: 7, width: 12, height: 2), cornerRadius: 1), with: .color(.white.opacity(0.48)))
-        techo.fill(Path(roundedRect: CGRect(x: 8, y: 67, width: 18, height: 7), cornerRadius: 3), with: .color(Color(red: 0x25 / 255, green: 0x3A / 255, blue: 0x47 / 255)))
-        for y: CGFloat in [28, 40] {
-          let tapa = Path(roundedRect: CGRect(x: 7, y: y, width: 20, height: 8), cornerRadius: 2)
-          techo.fill(tapa, with: .color(Color.black.opacity(0.24)))
-          for linea in [y + 2, y + 4, y + 6] {
-            techo.stroke(Path { $0.move(to: CGPoint(x: 10, y: linea)); $0.addLine(to: CGPoint(x: 24, y: linea)) }, with: .color(.white.opacity(0.20)), lineWidth: 0.8)
-          }
+        // Reflejo diagonal en el vidrio: blanco al 18 %.
+        for x: CGFloat in [6, 24, 59] {
+          dentro.fill(Path { p in
+            p.move(to: CGPoint(x: x + 3, y: 7)); p.addLine(to: CGPoint(x: x + 5, y: 7))
+            p.addLine(to: CGPoint(x: x + 2, y: 15)); p.addLine(to: CGPoint(x: x, y: 15))
+          }, with: .color(.white.opacity(0.18)))
         }
-        for x: CGFloat in [4, 30] {
-          techo.fill(Path(roundedRect: CGRect(x: x - 1.1, y: 2, width: 2.2, height: 3), cornerRadius: 1), with: .color(Color(red: 1, green: 0.95, blue: 0.76)))
-        }
-      } else {
-        dibujo.fill(Path(roundedRect: CGRect(x: 7, y: 9, width: 20, height: 62), cornerRadius: 4), with: .color(.white.opacity(0.10)))
+        // Una franja blanca a lo largo, bajo las ventanas.
+        dentro.fill(Path(CGRect(x: 1, y: 17, width: 49, height: 1.2)), with: .color(.white.opacity(0.55)))
+        // Faro adelante y piloto atrás.
+        dentro.fill(Path(roundedRect: CGRect(x: 64, y: 20, width: 3, height: 2.4), cornerRadius: 1), with: .color(Color(red: 1, green: 0.95, blue: 0.76)))
+        dentro.fill(Path(roundedRect: CGRect(x: 1, y: 19, width: 2, height: 3), cornerRadius: 0.8), with: .color(Color(red: 0.55, green: 0.08, blue: 0.08)))
+      }
+
+      // Ruedas con su arco negro (el fondo de la tarjeta) y el rin gris.
+      for x: CGFloat in [14, 54] {
+        d.fill(Path(ellipseIn: CGRect(x: x - 6, y: 20, width: 12, height: 12)), with: .color(.black))
+        d.fill(Path(ellipseIn: CGRect(x: x - 4.5, y: 21.5, width: 9, height: 9)), with: .color(Tinta.nodo))
+        d.fill(Path(ellipseIn: CGRect(x: x - 2, y: 24, width: 4, height: 4)), with: .color(Tinta.secundaria.opacity(caduco ? 0.5 : 1)))
       }
     }
-    .frame(width: 14.45, height: 34)
-    .rotationEffect(.degrees(90))
-    .frame(width: 34, height: 18)
     .accessibilityHidden(true)
   }
 }
