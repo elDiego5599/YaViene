@@ -65,8 +65,10 @@ struct IslaLider: View {
 
   var body: some View {
     HStack(alignment: .center, spacing: 8) {
-      Ficha(atributos: atributos, alto: 44)
-      ContenidoAviso(atributos: atributos, estado: estado)
+      // Abierta, la isla lleva el logo y solo la distancia; la ruta y la
+      // placa van en la pantalla bloqueada (dueño, 2026-10-21).
+      LogoYaViene(lado: 44)
+      ContenidoAviso(atributos: atributos, estado: estado, conSubtitulo: false)
     }
       .fixedSize(horizontal: true, vertical: false)
       .padding(.leading, 6)
@@ -97,6 +99,7 @@ struct IslaAbajo: View {
 struct ContenidoAviso: View {
   let atributos: AvisoAtributos
   let estado: AvisoAtributos.ContentState
+  var conSubtitulo = true
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
@@ -107,7 +110,7 @@ struct ContenidoAviso: View {
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .numericTransition()
-      let subtitulo = Textos.subtitulo(atributos: atributos)
+      let subtitulo = conSubtitulo ? Textos.subtitulo(atributos: atributos) : ""
       if !subtitulo.isEmpty {
         Text(subtitulo)
           .font(.subheadline)

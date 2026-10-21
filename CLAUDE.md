@@ -258,8 +258,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   dice. Con un aviso armado la app pide la ubicación en segundo plano
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
-  del todo no se pone al día (APNs, FALTANTES). La isla cerrada lleva el
-  ícono de Ya Viene (`LogoYaViene`).
+  del todo no se pone al día (APNs, FALTANTES). La isla lleva el ícono de
+  Ya Viene (`LogoYaViene`), cerrada y abierta; abierta, solo «Está a X de
+  ti», sin ruta ni placa (dueño, 2026-10-21).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y
