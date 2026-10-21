@@ -33,13 +33,17 @@ extension _MapRouteData on _MapWidgetState {
   /// punto y el usuario lo puso él: al abrir los buses en vivo lo que tiene
   /// que ver es su sitio, no un plano general de la ruta con el pin perdido
   /// en una esquina.
-  bool centerOnUserPin({required bool animated}) {
+  bool centerOnUserPin({required bool animated, bool pedidoExplicito = false}) {
     if (_mapController == null || !mounted) return false;
     final ubicacion = ref.read(userLocationProvider);
     final lat = ubicacion.lat;
     final lon = ubicacion.lon;
     if (lat == null || lon == null) return false;
-    moveCameraToBounds(waitingPointBounds(lat, lon), animated: animated);
+    moveCameraToBounds(
+      waitingPointBounds(lat, lon),
+      animated: animated,
+      pedidoExplicito: pedidoExplicito,
+    );
     return true;
   }
 
@@ -62,11 +66,24 @@ extension _MapRouteData on _MapWidgetState {
     moveCameraToBounds(caja, animated: animated);
   }
 
-  void moveCameraToBounds(FitBounds caja, {required bool animated}) {
+  void moveCameraToBounds(
+    FitBounds caja, {
+    required bool animated,
+    bool pedidoExplicito = false,
+  }) {
+    if (!_decisionCamara.permiteEncuadreAutomatico && !pedidoExplicito) {
+      return;
+    }
     // Espera a que el mapa termine de aplicar el margen de la hoja: los
     // rellenos de abajo se calculan contando con él.
     _margenEnCurso.then((_) {
-      if (_mapController == null || !mounted) return;
+      // El pin/ruta pudo encolarse antes de que llegara el toque al aviso.
+      // Revalidar aquí impide que su Future tardío pise el viaje al bus.
+      if (_mapController == null ||
+          !mounted ||
+          (!_decisionCamara.permiteEncuadreAutomatico && !pedidoExplicito)) {
+        return;
+      }
       _moverCamaraA(caja, animated: animated);
     });
   }

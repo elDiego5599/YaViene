@@ -15,6 +15,7 @@ import '../providers/tracking_providers.dart'
 import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
 import '../utils/camera_fit.dart';
+import '../utils/decision_camara.dart';
 import '../utils/estela.dart';
 import '../utils/map_constants.dart' show MapConstants;
 import 'estilo_ruta.dart';
@@ -64,6 +65,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   int _mapGeneration = 0;
   bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
+
+  final _decisionCamara = DecisionCamara();
 
   /// Si la cámara ya se llevó sola al punto de espera. El encuadre automático
   /// es una cortesía de arranque, no una correa: en cuanto ocurre una vez, el
@@ -237,7 +240,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _recenterRequestSubscription =
         ref.listenManual<int>(mapRecenterRequestProvider, (previous, next) {
       if (previous == next || !mounted || !_layersReady) return;
-      centerOnUserPin(animated: true);
+      centerOnUserPin(animated: true, pedidoExplicito: true);
     });
     // Selección de bus (desde la hoja): el mapa debe repintar el halo y el
     // tamaño del ícono al instante, sin esperar el siguiente paquete GPS.
@@ -253,7 +256,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // El bus del aviso que se acaba de tocar. Fuera del aviso de cambio:
     // `_enfocarBusPedido` cierra el pedido, y eso es otro cambio del mismo
     // proveedor.
-    _enfoqueSubscription = ref.listenManual(enfoqueDeBusProvider, (_, __) {
+    if (ref.read(enfoqueDeBusProvider) != null) {
+      _decisionCamara.pedirFocoDeAviso();
+    }
+    _enfoqueSubscription = ref.listenManual(enfoqueDeBusProvider, (_, next) {
+      if (next != null) _decisionCamara.pedirFocoDeAviso();
       scheduleMicrotask(_enfocarBusPedido);
     });
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
@@ -510,6 +517,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId && _layersReady) {
+      _decisionCamara.cambioDeRuta(
+        hayPedidoDeAviso: ref.read(enfoqueDeBusProvider) != null,
+      );
       _hasFitInitialRoute = false;
       if (widget.routeId != null) {
         reloadMapData();
@@ -517,7 +527,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // El punto de espera no depende de los buses, así que el encuadre
         // tampoco: si ya hay pin (o GPS) la cámara va a él ahora mismo, sin
         // esperar al primer lote —que con una ruta sin buses no llega nunca—.
-        if (_centrarEnElUsuario(animated: true)) _hasFitInitialRoute = true;
+        if (_centrarEnElUsuario(animated: true)) {
+          _hasFitInitialRoute = true;
+        }
       } else {
         _teardownBusSubscription();
         teardownRouteData();
@@ -1064,6 +1076,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         _busEnPantalla(pedido.busId) == null) {
       return;
     }
+    if (!_decisionCamara.enfocarBusDisponible()) return;
     // Ni el encuadre del primer lote ni el encuadre automático del pin deben
     // llevarse la cámara lejos del bus tras consumir este pedido.
     _hasFitInitialRoute = true;

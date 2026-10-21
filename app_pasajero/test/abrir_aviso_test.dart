@@ -233,5 +233,6 @@ void main() {
         contains('_enfocarBusPedido();'));
     final enfoque = mapa.substring(mapa.indexOf('void _enfocarBusPedido()'));
     expect(enfoque, contains('_viajarAlBus(pedido.busId)'));
+    expect(enfoque, contains('_decisionCamara.enfocarBusDisponible()'));
   });
 }
