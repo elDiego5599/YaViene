@@ -121,8 +121,8 @@
   },
   {
     "archivo": "app_pasajero/lib/features/notifications/presentation/providers/proximity_alerts_provider.dart",
-    "de": "} else if (distance <= radio) {",
-    "a": "} else {",
+    "de": "if (distance <= radio) fire[busId] = distance.round();",
+    "a": "if (distance < radio) fire[busId] = distance.round();",
     "que": "solo suena dentro de su distancia"
   },
   {
@@ -151,14 +151,14 @@
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/active_alerts_provider.dart",
-    "de": "if (state.length >= maxActive) return false;",
-    "a": "if (state.length > maxActive) return false;",
+    "de": "if (state.length >= maxAvisosActivos) return false;",
+    "a": "if (state.length > maxAvisosActivos) return false;",
     "que": "tope de avisos activos"
   },
   {
     "archivo": "app_pasajero/lib/features/map/presentation/providers/active_alerts_provider.dart",
-    "de": "bool activateAlert(String busId, {int maxActive = 2}) {",
-    "a": "bool activateAlert(String busId, {int maxActive = 3}) {",
+    "de": "if (state.length >= maxAvisosActivos) return false;",
+    "a": "if (state.length >= maxAvisosActivos + 1) return false;",
     "que": "dos avisos a la vez"
   },
   {
