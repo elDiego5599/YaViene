@@ -185,6 +185,7 @@ private struct Pista: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; var muestraRotulos: Bool
   var caduco = false
   private let altura: CGFloat = 22
+  private let radioLlanta: CGFloat = 2.25
   var body: some View {
     VStack(spacing: muestraRotulos ? 16 : 5) {
       GeometryReader { geo in
@@ -213,7 +214,12 @@ private struct Pista: View {
             .position(x: fin, y: altura / 2)
           // Las ruedas sobre la pista: su borde de abajo cae 15,25 bajo el
           // tope del bus de 16, así que el centro va 7 sobre la línea.
-          AutobusDeLado(caduco: caduco).frame(width: 34, height: 16).position(x: centroBus, y: altura / 2 - 7)
+          // Rodar sin patinar: el ángulo es distancia / radio. La llanta
+          // mide 4,5 unidades × 0,5 = 2,25 pt. SwiftUI interpola rotationEffect
+          // entre avisos; las Live Activities no ejecutan animaciones continuas.
+          AutobusDeLado(caduco: caduco, giro: .radians(desplazamiento / radioLlanta))
+            .frame(width: 34, height: 16)
+            .position(x: centroBus, y: altura / 2 - 7)
         }
       }
       .frame(height: altura)
@@ -254,78 +260,121 @@ private struct RotulosPista: View {
 /// pintado a la mitad, 34 × 16 pt.
 private struct AutobusDeLado: View {
   var caduco = false
+  var giro: Angle = .zero
 
   private let ancho: CGFloat = 68
   private let alto: CGFloat = 32
 
   var body: some View {
-    Canvas { context, size in
-      var d = context
-      d.scaleBy(x: size.width / ancho, y: size.height / alto)
+    GeometryReader { geo in
+      let escalaX = geo.size.width / ancho
+      let escalaY = geo.size.height / alto
+      ZStack(alignment: .topLeading) {
+        Canvas { context, size in
+          var d = context
+          d.scaleBy(x: size.width / ancho, y: size.height / alto)
 
-      // Carrocería: la trasera casi recta (radio 4) y el frente más romo
-      // arriba (9), como el morro de un bus urbano.
-      let caja = Path(
-        roundedRect: CGRect(x: 1, y: 3, width: 66, height: 23),
-        cornerRadii: RectangleCornerRadii(topLeading: 4, bottomLeading: 3, bottomTrailing: 3, topTrailing: 9),
-        style: .continuous
-      )
-      let rojo = caduco ? Color(red: 0x5C / 255, green: 0x61 / 255, blue: 0x69 / 255) : Tinta.rojoBus
-      d.fill(caja, with: .color(rojo))
-      // Luz de arriba: el techo 22 % más claro y el faldón 22 % más oscuro.
-      d.fill(
-        caja,
-        with: .linearGradient(
-          Gradient(stops: [
-            .init(color: .white.opacity(0.22), location: 0),
-            .init(color: .clear, location: 0.45),
-            .init(color: .black.opacity(0.22), location: 1),
-          ]),
-          startPoint: CGPoint(x: 0, y: 3),
-          endPoint: CGPoint(x: 0, y: 26)
-        )
-      )
+          // Carrocería: la trasera casi recta (radio 4) y el frente más romo
+          // arriba (9), como el morro de un bus urbano.
+          let caja = Path(
+            roundedRect: CGRect(x: 1, y: 3, width: 66, height: 23),
+            cornerRadii: RectangleCornerRadii(topLeading: 4, bottomLeading: 3, bottomTrailing: 3, topTrailing: 9),
+            style: .continuous
+          )
+          let rojo = caduco ? Color(red: 0x5C / 255, green: 0x61 / 255, blue: 0x69 / 255) : Tinta.rojoBus
+          d.fill(caja, with: .color(rojo))
+          // Luz de arriba: el techo 22 % más claro y el faldón 22 % más oscuro.
+          d.fill(
+            caja,
+            with: .linearGradient(
+              Gradient(stops: [
+                .init(color: .white.opacity(0.22), location: 0),
+                .init(color: .clear, location: 0.45),
+                .init(color: .black.opacity(0.22), location: 1),
+              ]),
+              startPoint: CGPoint(x: 0, y: 3),
+              endPoint: CGPoint(x: 0, y: 26)
+            )
+          )
 
-      var dentro = d
-      dentro.clip(to: caja)
-      let vidrio = caduco ? Color(red: 0x2A / 255, green: 0x2E / 255, blue: 0x35 / 255) : Tinta.vidrio
-      // Cinco ventanas de pasajeros de 7 con parales de 2.
-      for i in 0..<5 {
-        let x = 5 + CGFloat(i) * 9
-        dentro.fill(Path(roundedRect: CGRect(x: x, y: 7, width: 7, height: 8), cornerRadius: 1.5), with: .color(vidrio))
-      }
-      // La puerta de adelante, de dos hojas, hasta el faldón.
-      dentro.fill(Path(roundedRect: CGRect(x: 50, y: 7, width: 6, height: 16), cornerRadius: 1.5), with: .color(vidrio))
-      dentro.fill(Path(CGRect(x: 52.75, y: 7, width: 0.5, height: 16)), with: .color(rojo.opacity(0.9)))
-      // El parabrisas, alto, siguiendo el morro.
-      dentro.fill(
-        Path(roundedRect: CGRect(x: 58, y: 6, width: 8, height: 12),
-             cornerRadii: RectangleCornerRadii(topLeading: 1.5, bottomLeading: 1.5, bottomTrailing: 1, topTrailing: 6),
-             style: .continuous),
-        with: .color(vidrio)
-      )
-      if !caduco {
-        // Reflejo diagonal en el vidrio: blanco al 18 %.
-        for x: CGFloat in [6, 24, 59] {
-          dentro.fill(Path { p in
-            p.move(to: CGPoint(x: x + 3, y: 7)); p.addLine(to: CGPoint(x: x + 5, y: 7))
-            p.addLine(to: CGPoint(x: x + 2, y: 15)); p.addLine(to: CGPoint(x: x, y: 15))
-          }, with: .color(.white.opacity(0.18)))
+          var dentro = d
+          dentro.clip(to: caja)
+          let vidrio = caduco ? Color(red: 0x2A / 255, green: 0x2E / 255, blue: 0x35 / 255) : Tinta.vidrio
+          // Cinco ventanas de pasajeros de 7 con parales de 2.
+          for i in 0..<5 {
+            let x = 5 + CGFloat(i) * 9
+            dentro.fill(Path(roundedRect: CGRect(x: x, y: 7, width: 7, height: 8), cornerRadius: 1.5), with: .color(vidrio))
+          }
+          // La puerta de adelante, de dos hojas, hasta el faldón.
+          dentro.fill(Path(roundedRect: CGRect(x: 50, y: 7, width: 6, height: 16), cornerRadius: 1.5), with: .color(vidrio))
+          dentro.fill(Path(CGRect(x: 52.75, y: 7, width: 0.5, height: 16)), with: .color(rojo.opacity(0.9)))
+          // El parabrisas, alto, siguiendo el morro.
+          dentro.fill(
+            Path(roundedRect: CGRect(x: 58, y: 6, width: 8, height: 12),
+                 cornerRadii: RectangleCornerRadii(topLeading: 1.5, bottomLeading: 1.5, bottomTrailing: 1, topTrailing: 6),
+                 style: .continuous),
+            with: .color(vidrio)
+          )
+          if !caduco {
+            // Reflejo diagonal en el vidrio: blanco al 18 %.
+            for x: CGFloat in [6, 24, 59] {
+              dentro.fill(Path { p in
+                p.move(to: CGPoint(x: x + 3, y: 7)); p.addLine(to: CGPoint(x: x + 5, y: 7))
+                p.addLine(to: CGPoint(x: x + 2, y: 15)); p.addLine(to: CGPoint(x: x, y: 15))
+              }, with: .color(.white.opacity(0.18)))
+            }
+            // Una franja blanca a lo largo, bajo las ventanas.
+            dentro.fill(Path(CGRect(x: 1, y: 17, width: 49, height: 1.2)), with: .color(.white.opacity(0.55)))
+            // Faro adelante y piloto atrás.
+            dentro.fill(Path(roundedRect: CGRect(x: 64, y: 20, width: 3, height: 2.4), cornerRadius: 1), with: .color(Color(red: 1, green: 0.95, blue: 0.76)))
+            dentro.fill(Path(roundedRect: CGRect(x: 1, y: 19, width: 2, height: 3), cornerRadius: 0.8), with: .color(Color(red: 0.55, green: 0.08, blue: 0.08)))
+          }
+
+          // El arco negro de cada rueda queda en el Canvas.
+          for x: CGFloat in [14, 54] {
+            d.fill(Path(ellipseIn: CGRect(x: x - 6, y: 20, width: 12, height: 12)), with: .color(.black))
+          }
         }
-        // Una franja blanca a lo largo, bajo las ventanas.
-        dentro.fill(Path(CGRect(x: 1, y: 17, width: 49, height: 1.2)), with: .color(.white.opacity(0.55)))
-        // Faro adelante y piloto atrás.
-        dentro.fill(Path(roundedRect: CGRect(x: 64, y: 20, width: 3, height: 2.4), cornerRadius: 1), with: .color(Color(red: 1, green: 0.95, blue: 0.76)))
-        dentro.fill(Path(roundedRect: CGRect(x: 1, y: 19, width: 2, height: 3), cornerRadius: 0.8), with: .color(Color(red: 0.55, green: 0.08, blue: 0.08)))
-      }
-
-      // Ruedas con su arco negro (el fondo de la tarjeta) y el rin gris.
-      for x: CGFloat in [14, 54] {
-        d.fill(Path(ellipseIn: CGRect(x: x - 6, y: 20, width: 12, height: 12)), with: .color(.black))
-        d.fill(Path(ellipseIn: CGRect(x: x - 4.5, y: 21.5, width: 9, height: 9)), with: .color(Tinta.nodo))
-        d.fill(Path(ellipseIn: CGRect(x: x - 2, y: 24, width: 4, height: 4)), with: .color(Tinta.secundaria.opacity(caduco ? 0.5 : 1)))
+        ForEach([CGFloat(14), CGFloat(54)], id: \.self) { x in
+          Rueda(caduco: caduco, giro: giro)
+            .frame(width: 9 * escalaX, height: 9 * escalaY)
+            .position(x: x * escalaX, y: 26 * escalaY)
+        }
       }
     }
+    .accessibilityHidden(true)
+  }
+}
+
+private struct Rueda: View {
+  let caduco: Bool
+  let giro: Angle
+
+  var body: some View {
+    GeometryReader { geo in
+      let lado = min(geo.size.width, geo.size.height)
+      let centro = lado / 2
+      let radioRin = lado * 0.31
+      ZStack {
+        Circle().fill(Tinta.nodo)
+        Circle()
+          .fill(Tinta.secundaria.opacity(caduco ? 0.5 : 1))
+          .frame(width: lado * 0.62, height: lado * 0.62)
+        ForEach(0..<5) { indice in
+          Capsule()
+            .fill(Tinta.nodo)
+            .frame(width: max(0.7, lado * 0.09), height: radioRin * 0.9)
+            .offset(y: -radioRin * 0.48)
+            .rotationEffect(.degrees(Double(indice) * 72))
+        }
+        Circle()
+          .fill(Tinta.nodo)
+          .frame(width: lado * 0.22, height: lado * 0.22)
+      }
+      .frame(width: lado, height: lado)
+      .position(x: centro, y: centro)
+    }
+    .rotationEffect(giro)
     .accessibilityHidden(true)
   }
 }

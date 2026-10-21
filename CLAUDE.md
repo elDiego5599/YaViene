@@ -3,6 +3,15 @@
 Ya Viene muestra en vivo los buses urbanos de Barranquilla y a qué
 **distancia** vienen. Tres repos, una vara: calidad de producción.
 
+## La regla más importante: Codex hace, Claude revisa (dueño, 2026-10-21)
+Todo el código lo escribe **Codex** (agente `codex:codex-rescue`), en
+diseño y en todo lo demás. Claude no escribe ni reescribe código a mano:
+le pasa el pedido a Codex, revisa lo que hizo, lo verifica (pruebas,
+analyze, render, builds, simulador e iPhone) y le devuelve las
+correcciones a Codex. Claude sí hace lo que Codex no puede: git, builds,
+`dart format`, instalar y los arneses de render en el scratchpad. Esta
+regla manda sobre «Sin agentes», más abajo.
+
 ## Vara de calidad (decisión del dueño, 2026-09-27)
 Calidad de producción siempre. Que el entorno sea de prueba (ramas `prueba`,
 flota simulada, ngrok, pitch) no rebaja ninguna tarea, no justifica atajos y
@@ -25,8 +34,8 @@ etiqueta «Simulación», la flota demo y `empty-pick-bus`.
    pruebas que siguen valiendo); el estado vivo está aquí y en FALTANTES.
 
 ## Cómo se trabaja: skills y herramientas
-**Sin agentes (dueño, 2026-10-14):** Claude hace todo él mismo, sin
-subagentes, salvo que el dueño los pida. La delegación del 2026-10-11 se
+**Sin agentes (dueño, 2026-10-14):** Claude no usa subagentes, salvo que
+el dueño los pida; Codex sí, siempre (la regla más importante, arriba). La delegación del 2026-10-11 se
 canceló. Las skills de la tabla de abajo se usan igual (revisar las
 disponibles en `.claude/skills/` y `~/.claude/skills/`).
 
@@ -252,7 +261,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   ti» solo, sin la ruta ni la placa (dueño, 2026-10-21), el logo de Ya Viene
   cuadradito en vez de la ficha (dueño, 2026-10-21), cifra de la hoja y una pista verde, un poco más abajo, con un bus
   visto de lado, rojo y con el frente hacia tu punto, que solo vive ahí
-  (`AutobusDeLado`; el de arriba no gustó, dueño, 2026-10-21) y avanza hacia tu punto, con la campana donde suena el aviso;
+  (`AutobusDeLado`; el de arriba no gustó, dueño, 2026-10-21), avanza hacia
+  tu punto y hace rodar las ruedas lo que avanza (dueño, 2026-10-21), con la
+  campana donde suena el aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
   está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
