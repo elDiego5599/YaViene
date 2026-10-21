@@ -259,8 +259,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
   del todo no se pone al día (APNs, FALTANTES). La isla lleva el ícono de
-  Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y abierta; abierta, solo «Está a X de
-  ti», sin ruta ni placa (dueño, 2026-10-21).
+  Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y
+  abierta; abierta lleva «Está a X de ti» y debajo la ruta y la placa,
+  como la pantalla bloqueada (dueño, 2026-10-21).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y

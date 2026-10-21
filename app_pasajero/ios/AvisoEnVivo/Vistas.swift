@@ -65,10 +65,10 @@ struct IslaLider: View {
 
   var body: some View {
     HStack(alignment: .center, spacing: 8) {
-      // Abierta, la isla lleva el logo y solo la distancia; la ruta y la
-      // placa van en la pantalla bloqueada (dueño, 2026-10-21).
+      // Abierta, la isla muestra el logo, la distancia y debajo la ruta con
+      // la placa, igual que la pantalla bloqueada (dueño, 2026-10-21).
       LogoYaViene(lado: 44)
-      ContenidoAviso(atributos: atributos, estado: estado, conSubtitulo: false)
+      ContenidoAviso(atributos: atributos, estado: estado)
     }
       .fixedSize(horizontal: true, vertical: false)
       .padding(.leading, 6)
@@ -99,7 +99,6 @@ struct IslaAbajo: View {
 struct ContenidoAviso: View {
   let atributos: AvisoAtributos
   let estado: AvisoAtributos.ContentState
-  var conSubtitulo = true
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
@@ -110,7 +109,7 @@ struct ContenidoAviso: View {
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .numericTransition()
-      let subtitulo = conSubtitulo ? Textos.subtitulo(atributos: atributos) : ""
+      let subtitulo = Textos.subtitulo(atributos: atributos)
       if !subtitulo.isEmpty {
         Text(subtitulo)
           .font(.subheadline)
