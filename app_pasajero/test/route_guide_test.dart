@@ -66,10 +66,14 @@ void main() {
       ),
     );
     await tester.tap(find.text('abrir'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle(const Duration(milliseconds: 16));
+  }
+
+  /// La vista del selector cruza en 280 ms, el hueco de la guía en 360 ms
+  /// y la entrada de filas puede durar 560 ms. Las comprobaciones y toques
+  /// siguientes se hacen con el destino ya asentado.
+  Future<void> asentar(WidgetTester tester) async {
+    await tester.pumpAndSettle(const Duration(milliseconds: 16));
   }
 
   Future<void> setup(WidgetTester tester) async {
@@ -103,21 +107,18 @@ void main() {
     expect(find.text('Elige una empresa'), findsOneWidget);
 
     await tester.tap(find.text('Empresa'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     expect(find.text('Sobusa'), findsOneWidget);
 
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pump();
     expect(find.text('Empresa 8'), findsOneWidget);
     await tester.tap(find.text('Empresa 8'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     expect(guide.state.step, MapGuideStep.route);
 
     await tester.tap(find.text('Ruta'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     // El código va en la insignia y el nombre en el título: la fila dice
     // «B18» y «Tcherassi» por separado, que es como se lee en el parabrisas.
     expect(find.text('B18'), findsOneWidget);
@@ -127,8 +128,7 @@ void main() {
     await tester.pump();
     expect(find.text('Ruta 8'), findsOneWidget);
     await tester.tap(find.text('Ruta 8'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     expect(guide.state.step, MapGuideStep.launchBuses);
     expect(find.text('Ver buses en vivo'), findsOneWidget);
 
@@ -173,12 +173,6 @@ void main() {
     expect(find.text('Elige tu ruta'), findsOneWidget);
   });
 
-  Future<void> asentar(WidgetTester tester) async {
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump(const Duration(milliseconds: 500));
-  }
-
   // Los pasos del selector no tenían «Atrás»: el 3, el 4 y el 5 de la guía
   // eran los únicos sin él.
   testWidgets('Atrás en el selector vuelve a la vista y al paso de antes',
@@ -217,22 +211,18 @@ void main() {
     await pumpSheet(tester);
 
     await tester.tap(find.text('Empresa'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pump();
     await tester.tap(find.text('Empresa 8'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
 
     await tester.tap(find.text('Ruta'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     await tester.drag(find.byType(ListView).last, const Offset(0, -500));
     await tester.pump();
     await tester.tap(find.text('Ruta 8'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await asentar(tester);
     expect(guide.state.step, MapGuideStep.launchBuses);
 
     // Se simula el éxito del lanzamiento: la guía pasa a "buses" (paso de

@@ -813,4 +813,57 @@ void main() {
     expect(estilo.fontSize, 25);
     expect(estilo.color, AppColors.primaryDeep);
   });
+
+  testWidgets('el hueco interpola entre pasos y se puede interrumpir',
+      (tester) async {
+    Rect objetivo = const Rect.fromLTWH(60, 100, 100, 70);
+
+    Widget montar() => MediaQuery(
+          data: const MediaQueryData(),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: SizedBox.expand(
+              child: MapGuideOverlay(
+                target: objetivo,
+                title: objetivo.left < 150 ? 'Paso uno' : 'Paso dos',
+                message: 'Mensaje de prueba',
+                icon: Icons.search,
+                stepIndex: objetivo.left < 150 ? 0 : 1,
+                stepCount: 3,
+                onSkip: () {},
+              ),
+            ),
+          ),
+        );
+
+    Rect leerHueco() => (tester
+            .widget<CustomPaint>(find.byKey(const ValueKey('guide_scrim')))
+            .painter! as PintorHueco)
+        .hole;
+
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(montar());
+    await tester.pump(const Duration(milliseconds: 450));
+    final viejo = leerHueco();
+
+    objetivo = const Rect.fromLTWH(240, 240, 120, 80);
+    await tester.pumpWidget(montar());
+    await tester.pump(const Duration(milliseconds: 180));
+    final mitad = leerHueco();
+    final nuevo = objetivo.inflate(10);
+    expect(mitad.left, greaterThan(viejo.left));
+    expect(mitad.left, lessThan(nuevo.left));
+    expect(mitad.top, greaterThan(viejo.top));
+    expect(mitad.top, lessThan(nuevo.top));
+
+    objetivo = const Rect.fromLTWH(120, 180, 90, 60);
+    await tester.pumpWidget(montar());
+    await tester.pump(const Duration(milliseconds: 90));
+    final interrumpido = leerHueco();
+    expect(interrumpido.left, lessThan(mitad.left));
+    expect(interrumpido.left, greaterThan(viejo.left));
+  });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/widgets/tamano_animado.dart';
 
 /// Spotlight reutilizable de la guía completa. Solo [target] queda libre para
 /// recibir el gesto real del widget que está debajo; las cuatro barreras
@@ -83,6 +84,10 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   late final CurvedAnimation _scale;
   late final CurvedAnimation _fade;
   late final Animation<double> _escala;
+  late final AnimationController _stepController;
+  Rect? _stepStartRect;
+  Rect? _stepEndRect;
+  Rect? _visibleRect;
 
   /// F14: pulso breve en el borde del hueco cuando un tap cae fuera — antes
   /// la barrera lo absorbía en silencio, sin ninguna señal de "ahí no es".
@@ -93,7 +98,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   /// Altura real de la carta, medida tras el primer layout: sirve para
   /// decidir si la carta cabe debajo del área iluminada sin solaparla.
   double? _cardHeight;
-  final GlobalKey _cardKey = GlobalKey();
+  GlobalKey _cardKey = GlobalKey();
 
   @override
   void initState() {
@@ -112,6 +117,10 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     _escala = Tween<double>(begin: 0.92, end: 1).animate(_scale);
     _fade = CurvedAnimation(parent: _controller, curve: AppMotion.curvaEntrada);
     _controller.forward();
+    _stepController = AnimationController(
+      vsync: this,
+      duration: AppMotion.pausado,
+    )..addListener(_onStepTick);
 
     _missTapController = AnimationController(
       vsync: this,
@@ -128,18 +137,42 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
 
   void _onMissTap() => _missTapController.forward(from: 0);
 
+  void _onStepTick() {
+    if (mounted && _stepController.value > 0) setState(() {});
+  }
+
   @override
   void didUpdateWidget(MapGuideOverlay old) {
     super.didUpdateWidget(old);
+    if (old.target != widget.target ||
+        old.centered != widget.centered ||
+        old.cartaAbajo != widget.cartaAbajo) {
+      final current = _visibleRect ?? _holeFor(old);
+      _stepStartRect = current;
+      _stepEndRect = _holeFor(widget);
+      _stepController
+        ..duration = AppMotion.duracion(context, AppMotion.pausado)
+        ..forward(from: 0);
+    }
     // Cada paso trae su texto y sus botones: la carta cambia de alto y la
     // medida del paso anterior la ponía donde ya no cabía.
     if (old.title != widget.title ||
         old.message != widget.message ||
+        old.icon != widget.icon ||
+        old.stepIndex != widget.stepIndex ||
+        old.stepCount != widget.stepCount ||
         old.primaryLabel != widget.primaryLabel ||
         (old.onBack == null) != (widget.onBack == null)) {
       _cardHeight = null;
+      // AnimatedSwitcher mantiene un instante la carta saliente junto a la
+      // entrante. Cada una necesita su propia GlobalKey mientras se funden.
+      _cardKey = GlobalKey();
     }
   }
+
+  Rect _holeFor(MapGuideOverlay value) =>
+      value.targetInsets?.inflateRect(value.target) ??
+      value.target.inflate(value.targetPadding);
 
   /// La escala de entrada, o ninguna si el sistema pide menos movimiento.
   Animation<double> _escalaEntrada(BuildContext context) =>
@@ -153,6 +186,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     _fade.dispose();
     _missTapCurva.dispose();
     _controller.dispose();
+    _stepController.dispose();
     _missTapController.dispose();
     super.dispose();
   }
@@ -163,9 +197,15 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final bounds = Offset.zero & size;
-        final rawHole = widget.targetInsets?.inflateRect(widget.target) ??
-            widget.target.inflate(widget.targetPadding);
-        var hole = rawHole.intersect(bounds);
+        final rawHole = _holeFor(widget);
+        final destinationHole = rawHole.intersect(bounds);
+        final startHole = _stepStartRect ?? destinationHole;
+        final endHole = _stepEndRect ?? destinationHole;
+        final progress = AppMotion.reducido(context)
+            ? 1.0
+            : AppMotion.curvaCambio.transform(_stepController.value);
+        var hole = Rect.lerp(startHole, endHole, progress)!.intersect(bounds);
+        _visibleRect = hole;
         final bottomInset = MediaQuery.of(context).viewPadding.bottom;
         final topInset = MediaQuery.of(context).viewPadding.top;
         final card = _buildCard();
@@ -215,7 +255,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         final fitsBelow =
             hole.bottom + 22 + cardHeight <= size.height - bottomInset;
         final placeAbove = !widget.cartaAbajo && (hole.top > 245 || !fitsBelow);
-        final cardTop = placeAbove
+        final targetCardTop = placeAbove
             ? size.height -
                 _aboveBottom(hole, size, bottomInset, topInset, cardHeight) -
                 cardHeight
@@ -223,6 +263,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
         // Donde la carta no cabe sin pisar el hueco, el hueco cede: lo que
         // queda bajo la carta no se ve ni se puede tocar, y un hueco que
         // sigue por debajo de ella ilumina lo que nadie ve.
+        final cardTop = targetCardTop;
         hole = _recortar(hole, cardTop, cardTop + cardHeight);
         final radio = mathMin(widget.radioHueco, hole.shortestSide / 2);
 
@@ -265,13 +306,31 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
               ),
             ),
             ..._buildBarriers(size, hole, onInvalidTap: _onMissTap),
-            Positioned(
+            AnimatedPositioned(
+              duration: AppMotion.duracion(context, AppMotion.pausado),
+              curve: AppMotion.curvaCambio,
               left: 20,
               right: 20,
               top: cardTop,
-              child: ScaleTransition(
-                scale: _escalaEntrada(context),
-                child: KeyedSubtree(key: _cardKey, child: card),
+              child: TamanoAnimado(
+                duracion: AppMotion.duracion(context, AppMotion.pausado),
+                child: AnimatedSwitcher(
+                  duration: AppMotion.duracion(context, AppMotion.normal),
+                  switchInCurve: AppMotion.curvaEntrada,
+                  switchOutCurve: AppMotion.curvaSalida,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: KeyedSubtree(
+                    key: ValueKey(
+                      '${widget.stepIndex}:${widget.title}:'
+                      '${widget.message}:${widget.primaryLabel}',
+                    ),
+                    child: ScaleTransition(
+                      scale: _escalaEntrada(context),
+                      child: KeyedSubtree(key: _cardKey, child: card),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -448,7 +507,8 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
                 ),
                 // El título y el contador se tocaban: el `Expanded` se come
                 // todo el ancho libre y nadie había puesto un respiro entre
-                // los dos. Antes lo tapaba que el título medía un punto menos.
+                // los dos. Antes lo tapaba que el título medía un punto
+                // menos.
                 const SizedBox(width: AppSpacing.sm),
                 // Mismo contraste tipográfico que el ETA gigante: el número
                 // que importa (el paso actual) en peso ultraligero y grande,
