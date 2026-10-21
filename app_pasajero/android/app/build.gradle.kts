@@ -10,10 +10,11 @@ plugins {
 
 // Firma de release con llave propia. La contraseña vive en android/key.properties
 // (gitignored; ver key.properties.example) y el keystore en android/app/upload-keystore.jks.
-// Sin key.properties el release cae a llaves de debug para no romper builds locales,
-// pero NO es publicable así.
+// Sin key.properties, las tareas de release fallan al configurarse. Solo se permite
+// usar la llave de debug si se solicita expresamente con -PfirmaDebugEnRelease=true.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
+val firmaDebugEnRelease = providers.gradleProperty("firmaDebugEnRelease").orNull == "true"
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
@@ -62,6 +63,7 @@ android {
     // Firebase o el ingreso con Google deja de funcionar en release.
     buildTypes {
         release {
+            // La guarda de la firma está en tasks.configureEach más abajo.
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
@@ -77,6 +79,17 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
         }
+    }
+}
+
+tasks.configureEach {
+    if (name.endsWith("Release") && !keystorePropertiesFile.exists() &&
+        !firmaDebugEnRelease) {
+        throw GradleException(
+            "No se puede compilar release: falta android/key.properties. " +
+                "Configura la firma de release o, solo para una compilación de prueba, " +
+                "usa -PfirmaDebugEnRelease=true."
+        )
     }
 }
 

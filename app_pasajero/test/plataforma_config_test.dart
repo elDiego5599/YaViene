@@ -110,6 +110,26 @@ void main() {
       expect(release, isNot(matches(RegExp(r'isJniDebuggable\s*=\s*true'))));
     });
 
+    test('release exige firma salvo excepción explícita de CI/prueba', () {
+      final kts = _sinComentariosKts(_leer(gradle));
+      expect(kts, contains('tasks.configureEach'));
+      expect(kts, contains('GradleException('));
+      expect(kts, contains('firmaDebugEnRelease'));
+      expect(kts, contains('No se puede compilar release: falta android/key.properties.'));
+      expect(
+        kts,
+        matches(RegExp(
+          r'tasks\.configureEach\s*\{[\s\S]*?name\.endsWith\("Release"\)[\s\S]*?GradleException\(',
+        )),
+      );
+
+      final workflow = _leer('../.github/workflows/ci.yml');
+      final pasoApk = RegExp(
+        r"""- name: APK del pasajero\s+working-directory: app_pasajero\s+env:\s+ORG_GRADLE_PROJECT_firmaDebugEnRelease:\s*["']true["']""",
+      );
+      expect(workflow, matches(pasoApk));
+    });
+
     test('el servicio de fondo se para con la tarea y el merger lo acepta', () {
       // El plugin declara el mismo servicio con stopWithTask="false": sin
       // nombrarlo en tools:replace, el merger de manifiestos tumba la APK.

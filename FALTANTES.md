@@ -70,6 +70,8 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que hacer tú
 
+- **PIN de la flota demo**: en `YaVieneBackend/local.env` el PIN es de 4 dígitos y es el viejo de siempre, con el túnel expuesto; quien lo tenga entra como conductor demo y pinta buses falsos. Cámbialo a 6 dígitos o más y reinicia el backend (auditoría 2026-10-21).
+
 Necesitan un teléfono, una cuenta o estar presente.
 
 - **Probar la lista desde la web** (D15): `WEB_ORIGINS` ya abre
