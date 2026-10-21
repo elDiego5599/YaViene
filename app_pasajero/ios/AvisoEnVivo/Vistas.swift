@@ -38,7 +38,7 @@ struct TarjetaBloqueada: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       HStack(spacing: 12) {
-        Ficha(atributos: atributos, alto: 40)
+        LogoYaViene(lado: 40)
         ContenidoAviso(atributos: atributos, estado: estado)
       }
       .opacity(caduco ? 0.5 : 1)
@@ -161,7 +161,9 @@ private struct LogoYaViene: View {
     Image("LogoYaViene")
       .resizable()
       .frame(width: lado, height: lado)
-      .clipShape(Circle())
+      // Cuadradito como el ícono de la app: esquinas continuas al 22,5 %
+      // del lado, la proporción del ícono de iOS (dueño, 2026-10-21).
+      .clipShape(RoundedRectangle(cornerRadius: lado * 0.225, style: .continuous))
   }
 }
 
@@ -176,19 +178,6 @@ private struct Cifra: View {
         Text(partes[1]).font(.system(size: tamanoUnidad ?? (tamano == 24 ? 13 : tamano * 0.72), weight: .semibold)).foregroundStyle(Tinta.secundaria)
       }
     }.lineLimit(1).numericTransition()
-  }
-}
-
-private struct Ficha: View {
-  let atributos: AvisoAtributos; let alto: CGFloat
-  var body: some View {
-    Group {
-      if atributos.codigo.isEmpty { Image(systemName: "bus.fill").font(.system(size: alto * 0.5, weight: .semibold)) }
-      else { Text(atributos.codigo).font(.system(size: alto * 0.47, weight: .heavy, design: .rounded)).tracking(-0.2).lineLimit(1) }
-    }
-    .foregroundStyle(.white).padding(.horizontal, alto * 0.23).frame(minWidth: alto, minHeight: alto, maxHeight: alto).fixedSize()
-    // 0,26 del alto crea una ficha compacta con esquinas continuas.
-    .background(RoundedRectangle(cornerRadius: alto * 0.26, style: .continuous).fill(atributos.colorFicha))
   }
 }
 
@@ -322,11 +311,5 @@ private struct AutobusDesdeArriba: View {
 private extension View {
   @ViewBuilder func numericTransition() -> some View {
     if #available(iOS 17.0, *) { self.contentTransition(.numericText()) } else { self }
-  }
-}
-
-extension AvisoAtributos {
-  var colorFicha: Color {
-    Color(red: Double((color >> 16) & 0xFF) / 255, green: Double((color >> 8) & 0xFF) / 255, blue: Double(color & 0xFF) / 255)
   }
 }

@@ -64,9 +64,7 @@ private enum Gestor {
     let atributos = AvisoAtributos(
       busId: busId,
       placa: datos["placa"] as? String ?? "",
-      codigo: datos["codigo"] as? String ?? "",
-      ruta: datos["ruta"] as? String ?? "",
-      color: (datos["color"] as? NSNumber)?.intValue ?? 0xFF14274E
+      ruta: datos["ruta"] as? String ?? ""
     )
     do {
       _ = try Activity.request(attributes: atributos, content: contenido)

@@ -5,7 +5,7 @@ import '../../features/notifications/presentation/providers/distancia_aviso_prov
 
 /// Lo que dice la actividad en vivo de un aviso armado: la pantalla
 /// bloqueada y la Dynamic Island del iPhone (dueño, 2026-10-19). La misma
-/// cifra que la hoja, la ficha del aviso y la barra de lo que falta.
+/// cifra que la hoja, la ruta y la barra de lo que falta.
 ///
 /// La barra va de 3 km, la distancia más larga del aviso
 /// ([distanciaAvisoMaxima]), a tu punto: el bus avanza igual en todas las
@@ -15,9 +15,7 @@ class EstadoEnVivo {
   const EstadoEnVivo({
     required this.busId,
     required this.placa,
-    required this.codigo,
     required this.ruta,
-    required this.color,
     required this.distancia,
     required this.aviso,
     required this.avance,
@@ -29,14 +27,8 @@ class EstadoEnVivo {
   /// Placa del bus, derivada de su identificador cuando tiene prefijo BUS-.
   final String placa;
 
-  /// El código de la ficha (B18); `null` si la ruta no trae uno.
-  final String? codigo;
-
   /// El nombre de la ruta sin su código.
   final String? ruta;
-
-  /// El color de la ficha, en ARGB.
-  final int color;
 
   /// «1,5 km», como la hoja.
   final String distancia;
@@ -58,9 +50,7 @@ class EstadoEnVivo {
   Map<String, Object?> aMapa() => {
         'busId': busId,
         'placa': placa,
-        'codigo': codigo,
         'ruta': ruta,
-        'color': color,
         'distancia': distancia,
         'aviso': aviso,
         'avance': avance,

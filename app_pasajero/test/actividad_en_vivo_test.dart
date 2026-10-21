@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/services/actividad_en_vivo.dart';
 import 'package:ya_viene_pasajero/core/services/mantener_vivo.dart';
-import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
@@ -125,15 +124,26 @@ void main() {
 
     final e = enVivo.mostrados.single;
     expect(e.busId, 'A-1');
-    expect(e.codigo, 'B18');
     expect(e.ruta, 'Tcherassi');
-    expect(e.color, colorEmpresa('C1').toARGB32());
     expect(e.distancia, '1,5 km');
     expect(e.aviso, 'Te avisamos a 1,0 km');
     expect(e.avance, closeTo(0.5, 0.02));
     expect(e.avanceAviso, closeTo(2 / 3, 0.001));
     expect(e.aMapa()['avance'], e.avance);
     expect(e.aMapa()['avanceAviso'], e.avanceAviso);
+    // Sin ficha de la ruta: la isla y la pantalla bloqueada llevan el logo
+    // de Ya Viene (dueño, 2026-10-21).
+    expect(
+        e.aMapa().keys,
+        unorderedEquals([
+          'busId',
+          'placa',
+          'ruta',
+          'distancia',
+          'aviso',
+          'avance',
+          'avanceAviso'
+        ]));
     expect(enVivo.terminados, isEmpty);
   });
 

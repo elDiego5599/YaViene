@@ -231,7 +231,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   ruta, como Transit, se probó y no gustó (dueño, 2026-10-19). La barra de
   avance bajo la cifra de la hoja tampoco gustó (2026-10-19): solo queda en
   la actividad en vivo. Solo la ficha de la ruta del
-  aviso (bandeja, tarjeta de Avisos y actividad en vivo) va en el color de
+  aviso (bandeja y tarjeta de Avisos) va en el color de
   su empresa en «Elige empresa» (`colorEmpresa`,
   `app_pasajero/lib/core/utils/color_empresa.dart`; el aviso guarda su
   `companyId`; los de antes, sin empresa, en el azul de botón).
@@ -249,8 +249,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   armado (se sigue un solo bus a la vez) pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,
   `actividad_en_vivo.dart`): fondo negro como Uber, arriba «Está a X de
-  ti» y debajo la ruta y la placa (como Uber, dueño, 2026-10-19), ficha en el color de
-  la empresa, cifra de la hoja y una pista verde con el mismo bus del
+  ti» y debajo la ruta y la placa (como Uber, dueño, 2026-10-19), el logo de Ya Viene
+  cuadradito en vez de la ficha (dueño, 2026-10-21), cifra de la hoja y una pista verde con el mismo bus del
   mapa (la cápsula de `createFlatTransitMarker`, girada) que avanza hacia tu punto, con la campana donde suena el aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
@@ -259,7 +259,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
   del todo no se pone al día (APNs, FALTANTES). La isla lleva el ícono de
-  Ya Viene (`LogoYaViene`), cerrada y abierta; abierta, solo «Está a X de
+  Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y abierta; abierta, solo «Está a X de
   ti», sin ruta ni placa (dueño, 2026-10-21).
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,

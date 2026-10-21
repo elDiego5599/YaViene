@@ -22,10 +22,6 @@ struct AvisoAtributos: ActivityAttributes {
 
   var busId: String
   var placa: String
-  /// El código de la ficha (B18); vacío si la ruta no trae uno.
-  var codigo: String
   /// El nombre de la ruta sin su código.
   var ruta: String
-  /// El color de la ficha, en ARGB, el mismo de la ficha del aviso.
-  var color: Int
 }

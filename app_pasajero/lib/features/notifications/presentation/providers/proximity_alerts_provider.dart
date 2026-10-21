@@ -10,7 +10,6 @@ import '../../../../core/services/actividad_en_vivo.dart';
 import '../../../../core/services/bus_notification_service.dart';
 import '../../../../core/services/mantener_vivo.dart';
 import '../../../../core/utils/bus_labels.dart';
-import '../../../../core/utils/color_empresa.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../map/presentation/providers/tracking_providers.dart';
 import '../../../map/presentation/providers/user_location_provider.dart';
@@ -483,9 +482,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     final estado = EstadoEnVivo(
       busId: busId,
       placa: busPlaca(busId),
-      codigo: codigoRuta(entrada?.routeName),
       ruta: nombreSinCodigo(entrada?.routeName),
-      color: colorFicha(companyId: entrada?.companyId).toARGB32(),
       // La cifra de la hoja, con su decimal pasados 10 km.
       distancia: _cifraDeLaHoja(metros),
       aviso: 'Te avisamos a ${distanciaAviso(radio)}',
