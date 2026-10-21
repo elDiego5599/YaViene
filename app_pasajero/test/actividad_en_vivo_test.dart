@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,7 +75,10 @@ void main() {
   late _MantenerVivoFalso mantenerVivo;
   late List<BusPosition> posiciones;
 
-  ProviderContainer contenedor({DateTime Function()? ahora}) {
+  ProviderContainer contenedor({
+    DateTime Function()? ahora,
+    bool seleccionarRuta = true,
+  }) {
     final c = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       busPositionsSourceProvider.overrideWith(
@@ -90,9 +94,11 @@ void main() {
                     required int distanceMeters}) async =>
                 true,
             retirar: (_) async {},
+            permiso: () async => true,
             ahora: ahora,
             enVivo: enVivo,
             mantenerVivo: mantenerVivo,
+            sentir: () async {},
           )),
     ]);
     addTearDown(c.dispose);
@@ -104,11 +110,13 @@ void main() {
         updatedAt: DateTime.now(),
       ),
     );
-    c.read(selectedRouteProvider.notifier).select(const RouteInfo(
-          id: 'R1',
-          name: 'B18 Tcherassi',
-          companyId: 'C1',
-        ));
+    if (seleccionarRuta) {
+      c.read(selectedRouteProvider.notifier).select(const RouteInfo(
+            id: 'R1',
+            name: 'B18 Tcherassi',
+            companyId: 'C1',
+          ));
+    }
     return c;
   }
 
@@ -158,6 +166,42 @@ void main() {
           'avanceAviso'
         ]));
     expect(enVivo.terminados, isEmpty);
+  });
+
+  test('restaurado dentro del radio publica actividad antes de llegar',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      'alert_history': jsonEncode([
+        {
+          'busId': 'A-1',
+          'routeId': 'R1',
+          'routeName': 'B18 Tcherassi',
+          'companyId': 'C1',
+          'createdAt': DateTime.now().toIso8601String(),
+          'refLat': null,
+          'refLon': null,
+          'radioM': 1000,
+        }
+      ]),
+    });
+    posiciones = [bus(0.0036)]; // Unos 400 m: dentro del radio de 1 km.
+    final c = contenedor(seleccionarRuta: false);
+    final avisos = c.read(proximityAlertsProvider.notifier);
+
+    await avisos.restore();
+    await Future<void>.delayed(Duration.zero);
+    expect(c.read(activeAlertsProvider), {'A-1'});
+    expect(c.read(selectedRouteProvider), isNull);
+    expect(c.read(selectedCompanyProvider), isNull);
+
+    await avisos.check();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(enVivo.mostrados, hasLength(1));
+    expect(enVivo.mostrados.single.busId, 'A-1');
+    expect(enVivo.mostrados.single.routeId, 'R1');
+    expect(enVivo.mostrados.single.distancia, '400 m');
+    expect(enVivo.terminados, [(busId: 'A-1', llego: true)]);
   });
 
   test('pasados 10 km, la cifra lleva el decimal como la hoja', () async {

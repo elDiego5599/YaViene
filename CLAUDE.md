@@ -281,7 +281,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   dice. Con un aviso armado la app pide la ubicación en segundo plano
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
-  del todo no se pone al día (APNs, FALTANTES). La isla lleva el ícono de
+  del todo no se pone al día (APNs, FALTANTES). Al volver a abrir la app con
+  el aviso armado y el bus ya dentro del radio, la actividad sale igual
+  (dueño, 2026-10-21). La isla lleva el ícono de
   Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y
   abierta; abierta lleva solo «Está a X de ti», como la pantalla
   bloqueada (dueño, 2026-10-21).

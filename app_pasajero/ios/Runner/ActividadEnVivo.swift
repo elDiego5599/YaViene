@@ -30,8 +30,10 @@ enum ActividadEnVivo {
       }
       switch llamada.method {
       case "mostrar":
-        Gestor.mostrar(busId: busId, datos: datos)
-        responder(nil)
+        // Dart puede completar el aviso y pedir `terminar` en la misma
+        // vuelta (bus ya dentro del radio). Responder después de ActivityKit
+        // evita que `terminar` busque antes de que `request` cree la actividad.
+        Gestor.mostrar(busId: busId, datos: datos) { responder(nil) }
       case "terminar":
         Gestor.terminar(busId: busId, llego: datos["llego"] as? Bool ?? false)
         responder(nil)
@@ -72,7 +74,11 @@ private enum Gestor {
   /// Lo que se queda en la pantalla bloqueada el aviso que sonó.
   static let despedida: TimeInterval = 10 * 60
 
-  static func mostrar(busId: String, datos: [String: Any]) {
+  static func mostrar(
+    busId: String,
+    datos: [String: Any],
+    alTerminar: @escaping () -> Void
+  ) {
     let estado = AvisoAtributos.ContentState(
       distancia: datos["distancia"] as? String ?? "",
       aviso: datos["aviso"] as? String ?? "",
@@ -96,6 +102,7 @@ private enum Gestor {
       ruta: datos["ruta"] as? String ?? ""
     )
     Task {
+      defer { DispatchQueue.main.async { alTerminar() } }
       for actividad in porTerminar {
         await actividad.end(nil, dismissalPolicy: .immediate)
       }

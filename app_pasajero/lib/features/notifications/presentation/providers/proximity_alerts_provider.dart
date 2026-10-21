@@ -116,6 +116,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// iguales se reenvían cada 30 s para renovar su vigencia en iOS.
   final _enVivoMostrado = <String, (String, DateTime)>{};
 
+  /// ActivityKit crea/actualiza la actividad de forma asíncrona. Serializar
+  /// mostrar y terminar conserva su orden sin detener el barrido si el canal
+  /// tarda o no responde. Si la cola está libre, despacha en esta misma
+  /// llamada.
+  final _colaEnVivo = <Future<void> Function()>[];
+  bool _despachandoEnVivo = false;
+
   /// Reloj con el que se decide si un aviso venció (inyectable en tests:
   /// esperar tres horas de verdad no es una prueba).
   final DateTime Function() _ahora;
@@ -501,12 +508,34 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       return;
     }
     _enVivoMostrado[busId] = (clave, ahora);
-    unawaited(_enVivo.mostrar(estado));
+    _encolarEnVivo(() => _enVivo.mostrar(estado));
   }
 
   void _terminarEnVivo(String busId, {required bool llego}) {
     if (_enVivoMostrado.remove(busId) == null) return;
-    unawaited(_enVivo.terminar(busId, llego: llego));
+    _encolarEnVivo(() => _enVivo.terminar(busId, llego: llego));
+  }
+
+  void _encolarEnVivo(Future<void> Function() accion) {
+    _colaEnVivo.add(accion);
+    _despacharEnVivo();
+  }
+
+  void _despacharEnVivo() {
+    if (_despachandoEnVivo || _colaEnVivo.isEmpty) return;
+    _despachandoEnVivo = true;
+    final accion = _colaEnVivo.removeAt(0);
+    Future<void>.sync(accion).then(
+      (_) {
+        _despachandoEnVivo = false;
+        _despacharEnVivo();
+      },
+      onError: (Object error, StackTrace stack) {
+        debugPrint('actividad en vivo falló: $error');
+        _despachandoEnVivo = false;
+        _despacharEnVivo();
+      },
+    );
   }
 
   /// La entrada que espera de [busId] en el historial.
@@ -787,10 +816,12 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
           distanciaAvisoInicial;
       if (state.contains(busId)) {
         if (distance > radio + margenRearmeMetros) rearm.add(busId);
-      } else if (distance <= radio) {
-        fire[busId] = distance.round();
       } else {
+        // Publica primero la distancia, incluso si la ruta ya llegó al radio:
+        // al restaurar tras un cierre en frío ActivityKit puede no conservar
+        // ninguna actividad, y el envío la desarma en esta misma vuelta.
         _mostrarEnVivo(busId, distance, radio);
+        if (distance <= radio) fire[busId] = distance.round();
       }
     }
 
