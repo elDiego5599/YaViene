@@ -261,8 +261,8 @@ private struct RotulosPista: View {
 private struct AutobusDesdeArriba: View {
   var caduco = false
 
-  private let anchoBase: CGFloat = 32
-  private let altoBase: CGFloat = 60
+  private let anchoBase: CGFloat = 34
+  private let altoBase: CGFloat = 80
 
   var body: some View {
     Canvas { context, size in
@@ -271,49 +271,65 @@ private struct AutobusDesdeArriba: View {
       var dibujo = context
       dibujo.scaleBy(x: escalaX, y: escalaY)
 
-      let capsula = Path(roundedRect: CGRect(x: 0, y: 0, width: anchoBase, height: altoBase), cornerRadius: anchoBase / 2)
+      let carroceria = Path(roundedRect: CGRect(x: 0, y: 0, width: anchoBase, height: altoBase), cornerRadius: 8)
 
       if !caduco {
         dibujo.drawLayer { capa in
-          capa.addFilter(.blur(radius: altoBase * 0.04))
-          capa.fill(capsula, with: .color(.black.opacity(0.24)))
+          // Sombra de contacto gris, centrada y sin dirección como en el mapa.
+          capa.addFilter(.blur(radius: 3.2))
+          capa.fill(carroceria, with: .color(Color(red: 0x30 / 255, green: 0x34 / 255, blue: 0x3B / 255).opacity(0.30)))
         }
       }
 
       if caduco {
-        dibujo.fill(capsula, with: .color(.white.opacity(0.35)))
+        dibujo.fill(carroceria, with: .color(Color(red: 0x94 / 255, green: 0xA3 / 255, blue: 0xB8 / 255).opacity(0.58)))
       } else {
-        let frente = Color(red: 0xE8 / 255, green: 0x6A / 255, blue: 0x5E / 255)
-        let claro = Color(red: 0xEF / 255, green: 0x97 / 255, blue: 0x8E / 255)
+        // El rojo lleno y encima la luz: blanco al 34 % a la izquierda, nada
+        // al 58 % y negro al 25 % a la derecha, el mismo lerp del mapa.
+        dibujo.fill(carroceria, with: .color(Tinta.rojoBus))
         dibujo.fill(
-          capsula,
+          carroceria,
           with: .linearGradient(
-            Gradient(colors: [claro, frente]),
-            startPoint: CGPoint(x: anchoBase / 2, y: 0),
-            endPoint: CGPoint(x: anchoBase / 2, y: altoBase)
+            Gradient(stops: [
+              .init(color: .white.opacity(0.34), location: 0),
+              .init(color: .clear, location: 0.58),
+              .init(color: .black.opacity(0.25), location: 1),
+            ]),
+            startPoint: .zero,
+            endPoint: CGPoint(x: anchoBase, y: 0)
           )
         )
       }
 
       dibujo.stroke(
-        capsula,
+        carroceria,
         with: .color(.white.opacity(caduco ? 0.5 : 0.92)),
-        lineWidth: 2.6
+        lineWidth: 1.3
       )
 
       if !caduco {
-        var parabrisas = dibujo
-        parabrisas.clip(to: capsula)
-        let ventana = CGRect(
-          x: (anchoBase - anchoBase * 0.72) / 2,
-          y: altoBase * 0.26 - altoBase * 0.26 / 2,
-          width: anchoBase * 0.72,
-          height: altoBase * 0.26
-        )
-        parabrisas.fill(Path(ellipseIn: ventana), with: .color(.white.opacity(0.3)))
+        var techo = dibujo
+        techo.clip(to: carroceria)
+        let vidrio = Color(red: 0x17 / 255, green: 0x29 / 255, blue: 0x36 / 255)
+        let parabrisas = Path(roundedRect: CGRect(x: 4, y: 5, width: 26, height: 15), cornerRadius: 5)
+        techo.fill(parabrisas, with: .linearGradient(Gradient(colors: [vidrio, Color(red: 0x34 / 255, green: 0x4D / 255, blue: 0x5C / 255)]), startPoint: CGPoint(x: 7, y: 5), endPoint: CGPoint(x: 27, y: 20)))
+        techo.fill(Path(roundedRect: CGRect(x: 7, y: 7, width: 12, height: 2), cornerRadius: 1), with: .color(.white.opacity(0.48)))
+        techo.fill(Path(roundedRect: CGRect(x: 8, y: 67, width: 18, height: 7), cornerRadius: 3), with: .color(Color(red: 0x25 / 255, green: 0x3A / 255, blue: 0x47 / 255)))
+        for y: CGFloat in [28, 40] {
+          let tapa = Path(roundedRect: CGRect(x: 7, y: y, width: 20, height: 8), cornerRadius: 2)
+          techo.fill(tapa, with: .color(Color.black.opacity(0.24)))
+          for linea in [y + 2, y + 4, y + 6] {
+            techo.stroke(Path { $0.move(to: CGPoint(x: 10, y: linea)); $0.addLine(to: CGPoint(x: 24, y: linea)) }, with: .color(.white.opacity(0.20)), lineWidth: 0.8)
+          }
+        }
+        for x: CGFloat in [4, 30] {
+          techo.fill(Path(roundedRect: CGRect(x: x - 1.1, y: 2, width: 2.2, height: 3), cornerRadius: 1), with: .color(Color(red: 1, green: 0.95, blue: 0.76)))
+        }
+      } else {
+        dibujo.fill(Path(roundedRect: CGRect(x: 7, y: 9, width: 20, height: 62), cornerRadius: 4), with: .color(.white.opacity(0.10)))
       }
     }
-    .frame(width: 18, height: 34)
+    .frame(width: 14.45, height: 34)
     .rotationEffect(.degrees(90))
     .frame(width: 34, height: 18)
     .accessibilityHidden(true)

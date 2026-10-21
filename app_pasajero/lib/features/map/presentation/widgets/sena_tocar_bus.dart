@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/widgets/latido.dart';
+import 'map_markers.dart' show drawTransitBus;
 
 /// El dibujo de «Toca un bus en el mapa»: el mismo bus del mapa en
 /// miniatura, y un toque que lo marca. El bus se hunde un poco, como bajo
@@ -28,9 +29,9 @@ class SenaTocarBus extends StatelessWidget {
   /// con el mapa por la mirada.
   static const pausa = Duration(milliseconds: 2400);
 
-  /// El alto del bus respecto del medallón. En el mapa la cápsula es de
-  /// 60 × 32 en un lienzo de 96; aquí mide 0,42 del lado —23,5 px en el
-  /// medallón de 56— para que a los anillos les quede aire alrededor.
+  /// El alto del bus respecto del medallón. La silueta del mapa es 80 × 34;
+  /// aquí mide 0,42 del lado, 23,5 px en el medallón de 56, con aire para
+  /// los anillos.
   static const _altoBus = 0.42;
 
   /// Cuánto se hunde el bus bajo el dedo: al 92 %. Menos no se ve; más ya
@@ -101,61 +102,18 @@ class _PintorToque extends CustomPainter {
 
     final escala = quieto ? 1.0 : SenaTocarBus.escalaBus(t);
     final alto = SenaTocarBus._altoBus * lado;
-    // Las mismas proporciones de la cápsula del mapa: 60 de alto, 32 de ancho.
-    final ancho = alto * 32 / 60;
-    final capsula = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset.zero, width: ancho, height: alto),
-      Radius.circular(ancho / 2),
-    );
-
+    final ancho = alto * 34 / 80;
     canvas
       ..save()
       ..translate(centro.dx, centro.dy)
       ..scale(escala);
-
-    // La sombra de contacto del mapa (`map_markers.dart`): gris, centrada
-    // y en la misma proporción, 2,4 sobre 60 de alto. Antes era del color
-    // del bus, y en el mapa esa sombra se leía como una estela (dueño,
-    // 2026-09-30): la seña enseña el bus tal como se ve allá.
-    canvas.drawRRect(
-      capsula,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.24)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, alto * 0.04),
+    drawTransitBus(
+      canvas,
+      Rect.fromCenter(center: Offset.zero, width: ancho, height: alto),
+      AppColors.busActive,
+      isGhost: false,
     );
-    canvas.drawRRect(
-      capsula,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color.lerp(AppColors.busActive, Colors.white, 0.3)!,
-            AppColors.busActive,
-          ],
-        ).createShader(capsula.outerRect),
-    );
-    // Anillo blanco y parabrisas, a la escala del mapa (2,6 de 60).
-    canvas.drawRRect(
-      capsula,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = alto * 2.6 / 60
-        ..color = Colors.white.withValues(alpha: 0.92),
-    );
-    canvas
-      ..save()
-      ..clipRRect(capsula)
-      ..drawOval(
-        Rect.fromCenter(
-          center: Offset(0, -alto * 0.26),
-          width: ancho * 0.72,
-          height: alto * 0.26,
-        ),
-        Paint()..color = Colors.white.withValues(alpha: 0.3),
-      )
-      ..restore()
-      ..restore();
+    canvas.restore();
   }
 
   void _anillo(Canvas canvas, Offset centro, double radio, double opacidad) {

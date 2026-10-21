@@ -143,6 +143,16 @@ abstract class AppRadius {
   static const double card = 24.0;
   static const double sheet = 32.0;
   static const double pill = 999.0;
+
+  /// El bus del mapa (`drawTransitBus`), en unidades de su dibujo de
+  /// 34 × 80: la carrocería con [sm], el parabrisas de 15 de alto con 5,
+  /// la luneta de 7 con 3, las escotillas de 8 con 2 y los brillos y
+  /// luces, de 2 a 3, con 1; el panel plano del fantasma, con 4.
+  static const double busParabrisas = 5.0;
+  static const double busFantasma = 4.0;
+  static const double busLuneta = 3.0;
+  static const double busEscotilla = 2.0;
+  static const double busBrillo = 1.0;
 }
 
 abstract class AppShadows {

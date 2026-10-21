@@ -107,6 +107,8 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
+- Espejar el nuevo bus cenital premium en las maquetas de la web (`YaVieneWeb`).
+
 - **Señal perdida con gracia** (dueño, 2026-10-19, punto 10): sin datos
   de un bus, «último dato hace 20 s», el bus atenuado y una carga
   elegante. Los puntos 4, 6 y 7 ya están (giro con resorte y estela,

@@ -235,6 +235,15 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   su empresa en «Elige empresa» (`colorEmpresa`,
   `app_pasajero/lib/core/utils/color_empresa.dart`; el aviso guarda su
   `companyId`; los de antes, sin empresa, en el azul de botón).
+- **Bus cenital premium** (dueño, 2026-10-21): carrocería urbana alargada
+  34 × 80, frente al norte, parabrisas oscuro con brillo, luneta, dos
+  equipos de aire y luces; techo rojo con luz de arriba a la izquierda,
+  filo blanco de 1,3 unidades (2,6 px horneados, 0,42 pt a zoom 13) para separarlo de
+  CARTO Voyager. Sprite de 192 px dibujado al doble; `iconSize` compensado
+  para mantener 26 pt suelto y 31,2 elegido a zoom 13. Sombra de contacto
+  gris sin dirección, centrada; el fantasma conserva la silueta plana sin
+  sombra. La seña comparte `drawTransitBus`; SwiftUI de la actividad en vivo
+  la reproduce a su tamaño.
 - **Avisos y Buzón** (dueño, 2026-10-19, «divisiones con colores de la
   app»; el gris agrupado del iPhone no gustó): fondo blanco, tarjetas
   planas sin sombra con su filo (`AppColors.filo`, #D0D4DC, la tinta de
