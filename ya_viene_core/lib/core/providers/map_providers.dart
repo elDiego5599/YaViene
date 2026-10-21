@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show compute, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,7 +66,7 @@ final rutasSobusaProvider = FutureProvider.autoDispose<List<RutaSobusa>>(
   (ref) async {
     try {
       final raw = await rootBundle.loadString(kRutasAsset);
-      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final decoded = await decodificarRutasJson(raw) as Map<String, dynamic>;
       final rutas = (decoded['rutas'] as List<dynamic>? ?? const [])
           .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -79,6 +80,12 @@ final rutasSobusaProvider = FutureProvider.autoDispose<List<RutaSobusa>>(
     }
   },
 );
+
+@visibleForTesting
+Future<Object?> decodificarRutasJson(String raw) =>
+    compute(_decodificarRutas, raw);
+
+Object? _decodificarRutas(String raw) => jsonDecode(raw);
 
 /// Geometría del recorrido de una ruta (línea azul en el mapa).
 ///

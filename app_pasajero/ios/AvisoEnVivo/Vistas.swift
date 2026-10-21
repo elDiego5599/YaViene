@@ -1,4 +1,17 @@
 import SwiftUI
+import Foundation
+
+func urlAviso(busId: String, routeId: String?) -> URL? {
+  guard let routeId, !routeId.isEmpty else { return nil }
+  var componentes = URLComponents()
+  componentes.scheme = "yaviene"
+  componentes.host = "aviso"
+  componentes.queryItems = [
+    URLQueryItem(name: "busId", value: busId),
+    URLQueryItem(name: "routeId", value: routeId),
+  ]
+  return componentes.url
+}
 
 enum Tinta {
   static let secundaria = Color(red: 0x9B / 255, green: 0xA3 / 255, blue: 0xAF / 255)

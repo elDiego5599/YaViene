@@ -35,6 +35,26 @@ ProviderContainer _contenedor({List<String>? pedidas}) {
 
 void main() {
   group('la carga del aviso', () {
+    test('la URL de la actividad acepta solo yaviene://aviso con bus y ruta',
+        () {
+      expect(
+        BusNotificationService.leerUrlActividad(
+            'yaviene://aviso?busId=BUS-SQA223&routeId=r106'),
+        (busId: 'BUS-SQA223', routeId: 'r106'),
+      );
+      for (final mala in [
+        null,
+        'https://aviso?busId=A&routeId=R',
+        'yaviene://otro?busId=A&routeId=R',
+        'yaviene://aviso?busId=&routeId=R',
+        'yaviene://aviso?busId=A&routeId=',
+        'yaviene://aviso?busId=${List.filled(257, 'A').join()}&routeId=R',
+      ]) {
+        expect(BusNotificationService.leerUrlActividad(mala), isNull,
+            reason: mala);
+      }
+    });
+
     test('lleva el bus y la ruta, y se lee igual', () {
       final carga = BusNotificationService.carga('BUS-SQA223', 'r106');
       expect(BusNotificationService.leerCarga(carga),
@@ -144,6 +164,19 @@ void main() {
     expect(pantalla, contains('BusNotificationService.tocados.listen('));
     expect(pantalla, contains('BusNotificationService.tocadoAlAbrir()'));
     expect(pantalla, contains('abrirAvisoProvider'));
+
+    final actividad =
+        File('ios/AvisoEnVivo/AvisoEnVivo.swift').readAsStringSync();
+    expect(actividad, contains('.widgetURL(urlAviso('));
+    final url = File('ios/AvisoEnVivo/Vistas.swift').readAsStringSync();
+    expect(url, contains('URLComponents()'));
+    final escenas = File('ios/Runner/SceneDelegate.swift').readAsStringSync();
+    expect(escenas, contains('connectionOptions.urlContexts'));
+    expect(escenas, contains('openURLContexts'));
+    final plist = File('ios/Runner/Info.plist').readAsStringSync();
+    expect(plist, contains('<string>yaviene</string>'));
+    expect(plist, contains('<key>FlutterDeepLinkingEnabled</key>'));
+    expect(plist, contains('<false/>'));
 
     final mapa = File('lib/features/map/presentation/widgets/map_widget.dart')
         .readAsStringSync();

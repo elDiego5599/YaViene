@@ -16,6 +16,7 @@ struct AvisoEnVivo: Widget {
         caduco: contexto.isStale
       )
       .activityBackgroundTint(.black)
+      .widgetURL(urlAviso(busId: contexto.attributes.busId, routeId: contexto.attributes.routeId))
     } dynamicIsland: { contexto in
       DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
@@ -39,6 +40,7 @@ struct AvisoEnVivo: Widget {
         Minima(atributos: contexto.attributes, estado: contexto.state, caduco: contexto.isStale)
       }
       .keylineTint(Tinta.verde)
+      .widgetURL(urlAviso(busId: contexto.attributes.busId, routeId: contexto.attributes.routeId))
     }
   }
 }

@@ -22,6 +22,13 @@ List<Rect> capasDesenfoque(WidgetTester tester) {
 /// Si la barra desenfoca lo que pasa debajo.
 bool desenfoca(WidgetTester tester) => capasDesenfoque(tester).isNotEmpty;
 
+double opacidadVelo(WidgetTester tester) {
+  final cara = tester.widget<DecoratedBox>(find.byKey(FondoVidrio.veloKey));
+  final degradado =
+      (cara.decoration as BoxDecoration).gradient! as LinearGradient;
+  return degradado.colors.first.a / FondoVidrio.velo.colors.first.a;
+}
+
 /// La pantalla lleva la barra de vidrio y lo de abajo pasa por debajo de
 /// ella (dueño, 2026-10-18: «como el nav de la web»): en reposo [primero]
 /// queda entero bajo la barra y sin vidrio, y al bajar algo se mete detrás

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -68,26 +67,15 @@ class FondoVidrio extends StatefulWidget {
   /// Los píxeles de desplazamiento en que el vidrio sale entero.
   static const recorrido = 40.0;
 
-  /// Cuántas capas: con 16, cada una suma menos de un punto de sigma y el
-  /// paso de una a otra no se ve (con 6 se veían las franjas).
-  static const _n = 16;
-
-  /// Sigma tras la hora, donde se suman todas.
-  static const _sigmaArriba = 8.0;
-
-  /// El desenfoque progresivo, como (hasta qué fracción de la barra baja,
-  /// sigma) por capa. Las capas arrancan todas arriba y se suman como
-  /// gaussianas (la raíz de la suma de los cuadrados): a una fracción f de
-  /// la barra contando desde el pie, el sigma total es 8·f², de 0,03 al pie
-  /// a 8 arriba, sin escalón al pie.
-  static final capas = [
-    for (var k = 1; k <= _n; k++)
-      (
-        1 - (k - 1) / _n,
-        math.sqrt(math.pow(_sigmaArriba * k * k / (_n * _n), 2) -
-            math.pow(_sigmaArriba * (k - 1) * (k - 1) / (_n * _n), 2)),
-      ),
+  /// Cuatro recortes progresivos: mantiene el difuminado y limita los
+  /// filtros costosos que se componen sobre el scroll.
+  static const capas = <(double, double)>[
+    (1, 0.08),
+    (0.82, 0.7),
+    (0.64, 2.0),
+    (0.46, 7.7),
   ];
+  static const cantidadCapas = 4;
 
   /// El velo, de arriba abajo: 88 % tras la hora, 55 % a media barra y nada
   /// al pie.
@@ -108,7 +96,7 @@ class _FondoVidrioState extends State<FondoVidrio> {
   ScrollNotificationObserverState? _observador;
 
   /// Cuánto salió el vidrio, de 0 en reposo a 1.
-  double _t = 0;
+  final _progreso = ValueNotifier<double>(0);
 
   @override
   void didChangeDependencies() {
@@ -122,6 +110,7 @@ class _FondoVidrioState extends State<FondoVidrio> {
   @override
   void dispose() {
     _observador?.removeListener(_alDesplazar);
+    _progreso.dispose();
     super.dispose();
   }
 
@@ -129,47 +118,59 @@ class _FondoVidrioState extends State<FondoVidrio> {
     if (aviso.depth != 0 || aviso.metrics.axis != Axis.vertical) return;
     final t =
         (aviso.metrics.extentBefore / FondoVidrio.recorrido).clamp(0.0, 1.0);
-    if (t != _t) setState(() => _t = t);
+    if (t != _progreso.value) _progreso.value = t;
   }
 
   @override
   Widget build(BuildContext context) {
     final opaca = MediaQuery.highContrastOf(context);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (!opaca)
-          LayoutBuilder(
-            builder: (context, caja) => Stack(
-              children: [
-                for (final (fraccion, sigma) in FondoVidrio.capas)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: caja.maxHeight * fraccion,
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        enabled: _t > 0,
-                        filter: ui.ImageFilter.blur(
-                            sigmaX: sigma * _t, sigmaY: sigma * _t),
-                        child: const SizedBox.expand(),
+    return ValueListenableBuilder<double>(
+      valueListenable: _progreso,
+      builder: (context, t, _) => Stack(
+        fit: StackFit.expand,
+        children: [
+          if (!opaca)
+            LayoutBuilder(
+              builder: (context, caja) => BackdropGroup(
+                child: Stack(
+                  children: [
+                    for (final (fraccion, sigma) in FondoVidrio.capas)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: caja.maxHeight * fraccion,
+                        child: ClipRect(
+                          child: BackdropFilter.grouped(
+                            enabled: t > 0,
+                            filter: ui.ImageFilter.blur(
+                                sigmaX: sigma * t, sigmaY: sigma * t),
+                            child: const SizedBox.expand(),
+                          ),
+                        ),
                       ),
+                  ],
+                ),
+              ),
+            ),
+          DecoratedBox(
+            key: FondoVidrio.veloKey,
+            decoration: opaca
+                ? BoxDecoration(color: Colors.white.withValues(alpha: t))
+                : BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: FondoVidrio.velo.begin,
+                      end: FondoVidrio.velo.end,
+                      stops: FondoVidrio.velo.stops,
+                      colors: [
+                        for (final color in FondoVidrio.velo.colors)
+                          color.withValues(alpha: color.a * t),
+                      ],
                     ),
                   ),
-              ],
-            ),
           ),
-        Opacity(
-          key: FondoVidrio.veloKey,
-          opacity: _t,
-          child: DecoratedBox(
-            decoration: opaca
-                ? const BoxDecoration(color: Colors.white)
-                : const BoxDecoration(gradient: FondoVidrio.velo),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -269,7 +270,7 @@ class PildoraVidrio extends StatelessWidget {
           ? cara
           : ClipRRect(
               borderRadius: _forma,
-              child: BackdropFilter(
+              child: BackdropFilter.grouped(
                 filter: ui.ImageFilter.compose(
                   outer: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   inner: _saturar,

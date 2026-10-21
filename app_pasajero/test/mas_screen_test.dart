@@ -154,6 +154,16 @@ void main() {
     expect(grupo.width, lessThanOrEqualTo(360));
   });
 
+  testWidgets('el viewport de Info conserva todo el ancho de la pantalla',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 932);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await abrirMas(tester);
+
+    expect(tester.getSize(find.byType(Viewport).first).width, 430);
+  });
+
   testWidgets('las tarjetas blancas de Info se despegan con sombra',
       (tester) async {
     await abrirMas(tester);

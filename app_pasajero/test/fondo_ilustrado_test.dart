@@ -17,6 +17,13 @@ import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_ar
 void main() {
   const pantalla = Size(390, 844);
 
+  test('reutiliza las celdas calculadas para el mismo tamaño y barra', () {
+    final primera = FondoIlustrado.celdas(pantalla, arriba: 24);
+    final segunda = FondoIlustrado.celdas(pantalla, arriba: 24);
+
+    expect(identical(segunda, primera), isTrue);
+  });
+
   testWidgets('siete dibujos, solo buses de empresas de la app',
       (tester) async {
     expect(Motivo.values, hasLength(7));
@@ -54,7 +61,7 @@ void main() {
     expect(find.ancestor(of: dibujo, matching: find.byType(ShaderMask)),
         findsOneWidget);
     final degradado = FondoIlustrado.desvanecido(const Size(390, 844));
-    expect(degradado.colors.first.a, 1);
+    expect(degradado.colors.first.a, closeTo(FondoIlustrado.velo, 0.01));
     expect(degradado.colors.last.a, 0);
     expect(degradado.stops!.last * 844, closeTo(FondoIlustrado.franja, 0.5));
   });
@@ -179,12 +186,11 @@ void main() {
     ];
     expect(dibujos, isNotEmpty);
     for (final e in dibujos) {
-      final velo = e.findAncestorWidgetOfExactType<Opacity>();
-      expect(velo, isNotNull);
-      // «Quedó demasiado opaca, nada visualmente atractiva» (dueño,
-      // 2026-10-18): al 40 % se perdían; vivos, sin pelearle a las tarjetas.
-      expect(velo!.opacity, inInclusiveRange(0.65, 0.8));
+      expect(e.findAncestorWidgetOfExactType<Opacity>(), isNull,
+          reason: 'el alfa del degradado evita un saveLayer por opacidad');
     }
+    expect(FondoIlustrado.desvanecido(const Size(390, 844)).colors.first.a,
+        inInclusiveRange(0.65, 0.8));
   });
 
   // «La Ventana al Mundo se ve súper oscura, cero colorida» (dueño,

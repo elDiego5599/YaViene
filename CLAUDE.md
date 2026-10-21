@@ -262,6 +262,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y
   abierta; abierta lleva «Está a X de ti» y debajo la ruta y la placa,
   como la pantalla bloqueada (dueño, 2026-10-21).
+  Tocar la actividad abre el mapa con ese bus, su empresa y su ruta; por bus
+  solo queda viva la actividad del bus seguido.
+- **Vidrio de las barras**: el fondo usa como máximo cuatro filtros
+  agrupados, con progreso sin reconstruir la pantalla completa.
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
   `Ventana` / `AvisoPanel` / `confirmarBorrado` (panel,
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y

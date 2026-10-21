@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show Color;
+import 'package:flutter/services.dart'
+    show MethodChannel, MissingPluginException, PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
 import '../utils/color_empresa.dart';
@@ -24,11 +26,18 @@ class BusNotificationService {
 
   static const _channelId = 'bus_alerts';
   static const _channelName = 'Alertas de buses';
+  static const _actividad = MethodChannel('yaviene/actividad_en_vivo');
 
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
+    _actividad.setMethodCallHandler((llamada) async {
+      if (llamada.method != 'avisoTocado') return;
+      final carga = llamada.arguments;
+      final aviso = leerUrlActividad(carga is String ? carga : null);
+      if (aviso != null) _tocados.add(aviso);
+    });
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       // En iOS, DarwinInitializationSettings pide los permisos al
@@ -78,6 +87,16 @@ class BusNotificationService {
     if (_arranqueLeido) return null;
     _arranqueLeido = true;
     try {
+      final enlace =
+          await _actividad.invokeMethod<String>('leerAvisoPendiente');
+      final aviso = leerUrlActividad(enlace);
+      if (aviso != null) return aviso;
+    } on MissingPluginException {
+      // El aviso normal de iOS no tiene una actividad asociada.
+    } on PlatformException catch (e) {
+      debugPrint('no se pudo leer el enlace de la actividad: $e');
+    }
+    try {
       final detalles = await _plugin.getNotificationAppLaunchDetails();
       if (detalles?.didNotificationLaunchApp != true) return null;
       return leerCarga(detalles!.notificationResponse?.payload);
@@ -107,6 +126,27 @@ class BusNotificationService {
     } on FormatException {
       return null;
     }
+  }
+
+  /// Lee el enlace de una actividad en vivo en la frontera de la app.
+  @visibleForTesting
+  static AvisoTocado? leerUrlActividad(String? valor) {
+    if (valor == null || valor.length > 600) return null;
+    final uri = Uri.tryParse(valor);
+    if (uri == null || uri.scheme != 'yaviene' || uri.host != 'aviso') {
+      return null;
+    }
+    final busId = uri.queryParameters['busId'];
+    final routeId = uri.queryParameters['routeId'];
+    if (busId == null ||
+        routeId == null ||
+        busId.trim().isEmpty ||
+        routeId.trim().isEmpty ||
+        busId.length > 256 ||
+        routeId.length > 256) {
+      return null;
+    }
+    return (busId: busId, routeId: routeId);
   }
 
   static Future<bool> areNotificationsEnabled() async {
@@ -183,8 +223,8 @@ class BusNotificationService {
     final ruta = rutaLegible(routeName, routeId);
     try {
       if (!await puedeAvisar()) return false;
-      final ficha = await _ficha(codigoRuta(routeName),
-          colorFicha(companyId: companyId));
+      final ficha =
+          await _ficha(codigoRuta(routeName), colorFicha(companyId: companyId));
       final adjunto =
           ficha == null || defaultTargetPlatform != TargetPlatform.iOS
               ? null

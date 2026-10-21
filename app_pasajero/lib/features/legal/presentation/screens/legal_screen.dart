@@ -18,62 +18,64 @@ class LegalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      // El texto pasa por debajo de la barra, que es de vidrio (dueño,
-      // 2026-10-18).
-      extendBodyBehindAppBar: true,
-      appBar: barraVidrio(
-        // El mismo techo que en Avisos: la barra mide 56 y no se estira,
-        // así que con el texto al triple el título se saldría por los dos
-        // lados. Lo que sí crece es el documento.
-        title: MediaQuery.withClampedTextScaling(
-          maxScaleFactor: 1.3,
-          child: Text(doc.title),
-        ),
-        // La flecha flota en su píldora de vidrio, como en iOS 26.
-        leading: PildoraVidrio(
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_outlined,
-              size: 20,
-              semanticLabel: 'Volver',
+    return BackdropGroup(
+      child: Scaffold(
+        backgroundColor: AppColors.surface,
+        // El texto pasa por debajo de la barra, que es de vidrio (dueño,
+        // 2026-10-18).
+        extendBodyBehindAppBar: true,
+        appBar: barraVidrio(
+          // El mismo techo que en Avisos: la barra mide 56 y no se estira,
+          // así que con el texto al triple el título se saldría por los dos
+          // lados. Lo que sí crece es el documento.
+          title: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.3,
+            child: Text(doc.title),
+          ),
+          // La flecha flota en su píldora de vidrio, como en iOS 26.
+          leading: PildoraVidrio(
+            child: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_outlined,
+                size: 20,
+                semanticLabel: 'Volver',
+              ),
+              tooltip: 'Volver',
+              color: AppColors.textPrimary,
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            tooltip: 'Volver',
-            color: AppColors.textPrimary,
-            onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-      ),
-      // Bajo el Scaffold, que suma la barra al relleno de arriba.
-      body: Builder(
-        builder: (context) => SafeArea(
-          top: false,
-          // Al subir, el texto pasa por debajo de la barra de vidrio; en
-          // reposo la fecha empieza bajo ella, con el aire que tenía.
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              MediaQuery.paddingOf(context).top + AppSpacing.md,
-              AppSpacing.lg,
-              AppSpacing.xl,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Actualizado el ${doc.updated}',
-                  style: AppTextStyles.etiqueta.copyWith(
-                    // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre el
-                    // fondo y no pasa AA. Se usa `textSecondary`, el mismo
-                    // token con el que el panel arregló sus rótulos en T6.1,
-                    // no un gris nuevo.
-                    color: AppColors.textSecondary,
+        // Bajo el Scaffold, que suma la barra al relleno de arriba.
+        body: Builder(
+          builder: (context) => SafeArea(
+            top: false,
+            // Al subir, el texto pasa por debajo de la barra de vidrio; en
+            // reposo la fecha empieza bajo ella, con el aire que tenía.
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                MediaQuery.paddingOf(context).top + AppSpacing.md,
+                AppSpacing.lg,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Actualizado el ${doc.updated}',
+                    style: AppTextStyles.etiqueta.copyWith(
+                      // T6.6: `textDisabled` (#94A3B8) daba 2,41:1 sobre el
+                      // fondo y no pasa AA. Se usa `textSecondary`, el mismo
+                      // token con el que el panel arregló sus rótulos en T6.1,
+                      // no un gris nuevo.
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                for (final bloque in doc.blocks) _Bloque(bloque: bloque),
-              ],
+                  const SizedBox(height: AppSpacing.md),
+                  for (final bloque in doc.blocks) _Bloque(bloque: bloque),
+                ],
+              ),
             ),
           ),
         ),

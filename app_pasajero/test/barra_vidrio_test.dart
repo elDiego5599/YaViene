@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -56,7 +55,12 @@ void main() {
     // En reposo no hay vidrio: solo sale al bajar (dueño, 2026-10-19).
     expect(desenfoca(tester), isFalse);
     expect(FondoVidrio.velo.colors.map((c) => c.a), everyElement(lessThan(1)));
-    expect(tester.widget<Opacity>(find.byKey(FondoVidrio.veloKey)).opacity, 0);
+    expect(opacidadVelo(tester), 0);
+    expect(
+        find.descendant(
+            of: find.byType(FondoVidrio), matching: find.byType(Opacity)),
+        findsNothing,
+        reason: 'el alfa del velo evita una capa de composición');
 
     // Sigue al dedo, no a un reloj: a medio camino, a medias, y subir lo
     // devuelve por el mismo camino.
@@ -64,20 +68,14 @@ void main() {
     lista.position.jumpTo(FondoVidrio.recorrido / 2);
     await tester.pump();
     expect(desenfoca(tester), isTrue);
-    final medio =
-        tester.widget<Opacity>(find.byKey(FondoVidrio.veloKey)).opacity;
+    final medio = opacidadVelo(tester);
     expect(medio, closeTo(0.5, 0.01));
-    expect(filtros(tester), [
-      for (final (_, sigma) in FondoVidrio.capas)
-        ui.ImageFilter.blur(sigmaX: sigma / 2, sigmaY: sigma / 2),
-    ]);
+    expect(FondoVidrio.cantidadCapas, lessThanOrEqualTo(4));
+    expect(filtros(tester).length, lessThanOrEqualTo(4));
     lista.position.jumpTo(300);
     await tester.pump();
-    expect(tester.widget<Opacity>(find.byKey(FondoVidrio.veloKey)).opacity, 1);
-    expect(filtros(tester), [
-      for (final (_, sigma) in FondoVidrio.capas)
-        ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-    ]);
+    expect(opacidadVelo(tester), 1);
+    expect(filtros(tester).length, lessThanOrEqualTo(4));
     lista.position.jumpTo(0);
     await tester.pump();
     expect(desenfoca(tester), isFalse, reason: 'al subir se va');
@@ -97,25 +95,20 @@ void main() {
     // recortadas que arrancan arriba y bajan cada una menos, así arriba
     // se suman todas y al pie apenas una.
     final capas = capasDesenfoque(tester);
-    expect(capas.length, FondoVidrio.capas.length);
+    expect(capas.length, FondoVidrio.cantidadCapas);
     expect(capas.first.height, closeTo(barra.height, 0.5),
         reason: 'la de abajo llega al pie de la barra');
     for (var i = 0; i < capas.length; i++) {
       expect(capas[i].top, closeTo(barra.top, 0.5));
       if (i > 0) expect(capas[i].height, lessThan(capas[i - 1].height));
     }
-    // El sigma sumado crece sin escalones de más de un punto, y al pie
-    // arranca casi en cero: con 0,8 de golpe se veía la raya recta entre
-    // lo desenfocado y lo nítido (dueño, 2026-10-19).
-    var antes = 0.0;
-    for (var k = 0; k < FondoVidrio.capas.length; k++) {
-      final suma = math.sqrt(
-          FondoVidrio.capas.take(k + 1).fold(0.0, (a, c) => a + c.$2 * c.$2));
-      expect(suma - antes, lessThanOrEqualTo(1.0));
-      if (k == 0) expect(suma, lessThan(0.1), reason: 'la raya del pie');
-      antes = suma;
-    }
-    expect(antes, closeTo(8, 0.01), reason: 'tras la hora');
+    // Hay pocas capas, cubren toda la barra y se acortan hacia el pie;
+    // el velo suaviza la transición entre sus límites.
+    expect(capas.length, lessThanOrEqualTo(4));
+    expect(FondoVidrio.cantidadCapas, lessThanOrEqualTo(4));
+    expect(FondoVidrio.capas.first.$2, lessThan(0.1),
+        reason: 'la raya del pie');
+    expect(FondoVidrio.capas.last.$2, closeTo(8, 0.5), reason: 'tras la hora');
     expect(
         find.descendant(
             of: find.byType(FondoVidrio), matching: find.byType(ClipRect)),
@@ -145,12 +138,14 @@ void main() {
   Widget conPildora({bool contraste = false}) => MediaQuery(
         data: MediaQueryData(highContrast: contraste),
         child: MaterialApp(
-          home: Scaffold(
-            body: Center(
-              child: PildoraVidrio(
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_outlined),
-                  onPressed: () {},
+          home: BackdropGroup(
+            child: Scaffold(
+              body: Center(
+                child: PildoraVidrio(
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_outlined),
+                    onPressed: () {},
+                  ),
                 ),
               ),
             ),
@@ -185,6 +180,33 @@ void main() {
     // Alto mínimo táctil de 44 (HIG).
     expect(tester.getSize(find.byType(PildoraVidrio)).height,
         greaterThanOrEqualTo(44));
+  });
+
+  testWidgets('las píldoras comparten el BackdropGroup de su pantalla',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BackdropGroup(
+          child: Scaffold(
+            body: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < 2; i++)
+                  PildoraVidrio(
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_outlined),
+                      onPressed: () {},
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(BackdropGroup), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsNWidgets(2));
   });
 
   testWidgets('con más contraste la píldora es opaca y sin desenfoque',

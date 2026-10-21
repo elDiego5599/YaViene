@@ -481,6 +481,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     final entrada = _entradaActiva(busId);
     final estado = EstadoEnVivo(
       busId: busId,
+      routeId: _alertRoutes[busId] ?? '',
       placa: busPlaca(busId),
       ruta: nombreSinCodigo(entrada?.routeName),
       // La cifra de la hoja, con su decimal pasados 10 km.
@@ -489,7 +490,8 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       avance: EstadoEnVivo.avanceDe(metros),
       avanceAviso: EstadoEnVivo.avanceDe(radio.toDouble()),
     );
-    final clave = '${estado.distancia}|${estado.aviso}|${estado.ruta}|'
+    final clave =
+        '${estado.routeId}|${estado.distancia}|${estado.aviso}|${estado.ruta}|'
         '${estado.avance.toStringAsFixed(2)}';
     final ahora = _ahora();
     final ultimo = _enVivoMostrado[busId];

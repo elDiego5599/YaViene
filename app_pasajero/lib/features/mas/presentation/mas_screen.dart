@@ -173,19 +173,21 @@ class MasScreen extends ConsumerWidget {
             toolbarHeight: 26 + _Marca.alto + 26,
           ),
           // Bajo el Scaffold, que suma la barra al relleno de arriba.
+          // El Builder lee el relleno con la barra ya sumada.
           body: Builder(
             builder: (context) => SafeArea(
               top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(margen, 0, margen, 20),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: anchoMaximo),
-                    // En un teléfono bajo, donde no sobra nada, todo se
-                    // desplaza.
-                    child: CustomScrollView(
-                      slivers: [
-                        SliverToBoxAdapter(
+              // El scroll va a todo el ancho: su recorte no corta las sombras
+              // de las tarjetas; el margen y el ancho máximo van dentro.
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(margen, 0, margen, 20),
+                    sliver: SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: anchoMaximo),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -202,11 +204,10 @@ class MasScreen extends ConsumerWidget {
                                 ),
                               ]),
                               const TituloSeccion('Información'),
-                              // Segundo grupo: lo que se consulta de
-                              // vez en cuando. Sin cuenta, este es el
-                              // único sitio estable donde volver a
-                              // leer lo que se aceptó en la
-                              // bienvenida.
+                              // Segundo grupo: lo que se consulta de vez en
+                              // cuando. Sin cuenta, este es el único sitio
+                              // estable donde volver a leer lo que se aceptó
+                              // en la bienvenida.
                               _grupo([
                                 FilaMas(
                                   icon: Icons.lock_outline_rounded,
@@ -229,10 +230,10 @@ class MasScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),

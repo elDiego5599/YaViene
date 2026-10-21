@@ -64,6 +64,7 @@ class FondoIlustrado extends StatelessWidget {
 
   /// Hasta dónde se ven enteros: la píldora de la marca acaba en 76.
   static const double _enteros = 80;
+  static final _cacheCeldas = <(Size, double), List<Celda>>{};
 
   /// El degradado con que se apagan en una caja de [caja], para [arriba]
   /// de barra de estado.
@@ -72,7 +73,12 @@ class FondoIlustrado extends StatelessWidget {
     return LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: const [Colors.white, Colors.white, Color(0x00FFFFFF)],
+      // El velo va en el degradado: sin una capa de Opacity aparte.
+      colors: [
+        Colors.white.withValues(alpha: velo),
+        Colors.white.withValues(alpha: velo),
+        const Color(0x00FFFFFF),
+      ],
       stops: [0, donde(_enteros), donde(franja)],
     );
   }
@@ -91,6 +97,10 @@ class FondoIlustrado extends StatelessWidget {
   /// de las orillas para que nada quede cortado en seco. Siempre los
   /// mismos: la semilla es fija.
   static List<Celda> celdas(Size pantalla, {double arriba = 0}) {
+    final llave = (pantalla, arriba);
+    final guardadas = _cacheCeldas[llave];
+    if (guardadas != null) return guardadas;
+    if (_cacheCeldas.length >= 8) _cacheCeldas.clear();
     final azar = math.Random(18);
     final usos = {for (final m in Motivo.values) m: 0};
     final celdas = <Celda>[];
@@ -119,7 +129,7 @@ class FondoIlustrado extends StatelessWidget {
         giro: (azar.nextDouble() * 2 - 1) * _giro,
       ));
     }
-    return celdas;
+    return _cacheCeldas[llave] = List.unmodifiable(celdas);
   }
 
   /// Puntos regados al azar sobre [pantalla] (y [distancia] por fuera), a
@@ -165,15 +175,12 @@ class FondoIlustrado extends StatelessWidget {
                     blendMode: BlendMode.dstIn,
                     shaderCallback: (r) =>
                         desvanecido(r.size, arriba: arriba).createShader(r),
-                    child: Opacity(
-                      opacity: velo,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          for (final c in celdas(caja.biggest, arriba: arriba))
-                            _dibujo(c),
-                        ],
-                      ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        for (final c in celdas(caja.biggest, arriba: arriba))
+                          _dibujo(c),
+                      ],
                     ),
                   ),
                 ),

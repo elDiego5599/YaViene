@@ -46,106 +46,108 @@ class NotificationsScreen extends ConsumerWidget {
     ].toList();
     final selecting = ref.watch(alertSelectionProvider).active;
 
-    return Scaffold(
-      // Blanco, con las tarjetas partidas por el filo azul noche de la app
-      // (dueño, 2026-10-19: «devuelve el blanco de las páginas y pones
-      // divisiones con colores de la app»; el gris agrupado no gustó).
-      backgroundColor: AppColors.surface,
-      // La lista pasa por debajo de la barra, que es de vidrio (dueño,
-      // 2026-10-18).
-      extendBodyBehindAppBar: true,
-      appBar: barraVidrio(
-        // La pestaña la llama "Avisos", el estado vacío dice "avisos" y el
-        // botón del mapa dice "Avísame". Esta era la única pantalla que
-        // usaba otra palabra para la misma cosa.
-        //
-        // El título y la acción crecen con el texto del sistema, pero solo
-        // hasta un punto: la barra mide 56 y no se estira, y con el texto
-        // al triple el título y «Seleccionar» se salían 46 px por la
-        // derecha. En iOS el título de la barra de navegación no crece con
-        // Texto Dinámico —crecen el contenido y la vuelta atrás—, así que
-        // ponerle techo aquí se parece más al sistema que dejarlo suelto.
-        title: MediaQuery.withClampedTextScaling(
-          maxScaleFactor: 1.3,
-          child: const Text('Avisos'),
-        ),
-        // Seleccionando, a la izquierda va «Cancelar»: antes no había cómo
-        // salir de la selección sin borrar (dueño, 2026-10-02).
-        // Los botones flotan en sus píldoras de vidrio, como en iOS 26.
-        // Las píldoras de texto caen a 20 del borde, donde empiezan y acaban
-        // las tarjetas.
-        leadingWidth: selecting ? 124 : null,
-        leading: selecting
-            ? Padding(
-                padding: const EdgeInsets.only(left: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: MediaQuery.withClampedTextScaling(
-                    maxScaleFactor: 1.3,
-                    child: PildoraVidrio(
-                        compacta: true,
-                        child: TextButton(
-                          onPressed:
-                              ref.read(alertSelectionProvider.notifier).clear,
-                          style: estiloPildora(AppColors.primaryDeep),
-                          child: const Text('Cancelar'),
-                        )),
+    return BackdropGroup(
+      child: Scaffold(
+        // Blanco, con las tarjetas partidas por el filo azul noche de la app
+        // (dueño, 2026-10-19: «devuelve el blanco de las páginas y pones
+        // divisiones con colores de la app»; el gris agrupado no gustó).
+        backgroundColor: AppColors.surface,
+        // La lista pasa por debajo de la barra, que es de vidrio (dueño,
+        // 2026-10-18).
+        extendBodyBehindAppBar: true,
+        appBar: barraVidrio(
+          // La pestaña la llama "Avisos", el estado vacío dice "avisos" y el
+          // botón del mapa dice "Avísame". Esta era la única pantalla que
+          // usaba otra palabra para la misma cosa.
+          //
+          // El título y la acción crecen con el texto del sistema, pero solo
+          // hasta un punto: la barra mide 56 y no se estira, y con el texto
+          // al triple el título y «Seleccionar» se salían 46 px por la
+          // derecha. En iOS el título de la barra de navegación no crece con
+          // Texto Dinámico —crecen el contenido y la vuelta atrás—, así que
+          // ponerle techo aquí se parece más al sistema que dejarlo suelto.
+          title: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.3,
+            child: const Text('Avisos'),
+          ),
+          // Seleccionando, a la izquierda va «Cancelar»: antes no había cómo
+          // salir de la selección sin borrar (dueño, 2026-10-02).
+          // Los botones flotan en sus píldoras de vidrio, como en iOS 26.
+          // Las píldoras de texto caen a 20 del borde, donde empiezan y acaban
+          // las tarjetas.
+          leadingWidth: selecting ? 124 : null,
+          leading: selecting
+              ? Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.3,
+                      child: PildoraVidrio(
+                          compacta: true,
+                          child: TextButton(
+                            onPressed:
+                                ref.read(alertSelectionProvider.notifier).clear,
+                            style: estiloPildora(AppColors.primaryDeep),
+                            child: const Text('Cancelar'),
+                          )),
+                    ),
                   ),
-                ),
-              )
-            // Fuera de la selección no hay flecha: Avisos es una pestaña de
-            // la barra de abajo y no hay detrás a dónde volver.
-            : null,
-        automaticallyImplyLeading: false,
-        actions: entries.isEmpty
-            ? null
-            : [
-                MediaQuery.withClampedTextScaling(
-                  maxScaleFactor: 1.3,
-                  child: const PildoraVidrio(
-                      compacta: true, child: _SelectAction()),
-                ),
-                const SizedBox(width: 20),
-              ],
-      ),
-      // Al borrar el último, la lista se apaga y el estado vacío aparece en
-      // su lugar; antes era un corte seco.
-      body: Stack(
-        children: [
-          const Positioned.fill(child: FondoTexturizado()),
-          // El gris de la cabecera con su raya: bajo el título, hasta donde
-          // termina la barra (el relleno de arriba del cuerpo ya la suma).
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Builder(
-              builder: (context) => SizedBox(
-                height: MediaQuery.paddingOf(context).top,
-                child: const DecoratedBox(
-                  key: ValueKey('avisos-cabecera'),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    border: Border(bottom: _raya),
+                )
+              // Fuera de la selección no hay flecha: Avisos es una pestaña de
+              // la barra de abajo y no hay detrás a dónde volver.
+              : null,
+          automaticallyImplyLeading: false,
+          actions: entries.isEmpty
+              ? null
+              : [
+                  MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.3,
+                    child: const PildoraVidrio(
+                        compacta: true, child: _SelectAction()),
+                  ),
+                  const SizedBox(width: 20),
+                ],
+        ),
+        // Al borrar el último, la lista se apaga y el estado vacío aparece en
+        // su lugar; antes era un corte seco.
+        body: Stack(
+          children: [
+            const Positioned.fill(child: FondoTexturizado()),
+            // El gris de la cabecera con su raya: bajo el título, hasta donde
+            // termina la barra (el relleno de arriba del cuerpo ya la suma).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Builder(
+                builder: (context) => SizedBox(
+                  height: MediaQuery.paddingOf(context).top,
+                  child: const DecoratedBox(
+                    key: ValueKey('avisos-cabecera'),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      border: Border(bottom: _raya),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          AnimatedSwitcher(
-            duration: AppMotion.duracion(context, AppMotion.normal),
-            switchInCurve: AppMotion.curvaEntrada,
-            switchOutCurve: AppMotion.curvaSalida,
-            child: entries.isEmpty
-                ? const _EmptyState(key: ValueKey('vacio'))
-                : _HistoryList(
-                    key: const ValueKey('lista'),
-                    entries: entries,
-                    positions: positions,
-                    route: route,
-                  ),
-          ),
-        ],
+            AnimatedSwitcher(
+              duration: AppMotion.duracion(context, AppMotion.normal),
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaSalida,
+              child: entries.isEmpty
+                  ? const _EmptyState(key: ValueKey('vacio'))
+                  : _HistoryList(
+                      key: const ValueKey('lista'),
+                      entries: entries,
+                      positions: positions,
+                      route: route,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

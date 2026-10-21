@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +39,15 @@ class _MantenerVivoFalso implements ServicioMantenerVivo {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('ActivityKit conserva viva solo la actividad actual del bus seguido',
+      () {
+    final nativo = File('ios/Runner/ActividadEnVivo.swift').readAsStringSync();
+
+    expect(nativo, contains(r'$0.activityState == .active'));
+    expect(nativo, contains(r'$0.id != viva?.id'));
+    expect(nativo, contains('dismissalPolicy: .immediate'));
+  });
 
   test('el avance: 3 km o más es el arranque, 0 m es tu punto', () {
     expect(EstadoEnVivo.avanceDe(3000), 0);
@@ -124,6 +135,7 @@ void main() {
 
     final e = enVivo.mostrados.single;
     expect(e.busId, 'A-1');
+    expect(e.routeId, 'R1');
     expect(e.ruta, 'Tcherassi');
     expect(e.distancia, '1,5 km');
     expect(e.aviso, 'Te avisamos a 1,0 km');
@@ -137,6 +149,7 @@ void main() {
         e.aMapa().keys,
         unorderedEquals([
           'busId',
+          'routeId',
           'placa',
           'ruta',
           'distancia',

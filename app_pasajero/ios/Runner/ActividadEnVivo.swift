@@ -6,12 +6,21 @@ import Foundation
 /// actividad en vivo del bus seguido. Antes de iOS 16.2, o con las
 /// actividades apagadas en Ajustes, no hace nada: el aviso suena igual.
 enum ActividadEnVivo {
+  static var canal: FlutterMethodChannel?
+  private static var avisoPendiente: String?
+
   static func registrar(con registrador: FlutterPluginRegistrar) {
-    let canal = FlutterMethodChannel(
+    let nuevoCanal = FlutterMethodChannel(
       name: "yaviene/actividad_en_vivo",
       binaryMessenger: registrador.messenger()
     )
-    canal.setMethodCallHandler { llamada, responder in
+    canal = nuevoCanal
+    nuevoCanal.setMethodCallHandler { llamada, responder in
+      if llamada.method == "leerAvisoPendiente" {
+        let pendiente = avisoPendiente
+        avisoPendiente = nil
+        return responder(pendiente)
+      }
       guard #available(iOS 16.2, *) else { return responder(nil) }
       guard let datos = llamada.arguments as? [String: Any],
         let busId = datos["busId"] as? String, !busId.isEmpty
@@ -31,6 +40,27 @@ enum ActividadEnVivo {
       }
     }
   }
+
+  static func recibir(_ url: URL, viva: Bool) {
+    guard valida(url) else { return }
+    if viva {
+      canal?.invokeMethod("avisoTocado", arguments: url.absoluteString)
+    } else {
+      avisoPendiente = url.absoluteString
+    }
+  }
+
+  private static func valida(_ url: URL) -> Bool {
+    guard url.scheme == "yaviene", url.host == "aviso",
+      let partes = URLComponents(url: url, resolvingAgainstBaseURL: false),
+      let busId = partes.queryItems?.first(where: { $0.name == "busId" })?.value,
+      let routeId = partes.queryItems?.first(where: { $0.name == "routeId" })?.value
+    else { return false }
+    return !busId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      && busId.count <= 256
+      && !routeId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      && routeId.count <= 256
+  }
 }
 
 @available(iOS 16.2, *)
@@ -42,10 +72,6 @@ private enum Gestor {
   /// Lo que se queda en la pantalla bloqueada el aviso que sonó.
   static let despedida: TimeInterval = 10 * 60
 
-  static func actividad(de busId: String) -> Activity<AvisoAtributos>? {
-    Activity<AvisoAtributos>.activities.first { $0.attributes.busId == busId }
-  }
-
   static func mostrar(busId: String, datos: [String: Any]) {
     let estado = AvisoAtributos.ContentState(
       distancia: datos["distancia"] as? String ?? "",
@@ -56,25 +82,40 @@ private enum Gestor {
     )
     let contenido = ActivityContent(
       state: estado, staleDate: Date().addingTimeInterval(vigencia))
-    if let viva = actividad(de: busId) {
-      Task { await viva.update(contenido) }
-      return
+    let actividades = Activity<AvisoAtributos>.activities
+    let viva = actividades.first {
+      $0.attributes.busId == busId && $0.activityState == .active
     }
-    guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+    let porTerminar = actividades.filter {
+      $0.id != viva?.id
+    }
     let atributos = AvisoAtributos(
       busId: busId,
+      routeId: datos["routeId"] as? String ?? "",
       placa: datos["placa"] as? String ?? "",
       ruta: datos["ruta"] as? String ?? ""
     )
-    do {
-      _ = try Activity.request(attributes: atributos, content: contenido)
-    } catch {
-      NSLog("actividad en vivo de \(busId) no arrancó: \(error)")
+    Task {
+      for actividad in porTerminar {
+        await actividad.end(nil, dismissalPolicy: .immediate)
+      }
+      if let viva {
+        await viva.update(contenido)
+        return
+      }
+      guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+      do {
+        _ = try Activity.request(attributes: atributos, content: contenido)
+      } catch {
+        NSLog("actividad en vivo de \(busId) no arrancó: \(error)")
+      }
     }
   }
 
   static func terminar(busId: String, llego: Bool) {
-    guard let viva = actividad(de: busId) else { return }
+    guard let viva = Activity<AvisoAtributos>.activities.first(where: {
+      $0.attributes.busId == busId && $0.activityState == .active
+    }) else { return }
     var estado = viva.content.state
     estado.llego = llego
     let politica: ActivityUIDismissalPolicy =

@@ -21,6 +21,7 @@ struct AvisoAtributos: ActivityAttributes {
   }
 
   var busId: String
+  var routeId: String?
   var placa: String
   /// El nombre de la ruta sin su código.
   var ruta: String
