@@ -252,8 +252,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   privacidad fuera. Arriba, bajo la barra, una cabecera gris
   (`surfaceMuted`) con una raya sutil (media línea de tinta al 8 %); la nota «Gestiona…» con su cuadro.
   Fondo blanco con trama de puntos (`FondoTexturizado`, tinta al 7 %,
-  contraste medido en el archivo) en arranque, bienvenida, Avisos, Buzón
-  e Info (dueño, 2026-10-19; el matizado azul y verde se fue).
+  contraste medido en el archivo) en arranque, Avisos, Buzón e Info; la
+  bienvenida lleva el matizado azul y verde detrás del logo (dueño,
+  2026-10-21).
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso
   armado (se sigue un solo bus a la vez) pone la suya en la pantalla bloqueada y la Dynamic Island
   (extensión `ios/AvisoEnVivo`, canal `yaviene/actividad_en_vivo`,

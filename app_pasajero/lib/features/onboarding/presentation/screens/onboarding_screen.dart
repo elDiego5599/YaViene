@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/entrance.dart';
-import '../../../../core/widgets/fondo_texturizado.dart';
+import '../../../../core/widgets/fondo_matizado.dart';
 import '../../../../core/widgets/ink_hero.dart';
 import '../../../legal/legal_acceptance.dart';
 import '../../../legal/legal_docs.dart';
@@ -265,9 +265,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-/// El matizado del arranque detrás de la bienvenida («la página del
-/// onboarding debe tener el mismo degradado que la de carga», dueño,
-/// 2026-10-18). Claro: la hora y la batería en oscuro.
+/// El matizado azul y verde detrás del logo de bienvenida. Claro: la hora
+/// y la batería del sistema van en oscuro.
 class _FondoBienvenida extends StatelessWidget {
   final Widget child;
 
@@ -279,7 +278,7 @@ class _FondoBienvenida extends StatelessWidget {
       value: SystemUiOverlayStyle.dark,
       child: Stack(
         fit: StackFit.expand,
-        children: [const FondoTexturizado(), child],
+        children: [const FondoMatizado(), child],
       ),
     );
   }

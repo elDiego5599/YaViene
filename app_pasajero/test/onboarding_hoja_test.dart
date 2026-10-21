@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_matizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/features/onboarding/presentation/screens/'
     'onboarding_screen.dart';
@@ -38,7 +39,8 @@ void main() {
 
   testWidgets('sin subtítulo ni letra chica bajo cada razón', (tester) async {
     await abrir(tester);
-    expect(find.byType(FondoTexturizado), findsOneWidget);
+    expect(find.byType(FondoMatizado), findsOneWidget);
+    expect(find.byType(FondoTexturizado), findsNothing);
 
     for (final ido in [
       'Así sabemos qué buses vienen hacia ti y te avisamos antes de que '
@@ -97,14 +99,13 @@ void main() {
     }
   });
 
-  // «La página del onboarding debe tener el mismo degradado que la de
-  // carga» (dueño, 2026-10-18): el matizado claro del arranque, no la malla
-  // oscura. Con fondo claro, la hora y la batería en oscuro.
-  testWidgets('el fondo blanco texturizado conserva la barra clara',
+  // Dueño, 2026-10-21: la bienvenida vuelve al matizado azul y verde;
+  // el arranque, Avisos, Buzón e Info conservan la trama blanca.
+  testWidgets('la bienvenida usa el matizado y conserva la barra clara',
       (tester) async {
     await abrir(tester);
-    // Cambio a fondo blanco texturizado (dueño, 2026-10-19).
-    expect(find.byType(FondoTexturizado), findsOneWidget);
+    expect(find.byType(FondoMatizado), findsOneWidget);
+    expect(find.byType(FondoTexturizado), findsNothing);
     final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
         find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first);
     expect(region.value, SystemUiOverlayStyle.dark);
@@ -114,6 +115,9 @@ void main() {
       (tester) async {
     await abrir(tester);
     final pantalla = tester.view.physicalSize;
+    // Incluso sobre blanco puro, peor caso del matizado: Ya Viene da
+    // 18,11:1 y Tu ciudad en tiempo real da 7,58:1. Ambos superan WCAG AA
+    // de 4,5:1; abajo se verifica cada punto del fondo bajo las letras.
     final piezas = [
       (find.text('Ya Viene'), AppColors.ink, 4.5),
       (find.text('Tu ciudad en tiempo real.'), AppColors.textBody, 4.5),
@@ -124,7 +128,7 @@ void main() {
     late ByteData datos;
     await tester.runAsync(() async {
       final grabadora = ui.PictureRecorder();
-      const PintorFondoTexturizado().paint(Canvas(grabadora), pantalla);
+      const PintorMatizado().paint(Canvas(grabadora), pantalla);
       final imagen = await grabadora
           .endRecording()
           .toImage(pantalla.width.toInt(), pantalla.height.toInt());
