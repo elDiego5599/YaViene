@@ -14,16 +14,24 @@ import 'package:ya_viene_pasajero/features/notifications/presentation/providers/
 const _sobusa = Company(id: 'sobusa', name: 'Sobusa');
 const _coolitoral = Company(id: 'coolitoral', name: 'Coolitoral');
 const _r106 = RouteInfo(id: 'r106', name: 'Ruta 106', companyId: 'coolitoral');
+const _r106Otra = RouteInfo(
+  id: 'r106',
+  name: 'Ruta 106 duplicada',
+  companyId: 'sobusa',
+);
 const _c11 = RouteInfo(id: 'c11', name: 'C11', companyId: 'sobusa');
 
-ProviderContainer _contenedor({List<String>? pedidas}) {
+ProviderContainer _contenedor({
+  List<String>? pedidas,
+  bool duplicarRuta = false,
+}) {
   final c = ProviderContainer(overrides: [
     backendUrlProvider.overrideWith(() => BackendUrl.fija('http://x')),
     companiesProvider.overrideWith((ref) async => [_sobusa, _coolitoral]),
     routesByCompanyProvider.overrideWith((ref, companyId) async {
       pedidas?.add(companyId);
       return switch (companyId) {
-        'sobusa' => [_c11],
+        'sobusa' => [_c11, if (duplicarRuta) _r106Otra],
         'coolitoral' => [_r106],
         _ => <RouteInfo>[],
       };
@@ -39,8 +47,12 @@ void main() {
         () {
       expect(
         BusNotificationService.leerUrlActividad(
-            'yaviene://aviso?busId=BUS-SQA223&routeId=r106'),
-        (busId: 'BUS-SQA223', routeId: 'r106'),
+            'yaviene://aviso?busId=BUS-SQA223&routeId=r106&companyId=coolitoral'),
+        const AvisoTocado(
+          busId: 'BUS-SQA223',
+          routeId: 'r106',
+          companyId: 'coolitoral',
+        ),
       );
       for (final mala in [
         null,
@@ -56,9 +68,18 @@ void main() {
     });
 
     test('lleva el bus y la ruta, y se lee igual', () {
-      final carga = BusNotificationService.carga('BUS-SQA223', 'r106');
-      expect(BusNotificationService.leerCarga(carga),
-          (busId: 'BUS-SQA223', routeId: 'r106'));
+      final carga = BusNotificationService.carga(
+        'BUS-SQA223',
+        'r106',
+        'coolitoral',
+      );
+      expect(
+          BusNotificationService.leerCarga(carga),
+          const AvisoTocado(
+            busId: 'BUS-SQA223',
+            routeId: 'r106',
+            companyId: 'coolitoral',
+          ));
     });
 
     test('lo que no es un bus con su ruta no abre nada', () {
@@ -80,8 +101,9 @@ void main() {
     test('escoge su empresa, su ruta y su bus, y pide la cámara encima',
         () async {
       final c = _contenedor();
-      final abierto = await c
-          .read(abrirAvisoProvider)((busId: 'BUS-SQA223', routeId: 'r106'));
+      final abierto = await c.read(abrirAvisoProvider)(
+        const AvisoTocado(busId: 'BUS-SQA223', routeId: 'r106'),
+      );
 
       expect(abierto, isTrue);
       expect(c.read(selectedCompanyProvider), _coolitoral);
@@ -99,7 +121,9 @@ void main() {
       c.read(selectedRouteProvider.notifier).select(_r106);
       c.read(selectedBusesProvider.notifier).toggleBus('BUS-SQA223');
 
-      await c.read(abrirAvisoProvider)((busId: 'BUS-SQA223', routeId: 'r106'));
+      await c.read(abrirAvisoProvider)(
+        const AvisoTocado(busId: 'BUS-SQA223', routeId: 'r106'),
+      );
 
       expect(pedidas, isEmpty);
       // `toggleBus` sobre el mismo bus lo soltaría: tocar el aviso dos
@@ -112,9 +136,24 @@ void main() {
       final c = _contenedor(pedidas: pedidas);
       c.read(selectedCompanyProvider.notifier).select(_coolitoral);
 
-      await c.read(abrirAvisoProvider)((busId: 'BUS-SQA223', routeId: 'r106'));
+      await c.read(abrirAvisoProvider)(
+        const AvisoTocado(busId: 'BUS-SQA223', routeId: 'r106'),
+      );
 
       expect(pedidas, ['coolitoral']);
+    });
+
+    test('la empresa del payload decide si hay routeId duplicado', () async {
+      final c = _contenedor(duplicarRuta: true);
+      final abierto = await c.read(abrirAvisoProvider)(const AvisoTocado(
+        busId: 'BUS-SQA223',
+        routeId: 'r106',
+        companyId: 'coolitoral',
+      ));
+
+      expect(abierto, isTrue);
+      expect(c.read(selectedCompanyProvider), _coolitoral);
+      expect(c.read(selectedRouteProvider), _r106);
     });
 
     test('una ruta que ya no existe no toca lo escogido', () async {
@@ -122,8 +161,9 @@ void main() {
       c.read(selectedCompanyProvider.notifier).select(_sobusa);
       c.read(selectedRouteProvider.notifier).select(_c11);
 
-      final abierto = await c
-          .read(abrirAvisoProvider)((busId: 'BUS-X', routeId: 'borrada'));
+      final abierto = await c.read(abrirAvisoProvider)(
+        const AvisoTocado(busId: 'BUS-X', routeId: 'borrada'),
+      );
 
       expect(abierto, isFalse);
       expect(c.read(selectedCompanyProvider), _sobusa);
@@ -138,8 +178,9 @@ void main() {
       ]);
       addTearDown(c.dispose);
 
-      final abierto = await c
-          .read(abrirAvisoProvider)((busId: 'BUS-SQA223', routeId: 'r106'));
+      final abierto = await c.read(abrirAvisoProvider)(
+        const AvisoTocado(busId: 'BUS-SQA223', routeId: 'r106'),
+      );
 
       expect(abierto, isFalse);
       expect(c.read(selectedRouteProvider), isNull);
@@ -147,7 +188,9 @@ void main() {
 
     test('cambiar de ruta después olvida la cámara pedida', () async {
       final c = _contenedor();
-      await c.read(abrirAvisoProvider)((busId: 'BUS-SQA223', routeId: 'r106'));
+      await c.read(abrirAvisoProvider)(
+        const AvisoTocado(busId: 'BUS-SQA223', routeId: 'r106'),
+      );
 
       c.read(selectedRouteProvider.notifier).select(_c11);
 
@@ -168,8 +211,10 @@ void main() {
     final actividad =
         File('ios/AvisoEnVivo/AvisoEnVivo.swift').readAsStringSync();
     expect(actividad, contains('.widgetURL(urlAviso('));
+    expect(actividad, contains('companyId: contexto.attributes.companyId'));
     final url = File('ios/AvisoEnVivo/Vistas.swift').readAsStringSync();
     expect(url, contains('URLComponents()'));
+    expect(url, contains('URLQueryItem(name: "companyId", value: companyId)'));
     final escenas = File('ios/Runner/SceneDelegate.swift').readAsStringSync();
     expect(escenas, contains('connectionOptions.urlContexts'));
     expect(escenas, contains('openURLContexts'));
@@ -186,5 +231,7 @@ void main() {
     final lote = mapa.substring(mapa.indexOf('void _updateBusSourceData('));
     expect(lote.substring(0, lote.indexOf('\n  }\n')),
         contains('_enfocarBusPedido();'));
+    final enfoque = mapa.substring(mapa.indexOf('void _enfocarBusPedido()'));
+    expect(enfoque, contains('_viajarAlBus(pedido.busId)'));
   });
 }

@@ -101,11 +101,17 @@ void main() {
       await BusNotificationService.notifyBusNear(
         busId: 'BUS-SQA223',
         routeId: 'r106',
+        companyId: 'coolitoral',
       );
       expect(mostrada['title'], 'Tu bus de la ruta r106 está cerca de ti');
       // Lleva el bus y su ruta: tocarlo abre el mapa en ese bus.
-      expect(BusNotificationService.leerCarga(mostrada['payload'] as String?),
-          (busId: 'BUS-SQA223', routeId: 'r106'));
+      expect(
+          BusNotificationService.leerCarga(mostrada['payload'] as String?),
+          const AvisoTocado(
+            busId: 'BUS-SQA223',
+            routeId: 'r106',
+            companyId: 'coolitoral',
+          ));
       await BusNotificationService.notifyBusNear(
         busId: 'BUS-SQA223',
       );

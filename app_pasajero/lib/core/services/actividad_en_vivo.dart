@@ -15,6 +15,7 @@ class EstadoEnVivo {
   const EstadoEnVivo({
     required this.busId,
     required this.routeId,
+    required this.companyId,
     required this.placa,
     required this.ruta,
     required this.distancia,
@@ -27,6 +28,9 @@ class EstadoEnVivo {
 
   /// Ruta que se abre al tocar la actividad en vivo.
   final String routeId;
+
+  /// Empresa que identifica sin ambigüedad la ruta al abrir el aviso.
+  final String? companyId;
 
   /// Placa del bus, derivada de su identificador cuando tiene prefijo BUS-.
   final String placa;
@@ -54,6 +58,7 @@ class EstadoEnVivo {
   Map<String, Object?> aMapa() => {
         'busId': busId,
         'routeId': routeId,
+        'companyId': companyId,
         'placa': placa,
         'ruta': ruta,
         'distancia': distancia,

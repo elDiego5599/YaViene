@@ -1054,30 +1054,22 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _enfocarBusPedido();
   }
 
-  /// Lleva la cámara al bus del aviso que se tocó ([enfoqueDeBusProvider])
-  /// en cuanto el mapa lo tiene ([avisoBounds]). La ruta recién escogida
-  /// llega al mapa en el cuadro siguiente y sus buses en el primer lote:
-  /// hasta entonces el pedido espera.
+  /// Lleva la cámara al centro del bus del aviso que se tocó, con el mismo
+  /// resorte que un toque directo. La ruta recién escogida llega al mapa en el
+  /// cuadro siguiente y sus buses en el primer lote: hasta entonces espera.
   void _enfocarBusPedido() {
     final pedido = ref.read(enfoqueDeBusProvider);
     if (pedido == null || !mounted || !_layersReady) return;
-    final bus = _rawBuses[pedido.busId];
-    final ubicacion = ref.read(userLocationProvider);
-    final caja = avisoBounds(
-      rutaDelAviso: pedido.routeId,
-      rutaEnMapa: widget.routeId,
-      bus: bus == null ? null : (lat: bus.lat, lon: bus.lon),
-      espera: ubicacion.hasPosition
-          ? (lat: ubicacion.lat!, lon: ubicacion.lon!)
-          : null,
-    );
-    if (caja == null) return;
-    // Ni el encuadre del primer lote ni el del punto de espera, si llegaran
-    // después, deben llevarse la cámara lejos del bus.
+    if (widget.routeId != pedido.routeId ||
+        _busEnPantalla(pedido.busId) == null) {
+      return;
+    }
+    // Ni el encuadre del primer lote ni el encuadre automático del pin deben
+    // llevarse la cámara lejos del bus tras consumir este pedido.
     _hasFitInitialRoute = true;
     _hasCenteredOnUser = true;
     ref.read(enfoqueDeBusProvider.notifier).hecho();
-    moveCameraToBounds(caja, animated: true);
+    unawaited(_viajarAlBus(pedido.busId));
   }
 
   /// Convierte el primer bus visible en un rect global para que la guía pueda

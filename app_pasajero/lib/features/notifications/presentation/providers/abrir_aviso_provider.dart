@@ -10,13 +10,17 @@ import '../../../map/presentation/providers/selected_buses_provider.dart';
 /// y su bus, con la cámara encima del bus. Antes abría la app sin más y
 /// había que volver a escoger empresa y ruta para verlo (dueño, 2026-10-02).
 ///
-/// El aviso solo trae el bus y la ruta, así que la empresa se busca entre
-/// las rutas de cada una, empezando por la que ya estaba escogida. Devuelve
-/// `false` sin tocar nada si la ruta ya no existe o no hay red: el mapa se
-/// queda como estaba, que es lo que hacía tocar el aviso hasta ahora.
+/// El aviso trae bus, ruta y empresa cuando la versión que lo emitió lo sabe;
+/// si falta empresa, se busca la ruta empezando por la que ya estaba escogida.
+/// Devuelve `false` sin tocar nada si la ruta ya no existe o no hay red: el
+/// mapa se queda como estaba, que es lo que hacía tocar el aviso hasta ahora.
 final abrirAvisoProvider =
     Provider<Future<bool> Function(AvisoTocado)>((ref) => (aviso) async {
-          final encontrada = await _buscarRuta(ref, aviso.routeId);
+          final encontrada = await _buscarRuta(
+            ref,
+            aviso.routeId,
+            companyId: aviso.companyId,
+          );
           if (encontrada == null) return false;
           final (empresa, ruta) = encontrada;
           // La empresa antes que la ruta, que es como las escoge el
@@ -30,12 +34,32 @@ final abrirAvisoProvider =
           return true;
         });
 
-Future<(Company, RouteInfo)?> _buscarRuta(Ref ref, String routeId) async {
+Future<(Company, RouteInfo)?> _buscarRuta(
+  Ref ref,
+  String routeId, {
+  String? companyId,
+}) async {
   final empresa = ref.read(selectedCompanyProvider);
   final ruta = ref.read(selectedRouteProvider);
-  if (empresa != null && ruta?.id == routeId) return (empresa, ruta!);
+  if (empresa != null &&
+      ruta?.id == routeId &&
+      (companyId == null || empresa.id == companyId)) {
+    return (empresa, ruta!);
+  }
   try {
     final empresas = await _leer(ref, companiesProvider.future);
+    if (companyId != null) {
+      for (final candidata in empresas.where((e) => e.id == companyId)) {
+        final rutas = await _leer(
+          ref,
+          routesByCompanyProvider(candidata.id).future,
+        );
+        for (final r in rutas) {
+          if (r.id == routeId) return (candidata, r);
+        }
+      }
+      return null;
+    }
     final enOrden = [
       ...empresas.where((e) => e.id == empresa?.id),
       ...empresas.where((e) => e.id != empresa?.id),

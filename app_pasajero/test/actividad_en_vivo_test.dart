@@ -57,6 +57,7 @@ void main() {
     expect(EstadoEnVivo.avanceDe(0), 1);
     expect(EstadoEnVivo.avanceDe(-5), 1);
   });
+
   const lat = 10.9878;
   const lon = -74.7889;
   // 0,0135° de latitud son unos 1.500 m.
@@ -158,6 +159,7 @@ void main() {
         unorderedEquals([
           'busId',
           'routeId',
+          'companyId',
           'placa',
           'ruta',
           'distancia',

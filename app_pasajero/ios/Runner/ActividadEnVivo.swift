@@ -62,6 +62,9 @@ enum ActividadEnVivo {
       && busId.count <= 256
       && !routeId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       && routeId.count <= 256
+      && (partes.queryItems?.first(where: { $0.name == "companyId" })?.value
+        .map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && $0.count <= 256 }
+        ?? true)
   }
 }
 
@@ -98,6 +101,7 @@ private enum Gestor {
     let atributos = AvisoAtributos(
       busId: busId,
       routeId: datos["routeId"] as? String ?? "",
+      companyId: datos["companyId"] as? String,
       placa: datos["placa"] as? String ?? "",
       ruta: datos["ruta"] as? String ?? ""
     )

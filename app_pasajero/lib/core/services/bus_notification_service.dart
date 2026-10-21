@@ -11,9 +11,31 @@ import '../utils/bus_labels.dart';
 import '../utils/color_empresa.dart';
 import 'ficha_ruta.dart';
 
-/// El aviso que alguien tocó: el bus y su ruta, para dejar el mapa como
-/// estaba cuando sonó.
-typedef AvisoTocado = ({String busId, String routeId});
+/// El aviso que alguien tocó: el bus, su ruta y su empresa, para dejar el mapa
+/// como estaba cuando sonó. Empresa es opcional para enlaces/notificaciones
+/// antiguos; cuando viene evita confundir rutas con el mismo id.
+@immutable
+class AvisoTocado {
+  const AvisoTocado({
+    required this.busId,
+    required this.routeId,
+    this.companyId,
+  });
+
+  final String busId;
+  final String routeId;
+  final String? companyId;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AvisoTocado &&
+      other.busId == busId &&
+      other.routeId == routeId &&
+      other.companyId == companyId;
+
+  @override
+  int get hashCode => Object.hash(busId, routeId, companyId);
+}
 
 /// Notificaciones locales de proximidad de buses (sin servidor).
 ///
@@ -109,8 +131,12 @@ class BusNotificationService {
   /// Lo que viaja dentro del aviso, y su lectura. Cualquier cosa que no sea
   /// un bus y una ruta se ignora: tocar el aviso abre la app y ya.
   @visibleForTesting
-  static String carga(String busId, String routeId) =>
-      jsonEncode({'busId': busId, 'routeId': routeId});
+  static String carga(String busId, String routeId, [String? companyId]) =>
+      jsonEncode({
+        'busId': busId,
+        'routeId': routeId,
+        if (companyId != null && companyId.isNotEmpty) 'companyId': companyId,
+      });
 
   @visibleForTesting
   static AvisoTocado? leerCarga(String? carga) {
@@ -120,9 +146,19 @@ class BusNotificationService {
       if (datos is! Map) return null;
       final busId = datos['busId'];
       final routeId = datos['routeId'];
+      final companyId = datos['companyId'];
       if (busId is! String || busId.isEmpty) return null;
       if (routeId is! String || routeId.isEmpty) return null;
-      return (busId: busId, routeId: routeId);
+      if (companyId != null && companyId is! String) return null;
+      if (companyId is String &&
+          (companyId.trim().isEmpty || companyId.length > 256)) {
+        return null;
+      }
+      return AvisoTocado(
+        busId: busId,
+        routeId: routeId,
+        companyId: companyId as String?,
+      );
     } on FormatException {
       return null;
     }
@@ -138,6 +174,7 @@ class BusNotificationService {
     }
     final busId = uri.queryParameters['busId'];
     final routeId = uri.queryParameters['routeId'];
+    final companyId = uri.queryParameters['companyId'];
     if (busId == null ||
         routeId == null ||
         busId.trim().isEmpty ||
@@ -146,7 +183,11 @@ class BusNotificationService {
         routeId.length > 256) {
       return null;
     }
-    return (busId: busId, routeId: routeId);
+    if (companyId != null &&
+        (companyId.trim().isEmpty || companyId.length > 256)) {
+      return null;
+    }
+    return AvisoTocado(busId: busId, routeId: routeId, companyId: companyId);
   }
 
   static Future<bool> areNotificationsEnabled() async {
@@ -235,8 +276,9 @@ class BusNotificationService {
         title: ruta == null
             ? 'Tu bus está cerca de ti'
             : 'Tu bus de la ruta $ruta está cerca de ti',
-        payload:
-            routeId == null || routeId.isEmpty ? null : carga(busId, routeId),
+        payload: routeId == null || routeId.isEmpty
+            ? null
+            : carga(busId, routeId, companyId),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,

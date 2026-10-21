@@ -1,15 +1,19 @@
 import SwiftUI
 import Foundation
 
-func urlAviso(busId: String, routeId: String?) -> URL? {
+func urlAviso(busId: String, routeId: String?, companyId: String? = nil) -> URL? {
   guard let routeId, !routeId.isEmpty else { return nil }
   var componentes = URLComponents()
   componentes.scheme = "yaviene"
   componentes.host = "aviso"
-  componentes.queryItems = [
+  var queryItems = [
     URLQueryItem(name: "busId", value: busId),
     URLQueryItem(name: "routeId", value: routeId),
   ]
+  if let companyId, !companyId.isEmpty {
+    queryItems.append(URLQueryItem(name: "companyId", value: companyId))
+  }
+  componentes.queryItems = queryItems
   return componentes.url
 }
 

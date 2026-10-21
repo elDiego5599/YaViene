@@ -289,6 +289,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   bloqueada (dueño, 2026-10-21).
   Tocar la actividad abre el mapa con ese bus, su empresa y su ruta; por bus
   solo queda viva la actividad del bus seguido.
+  Tocar la actividad o la notificación centra la cámara en el bus con el mismo
+  resorte que tocarlo en el mapa; URL y payload llevan empresa, bus y ruta
+  (dueño, 2026-10-21).
 - **Vidrio de las barras**: el fondo usa como máximo cuatro filtros
   agrupados, con progreso sin reconstruir la pantalla completa.
 - **Ventanas propias en todo**: `Dialogo` / `AvisoTarjeta` (pasajero),
