@@ -265,11 +265,16 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (dueño, 2026-10-21), avanza hacia tu punto y hace rodar las ruedas lo que
   avanza, con radio de llanta a escala y sin patinar; título de 25 pt. En la
   isla abierta, rótulos y campana en footnote (13 pt, con Dynamic Type); en
-  pantalla bloqueada usan subheadline. La línea tiene margen
-  lateral de 12 pt (8 + 4) y los rótulos 14 (8 + 6), 2 pt más para librar las
-  esquinas. La pista baja 4 pt con 12 pt de aire arriba (dueño, 2026-10-21),
-  con la
-  campana donde suena el aviso;
+  pantalla bloqueada usan subheadline y la distancia queda 8 pt más cerca de
+  la pista. En la isla, los 8 pt exteriores protegen la esquina; dentro, los
+  6 pt de leading alinean punto y campana en x=14 (8 + 6). En la tarjeta,
+  logo, punto y campana parten en x=18. A la derecha «Tu punto» termina donde
+  el aro de destino: radio 7 + 3 de expansión; márgenes totales 8 + 9 en la
+  pista y 8 + 6 en el rótulo dejan ambos bordes en ancho - 14.
+  La línea baja 4 pt (12 arriba); el espacio sobre ella es 22 pt en la tarjeta.
+  El título resalta X en verde #00A859 bold (6,75:1 sobre negro), solo antes
+  de llegar; caduco conserva opacidad 0,5. La campana marca dónde suena el
+  aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
   está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo

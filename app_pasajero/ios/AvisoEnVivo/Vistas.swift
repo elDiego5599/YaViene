@@ -47,12 +47,15 @@ struct TarjetaBloqueada: View {
         ContenidoAviso(atributos: atributos, estado: estado)
       }
       .opacity(caduco ? 0.5 : 1)
+      // Con 18 pt de margen, el punto y la campana empiezan en x=18: el punto
+      // tiene radio 3. El aro final llega 10 pt más allá de su centro (radio 7
+      // + 3 de padding); 3 pt de margen lo alinean con el fin del rótulo.
       Pista(
         atributos: atributos,
         estado: estado,
         muestraRotulos: !estado.llego,
         caduco: caduco
-      )
+      ).padding(.trailing, 3)
     }
     .padding(.horizontal, 18)
     .padding(.vertical, 16)
@@ -90,15 +93,22 @@ struct IslaAbajo: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
-        .padding(.horizontal, 4)
+        // El margen exterior de 8 pt deja los elementos fuera de la curva.
+        // Dentro, leading 6 + inicio 3 - radio 3 y leading 6 del rótulo ponen
+        // punto y campana en x=14. A la derecha, el aro llega fin + 10
+        // (radio 7 + 3); los márgenes 8 + 9 de pista y 8 + 6 del rótulo
+        // dejan ambos bordes en x=ancho - 14.
+        .padding(.leading, 6)
+        .padding(.trailing, 9)
       if !estado.llego {
         RotulosPista(estado: estado, caduco: caduco, estiloTexto: .footnote, estiloCampana: .footnote)
-          .padding(.horizontal, 6)
+          .padding(.leading, 6)
+          .padding(.trailing, 6)
           .offset(y: -6)
       }
     }
-    // 12 pt arriba bajan la pista 4; quedan 10 abajo. Línea: 8 + 4 por lado;
-    // rótulos: 8 + 6, 2 pt más dentro para librar las esquinas redondas.
+    // 12 pt arriba bajan la pista 4; quedan 10 abajo. El inset exterior de
+    // 8 pt protege la esquina redonda sin cambiar la alineación interior.
     .padding(.top, 12)
     .padding(.horizontal, 8)
     .padding(.bottom, 10)
@@ -110,11 +120,25 @@ struct ContenidoAviso: View {
   let estado: AvisoAtributos.ContentState
 
   var body: some View {
+    let titulo = estado.llego
+      ? Text(Textos.titulo(atributos: atributos, estado: estado))
+        .font(.system(size: 25, weight: .semibold))
+        .foregroundColor(.white)
+      : (
+      // #00A859 sobre negro da 6,75:1 de contraste (WCAG AA para texto normal).
+      Text("Está a ")
+        .font(.system(size: 25, weight: .semibold))
+        .foregroundColor(.white)
+        + Text(estado.distancia)
+          .font(.system(size: 25, weight: .bold))
+          .foregroundColor(Tinta.verde)
+        + Text(" de ti")
+          .font(.system(size: 25, weight: .semibold))
+          .foregroundColor(.white)
+      )
     // Solo la distancia, sin la ruta ni la placa debajo (dueño, 2026-10-21).
     VStack(alignment: .leading, spacing: 2) {
-      Text(Textos.titulo(atributos: atributos, estado: estado))
-        .font(.system(size: 25, weight: .semibold))
-        .foregroundStyle(.white)
+      titulo
         .monospacedDigit()
         .lineLimit(1)
         .minimumScaleFactor(0.7)
@@ -191,11 +215,11 @@ private struct Pista: View {
   // Radio de llanta: 4,5 unidades del dibujo × 25,4 / 32 = 3,57 pt.
   private let radioLlanta: CGFloat = 4.5 * 25.4 / 32
   var body: some View {
-    VStack(spacing: muestraRotulos ? 16 : 5) {
+    VStack(spacing: muestraRotulos ? 8 : 5) {
       GeometryReader { geo in
         let w = geo.size.width
-        let inicio: CGFloat = 3
-        let fin = max(w - 7, inicio)
+        let inicio: CGFloat = 3 // Punto de 6 pt: su canto izquierdo coincide con el margen.
+        let fin = max(w - 7, inicio) // El círculo termina a fin + 7; el aro agrega 3 pt.
         let lineaY = altura / 2
         let avance = estado.llego ? 1.0 : min(max(estado.avance, 0), 1)
         let desplazamiento = inicio + (fin - inicio) * avance
@@ -232,7 +256,9 @@ private struct Pista: View {
       }
       .frame(height: altura)
       if muestraRotulos && !estado.llego {
+        // En la pantalla bloqueada, 8 pt sustituyen los 16 entre pista y rótulos.
         RotulosPista(estado: estado, caduco: caduco)
+          .padding(.trailing, -3)
       }
     }.accessibilityHidden(true)
   }
