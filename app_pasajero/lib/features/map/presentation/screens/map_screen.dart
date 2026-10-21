@@ -42,6 +42,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _mapKey = GlobalKey();
   final GlobalKey _pillKey = GlobalKey();
   final GlobalKey _cabeceraKey = GlobalKey();
+  final GlobalKey _locationGuideKey = GlobalKey();
   final GlobalKey _companyGuideKey = GlobalKey();
   final GlobalKey _companyChoiceGuideKey = GlobalKey();
   final GlobalKey _routeGuideKey = GlobalKey();
@@ -317,18 +318,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// El usuario necesita poder mover el mapa y tocar cualquier bus. Se
   /// ilumina el mapa que queda libre entre la cabecera (pill y chips) y la
-  /// hoja: ni esas acciones ni la hoja entran en el área iluminada, y el
-  /// usuario no se desvía del flujo. El hueco crece 10 por lado sobre esta
-  /// caja, así que se descuentan aquí: arriba deja 2 de aire bajo la
-  /// cabecera y abajo termina justo donde empieza la hoja. Antes se medía
-  /// con números fijos (210 arriba, 310 abajo) y en un teléfono de 667 el
-  /// hueco caía a toda la pantalla, hoja incluida.
+  /// hoja. En ubicación sin punto, también incluye «Usar GPS». El hueco
+  /// crece 10 por lado sobre esta caja, así que se descuentan aquí: arriba
+  /// deja 2 de aire bajo la cabecera y abajo termina donde empieza la hoja.
+  /// Antes se medía con números fijos (210 arriba, 310 abajo), y en un
+  /// teléfono de 667 el hueco cubría toda la pantalla, hoja incluida.
   ///
-  /// Con el botón de recentrar a la vista, el hueco acaba 12 por encima de
-  /// él: la carta de la guía se apoya sobre la hoja y mide más que ella
-  /// (227 contra 207 en un iPhone 15), así que siempre tapa la mitad de
-  /// abajo del botón. Iluminado a medias se veía partido; entero fuera se
-  /// ve como lo que es en este paso, algo de después.
+  /// Cuando hay posición, el botón de recentrar queda fuera del hueco:
+  /// «Fija tu punto de espera» enseña el mapa y deja esa acción para después.
   Rect? _mapGuideArea() {
     final mapRect = _rectFor(_mapKey);
     final cabecera = _rectFor(_cabeceraKey);
@@ -341,7 +338,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final abajo = boton == null ? hoja.top - 10 : boton.top - 12 - 10;
     if (abajo - top < 48) return null;
     final lado = (mapRect.width * 0.08).clamp(24.0, 32.0);
-    return Rect.fromLTRB(mapRect.left + lado, top, mapRect.right - lado, abajo);
+    final area =
+        Rect.fromLTRB(mapRect.left + lado, top, mapRect.right - lado, abajo);
+    if (ref.read(mapGuideProvider).step == MapGuideStep.location &&
+        !ref.read(userLocationProvider).hasPosition) {
+      final pill = _rectFor(_locationGuideKey);
+      return pill == null ? null : area.expandToInclude(pill);
+    }
+    return area;
   }
 
   void _skipGuide() {
@@ -491,7 +495,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const SizedBox(height: 8),
-                                LocationStatusChip(routeId: selectedRoute?.id),
+                                LocationStatusChip(
+                                  key: _locationGuideKey,
+                                  routeId: selectedRoute?.id,
+                                ),
                                 const SizedBox(height: 8),
                                 const IdleStatusChip(),
                               ],

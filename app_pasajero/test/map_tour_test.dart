@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/selected_buses_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/location_status_chip.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/map_tour_overlay.dart';
 
 import 'helpers/contraste.dart';
+import 'helpers/mapa.dart';
 
 class _FakeLocation extends StateNotifier<UserLocationState>
     implements UserLocationNotifier {
@@ -706,5 +710,107 @@ void main() {
       await tester.tap(find.text('Usar GPS'));
       expect(location.gpsAsked, isTrue);
     });
+  });
+
+  testWidgets('en ubicación sin pin ilumina y permite tocar el GPS',
+      (tester) async {
+    final mapa = await MapaDePrueba.montar(
+      tester,
+      conPosicionInicial: false,
+    );
+    mapa.ubicacion.state =
+        const UserLocationState(mode: UserLocationMode.sinPunto);
+    mapa.container.read(mapPreparingProvider.notifier).state = false;
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await mapa.container.read(mapGuideProvider.notifier).restart(
+          hasLocation: false,
+          locationSettled: true,
+        );
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final boton = tester.getRect(find.text('Usar GPS'));
+    final overlay =
+        tester.widget<MapGuideOverlay>(find.byType(MapGuideOverlay));
+    final hueco = overlay.target.inflate(overlay.targetPadding);
+    final carta = tester.getRect(find.byKey(const ValueKey('guide_card')));
+    expect(hueco.contains(boton.topLeft), isTrue);
+    expect(hueco.contains(boton.bottomRight), isTrue);
+    expect(carta.overlaps(boton), isFalse);
+
+    await tester.tap(find.text('Usar GPS'));
+    expect(mapa.ubicacion.gpsPedido, 1);
+    await mapa.desmontar(tester);
+  });
+
+  testWidgets('la guía ilumina Reintentar y Abrir sin posición',
+      (tester) async {
+    final mapa = await MapaDePrueba.montar(
+      tester,
+      conPosicionInicial: false,
+    );
+    mapa.container.read(mapPreparingProvider.notifier).state = false;
+    await mapa.container.read(mapGuideProvider.notifier).restart(
+          hasLocation: false,
+          locationSettled: true,
+        );
+
+    Future<void> comprobarPildora(
+        UserLocationMode mode, String textoAccion) async {
+      mapa.ubicacion.state = UserLocationState(mode: mode);
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      final boton = tester.getRect(find.text(textoAccion));
+      final overlay =
+          tester.widget<MapGuideOverlay>(find.byType(MapGuideOverlay));
+      final hueco = overlay.target.inflate(overlay.targetPadding);
+      final carta = tester.getRect(find.byKey(const ValueKey('guide_card')));
+      expect(hueco.contains(boton.topLeft), isTrue, reason: textoAccion);
+      expect(hueco.contains(boton.bottomRight), isTrue, reason: textoAccion);
+      expect(carta.overlaps(boton), isFalse, reason: textoAccion);
+    }
+
+    await comprobarPildora(UserLocationMode.denied, 'Reintentar');
+    await comprobarPildora(UserLocationMode.gpsFailed, 'Reintentar');
+    await comprobarPildora(UserLocationMode.permanentDenied, 'Abrir');
+
+    await mapa.desmontar(tester);
+  });
+
+  testWidgets('el contador del paso dos no usa estilo de error',
+      (tester) async {
+    Widget montar(int paso) => MediaQuery(
+          data: const MediaQueryData(),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: SizedBox.expand(
+              child: MapGuideOverlay(
+                target: const Rect.fromLTWH(100, 100, 120, 80),
+                title: 'Busca tu ruta',
+                message: 'Elige empresa y ruta.',
+                icon: Icons.search,
+                stepIndex: paso,
+                stepCount: 8,
+                onSkip: () {},
+              ),
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(montar(0));
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpWidget(montar(1));
+    await tester.pump(const Duration(milliseconds: 450));
+
+    final estilo =
+        tester.renderObject<RenderParagraph>(find.text('2')).text.style!;
+    expect(estilo.decoration, TextDecoration.none);
+    expect(estilo.fontSize, 25);
+    expect(estilo.color, AppColors.primaryDeep);
   });
 }

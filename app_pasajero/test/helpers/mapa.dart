@@ -81,6 +81,7 @@ class UbicacionDePrueba extends UserLocationNotifier {
   UbicacionDePrueba({this.conPosicionInicial = true});
 
   final bool conPosicionInicial;
+  int gpsPedido = 0;
 
   @override
   Future<void> initialize() async => state = conPosicionInicial
@@ -98,6 +99,9 @@ class UbicacionDePrueba extends UserLocationNotifier {
         lon: lon,
         updatedAt: DateTime.now(),
       );
+
+  @override
+  Future<void> useGps() async => gpsPedido++;
 }
 
 /// Anota lo que la app le pide al servicio de fondo.
