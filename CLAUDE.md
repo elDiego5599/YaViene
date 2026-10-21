@@ -300,8 +300,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   El aviso lleva la ficha de la ruta (B18, C16; `ficha_ruta.dart`): en
   Android de ícono grande, en iOS de imagen adjunta, y en la tarjeta de
   Avisos en vez del bus, con el nombre sin el código (dueño, 2026-10-19).
-  Por la ruta cuentan todos los pasos a 300 m o menos del punto, no solo
-  el más cercano (el pin entre dos calles daba 15,6 km). La barra de
+  Por la ruta cuentan todos los pasos hasta 300 m más lejos que el más
+  cercano, no solo ese (el pin entre dos calles daba 15,6 km; con la otra
+  calle a 334 m, 30 km en la C16, dueño, 2026-10-21). La barra de
   vidrio sale al bajar, al paso del dedo, y en reposo no hay nada.
   Con un bus tocado se va la píldora de tu punto y buses cerca.
 - **Panel**: tablero con fondo y cabecera blancos (el degradado en la

@@ -631,9 +631,21 @@
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "final pasos = _pasos(p, desvioPuntoMaximo);",
-    "a": "final pasos = _pasos(p, double.infinity);",
+    "de": "if (cerca > desvioPuntoMaximo) return null;",
+    "a": "if (false) return null;",
     "que": "un punto lejos de la ruta no se mide por ella"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (paso.desvio <= cerca + desvioPuntoMaximo)",
+    "a": "if (paso.desvio <= desvioPuntoMaximo)",
+    "que": "la otra calle a más de 300 m cuenta si una queda cerca"
+  },
+  {
+    "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
+    "de": "if (paso.desvio <= cerca + desvioPuntoMaximo)",
+    "a": "if (true)",
+    "que": "la otra punta de una U a 400 m no cuenta"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",

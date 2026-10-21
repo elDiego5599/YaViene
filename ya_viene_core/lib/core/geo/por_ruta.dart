@@ -200,7 +200,7 @@ class RutaMedible {
   /// Cada paso de la ruta cerca de [p]: en una calle de ida y vuelta, el
   /// punto cae en las dos. Un paso es donde la ruta más se acerca a [p]
   /// antes de alejarse otra vez (ningún tramo vecino queda más cerca), a
-  /// [desvioPuntoMaximo] o menos; los tramos seguidos que caen en el mismo
+  /// [maximo] o menos; los tramos seguidos que caen en el mismo
   /// sitio (una esquina) son un paso. Todos cuentan, no solo el más
   /// cercano: el pin entre dos calles de la ruta decía 15,6 km por la que
   /// tenía enfrente con el bus a 2 km por la otra (dueño, 2026-10-19).
@@ -249,12 +249,23 @@ class RutaMedible {
   double? medir(double avanceBus, GeoPoint p) => _desde([avanceBus], p);
 
   /// [medir] desde el más cerca de varios avances del bus.
+  ///
+  /// Basta un paso a [desvioPuntoMaximo] o menos para medir, y entonces
+  /// cuentan los que quedan hasta [desvioPuntoMaximo] más lejos que ese,
+  /// cada uno con su desvío: con el tope fijo por paso, la calle a 334 m
+  /// del pin no contaba (la otra quedaba a 169) y el bus que pasaba por
+  /// ella decía 30 km en la C16 (dueño, 2026-10-21). Con el pin sobre la
+  /// ruta sigue siendo 300: la otra punta de una U a 400 m no cuenta.
   double? _desde(List<double> avances, GeoPoint p) {
-    final pasos = _pasos(p, desvioPuntoMaximo);
-    if (pasos.isEmpty) return null;
+    final todos = _pasos(p, double.infinity);
+    if (todos.isEmpty) return null;
+    final cerca = todos.map((paso) => paso.desvio).reduce(math.min);
+    if (cerca > desvioPuntoMaximo) return null;
     return [
       for (final a in avances)
-        for (final paso in pasos) _entre(a, paso.avance) + paso.desvio
+        for (final paso in todos)
+          if (paso.desvio <= cerca + desvioPuntoMaximo)
+            _entre(a, paso.avance) + paso.desvio
     ].reduce(math.min);
   }
 }

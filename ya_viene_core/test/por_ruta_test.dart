@@ -170,6 +170,18 @@ void main() {
           closeTo(380, 5));
     });
 
+    test('la otra calle a más de 300 m también cuenta si una queda cerca', () {
+      // Rectángulo de 1000 × 500 (3000 m). El punto en (500, 180): la ida
+      // le queda a 180 y la vuelta a 320. El bus en x = 600 de la vuelta,
+      // rumbo oeste: 100 + 320, no 1400 + 180 por la ida (dueño,
+      // 2026-10-21: 30 km en la C16 con el bus a 335 m del pin).
+      final ancho = RutaMedible.de(
+          [_m(0, 0), _m(1000, 0), _m(1000, 500), _m(0, 500), _m(0, 10)])!;
+      final s = SeguidorRuta(ancho);
+      expect(s.distancia(_bus(600, 500, rumbo: 270), _m(500, 180)),
+          closeTo(420, 5));
+    });
+
     test('sobre la ruta, la otra calle a 200 m también cuenta', () {
       // El punto en la ida (500, 0); el bus en la vuelta, x = 300, a 200
       // de pasarle enfrente: 200 + 200, no 1000 por la ida.
