@@ -528,6 +528,13 @@ void main() {
       expect(sonados, hasLength(1));
     });
 
+    test('suena cuando la distancia del bus es exactamente el radio', () async {
+      armar(0);
+      await busEn(busEnLat(6.2442));
+
+      expect(sonados, [0]);
+    });
+
     test('a 2 km suena con el bus a 1,6 km', () async {
       armar(2000);
       await busEn(a1600);
