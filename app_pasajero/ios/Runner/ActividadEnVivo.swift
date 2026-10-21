@@ -21,6 +21,10 @@ enum ActividadEnVivo {
         avisoPendiente = nil
         return responder(pendiente)
       }
+      if llamada.method == "confirmarAvisoPendiente" {
+        avisoPendiente = nil
+        return responder(nil)
+      }
       guard #available(iOS 16.2, *) else { return responder(nil) }
       guard let datos = llamada.arguments as? [String: Any],
         let busId = datos["busId"] as? String, !busId.isEmpty
@@ -45,10 +49,11 @@ enum ActividadEnVivo {
 
   static func recibir(_ url: URL, viva: Bool) {
     guard valida(url) else { return }
+    // El URL puede llegar antes de que el engine implícito o el handler Dart
+    // estén listos. Conservarlo permite recuperarlo por leerAvisoPendiente.
+    avisoPendiente = url.absoluteString
     if viva {
       canal?.invokeMethod("avisoTocado", arguments: url.absoluteString)
-    } else {
-      avisoPendiente = url.absoluteString
     }
   }
 

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,6 +8,7 @@ import 'package:flutter/services.dart'
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../utils/bus_labels.dart';
 import '../utils/color_empresa.dart';
+import 'cola_eventos.dart';
 import 'ficha_ruta.dart';
 
 /// El aviso que alguien tocó: el bus, su ruta y su empresa, para dejar el mapa
@@ -58,8 +58,31 @@ class BusNotificationService {
       if (llamada.method != 'avisoTocado') return;
       final carga = llamada.arguments;
       final aviso = leerUrlActividad(carga is String ? carga : null);
-      if (aviso != null) _tocados.add(aviso);
+      if (aviso != null) {
+        _tocados.agregar(aviso);
+        try {
+          await _actividad.invokeMethod<void>('confirmarAvisoPendiente');
+        } on MissingPluginException {
+          // Versiones anteriores del Runner no tenían confirmación; el
+          // evento ya quedó retenido en Dart para el listener tardío.
+        } on PlatformException catch (e) {
+          debugPrint('no se pudo confirmar el toque de la actividad: $e');
+        }
+      }
     });
+    // Si iOS recibió el widgetURL antes de que el handler o el mapa estuvieran
+    // listos, el Runner conserva el enlace. Recuperarlo ahora evita depender
+    // del orden engine → canal → suscripción de MapScreen.
+    try {
+      final enlace =
+          await _actividad.invokeMethod<String>('leerAvisoPendiente');
+      final aviso = leerUrlActividad(enlace);
+      if (aviso != null) _tocados.agregar(aviso);
+    } on MissingPluginException {
+      // Android y versiones sin el canal de actividad no tienen este método.
+    } on PlatformException catch (e) {
+      debugPrint('no se pudo recuperar el toque de la actividad: $e');
+    }
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       // En iOS, DarwinInitializationSettings pide los permisos al
@@ -79,7 +102,7 @@ class BusNotificationService {
       settings: settings,
       onDidReceiveNotificationResponse: (respuesta) {
         final aviso = leerCarga(respuesta.payload);
-        if (aviso != null) _tocados.add(aviso);
+        if (aviso != null) _tocados.agregar(aviso);
       },
     );
     final android = _plugin.resolvePlatformSpecificImplementation<
@@ -94,7 +117,7 @@ class BusNotificationService {
     );
   }
 
-  static final _tocados = StreamController<AvisoTocado>.broadcast();
+  static final _tocados = ColaEventos<AvisoTocado>();
 
   /// Los avisos que se tocan con la app viva (en primer plano o en el
   /// fondo). El que la abrió desde cerrada llega por [tocadoAlAbrir].
