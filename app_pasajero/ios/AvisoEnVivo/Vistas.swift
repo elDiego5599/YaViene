@@ -92,14 +92,15 @@ struct IslaAbajo: View {
       Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
         .padding(.horizontal, 4)
       if !estado.llego {
-        RotulosPista(estado: estado, caduco: caduco)
+        RotulosPista(estado: estado, caduco: caduco, estiloTexto: .footnote, estiloCampana: .footnote)
+          .padding(.horizontal, 6)
           .offset(y: -6)
       }
     }
-    // 8 pt arriba dejan aire sobre el bus ampliado; el offset eleva la fila
-    // 6 pt y quedan 10 abajo. Los 15 por lado apartan «Tu punto» de la curva.
-    .padding(.top, 8)
-    .padding(.horizontal, 15)
+    // 12 pt arriba bajan la pista 4; quedan 10 abajo. Línea: 8 + 4 por lado;
+    // rótulos: 8 + 6, 2 pt más dentro para librar las esquinas redondas.
+    .padding(.top, 12)
+    .padding(.horizontal, 8)
     .padding(.bottom, 10)
   }
 }
@@ -241,11 +242,13 @@ private struct Pista: View {
 private struct RotulosPista: View {
   let estado: AvisoAtributos.ContentState
   let caduco: Bool
+  var estiloTexto: Font = .subheadline
+  var estiloCampana: Font = .caption
 
   var body: some View {
     HStack(spacing: 6) {
       Image(systemName: "bell.fill")
-        .font(.system(size: 10, weight: .semibold))
+        .font(estiloCampana.weight(.semibold))
       Text(caduco ? "Sin datos nuevos, abre Ya Viene" : estado.aviso)
         .lineLimit(1)
         .minimumScaleFactor(0.9)
@@ -255,8 +258,9 @@ private struct RotulosPista: View {
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
     }
-    // Subheadline iguala ambas etiquetas a la fila de la tarjeta.
-    .font(.subheadline)
+    // Los estilos semánticos conservan Dynamic Type: subheadline en bloqueo,
+    // footnote en la isla (13 pt en tamaño estándar), también para la campana.
+    .font(estiloTexto)
     .foregroundStyle(Tinta.secundaria)
   }
 }

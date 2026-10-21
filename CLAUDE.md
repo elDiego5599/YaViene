@@ -263,9 +263,12 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   visto de lado, rojo y con el frente hacia tu punto, que solo vive ahí
   (`AutobusDeLado`; el de arriba no gustó, dueño, 2026-10-21), a 54 × 25,4 pt
   (dueño, 2026-10-21), avanza hacia tu punto y hace rodar las ruedas lo que
-  avanza, con radio de llanta a escala y sin patinar; título de 25 pt. Los
-  rótulos de la isla abierta llevan margen lateral de 15 pt para librar las
-  esquinas redondas (dueño, 2026-10-21), con la
+  avanza, con radio de llanta a escala y sin patinar; título de 25 pt. En la
+  isla abierta, rótulos y campana en footnote (13 pt, con Dynamic Type); en
+  pantalla bloqueada usan subheadline. La línea tiene margen
+  lateral de 12 pt (8 + 4) y los rótulos 14 (8 + 6), 2 pt más para librar las
+  esquinas. La pista baja 4 pt con 12 pt de aire arriba (dueño, 2026-10-21),
+  con la
   campana donde suena el aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
