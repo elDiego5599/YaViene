@@ -40,8 +40,7 @@ struct TarjetaBloqueada: View {
   let caduco: Bool
 
   var body: some View {
-    // 22 entre el texto y la pista: el bus de lado asoma 4 sobre ella y con
-    // 16 la línea quedaba pegada al título (dueño, 2026-10-21).
+    // 22 pt mantienen aire entre el título de 25 pt y la pista con el bus grande.
     VStack(alignment: .leading, spacing: 22) {
       HStack(spacing: 12) {
         LogoYaViene(lado: 40)
@@ -89,18 +88,19 @@ struct IslaAbajo: View {
   let caduco: Bool
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
+    VStack(alignment: .leading, spacing: 4) {
       Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
         .padding(.horizontal, 4)
       if !estado.llego {
         RotulosPista(estado: estado, caduco: caduco)
+          .offset(y: -6)
       }
     }
-    // 10 arriba: los 4 de antes más los 4 que el bus asoma sobre la pista,
-    // y la línea un poco más abajo (dueño, 2026-10-21).
-    .padding(.top, 10)
-    .padding(.horizontal, 8)
-    .padding(.bottom, 4)
+    // 8 pt arriba dejan aire sobre el bus ampliado; el offset eleva la fila
+    // 6 pt y quedan 10 abajo. Los 15 por lado apartan «Tu punto» de la curva.
+    .padding(.top, 8)
+    .padding(.horizontal, 15)
+    .padding(.bottom, 10)
   }
 }
 
@@ -112,7 +112,7 @@ struct ContenidoAviso: View {
     // Solo la distancia, sin la ruta ni la placa debajo (dueño, 2026-10-21).
     VStack(alignment: .leading, spacing: 2) {
       Text(Textos.titulo(atributos: atributos, estado: estado))
-        .font(.system(size: 22, weight: .semibold))
+        .font(.system(size: 25, weight: .semibold))
         .foregroundStyle(.white)
         .monospacedDigit()
         .lineLimit(1)
@@ -184,42 +184,49 @@ private struct Cifra: View {
 private struct Pista: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; var muestraRotulos: Bool
   var caduco = false
-  private let altura: CGFloat = 22
-  private let radioLlanta: CGFloat = 2.25
+  private let altura: CGFloat = 34
+  private let altoBus: CGFloat = 25.4
+  private let anchoBus: CGFloat = 54
+  // Radio de llanta: 4,5 unidades del dibujo × 25,4 / 32 = 3,57 pt.
+  private let radioLlanta: CGFloat = 4.5 * 25.4 / 32
   var body: some View {
     VStack(spacing: muestraRotulos ? 16 : 5) {
       GeometryReader { geo in
         let w = geo.size.width
         let inicio: CGFloat = 3
         let fin = max(w - 7, inicio)
+        let lineaY = altura / 2
         let avance = estado.llego ? 1.0 : min(max(estado.avance, 0), 1)
         let desplazamiento = inicio + (fin - inicio) * avance
-        let centroBus = estado.llego ? fin - 25 : min(max(desplazamiento, inicio + 17), fin - 17)
+        let apoyoRueda = (26 - 16 + 4.5) * (altoBus / 32)
+        let mitadBus = anchoBus / 2
+        let centroBus = estado.llego ? fin - mitadBus : min(max(desplazamiento, inicio + mitadBus), fin - mitadBus)
         let xBus = centroBus
+        let distanciaRodada = centroBus - (inicio + mitadBus)
         let xAviso = inicio + (fin - inicio) * min(max(estado.avanceAviso, 0), 1)
+        let separacionCampana = mitadBus + 8 + 1 // media carrocería + radio 8 + 1 pt de aire.
         ZStack(alignment: .leading) {
-          Capsule().fill(Tinta.carril).frame(height: 6).position(x: w / 2, y: altura / 2)
+          Capsule().fill(Tinta.carril).frame(height: 6).position(x: w / 2, y: lineaY)
           Capsule().fill(caduco ? Color.white.opacity(0.28) : Tinta.verde).frame(width: max(desplazamiento, inicio), height: 6)
             .shadow(color: caduco ? .clear : Tinta.verde.opacity(0.5), radius: 6)
-            .position(x: max(desplazamiento, inicio) / 2, y: altura / 2)
-          Circle().fill(.white).frame(width: 6, height: 6).position(x: inicio, y: altura / 2)
-          if !estado.llego && abs(xAviso - xBus) >= 22 && abs(fin - xAviso) >= 22 {
+            .position(x: max(desplazamiento, inicio) / 2, y: lineaY)
+          Circle().fill(.white).frame(width: 6, height: 6).position(x: inicio, y: lineaY)
+          if !estado.llego && abs(xAviso - xBus) >= separacionCampana && abs(fin - xAviso) >= 22 {
             Circle().fill(xBus >= xAviso ? Tinta.verde : Tinta.nodo)
               .overlay(Image(systemName: "bell.fill").font(.system(size: 8, weight: .semibold)).foregroundStyle(.white))
-              .frame(width: 16, height: 16).position(x: xAviso, y: altura / 2)
+              .frame(width: 16, height: 16).position(x: xAviso, y: lineaY)
           }
           Circle().fill(caduco ? Color.white.opacity(0.35) : Tinta.verde).frame(width: 14, height: 14)
             .overlay(Circle().stroke(caduco ? Color.white.opacity(0.2) : .white, lineWidth: 2.5).padding(0.5))
             .overlay(Circle().stroke(caduco ? Color.clear : Tinta.verde.opacity(0.6), lineWidth: 1).padding(-3))
-            .position(x: fin, y: altura / 2)
-          // Las ruedas sobre la pista: su borde de abajo cae 15,25 bajo el
-          // tope del bus de 16, así que el centro va 7 sobre la línea.
-          // Rodar sin patinar: el ángulo es distancia / radio. La llanta
-          // mide 4,5 unidades × 0,5 = 2,25 pt. SwiftUI interpola rotationEffect
-          // entre avisos; las Live Activities no ejecutan animaciones continuas.
-          AutobusDeLado(caduco: caduco, giro: .radians(desplazamiento / radioLlanta))
-            .frame(width: 34, height: 16)
-            .position(x: centroBus, y: altura / 2 - 7)
+            .position(x: fin, y: lineaY)
+          // Bus de 54 × 25,4 pt: mitad de 27 pt limita el centro en ambos
+          // extremos. El apoyo de las ruedas es (10 + 4,5) × 25,4 / 32 =
+          // 11,51 pt; se coloca el centro a esa distancia bajo la línea.
+          // Giro sin patinar: distancia / radio de llanta, ahora 3,57 pt.
+          AutobusDeLado(caduco: caduco, giro: .radians(distanciaRodada / radioLlanta))
+            .frame(width: anchoBus, height: altoBus)
+            .position(x: centroBus, y: lineaY - apoyoRueda)
         }
       }
       .frame(height: altura)
@@ -257,7 +264,7 @@ private struct RotulosPista: View {
 /// El bus de la actividad en vivo, visto de lado con el frente a la
 /// derecha, hacia tu punto (dueño, 2026-10-21). Solo vive aquí: en el mapa
 /// sigue la cápsula de `createFlatTransitMarker`. Dibujado en 68 × 32 y
-/// pintado a la mitad, 34 × 16 pt.
+/// pintado al 79,4 %, 54 × 25,4 pt.
 private struct AutobusDeLado: View {
   var caduco = false
   var giro: Angle = .zero
