@@ -235,7 +235,24 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     if (result.needsHaptic) HapticFeedback.mediumImpact();
     final message = result.message;
     if (message != null) {
-      mostrarAviso(context, message);
+      final esLimite = message == guards.avisosAlTope;
+      mostrarAviso(
+        context,
+        message,
+        icono: esLimite
+            ? Icons.directions_bus_outlined
+            : Icons.info_outline_rounded,
+        estilo: esLimite ? EstiloAviso.informativo : EstiloAviso.atencion,
+      );
+      return;
+    }
+    if (result.outcome == AlertToggleOutcome.deactivated) {
+      mostrarAviso(
+        context,
+        'Aviso desactivado',
+        icono: Icons.notifications_off_outlined,
+        estilo: EstiloAviso.informativo,
+      );
       return;
     }
     if (result.outcome == AlertToggleOutcome.permissionDenied) {

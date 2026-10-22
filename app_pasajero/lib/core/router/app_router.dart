@@ -12,6 +12,7 @@ import '../../features/mas/presentation/mas_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../widgets/aviso.dart';
 import 'pestanas_deslizantes.dart';
 import 'shell_pildora.dart';
 
@@ -45,6 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     debugLogDiagnostics: true,
     initialLocation: AppRoutes.splash,
+    observers: [_RetirarAvisoAlNavegar()],
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -115,6 +117,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) => const _NotFoundScreen(),
   );
 });
+
+/// Los avisos se presentan sobre el messenger raíz, compartido por todas las
+/// rutas. Al cambiar de pantalla se retiran ahí, incluido el «Deshacer».
+class _RetirarAvisoAlNavegar extends NavigatorObserver {
+  void _retirar() {
+    final actual = navigator;
+    if (actual != null) retirarAvisoDePantalla(actual.context);
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _retirar();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    _retirar();
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _retirar();
+  }
+}
 
 class _NotFoundScreen extends StatelessWidget {
   const _NotFoundScreen();

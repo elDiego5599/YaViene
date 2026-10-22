@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
+import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/core/widgets/ficha_ruta.dart';
@@ -289,6 +290,12 @@ void main() {
 
     await tester.tap(find.text('Desactivar'));
     await tester.pump();
+    final avisoDesactivado = tester.widget<AvisoTarjeta>(
+      find.byType(AvisoTarjeta),
+    );
+    expect(avisoDesactivado.mensaje, 'Aviso desactivado');
+    expect(avisoDesactivado.icono, Icons.notifications_off_outlined);
+    expect(avisoDesactivado.estilo, EstiloAviso.informativo);
     // Se despide (ver «se despide antes de irse»), y después no está.
     await asentar(tester);
 

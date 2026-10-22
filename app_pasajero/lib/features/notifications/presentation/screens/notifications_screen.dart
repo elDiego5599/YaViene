@@ -238,9 +238,11 @@ Future<void> _borrarConfirmando(
 /// se desactivan y dejan de vigilarse— y deja abajo la tarjeta con
 /// «Deshacer», que las devuelve como estaban: en su sitio, con su fecha y
 /// su ancla, y vigilando otra vez las que esperaban. Los notificadores se
-/// leen antes: si la pantalla se cierra, el «Deshacer» sigue sirviendo.
+/// leen antes para que la acción siga disponible mientras la tarjeta vive;
+/// al cambiar de pestaña, el shell la retira.
 void _borrar(
     BuildContext context, WidgetRef ref, Set<String> ids, String hecho) {
+  final desactivado = hecho == 'Aviso desactivado';
   final historial = ref.read(alertHistoryProvider.notifier);
   final activos = ref.read(activeAlertsProvider.notifier);
   final vigilancia = ref.read(proximityAlertsProvider.notifier);
@@ -256,7 +258,10 @@ void _borrar(
   mostrarAviso(
     context,
     hecho,
-    icono: Icons.delete_outline_rounded,
+    icono: desactivado
+        ? Icons.notifications_off_outlined
+        : Icons.delete_outline_rounded,
+    estilo: desactivado ? EstiloAviso.informativo : EstiloAviso.atencion,
     accion: (
       'Deshacer',
       (contexto) {

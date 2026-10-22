@@ -3,6 +3,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+enum EstiloAviso { atencion, informativo }
+
+/// Solo se oculta cuando se abandona la pestaña que lo presentó.
+bool avisoDebeDesaparecerAlCambiarPestana(int anterior, int actual) =>
+    anterior != actual;
+
+/// Cierra el aviso temporal compartido cuando cambia la pantalla actual.
+void retirarAvisoDePantalla(BuildContext context) {
+  ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+}
+
 /// El aviso corto de abajo: lo que la app dice sin preguntar nada —«ya
 /// sigues un bus», «el bus ya está cerca»—.
 ///
@@ -16,21 +27,27 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 ///
 /// [accion] es el botón de texto de la derecha («Deshacer»): al pulsarlo
 /// la tarjeta se va y la acción recibe un contexto que sigue vivo aunque la
-/// pantalla que la armó ya se haya cerrado, para poder avisar otra cosa.
+/// pantalla que la armó ya se haya cerrado. El shell la retira al cambiar de
+/// pestaña, así la acción no se ofrece en otra sección.
 class AvisoTarjeta extends StatelessWidget {
   const AvisoTarjeta({
     super.key,
     required this.mensaje,
     required this.icono,
     this.accion,
+    this.estilo = EstiloAviso.atencion,
   });
 
   final String mensaje;
   final IconData icono;
   final (String, void Function(BuildContext))? accion;
+  final EstiloAviso estilo;
 
   @override
   Widget build(BuildContext context) {
+    final iconoColor = estilo == EstiloAviso.informativo
+        ? AppColors.primaryAccessible
+        : AppColors.warningAccessible;
     return Container(
       key: const ValueKey('aviso_tarjeta'),
       // 14 por dentro: el aire de las tarjetas del selector. Arriba y abajo
@@ -46,17 +63,18 @@ class AvisoTarjeta extends StatelessWidget {
         children: [
           // El cuadro de icono del Dialogo a su tamaño de la guía (38): aquí
           // va al lado del texto, como en la tarjeta de la guía, no encima.
-          // Ámbar: es un «todavía no», no un error ni una confirmación; el
-          // ámbar legible pasa 4.5:1 sobre su propio tinte al 12 %.
+          // Las reglas que bloquean usan ámbar; los cambios de estado usan
+          // la tinta verde accesible de la app. En ambos casos el icono
+          // conserva contraste alto sobre el tinte claro.
           ExcludeSemantics(
             child: Container(
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: AppColors.warningAccessible.withValues(alpha: 0.12),
+                color: iconoColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              child: Icon(icono, color: AppColors.warningAccessible, size: 22),
+              child: Icon(icono, color: iconoColor, size: 22),
             ),
           ),
           const SizedBox(width: 12),
@@ -109,6 +127,7 @@ void mostrarAviso(
   String mensaje, {
   IconData icono = Icons.info_outline_rounded,
   (String, void Function(BuildContext))? accion,
+  EstiloAviso estilo = EstiloAviso.atencion,
 }) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -125,7 +144,12 @@ void mostrarAviso(
             AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
         duration: duracionDeAviso(mensaje),
         content: _SobreLaBarra(
-          child: AvisoTarjeta(mensaje: mensaje, icono: icono, accion: accion),
+          child: AvisoTarjeta(
+            mensaje: mensaje,
+            icono: icono,
+            accion: accion,
+            estilo: estilo,
+          ),
         ),
       ),
     );

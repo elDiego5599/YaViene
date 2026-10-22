@@ -11,8 +11,8 @@ import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_p
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
 
-const _mensajeTope = 'Ya sigues un bus: quita su aviso o espera a que suene '
-    'para seguir otro';
+const _mensajeTope = 'Ya sigues un bus. Desactiva su aviso para cambiar al '
+    'nuevo o espera a que suene.';
 
 /// Los avisos de la hoja con diseño propio (dueño, 2026-09-28: «los pop ups
 /// y warning en todas las apps deben ser con diseño propio»). Lo que la
@@ -110,6 +110,68 @@ void main() {
     final snack = tester.widget<SnackBar>(find.byType(SnackBar));
     expect(snack.backgroundColor, Colors.transparent);
     expect(snack.elevation, 0);
+  });
+
+  testWidgets('el límite de un bus se reconoce por su icono propio', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      const AlertToggleResult(
+        AlertToggleOutcome.rejected,
+        message: _mensajeTope,
+      ),
+    );
+
+    final tarjeta = tester.widget<AvisoTarjeta>(find.byType(AvisoTarjeta));
+    expect(tarjeta.icono, Icons.directions_bus_outlined);
+    expect(tarjeta.estilo, EstiloAviso.informativo);
+  });
+
+  testWidgets('desactivar el aviso muestra una confirmación visual clara', (
+    tester,
+  ) async {
+    await montar(
+      tester,
+      const AlertToggleResult(AlertToggleOutcome.deactivated),
+    );
+
+    final tarjeta = tester.widget<AvisoTarjeta>(find.byType(AvisoTarjeta));
+    expect(tarjeta.mensaje, 'Aviso desactivado');
+    expect(tarjeta.icono, Icons.notifications_off_outlined);
+    expect(tarjeta.estilo, EstiloAviso.informativo);
+  });
+
+  test('un aviso temporal desaparece al cambiar de pestaña', () {
+    expect(avisoDebeDesaparecerAlCambiarPestana(0, 0), isFalse);
+    expect(avisoDebeDesaparecerAlCambiarPestana(0, 1), isTrue);
+  });
+
+  testWidgets('la limpieza compartida retira la tarjeta y el «Deshacer»', (
+    tester,
+  ) async {
+    late BuildContext context;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (ctx) {
+            context = ctx;
+            return const Scaffold(body: SizedBox.expand());
+          },
+        ),
+      ),
+    );
+    mostrarAviso(
+      context,
+      'Aviso borrado',
+      accion: ('Deshacer', (_) {}),
+    );
+    await tester.pump();
+    expect(find.text('Deshacer'), findsOneWidget);
+
+    retirarAvisoDePantalla(context);
+    await tester.pumpAndSettle();
+    expect(find.byType(AvisoTarjeta), findsNothing);
   });
 
   testWidgets('sin permiso de notificaciones pregunta en el Dialogo', (

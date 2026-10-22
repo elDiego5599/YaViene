@@ -7,6 +7,7 @@ import '../../features/map/presentation/providers/active_alerts_provider.dart';
 import '../../features/map/presentation/providers/map_tour_provider.dart';
 import '../../features/map/presentation/providers/map_view_state.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../widgets/aviso.dart';
 import '../widgets/pildora_navegacion.dart';
 
 /// Las cuatro pestañas con la píldora flotando abajo.
@@ -17,7 +18,7 @@ import '../widgets/pildora_navegacion.dart';
 /// píldora va encima y las pestañas reciben su alto como relleno de abajo:
 /// cada pantalla, con su `SafeArea`, termina sobre la píldora, y lo que
 /// pinta de fondo (el mapa, la hoja) sigue por debajo hasta el borde.
-class ShellConPildora extends ConsumerWidget {
+class ShellConPildora extends ConsumerStatefulWidget {
   const ShellConPildora({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
@@ -30,7 +31,28 @@ class ShellConPildora extends ConsumerWidget {
       AppSpacing.sm;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ShellConPildora> createState() => _ShellConPildoraState();
+}
+
+class _ShellConPildoraState extends ConsumerState<ShellConPildora> {
+  late int _indiceAnterior = widget.navigationShell.currentIndex;
+
+  @override
+  void didUpdateWidget(ShellConPildora oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final actual = widget.navigationShell.currentIndex;
+    if (avisoDebeDesaparecerAlCambiarPestana(_indiceAnterior, actual)) {
+      // El ScaffoldMessenger es compartido por las ramas del shell. Cerrar
+      // aquí el aviso evita que el «Deshacer» de una pestaña sobreviva en otra.
+      ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+    }
+    _indiceAnterior = actual;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final navigationShell = widget.navigationShell;
+    final ref = this.ref;
     final guia = ref.watch(mapGuideProvider);
     final avisos = ref.watch(activeAlertsProvider).length;
     final media = MediaQuery.of(context);

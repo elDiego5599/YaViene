@@ -349,8 +349,8 @@ void main() {
     expect(result.outcome, AlertToggleOutcome.limitReached);
     expect(
         result.message,
-        'Ya sigues un bus: quita su aviso o espera a que suene para '
-        'seguir otro');
+        'Ya sigues un bus. Desactiva su aviso para cambiar al nuevo o '
+        'espera a que suene.');
     expect(container.read(activeAlertsProvider), isNot(contains('A-1')));
   });
 
@@ -560,8 +560,8 @@ void main() {
         expect(result.outcome, AlertToggleOutcome.rejected);
         expect(
             result.message,
-            'Ya sigues un bus: quita su aviso o espera a que suene para '
-            'seguir otro');
+            'Ya sigues un bus. Desactiva su aviso para cambiar al nuevo o '
+            'espera a que suene.');
       });
     });
 

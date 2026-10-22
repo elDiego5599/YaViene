@@ -65,8 +65,8 @@ String? validateAlertActivation({
 }
 
 /// Lo que se dice cuando ya sigues un bus y quieres seguir otro.
-const avisosAlTope = 'Ya sigues un bus: quita su aviso o espera a que suene '
-    'para seguir otro';
+const avisosAlTope = 'Ya sigues un bus. Desactiva su aviso para cambiar al '
+    'nuevo o espera a que suene.';
 
 /// Lo que se dice cuando el bus ya va más cerca de lo que la ruta se acerca
 /// al punto: lo que el bus todavía no ha pasado no alcanza la ruta y ninguna
