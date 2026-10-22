@@ -20,6 +20,7 @@ class Dialogo extends StatelessWidget {
     this.secundaria,
     this.detalle,
     this.delicado = false,
+    this.contenidoAdicional,
   });
 
   final IconData icono;
@@ -41,6 +42,9 @@ class Dialogo extends StatelessWidget {
   /// siendo el verde de siempre, porque un botón rojo gritaría demasiado
   /// para algo que se recupera eligiendo la ruta otra vez.
   final bool delicado;
+
+  /// Control opcional entre el mensaje y la acción principal.
+  final Widget? contenidoAdicional;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +131,10 @@ class Dialogo extends StatelessWidget {
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      if (contenidoAdicional != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        contenidoAdicional!,
+                      ],
                       const SizedBox(height: 20),
                       // El botón principal de la guía, tal cual.
                       SizedBox(

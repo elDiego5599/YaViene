@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/prefs_keys.dart';
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
@@ -15,7 +17,6 @@ import '../../../../core/widgets/pildora_navegacion.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/tamano_animado.dart';
-import '../../../notifications/presentation/providers/alert_history_provider.dart';
 import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
@@ -225,10 +226,18 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico,
   /// aviso o ventana.
   Future<void> _toggleAlert(String busId, {String? reemplazarBusId}) async {
+    if (reemplazarBusId != null && !await _explicarSeguimiento()) return;
+    if (reemplazarBusId == null &&
+        !ref.read(activeAlertsProvider).contains(busId) &&
+        !await _explicarAvisoCercania()) {
+      return;
+    }
     final result = await ref.read(alertToggleProvider).toggle(busId,
         reemplazarBusId: reemplazarBusId,
         elegirDistancia: (desde, hasta) => _preguntarDistancia(busId,
             inicial: ref.read(distanciaAvisoProvider) ?? distanciaAvisoInicial,
+            primeraVez: reemplazarBusId == null,
+            avisoActivo: reemplazarBusId != null,
             desde: desde,
             hasta: hasta));
     // Cerró la rueda sin elegir (cancelled): sin háptico ni mensaje, no
@@ -244,12 +253,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       return;
     }
     if (result.outcome == AlertToggleOutcome.deactivated) {
-      mostrarAviso(
-        context,
-        'Aviso desactivado',
-        icono: Icons.notifications_off_outlined,
-        estilo: EstiloAviso.informativo,
-      );
       return;
     }
     if (result.outcome == AlertToggleOutcome.permissionDenied) {
@@ -275,6 +278,68 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         ),
       );
     }
+  }
+
+  Future<bool> _explicarSeguimiento() async {
+    return _mostrarExplicacion(
+      clave: PrefsKeys.explicacionSeguirBusOculta,
+      icono: Icons.directions_bus_outlined,
+      titulo: 'Ya sigues un bus',
+      mensaje: 'Si sigues este bus, el aviso actual se cambiará por el nuevo.',
+    );
+  }
+
+  Future<bool> _explicarAvisoCercania() async {
+    return _mostrarExplicacion(
+      clave: PrefsKeys.explicacionAvisoCercaniaOculta,
+      icono: Icons.notifications_active_outlined,
+      titulo: 'Aviso cuando esté cerca',
+      mensaje: 'Te avisaremos cuando el bus se acerque a tu punto. Puedes '
+          'cambiar de aplicación; no cierres Ya Viene del todo.',
+    );
+  }
+
+  Future<bool> _mostrarExplicacion({
+    required String clave,
+    required IconData icono,
+    required String titulo,
+    required String mensaje,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(clave) ?? false) {
+      return true;
+    }
+    if (!mounted) return false;
+    var noMostrar = false;
+    final aceptado = await mostrarDialogo<bool>(
+      context,
+      (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialogo(
+          icono: icono,
+          titulo: titulo,
+          mensaje: mensaje,
+          contenidoAdicional: Material(
+            color: Colors.transparent,
+            child: CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: noMostrar,
+              title: const Text('No volver a mostrar'),
+              controlAffinity: ListTileControlAffinity.leading,
+              onChanged: (value) => setDialogState(() {
+                noMostrar = value ?? false;
+              }),
+            ),
+          ),
+          principal: DialogoAccion('Entendido', () async {
+            if (noMostrar) {
+              await prefs.setBool(clave, true);
+            }
+            if (dialogContext.mounted) Navigator.pop(dialogContext, true);
+          }),
+        ),
+      ),
+    );
+    return aceptado ?? false;
   }
 
   /// Ver [distanciaAlBusDesdeTuPunto].
@@ -1019,17 +1084,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
     final distance = _distanceToBus(bus);
     final route = ref.watch(selectedRouteProvider);
-    String? activeOtherRouteName;
-    if (activeOtherBusId != null) {
-      for (final entry in ref.watch(alertHistoryProvider)) {
-        if (entry.busId == activeOtherBusId && !entry.sent) {
-          activeOtherRouteName = entry.routeName ?? entry.routeId;
-          break;
-        }
-      }
-    }
-    final activeOtherRouteLabel =
-        activeOtherRouteName ?? route?.name ?? route?.id;
     // F6: misma "ruta - placa" que ya usa Notificaciones, en vez de "Bus $id"
     // crudo — el mismo bus no debe tener dos nombres distintos en la app.
     final busLabel = routePlateLabel(
@@ -1132,12 +1186,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (activeOtherBusId != null)
-                  _NotaSeguimientoActual(
-                    busId: activeOtherBusId,
-                    ruta: activeOtherRouteLabel ?? 'otra ruta',
-                  ),
-                if (activeOtherBusId != null) const SizedBox(height: 12),
                 _StickyAlertButton(
                   key: widget.alertKey,
                   onBlockedChanged: widget.onGuideAlertBlocked,
@@ -1175,8 +1223,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final _Nota? stateDetail = isActive
         ? distanciaEnNota
             ? _Nota.distancia(radio, cambiar)
-            : const _Nota.aviso(Icons.info_outline_rounded,
-                "Puedes cambiar de aplicación; no cierres Ya Viene del todo")
+            : null
         : !locationState.hasPosition
             ? const _Nota.paso(Icons.touch_app_outlined,
                 "Toca el mapa para indicar dónde estás")
@@ -1381,13 +1428,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _NotaAnimada(stateDetail),
-                      if (activeOtherBusId != null) ...[
-                        _NotaSeguimientoActual(
-                          busId: activeOtherBusId,
-                          ruta: activeOtherRouteLabel ?? 'otra ruta',
-                        ),
-                        const SizedBox(height: 12),
-                      ],
                       const SizedBox(height: 18),
                       _StickyAlertButton(
                         key: widget.alertKey,
@@ -1684,13 +1724,6 @@ class _Nota {
         metros = null,
         onTap = null;
 
-  /// El aviso está puesto y esto es cómo cuidarlo: el verde de la marca.
-  const _Nota.aviso(this.icono, this.texto)
-      : fondo = AppColors.primaryTint,
-        tinta = AppColors.primaryAccessible,
-        metros = null,
-        onTap = null;
-
   /// Solo falta un paso o un dato: la tinta, sin alarma.
   const _Nota.paso(this.icono, this.texto)
       : fondo = AppColors.surfaceMuted,
@@ -1763,40 +1796,6 @@ class _NotaAnimada extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 14),
                 child: _NotaHoja(nota),
               ),
-      ),
-    );
-  }
-}
-
-/// Explica el bus que sigue mientras se ofrece sustituirlo desde la hoja.
-class _NotaSeguimientoActual extends StatelessWidget {
-  const _NotaSeguimientoActual({required this.busId, required this.ruta});
-
-  final String busId;
-  final String ruta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      key: const ValueKey('nota-seguimiento-actual'),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          const ExcludeSemantics(
-            child: Icon(
-              Icons.directions_bus_outlined,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Ya sigues el bus ${busPlaca(busId)} de la ruta $ruta',
-              style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-        ],
       ),
     );
   }

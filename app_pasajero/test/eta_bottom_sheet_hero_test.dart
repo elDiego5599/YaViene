@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/widgets/rueda_distancia.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
@@ -39,7 +41,13 @@ void main() {
       );
 
   Future<ProviderContainer> pumpHero(
-      WidgetTester tester, List<BusPosition> buses) async {
+      WidgetTester tester, List<BusPosition> buses,
+      {bool omitirExplicacionAviso = true,
+      bool omitirExplicacionSeguimiento = true}) async {
+    SharedPreferences.setMockInitialValues({
+      'explicacion_aviso_cercania_oculta': omitirExplicacionAviso,
+      'explicacion_seguir_bus_oculta': omitirExplicacionSeguimiento,
+    });
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       busPositionsSourceProvider.overrideWith(
@@ -173,9 +181,9 @@ void main() {
     expect(find.text('Toca el mapa para indicar dónde estás'), findsOneWidget);
   });
 
-  // En iPhone esa nota la toma la distancia del aviso: lo prueba
+  // En iPhone la distancia del aviso ocupa ese espacio: lo prueba
   // eta_sheet_distancia_test.dart.
-  testWidgets('hero card: con aviso activo, la nota dice cómo cuidarlo',
+  testWidgets('hero card: con aviso activo no repite la explicación',
       (tester) async {
     final container = await pumpHero(tester, [busAt(0.02)]);
     container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
@@ -185,7 +193,33 @@ void main() {
     expect(find.text('Aviso activado'), findsOneWidget);
     expect(
         find.text('Puedes cambiar de aplicación; no cierres Ya Viene del todo'),
-        findsOneWidget);
+        findsNothing);
+  });
+
+  testWidgets('la primera activación explica el aviso y permite ocultarlo',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
+    final container =
+        await pumpHero(tester, [busAt(0.02)], omitirExplicacionAviso: false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('explicacion_aviso_cercania_oculta');
+    await tester.pumpAndSettle();
+    expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
+
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialogo), findsOneWidget);
+    expect(find.text('Aviso cuando esté cerca'), findsOneWidget);
+    expect(find.textContaining('no cierres Ya Viene del todo'), findsOneWidget);
+
+    await tester.tap(find.text('No volver a mostrar'));
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('explicacion_aviso_cercania_oculta'), isTrue);
+    expect(find.byType(RuedaDistancia), findsOneWidget);
+    container.dispose();
   });
 
   testWidgets(
@@ -261,7 +295,7 @@ void main() {
     expect(find.byIcon(Icons.notifications_off_outlined), findsNothing);
   });
 
-  testWidgets('el aviso actual se explica inline junto al botón',
+  testWidgets('la hoja no repite la explicación del bus que se sigue',
       (tester) async {
     final container = await pumpHero(
       tester,
@@ -272,35 +306,25 @@ void main() {
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
     await tester.pump();
 
-    // Segundo bus seleccionado: la nota ocupa el sitio de la acción.
+    // Segundo bus seleccionado: la hoja queda limpia y la acción se mantiene.
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
-    expect(find.text('Ya sigues el bus A-1 de la ruta Ruta 1'), findsOneWidget);
-    final nota = tester
-        .widget<Padding>(find.byKey(const ValueKey('nota-seguimiento-actual')));
-    expect(nota.child, isA<Row>(),
-        reason: 'nota secundaria sin tarjeta ni fondo');
+    expect(find.text('Ya sigues el bus A-1 de la ruta Ruta 1'), findsNothing);
+    expect(find.byKey(const ValueKey('nota-seguimiento-actual')), findsNothing);
     expect(find.text('Seguir este bus'), findsOneWidget);
     expect(find.text('Avisarme cuando esté cerca'), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
-    expect(
-      tester
-          .getRect(find.byKey(const ValueKey('nota-seguimiento-actual')))
-          .bottom,
-      lessThanOrEqualTo(tester.getRect(find.text('Seguir este bus')).top),
-    );
     expect(container.read(activeAlertsProvider), {'A-1'});
     expect(container.read(activeAlertsProvider), isNot(contains('B-1')));
   });
 
-  testWidgets('«Seguir este bus» cambia el aviso tras elegir la distancia',
+  testWidgets('al seguir otro bus aparece la explicación la primera vez',
       (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    addTearDown(() => SharedPreferences.setMockInitialValues({}));
     final container = await pumpHero(
       tester,
       [busAt(0.02), busAt(0.02, busId: 'B-1')],
+      omitirExplicacionSeguimiento: false,
     );
     container.read(activeAlertsProvider.notifier).activateAlert('A-1');
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
@@ -311,12 +335,75 @@ void main() {
 
     await tester.tap(find.text('Seguir este bus'));
     await tester.pumpAndSettle();
-    expect(find.text('Solo esta vez'), findsOneWidget,
-        reason: 'usa la misma rueda que al activar el primer aviso');
+    expect(find.text('Ya sigues un bus'), findsOneWidget);
+    expect(find.text('No volver a mostrar'), findsOneWidget);
+    expect(find.text('Entendido'), findsOneWidget);
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cancelar'), findsOneWidget);
+  });
+
+  testWidgets('la explicación no vuelve a salir tras marcar la opción',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
+    final container = await pumpHero(
+      tester,
+      [busAt(0.02), busAt(0.02, busId: 'B-1')],
+      omitirExplicacionSeguimiento: false,
+    );
+    container.read(activeAlertsProvider.notifier).activateAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await tester.pump();
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    container.read(selectedBusesProvider.notifier).toggleBus('B-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Seguir este bus'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('No volver a mostrar'));
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ya sigues un bus'), findsNothing);
+    expect(find.text('Cancelar'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('explicacion_seguir_bus_oculta'), isTrue);
+
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Seguir este bus'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ya sigues un bus'), findsNothing);
+    expect(find.text('Cancelar'), findsOneWidget);
+  });
+
+  testWidgets('Seguir este bus cambia el aviso tras elegir la distancia',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
+    final container = await pumpHero(
+      tester,
+      [busAt(0.02), busAt(0.02, busId: 'B-1')],
+      omitirExplicacionSeguimiento: false,
+    );
+    container.read(activeAlertsProvider.notifier).activateAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await tester.pump();
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    container.read(selectedBusesProvider.notifier).toggleBus('B-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Seguir este bus'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cancelar'), findsOneWidget,
+        reason: 'al reemplazar el aviso se puede cancelar el cambio');
     expect(container.read(activeAlertsProvider), {'A-1'},
         reason: 'conserva el aviso actual mientras se elige la distancia');
 
-    await tester.tap(find.text('Solo esta vez'));
+    await tester.tap(find.text('Guardar'));
     await tester.pumpAndSettle();
 
     expect(container.read(activeAlertsProvider), {'B-1'});

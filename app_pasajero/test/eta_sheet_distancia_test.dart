@@ -60,7 +60,10 @@ void main() {
     double? barra,
   }) async {
     SharedPreferences.setMockInitialValues(
-      {if (guardada != null) 'distancia_aviso_m': guardada},
+      {
+        if (guardada != null) 'distancia_aviso_m': guardada,
+        'explicacion_aviso_cercania_oculta': true,
+      },
     );
     // Un iPhone 13 salvo que la prueba pida otro.
     tester.view.physicalSize = tamano;
@@ -658,7 +661,10 @@ void main() {
 
     testWidgets('con el bus sin señal la fila sigue bajo el botón',
         (tester) async {
-      SharedPreferences.setMockInitialValues({'distancia_aviso_m': 1500});
+      SharedPreferences.setMockInitialValues({
+        'distancia_aviso_m': 1500,
+        'explicacion_aviso_cercania_oculta': true,
+      });
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);

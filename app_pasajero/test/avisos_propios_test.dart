@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
@@ -38,6 +39,11 @@ class _ToggleFijo extends AlertToggleController {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({
+        'explicacion_seguir_bus_oculta': true,
+        'explicacion_aviso_cercania_oculta': true,
+      }));
+
   Future<ProviderContainer> montar(
     WidgetTester tester,
     AlertToggleResult resultado,
@@ -128,7 +134,7 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('desactivar el aviso muestra una confirmación visual clara', (
+  testWidgets('desactivar el aviso no muestra un banner en el mapa', (
     tester,
   ) async {
     await montar(
@@ -136,10 +142,8 @@ void main() {
       const AlertToggleResult(AlertToggleOutcome.deactivated),
     );
 
-    final tarjeta = tester.widget<AvisoTarjeta>(find.byType(AvisoTarjeta));
-    expect(tarjeta.mensaje, 'Aviso desactivado');
-    expect(tarjeta.icono, Icons.notifications_off_outlined);
-    expect(tarjeta.estilo, EstiloAviso.informativo);
+    expect(find.byType(AvisoTarjeta), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
   });
 
   test('un aviso temporal desaparece al cambiar de pestaña', () {
