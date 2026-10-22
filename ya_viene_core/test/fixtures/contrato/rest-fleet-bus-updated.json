@@ -8,6 +8,7 @@
   "capacidad": 30,
   "driverName": null,
   "visible": false,
+  "enTerminal": false,
   "online": false,
   "lat": null,
   "lon": null,

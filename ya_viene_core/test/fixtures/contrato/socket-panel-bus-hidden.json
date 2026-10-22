@@ -1,5 +1,6 @@
 {
   "busId": "BUS-ABC123",
   "routeId": "R-101",
-  "eventId": "<eventId>"
+  "eventId": "<eventId>",
+  "enTerminal": false
 }
