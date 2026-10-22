@@ -180,12 +180,31 @@ class _ControlMapState extends ConsumerState<ControlMap>
     };
     final recorridos = [
       for (final ruta in rutasDibujar)
-        [
-          for (final p
-              in ref.watch(routeTrajectoryProvider(ruta)).valueOrNull?.points ??
-                  const [])
-            LatLng(p.lat, p.lon),
-        ],
+        (
+          routeId: ruta,
+          points: [
+            for (final p
+                in ref
+                        .watch(routeTrajectoryProvider(ruta))
+                        .valueOrNull
+                        ?.points ??
+                    const [])
+              LatLng(p.lat, p.lon),
+          ],
+        ),
+    ];
+    final terminales = [
+      for (final recorrido in recorridos)
+        if (recorrido.points.length > 1)
+          Marker(
+            point: recorrido.points.first,
+            width: 92,
+            height: 54,
+            alignment: Alignment.bottomCenter,
+            child: _TerminalMarker(
+              key: ValueKey('terminal:${recorrido.routeId}'),
+            ),
+          ),
     ];
 
     // Cada bus de la ruta cae en un estado y solo en uno, así que las cuatro
@@ -247,14 +266,14 @@ class _ControlMapState extends ConsumerState<ControlMap>
               // del panel; el pasajero conserva la línea verde.
               // Una ruta sin recorrido en `rutas.json` (dada de alta aquí)
               // no pinta nada (dueño, 2026-10-07).
-              if (recorridos.any((r) => r.length > 1))
+              if (recorridos.any((r) => r.points.length > 1))
                 PolylineLayer(
                   polylines: [
                     for (final recorrido in recorridos.where(
-                      (r) => r.length > 1,
+                      (r) => r.points.length > 1,
                     )) ...[
                       Polyline(
-                        points: recorrido,
+                        points: recorrido.points,
                         color: Color(
                           int.parse(
                             EstiloRuta.orla.lineColor.replaceFirst('#', '0xFF'),
@@ -265,7 +284,7 @@ class _ControlMapState extends ConsumerState<ControlMap>
                         strokeJoin: StrokeJoin.round,
                       ),
                       Polyline(
-                        points: recorrido,
+                        points: recorrido.points,
                         color: Color(
                           int.parse(
                             EstiloRuta.lineaPanel.lineColor.replaceFirst(
@@ -281,7 +300,7 @@ class _ControlMapState extends ConsumerState<ControlMap>
                     ],
                   ],
                 ),
-              MarkerLayer(markers: markers),
+              MarkerLayer(markers: [...markers, ...terminales]),
             ],
           ),
         ),
@@ -360,6 +379,67 @@ class _ControlMapState extends ConsumerState<ControlMap>
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Terminal fijo del recorrido, anclado al primer punto de `rutas.json`.
+class _TerminalMarker extends StatelessWidget {
+  const _TerminalMarker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorRuta = Color(
+      int.parse(EstiloRuta.lineaPanel.lineColor.replaceFirst('#', '0xFF')),
+    );
+    return IgnorePointer(
+      child: Semantics(
+        label: 'Terminal',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: colorRuta, width: 2),
+                boxShadow: AppColors.sombraFlotante,
+              ),
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: Icon(
+                  Icons.warehouse_outlined,
+                  size: 16,
+                  color: colorRuta,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                // WCAG 2.1 AA: navy #17325F sobre blanco = 12,67:1; el texto
+                // pequeño supera 4,5:1. Coral #E86A5E sobre blanco = 3,16:1
+                // para el ícono no textual (mínimo 3:1).
+                child: Text(
+                  'Terminal',
+                  style: AppType.ui(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

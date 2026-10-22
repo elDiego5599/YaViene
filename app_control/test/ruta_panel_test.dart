@@ -151,6 +151,17 @@ void main() {
     );
     expect(linea.points, hasLength(r101.points.length));
 
+    final markerLayer = tester.widget<MarkerLayer>(find.byType(MarkerLayer));
+    final terminalMarkers = markerLayer.markers
+        .where((marker) => marker.child.key == const ValueKey('terminal:R-101'))
+        .toList();
+    expect(terminalMarkers, hasLength(1));
+    expect(
+      terminalMarkers.single.point,
+      LatLng(r101.points.first.lat, r101.points.first.lon),
+      reason: 'el terminal queda fijo en el primer punto del recorrido',
+    );
+
     // Debajo de los buses: el recorrido va antes en la pila del mapa.
     final hijos = tester.widget<FlutterMap>(find.byType(FlutterMap)).children;
     expect(
