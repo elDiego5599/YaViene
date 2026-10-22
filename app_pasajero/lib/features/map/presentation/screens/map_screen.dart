@@ -399,7 +399,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final activeAlerts = ref.watch(activeAlertsProvider);
     final selectedBusHasActiveAlert =
         ref.watch(selectedBusesProvider).any(activeAlerts.contains);
-    final alertLimitReached = activeAlerts.length >= maxAvisosActivos;
+    // La hoja permite sustituir el bus seguido; el tope ya no bloquea esta
+    // acción ni debe convertir la guía en «Continuar» sin explicar el botón.
+    const alertLimitReached = false;
     // La guía tiene que saber POR QUÉ está bloqueado el botón del aviso: si es
     // porque la ruta no pasa cerca, mandar a "elegir otro bus" es un callejón
     // sin salida (ningún bus de esa ruta se va a acercar).

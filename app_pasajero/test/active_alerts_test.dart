@@ -16,4 +16,22 @@ void main() {
     expect(avisos.activateAlert('A-3'), isFalse);
     expect(avisos.state, {'A-1'});
   });
+
+  test('sustituir un aviso cambia el bus en una sola transición', () {
+    final avisos = ActiveAlertsNotifier();
+    addTearDown(avisos.dispose);
+    final estados = <Set<String>>[];
+    avisos.addListener((estado) => estados.add(estado));
+
+    expect(avisos.activateAlert('A-1'), isTrue);
+    estados.clear();
+    expect(avisos.replaceAlert('A-1', 'B-1'), isTrue);
+
+    expect(estados, [
+      <String>{'B-1'}
+    ]);
+    expect(avisos.state, {'B-1'});
+    expect(avisos.replaceAlert('A-1', 'C-1'), isFalse);
+    expect(avisos.state, {'B-1'});
+  });
 }

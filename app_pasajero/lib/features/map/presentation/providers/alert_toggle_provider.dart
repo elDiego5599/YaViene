@@ -86,9 +86,20 @@ class AlertToggleController {
   Future<AlertToggleResult> toggle(
     String busId, {
     required ElegirDistancia elegirDistancia,
+    String? reemplazarBusId,
   }) async {
     final notifier = _ref.read(activeAlertsProvider.notifier);
-    final wasActive = _ref.read(activeAlertsProvider).contains(busId);
+    final activosIniciales = _ref.read(activeAlertsProvider);
+    final wasActive = activosIniciales.contains(busId);
+    if (reemplazarBusId != null &&
+        (wasActive ||
+            activosIniciales.length != 1 ||
+            !activosIniciales.contains(reemplazarBusId))) {
+      return AlertToggleResult(
+        AlertToggleOutcome.limitReached,
+        message: _limitMessage(),
+      );
+    }
     late final int radio;
     if (!wasActive) {
       // Sin posición (GPS negado y sin pin) el aviso nunca podría medir ni
@@ -106,6 +117,7 @@ class AlertToggleController {
         routeDistance,
         radioCercaM: distanciaAvisoBloqueo,
         radioRutaM: distanciaAvisoMaxima,
+        reemplazarBusId: reemplazarBusId,
       );
       if (message != null) {
         return AlertToggleResult(AlertToggleOutcome.rejected, message: message);
@@ -135,7 +147,9 @@ class AlertToggleController {
         }
         // La rueda tardó lo que la persona quiso: el bus se movió.
         message = _validar(busId, routeDistance,
-            radioCercaM: radio, radioRutaM: radio);
+            radioCercaM: radio,
+            radioRutaM: radio,
+            reemplazarBusId: reemplazarBusId);
         if (message != null) {
           return AlertToggleResult(AlertToggleOutcome.rejected,
               message: message);
@@ -160,6 +174,27 @@ class AlertToggleController {
       // desactivar desde allí.
       _ref.read(alertHistoryProvider.notifier).remove(busId);
       return const AlertToggleResult(AlertToggleOutcome.deactivated);
+    }
+
+    if (reemplazarBusId != null) {
+      if (routeId == null) {
+        return const AlertToggleResult(AlertToggleOutcome.noRoute);
+      }
+      // El permiso y la distancia ya están resueltos. Cambiar el estado
+      // activo en una sola escritura conserva el límite incluso si otra
+      // operación cambió el bus mientras la rueda estaba abierta.
+      if (!notifier.replaceAlert(reemplazarBusId, busId)) {
+        return AlertToggleResult(
+          AlertToggleOutcome.limitReached,
+          message: _limitMessage(),
+        );
+      }
+      _ref.read(proximityAlertsProvider.notifier).disarmAlert(reemplazarBusId);
+      _ref.read(alertHistoryProvider.notifier).remove(reemplazarBusId);
+      _ref
+          .read(proximityAlertsProvider.notifier)
+          .armAlert(busId, routeId, radioM: radio);
+      return const AlertToggleResult(AlertToggleOutcome.activated);
     }
 
     // La validación ocurre antes del await del permiso. Esta comprobación
@@ -211,13 +246,18 @@ class AlertToggleController {
     double? routeDistance, {
     required int radioCercaM,
     required int radioRutaM,
+    String? reemplazarBusId,
   }) {
     final bus = _busById(busId);
+    final activos = _ref.read(activeAlertsProvider);
     return guards.validateAlertActivation(
       hasPosition: _ref.read(userLocationProvider).hasPosition,
       bus: bus,
       busDistanceMeters: _distanceToBus(bus),
-      activeAlertsCount: _ref.read(activeAlertsProvider).length,
+      activeAlertsCount: activos.length -
+          (reemplazarBusId != null && activos.contains(reemplazarBusId)
+              ? 1
+              : 0),
       routeDistanceMeters: routeDistance,
       radioCercaM: radioCercaM,
       radioRutaM: radioRutaM,

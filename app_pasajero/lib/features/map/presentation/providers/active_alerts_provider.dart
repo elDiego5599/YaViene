@@ -16,6 +16,22 @@ class ActiveAlertsNotifier extends StateNotifier<Set<String>> {
     return true;
   }
 
+  /// Cambia el bus seguido como una sola transición: nunca publica un estado
+  /// con dos avisos activos ni deja un hueco entre quitar el anterior y poner
+  /// el nuevo. Devuelve `false` si el aviso anterior ya cambió.
+  bool replaceAlert(String anterior, String nuevo) {
+    if (anterior == nuevo ||
+        !state.contains(anterior) ||
+        state.contains(nuevo) ||
+        state.length > maxAvisosActivos) {
+      return false;
+    }
+    state = {...state}
+      ..remove(anterior)
+      ..add(nuevo);
+    return true;
+  }
+
   void deactivateAlert(String busId) {
     if (!state.contains(busId)) return;
     state = {...state}..remove(busId);

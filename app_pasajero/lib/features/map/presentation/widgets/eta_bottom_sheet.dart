@@ -15,6 +15,7 @@ import '../../../../core/widgets/pildora_navegacion.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/tamano_animado.dart';
+import '../../../notifications/presentation/providers/alert_history_provider.dart';
 import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../providers/alert_toggle_provider.dart';
@@ -223,8 +224,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// Activa/desactiva la alerta de un bus. La regla de negocio vive en
   /// [alertToggleProvider]; aquí solo se traduce el resultado a háptico,
   /// aviso o ventana.
-  Future<void> _toggleAlert(String busId) async {
+  Future<void> _toggleAlert(String busId, {String? reemplazarBusId}) async {
     final result = await ref.read(alertToggleProvider).toggle(busId,
+        reemplazarBusId: reemplazarBusId,
         elegirDistancia: (desde, hasta) => _preguntarDistancia(busId,
             inicial: ref.read(distanciaAvisoProvider) ?? distanciaAvisoInicial,
             desde: desde,
@@ -235,15 +237,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     if (result.needsHaptic) HapticFeedback.mediumImpact();
     final message = result.message;
     if (message != null) {
-      final esLimite = message == guards.avisosAlTope;
-      mostrarAviso(
-        context,
-        message,
-        icono: esLimite
-            ? Icons.directions_bus_outlined
-            : Icons.info_outline_rounded,
-        estilo: esLimite ? EstiloAviso.informativo : EstiloAviso.atencion,
-      );
+      // El límite normal se presenta inline. Aquí solo podría reaparecer por
+      // una carrera entre la vista y el controlador: no lo muestres flotando.
+      if (message == guards.avisosAlTope) return;
+      mostrarAviso(context, message);
       return;
     }
     if (result.outcome == AlertToggleOutcome.deactivated) {
@@ -1008,12 +1005,31 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
 
   Widget _buildSingleBusState(
       String busId, BusPosition? bus, List<BusPosition> buses) {
-    final isActive = ref.watch(activeAlertsProvider).contains(busId);
+    final activeAlerts = ref.watch(activeAlertsProvider);
+    final isActive = activeAlerts.contains(busId);
+    String? activeOtherBusId;
+    for (final activeBusId in activeAlerts) {
+      if (activeBusId != busId) {
+        activeOtherBusId = activeBusId;
+        break;
+      }
+    }
     final locationState = ref.watch(userLocationProvider);
     final staleLabel = _staleLabel(bus);
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
     final distance = _distanceToBus(bus);
     final route = ref.watch(selectedRouteProvider);
+    String? activeOtherRouteName;
+    if (activeOtherBusId != null) {
+      for (final entry in ref.watch(alertHistoryProvider)) {
+        if (entry.busId == activeOtherBusId && !entry.sent) {
+          activeOtherRouteName = entry.routeName ?? entry.routeId;
+          break;
+        }
+      }
+    }
+    final activeOtherRouteLabel =
+        activeOtherRouteName ?? route?.name ?? route?.id;
     // F6: misma "ruta - placa" que ya usa Notificaciones, en vez de "Bus $id"
     // crudo — el mismo bus no debe tener dos nombres distintos en la app.
     final busLabel = routePlateLabel(
@@ -1061,6 +1077,17 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             : ref.watch(routeTooFarFromUserProvider(route.id)));
     final blocked =
         _applyBlockedHysteresis(busId, liveBlocked, distance) || routeTooFar;
+    final alertButtonLabel = isActive
+        ? 'Aviso activado'
+        : activeOtherBusId != null
+            ? 'Seguir este'
+            : ghostBlocked
+                ? 'Bus sin señal'
+                : routeTooFar
+                    ? 'Esta ruta no pasa cerca'
+                    : blocked
+                        ? 'El bus ya está cerca'
+                        : 'Avisarme cuando esté cerca';
 
     // La distancia del aviso, bajo el botón, con su «Cambiar». Solo con el
     // aviso activo: sin él la pregunta la rueda al activarlo, y una fila que
@@ -1105,6 +1132,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (activeOtherBusId != null)
+                  _NotaSeguimientoActual(
+                    ruta: activeOtherRouteLabel ?? 'otra ruta',
+                  ),
+                if (activeOtherBusId != null) const SizedBox(height: 12),
                 _StickyAlertButton(
                   key: widget.alertKey,
                   onBlockedChanged: widget.onGuideAlertBlocked,
@@ -1114,8 +1146,11 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   // existe para un bus fantasma), así que sin aviso puesto el
                   // botón siempre está bloqueado por la señal: no hay tercer
                   // rótulo.
-                  label: isActive ? "Aviso activado" : "Bus sin señal",
-                  onPressed: () => _toggleAlert(busId),
+                  label: alertButtonLabel,
+                  onPressed: () => _toggleAlert(
+                    busId,
+                    reemplazarBusId: activeOtherBusId,
+                  ),
                 ),
                 if (filaDistancia != null) filaDistancia,
               ],
@@ -1345,22 +1380,23 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _NotaAnimada(stateDetail),
+                      if (activeOtherBusId != null) ...[
+                        _NotaSeguimientoActual(
+                          ruta: activeOtherRouteLabel ?? 'otra ruta',
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       const SizedBox(height: 18),
                       _StickyAlertButton(
                         key: widget.alertKey,
                         onBlockedChanged: widget.onGuideAlertBlocked,
                         isActive: isActive,
                         blocked: isActive ? false : blocked,
-                        label: isActive
-                            ? "Aviso activado"
-                            : ghostBlocked
-                                ? "Bus sin señal"
-                                : routeTooFar
-                                    ? "Esta ruta no pasa cerca"
-                                    : blocked
-                                        ? "El bus ya está cerca"
-                                        : "Avisarme cuando esté cerca",
-                        onPressed: () => _toggleAlert(busId),
+                        label: alertButtonLabel,
+                        onPressed: () => _toggleAlert(
+                          busId,
+                          reemplazarBusId: activeOtherBusId,
+                        ),
                       ),
                       if (filaDistancia != null) filaDistancia,
                     ],
@@ -1725,6 +1761,45 @@ class _NotaAnimada extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 14),
                 child: _NotaHoja(nota),
               ),
+      ),
+    );
+  }
+}
+
+/// Explica el bus que sigue mientras se ofrece sustituirlo desde la hoja.
+class _NotaSeguimientoActual extends StatelessWidget {
+  const _NotaSeguimientoActual({required this.ruta});
+
+  final String ruta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('nota-seguimiento-actual'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTint,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.filo),
+      ),
+      child: Row(
+        children: [
+          const ExcludeSemantics(
+            child: Icon(
+              Icons.directions_bus_outlined,
+              size: 20,
+              color: AppColors.primaryAccessible,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Ya sigues el bus de la ruta $ruta',
+              style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+            ),
+          ),
+        ],
       ),
     );
   }

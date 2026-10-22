@@ -32,6 +32,7 @@ class _ToggleFijo extends AlertToggleController {
   Future<AlertToggleResult> toggle(
     String busId, {
     required ElegirDistancia elegirDistancia,
+    String? reemplazarBusId,
   }) async =>
       resultado;
 }
@@ -92,7 +93,7 @@ void main() {
       tester,
       const AlertToggleResult(
         AlertToggleOutcome.rejected,
-        message: _mensajeTope,
+        message: 'El bus A-1 está sin señal',
       ),
     );
 
@@ -101,7 +102,7 @@ void main() {
     expect(
       find.descendant(
         of: aviso,
-        matching: find.text(_mensajeTope),
+        matching: find.text('El bus A-1 está sin señal'),
       ),
       findsOneWidget,
     );
@@ -112,20 +113,19 @@ void main() {
     expect(snack.elevation, 0);
   });
 
-  testWidgets('el límite de un bus se reconoce por su icono propio', (
+  testWidgets('el límite queda inline y no aparece como tarjeta flotante', (
     tester,
   ) async {
     await montar(
       tester,
       const AlertToggleResult(
-        AlertToggleOutcome.rejected,
+        AlertToggleOutcome.limitReached,
         message: _mensajeTope,
       ),
     );
 
-    final tarjeta = tester.widget<AvisoTarjeta>(find.byType(AvisoTarjeta));
-    expect(tarjeta.icono, Icons.directions_bus_outlined);
-    expect(tarjeta.estilo, EstiloAviso.informativo);
+    expect(find.byType(AvisoTarjeta), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
   });
 
   testWidgets('desactivar el aviso muestra una confirmación visual clara', (
@@ -200,12 +200,12 @@ void main() {
       tester,
       const AlertToggleResult(
         AlertToggleOutcome.rejected,
-        message: _mensajeTope,
+        message: 'El bus A-1 está sin señal',
       ),
     );
 
     expect(
-      find.bySemanticsLabel(RegExp('Ya sigues un bus')),
+      find.bySemanticsLabel(RegExp('El bus A-1 está sin señal')),
       findsOneWidget,
     );
     await tester.pump(const Duration(seconds: 8));

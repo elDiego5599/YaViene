@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/alert_toggle_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/eta_bottom_sheet.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
@@ -55,6 +57,10 @@ void main() {
           ],
         ),
       ),
+      alertToggleProvider.overrideWith((ref) => AlertToggleController(
+            ref,
+            requestPermission: () async => true,
+          )),
     ]);
     addTearDown(container.dispose);
     await tester.pumpWidget(
@@ -255,7 +261,7 @@ void main() {
     expect(find.byIcon(Icons.notifications_off_outlined), findsNothing);
   });
 
-  testWidgets('un bus activo bloquea el seguimiento de un segundo bus',
+  testWidgets('el aviso actual se explica inline junto al botón',
       (tester) async {
     final container = await pumpHero(
       tester,
@@ -266,15 +272,61 @@ void main() {
     container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
     await tester.pump();
 
-    // Segundo bus seleccionado: debe explicar el límite, no armarlo.
+    // Segundo bus seleccionado: la nota ocupa el sitio de la acción.
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
-    await tester.tap(find.text('Avisarme cuando esté cerca'));
-    await tester.pump();
-
-    expect(find.textContaining('Ya sigues un bus'), findsOneWidget);
+    expect(find.text('Ya sigues el bus de la ruta Ruta 1'), findsOneWidget);
+    expect(find.text('Seguir este'), findsOneWidget);
+    expect(find.text('Avisarme cuando esté cerca'), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(
+      tester
+          .getRect(find.byKey(const ValueKey('nota-seguimiento-actual')))
+          .bottom,
+      lessThanOrEqualTo(tester.getRect(find.text('Seguir este')).top),
+    );
     expect(container.read(activeAlertsProvider), {'A-1'});
     expect(container.read(activeAlertsProvider), isNot(contains('B-1')));
+  });
+
+  testWidgets('«Seguir este» cambia el aviso tras elegir la distancia',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
+    final container = await pumpHero(
+      tester,
+      [busAt(0.02), busAt(0.02, busId: 'B-1')],
+    );
+    container.read(activeAlertsProvider.notifier).activateAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await tester.pump();
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    container.read(selectedBusesProvider.notifier).toggleBus('B-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Seguir este'));
+    await tester.pumpAndSettle();
+    expect(find.text('Solo esta vez'), findsOneWidget,
+        reason: 'usa la misma rueda que al activar el primer aviso');
+    expect(container.read(activeAlertsProvider), {'A-1'},
+        reason: 'conserva el aviso actual mientras se elige la distancia');
+
+    await tester.tap(find.text('Solo esta vez'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(activeAlertsProvider), {'B-1'});
+    expect(container.read(proximityAlertsProvider.notifier).radioDe('A-1'),
+        isNull);
+    expect(container.read(proximityAlertsProvider.notifier).radioDe('B-1'),
+        isNotNull);
+    expect(
+      container
+          .read(alertHistoryProvider)
+          .where((entry) => !entry.sent)
+          .map((entry) => entry.busId)
+          .toSet(),
+      {'B-1'},
+    );
   });
 }
