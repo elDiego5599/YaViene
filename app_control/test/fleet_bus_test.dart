@@ -25,4 +25,12 @@ void main() {
       'R-1',
     );
   });
+
+  test('lee enTerminal de contrato y distingue el default ausente', () {
+    expect(
+      FleetBus.fromJson({'busId': 'B-1', 'enTerminal': true}).enTerminal,
+      isTrue,
+    );
+    expect(FleetBus.fromJson({'busId': 'B-1'}).enTerminal, isFalse);
+  });
 }

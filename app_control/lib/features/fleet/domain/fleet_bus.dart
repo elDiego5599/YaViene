@@ -16,6 +16,7 @@ class FleetBus {
     this.receivedAt,
     this.sequence,
     this.isGhost = false,
+    this.enTerminal = false,
   });
 
   factory FleetBus.fromJson(Map<String, dynamic> json) {
@@ -37,6 +38,7 @@ class FleetBus {
       receivedAt: (json['receivedAt'] as num?)?.toInt(),
       sequence: (json['sequence'] as num?)?.toInt(),
       isGhost: json['isGhost'] == true,
+      enTerminal: json['enTerminal'] == true,
     );
   }
 
@@ -59,6 +61,7 @@ class FleetBus {
   final int? receivedAt;
   final int? sequence;
   final bool isGhost;
+  final bool enTerminal;
 
   /// Si [otro] se pinta igual en la lista y en la ficha del bus: todo menos
   /// la posición (lat, lon, rumbo, velocidad, horas y secuencia), que solo
@@ -74,7 +77,8 @@ class FleetBus {
       routeId == otro.routeId &&
       visible == otro.visible &&
       online == otro.online &&
-      isGhost == otro.isGhost;
+      isGhost == otro.isGhost &&
+      enTerminal == otro.enTerminal;
 
   FleetBus copyWith({
     String? placa,
@@ -91,6 +95,7 @@ class FleetBus {
     int? receivedAt,
     int? sequence,
     bool? isGhost,
+    bool? enTerminal,
     bool clearPosition = false,
   }) {
     return FleetBus(
@@ -110,6 +115,7 @@ class FleetBus {
       receivedAt: clearPosition ? null : receivedAt ?? this.receivedAt,
       sequence: sequence ?? this.sequence,
       isGhost: isGhost ?? this.isGhost,
+      enTerminal: enTerminal ?? this.enTerminal,
     );
   }
 }

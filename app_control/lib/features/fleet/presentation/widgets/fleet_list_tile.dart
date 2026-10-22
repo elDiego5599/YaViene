@@ -123,6 +123,28 @@ class FleetListTile extends StatelessWidget {
                               semanticLabel: estado.rotulo,
                             ),
                           ),
+                          if (bus.enTerminal) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceRaised,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Text(
+                                'En terminal',
+                                style: AppType.ui(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -201,6 +223,7 @@ class FleetListTile extends StatelessWidget {
   String _frase(BusEstado estado) => [
     bus.placa.isEmpty ? 'Bus ${bus.busId}' : 'Placa ${bus.placa}',
     estado.rotulo,
+    if (bus.enTerminal) 'En terminal',
     if (routeName != null) 'ruta $routeName',
   ].join(', ');
 

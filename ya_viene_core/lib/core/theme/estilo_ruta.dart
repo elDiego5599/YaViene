@@ -31,6 +31,7 @@ final class RutaParada {
 
 abstract final class EstiloRuta {
   static const String _verde = '#00A859';
+  static const String _rojoBus = '#E86A5E';
 
   static const RutaLinea orla = RutaLinea(
     lineColor: '#FFFFFF',
@@ -42,6 +43,16 @@ abstract final class EstiloRuta {
 
   static const RutaLinea linea = RutaLinea(
     lineColor: _verde,
+    lineWidth: 4.0,
+    lineOpacity: 1.0,
+    lineCap: 'round',
+    lineJoin: 'round',
+  );
+
+  /// Recorrido del panel: conserva la ruta verde del pasajero y usa el rojo
+  /// reservado a los buses activos, separado de la misma orla blanca.
+  static const RutaLinea lineaPanel = RutaLinea(
+    lineColor: _rojoBus,
     lineWidth: 4.0,
     lineOpacity: 1.0,
     lineCap: 'round',

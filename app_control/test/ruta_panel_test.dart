@@ -32,8 +32,25 @@ class _FakeFleetApi extends FleetApi {
 }
 
 class _Flota extends FleetNotifier {
-  _Flota(super.ref, String? ruta) : super(api: _FakeFleetApi()) {
-    state = FleetState(routeFilter: ruta);
+  _Flota(super.ref, String? ruta, {String? rutaBus})
+    : super(api: _FakeFleetApi()) {
+    state = FleetState(
+      routeFilter: ruta,
+      buses: rutaBus == null
+          ? const {}
+          : {
+              'B-1': const FleetBus(
+                busId: 'B-1',
+                companyId: 'c-1',
+                routeId: 'R-101',
+                visible: true,
+                online: true,
+                lat: 10.9,
+                lon: -74.8,
+              ),
+            },
+      selectedBusId: rutaBus == null ? null : 'B-1',
+    );
   }
 }
 
@@ -49,7 +66,11 @@ void main() {
   });
   tearDownAll(() => cache.deleteSync(recursive: true));
 
-  Future<void> montar(WidgetTester tester, String? ruta) async {
+  Future<void> montar(
+    WidgetTester tester,
+    String? ruta, {
+    String? rutaBus,
+  }) async {
     await tester.binding.setSurfaceSize(const Size(1200, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -58,7 +79,9 @@ void main() {
           backendUrlProvider.overrideWith(
             () => BackendUrl.fija('http://localhost:3000'),
           ),
-          fleetProvider.overrideWith((ref) => _Flota(ref, ruta)),
+          fleetProvider.overrideWith(
+            (ref) => _Flota(ref, ruta, rutaBus: rutaBus),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.light,
@@ -103,12 +126,13 @@ void main() {
     final [orla, linea] = lineas;
     expect(orla.color, Colors.white.withValues(alpha: 0.95));
     expect(orla.strokeWidth, 8);
-    expect(linea.color, const Color(0xFF00A859));
+    expect(linea.color, const Color(0xFFE86A5E));
     expect(linea.strokeWidth, 4);
     expect(orla.strokeWidth, EstiloRuta.orla.lineWidth);
     expect(linea.strokeWidth, EstiloRuta.linea.lineWidth);
     expect(EstiloRuta.orla.lineColor, '#FFFFFF');
     expect(EstiloRuta.linea.lineColor, '#00A859');
+    expect(EstiloRuta.lineaPanel.lineColor, '#E86A5E');
     for (final l in lineas) {
       expect(l.strokeCap, StrokeCap.round);
       expect(l.strokeJoin, StrokeJoin.round);
@@ -133,6 +157,17 @@ void main() {
       hijos.indexWhere((w) => w is PolylineLayer),
       lessThan(hijos.indexWhere((w) => w is MarkerLayer)),
     );
+    await desmontar(tester);
+  });
+
+  testWidgets('la ruta del bus seleccionado también se dibuja', (tester) async {
+    await montar(tester, null, rutaBus: 'R-101');
+    expect(find.byType(PolylineLayer), findsOneWidget);
+    final lineas = tester
+        .widget<PolylineLayer>(find.byType(PolylineLayer))
+        .polylines;
+    expect(lineas, hasLength(2));
+    expect(lineas.last.color, const Color(0xFFE86A5E));
     await desmontar(tester);
   });
 

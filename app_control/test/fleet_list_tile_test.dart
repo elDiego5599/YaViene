@@ -76,6 +76,7 @@ Future<void> _montar(
   required String placa,
   String? ruta,
   String? conductor,
+  bool enTerminal = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -99,6 +100,7 @@ Future<void> _montar(
                     visible: true,
                     online: false,
                     isGhost: true,
+                    enTerminal: enTerminal,
                   ),
                   selected: false,
                   updating: false,
@@ -139,6 +141,22 @@ bool _entero(RenderParagraph parrafo) =>
 
 void main() {
   setUpAll(_cargarFuentes);
+
+  testWidgets('marca En terminal aparte del estado Oculto manual', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      ancho: _fila(1440),
+      placa: 'WNP659',
+      enTerminal: true,
+    );
+    expect(find.text('En terminal'), findsOneWidget);
+    final semantic = tester.getSemantics(
+      find.bySemanticsLabel('Placa WNP659, Inactivo, En terminal'),
+    );
+    expect(semantic.label, contains('En terminal'));
+  });
 
   for (final ancho in _anchos) {
     for (final placa in _placas) {
