@@ -19,6 +19,7 @@ import 'package:ya_viene_control/features/fleet/presentation/widgets/control_map
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
 import 'package:ya_viene_core/core/providers/map_providers.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show EstiloRuta;
 
 class _FakeFleetApi extends FleetApi {
   _FakeFleetApi() : super(baseUrl: 'http://localhost:3000');
@@ -104,6 +105,10 @@ void main() {
     expect(orla.strokeWidth, 8);
     expect(linea.color, const Color(0xFF00A859));
     expect(linea.strokeWidth, 4);
+    expect(orla.strokeWidth, EstiloRuta.orla.lineWidth);
+    expect(linea.strokeWidth, EstiloRuta.linea.lineWidth);
+    expect(EstiloRuta.orla.lineColor, '#FFFFFF');
+    expect(EstiloRuta.linea.lineColor, '#00A859');
     for (final l in lineas) {
       expect(l.strokeCap, StrokeCap.round);
       expect(l.strokeJoin, StrokeJoin.round);

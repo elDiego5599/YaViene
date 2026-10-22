@@ -132,24 +132,32 @@ class _FondoVidrioState extends State<FondoVidrio> {
           if (!opaca)
             LayoutBuilder(
               builder: (context, caja) => BackdropGroup(
-                child: Stack(
-                  children: [
-                    for (final (fraccion, sigma) in FondoVidrio.capas)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: caja.maxHeight * fraccion,
-                        child: ClipRect(
-                          child: BackdropFilter.grouped(
-                            enabled: t > 0,
-                            filter: ui.ImageFilter.blur(
-                                sigmaX: sigma * t, sigmaY: sigma * t),
-                            child: const SizedBox.expand(),
+                child: ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white, Colors.transparent],
+                  ).createShader(bounds),
+                  child: Stack(
+                    children: [
+                      for (final (fraccion, sigma) in FondoVidrio.capas)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: caja.maxHeight * fraccion,
+                          child: ClipRect(
+                            child: BackdropFilter.grouped(
+                              enabled: t > 0,
+                              filter: ui.ImageFilter.blur(
+                                  sigmaX: sigma * t, sigmaY: sigma * t),
+                              child: const SizedBox.expand(),
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

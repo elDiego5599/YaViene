@@ -94,6 +94,11 @@ void main() {
     // El desenfoque es progresivo, como el borde de iOS 26: capas
     // recortadas que arrancan arriba y bajan cada una menos, así arriba
     // se suman todas y al pie apenas una.
+    expect(
+        find.descendant(
+            of: find.byType(FondoVidrio), matching: find.byType(ShaderMask)),
+        findsOneWidget,
+        reason: 'el desenfoque se desvanece y no deja un corte recto');
     final capas = capasDesenfoque(tester);
     expect(capas.length, FondoVidrio.cantidadCapas);
     expect(capas.first.height, closeTo(barra.height, 0.5),

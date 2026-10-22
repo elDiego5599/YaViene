@@ -18,7 +18,6 @@ import '../utils/camera_fit.dart';
 import '../utils/decision_camara.dart';
 import '../utils/estela.dart';
 import '../utils/map_constants.dart' show MapConstants;
-import 'estilo_ruta.dart';
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
@@ -605,20 +604,49 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     await _mapController!.addSource(
         _kRouteSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
     // La orla va primero, debajo: es lo que despega la línea de las calles.
-    await _mapController!
-        .addLineLayer(_kRouteSourceId, _kRouteCasingLayerId, EstiloRuta.orla);
-    await _mapController!
-        .addLineLayer(_kRouteSourceId, _kRouteLayerId, EstiloRuta.linea);
+    await _mapController!.addLineLayer(
+        _kRouteSourceId,
+        _kRouteCasingLayerId,
+        LineLayerProperties(
+            lineColor: EstiloRuta.orla.lineColor,
+            lineWidth: EstiloRuta.orla.lineWidth,
+            lineOpacity: EstiloRuta.orla.lineOpacity,
+            lineCap: EstiloRuta.orla.lineCap,
+            lineJoin: EstiloRuta.orla.lineJoin));
+    await _mapController!.addLineLayer(
+        _kRouteSourceId,
+        _kRouteLayerId,
+        LineLayerProperties(
+            lineColor: EstiloRuta.linea.lineColor,
+            lineWidth: EstiloRuta.linea.lineWidth,
+            lineOpacity: EstiloRuta.linea.lineOpacity,
+            lineCap: EstiloRuta.linea.lineCap,
+            lineJoin: EstiloRuta.linea.lineJoin));
 
     await _mapController!.addSource(
         _kStopsFijaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
     await _mapController!.addCircleLayer(
-        _kStopsFijaSourceId, _kStopsFijaLayerId, EstiloRuta.paradaFija);
+        _kStopsFijaSourceId,
+        _kStopsFijaLayerId,
+        CircleLayerProperties(
+            circleRadius: EstiloRuta.paradaFija.circleRadius,
+            circleColor: EstiloRuta.paradaFija.circleColor,
+            circleStrokeWidth: EstiloRuta.paradaFija.circleStrokeWidth,
+            circleStrokeColor: EstiloRuta.paradaFija.circleStrokeColor));
 
     await _mapController!.addSource(_kStopsInformalSourceId,
         const GeojsonSourceProperties(data: emptyGeoJson));
-    await _mapController!.addCircleLayer(_kStopsInformalSourceId,
-        _kStopsInformalLayerId, EstiloRuta.paradaInformal);
+    await _mapController!.addCircleLayer(
+        _kStopsInformalSourceId,
+        _kStopsInformalLayerId,
+        CircleLayerProperties(
+            circleRadius: EstiloRuta.paradaInformal.circleRadius,
+            circleColor: EstiloRuta.paradaInformal.circleColor,
+            circleOpacity: EstiloRuta.paradaInformal.circleOpacity,
+            circleStrokeWidth: EstiloRuta.paradaInformal.circleStrokeWidth,
+            circleStrokeColor: EstiloRuta.paradaInformal.circleStrokeColor,
+            circleStrokeOpacity:
+                EstiloRuta.paradaInformal.circleStrokeOpacity));
 
     await _mapController!.addSource(
         _kBusSourceId, const GeojsonSourceProperties(data: emptyGeoJson));

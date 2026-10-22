@@ -12,7 +12,7 @@ import 'package:ya_viene_core/core/models/bus_motion.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/app_motion.dart';
 import 'package:ya_viene_core/core/theme/estilo_mapa.dart';
-import 'package:ya_viene_core/ya_viene_core.dart' as core show AppColors;
+import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
@@ -239,7 +239,7 @@ class _ControlMapState extends ConsumerState<ControlMap>
                   tileProviders: estilo.providers,
                 ),
               // El recorrido de la ruta elegida, debajo de los buses y con
-              // los números del pasajero (`EstiloRuta` en app_pasajero):
+              // la definición compartida (`EstiloRuta` en ya_viene_core):
               // verde de la marca de 4 sobre una orla blanca de 8 al 95 %.
               // Una ruta sin recorrido en `rutas.json` (dada de alta aquí)
               // no pinta nada (dueño, 2026-10-07).
@@ -248,15 +248,23 @@ class _ControlMapState extends ConsumerState<ControlMap>
                   polylines: [
                     Polyline(
                       points: recorrido,
-                      color: Colors.white.withValues(alpha: 0.95),
-                      strokeWidth: 8,
+                      color: Color(
+                        int.parse(
+                          EstiloRuta.orla.lineColor.replaceFirst('#', '0xFF'),
+                        ),
+                      ).withValues(alpha: EstiloRuta.orla.lineOpacity),
+                      strokeWidth: EstiloRuta.orla.lineWidth,
                       strokeCap: StrokeCap.round,
                       strokeJoin: StrokeJoin.round,
                     ),
                     Polyline(
                       points: recorrido,
-                      color: core.AppColors.primary,
-                      strokeWidth: 4,
+                      color: Color(
+                        int.parse(
+                          EstiloRuta.linea.lineColor.replaceFirst('#', '0xFF'),
+                        ),
+                      ),
+                      strokeWidth: EstiloRuta.linea.lineWidth,
                       strokeCap: StrokeCap.round,
                       strokeJoin: StrokeJoin.round,
                     ),

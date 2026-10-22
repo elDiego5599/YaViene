@@ -1080,7 +1080,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final alertButtonLabel = isActive
         ? 'Aviso activado'
         : activeOtherBusId != null
-            ? 'Seguir este'
+            ? 'Seguir este bus'
             : ghostBlocked
                 ? 'Bus sin señal'
                 : routeTooFar
@@ -1134,6 +1134,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
               children: [
                 if (activeOtherBusId != null)
                   _NotaSeguimientoActual(
+                    busId: activeOtherBusId,
                     ruta: activeOtherRouteLabel ?? 'otra ruta',
                   ),
                 if (activeOtherBusId != null) const SizedBox(height: 12),
@@ -1382,6 +1383,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                       _NotaAnimada(stateDetail),
                       if (activeOtherBusId != null) ...[
                         _NotaSeguimientoActual(
+                          busId: activeOtherBusId,
                           ruta: activeOtherRouteLabel ?? 'otra ruta',
                         ),
                         const SizedBox(height: 12),
@@ -1768,35 +1770,30 @@ class _NotaAnimada extends StatelessWidget {
 
 /// Explica el bus que sigue mientras se ofrece sustituirlo desde la hoja.
 class _NotaSeguimientoActual extends StatelessWidget {
-  const _NotaSeguimientoActual({required this.ruta});
+  const _NotaSeguimientoActual({required this.busId, required this.ruta});
 
+  final String busId;
   final String ruta;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
       key: const ValueKey('nota-seguimiento-actual'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primaryTint,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.filo),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           const ExcludeSemantics(
             child: Icon(
               Icons.directions_bus_outlined,
               size: 20,
-              color: AppColors.primaryAccessible,
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Ya sigues el bus de la ruta $ruta',
-              style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+              'Ya sigues el bus ${busPlaca(busId)} de la ruta $ruta',
+              style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],

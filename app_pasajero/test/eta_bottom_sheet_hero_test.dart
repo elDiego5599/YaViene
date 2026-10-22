@@ -276,21 +276,25 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('A-1');
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
-    expect(find.text('Ya sigues el bus de la ruta Ruta 1'), findsOneWidget);
-    expect(find.text('Seguir este'), findsOneWidget);
+    expect(find.text('Ya sigues el bus A-1 de la ruta Ruta 1'), findsOneWidget);
+    final nota = tester
+        .widget<Padding>(find.byKey(const ValueKey('nota-seguimiento-actual')));
+    expect(nota.child, isA<Row>(),
+        reason: 'nota secundaria sin tarjeta ni fondo');
+    expect(find.text('Seguir este bus'), findsOneWidget);
     expect(find.text('Avisarme cuando esté cerca'), findsNothing);
     expect(find.byType(SnackBar), findsNothing);
     expect(
       tester
           .getRect(find.byKey(const ValueKey('nota-seguimiento-actual')))
           .bottom,
-      lessThanOrEqualTo(tester.getRect(find.text('Seguir este')).top),
+      lessThanOrEqualTo(tester.getRect(find.text('Seguir este bus')).top),
     );
     expect(container.read(activeAlertsProvider), {'A-1'});
     expect(container.read(activeAlertsProvider), isNot(contains('B-1')));
   });
 
-  testWidgets('«Seguir este» cambia el aviso tras elegir la distancia',
+  testWidgets('«Seguir este bus» cambia el aviso tras elegir la distancia',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     addTearDown(() => SharedPreferences.setMockInitialValues({}));
@@ -305,7 +309,7 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
 
-    await tester.tap(find.text('Seguir este'));
+    await tester.tap(find.text('Seguir este bus'));
     await tester.pumpAndSettle();
     expect(find.text('Solo esta vez'), findsOneWidget,
         reason: 'usa la misma rueda que al activar el primer aviso');

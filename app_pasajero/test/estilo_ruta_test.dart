@@ -6,7 +6,7 @@
 // El dueño pidió una sola: la del producto (2026-09-28). Aquí se ata lo que
 // MapLibre recibe, capa por capa.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/widgets/estilo_ruta.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show EstiloRuta;
 
 void main() {
   const verde = '#00A859';
@@ -21,8 +21,8 @@ void main() {
     expect(EstiloRuta.orla.lineOpacity, 0.95);
     // En la web: 7 de orla contra 3,4 de línea. Aquí la línea mide 4 (lo
     // que ya medía la azul) y la orla guarda la misma proporción.
-    final linea = EstiloRuta.linea.lineWidth as double;
-    final orla = EstiloRuta.orla.lineWidth as double;
+    final linea = EstiloRuta.linea.lineWidth;
+    final orla = EstiloRuta.orla.lineWidth;
     expect(orla / linea, closeTo(7 / 3.4, 0.1));
     expect(EstiloRuta.orla.lineCap, EstiloRuta.linea.lineCap);
     expect(EstiloRuta.orla.lineJoin, EstiloRuta.linea.lineJoin);
