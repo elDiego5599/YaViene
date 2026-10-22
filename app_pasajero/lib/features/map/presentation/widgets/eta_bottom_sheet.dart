@@ -320,14 +320,36 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           mensaje: mensaje,
           contenidoAdicional: Material(
             color: Colors.transparent,
-            child: CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: noMostrar,
-              title: const Text('No volver a mostrar'),
-              controlAffinity: ListTileControlAffinity.leading,
-              onChanged: (value) => setDialogState(() {
-                noMostrar = value ?? false;
-              }),
+            child: Semantics(
+              key: const ValueKey('explicacion-no-mostrar'),
+              container: true,
+              label: 'No volver a mostrar',
+              checked: noMostrar,
+              onTap: () => setDialogState(() => noMostrar = !noMostrar),
+              child: ExcludeSemantics(
+                child: InkWell(
+                  onTap: () => setDialogState(() => noMostrar = !noMostrar),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Row(
+                      children: [
+                        IgnorePointer(
+                          child: Checkbox(
+                            value: noMostrar,
+                            onChanged: (_) {},
+                            visualDensity: const VisualDensity(
+                              horizontal: -2,
+                              vertical: -2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Expanded(child: Text('No volver a mostrar')),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           principal: DialogoAccion('Entendido', () async {
@@ -336,6 +358,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             }
             if (dialogContext.mounted) Navigator.pop(dialogContext, true);
           }),
+          secundaria: DialogoAccion(
+            'Cancelar',
+            () => Navigator.pop(dialogContext, false),
+          ),
         ),
       ),
     );
@@ -1134,7 +1160,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final alertButtonLabel = isActive
         ? 'Aviso activado'
         : activeOtherBusId != null
-            ? 'Seguir este bus'
+            ? 'Avisarme cuando esté cerca'
             : ghostBlocked
                 ? 'Bus sin señal'
                 : routeTooFar

@@ -213,7 +213,24 @@ void main() {
     expect(find.byType(Dialogo), findsOneWidget);
     expect(find.text('Aviso cuando esté cerca'), findsOneWidget);
     expect(find.textContaining('no cierres Ya Viene del todo'), findsOneWidget);
+    final fila = find.byKey(const ValueKey('explicacion-no-mostrar'));
+    expect(tester.getSize(fila).height, greaterThanOrEqualTo(44));
+    expect(
+      tester.getSemantics(fila),
+      matchesSemantics(
+        label: 'No volver a mostrar',
+        hasCheckedState: true,
+        isChecked: false,
+        hasTapAction: true,
+      ),
+    );
 
+    await tester.tap(fila);
+    await tester.pump();
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    await tester.tap(fila);
+    await tester.pump();
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
     await tester.tap(find.text('No volver a mostrar'));
     await tester.tap(find.text('Entendido'));
     await tester.pumpAndSettle();
@@ -312,8 +329,7 @@ void main() {
     await tester.pump();
     expect(find.text('Ya sigues el bus A-1 de la ruta Ruta 1'), findsNothing);
     expect(find.byKey(const ValueKey('nota-seguimiento-actual')), findsNothing);
-    expect(find.text('Seguir este bus'), findsOneWidget);
-    expect(find.text('Avisarme cuando esté cerca'), findsNothing);
+    expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
     expect(container.read(activeAlertsProvider), {'A-1'});
     expect(container.read(activeAlertsProvider), isNot(contains('B-1')));
@@ -321,6 +337,36 @@ void main() {
 
   testWidgets('al seguir otro bus aparece la explicación la primera vez',
       (tester) async {
+    final container = await pumpHero(
+      tester,
+      [busAt(0.02), busAt(0.02, busId: 'B-1')],
+      omitirExplicacionAviso: false,
+      omitirExplicacionSeguimiento: false,
+    );
+    container.read(activeAlertsProvider.notifier).activateAlert('A-1');
+    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    await tester.pump();
+    container.read(selectedBusesProvider.notifier).toggleBus('A-1');
+    container.read(selectedBusesProvider.notifier).toggleBus('B-1');
+    await tester.pump();
+
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialogo), findsOneWidget);
+    expect(find.text('Ya sigues un bus'), findsOneWidget);
+    expect(find.text('No volver a mostrar'), findsOneWidget);
+    expect(find.text('Entendido'), findsOneWidget);
+    await tester.tap(find.text('Entendido'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Dialogo), findsNothing,
+        reason: 'el reemplazo solo muestra una explicación');
+    expect(find.text('Cancelar'), findsOneWidget);
+  });
+
+  testWidgets('cancelar o cerrar la explicación no cambia el aviso ni guarda',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    addTearDown(() => SharedPreferences.setMockInitialValues({}));
     final container = await pumpHero(
       tester,
       [busAt(0.02), busAt(0.02, busId: 'B-1')],
@@ -333,14 +379,23 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
 
-    await tester.tap(find.text('Seguir este bus'));
+    final prefs = await SharedPreferences.getInstance();
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pumpAndSettle();
-    expect(find.text('Ya sigues un bus'), findsOneWidget);
-    expect(find.text('No volver a mostrar'), findsOneWidget);
-    expect(find.text('Entendido'), findsOneWidget);
-    await tester.tap(find.text('Entendido'));
+    await tester.tap(find.text('No volver a mostrar'));
+    await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();
-    expect(find.text('Cancelar'), findsOneWidget);
+    expect(prefs.getBool('explicacion_seguir_bus_oculta'), isFalse);
+    expect(container.read(activeAlertsProvider), {'A-1'});
+    expect(find.byType(RuedaDistancia), findsNothing);
+
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('explicacion_seguir_bus_oculta'), isFalse);
+    expect(container.read(activeAlertsProvider), {'A-1'});
+    expect(find.byType(RuedaDistancia), findsNothing);
   });
 
   testWidgets('la explicación no vuelve a salir tras marcar la opción',
@@ -359,7 +414,7 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
 
-    await tester.tap(find.text('Seguir este bus'));
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('No volver a mostrar'));
     await tester.tap(find.text('Entendido'));
@@ -372,13 +427,13 @@ void main() {
 
     await tester.tap(find.text('Cancelar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Seguir este bus'));
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pumpAndSettle();
     expect(find.text('Ya sigues un bus'), findsNothing);
     expect(find.text('Cancelar'), findsOneWidget);
   });
 
-  testWidgets('Seguir este bus cambia el aviso tras elegir la distancia',
+  testWidgets('Avisarme cerca cambia el aviso tras elegir la distancia',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     addTearDown(() => SharedPreferences.setMockInitialValues({}));
@@ -394,7 +449,7 @@ void main() {
     container.read(selectedBusesProvider.notifier).toggleBus('B-1');
     await tester.pump();
 
-    await tester.tap(find.text('Seguir este bus'));
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Entendido'));
     await tester.pumpAndSettle();
