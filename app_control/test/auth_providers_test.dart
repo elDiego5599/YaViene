@@ -13,17 +13,20 @@ class _FakeAuthApi extends AuthApi {
     this.loginResult,
     this.loginError,
     this.validateResult,
-    this.validateThrows,
     this.sesionActualResult,
     this.sesionActualThrows,
+    this.renovarResult,
+    this.renovarError,
   }) : super(baseUrl: 'http://localhost:3000');
 
   final AuthSession? loginResult;
   final AuthApiException? loginError;
   final bool? validateResult;
-  final Object? validateThrows;
   final AuthSession? sesionActualResult;
   final Object? sesionActualThrows;
+  final AuthSession? renovarResult;
+  final Object? renovarError;
+  final tokensRenovados = <String>[];
 
   /// Los tokens con los que se pidió cerrar sesión en el servidor (null: la
   /// cookie del panel web).
@@ -36,15 +39,24 @@ class _FakeAuthApi extends AuthApi {
   }
 
   @override
-  Future<bool> validateSession(String token) async {
-    if (validateThrows != null) throw validateThrows!;
-    return validateResult!;
-  }
+  Future<bool> validateSession(String token) async => validateResult!;
 
   @override
   Future<AuthSession?> sesionActual() async {
     if (sesionActualThrows != null) throw sesionActualThrows!;
     return sesionActualResult;
+  }
+
+  @override
+  Future<AuthSession> renovar(String token) async {
+    tokensRenovados.add(token);
+    if (renovarError != null) throw renovarError!;
+    return renovarResult ??
+        const AuthSession(
+          token: 't-1',
+          companyId: 'c-1',
+          companyName: 'Empresa 1',
+        );
   }
 
   @override
@@ -191,6 +203,90 @@ void main() {
     },
   );
 
+  test('restore renueva el token y guarda el nuevo', () async {
+    final storage = _FakeSecureStorage({
+      'sesion': jsonEncode({
+        'token': 'viejo',
+        'companyId': 'c-1',
+        'companyName': 'Empresa 1',
+      }),
+    });
+    final api = _FakeAuthApi(
+      renovarResult: const AuthSession(
+        token: 'nuevo',
+        companyId: 'c-1',
+        companyName: 'Empresa 1',
+      ),
+    );
+    final notifier = AuthNotifier(api: api, storage: storage);
+    await notifier.restoreSession();
+    expect(notifier.state.session?.token, 'nuevo');
+    expect(jsonDecode((await storage.read(key: 'sesion'))!)['token'], 'nuevo');
+    notifier.dispose();
+  });
+
+  test('el ciclo horario renueva y guarda', () async {
+    final storage = _FakeSecureStorage({
+      'sesion': jsonEncode({
+        'token': 'viejo',
+        'companyId': 'c-1',
+        'companyName': 'Empresa 1',
+      }),
+    });
+    final api = _FakeAuthApi(
+      renovarResult: const AuthSession(
+        token: 'nuevo',
+        companyId: 'c-1',
+        companyName: 'Empresa 1',
+      ),
+    );
+    final notifier = AuthNotifier(
+      api: api,
+      storage: storage,
+      renovarCada: const Duration(seconds: 1),
+    );
+    await notifier.restoreSession();
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    expect(api.tokensRenovados.length, greaterThanOrEqualTo(2));
+    expect(notifier.state.session?.token, 'nuevo');
+    notifier.dispose();
+  });
+
+  test('401 renueva y deja la sesión cerrada', () async {
+    final storage = _FakeSecureStorage({
+      'sesion': jsonEncode({
+        'token': 'viejo',
+        'companyId': 'c-1',
+        'companyName': 'Empresa 1',
+      }),
+    });
+    final notifier = AuthNotifier(
+      api: _FakeAuthApi(renovarError: const SessionRevokedException()),
+      storage: storage,
+    );
+    await notifier.restoreSession();
+    expect(notifier.state.status, AuthStatus.unauthenticated);
+    expect(await storage.read(key: 'sesion'), isNull);
+    notifier.dispose();
+  });
+
+  test('error de red al renovar conserva sesión', () async {
+    final storage = _FakeSecureStorage({
+      'sesion': jsonEncode({
+        'token': 'viejo',
+        'companyId': 'c-1',
+        'companyName': 'Empresa 1',
+      }),
+    });
+    final notifier = AuthNotifier(
+      api: _FakeAuthApi(renovarError: Exception('sin red')),
+      storage: storage,
+    );
+    await notifier.restoreSession();
+    expect(notifier.state.session?.token, 'viejo');
+    notifier.dispose();
+  });
+
   test(
     'restoreSession con token rechazado por el backend limpia la sesión guardada',
     () async {
@@ -200,7 +296,7 @@ void main() {
         'auth_company_name': 'Empresa 1',
       });
       final notifier = AuthNotifier(
-        api: _FakeAuthApi(validateResult: false),
+        api: _FakeAuthApi(renovarError: const SessionRevokedException()),
         storage: storage,
       );
 
@@ -220,7 +316,7 @@ void main() {
         'auth_company_name': 'Empresa 1',
       });
       final notifier = AuthNotifier(
-        api: _FakeAuthApi(validateThrows: Exception('sin red')),
+        api: _FakeAuthApi(renovarError: Exception('sin red')),
         storage: storage,
       );
 

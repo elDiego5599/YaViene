@@ -93,6 +93,27 @@ class AuthApi {
     }
   }
 
+  Future<AuthSession> renovar(String token) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/api/fleet/renovar',
+        options: cabeceras(token),
+      );
+      final data = response.data!;
+      final company = Map<String, dynamic>.from(data['company'] as Map);
+      return AuthSession(
+        token: data['token'] as String,
+        companyId: company['companyId'] as String,
+        companyName: company['name'] as String,
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const SessionRevokedException();
+      }
+      rethrow;
+    }
+  }
+
   /// En el navegador, la sesión que lleva la cookie: la empresa si sigue
   /// viva, null si no (401). Un fallo de red o del servidor lanza.
   Future<AuthSession?> sesionActual() async {
@@ -145,4 +166,8 @@ class AuthApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class SessionRevokedException implements Exception {
+  const SessionRevokedException();
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -50,6 +51,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required this.api,
     FlutterSecureStorage? storage,
     bool web = kIsWeb,
+    this.renovarCada = const Duration(hours: 1),
   }) : _storage = web ? null : storage ?? almacenDelSistema,
        super(const AuthState());
 
@@ -91,6 +93,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// reescribir una entrada que dejó otro build vuelve a preguntar.
   ({String usuario, String clave})? _recordadas;
   bool _recordadasConocidas = false;
+  final Duration renovarCada;
+  Timer? _renovacionTimer;
+  Future<void>? _renovando;
 
   /// A qué backend van el login y la validación. Puede cambiar con el panel
   /// abierto (`BackendSupervisor`): el provider la cambia aquí en vez de
@@ -127,26 +132,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
       debugPrint('No se pudo leer la sesión guardada: $e');
     }
     if (token != null && companyId != null && companyName != null) {
-      // Validamos el token guardado: si el backend lo rechaza (p.ej. secretos
-      // rotados o token expirado), no entramos con una sesión muerta.
-      try {
-        final valid = await api.validateSession(token);
-        if (!valid) {
-          await _clearStored();
-          state = const AuthState(status: AuthStatus.unauthenticated);
-          return;
-        }
-      } catch (_) {
-        // Sin red: mantenemos la sesión; el dashboard reintentará.
-      }
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        session: AuthSession(
-          token: token,
-          companyId: companyId,
-          companyName: companyName,
-        ),
+      final sesionGuardada = AuthSession(
+        token: token,
+        companyId: companyId,
+        companyName: companyName,
       );
+      var sesion = sesionGuardada;
+      // Renovar valida la sesión y extiende el token al mismo tiempo.
+      try {
+        sesion = await api.renovar(token);
+        await _guardarSesion(sesion);
+      } on SessionRevokedException {
+        await _clearStored();
+        state = const AuthState(status: AuthStatus.unauthenticated);
+        return;
+      } catch (_) {
+        // Sin red o 5xx se conserva el token vigente y se reintenta en una hora.
+      }
+      state = AuthState(status: AuthStatus.authenticated, session: sesion);
+      _iniciarRenovacion();
     } else {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
@@ -205,6 +209,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     } catch (e) {
       debugPrint('No se pudo borrar la sesión guardada: $e');
+    }
+  }
+
+  Future<void> _guardarSesion(AuthSession session) async {
+    final storage = _storage;
+    if (storage == null) return;
+    try {
+      await storage.write(
+        key: _kSesion,
+        value: jsonEncode({
+          'token': session.token,
+          'companyId': session.companyId,
+          'companyName': session.companyName,
+        }),
+      );
+    } catch (e) {
+      debugPrint('No se pudo guardar la sesión renovada: $e');
+    }
+  }
+
+  void _iniciarRenovacion() {
+    _renovacionTimer?.cancel();
+    if (_storage == null || state.session?.token == null) return;
+    _renovacionTimer = Timer.periodic(renovarCada, (_) => renovarSesion());
+  }
+
+  Future<void> renovarSesion() =>
+      _renovando ??= _renovarSesion().whenComplete(() {
+        _renovando = null;
+      });
+
+  Future<void> _renovarSesion() async {
+    final actual = state.session;
+    if (actual?.token == null || state.status != AuthStatus.authenticated) {
+      return;
+    }
+    try {
+      final nueva = await api.renovar(actual!.token!);
+      if (state.session?.token != actual.token) return;
+      state = state.copyWith(session: nueva);
+      await _guardarSesion(nueva);
+    } on SessionRevokedException {
+      _renovacionTimer?.cancel();
+      await _clearStored();
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    } catch (_) {
+      // Fallos transitorios no invalidan el token guardado.
     }
   }
 
@@ -272,18 +323,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(status: AuthStatus.authenticated, session: session);
       return true;
     }
-    try {
-      await storage.write(
-        key: _kSesion,
-        value: jsonEncode({
-          'token': session.token,
-          'companyId': session.companyId,
-          'companyName': session.companyName,
-        }),
-      );
-    } catch (e) {
-      debugPrint('Se entró, pero no se pudo guardar la sesión: $e');
-    }
+    await _guardarSesion(session);
     // Solo tras un ingreso aceptado: una clave rechazada no se recuerda ni
     // borra la buena. Y, como la sesión, si el almacén se niega se entra
     // igual.
@@ -312,16 +352,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     state = AuthState(status: AuthStatus.authenticated, session: session);
+    _iniciarRenovacion();
     return true;
   }
 
   /// Primero el servidor revoca el token y luego se borra aquí. Si el
   /// servidor no contesta, se sale igual: `AuthApi.logout` no lanza.
   Future<void> logout() async {
+    _renovacionTimer?.cancel();
+    _renovacionTimer = null;
     final session = state.session;
     if (session != null) await api.logout(session.token);
     await _clearStored();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  @override
+  void dispose() {
+    _renovacionTimer?.cancel();
+    super.dispose();
   }
 }
 

@@ -211,6 +211,8 @@ class FleetNotifier extends StateNotifier<FleetState> {
     _socket = null;
   }
 
+  void sesionRevocada() => _cerrarPorSesion();
+
   void start() {
     final sesion = _sesion;
     if (sesion == null) return;
@@ -521,6 +523,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
     start();
   }
 
+  void cambiarToken() {
+    if (_socket == null) return;
+    start();
+  }
+
   void setRouteFilter(String? routeId) {
     state = state.copyWith(routeFilter: () => routeId);
   }
@@ -803,6 +810,16 @@ final fleetProvider = StateNotifierProvider<FleetNotifier, FleetState>((ref) {
   // entera antes de que se rehagan los providers que dependen de ella, y
   // leería la fábrica y la API del backend anterior.
   ref.listen(fleetSocketFactoryProvider, (_, _) => notifier.cambiarBackend());
+  ref.listen<AuthState>(authProvider, (anterior, siguiente) {
+    if (anterior?.session?.token != siguiente.session?.token &&
+        siguiente.session != null) {
+      notifier.cambiarToken();
+    } else if (anterior?.session != null &&
+        siguiente.session == null &&
+        siguiente.status == AuthStatus.unauthenticated) {
+      notifier.sesionRevocada();
+    }
+  });
   ref.onDispose(supervisor.dispose);
   return notifier;
 });

@@ -3,9 +3,11 @@
 Ya Viene muestra en vivo los buses urbanos de Barranquilla y a qué
 **distancia** vienen. Tres repos, una vara: calidad de producción.
 
-## La regla más importante: Codex hace, Claude revisa (dueño, 2026-10-21)
-Todo el código lo escribe **Codex** (agente `codex:codex-rescue`), en
-diseño y en todo lo demás. Claude no escribe ni reescribe código a mano:
+## La regla más importante: Codex la lógica, Claude el diseño (dueño, 2026-10-25)
+La **lógica** la escribe **Codex** (agente `codex:codex-rescue`); el
+**diseño de UI/UX** (widgets, pintores, estilos, maquetas) lo escribe
+Claude, medido y con render (antes, desde el 2026-10-21, Codex escribía
+también el diseño). En la lógica, Claude no escribe código a mano:
 le pasa el pedido a Codex, revisa lo que hizo, lo verifica (pruebas,
 analyze, render, builds, simulador e iPhone) y le devuelve las
 correcciones a Codex. Claude sí hace lo que Codex no puede: git, builds,
@@ -108,6 +110,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 13. `dart format` solo en los archivos tocados, nunca en carpetas enteras.
 14. Tono corto; al terminar solo «listo». Respuestas con la menor cantidad
     de texto posible, salvo que el dueño pida detalle.
+15. **Nada de «·»** como separador (dueño, 2026-10-23): ni en textos de
+    app, web y videos ni en lo que le escribo al dueño. Se separa con
+    comas, puntos, saltos de línea o paréntesis. Lo que ya existe con «·»
+    en la app no se toca sin que el dueño lo pida.
 
 ## Reglas del producto (no negociables)
 1. Logo intocable.
