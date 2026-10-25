@@ -12,6 +12,7 @@ import 'config.dart';
 import 'core/router/app_router.dart';
 import 'core/router/app_transitions.dart';
 import 'core/services/bus_notification_service.dart';
+import 'features/map/data/busquedas_api.dart';
 import 'features/notifications/data/avisos_push.dart';
 import 'features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
@@ -66,7 +67,12 @@ void main() async {
     ProviderScope(
       // El paquete compartido no adivina la URL: se la da la app, que es
       // quien tiene el `--dart-define` y quien sabe explicar que falta.
-      overrides: [backendUrlProvider.overrideWith(() => _backendUrl(url))],
+      overrides: [
+        backendUrlProvider.overrideWith(() => _backendUrl(url)),
+        registrarBusquedaRutaProvider.overrideWith(
+          (ref) => crearRegistradorBusqueda(() => ref.read(backendUrlProvider)),
+        ),
+      ],
       child: const YaVieneApp(),
     ),
   );

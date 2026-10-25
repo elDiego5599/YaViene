@@ -11,6 +11,7 @@ import '../../../../core/widgets/aviso_fallo.dart';
 import '../../../../core/widgets/entrance.dart';
 import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/sheet_top_border.dart';
+import '../../data/busquedas_api.dart';
 import '../providers/guia_atras.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
@@ -967,6 +968,12 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                       onTap: () {
                         HapticFeedback.selectionClick();
                         ref.read(selectedRouteProvider.notifier).select(route);
+                        final punto = ref.read(userLocationProvider);
+                        unawaited(ref.read(registrarBusquedaRutaProvider)(
+                          routeId: route.id,
+                          lat: punto.hasPosition ? punto.lat : null,
+                          lng: punto.hasPosition ? punto.lon : null,
+                        ));
                         ref
                             .read(mapGuideProvider.notifier)
                             .complete(MapGuideStep.route);

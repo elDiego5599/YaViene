@@ -23,6 +23,7 @@ import '../widgets/fleet_list_tile.dart';
 import '../widgets/route_dialog.dart';
 import '../widgets/ultimo_reporte.dart';
 import '../widgets/velocidad_bus.dart';
+import 'reportes_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -202,7 +203,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         children: [
           _seccion(
             1,
-            DashboardHeader(connection: fleet.connection, onLogout: _logout),
+            DashboardHeader(
+              connection: fleet.connection,
+              onLogout: _logout,
+              onReports: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ReportesScreen()),
+              ),
+            ),
           ),
           _seccion(
             2,
@@ -394,10 +401,12 @@ class DashboardHeader extends ConsumerWidget {
     super.key,
     required this.connection,
     required this.onLogout,
+    this.onReports,
   });
 
   final FleetConnection connection;
   final VoidCallback onLogout;
+  final VoidCallback? onReports;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -459,6 +468,29 @@ class DashboardHeader extends ConsumerWidget {
             ],
           ),
           const Spacer(),
+          if (onReports != null) ...[
+            OutlinedButton.icon(
+              onPressed: onReports,
+              icon: const Icon(Icons.insights_outlined, size: 15),
+              label: const Text('Reportes'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                side: const BorderSide(color: AppColors.borderStrong),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                textStyle: AppType.ui(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           if (enRespaldo) ...[
             Text(
               'Conectado al respaldo',

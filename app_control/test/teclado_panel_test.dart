@@ -208,12 +208,13 @@ void main() {
     await _montar(tester);
 
     final recorrido = <String>[];
-    for (var i = 0; i < 20; i++) {
+    for (var i = 0; i < 21; i++) {
       await _tecla(tester, LogicalKeyboardKey.tab);
       recorrido.add(_foco());
     }
 
     const vuelta = [
+      'Reportes',
       'Salir',
       'buscar',
       'Actualizar flota',
@@ -266,11 +267,11 @@ void main() {
       );
 
       final recorrido = <String>[];
-      for (var i = 0; i < 15; i++) {
+      for (var i = 0; i < 16; i++) {
         await _tecla(tester, LogicalKeyboardKey.tab);
         recorrido.add(_foco());
       }
-      expect(recorrido.sublist(10), [
+      expect(recorrido.sublist(11), [
         'Sin Señal',
         'AAA000',
         'Editar bus · AAA000',
@@ -309,7 +310,7 @@ void main() {
   ) async {
     await _montar(tester);
 
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < 8; i++) {
       await _tecla(tester, LogicalKeyboardKey.tab);
     }
     expect(_foco(), 'Agregar bus');

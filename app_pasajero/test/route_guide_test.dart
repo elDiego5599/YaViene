@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/features/map/data/busquedas_api.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/widgets/route_selector_sheet.dart';
 
 import 'helpers/contraste.dart';
@@ -31,6 +33,8 @@ void main() {
 
   late MapGuideNotifier guide;
   late ProviderContainer container;
+  late List<({String routeId, double? lat, double? lng})> searches;
+  late UserLocationState location;
 
   final companyGuideKey = GlobalKey();
   final companyChoiceGuideKey = GlobalKey();
@@ -76,7 +80,13 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 16));
   }
 
-  Future<void> setup(WidgetTester tester) async {
+  Future<void> setup(
+    WidgetTester tester, {
+    UserLocationState? userLocation,
+  }) async {
+    searches = [];
+    location =
+        userLocation ?? const UserLocationState(mode: UserLocationMode.denied);
     SharedPreferences.setMockInitialValues({});
     guide = MapGuideNotifier();
     await guide.initialize(
@@ -93,11 +103,61 @@ void main() {
       mapGuideProvider.overrideWith((ref) => guide),
       companiesProvider.overrideWith((ref) async => companies),
       routesByCompanyProvider.overrideWith((ref, companyId) async => routes),
+      userLocationProvider.overrideWith((ref) => _FixedLocation(location)),
+      registrarBusquedaRutaProvider.overrideWithValue(({
+        required routeId,
+        required lat,
+        required lng,
+      }) async {
+        searches.add((routeId: routeId, lat: lat, lng: lng));
+      }),
     ]);
     addTearDown(container.dispose);
     container.listen(selectedCompanyProvider, (_, __) {});
     container.listen(selectedRouteProvider, (_, __) {});
   }
+
+  Future<void> elegirRuta(WidgetTester tester) async {
+    await pumpSheet(tester);
+    await tester.tap(find.text('Empresa'));
+    await asentar(tester);
+    await tester.tap(find.text('Sobusa'));
+    await asentar(tester);
+    await tester.tap(find.text('Ruta'));
+    await asentar(tester);
+    await tester.tap(find.text('Tcherassi'));
+    await tester.pump();
+  }
+
+  testWidgets('registra una búsqueda al elegir ruta con pin GPS',
+      (tester) async {
+    await setup(tester,
+        userLocation: const UserLocationState(
+          mode: UserLocationMode.gps,
+          lat: 11.01,
+          lon: -74.82,
+        ));
+    await elegirRuta(tester);
+    expect(searches, [(routeId: 'R-101', lat: 11.01, lng: -74.82)]);
+  });
+
+  testWidgets('registra una búsqueda al elegir ruta con pin manual',
+      (tester) async {
+    await setup(tester,
+        userLocation: const UserLocationState(
+          mode: UserLocationMode.manual,
+          lat: 10.9,
+          lon: -74.7,
+        ));
+    await elegirRuta(tester);
+    expect(searches, [(routeId: 'R-101', lat: 10.9, lng: -74.7)]);
+  });
+
+  testWidgets('registra una búsqueda sin celda si no hay pin', (tester) async {
+    await setup(tester);
+    await elegirRuta(tester);
+    expect(searches, [(routeId: 'R-101', lat: null, lng: null)]);
+  });
 
   testWidgets('la guía acompaña empresa, ruta y buses en vivo', (tester) async {
     await setup(tester);
@@ -238,4 +298,10 @@ void main() {
     expect(find.text('Elige tu ruta'), findsNothing);
     expect(find.text('abrir'), findsOneWidget);
   });
+}
+
+class _FixedLocation extends UserLocationNotifier {
+  _FixedLocation(UserLocationState initial) {
+    state = initial;
+  }
 }

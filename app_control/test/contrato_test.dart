@@ -29,6 +29,8 @@ import 'package:ya_viene_control/features/auth/presentation/providers/auth_provi
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
+import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_provider.dart'
+    show CeldaBusqueda, RutaBusquedas;
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
 
@@ -49,6 +51,8 @@ class _Contrato implements HttpClientAdapter {
     'POST /api/admin/login': 'rest-admin-login',
     'GET /api/fleet/positions': 'rest-fleet-positions',
     'GET /api/fleet/routes': 'rest-fleet-routes',
+    'GET /api/panel/busquedas': 'rest-panel-busquedas',
+    'GET /api/panel/busquedas/R-101/calor': 'rest-panel-busquedas-calor',
     'POST /api/fleet/buses': 'rest-fleet-bus-created',
     'PATCH /api/fleet/buses/BUS-XYZ987': 'rest-fleet-bus-updated',
     'POST /api/fleet/buses/visibility': 'rest-fleet-visibility-all',
@@ -130,6 +134,54 @@ void main() {
     expect(rutas.first.name, 'B18 Tcherassi');
     expect(rutas.first.total, 2);
     expect(rutas.first.online, 2);
+
+    final reportes = await api.fetchSearchReports(
+      'tok',
+      desde: DateTime.utc(2000),
+      hasta: DateTime.utc(2100),
+    );
+    final rutasBusquedas = (reportes['rutas'] as List)
+        .map(
+          (item) =>
+              RutaBusquedas.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+    expect(rutasBusquedas, hasLength(6));
+    final rutaConBusquedas = rutasBusquedas.singleWhere(
+      (ruta) => ruta.id == 'R-101',
+    );
+    expect(rutaConBusquedas.nombre, 'B18 Tcherassi');
+    expect(rutaConBusquedas.total, 5);
+    expect(rutaConBusquedas.porHora, hasLength(24));
+    final maximoPorHora = rutaConBusquedas.porHora.reduce(
+      (a, b) => a > b ? a : b,
+    );
+    expect(rutaConBusquedas.porHora[rutaConBusquedas.horaPico!], maximoPorHora);
+    final rutasSinBusquedas = rutasBusquedas
+        .where((ruta) => ruta.total == 0)
+        .toList();
+    expect(rutasSinBusquedas, isNotEmpty);
+    expect(
+      rutasSinBusquedas.map((ruta) => ruta.horaPico),
+      everyElement(isNull),
+    );
+
+    final calor = await api.fetchSearchHeatmap(
+      'tok',
+      routeId: 'R-101',
+      desde: DateTime.utc(2000),
+      hasta: DateTime.utc(2100),
+    );
+    final celdas = (calor['celdas'] as List)
+        .map(
+          (item) =>
+              CeldaBusqueda.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+    expect(celdas, hasLength(1));
+    expect(celdas.single.count, 5);
+    expect(celdas.single.lat, 10.99035);
+    expect(celdas.single.lng, -74.78967);
 
     final creado = await api.createBus(
       'tok',

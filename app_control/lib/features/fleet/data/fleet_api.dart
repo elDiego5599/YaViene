@@ -67,6 +67,47 @@ class FleetApi {
         .toList();
   }
 
+  Future<Map<String, dynamic>> fetchSearchReports(
+    String? token, {
+    required DateTime desde,
+    required DateTime hasta,
+    int? hora,
+  }) async {
+    final response = await _guard(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/panel/busquedas',
+        queryParameters: {
+          'desde': desde.toUtc().toIso8601String(),
+          'hasta': hasta.toUtc().toIso8601String(),
+          'hora': ?hora,
+        },
+        options: _auth(token),
+      ),
+    );
+    return response.data!;
+  }
+
+  Future<Map<String, dynamic>> fetchSearchHeatmap(
+    String? token, {
+    required String routeId,
+    required DateTime desde,
+    required DateTime hasta,
+    int? hora,
+  }) async {
+    final response = await _guard(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/panel/busquedas/${Uri.encodeComponent(routeId)}/calor',
+        queryParameters: {
+          'desde': desde.toUtc().toIso8601String(),
+          'hasta': hasta.toUtc().toIso8601String(),
+          'hora': ?hora,
+        },
+        options: _auth(token),
+      ),
+    );
+    return response.data!;
+  }
+
   Future<FleetBus> setVisibility(
     String? token,
     String busId,
