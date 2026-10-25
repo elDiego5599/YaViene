@@ -278,7 +278,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   logo, punto y campana parten en x=18. A la derecha «Tu punto» termina donde
   el aro de destino: radio 7 + 3 de expansión; márgenes totales 8 + 9 en la
   pista y 8 + 6 en el rótulo dejan ambos bordes en ancho - 14.
-  La línea baja 4 pt (12 arriba); el espacio sobre ella es 22 pt en la tarjeta.
+  En la isla todo sube 4 pt (8 arriba, 14 abajo, el logo con offset -4; dueño, 2026-10-25); el espacio sobre la línea es 22 pt en la tarjeta.
   El título resalta X en verde #00A859 bold (6,75:1 sobre negro), solo antes
   de llegar; caduco conserva opacidad 0,5. La campana marca dónde suena el
   aviso;

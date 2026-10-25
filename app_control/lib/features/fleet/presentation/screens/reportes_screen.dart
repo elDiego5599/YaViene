@@ -8,15 +8,19 @@ import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
 import '../../../../core/theme/app_theme.dart';
 import '../providers/reportes_provider.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
 
+// La escala del video: verde donde casi no buscan, amarillo, naranja y el
+// rojo de los focos. Es continua: un foco pasa por todos los tonos hasta
+// su borde verde, como un mapa de calor de verdad.
 const _coloresCalor = [
-  Color(0xFFB5D4F4),
-  Color(0xFF378ADD),
-  Color(0xFFEF9F27),
+  Color(0xFF7CC04A),
+  Color(0xFFF4C430),
+  Color(0xFFF28B2C),
   Color(0xFFE24B4A),
 ];
 
@@ -884,6 +888,8 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
   final _controller = MapController();
   List<LatLng> _routePoints = const [];
   bool _mapReady = false;
+  // Al abrir se ve solo la ruta; el calor se pinta cuando el dueño lo pide.
+  bool _pintado = false;
 
   @override
   void initState() {
@@ -980,12 +986,6 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
                 sprites: style.sprites,
                 tileProviders: style.providers,
               ),
-            _CapaCalor(
-              key: ValueKey('capa-calor-${widget.routeId}'),
-              cells: widget.cells,
-              maxCount: maxCount,
-              puntos: false,
-            ),
             if (_routePoints.length > 1)
               PolylineLayer(
                 polylines: [
@@ -1015,10 +1015,23 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
                   ),
                 ],
               ),
-            // Los puntos van sobre la ruta para que se lea en qué calle cae
-            // cada zona; las manchas quedan debajo para no taparla.
-            _CapaCalor(cells: widget.cells, maxCount: maxCount, puntos: true),
+            // La mancha va encima de la ruta, como en el video: en un foco
+            // el rojo tapa la línea y se lee que ahí piden el bus.
+            if (_pintado)
+              _CapaCalor(
+                key: ValueKey('capa-calor-${widget.routeId}'),
+                cells: widget.cells,
+                maxCount: maxCount,
+              ),
           ],
+        ),
+        Positioned(
+          left: 16,
+          top: 16,
+          child: _BotonPintar(
+            pintado: _pintado,
+            onTap: () => setState(() => _pintado = !_pintado),
+          ),
         ),
         Positioned(
           left: 16,
@@ -1026,8 +1039,18 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
           child: Row(
             children: [
               _PildoraHora(hora: widget.hora),
-              const SizedBox(width: 8),
-              _LeyendaCalor(maxCount: maxCount),
+              // La leyenda solo explica lo que está pintado.
+              AnimatedSwitcher(
+                duration: AppMotion.duracion(context, AppMotion.rapido),
+                switchInCurve: AppMotion.curvaEntrada,
+                switchOutCurve: AppMotion.curvaSalida,
+                child: _pintado
+                    ? Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: _LeyendaCalor(maxCount: maxCount),
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
@@ -1038,22 +1061,14 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
 }
 
 /// Manchas de calor como las del video de Control: cada zona es un halo
-/// radial medido en metros (crece y encoge con el zoom, como la calle), y
-/// los halos se multiplican entre sí para que dos zonas juntas se oscurezcan
-/// en vez de taparse. Los anillos usan los colores exactos de la escala, un
-/// escalón más frío por anillo, para no pasar por los grises que salen de
-/// mezclar azul con ámbar.
+/// radial medido en metros (crece y encoge con el zoom, como la calle) que
+/// baja por la escala continua verde, amarillo, naranja y rojo. Sin puntos
+/// encima: el video solo muestra la banda y sus focos.
 class _CapaCalor extends StatelessWidget {
-  const _CapaCalor({
-    super.key,
-    required this.cells,
-    required this.maxCount,
-    required this.puntos,
-  });
+  const _CapaCalor({super.key, required this.cells, required this.maxCount});
 
   final List<CeldaBusqueda> cells;
   final int maxCount;
-  final bool puntos;
 
   @override
   Widget build(BuildContext context) => MobileLayerTransformer(
@@ -1064,7 +1079,6 @@ class _CapaCalor extends StatelessWidget {
           camera: MapCamera.of(context),
           cells: cells,
           maxCount: maxCount,
-          puntos: puntos,
         ),
       ),
     ),
@@ -1076,22 +1090,20 @@ class _PintorCalor extends CustomPainter {
     required this.camera,
     required this.cells,
     required this.maxCount,
-    required this.puntos,
   });
 
   final MapCamera camera;
   final List<CeldaBusqueda> cells;
   final int maxCount;
-  final bool puntos;
 
-  // En el video un halo cubre de 1 a 2,5 veces el ancho de su zona. Aquí
-  // una celda mide unos 150 m (`PASO_LAT` del backend), así que el halo va
-  // de 450 a 1.550 m: se funden las vecinas en una sola zona y en metros
-  // se queda sobre las mismas cuadras al hacer zoom.
-  static const _radioMetros = 450.0;
-  static const _radioExtraMetros = 1100.0;
-  // Bajo 34 px el halo de una zona fría se pierde al alejar el mapa.
-  static const _radioMinimoPx = 34.0;
+  // Una celda mide unos 150 m (`PASO_LAT` del backend). Con halos de 380 m
+  // las vecinas se funden en una banda continua por la ruta, como en el
+  // video, y los focos crecen hasta 900 m sin tapar las calles de al lado.
+  // En metros, la banda queda sobre las mismas cuadras al hacer zoom.
+  static const _radioMetros = 380.0;
+  static const _radioExtraMetros = 520.0;
+  // Bajo 26 px el halo de una zona fría se pierde al alejar el mapa.
+  static const _radioMinimoPx = 26.0;
 
   // Web Mercator: 256 px por tesela y 40.075.016,7 m de ecuador.
   double _pxPorMetro(double lat) =>
@@ -1105,37 +1117,27 @@ class _PintorCalor extends CustomPainter {
     final ordenadas = [...cells]..sort((a, b) => a.count.compareTo(b.count));
     for (final cell in ordenadas) {
       final centro = camera.getOffsetFromOrigin(LatLng(cell.lat, cell.lng));
-      final nivel = _nivelCalor(cell.count, maxCount);
       final intensidad = (cell.count / maxCount).clamp(0.0, 1.0);
-      if (puntos) {
-        final radio = 3.5 + 2.5 * intensidad;
-        canvas
-          ..drawCircle(centro, radio + 1.5, Paint()..color = Colors.white)
-          ..drawCircle(centro, radio, Paint()..color = _coloresCalor[nivel]);
-        continue;
-      }
       final radio = math.max(
         _radioMinimoPx,
         (_radioMetros + _radioExtraMetros * intensidad) * _pxPorMetro(cell.lat),
       );
-      // Paradas y opacidades de `Calor` en el video; las zonas frías bajan
-      // hasta el 55 % para que el ojo vaya primero a las calientes.
-      final peso = 0.55 + 0.45 * intensidad;
-      Color anillo(int pasos, double alpha) =>
-          _coloresCalor[math.max(0, nivel - pasos)].withValues(
-            alpha: alpha * peso,
-          );
-      // Sin `multiply`, el del video: aquí las zonas se tocan y el naranja
-      // sobre el azul daba café; encima, en orden, la caliente se ve limpia.
+      // Cada zona se apaga en su propio tono: si el anillo bajara a verde,
+      // el borde verde de un foco taparía a sus vecinas naranja y el foco
+      // quedaría en un punto. Así el degradado del video lo dan los datos
+      // (los conteos bajan del foco hacia la banda). Las frías van al 50 %
+      // para que la ruta se lea debajo y el ojo vaya primero a los focos.
+      final color = _colorEnEscala(intensidad);
+      final peso = 0.5 + 0.5 * intensidad;
       final pintura = Paint()
         ..shader = RadialGradient(
           colors: [
-            anillo(0, 0.95),
-            anillo(1, 0.75),
-            anillo(2, 0.45),
-            anillo(2, 0),
+            color.withValues(alpha: 0.85 * peso),
+            color.withValues(alpha: 0.6 * peso),
+            color.withValues(alpha: 0.25 * peso),
+            color.withValues(alpha: 0),
           ],
-          stops: const [0, 0.35, 0.65, 1],
+          stops: const [0, 0.35, 0.7, 1],
         ).createShader(Rect.fromCircle(center: centro, radius: radio));
       canvas.drawCircle(centro, radio, pintura);
     }
@@ -1145,8 +1147,72 @@ class _PintorCalor extends CustomPainter {
   bool shouldRepaint(_PintorCalor oldDelegate) =>
       oldDelegate.camera != camera ||
       oldDelegate.cells != cells ||
-      oldDelegate.maxCount != maxCount ||
-      oldDelegate.puntos != puntos;
+      oldDelegate.maxCount != maxCount;
+}
+
+/// Píldora que pinta o quita el calor. Apagada va blanca como las demás
+/// del mapa; encendida, llena en el azul de botón con letra blanca
+/// (#1E56A8 con blanco da 7,1:1).
+class _BotonPintar extends StatelessWidget {
+  const _BotonPintar({required this.pintado, required this.onTap});
+  final bool pintado;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tinta = pintado ? Colors.white : AppColors.navy;
+    return Semantics(
+      button: true,
+      toggled: pintado,
+      label: 'Pintar mapa de calor',
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const ValueKey('alternar-calor'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: AnimatedContainer(
+              duration: AppMotion.duracion(context, AppMotion.rapido),
+              curve: AppMotion.curvaCambio,
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+              decoration: BoxDecoration(
+                color: pintado
+                    ? AppColors.boton
+                    : AppColors.surface.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(
+                  color: pintado ? AppColors.boton : AppColors.border,
+                ),
+                boxShadow: AppColors.sombraTarjeta,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    pintado
+                        ? Icons.layers_clear_outlined
+                        : Icons.local_fire_department_outlined,
+                    size: 15,
+                    color: tinta,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    pintado ? 'Quitar calor' : 'Pintar calor',
+                    style: AppType.ui(
+                      color: tinta,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _PildoraHora extends StatelessWidget {
@@ -1208,18 +1274,16 @@ class _LeyendaCalor extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            for (var index = 1; index <= _coloresCalor.length; index++) ...[
-              Container(
-                key: ValueKey('leyenda-calor-$index'),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: _colorCalor(index, _coloresCalor.length),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            // La barra continua del video, con la misma escala del mapa.
+            Container(
+              key: const ValueKey('leyenda-calor'),
+              width: 72,
+              height: 8,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: _coloresCalor),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
-              if (index < _coloresCalor.length) const SizedBox(width: 3),
-            ],
+            ),
             const SizedBox(width: 8),
             Text(
               'Más',
@@ -1273,16 +1337,15 @@ String _formatearTotal(int value) {
 }
 
 // Las horas sin búsquedas van en el gris del filo: se ve el hueco, pero no
-// se confunde con el azul claro de las horas con pocas búsquedas.
+// se confunde con el verde de las horas con pocas búsquedas.
 Color _colorCalor(int count, int maxCount) {
   if (count <= 0 || maxCount <= 0) return AppColors.border;
-  return _coloresCalor[_nivelCalor(count, maxCount)];
+  return _colorEnEscala(count / maxCount);
 }
 
-/// Cuartil de 0 a 3 dentro de [_coloresCalor]; pide `count > 0`.
-int _nivelCalor(int count, int maxCount) =>
-    ((count / maxCount) * _coloresCalor.length)
-        .ceil()
-        .clamp(1, _coloresCalor.length)
-        .toInt() -
-    1;
+/// El tono de [_coloresCalor] para `t` de 0 (verde) a 1 (rojo), sin saltos.
+Color _colorEnEscala(double t) {
+  final x = t.clamp(0.0, 1.0) * (_coloresCalor.length - 1);
+  final i = math.min(x.floor(), _coloresCalor.length - 2);
+  return Color.lerp(_coloresCalor[i], _coloresCalor[i + 1], x - i)!;
+}

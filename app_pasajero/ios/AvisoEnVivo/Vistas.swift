@@ -85,6 +85,9 @@ struct IslaLider: View {
       .fixedSize(horizontal: true, vertical: false)
       .padding(.leading, 6)
       .frame(maxHeight: .infinity, alignment: .center)
+      // 4 pt arriba, igual que la pista de abajo: en el iPhone sobraban
+      // 26 pt sobre el logo y 12 bajo el rótulo (dueño, 2026-10-25).
+      .offset(y: -4)
       .opacity(caduco ? 0.5 : 1)
   }
 }
@@ -111,11 +114,12 @@ struct IslaAbajo: View {
           .offset(y: -6)
       }
     }
-    // 12 pt arriba bajan la pista 4; quedan 10 abajo. El inset exterior de
-    // 8 pt protege la esquina redonda sin cambiar la alineación interior.
-    .padding(.top, 12)
+    // 8 pt arriba y 14 abajo suben pista y rótulo 4 pt, con el logo
+    // (dueño, 2026-10-25). El inset exterior de 8 pt protege la esquina
+    // redonda sin cambiar la alineación interior.
+    .padding(.top, 8)
     .padding(.horizontal, 8)
-    .padding(.bottom, 10)
+    .padding(.bottom, 14)
   }
 }
 

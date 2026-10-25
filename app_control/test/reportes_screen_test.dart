@@ -255,10 +255,12 @@ void main() {
     falla = false;
     await tester.tap(find.byKey(const ValueKey('reintentar-calor')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
   });
 
-  testWidgets('el mapa pinta las manchas, la ruta y la leyenda', (
+  testWidgets('el mapa abre sin pintar y el botón pinta y quita el calor', (
     tester,
   ) async {
     await _montar(
@@ -267,10 +269,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(PolylineLayer), findsOneWidget);
+    expect(find.byKey(const ValueKey('capa-calor-R1')), findsNothing);
+    expect(find.byKey(const ValueKey('leyenda-calor')), findsNothing);
+    expect(find.text('Pintar calor'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Quitar calor'), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
     expect(find.text('Todo el día'), findsNWidgets(2));
     expect(find.byType(PolylineLayer), findsOneWidget);
     expect(find.text('Menos'), findsOneWidget);
     expect(find.text('Más'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('capa-calor-R1')), findsNothing);
+    expect(find.text('Menos'), findsNothing);
   });
 }
