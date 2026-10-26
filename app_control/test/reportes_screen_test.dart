@@ -271,9 +271,7 @@ void main() {
     expect(find.byKey(const ValueKey('hora-mapa-pico')), findsNothing);
   });
 
-  testWidgets('ruta sin calor deja la ruta y lo dice en una línea', (
-    tester,
-  ) async {
+  testWidgets('ruta sin calor lo dice en una línea', (tester) async {
     await _montar(
       tester,
       cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
@@ -281,7 +279,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Sin zonas con 5 búsquedas o más'), findsOneWidget);
-    expect(find.byType(PolylineLayer), findsOneWidget);
     expect(find.byKey(const ValueKey('ruta-mapa-R1')), findsOneWidget);
   });
 
@@ -305,7 +302,7 @@ void main() {
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
   });
 
-  testWidgets('el mapa siempre va pintado, sin botón para quitarlo', (
+  testWidgets('el calor siempre va pintado y la ruta solo con su botón', (
     tester,
   ) async {
     await _montar(
@@ -314,8 +311,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(PolylineLayer), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
+    // La ruta arranca sin pintar; el botón la pone y la quita (dueño,
+    // 2026-10-26).
+    expect(find.byType(PolylineLayer), findsNothing);
+    final boton = find.byKey(const ValueKey('alternar-ruta'));
+    expect(boton, findsOneWidget);
+    expect(find.text('Ver ruta'), findsOneWidget);
+    await tester.tap(boton);
+    await tester.pumpAndSettle();
+    expect(find.byType(PolylineLayer), findsOneWidget);
+    expect(find.text('Quitar ruta'), findsOneWidget);
     // La ruta va debajo del calor y translúcida, para que el calor mande
     // (dueño, 2026-10-26).
     final capas = tester.widget<FlutterMap>(find.byType(FlutterMap)).children;
@@ -328,6 +334,10 @@ void main() {
     for (final l in lineas) {
       expect(l.color.a, lessThanOrEqualTo(0.5));
     }
+    await tester.tap(boton);
+    await tester.pumpAndSettle();
+    expect(find.byType(PolylineLayer), findsNothing);
+
     expect(find.byKey(const ValueKey('leyenda-calor')), findsOneWidget);
     expect(find.text('Menos'), findsOneWidget);
     expect(find.text('Más'), findsOneWidget);

@@ -73,7 +73,7 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
         : widget.horas[elegida - primeraHoraServicio];
     return Padding(
       key: const ValueKey('ocupacion'),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -83,7 +83,7 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                 'Ocupación',
                 style: AppType.ui(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -128,10 +128,10 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          // 32 px con o sin viajes: las barras no saltan.
+          const SizedBox(height: 14),
+          // 40 px con o sin viajes: las barras no saltan.
           SizedBox(
-            height: 32,
+            height: 40,
             child: pct == null || elegida == null
                 ? Align(
                     alignment: Alignment.centerLeft,
@@ -147,18 +147,18 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                   )
                 : Row(
                     children: [
-                      // 30 px con tracking negativo, como el total de cada
-                      // ruta; en tinta, porque los tonos de la escala no
+                      // 36 px con tracking negativo, más que el total de cada
+                      // ruta, porque es la cifra que se busca; en tinta, porque los tonos de la escala no
                       // llegan a 4,5:1 sobre blanco.
                       Text(
                         '$pct %',
                         key: const ValueKey('aforo-cifra'),
                         style: AppType.ui(
                           color: AppColors.navy,
-                          fontSize: 30,
+                          fontSize: 36,
                           fontWeight: FontWeight.w800,
                           height: 1,
-                          letterSpacing: -0.8,
+                          letterSpacing: -1,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -173,7 +173,7 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                           overflow: TextOverflow.ellipsis,
                           style: AppType.ui(
                             color: AppColors.textSecondary,
-                            fontSize: 12.5,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -181,7 +181,7 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                     ],
                   ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -197,12 +197,12 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           // Un eje fijo bajo la primera barra de cada seis horas: los
           // extremos se alinean al borde y nunca se salen de la tarjeta.
           SizedBox(
             key: const ValueKey('ocupacion-eje'),
-            height: 13,
+            height: 15,
             child: Stack(
               children: [
                 for (final i in const [0, 6, 12, 18])
@@ -217,7 +217,7 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                       maxLines: 1,
                       style: AppType.ui(
                         color: AppColors.textMuted,
-                        fontSize: 9.5,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -294,8 +294,9 @@ class _Barra extends StatefulWidget {
 }
 
 class _BarraState extends State<_Barra> {
-  // 56 px: bajo el ranking las barras son el índice, no el dato.
-  static const _alto = 56.0;
+  // 96 px: la ocupación tiene su espacio bajo el ranking y la diferencia
+  // entre horas se ve sin leer cifras (dueño, 2026-10-26).
+  static const _alto = 96.0;
   var _encima = false;
   var _presionada = false;
 

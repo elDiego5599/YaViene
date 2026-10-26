@@ -1132,6 +1132,8 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   final _controller = MapController();
   List<LatLng> _routePoints = const [];
   bool _mapReady = false;
+  // La ruta arranca sin pintar: el calor se lee solo (dueño, 2026-10-26).
+  bool _verRuta = false;
   late final _calor = AnimationController(vsync: this);
   late final _nivel = CurvedAnimation(
     parent: _calor,
@@ -1269,7 +1271,7 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
               ),
             // La ruta va debajo del calor y a media luz (dueño, 2026-10-26):
             // el calor manda y la línea solo asoma por dónde pasa.
-            if (_routePoints.length > 1)
+            if (_verRuta && _routePoints.length > 1)
               PolylineLayer(
                 polylines: [
                   Polyline(
@@ -1324,6 +1326,14 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
             hora: widget.hora,
             sinZonas: widget.cells.isEmpty && !widget.cargando,
             onSelectHour: widget.onSelectHour,
+          ),
+        ),
+        Positioned(
+          top: 14,
+          right: 14,
+          child: _BotonRuta(
+            pintada: _verRuta,
+            onTap: () => setState(() => _verRuta = !_verRuta),
           ),
         ),
         const Positioned(right: 8, bottom: 5, child: _AtribucionMapa()),
@@ -1650,11 +1660,11 @@ class _HorasMapa extends StatelessWidget {
   final bool sinZonas;
   final ValueChanged<int?> onSelectHour;
 
-  // 336 px: con 12 de aire por lado quedan 312 para 24 barras de 11 px y
-  // 23 huecos de 2 px, el ancho más chico que todavía se apunta con el
-  // ratón sin errar de hora.
-  static const _ancho = 336.0;
-  static const _altoBarras = 30.0;
+  // 420 px, un cuarto más que antes para leerse de lejos (dueño,
+  // 2026-10-26): con 14 de aire por lado quedan 392 para 24 barras de
+  // 14,4 px y 23 huecos de 2 px.
+  static const _ancho = 420.0;
+  static const _altoBarras = 40.0;
 
   @override
   Widget build(BuildContext context) {
@@ -1667,12 +1677,12 @@ class _HorasMapa extends StatelessWidget {
     };
     final pie = AppType.ui(
       color: AppColors.textSecondary,
-      fontSize: 9.5,
+      fontSize: 11.5,
       fontWeight: FontWeight.w700,
     );
     return Container(
       width: _ancho,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1690,8 +1700,8 @@ class _HorasMapa extends StatelessWidget {
                 Container(
                   key: ValueKey('ruta-mapa-$routeId'),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
+                    horizontal: 8,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.boton,
@@ -1701,7 +1711,7 @@ class _HorasMapa extends StatelessWidget {
                     codigo,
                     style: AppType.ui(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1716,7 +1726,7 @@ class _HorasMapa extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppType.ui(
                     color: AppColors.navy,
-                    fontSize: 11,
+                    fontSize: 13.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1736,7 +1746,7 @@ class _HorasMapa extends StatelessWidget {
                       'Todo el día',
                       style: AppType.ui(
                         color: AppColors.boton,
-                        fontSize: 10.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1744,10 +1754,10 @@ class _HorasMapa extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           // El punto navy sobre la barra más alta: el pico se ve sin leerlo.
           SizedBox(
-            height: 7,
+            height: 9,
             child: Row(
               children: [
                 for (var h = 0; h < 24; h++)
@@ -1759,8 +1769,8 @@ class _HorasMapa extends StatelessWidget {
                               alignment: Alignment.topCenter,
                               child: Container(
                                 key: const ValueKey('hora-mapa-pico'),
-                                width: 5,
-                                height: 5,
+                                width: 6,
+                                height: 6,
                                 decoration: const BoxDecoration(
                                   color: AppColors.navy,
                                   shape: BoxShape.circle,
@@ -1808,14 +1818,14 @@ class _HorasMapa extends StatelessWidget {
                     overflow: TextOverflow.clip,
                     style: AppType.ui(
                       color: AppColors.textMuted,
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           if (sinZonas)
             Text(
               'Sin zonas con 5 búsquedas o más',
@@ -1835,7 +1845,7 @@ class _HorasMapa extends StatelessWidget {
                     Expanded(
                       child: Container(
                         key: const ValueKey('leyenda-calor'),
-                        height: 4,
+                        height: 6,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(colors: coloresCalor),
                           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -1849,6 +1859,66 @@ class _HorasMapa extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Píldora que pinta o quita la ruta. Apagada va blanca como la tarjeta de
+/// las horas; encendida, llena en el azul de botón con letra blanca
+/// (#1E56A8 con blanco da 7,1:1).
+class _BotonRuta extends StatelessWidget {
+  const _BotonRuta({required this.pintada, required this.onTap});
+
+  final bool pintada;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tinta = pintada ? Colors.white : AppColors.navy;
+    return Semantics(
+      button: true,
+      toggled: pintada,
+      label: 'Pintar la ruta',
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const ValueKey('alternar-ruta'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: AnimatedContainer(
+              duration: AppMotion.duracion(context, AppMotion.rapido),
+              curve: AppMotion.curvaCambio,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: pintada
+                    ? AppColors.boton
+                    : AppColors.surface.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(
+                  color: pintada ? AppColors.boton : AppColors.border,
+                ),
+                boxShadow: AppColors.sombraTarjeta,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.route_outlined, size: 16, color: tinta),
+                  const SizedBox(width: 6),
+                  Text(
+                    pintada ? 'Quitar ruta' : 'Ver ruta',
+                    style: AppType.ui(
+                      color: tinta,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
