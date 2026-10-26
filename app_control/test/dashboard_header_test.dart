@@ -152,8 +152,7 @@ void main() {
     expect(deco.color, AppColors.surface);
 
     for (final texto in [
-      'YA VIENE',
-      'CONTROL DE FLOTA',
+      'Reportes',
       'Conectado al respaldo',
       'Salir',
       'En línea',
@@ -164,5 +163,36 @@ void main() {
         reason: '«$texto» sobre la cabecera blanca',
       );
     }
+  });
+
+  // El rótulo «YA VIENE / CONTROL DE FLOTA» se va y en su sitio quedan dos
+  // pestañas firmes (dueño, 2026-10-26): la elegida, llena en el azul de
+  // botón con letra blanca; la otra, gris sobre el riel.
+  testWidgets('la cabecera lleva Flota y Reportes como pestañas', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      () => BackendUrl(principal, principal: principal, respaldo: respaldo),
+    );
+
+    expect(find.text('YA VIENE'), findsNothing);
+    expect(find.text('CONTROL DE FLOTA'), findsNothing);
+    expect(find.byKey(const ValueKey('pestana-flota')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pestana-reportes')), findsOneWidget);
+    expect(_letra(tester, 'Flota'), AppColors.surface);
+    expect(
+      _contraste(AppColors.surface, AppColors.boton),
+      greaterThanOrEqualTo(4.5),
+    );
+    // Van a la izquierda, donde estaba el rótulo, y del mismo alto.
+    final flota = tester.getRect(find.byKey(const ValueKey('pestana-flota')));
+    final reportes = tester.getRect(
+      find.byKey(const ValueKey('pestana-reportes')),
+    );
+    expect(flota.left, lessThan(200));
+    expect(reportes.left, greaterThan(flota.right - 1));
+    expect(reportes.height, flota.height);
+    expect(flota.height, greaterThanOrEqualTo(36));
   });
 }

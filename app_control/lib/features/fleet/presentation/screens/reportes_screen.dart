@@ -58,7 +58,6 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
             _CabeceraReportes(
               hora: _hora,
               periodo: _periodo,
-              onBack: () => Navigator.of(context).maybePop(),
               onSelectHour: _seleccionarHora,
               onSelectPeriodo: (periodo) => setState(() => _periodo = periodo),
             ),
@@ -219,14 +218,12 @@ class _CabeceraReportes extends StatelessWidget {
   const _CabeceraReportes({
     required this.hora,
     required this.periodo,
-    required this.onBack,
     required this.onSelectHour,
     required this.onSelectPeriodo,
   });
 
   final int? hora;
   final PeriodoReporte periodo;
-  final VoidCallback onBack;
   final ValueChanged<int?> onSelectHour;
   final ValueChanged<PeriodoReporte> onSelectPeriodo;
 
@@ -280,33 +277,15 @@ class _CabeceraReportes extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
     child: Row(
       children: [
-        OutlinedButton.icon(
-          key: const ValueKey('volver-reportes'),
-          onPressed: onBack,
-          icon: const Icon(Icons.arrow_back, size: 17),
-          label: const Text('Volver'),
-          style: _estiloContorno(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        // Sin «Volver» ni el título: Reportes es una pestaña de la
+        // cabecera del panel, que ya lo dice (dueño, 2026-10-26).
+        Text(
+          periodoSubtitulo(periodo),
+          style: AppType.ui(
+            color: AppColors.navy,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
           ),
-        ),
-        const SizedBox(width: 18),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Reportes',
-              style: TextStyle(
-                color: AppColors.navy,
-                fontSize: 21,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              periodoSubtitulo(periodo),
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-          ],
         ),
         const Spacer(),
         MenuAnchor(

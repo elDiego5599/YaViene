@@ -31,7 +31,9 @@ import 'package:ya_viene_control/features/fleet/data/fleet_socket_service.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_bus.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
+import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/screens/dashboard_screen.dart';
+import 'package:ya_viene_control/features/fleet/presentation/screens/reportes_screen.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/fleet_list_tile.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
@@ -99,11 +101,15 @@ ProviderContainer? _contenedor;
 _FakeSocket? _socket;
 _FakeFleetApi? _api;
 
-Future<void> _montar(WidgetTester tester) async {
+Future<void> _montar(
+  WidgetTester tester, {
+  List<Override> overrides = const [],
+}) async {
   await tester.binding.setSurfaceSize(const Size(1600, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final container = ProviderContainer(
     overrides: [
+      ...overrides,
       backendUrlProvider.overrideWith(
         () => BackendUrl.fija('http://localhost:3000'),
       ),
@@ -208,12 +214,13 @@ void main() {
     await _montar(tester);
 
     final recorrido = <String>[];
-    for (var i = 0; i < 21; i++) {
+    for (var i = 0; i < 22; i++) {
       await _tecla(tester, LogicalKeyboardKey.tab);
       recorrido.add(_foco());
     }
 
     const vuelta = [
+      'Flota',
       'Reportes',
       'Salir',
       'buscar',
@@ -238,6 +245,51 @@ void main() {
     expect(tester.takeException(), isNull);
     await _desmontar(tester);
   }, variant: _escritorio);
+
+  // Flota y Reportes son dos pestañas de la cabecera (dueño, 2026-10-26):
+  // Reportes ya no tapa el panel con su propia pantalla y su «Volver»; la
+  // cabecera se queda y la flota sigue montada detrás, con su mapa.
+  testWidgets('Reportes es una pestaña: la cabecera se queda y Flota vuelve', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      overrides: [
+        reportesRutasProvider.overrideWith(
+          (ref, args) => Completer<List<RutaBusquedas>>().future,
+        ),
+      ],
+    );
+
+    bool elegida(String clave) => tester
+        .getSemantics(find.byKey(ValueKey(clave)))
+        .flagsCollection
+        .isSelected
+        .toBoolOrNull()!;
+
+    expect(find.byType(ReportesScreen), findsNothing);
+    expect(elegida('pestana-flota'), isTrue);
+    expect(elegida('pestana-reportes'), isFalse);
+
+    await tester.tap(find.byKey(const ValueKey('pestana-reportes')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(ReportesScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('cabecera')), findsOneWidget);
+    expect(find.byKey(const ValueKey('volver-reportes')), findsNothing);
+    expect(elegida('pestana-reportes'), isTrue);
+    expect(find.text('buscar'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('pestana-flota')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(elegida('pestana-flota'), isTrue);
+    expect(find.byKey(const ValueKey('barra-flota')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _desmontar(tester);
+  });
 
   testWidgets(
     'un bus que llega después entra a Tab en su sitio de la lista',
@@ -267,11 +319,11 @@ void main() {
       );
 
       final recorrido = <String>[];
-      for (var i = 0; i < 16; i++) {
+      for (var i = 0; i < 17; i++) {
         await _tecla(tester, LogicalKeyboardKey.tab);
         recorrido.add(_foco());
       }
-      expect(recorrido.sublist(11), [
+      expect(recorrido.sublist(12), [
         'Sin Señal',
         'AAA000',
         'Editar bus · AAA000',
@@ -310,7 +362,7 @@ void main() {
   ) async {
     await _montar(tester);
 
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 9; i++) {
       await _tecla(tester, LogicalKeyboardKey.tab);
     }
     expect(_foco(), 'Agregar bus');

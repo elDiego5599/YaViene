@@ -9,6 +9,7 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
     show enRespaldoProvider;
 import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 import 'package:ya_viene_core/shared/widgets/recuadro_latencia.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/ventana.dart';
@@ -32,8 +33,14 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
+/// Las dos pestañas de la cabecera del panel.
+enum PestanaPanel { flota, reportes }
+
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with WidgetsBindingObserver {
+  PestanaPanel _pestana = PestanaPanel.flota;
+  bool _reportesAbiertos = false;
+
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode(debugLabel: 'buscar');
   String _query = '';
@@ -185,7 +192,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       control: defaultTargetPlatform != TargetPlatform.macOS,
     );
     return CallbackShortcuts(
-      bindings: {buscar: _searchFocus.requestFocus},
+      // En Reportes la búsqueda no está a la vista: el atajo no hace nada.
+      bindings: {
+        if (_pestana == PestanaPanel.flota) buscar: _searchFocus.requestFocus,
+      },
       child: FocusTraversalGroup(
         policy: OrderedTraversalPolicy(),
         child: _cuerpo(fleet, buses),
@@ -206,140 +216,170 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             DashboardHeader(
               connection: fleet.connection,
               onLogout: _logout,
-              onReports: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const ReportesScreen()),
-              ),
+              pestana: _pestana,
+              onPestana: (pestana) => setState(() {
+                _pestana = pestana;
+                _reportesAbiertos |= pestana == PestanaPanel.reportes;
+              }),
             ),
           ),
-          _seccion(
-            2,
-            _TopBar(
-              refreshing: _refreshing,
-              searchController: _searchController,
-              searchFocus: _searchFocus,
-              onSearchChanged: (v) => setState(() => _query = v),
-              onRefresh: _refresh,
-              onToggleAllVisibility: () {
-                final visible = !fleet.buses.values.every((b) => b.visible);
-                ref.read(fleetProvider.notifier).setAllVisibility(visible);
-              },
-              allBusesVisible:
-                  fleet.buses.isNotEmpty &&
-                  fleet.buses.values.every((b) => b.visible),
-            ),
-          ),
-          if (fleet.error != null)
-            _seccion(3, _ErrorBanner(message: fleet.error!)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _seccion(
-              4,
-              _RouteFilters(
-                fleet: fleet,
-                onSelect: (routeId) =>
-                    ref.read(fleetProvider.notifier).setRouteFilter(routeId),
-                onAddRoute: _showRouteDialog,
-              ),
-            ),
-          ),
+          // Las dos pestañas quedan montadas: al volver a Flota el mapa
+          // sigue donde estaba, y Reportes conserva su periodo y su ruta.
+          // Reportes se arma la primera vez que se abre, no antes.
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: _seccion(
-                      5,
-                      _FleetPanel(
-                        buses: buses,
-                        fleet: fleet,
-                        onAddBus: () => _showBusDialog(),
-                        onEditBus: (bus) => _showBusDialog(bus: bus),
-                        onStatusFilter: (filter) => ref
-                            .read(fleetProvider.notifier)
-                            .setStatusFilter(filter),
-                      ),
+            child: IndexedStack(
+              index: _pestana.index,
+              sizing: StackFit.expand,
+              children: [
+                TickerMode(
+                  enabled: _pestana == PestanaPanel.flota,
+                  child: _flota(fleet, buses),
+                ),
+                TickerMode(
+                  enabled: _pestana == PestanaPanel.reportes,
+                  child: _reportesAbiertos
+                      ? _seccion(2, const ReportesScreen())
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _flota(FleetState fleet, List<FleetBus> buses) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _seccion(
+          2,
+          _TopBar(
+            refreshing: _refreshing,
+            searchController: _searchController,
+            searchFocus: _searchFocus,
+            onSearchChanged: (v) => setState(() => _query = v),
+            onRefresh: _refresh,
+            onToggleAllVisibility: () {
+              final visible = !fleet.buses.values.every((b) => b.visible);
+              ref.read(fleetProvider.notifier).setAllVisibility(visible);
+            },
+            allBusesVisible:
+                fleet.buses.isNotEmpty &&
+                fleet.buses.values.every((b) => b.visible),
+          ),
+        ),
+        if (fleet.error != null)
+          _seccion(3, _ErrorBanner(message: fleet.error!)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: _seccion(
+            4,
+            _RouteFilters(
+              fleet: fleet,
+              onSelect: (routeId) =>
+                  ref.read(fleetProvider.notifier).setRouteFilter(routeId),
+              onAddRoute: _showRouteDialog,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: _seccion(
+                    5,
+                    _FleetPanel(
+                      buses: buses,
+                      fleet: fleet,
+                      onAddBus: () => _showBusDialog(),
+                      onEditBus: (bus) => _showBusDialog(bus: bus),
+                      onStatusFilter: (filter) => ref
+                          .read(fleetProvider.notifier)
+                          .setStatusFilter(filter),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 3,
-                    // Con las esquinas de la lista (lg): era el único bloque
-                    // de la pantalla con esquinas rectas. El filo va encima
-                    // de las teselas para que el recorte no lo corte.
-                    child: _seccion(
-                      6,
-                      // La sombra va por fuera del recorte, que si no la corta.
-                      DecoratedBox(
-                        key: const ValueKey('marco_mapa'),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          boxShadow: AppColors.sombraTarjeta,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          child: DecoratedBox(
-                            position: DecorationPosition.foreground,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppRadius.lg),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Stack(
-                              children: [
-                                const Positioned.fill(child: ControlMap()),
-                                // T7.6: lo que tarda una posición en llegar del bus
-                                // a esta pantalla. Solo en depuración y si se pide
-                                // al compilar (`RecuadroLatencia.pedido`).
-                                if (RecuadroLatencia.pedido)
-                                  const Positioned(
-                                    left: 16,
-                                    bottom: 16,
-                                    child: RecuadroLatencia(),
-                                  ),
-                                if (fleet.selectedBus != null)
-                                  Positioned(
-                                    right: 16,
-                                    bottom: 16,
-                                    child: _SelectedBusCard(
-                                      bus: fleet.selectedBus!,
-                                      routeName: fleet.routeName(
-                                        fleet.selectedBus!.routeId,
-                                      ),
-                                      updating: fleet.updating.contains(
-                                        fleet.selectedBus!.busId,
-                                      ),
-                                      onToggle: (visible) => ref
-                                          .read(fleetProvider.notifier)
-                                          .toggleVisibility(
-                                            fleet.selectedBus!.busId,
-                                            visible,
-                                          ),
-                                      onEdit: () => _showBusDialog(
-                                        bus: fleet.selectedBus,
-                                      ),
-                                      onDelete: () => _confirmDeleteSelected(
-                                        fleet.selectedBus!,
-                                      ),
-                                      onClose: () => ref
-                                          .read(fleetProvider.notifier)
-                                          .selectBus(null),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  // Con las esquinas de la lista (lg): era el único bloque
+                  // de la pantalla con esquinas rectas. El filo va encima
+                  // de las teselas para que el recorte no lo corte.
+                  child: _seccion(
+                    6,
+                    // La sombra va por fuera del recorte, que si no la corta.
+                    DecoratedBox(
+                      key: const ValueKey('marco_mapa'),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        boxShadow: AppColors.sombraTarjeta,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        child: DecoratedBox(
+                          position: DecorationPosition.foreground,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Stack(
+                            children: [
+                              const Positioned.fill(child: ControlMap()),
+                              // T7.6: lo que tarda una posición en llegar del bus
+                              // a esta pantalla. Solo en depuración y si se pide
+                              // al compilar (`RecuadroLatencia.pedido`).
+                              if (RecuadroLatencia.pedido)
+                                const Positioned(
+                                  left: 16,
+                                  bottom: 16,
+                                  child: RecuadroLatencia(),
+                                ),
+                              if (fleet.selectedBus != null)
+                                Positioned(
+                                  right: 16,
+                                  bottom: 16,
+                                  child: _SelectedBusCard(
+                                    bus: fleet.selectedBus!,
+                                    routeName: fleet.routeName(
+                                      fleet.selectedBus!.routeId,
                                     ),
+                                    updating: fleet.updating.contains(
+                                      fleet.selectedBus!.busId,
+                                    ),
+                                    onToggle: (visible) => ref
+                                        .read(fleetProvider.notifier)
+                                        .toggleVisibility(
+                                          fleet.selectedBus!.busId,
+                                          visible,
+                                        ),
+                                    onEdit: () =>
+                                        _showBusDialog(bus: fleet.selectedBus),
+                                    onDelete: () => _confirmDeleteSelected(
+                                      fleet.selectedBus!,
+                                    ),
+                                    onClose: () => ref
+                                        .read(fleetProvider.notifier)
+                                        .selectBus(null),
                                   ),
-                              ],
-                            ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -401,12 +441,14 @@ class DashboardHeader extends ConsumerWidget {
     super.key,
     required this.connection,
     required this.onLogout,
-    this.onReports,
+    this.pestana = PestanaPanel.flota,
+    this.onPestana,
   });
 
   final FleetConnection connection;
   final VoidCallback onLogout;
-  final VoidCallback? onReports;
+  final PestanaPanel pestana;
+  final ValueChanged<PestanaPanel>? onPestana;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -443,54 +485,12 @@ class DashboardHeader extends ConsumerWidget {
               fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(width: 11),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'YA VIENE',
-                style: AppType.ui(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2.5,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'CONTROL DE FLOTA',
-                style: AppType.ui(
-                  fontSize: 8.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.8,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
+          // Donde iba el rótulo «Ya Viene, control de flota», las dos
+          // pestañas del panel (dueño, 2026-10-26): el logo ya dice de quién
+          // es, y el texto sobraba.
+          const SizedBox(width: 14),
+          _Pestanas(pestana: pestana, onPestana: onPestana ?? (_) {}),
           const Spacer(),
-          if (onReports != null) ...[
-            OutlinedButton.icon(
-              onPressed: onReports,
-              icon: const Icon(Icons.insights_outlined, size: 15),
-              label: const Text('Reportes'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                side: const BorderSide(color: AppColors.borderStrong),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                textStyle: AppType.ui(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-          ],
           if (enRespaldo) ...[
             Text(
               'Conectado al respaldo',
@@ -563,6 +563,137 @@ class DashboardHeader extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Flota y Reportes, firmes: un riel gris de 44 px de alto (el logo más
+/// los 8 de su aire) con la pestaña elegida llena en el azul de botón y
+/// letra blanca (7,1:1); la otra, gris secundario sobre el riel (4,9:1). El
+/// relleno se desliza de una a otra con el resorte de los cambios, como el
+/// control segmentado de macOS. Las dos miden lo que la más ancha (con su
+/// texto, también agrandado), así el relleno no cambia de ancho al moverse.
+class _Pestanas extends StatelessWidget {
+  const _Pestanas({required this.pestana, required this.onPestana});
+
+  final PestanaPanel pestana;
+  final ValueChanged<PestanaPanel> onPestana;
+
+  static const _opciones = [
+    (PestanaPanel.flota, 'Flota', Icons.directions_bus_outlined),
+    (PestanaPanel.reportes, 'Reportes', Icons.insights_outlined),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final duracion = AppMotion.duracion(context, AppMotion.normal);
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: IntrinsicWidth(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedAlign(
+                duration: duracion,
+                curve: AppMotion.curvaCambio,
+                alignment: pestana == PestanaPanel.flota
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: 1 / _opciones.length,
+                  heightFactor: 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.boton,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      boxShadow: AppColors.sombraTarjeta,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                for (final (valor, texto, icono) in _opciones)
+                  Expanded(
+                    child: _Pestana(
+                      key: ValueKey('pestana-${valor.name}'),
+                      texto: texto,
+                      icono: icono,
+                      elegida: valor == pestana,
+                      duracion: duracion,
+                      onTap: () => onPestana(valor),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Pestana extends StatelessWidget {
+  const _Pestana({
+    super.key,
+    required this.texto,
+    required this.icono,
+    required this.elegida,
+    required this.duracion,
+    required this.onTap,
+  });
+
+  final String texto;
+  final IconData icono;
+  final bool elegida;
+  final Duration duracion;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: elegida,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        // 36 de alto, como el logo: con el riel de 3 y su filo, 44.
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 36),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+          child: TweenAnimationBuilder<Color?>(
+            duration: duracion,
+            curve: AppMotion.curvaCambio,
+            tween: ColorTween(
+              end: elegida ? AppColors.surface : AppColors.textSecondary,
+            ),
+            builder: (context, color, _) => Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icono, size: 17, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  texto,
+                  style: AppType.ui(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _TopBar extends StatefulWidget {
