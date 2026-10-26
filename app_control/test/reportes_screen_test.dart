@@ -90,7 +90,13 @@ void main() {
     expect(find.text('C16'), findsNWidgets(2));
     expect(find.text('Ruta 1'), findsNWidgets(2));
     expect(find.text('4.820 búsquedas'), findsOneWidget);
-    expect(find.text('6 a 7 a. m.'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('fila-ruta-R1')),
+        matching: find.text('6 a 7 a. m.'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.bySemanticsLabel(
         'Puesto 1, ruta C16 Ruta 1, 4.820 búsquedas, hora pico 6 a 7 a. m.',
@@ -279,7 +285,7 @@ void main() {
     expect(find.byType(PolylineLayer), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
     expect(find.byKey(const ValueKey('leyenda-calor')), findsOneWidget);
-    expect(find.text('Hasta 3 km de la ruta'), findsOneWidget);
+    expect(find.text('Solo por donde pasa'), findsOneWidget);
     expect(find.text('Quitar calor'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('alternar-calor')));
@@ -416,6 +422,44 @@ void main() {
     expect(find.byKey(const ValueKey('hora-mapa-todo')), findsNothing);
   });
 
+  testWidgets('bajo el ranking, todas las rutas suman sus búsquedas por hora', (
+    tester,
+  ) async {
+    final a = List<int>.filled(24, 0)
+      ..[7] = 30
+      ..[18] = 10;
+    final b = List<int>.filled(24, 0)
+      ..[7] = 5
+      ..[18] = 40;
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [
+        _ruta('R1', 'C16 Ruta 1', 1200, 7, porHora: a),
+        _ruta('R2', 'B18 Ruta 2', 345, 18, porHora: b),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('resumen-rutas')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('resumen-total'))).data,
+      '1.545',
+    );
+    // 18 h suma 50 y gana a las 7 (35): la hora pico es de todas juntas.
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('resumen-pico'))).data,
+      '6 a 7 p. m.',
+    );
+    for (var h = 0; h < 24; h++) {
+      expect(find.byKey(ValueKey('resumen-hora-$h')), findsOneWidget);
+    }
+    final alto7 = tester.getSize(find.byKey(const ValueKey('resumen-hora-7')));
+    final alto18 = tester.getSize(
+      find.byKey(const ValueKey('resumen-hora-18')),
+    );
+    expect(alto7.height / alto18.height, closeTo(35 / 50, 0.02));
+  });
+
   testWidgets('la pestaña Ocupación deja el aforo listo sin filtros', (
     tester,
   ) async {
@@ -427,8 +471,26 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('pestana-ocupacion')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ocupación de tus buses'), findsOneWidget);
+    expect(find.text('Ocupación por hora'), findsOneWidget);
+    expect(find.text('Datos de ejemplo'), findsOneWidget);
     expect(find.byKey(const ValueKey('ocupacion-sin-camaras')), findsOneWidget);
+    // Una barra por hora de servicio, de 5 a. m. a 11 p. m.
+    expect(find.byKey(const ValueKey('aforo-hora-4')), findsNothing);
+    for (var h = 5; h <= 23; h++) {
+      expect(find.byKey(ValueKey('aforo-hora-$h')), findsOneWidget);
+    }
+    // Arranca en la hora más llena; tocar otra barra cambia la cifra.
+    String cifra() =>
+        tester.widget<Text>(find.byKey(const ValueKey('aforo-cifra'))).data!;
+    String estado() =>
+        tester.widget<Text>(find.byKey(const ValueKey('aforo-estado'))).data!;
+    expect((cifra(), estado()), ('90 %', 'Lleno'));
+    await tester.tap(find.byKey(const ValueKey('aforo-hora-11')));
+    await tester.pumpAndSettle();
+    expect((cifra(), estado()), ('18 %', 'Vacío'));
+    await tester.tap(find.byKey(const ValueKey('aforo-hora-12')));
+    await tester.pumpAndSettle();
+    expect((cifra(), estado()), ('47 %', 'Medio'));
     expect(find.byKey(const ValueKey('periodo-hoy')), findsNothing);
     expect(find.byKey(const ValueKey('filtro-hora')), findsNothing);
     expect(find.byKey(const ValueKey('fila-ruta-R1')), findsNothing);

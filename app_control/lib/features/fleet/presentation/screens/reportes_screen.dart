@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -149,20 +152,29 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
 
     return _dosPaneles(
       izquierda: _TarjetaRanking(
-        child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-          itemCount: ordenadas.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 4),
-          itemBuilder: (context, index) {
-            final ruta = ordenadas[index];
-            return _FilaRuta(
-              puesto: index + 1,
-              ruta: ruta,
-              maxTotal: maxTotal,
-              selected: ruta.id == rutaSeleccionada.id,
-              onTap: () => setState(() => _ruta = ruta.id),
-            );
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                itemCount: ordenadas.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 4),
+                itemBuilder: (context, index) {
+                  final ruta = ordenadas[index];
+                  return _FilaRuta(
+                    puesto: index + 1,
+                    ruta: ruta,
+                    maxTotal: maxTotal,
+                    selected: ruta.id == rutaSeleccionada.id,
+                    onTap: () => setState(() => _ruta = ruta.id),
+                  );
+                },
+              ),
+            ),
+            const Divider(height: 1),
+            _ResumenRutas(rutas: ordenadas),
+          ],
         ),
       ),
       derecha: _TarjetaMapa(
@@ -460,6 +472,141 @@ class _TarjetaRanking extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Bajo el ranking, todas las rutas juntas: cuántas búsquedas suman y a qué
+/// hora se busca más en la empresa entera. Llena el hueco que dejan pocas
+/// rutas con lo que el ranking, ruta por ruta, no dice.
+class _ResumenRutas extends StatelessWidget {
+  const _ResumenRutas({required this.rutas});
+
+  final List<RutaBusquedas> rutas;
+
+  // 72 px: el alto de seis filas del ranking cabe sobre él en 900 px.
+  static const _altoBarras = 72.0;
+  static const _pico = TextStyle(
+    color: _ambarTexto,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w600,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final porHora = List<int>.generate(
+      24,
+      (h) => rutas.fold(0, (suma, ruta) => suma + ruta.porHora[h]),
+    );
+    final total = rutas.fold(0, (suma, ruta) => suma + ruta.total);
+    final maximo = porHora.reduce(math.max);
+    final pico = maximo > 0 ? porHora.indexOf(maximo) : null;
+    const rotulo = TextStyle(
+      color: AppColors.textSecondary,
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+    );
+    return Padding(
+      key: const ValueKey('resumen-rutas'),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Todas tus rutas',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _formatearTotal(total),
+                key: const ValueKey('resumen-total'),
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 3),
+                child: Text(
+                  'búsquedas',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (pico != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Row(
+                    children: [
+                      const Text('Hora pico ', style: _pico),
+                      Text(
+                        horaPicoLabel(pico),
+                        key: const ValueKey('resumen-pico'),
+                        style: _pico.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: _altoBarras,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var h = 0; h < 24; h++)
+                  Expanded(
+                    child: Padding(
+                      // 1,5 px por lado: 3 de aire, como las celdas de hora.
+                      padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                      child: AnimatedContainer(
+                        key: ValueKey('resumen-hora-$h'),
+                        duration: AppMotion.normal,
+                        curve: AppMotion.curvaCambio,
+                        height: maximo > 0
+                            ? _altoBarras * porHora[h] / maximo
+                            : 0,
+                        decoration: BoxDecoration(
+                          color: _colorCalor(porHora[h], maximo),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('12 a. m.', style: rotulo),
+              Text('6 a. m.', style: rotulo),
+              Text('12 p. m.', style: rotulo),
+              Text('6 p. m.', style: rotulo),
+              Text('11 p. m.', style: rotulo),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TarjetaMapaEstado extends StatelessWidget {
@@ -1205,10 +1352,9 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
               AnimatedBuilder(
                 animation: _nivel,
                 builder: (context, _) {
-                  // Con el calor pintado la banda ya dibuja la ruta, como en
-                  // el video; la línea queda al 30 % solo para guiar donde
-                  // nadie buscó.
-                  final queda = 1 - 0.7 * _nivel.value;
+                  // Con el calor pintado el corredor ya dibuja la ruta y en
+                  // el video no hay línea debajo: se apaga del todo.
+                  final queda = 1 - _nivel.value.clamp(0.0, 1.0);
                   return PolylineLayer(
                     polylines: [
                       Polyline(
@@ -1235,7 +1381,6 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
               _CapaCalor(
                 key: ValueKey('capa-calor-${widget.routeId}'),
                 cells: widget.cells,
-                maxCount: maxCount,
                 nivel: _nivel,
                 pulso: _pulso,
               ),
@@ -1294,151 +1439,356 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   }
 }
 
-/// Manchas de calor como las del video de Control: cada zona es un halo
-/// radial medido en metros (crece y encoge con el zoom, como la calle) que
-/// baja por la escala continua verde, amarillo, naranja y rojo. Al pintarse
-/// nace verde y sube a su tono con [nivel]; al final un pulso blanco marca
-/// el foco más caliente, como en el video.
-class _CapaCalor extends StatelessWidget {
+/// Mapa de calor como el del video de Control: las búsquedas se suman en
+/// un campo de densidad continuo, así la ruta se lee como un corredor verde
+/// que se calienta a amarillo, naranja y rojo donde más buscan, en vez de
+/// manchas sueltas. Al pintarse nace verde y sube a sus tonos con [nivel];
+/// al final un anillo blanco se abre en cada pico, como en el video.
+class _CapaCalor extends StatefulWidget {
   const _CapaCalor({
     super.key,
     required this.cells,
-    required this.maxCount,
     required this.nivel,
     required this.pulso,
   });
 
   final List<CeldaBusqueda> cells;
-  final int maxCount;
   final Animation<double> nivel;
   final Animation<double> pulso;
 
   @override
-  Widget build(BuildContext context) => MobileLayerTransformer(
-    child: IgnorePointer(
-      child: CustomPaint(
-        size: Size.infinite,
-        painter: _PintorCalor(
-          camera: MapCamera.of(context),
-          cells: cells,
-          maxCount: maxCount,
-          nivel: nivel,
-          pulso: pulso,
+  State<_CapaCalor> createState() => _CapaCalorState();
+}
+
+class _CapaCalorState extends State<_CapaCalor> {
+  _RasterCalor? _raster;
+  int? _zoomRaster;
+  int _pedido = 0;
+
+  @override
+  void didUpdateWidget(covariant _CapaCalor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.cells != widget.cells) _zoomRaster = null;
+  }
+
+  @override
+  void dispose() {
+    _pedido++;
+    _raster?.dispose();
+    super.dispose();
+  }
+
+  // El campo se calcula una vez por zoom entero: entre medias se escala, y
+  // como es suave no se nota.
+  void _pedir(MapCamera camera) {
+    final zoom = camera.zoom.round();
+    if (zoom == _zoomRaster) return;
+    _zoomRaster = zoom;
+    final pedido = ++_pedido;
+    _RasterCalor.crear(camera, widget.cells, zoom).then((raster) {
+      if (!mounted || pedido != _pedido) {
+        raster?.dispose();
+        return;
+      }
+      setState(() {
+        _raster?.dispose();
+        _raster = raster;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final camera = MapCamera.of(context);
+    _pedir(camera);
+    return MobileLayerTransformer(
+      child: IgnorePointer(
+        child: CustomPaint(
+          size: Size.infinite,
+          painter: _PintorCalor(
+            camera: camera,
+            raster: _raster,
+            nivel: widget.nivel,
+            pulso: widget.pulso,
+          ),
         ),
       ),
-    ),
+    );
+  }
+}
+
+/// El campo de calor ya coloreado, en dos imágenes (verde del arranque y
+/// tonos finales) con sus esquinas en el mapa y sus picos.
+class _RasterCalor {
+  _RasterCalor._(
+    this.verde,
+    this.color,
+    this.noroeste,
+    this.sureste,
+    this.picos,
   );
+
+  final ui.Image verde;
+  final ui.Image color;
+  final LatLng noroeste;
+  final LatLng sureste;
+  final List<LatLng> picos;
+
+  // Cada búsqueda se reparte en una campana de 200 m: con celdas de unos
+  // 150 m (`PASO_LAT` del backend) las vecinas se funden en un corredor
+  // de unos 600 m, el ancho de la banda del video. Bajo 12 px el corredor
+  // se vuelve un hilo al alejar el mapa.
+  static const _sigmaMetros = 200.0;
+  static const _sigmaMinimoPx = 12.0;
+  // Un píxel del campo cubre al menos 2 del mapa; el lado no pasa de 1200.
+  static const _ladoMaximo = 1200;
+  // Picos: sobre la mitad del máximo y a más de 1,2 km entre sí; tres como
+  // mucho, como en el video.
+  static const _picoDesde = 0.5;
+  static const _picosSeparacionMetros = 1200.0;
+  static const _picosMaximo = 3;
+
+  static Future<_RasterCalor?> crear(
+    MapCamera camera,
+    List<CeldaBusqueda> cells,
+    int zoom,
+  ) async {
+    if (cells.isEmpty) return null;
+    final z = zoom.toDouble();
+    final pxPorMetro =
+        256 *
+        math.pow(2, z) /
+        (40075016.686 * math.cos(cells.first.lat * math.pi / 180));
+    final mundo = [
+      for (final c in cells) camera.projectAtZoom(LatLng(c.lat, c.lng), z),
+    ];
+    final sigmaMundo = math.max(_sigmaMetros * pxPorMetro, _sigmaMinimoPx);
+    final margen = 3 * sigmaMundo;
+    var minX = double.infinity, minY = double.infinity;
+    var maxX = -double.infinity, maxY = -double.infinity;
+    for (final p in mundo) {
+      minX = math.min(minX, p.dx - margen);
+      minY = math.min(minY, p.dy - margen);
+      maxX = math.max(maxX, p.dx + margen);
+      maxY = math.max(maxY, p.dy + margen);
+    }
+    final escala = math.max(
+      2.0,
+      math.max(maxX - minX, maxY - minY) / _ladoMaximo,
+    );
+    final ancho = ((maxX - minX) / escala).ceil();
+    final alto = ((maxY - minY) / escala).ceil();
+    final sigma = sigmaMundo / escala;
+    final radio = (3 * sigma).ceil();
+    final campana = [
+      for (var i = -radio; i <= radio; i++)
+        math.exp(-(i * i) / (2 * sigma * sigma)),
+    ];
+
+    // d suma las búsquedas (el tono); s suma solo la presencia (el borde),
+    // para que el corredor se apague suave aunque su tono sea verde.
+    final d = Float64List(ancho * alto);
+    final s = Float64List(ancho * alto);
+    for (var i = 0; i < cells.length; i++) {
+      final cx = ((mundo[i].dx - minX) / escala).round();
+      final cy = ((mundo[i].dy - minY) / escala).round();
+      final count = cells[i].count.toDouble();
+      for (
+        var y = math.max(0, cy - radio);
+        y <= math.min(alto - 1, cy + radio);
+        y++
+      ) {
+        final gy = campana[y - cy + radio];
+        final fila = y * ancho;
+        for (
+          var x = math.max(0, cx - radio);
+          x <= math.min(ancho - 1, cx + radio);
+          x++
+        ) {
+          final g = gy * campana[x - cx + radio];
+          d[fila + x] += count * g;
+          s[fila + x] += g;
+        }
+      }
+    }
+    var dMax = 0.0;
+    for (final v in d) {
+      if (v > dMax) dMax = v;
+    }
+    if (dMax <= 0) return null;
+
+    final verde = Uint8List(ancho * alto * 4);
+    final color = Uint8List(ancho * alto * 4);
+    final base = _coloresCalor.first;
+    for (var i = 0; i < d.length; i++) {
+      final borde = _suave(0.03, 0.8, s[i]);
+      if (borde <= 0) continue;
+      // Potencia 0,7: el corredor (unas 25 búsquedas contra 500 del foco)
+      // queda verde, como en el video, y los focos suben a amarillo, naranja
+      // y rojo en una mancha ancha, no en un punto.
+      final t = math.pow(d[i] / dMax, 0.7).toDouble();
+      // Corredor al 55 %, como el del video, deja leer las calles debajo;
+      // los focos llegan al 90 %.
+      _pixel(color, i * 4, _colorEnEscala(t), borde * (0.55 + 0.35 * t));
+      _pixel(verde, i * 4, base, borde * 0.55);
+    }
+
+    final separacion = _picosSeparacionMetros * pxPorMetro / escala;
+    final candidatos = [
+      for (var i = 0; i < d.length; i++)
+        if (d[i] >= _picoDesde * dMax) i,
+    ]..sort((a, b) => d[b].compareTo(d[a]));
+    final picos = <int>[];
+    for (final i in candidatos) {
+      if (picos.length == _picosMaximo) break;
+      final lejos = picos.every(
+        (p) =>
+            math.sqrt(
+              math.pow(p % ancho - i % ancho, 2) +
+                  math.pow(p ~/ ancho - i ~/ ancho, 2),
+            ) >=
+            separacion,
+      );
+      if (lejos) picos.add(i);
+    }
+
+    LatLng aMapa(double x, double y) =>
+        camera.unprojectAtZoom(Offset(minX + x * escala, minY + y * escala), z);
+    final imagenes = await Future.wait([
+      _imagen(verde, ancho, alto),
+      _imagen(color, ancho, alto),
+    ]);
+    return _RasterCalor._(
+      imagenes[0],
+      imagenes[1],
+      aMapa(0, 0),
+      aMapa(ancho.toDouble(), alto.toDouble()),
+      [for (final p in picos) aMapa((p % ancho) + 0.5, (p ~/ ancho) + 0.5)],
+    );
+  }
+
+  // decodeImageFromPixels toma rgba8888 premultiplicado: sin multiplicar
+  // por alfa el borde del corredor sale blanco, como un halo.
+  static void _pixel(Uint8List pixeles, int o, Color tono, double alfa) {
+    pixeles
+      ..[o] = (tono.r * alfa * 255).round()
+      ..[o + 1] = (tono.g * alfa * 255).round()
+      ..[o + 2] = (tono.b * alfa * 255).round()
+      ..[o + 3] = (alfa * 255).round();
+  }
+
+  static double _suave(double desde, double hasta, double x) {
+    final t = ((x - desde) / (hasta - desde)).clamp(0.0, 1.0);
+    return t * t * (3 - 2 * t);
+  }
+
+  static Future<ui.Image> _imagen(Uint8List pixeles, int ancho, int alto) {
+    final listo = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      pixeles,
+      ancho,
+      alto,
+      ui.PixelFormat.rgba8888,
+      listo.complete,
+    );
+    return listo.future;
+  }
+
+  void dispose() {
+    verde.dispose();
+    color.dispose();
+  }
 }
 
 class _PintorCalor extends CustomPainter {
   _PintorCalor({
     required this.camera,
-    required this.cells,
-    required this.maxCount,
+    required this.raster,
     required this.nivel,
     required this.pulso,
   }) : super(repaint: Listenable.merge([nivel, pulso]));
 
   final MapCamera camera;
-  final List<CeldaBusqueda> cells;
-  final int maxCount;
+  final _RasterCalor? raster;
   final Animation<double> nivel;
   final Animation<double> pulso;
 
-  // Una celda mide unos 150 m (`PASO_LAT` del backend). Con halos de 380 m
-  // las vecinas se funden en una banda continua por la ruta, como en el
-  // video, y los focos crecen hasta 900 m sin tapar las calles de al lado.
-  // En metros, la banda queda sobre las mismas cuadras al hacer zoom.
-  static const _radioMetros = 380.0;
-  static const _radioExtraMetros = 520.0;
-  // Bajo 26 px el halo de una zona fría se pierde al alejar el mapa.
-  static const _radioMinimoPx = 26.0;
-  // El anillo del pulso se abre de 5 a 34 px: en el video llega a cubrir el
-  // foco rojo sin salirse de la banda.
+  // El anillo se abre de 5 a 26 px y se queda, como los del video, que
+  // rodean el foco sin salirse de la banda; el punto blanco marca el centro.
   static const _anilloDesdePx = 5.0;
-  static const _anilloHastaPx = 34.0;
-
-  // Web Mercator: 256 px por tesela y 40.075.016,7 m de ecuador.
-  double _pxPorMetro(double lat) =>
-      256 *
-      math.pow(2, camera.zoom) /
-      (40075016.686 * math.cos(lat * math.pi / 180));
+  static const _anilloHastaPx = 26.0;
+  static const _puntoPx = 5.0;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (cells.isEmpty) return;
+    final r = raster;
+    if (r == null) return;
     final n = nivel.value.clamp(0.0, 1.0);
-    // La banda aparece en el primer 40 % y el resto sube de tono.
+    // El corredor aparece en el primer 40 % y el resto sube de tono. El
+    // tono va en cuadrático: el resorte llega casi entero a la mitad del
+    // tiempo, y sin esto el verde del arranque (32,3 s del video) ni se ve.
     final aparece = (n / 0.4).clamp(0.0, 1.0);
-    // Las más calientes al final, encima de las frías.
-    final ordenadas = [...cells]..sort((a, b) => a.count.compareTo(b.count));
-    for (final cell in ordenadas) {
-      final centro = camera.getOffsetFromOrigin(LatLng(cell.lat, cell.lng));
-      final intensidad = (cell.count / maxCount).clamp(0.0, 1.0);
-      final radio =
-          math.max(
-            _radioMinimoPx,
-            (_radioMetros + _radioExtraMetros * intensidad) *
-                _pxPorMetro(cell.lat),
-          ) *
-          (0.8 + 0.2 * n);
-      // Cada zona se apaga en su propio tono: si el anillo bajara a verde,
-      // el borde verde de un foco taparía a sus vecinas naranja y el foco
-      // quedaría en un punto. Así el degradado del video lo dan los datos
-      // (los conteos bajan del foco hacia la banda). Las frías van al 50 %
-      // para que la ruta se lea debajo y el ojo vaya primero a los focos.
-      // El tono sube en cuadrático: el resorte llega casi entero a la
-      // mitad del tiempo, y sin esto el verde del arranque (32,3 s del
-      // video) ni se alcanza a ver.
-      final color = _colorEnEscala(intensidad * n * n);
-      final peso = (0.5 + 0.5 * intensidad) * aparece;
-      final pintura = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            color.withValues(alpha: 0.85 * peso),
-            color.withValues(alpha: 0.6 * peso),
-            color.withValues(alpha: 0.25 * peso),
-            color.withValues(alpha: 0),
-          ],
-          stops: const [0, 0.35, 0.7, 1],
-        ).createShader(Rect.fromCircle(center: centro, radius: radio));
-      canvas.drawCircle(centro, radio, pintura);
-    }
+    final tono = n * n;
+    final destino = Rect.fromPoints(
+      camera.getOffsetFromOrigin(r.noroeste),
+      camera.getOffsetFromOrigin(r.sureste),
+    );
+    final fuente = Rect.fromLTWH(
+      0,
+      0,
+      r.color.width.toDouble(),
+      r.color.height.toDouble(),
+    );
+    // Verde y tonos se mezclan en lineal dentro de una capa (plus), sin el
+    // bajón de opacidad de un fundido de dos imágenes translúcidas.
+    canvas
+      ..saveLayer(destino, Paint()..color = Color.fromRGBO(0, 0, 0, aparece))
+      ..drawImageRect(
+        r.verde,
+        fuente,
+        destino,
+        Paint()
+          ..filterQuality = FilterQuality.medium
+          ..color = Color.fromRGBO(0, 0, 0, 1 - tono),
+      )
+      ..drawImageRect(
+        r.color,
+        fuente,
+        destino,
+        Paint()
+          ..filterQuality = FilterQuality.medium
+          ..blendMode = BlendMode.plus
+          ..color = Color.fromRGBO(0, 0, 0, tono),
+      )
+      ..restore();
 
     final p = pulso.value;
     if (p <= 0) return;
-    final foco = ordenadas.last;
-    final centro = camera.getOffsetFromOrigin(LatLng(foco.lat, foco.lng));
-    // El punto se queda mientras el calor está pintado y se apaga con él.
-    final punto = (p * 4).clamp(0.0, 1.0) * n;
-    canvas
-      ..drawCircle(
-        centro,
-        8,
-        Paint()..color = Colors.white.withValues(alpha: 0.35 * punto),
-      )
-      ..drawCircle(
-        centro,
-        4.5,
-        Paint()..color = Colors.white.withValues(alpha: 0.95 * punto),
-      );
-    if (p >= 1) return;
     final abre = Curves.easeOutCubic.transform(p);
-    canvas.drawCircle(
-      centro,
-      _anilloDesdePx + (_anilloHastaPx - _anilloDesdePx) * abre,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
-        ..color = Colors.white.withValues(alpha: 0.9 * (1 - p) * n),
-    );
+    final aparecePico = (p * 4).clamp(0.0, 1.0) * n;
+    for (final pico in r.picos) {
+      final centro = camera.getOffsetFromOrigin(pico);
+      canvas
+        ..drawCircle(
+          centro,
+          _puntoPx,
+          Paint()..color = Colors.white.withValues(alpha: 0.95 * aparecePico),
+        )
+        ..drawCircle(
+          centro,
+          _anilloDesdePx + (_anilloHastaPx - _anilloDesdePx) * abre,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6
+            ..color = Colors.white.withValues(alpha: 0.85 * aparecePico),
+        );
+    }
   }
 
   @override
   bool shouldRepaint(_PintorCalor oldDelegate) =>
       oldDelegate.camera != camera ||
-      oldDelegate.cells != cells ||
-      oldDelegate.maxCount != maxCount ||
+      oldDelegate.raster != raster ||
       oldDelegate.nivel != nivel ||
       oldDelegate.pulso != pulso;
 }
@@ -1729,7 +2079,7 @@ class _LeyendaCalor extends StatelessWidget {
     );
     return Semantics(
       label:
-          'Ruta $codigo, hasta 3 km de la ruta. Menos búsquedas a más '
+          'Ruta $codigo, solo por donde pasa. Menos búsquedas a más '
           'búsquedas, máximo $maxCount en una zona',
       child: ExcludeSemantics(
         // Del ancho de las horas, para que las dos tarjetas del mapa se
@@ -1773,7 +2123,7 @@ class _LeyendaCalor extends StatelessWidget {
                   ],
                   Expanded(
                     child: Text(
-                      'Hasta 3 km de la ruta',
+                      'Solo por donde pasa',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppType.ui(
