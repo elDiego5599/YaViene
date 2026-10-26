@@ -10,6 +10,7 @@ import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_
 import 'package:ya_viene_control/features/fleet/presentation/screens/reportes_screen.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/control_map.dart'
     show estiloMapaProvider;
+import 'package:ya_viene_control/features/fleet/presentation/widgets/escala_calor.dart';
 import 'package:ya_viene_core/core/models/route_trajectory.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
@@ -100,16 +101,19 @@ void main() {
         tester.getTopLeft(find.byKey(const ValueKey('fila-ruta-R2'))).dy,
       ),
     );
-    // La ficha de la lista y la de la leyenda del mapa, que abre pintado.
+    // La ficha de la lista y la de la tira del mapa; el nombre, una vez.
     expect(find.text('C16'), findsNWidgets(2));
-    expect(find.text('Ruta 1'), findsNWidgets(2));
-    expect(find.text('4.820 búsquedas'), findsOneWidget);
+    expect(find.text('Ruta 1'), findsOneWidget);
+    // Menos texto (dueño, 2026-10-26): la cifra sola, sin «búsquedas», y
+    // la hora pico vive en la tira del mapa, no en la fila.
+    expect(find.text('4.820'), findsOneWidget);
+    expect(find.text('4.820 búsquedas'), findsNothing);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('fila-ruta-R1')),
         matching: find.text('6 a 7 a. m.'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.bySemanticsLabel(
@@ -117,7 +121,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('pico-hora-R1-6')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pico-hora-R1-6')), findsNothing);
+    expect(find.byKey(const ValueKey('celda-hora-R1-0')), findsNothing);
     expect(find.byKey(const ValueKey('barra-ruta-R1')), findsOneWidget);
     expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
   });
@@ -144,7 +149,9 @@ void main() {
     expect(find.text('Desde dónde te buscan'), findsOneWidget);
   });
 
-  testWidgets('la tira tiene 24 celdas y marca la hora pico', (tester) async {
+  testWidgets('una sola tira de horas, en el mapa, con su escala y el pico', (
+    tester,
+  ) async {
     final horas = List<int>.filled(24, 0)
       ..[15] = 112
       ..[18] = 450;
@@ -156,40 +163,48 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (var hora = 0; hora < 24; hora++) {
-      expect(find.byKey(ValueKey('celda-hora-R1-$hora')), findsOneWidget);
+    Color? color(int h) =>
+        (tester
+                    .widget<AnimatedContainer>(
+                      find.descendant(
+                        of: find.byKey(ValueKey('hora-mapa-$h')),
+                        matching: find.byType(AnimatedContainer),
+                      ),
+                    )
+                    .decoration
+                as BoxDecoration?)
+            ?.color;
+    for (var h = 0; h < 24; h++) {
+      expect(find.byKey(ValueKey('hora-mapa-$h')), findsOneWidget);
     }
-    final pico = tester.widget<DecoratedBox>(
-      find.byKey(const ValueKey('pico-hora-R1-18')),
-    );
-    final decoration = pico.decoration as BoxDecoration;
-    expect((decoration.border as Border).top.width, 2);
-
-    DecoratedBox celda(int hora) => tester.widget<DecoratedBox>(
-      find.descendant(
-        of: find.byKey(ValueKey('celda-hora-R1-$hora')),
-        matching: find.byType(DecoratedBox),
-      ),
-    );
-    final horaSinBusquedas = celda(0);
-    final horaConBusquedas = celda(15);
-    final horaMaxima = celda(18);
-    expect(
-      (horaSinBusquedas.decoration as BoxDecoration).color,
-      AppColors.border,
-    );
-    expect(
-      (horaSinBusquedas.decoration as BoxDecoration).color,
-      isNot((horaConBusquedas.decoration as BoxDecoration).color),
-    );
-    expect(
-      (horaMaxima.decoration as BoxDecoration).color,
-      const Color(0xFFE24B4A),
-    );
+    // El mismo idioma de color del calor: sin búsquedas en gris, el pico en
+    // el rojo de la escala.
+    expect(color(0), AppColors.border);
+    expect(color(15), isNot(AppColors.border));
+    expect(color(18), colorEnEscala(1));
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('celda-hora-R1-18')),
+        of: find.byKey(const ValueKey('hora-mapa-18')),
         matching: find.byTooltip('6 p. m., 450 búsquedas'),
+      ),
+      findsOneWidget,
+    );
+    // El pico se marca con un punto sobre su barra, y el rótulo lo dice.
+    final punto = tester.getCenter(
+      find.byKey(const ValueKey('hora-mapa-pico')),
+    );
+    final barra = tester.getRect(find.byKey(const ValueKey('hora-mapa-18')));
+    expect(punto.dx, inInclusiveRange(barra.left, barra.right));
+    expect(punto.dy, lessThan(barra.top));
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
+      'Pico 6 a 7 p. m.',
+    );
+    // La leyenda va en la misma tira.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('horas-mapa')),
+        matching: find.byKey(const ValueKey('leyenda-calor')),
       ),
       findsOneWidget,
     );
@@ -247,12 +262,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('0 búsquedas'), findsOneWidget);
-    expect(find.byKey(const ValueKey('pico-hora-R0-0')), findsNothing);
+    expect(find.text('0'), findsOneWidget);
     expect(find.byKey(const ValueKey('ruta-mapa-R0')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
+      'Todo el día',
+    );
+    expect(find.byKey(const ValueKey('hora-mapa-pico')), findsNothing);
   });
 
-  testWidgets('ruta sin calor explica el mínimo de cinco búsquedas', (
+  testWidgets('ruta sin calor deja la ruta y lo dice en una línea', (
     tester,
   ) async {
     await _montar(
@@ -261,10 +280,9 @@ void main() {
       cargarCalor: (_, _) async => [],
     );
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('Se muestran zonas con al menos 5 búsquedas'),
-      findsOneWidget,
-    );
+    expect(find.text('Sin zonas con 5 búsquedas o más'), findsOneWidget);
+    expect(find.byType(PolylineLayer), findsOneWidget);
+    expect(find.byKey(const ValueKey('ruta-mapa-R1')), findsOneWidget);
   });
 
   testWidgets('el error del mapa permite reintentar la carga de calor', (
@@ -298,9 +316,19 @@ void main() {
 
     expect(find.byType(PolylineLayer), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
+    // La ruta va encima del calor, entera y sin apagarse (dueño, 2026-10-26).
+    final capas = tester.widget<FlutterMap>(find.byType(FlutterMap)).children;
+    final ruta = capas.indexWhere((c) => c is PolylineLayer);
+    final calor = capas.indexWhere(
+      (c) => c.key == const ValueKey('capa-calor-R1'),
+    );
+    expect(ruta, greaterThan(calor));
+    final lineas = (capas[ruta] as PolylineLayer).polylines;
+    expect(lineas.last.color.a, closeTo(1, 0.01));
     expect(find.byKey(const ValueKey('leyenda-calor')), findsOneWidget);
-    expect(find.text('Solo por donde pasa'), findsOneWidget);
-    expect(find.text('Más búsquedas'), findsOneWidget);
+    expect(find.text('Menos'), findsOneWidget);
+    expect(find.text('Más'), findsOneWidget);
+    expect(find.text('Solo por donde pasa'), findsNothing);
     // El dueño no le vio función (2026-10-26).
     expect(find.byKey(const ValueKey('alternar-calor')), findsNothing);
     expect(find.text('Quitar calor'), findsNothing);
@@ -406,26 +434,6 @@ void main() {
     expect(periodos.last, primero);
   });
 
-  testWidgets('la tira de 24 horas solo sale en la ruta elegida', (
-    tester,
-  ) async {
-    await _montar(
-      tester,
-      cargarRutas: (_) async => [
-        _ruta('R1', 'C16 Ruta 1', 40, 6),
-        _ruta('R2', 'B18 Ruta 2', 20, 7),
-      ],
-    );
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('celda-hora-R1-0')), findsOneWidget);
-    expect(find.byKey(const ValueKey('celda-hora-R2-0')), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('celda-hora-R1-0')), findsNothing);
-    expect(find.byKey(const ValueKey('celda-hora-R2-0')), findsOneWidget);
-  });
-
   testWidgets('las horas del mapa pintan esa hora y conservan la ruta', (
     tester,
   ) async {
@@ -449,6 +457,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
     await tester.pumpAndSettle();
+    // Sin hora elegida, el rótulo dice el pico del día.
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
+      'Pico 7 a 8 a. m.',
+    );
 
     await tester.tap(find.byKey(const ValueKey('hora-mapa-7')));
     await tester.pumpAndSettle();
@@ -457,12 +470,12 @@ void main() {
     expect(find.text('7 a 8 a. m.'), findsWidgets);
 
     // Tocar la hora elegida vuelve al día entero (el día ya estaba en
-    // caché: el rótulo lo dice, sin otra carga).
+    // caché: el rótulo vuelve al pico, sin otra carga).
     await tester.tap(find.byKey(const ValueKey('hora-mapa-7')));
     await tester.pumpAndSettle();
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Todo el día',
+      'Pico 7 a 8 a. m.',
     );
     expect(find.byKey(const ValueKey('ruta-mapa-R2')), findsOneWidget);
 
@@ -473,7 +486,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Todo el día',
+      'Pico 7 a 8 a. m.',
     );
     expect(find.byKey(const ValueKey('hora-mapa-todo')), findsNothing);
   });
@@ -500,6 +513,8 @@ void main() {
     expect(find.text('Ocupación'), findsOneWidget);
     expect(find.text('Datos de ejemplo'), findsOneWidget);
     expect(find.byKey(const ValueKey('ocupacion-sin-camaras')), findsOneWidget);
+    // «promedio de N buses» va en el globo de la ficha, no en la cabecera.
+    expect(find.byKey(const ValueKey('ocupacion-buses')), findsNothing);
     // Una barra por hora de servicio, de 5 a. m. a 11 p. m.
     expect(find.byKey(const ValueKey('aforo-hora-4')), findsNothing);
     for (var h = 5; h <= 23; h++) {
@@ -510,28 +525,34 @@ void main() {
         tester.widget<Text>(find.byKey(const ValueKey('aforo-cifra'))).data!;
     String estado() =>
         tester.widget<Text>(find.byKey(const ValueKey('aforo-estado'))).data!;
-    // El bus dibujado lleva sus 12 puestos llenos según la cifra, y solo la
-    // barra elegida dice su hora (las demás la dicen al pasarles el puntero).
-    String bus() =>
-        tester.getSemantics(find.byKey(const ValueKey('aforo-bus'))).label;
-    Finder rotulo(int h) => find.descendant(
-      of: find.byKey(ValueKey('aforo-hora-$h')),
-      matching: find.text(h > 12 ? '${h - 12}' : '$h'),
-    );
+    // Sin el bus dibujado ni rótulos por barra: un eje de horas fijo, y cada
+    // barra en la misma escala de color del mapa (dueño, 2026-10-26).
+    expect(find.byKey(const ValueKey('aforo-bus')), findsNothing);
+    final eje = find.byKey(const ValueKey('ocupacion-eje'));
+    for (final h in ['5 a. m.', '11 a. m.', '5 p. m.', '11 p. m.']) {
+      expect(find.descendant(of: eje, matching: find.text(h)), findsOneWidget);
+    }
+    Color? tinte(int h) =>
+        (tester
+                    .widget<AnimatedContainer>(
+                      find.descendant(
+                        of: find.byKey(ValueKey('aforo-hora-$h')),
+                        matching: find.byType(AnimatedContainer),
+                      ),
+                    )
+                    .decoration
+                as BoxDecoration?)
+            ?.color;
     expect((cifra(), estado()), ('90 %', 'Lleno'));
-    expect(bus(), 'Bus con 11 de 12 puestos ocupados');
-    expect(rotulo(18), findsOneWidget);
-    expect(rotulo(11), findsNothing);
+    expect(tinte(18), colorEnEscala(0.9));
+    expect(tinte(11), isNot(colorEnEscala(0.18)));
     await tester.tap(find.byKey(const ValueKey('aforo-hora-11')));
     await tester.pumpAndSettle();
     expect((cifra(), estado()), ('18 %', 'Vacío'));
-    expect(bus(), 'Bus con 2 de 12 puestos ocupados');
-    expect(rotulo(11), findsOneWidget);
-    expect(rotulo(18), findsNothing);
+    expect(tinte(11), colorEnEscala(0.18));
     await tester.tap(find.byKey(const ValueKey('aforo-hora-12')));
     await tester.pumpAndSettle();
     expect((cifra(), estado()), ('47 %', 'Medio'));
-    expect(bus(), 'Bus con 6 de 12 puestos ocupados');
   });
 
   testWidgets('la ocupación sigue a la ruta y al periodo elegidos', (
@@ -611,5 +632,37 @@ void main() {
     calor.complete(_celdas);
     await tester.pumpAndSettle();
     expect(find.byType(CargaFantasma), findsNothing);
+  });
+
+  testWidgets('al cambiar la hora, el mapa de antes se queda atenuado', (
+    tester,
+  ) async {
+    final rutas7 = Completer<List<RutaBusquedas>>();
+    final calor7 = Completer<List<CeldaBusqueda>>();
+    final porHora = List<int>.filled(24, 0)..[7] = 30;
+    await _montar(
+      tester,
+      cargarRutas: (hora) => hora == 7
+          ? rutas7.future
+          : Future.value([_ruta('R1', 'C16 Ruta 1', 30, 7, porHora: porHora)]),
+      cargarCalor: (_, hora) =>
+          hora == 7 ? calor7.future : Future.value(_celdas),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('hora-mapa-7')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    // Nada de fantasmas: lo de antes sigue, apagado, con su píldora.
+    expect(find.byType(CargaFantasma), findsNothing);
+    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('mapa-cargando')), findsOneWidget);
+
+    rutas7.complete([_ruta('R1', 'C16 Ruta 1', 30, 7, porHora: porHora)]);
+    calor7.complete(_celdas);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mapa-cargando')), findsNothing);
+    expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
   });
 }

@@ -19,20 +19,8 @@ import '../providers/fleet_providers.dart' show fleetProvider;
 import '../providers/ocupacion_provider.dart';
 import '../providers/reportes_provider.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
+import '../widgets/escala_calor.dart';
 import '../widgets/ocupacion_panel.dart';
-
-// La escala del video: verde donde casi no buscan, amarillo, naranja y el
-// rojo de los focos. Es continua: un foco pasa por todos los tonos hasta
-// su borde verde, como un mapa de calor de verdad.
-const _coloresCalor = [
-  Color(0xFF7CC04A),
-  Color(0xFFF4C430),
-  Color(0xFFF28B2C),
-  Color(0xFFE24B4A),
-];
-
-// #A65A00 tiene contraste 5.14:1 sobre blanco, superior al mínimo AA de 4.5:1.
-const _ambarTexto = Color(0xFFA65A00);
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -45,6 +33,10 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   int? _hora;
   PeriodoReporte _periodo = PeriodoReporte.mes;
   String? _ruta;
+  // La última lista que llegó: al cambiar de hora o de periodo se queda a la
+  // vista, atenuada, mientras llega la nueva. El fantasma es solo la primera
+  // vez (dueño, 2026-10-26).
+  List<RutaBusquedas>? _previas;
 
   // Otra hora u otro periodo no cambian la ruta elegida: el dueño compara
   // la misma ruta a distintas horas.
@@ -52,9 +44,12 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reportes = ref.watch(
+    var reportes = ref.watch(
       reportesRutasProvider((periodo: _periodo, hora: _hora)),
     );
+    if (reportes.valueOrNull case final rutas?) _previas = rutas;
+    final recargando = reportes.isLoading && !reportes.hasValue;
+    if (recargando && _previas != null) reportes = AsyncData(_previas!);
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -110,7 +105,8 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                         ),
                       ),
                     ),
-                    data: _mostrarRutas,
+                    data: (rutas) =>
+                        _mostrarRutas(rutas, recargando: recargando),
                   ),
                 ),
               ),
@@ -121,7 +117,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     );
   }
 
-  Widget _mostrarRutas(List<RutaBusquedas> rutas) {
+  Widget _mostrarRutas(List<RutaBusquedas> rutas, {required bool recargando}) {
     final ordenadas = ordenarRutasBusquedas(rutas);
     if (ordenadas.isEmpty) {
       return _dosPaneles(
@@ -155,20 +151,26 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-                itemCount: ordenadas.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 4),
-                itemBuilder: (context, index) {
-                  final ruta = ordenadas[index];
-                  return _FilaRuta(
-                    puesto: index + 1,
-                    ruta: ruta,
-                    maxTotal: maxTotal,
-                    selected: ruta.id == rutaSeleccionada.id,
-                    onTap: () => setState(() => _ruta = ruta.id),
-                  );
-                },
+              child: AnimatedOpacity(
+                opacity: recargando ? 0.45 : 1,
+                duration: AppMotion.duracion(context, AppMotion.normal),
+                curve: AppMotion.curvaCambio,
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+                  itemCount: ordenadas.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 4),
+                  itemBuilder: (context, index) {
+                    final ruta = ordenadas[index];
+                    return _FilaRuta(
+                      puesto: index + 1,
+                      ruta: ruta,
+                      maxTotal: maxTotal,
+                      selected: ruta.id == rutaSeleccionada.id,
+                      onTap: () => setState(() => _ruta = ruta.id),
+                    );
+                  },
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -565,7 +567,7 @@ class _TarjetaMapaEstado extends StatelessWidget {
   );
 }
 
-class _TarjetaMapa extends ConsumerWidget {
+class _TarjetaMapa extends ConsumerStatefulWidget {
   const _TarjetaMapa({
     required this.route,
     required this.hora,
@@ -579,55 +581,43 @@ class _TarjetaMapa extends ConsumerWidget {
   final ValueChanged<int?> onSelectHour;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final heat = ref.watch(
-      reportesCalorProvider((routeId: route.id, periodo: periodo, hora: hora)),
+  ConsumerState<_TarjetaMapa> createState() => _TarjetaMapaState();
+}
+
+class _TarjetaMapaState extends ConsumerState<_TarjetaMapa> {
+  // Lo último que pintó el mapa: con otra ruta, hora o periodo se queda,
+  // atenuado y con su píldora, mientras llega lo nuevo.
+  (RutaBusquedas, List<CeldaBusqueda>)? _previo;
+
+  @override
+  Widget build(BuildContext context) {
+    final args = (
+      routeId: widget.route.id,
+      periodo: widget.periodo,
+      hora: widget.hora,
     );
-    final (codigo, nombre) = _partirNombreRuta(route);
+    var heat = ref.watch(reportesCalorProvider(args));
+    if (heat.valueOrNull case final cells?) _previo = (widget.route, cells);
+    final cargando = heat.isLoading && !heat.hasValue && !heat.hasError;
+    final previo = _previo;
+    if (cargando && previo != null) heat = AsyncData(previo.$2);
     return _Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 13),
+          // El nombre de la ruta ya va en su ficha, sobre el mapa.
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 13),
             child: Row(
               children: [
-                const Icon(
-                  Icons.place_outlined,
-                  color: AppColors.navy,
-                  size: 19,
-                ),
-                const SizedBox(width: 9),
-                const Text(
+                Icon(Icons.place_outlined, color: AppColors.navy, size: 19),
+                SizedBox(width: 9),
+                Text(
                   'Desde dónde te buscan',
                   style: TextStyle(
                     color: AppColors.navy,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  // Al elegir otra ruta el nombre se funde, como el mapa.
-                  child: AnimatedSwitcher(
-                    duration: AppMotion.duracion(context, AppMotion.rapido),
-                    switchInCurve: AppMotion.curvaEntrada,
-                    switchOutCurve: AppMotion.curvaSalida,
-                    layoutBuilder: (actual, previos) => Stack(
-                      alignment: Alignment.centerRight,
-                      children: [...previos, ?actual],
-                    ),
-                    child: Text(
-                      nombre,
-                      key: ValueKey('ruta-mapa-${route.id}'),
-                      textAlign: TextAlign.right,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.ui(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -647,29 +637,22 @@ class _TarjetaMapa extends ConsumerWidget {
                   message: 'No se pudieron cargar los reportes',
                   action: _Reintentar(
                     key: const ValueKey('reintentar-calor'),
-                    onPressed: () => ref.invalidate(
-                      reportesCalorProvider((
-                        routeId: route.id,
-                        periodo: periodo,
-                        hora: hora,
-                      )),
-                    ),
+                    onPressed: () =>
+                        ref.invalidate(reportesCalorProvider(args)),
                   ),
                 ),
-                data: (cells) => cells.isEmpty
-                    ? const _EstadoReporte(
-                        icon: Icons.location_off_outlined,
-                        message:
-                            'Aún no hay suficientes búsquedas con ubicación en esta ruta para mostrarlas. Se muestran zonas con al menos 5 búsquedas.',
-                      )
-                    : _MapaCalor(
-                        routeId: route.id,
-                        codigo: codigo,
-                        hora: hora,
-                        porHora: route.porHora,
-                        onSelectHour: onSelectHour,
-                        cells: cells,
-                      ),
+                data: (cells) {
+                  final route = cargando ? previo!.$1 : widget.route;
+                  return _MapaCalor(
+                    routeId: route.id,
+                    codigo: _partirNombreRuta(route).$1,
+                    hora: widget.hora,
+                    porHora: route.porHora,
+                    onSelectHour: widget.onSelectHour,
+                    cells: cells,
+                    cargando: cargando,
+                  );
+                },
               ),
             ),
           ),
@@ -724,10 +707,6 @@ class _FilaRutaState extends State<_FilaRuta> {
   @override
   Widget build(BuildContext context) {
     final (codigo, nombre) = _partirNombreRuta(widget.ruta);
-    final maxHora = widget.ruta.porHora.fold<int>(
-      0,
-      (maximo, valor) => valor > maximo ? valor : maximo,
-    );
     final horaPico = widget.ruta.total == 0 ? null : widget.ruta.horaPico;
     final etiquetaHora = horaPico == null ? null : horaPicoLabel(horaPico);
     final etiquetaSemantica = [
@@ -823,117 +802,30 @@ class _FilaRutaState extends State<_FilaRuta> {
                           ),
                         ),
                         const SizedBox(width: 12),
+                        // La cifra sola: la cabecera ya dice que son
+                        // búsquedas (dueño, 2026-10-26: «demasiado texto»).
                         Text(
-                          '${_formatearTotal(widget.ruta.total)} búsquedas',
+                          _formatearTotal(widget.ruta.total),
                           style: AppType.mono(
                             color: AppColors.textPrimary,
-                            fontSize: 11.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    // Barra y hora pico arrancan bajo la ficha (22 px del
-                    // puesto), así la fila lee en dos columnas limpias.
+                    // La barra arranca bajo la ficha (22 px del puesto). La
+                    // hora pico y las 24 horas viven en la tira del mapa: una
+                    // sola tira, no dos.
                     Padding(
                       padding: const EdgeInsets.only(left: 22),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _BarraRuta(
-                              key: ValueKey('barra-ruta-${widget.ruta.id}'),
-                              value: widget.maxTotal == 0
-                                  ? 0
-                                  : widget.ruta.total / widget.maxTotal,
-                            ),
-                          ),
-                          if (etiquetaHora != null) ...[
-                            const SizedBox(width: 14),
-                            Row(
-                              key: ValueKey('pico-hora-${widget.ruta.id}'),
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Ámbar sobre blanco: 5,0:1.
-                                const Icon(
-                                  Icons.schedule_outlined,
-                                  size: 12,
-                                  color: _ambarTexto,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  etiquetaHora,
-                                  style: AppType.ui(
-                                    color: _ambarTexto,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
+                      child: _BarraRuta(
+                        key: ValueKey('barra-ruta-${widget.ruta.id}'),
+                        value: widget.maxTotal == 0
+                            ? 0
+                            : widget.ruta.total / widget.maxTotal,
                       ),
-                    ),
-                    // Las 24 horas solo en la ruta elegida: repetidas en
-                    // cada fila amontonaban la lista.
-                    AnimatedSize(
-                      duration: AppMotion.duracion(context, AppMotion.normal),
-                      curve: AppMotion.curvaCambio,
-                      alignment: Alignment.topCenter,
-                      child: !widget.selected
-                          ? const SizedBox(width: double.infinity)
-                          : Padding(
-                              padding: const EdgeInsets.fromLTRB(22, 14, 0, 0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    children: [
-                                      for (var hora = 0; hora < 24; hora++)
-                                        Expanded(
-                                          child: Padding(
-                                            padding: EdgeInsets.only(
-                                              right: hora == 23 ? 0 : 2,
-                                            ),
-                                            child: _CeldaHora(
-                                              key: ValueKey(
-                                                'celda-hora-${widget.ruta.id}-$hora',
-                                              ),
-                                              routeId: widget.ruta.id,
-                                              pico: horaPico == hora,
-                                              hora: hora,
-                                              count: widget.ruta.porHora[hora],
-                                              maxHora: maxHora,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Row(
-                                    children: [
-                                      // Una marca cada seis horas: cada
-                                      // tramo ocupa seis celdas, así la
-                                      // etiqueta cae sobre la suya.
-                                      for (var hora = 0; hora < 24; hora += 6)
-                                        Expanded(
-                                          child: Text(
-                                            horaOpcionLabel(hora),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.clip,
-                                            style: AppType.ui(
-                                              color: AppColors.textMuted,
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
                     ),
                   ],
                 ),
@@ -985,54 +877,12 @@ class _BarraRuta extends StatelessWidget {
         width: constraints.maxWidth * value.clamp(0.0, 1.0).toDouble(),
         height: 7,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.boton, Color(0xFF378ADD)],
-          ),
+          color: AppColors.boton,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
       ),
     ),
   );
-}
-
-class _CeldaHora extends StatelessWidget {
-  const _CeldaHora({
-    super.key,
-    required this.routeId,
-    required this.pico,
-    required this.hora,
-    required this.count,
-    required this.maxHora,
-  });
-
-  final String routeId;
-  final bool pico;
-  final int hora;
-  final int count;
-  final int maxHora;
-
-  @override
-  Widget build(BuildContext context) {
-    // La fila entera es un botón y ya lee el total y la hora pico; la
-    // celda solo lleva su número para el ratón.
-    return Tooltip(
-      message: '${horaOpcionLabel(hora)}, $count búsquedas',
-      child: SizedBox(
-        height: 17,
-        child: DecoratedBox(
-          key: pico ? ValueKey('pico-hora-$routeId-$hora') : null,
-          decoration: BoxDecoration(
-            color: _colorCalor(count, maxHora),
-            borderRadius: BorderRadius.circular(3),
-            border: Border.all(
-              color: pico ? AppColors.navy : AppColors.surface,
-              width: pico ? 2 : 0.5,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// La forma de [_FilaRuta] sin datos: puesto, ficha, nombre y total arriba,
@@ -1256,6 +1106,7 @@ class _MapaCalor extends ConsumerStatefulWidget {
     required this.porHora,
     required this.onSelectHour,
     required this.cells,
+    required this.cargando,
   });
   final String routeId;
   final String codigo;
@@ -1263,6 +1114,10 @@ class _MapaCalor extends ConsumerStatefulWidget {
   final List<int> porHora;
   final ValueChanged<int?> onSelectHour;
   final List<CeldaBusqueda> cells;
+
+  /// Llega otra hora, ruta o periodo: el mapa de antes se queda atenuado
+  /// hasta que llegue el nuevo, sin volver al esqueleto.
+  final bool cargando;
 
   @override
   ConsumerState<_MapaCalor> createState() => _MapaCalorState();
@@ -1285,6 +1140,14 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   );
   // El pulso marca el foco más caliente cuando el calor termina de subir.
   late final _pulso = AnimationController(vsync: this);
+  late final _espera = AnimationController(
+    vsync: this,
+    value: widget.cargando ? 1 : 0,
+  );
+  late final _atenuado = CurvedAnimation(
+    parent: _espera,
+    curve: AppMotion.curvaCambio,
+  );
 
   @override
   void initState() {
@@ -1297,6 +1160,7 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
     super.didChangeDependencies();
     _calor.duration = AppMotion.duracion(context, _crecerCalor);
     _pulso.duration = AppMotion.duracion(context, AppMotion.pulso);
+    _espera.duration = AppMotion.duracion(context, AppMotion.normal);
     // Al abrir, el calor crece desde la ruta como en el video.
     if (_calor.isDismissed) _crecer();
   }
@@ -1305,6 +1169,11 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   void didUpdateWidget(covariant _MapaCalor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.routeId != widget.routeId) _readRoute();
+    if (oldWidget.cargando != widget.cargando) {
+      widget.cargando ? _espera.forward() : _espera.reverse();
+    }
+    // Mientras espera, la cámara y el calor se quedan como estaban.
+    if (widget.cargando) return;
     if (oldWidget.cells != widget.cells ||
         oldWidget.routeId != widget.routeId) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitCamera());
@@ -1317,6 +1186,8 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   void dispose() {
     _nivel.dispose();
     _calor.dispose();
+    _atenuado.dispose();
+    _espera.dispose();
     _pulso.dispose();
     _controller.dispose();
     super.dispose();
@@ -1372,10 +1243,6 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   @override
   Widget build(BuildContext context) {
     final style = ref.watch(estiloMapaProvider).valueOrNull;
-    final maxCount = widget.cells.fold<int>(
-      1,
-      (maximo, cell) => cell.count > maximo ? cell.count : maximo,
-    );
     final orla = Color(
       int.parse(EstiloRuta.orla.lineColor.replaceFirst('#', '0xFF')),
     );
@@ -1412,61 +1279,62 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
                 sprites: style.sprites,
                 tileProviders: style.providers,
               ),
-            if (_routePoints.length > 1)
-              AnimatedBuilder(
-                animation: _nivel,
-                builder: (context, _) {
-                  // Con el calor pintado el corredor ya dibuja la ruta y en
-                  // el video no hay línea debajo: se apaga del todo.
-                  final queda = 1 - _nivel.value.clamp(0.0, 1.0);
-                  return PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _routePoints,
-                        color: orla.withValues(
-                          alpha: EstiloRuta.orla.lineOpacity * queda,
-                        ),
-                        strokeWidth: EstiloRuta.orla.lineWidth,
-                        strokeCap: StrokeCap.round,
-                        strokeJoin: StrokeJoin.round,
-                      ),
-                      Polyline(
-                        points: _routePoints,
-                        color: linea.withValues(alpha: queda),
-                        strokeWidth: EstiloRuta.linea.lineWidth,
-                        strokeCap: StrokeCap.round,
-                        strokeJoin: StrokeJoin.round,
-                      ),
-                    ],
-                  );
-                },
-              ),
             _CapaCalor(
               key: ValueKey('capa-calor-${widget.routeId}'),
               cells: widget.cells,
               nivel: _nivel,
               pulso: _pulso,
+              atenuado: _atenuado,
             ),
+            // La ruta va siempre encima del calor, nítida, como en el
+            // pasajero: el calor dice dónde buscan y la línea por dónde pasa.
+            if (_routePoints.length > 1)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    color: orla.withValues(alpha: EstiloRuta.orla.lineOpacity),
+                    strokeWidth: EstiloRuta.orla.lineWidth,
+                    strokeCap: StrokeCap.round,
+                    strokeJoin: StrokeJoin.round,
+                  ),
+                  Polyline(
+                    points: _routePoints,
+                    color: linea,
+                    strokeWidth: EstiloRuta.linea.lineWidth,
+                    strokeCap: StrokeCap.round,
+                    strokeJoin: StrokeJoin.round,
+                  ),
+                ],
+              ),
           ],
+        ),
+        Positioned(
+          top: 14,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: AppMotion.duracion(context, AppMotion.normal),
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaCambio,
+              child: widget.cargando
+                  ? const _PildoraCargando(key: ValueKey('mapa-cargando'))
+                  : const SizedBox.shrink(),
+            ),
+          ),
         ),
         Positioned(
           left: 16,
           bottom: 16,
-          // En columna: con la ventana mínima (1200 px) la fila de las dos
-          // tarjetas pisaría la atribución del mapa.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _LeyendaCalor(codigo: widget.codigo, maxCount: maxCount),
-              ),
-              _HorasMapa(
-                porHora: widget.porHora,
-                hora: widget.hora,
-                onSelectHour: widget.onSelectHour,
-              ),
-            ],
+          child: _HorasMapa(
+            key: const ValueKey('horas-mapa'),
+            routeId: widget.routeId,
+            codigo: widget.codigo,
+            porHora: widget.porHora,
+            hora: widget.hora,
+            sinZonas: widget.cells.isEmpty && !widget.cargando,
+            onSelectHour: widget.onSelectHour,
           ),
         ),
         const Positioned(right: 8, bottom: 5, child: _AtribucionMapa()),
@@ -1486,11 +1354,13 @@ class _CapaCalor extends StatefulWidget {
     required this.cells,
     required this.nivel,
     required this.pulso,
+    required this.atenuado,
   });
 
   final List<CeldaBusqueda> cells;
   final Animation<double> nivel;
   final Animation<double> pulso;
+  final Animation<double> atenuado;
 
   @override
   State<_CapaCalor> createState() => _CapaCalorState();
@@ -1546,6 +1416,7 @@ class _CapaCalorState extends State<_CapaCalor> {
             raster: _raster,
             nivel: widget.nivel,
             pulso: widget.pulso,
+            atenuado: widget.atenuado,
           ),
         ),
       ),
@@ -1655,7 +1526,7 @@ class _RasterCalor {
 
     final verde = Uint8List(ancho * alto * 4);
     final color = Uint8List(ancho * alto * 4);
-    final base = _coloresCalor.first;
+    final base = coloresCalor.first;
     for (var i = 0; i < d.length; i++) {
       final borde = _suave(0.03, 0.8, s[i]);
       if (borde <= 0) continue;
@@ -1665,7 +1536,7 @@ class _RasterCalor {
       final t = math.pow(d[i] / dMax, 0.7).toDouble();
       // Corredor al 55 %, como el del video, deja leer las calles debajo;
       // los focos llegan al 90 %.
-      _pixel(color, i * 4, _colorEnEscala(t), borde * (0.55 + 0.35 * t));
+      _pixel(color, i * 4, colorEnEscala(t), borde * (0.55 + 0.35 * t));
       _pixel(verde, i * 4, base, borde * 0.55);
     }
 
@@ -1742,12 +1613,14 @@ class _PintorCalor extends CustomPainter {
     required this.raster,
     required this.nivel,
     required this.pulso,
-  }) : super(repaint: Listenable.merge([nivel, pulso]));
+    required this.atenuado,
+  }) : super(repaint: Listenable.merge([nivel, pulso, atenuado]));
 
   final MapCamera camera;
   final _RasterCalor? raster;
   final Animation<double> nivel;
   final Animation<double> pulso;
+  final Animation<double> atenuado;
 
   // El anillo se abre de 5 a 26 px y se queda, como los del video, que
   // rodean el foco sin salirse de la banda; el punto blanco marca el centro.
@@ -1763,7 +1636,10 @@ class _PintorCalor extends CustomPainter {
     // El corredor aparece en el primer 40 % y el resto sube de tono. El
     // tono va en cuadrático: el resorte llega casi entero a la mitad del
     // tiempo, y sin esto el verde del arranque (32,3 s del video) ni se ve.
-    final aparece = (n / 0.4).clamp(0.0, 1.0);
+    // Mientras llega otra hora el calor de antes baja al 35 %: se ve que
+    // espera sin dejar el mapa en blanco.
+    final queda = 1 - 0.65 * atenuado.value.clamp(0.0, 1.0);
+    final aparece = (n / 0.4).clamp(0.0, 1.0) * queda;
     final tono = n * n;
     final destino = Rect.fromPoints(
       camera.getOffsetFromOrigin(r.noroeste),
@@ -1801,7 +1677,7 @@ class _PintorCalor extends CustomPainter {
     final p = pulso.value;
     if (p <= 0) return;
     final abre = Curves.easeOutCubic.transform(p);
-    final aparecePico = (p * 4).clamp(0.0, 1.0) * n;
+    final aparecePico = (p * 4).clamp(0.0, 1.0) * n * queda;
     for (final pico in r.picos) {
       final centro = camera.getOffsetFromOrigin(pico);
       canvas
@@ -1826,21 +1702,30 @@ class _PintorCalor extends CustomPainter {
       oldDelegate.camera != camera ||
       oldDelegate.raster != raster ||
       oldDelegate.nivel != nivel ||
-      oldDelegate.pulso != pulso;
+      oldDelegate.pulso != pulso ||
+      oldDelegate.atenuado != atenuado;
 }
 
-/// Las 24 horas de la ruta sobre el mapa: cada barra mide sus búsquedas en
-/// la escala del calor y al tocarla el mapa se pinta solo a esa hora; tocar
-/// la elegida, o «Todo el día», vuelve al día entero.
+/// La única tira de horas de Reportes, sobre el mapa: la ficha de la ruta,
+/// la hora pico marcada con un punto, cada barra en la escala del calor y,
+/// debajo, esa escala de menos a más. Tocar una barra pinta el mapa solo a
+/// esa hora; tocar la elegida, o «Todo el día», vuelve al día entero.
 class _HorasMapa extends StatelessWidget {
   const _HorasMapa({
+    super.key,
+    required this.routeId,
+    required this.codigo,
     required this.porHora,
     required this.hora,
+    required this.sinZonas,
     required this.onSelectHour,
   });
 
+  final String routeId;
+  final String codigo;
   final List<int> porHora;
   final int? hora;
+  final bool sinZonas;
   final ValueChanged<int?> onSelectHour;
 
   // 336 px: con 12 de aire por lado quedan 312 para 24 barras de 11 px y
@@ -1852,9 +1737,20 @@ class _HorasMapa extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maximo = porHora.fold<int>(0, math.max);
+    final pico = maximo == 0 ? null : porHora.indexOf(maximo);
+    final rotulo = switch ((hora, pico)) {
+      (final h?, _) => horaPicoLabel(h),
+      (null, final p?) => 'Pico ${horaPicoLabel(p)}',
+      _ => 'Todo el día',
+    };
+    final pie = AppType.ui(
+      color: AppColors.textSecondary,
+      fontSize: 9.5,
+      fontWeight: FontWeight.w700,
+    );
     return Container(
       width: _ancho,
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1867,15 +1763,32 @@ class _HorasMapa extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.schedule_outlined,
-                size: 14,
-                color: AppColors.navy,
-              ),
-              const SizedBox(width: 6),
+              if (codigo.isNotEmpty) ...[
+                // Blanco sobre el azul de botón: 7,1:1.
+                Container(
+                  key: ValueKey('ruta-mapa-$routeId'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.boton,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Text(
+                    codigo,
+                    style: AppType.ui(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: Text(
-                  hora == null ? 'Todo el día' : horaPicoLabel(hora!),
+                  rotulo,
                   key: const ValueKey('hora-mapa-rotulo'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1909,7 +1822,35 @@ class _HorasMapa extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          // El punto navy sobre la barra más alta: el pico se ve sin leerlo.
+          SizedBox(
+            height: 7,
+            child: Row(
+              children: [
+                for (var h = 0; h < 24; h++)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: h == 23 ? 0 : 2),
+                      child: h == pico
+                          ? Align(
+                              alignment: Alignment.topCenter,
+                              child: Container(
+                                key: const ValueKey('hora-mapa-pico'),
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.navy,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+              ],
+            ),
+          ),
           SizedBox(
             height: _altoBarras,
             child: Row(
@@ -1936,7 +1877,7 @@ class _HorasMapa extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              // Como la tira de la lista: una marca cada seis barras.
+              // Una marca cada seis barras.
               for (var h = 0; h < 24; h += 6)
                 Expanded(
                   child: Text(
@@ -1952,6 +1893,39 @@ class _HorasMapa extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 8),
+          if (sinZonas)
+            Text(
+              'Sin zonas con 5 búsquedas o más',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: pie,
+            )
+          else
+            Semantics(
+              label: 'Escala del mapa, de menos a más búsquedas',
+              child: ExcludeSemantics(
+                // La misma escala del mapa y de las barras.
+                child: Row(
+                  children: [
+                    Text('Menos', style: pie),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        key: const ValueKey('leyenda-calor'),
+                        height: 4,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: coloresCalor),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Más', style: pie),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -2012,7 +1986,7 @@ class _BarraHoraMapaState extends State<_BarraHoraMapa> {
                   curve: AppMotion.curvaCambio,
                   height: alto,
                   decoration: BoxDecoration(
-                    color: _colorCalor(
+                    color: colorCalor(
                       widget.count,
                       widget.maximo,
                     ).withValues(alpha: opacidad),
@@ -2033,114 +2007,42 @@ class _BarraHoraMapaState extends State<_BarraHoraMapa> {
   }
 }
 
-/// Tarjeta de la leyenda como la del video de Control: la ficha de la ruta,
-/// el alcance del aviso (se arma hasta 3 km a la redonda, así que se busca
-/// también lejos de la calle) y la escala de menos a más.
-class _LeyendaCalor extends StatelessWidget {
-  const _LeyendaCalor({required this.codigo, required this.maxCount});
-  final String codigo;
-  final int maxCount;
+/// Píldora del mapa mientras llega otra hora, ruta o periodo.
+class _PildoraCargando extends StatelessWidget {
+  const _PildoraCargando({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final rotulo = AppType.ui(
-      color: AppColors.textSecondary,
-      fontSize: 9.5,
-      fontWeight: FontWeight.w700,
-    );
     return Semantics(
-      label:
-          'Ruta $codigo, solo por donde pasa. Menos búsquedas a más '
-          'búsquedas, máximo $maxCount en una zona',
+      liveRegion: true,
+      label: 'Cargando',
       child: ExcludeSemantics(
-        // Del ancho de las horas, para que las dos tarjetas del mapa se
-        // lean como una sola columna alineada.
         child: Container(
-          width: _HorasMapa._ancho,
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
           decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(color: AppColors.border),
             boxShadow: AppColors.sombraTarjeta,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  if (codigo.isNotEmpty) ...[
-                    // Blanco sobre el azul de botón: 7,1:1.
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.boton,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Text(
-                        codigo,
-                        style: AppType.ui(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Text(
-                      'Solo por donde pasa',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.ui(
-                        color: AppColors.textMuted,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              // La barra continua del video, con la misma escala del mapa.
-              Container(
-                key: const ValueKey('leyenda-calor'),
-                height: 6,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: _coloresCalor),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
+              const SizedBox.square(
+                dimension: 11,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.6,
+                  color: AppColors.boton,
                 ),
               ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Con letra más grande del sistema se cortan antes de
-                  // montarse una sobre otra.
-                  Flexible(
-                    child: Text(
-                      'Menos búsquedas',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: rotulo,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Más búsquedas',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: rotulo,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 7),
+              Text(
+                'Cargando',
+                style: AppType.ui(
+                  color: AppColors.navy,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -2184,18 +2086,4 @@ String _formatearTotal(int value) {
     chunks.insert(0, digits.substring(start, end));
   }
   return '${negative ? '-' : ''}${chunks.join('.')}';
-}
-
-// Las horas sin búsquedas van en el gris del filo: se ve el hueco, pero no
-// se confunde con el verde de las horas con pocas búsquedas.
-Color _colorCalor(int count, int maxCount) {
-  if (count <= 0 || maxCount <= 0) return AppColors.border;
-  return _colorEnEscala(count / maxCount);
-}
-
-/// El tono de [_coloresCalor] para `t` de 0 (verde) a 1 (rojo), sin saltos.
-Color _colorEnEscala(double t) {
-  final x = t.clamp(0.0, 1.0) * (_coloresCalor.length - 1);
-  final i = math.min(x.floor(), _coloresCalor.length - 2);
-  return Color.lerp(_coloresCalor[i], _coloresCalor[i + 1], x - i)!;
 }
