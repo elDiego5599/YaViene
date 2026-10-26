@@ -381,7 +381,7 @@ class _TarjetaMapa extends ConsumerWidget {
     final heat = ref.watch(
       reportesCalorProvider((routeId: route.id, hora: hora)),
     );
-    final (_, nombre) = _partirNombreRuta(route);
+    final (codigo, nombre) = _partirNombreRuta(route);
     return _Tarjeta(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -406,15 +406,25 @@ class _TarjetaMapa extends ConsumerWidget {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    nombre,
-                    key: ValueKey('ruta-mapa-${route.id}'),
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppType.ui(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  // Al elegir otra ruta el nombre se funde, como el mapa.
+                  child: AnimatedSwitcher(
+                    duration: AppMotion.duracion(context, AppMotion.rapido),
+                    switchInCurve: AppMotion.curvaEntrada,
+                    switchOutCurve: AppMotion.curvaSalida,
+                    layoutBuilder: (actual, previos) => Stack(
+                      alignment: Alignment.centerRight,
+                      children: [...previos, ?actual],
+                    ),
+                    child: Text(
+                      nombre,
+                      key: ValueKey('ruta-mapa-${route.id}'),
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.ui(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -444,7 +454,12 @@ class _TarjetaMapa extends ConsumerWidget {
                       message:
                           'Aún no hay suficientes búsquedas con ubicación en esta ruta para mostrarlas. Se muestran zonas con al menos 5 búsquedas.',
                     )
-                  : _MapaCalor(routeId: route.id, hora: hora, cells: cells),
+                  : _MapaCalor(
+                      routeId: route.id,
+                      codigo: codigo,
+                      hora: hora,
+                      cells: cells,
+                    ),
             ),
           ),
         ],
@@ -873,10 +888,12 @@ class _Reintentar extends StatelessWidget {
 class _MapaCalor extends ConsumerStatefulWidget {
   const _MapaCalor({
     required this.routeId,
+    required this.codigo,
     required this.hora,
     required this.cells,
   });
   final String routeId;
+  final String codigo;
   final int? hora;
   final List<CeldaBusqueda> cells;
 
@@ -884,17 +901,40 @@ class _MapaCalor extends ConsumerStatefulWidget {
   ConsumerState<_MapaCalor> createState() => _MapaCalorState();
 }
 
-class _MapaCalorState extends ConsumerState<_MapaCalor> {
+// Como en el video de Control: el calor nace verde pálido sobre la ruta y
+// sube a sus tonos en 1,3 s (de 32,3 a 33,6 s del video).
+const _crecerCalor = Duration(milliseconds: 1300);
+
+class _MapaCalorState extends ConsumerState<_MapaCalor>
+    with TickerProviderStateMixin {
   final _controller = MapController();
   List<LatLng> _routePoints = const [];
   bool _mapReady = false;
   // Al abrir se ve solo la ruta; el calor se pinta cuando el dueño lo pide.
   bool _pintado = false;
+  late final _calor = AnimationController(vsync: this)
+    ..addStatusListener(_alCambiarCalor);
+  late final _nivel = CurvedAnimation(
+    parent: _calor,
+    curve: AppMotion.curvaEntrada,
+    reverseCurve: AppMotion.curvaSalida,
+  );
+  // El pulso marca el foco más caliente cuando el calor termina de subir.
+  late final _pulso = AnimationController(vsync: this);
 
   @override
   void initState() {
     super.initState();
     _readRoute();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _calor
+      ..duration = AppMotion.duracion(context, _crecerCalor)
+      ..reverseDuration = AppMotion.duracion(context, AppMotion.normal);
+    _pulso.duration = AppMotion.duracion(context, AppMotion.pulso);
   }
 
   @override
@@ -904,13 +944,34 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
     if (oldWidget.cells != widget.cells ||
         oldWidget.routeId != widget.routeId) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitCamera());
+      // Otra ruta u otra hora: el calor vuelve a crecer desde la ruta.
+      if (_pintado) _crecer();
     }
   }
 
   @override
   void dispose() {
+    _nivel.dispose();
+    _calor.dispose();
+    _pulso.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _alCambiarCalor(AnimationStatus status) {
+    if (status == AnimationStatus.completed) _pulso.forward(from: 0);
+    // Apagado del todo, la capa sale del árbol.
+    if (status == AnimationStatus.dismissed && mounted) setState(() {});
+  }
+
+  void _crecer() {
+    _pulso.reset();
+    _calor.forward(from: 0);
+  }
+
+  void _alternar() {
+    setState(() => _pintado = !_pintado);
+    _pintado ? _crecer() : _calor.reverse();
   }
 
   Future<void> _readRoute() async {
@@ -958,6 +1019,14 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
       1,
       (maximo, cell) => cell.count > maximo ? cell.count : maximo,
     );
+    final orla = Color(
+      int.parse(EstiloRuta.orla.lineColor.replaceFirst('#', '0xFF')),
+    );
+    // El verde separa la ruta del rojo más caliente del mapa y mantiene el
+    // estilo del pasajero.
+    final linea = Color(
+      int.parse(EstiloRuta.linea.lineColor.replaceFirst('#', '0xFF')),
+    );
     return Stack(
       children: [
         FlutterMap(
@@ -987,67 +1056,80 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
                 tileProviders: style.providers,
               ),
             if (_routePoints.length > 1)
-              PolylineLayer(
-                polylines: [
-                  Polyline(
-                    points: _routePoints,
-                    color: Color(
-                      int.parse(
-                        EstiloRuta.orla.lineColor.replaceFirst('#', '0xFF'),
+              AnimatedBuilder(
+                animation: _nivel,
+                builder: (context, _) {
+                  // Con el calor pintado la banda ya dibuja la ruta, como en
+                  // el video; la línea queda al 30 % solo para guiar donde
+                  // nadie buscó.
+                  final queda = 1 - 0.7 * _nivel.value;
+                  return PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _routePoints,
+                        color: orla.withValues(
+                          alpha: EstiloRuta.orla.lineOpacity * queda,
+                        ),
+                        strokeWidth: EstiloRuta.orla.lineWidth,
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
                       ),
-                    ).withValues(alpha: EstiloRuta.orla.lineOpacity),
-                    strokeWidth: EstiloRuta.orla.lineWidth,
-                    strokeCap: StrokeCap.round,
-                    strokeJoin: StrokeJoin.round,
-                  ),
-                  Polyline(
-                    points: _routePoints,
-                    color: Color(
-                      int.parse(
-                        // El verde separa la ruta del rojo más caliente del
-                        // mapa y mantiene el estilo del pasajero.
-                        EstiloRuta.linea.lineColor.replaceFirst('#', '0xFF'),
+                      Polyline(
+                        points: _routePoints,
+                        color: linea.withValues(alpha: queda),
+                        strokeWidth: EstiloRuta.linea.lineWidth,
+                        strokeCap: StrokeCap.round,
+                        strokeJoin: StrokeJoin.round,
                       ),
-                    ),
-                    strokeWidth: EstiloRuta.linea.lineWidth,
-                    strokeCap: StrokeCap.round,
-                    strokeJoin: StrokeJoin.round,
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
-            // La mancha va encima de la ruta, como en el video: en un foco
-            // el rojo tapa la línea y se lee que ahí piden el bus.
-            if (_pintado)
+            if (_pintado || !_calor.isDismissed)
               _CapaCalor(
                 key: ValueKey('capa-calor-${widget.routeId}'),
                 cells: widget.cells,
                 maxCount: maxCount,
+                nivel: _nivel,
+                pulso: _pulso,
               ),
           ],
         ),
         Positioned(
           left: 16,
           top: 16,
-          child: _BotonPintar(
-            pintado: _pintado,
-            onTap: () => setState(() => _pintado = !_pintado),
-          ),
+          child: _BotonPintar(pintado: _pintado, onTap: _alternar),
         ),
         Positioned(
           left: 16,
           bottom: 16,
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _PildoraHora(hora: widget.hora),
-              // La leyenda solo explica lo que está pintado.
+              // La leyenda solo explica lo que está pintado; entra subiendo
+              // 8 px, como la tarjeta del video.
               AnimatedSwitcher(
-                duration: AppMotion.duracion(context, AppMotion.rapido),
+                duration: AppMotion.duracion(context, AppMotion.normal),
                 switchInCurve: AppMotion.curvaEntrada,
                 switchOutCurve: AppMotion.curvaSalida,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween(
+                      begin: Offset(0, 0.1 * AppMotion.desplazamiento(context)),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
                 child: _pintado
                     ? Padding(
                         padding: const EdgeInsets.only(left: 8),
-                        child: _LeyendaCalor(maxCount: maxCount),
+                        child: _LeyendaCalor(
+                          codigo: widget.codigo,
+                          maxCount: maxCount,
+                        ),
                       )
                     : const SizedBox.shrink(),
               ),
@@ -1062,13 +1144,22 @@ class _MapaCalorState extends ConsumerState<_MapaCalor> {
 
 /// Manchas de calor como las del video de Control: cada zona es un halo
 /// radial medido en metros (crece y encoge con el zoom, como la calle) que
-/// baja por la escala continua verde, amarillo, naranja y rojo. Sin puntos
-/// encima: el video solo muestra la banda y sus focos.
+/// baja por la escala continua verde, amarillo, naranja y rojo. Al pintarse
+/// nace verde y sube a su tono con [nivel]; al final un pulso blanco marca
+/// el foco más caliente, como en el video.
 class _CapaCalor extends StatelessWidget {
-  const _CapaCalor({super.key, required this.cells, required this.maxCount});
+  const _CapaCalor({
+    super.key,
+    required this.cells,
+    required this.maxCount,
+    required this.nivel,
+    required this.pulso,
+  });
 
   final List<CeldaBusqueda> cells;
   final int maxCount;
+  final Animation<double> nivel;
+  final Animation<double> pulso;
 
   @override
   Widget build(BuildContext context) => MobileLayerTransformer(
@@ -1079,6 +1170,8 @@ class _CapaCalor extends StatelessWidget {
           camera: MapCamera.of(context),
           cells: cells,
           maxCount: maxCount,
+          nivel: nivel,
+          pulso: pulso,
         ),
       ),
     ),
@@ -1090,11 +1183,15 @@ class _PintorCalor extends CustomPainter {
     required this.camera,
     required this.cells,
     required this.maxCount,
-  });
+    required this.nivel,
+    required this.pulso,
+  }) : super(repaint: Listenable.merge([nivel, pulso]));
 
   final MapCamera camera;
   final List<CeldaBusqueda> cells;
   final int maxCount;
+  final Animation<double> nivel;
+  final Animation<double> pulso;
 
   // Una celda mide unos 150 m (`PASO_LAT` del backend). Con halos de 380 m
   // las vecinas se funden en una banda continua por la ruta, como en el
@@ -1104,6 +1201,10 @@ class _PintorCalor extends CustomPainter {
   static const _radioExtraMetros = 520.0;
   // Bajo 26 px el halo de una zona fría se pierde al alejar el mapa.
   static const _radioMinimoPx = 26.0;
+  // El anillo del pulso se abre de 5 a 34 px: en el video llega a cubrir el
+  // foco rojo sin salirse de la banda.
+  static const _anilloDesdePx = 5.0;
+  static const _anilloHastaPx = 34.0;
 
   // Web Mercator: 256 px por tesela y 40.075.016,7 m de ecuador.
   double _pxPorMetro(double lat) =>
@@ -1113,22 +1214,32 @@ class _PintorCalor extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (cells.isEmpty) return;
+    final n = nivel.value.clamp(0.0, 1.0);
+    // La banda aparece en el primer 40 % y el resto sube de tono.
+    final aparece = (n / 0.4).clamp(0.0, 1.0);
     // Las más calientes al final, encima de las frías.
     final ordenadas = [...cells]..sort((a, b) => a.count.compareTo(b.count));
     for (final cell in ordenadas) {
       final centro = camera.getOffsetFromOrigin(LatLng(cell.lat, cell.lng));
       final intensidad = (cell.count / maxCount).clamp(0.0, 1.0);
-      final radio = math.max(
-        _radioMinimoPx,
-        (_radioMetros + _radioExtraMetros * intensidad) * _pxPorMetro(cell.lat),
-      );
+      final radio =
+          math.max(
+            _radioMinimoPx,
+            (_radioMetros + _radioExtraMetros * intensidad) *
+                _pxPorMetro(cell.lat),
+          ) *
+          (0.8 + 0.2 * n);
       // Cada zona se apaga en su propio tono: si el anillo bajara a verde,
       // el borde verde de un foco taparía a sus vecinas naranja y el foco
       // quedaría en un punto. Así el degradado del video lo dan los datos
       // (los conteos bajan del foco hacia la banda). Las frías van al 50 %
       // para que la ruta se lea debajo y el ojo vaya primero a los focos.
-      final color = _colorEnEscala(intensidad);
-      final peso = 0.5 + 0.5 * intensidad;
+      // El tono sube en cuadrático: el resorte llega casi entero a la
+      // mitad del tiempo, y sin esto el verde del arranque (32,3 s del
+      // video) ni se alcanza a ver.
+      final color = _colorEnEscala(intensidad * n * n);
+      final peso = (0.5 + 0.5 * intensidad) * aparece;
       final pintura = Paint()
         ..shader = RadialGradient(
           colors: [
@@ -1141,13 +1252,43 @@ class _PintorCalor extends CustomPainter {
         ).createShader(Rect.fromCircle(center: centro, radius: radio));
       canvas.drawCircle(centro, radio, pintura);
     }
+
+    final p = pulso.value;
+    if (p <= 0) return;
+    final foco = ordenadas.last;
+    final centro = camera.getOffsetFromOrigin(LatLng(foco.lat, foco.lng));
+    // El punto se queda mientras el calor está pintado y se apaga con él.
+    final punto = (p * 4).clamp(0.0, 1.0) * n;
+    canvas
+      ..drawCircle(
+        centro,
+        8,
+        Paint()..color = Colors.white.withValues(alpha: 0.35 * punto),
+      )
+      ..drawCircle(
+        centro,
+        4.5,
+        Paint()..color = Colors.white.withValues(alpha: 0.95 * punto),
+      );
+    if (p >= 1) return;
+    final abre = Curves.easeOutCubic.transform(p);
+    canvas.drawCircle(
+      centro,
+      _anilloDesdePx + (_anilloHastaPx - _anilloDesdePx) * abre,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8
+        ..color = Colors.white.withValues(alpha: 0.9 * (1 - p) * n),
+    );
   }
 
   @override
   bool shouldRepaint(_PintorCalor oldDelegate) =>
       oldDelegate.camera != camera ||
       oldDelegate.cells != cells ||
-      oldDelegate.maxCount != maxCount;
+      oldDelegate.maxCount != maxCount ||
+      oldDelegate.nivel != nivel ||
+      oldDelegate.pulso != pulso;
 }
 
 /// Píldora que pinta o quita el calor. Apagada va blanca como las demás
@@ -1246,58 +1387,121 @@ class _PildoraHora extends StatelessWidget {
   );
 }
 
+/// Tarjeta de la leyenda como la del video de Control: la ficha de la ruta,
+/// que el calor solo cuenta por donde pasa, y la escala de menos a más.
 class _LeyendaCalor extends StatelessWidget {
-  const _LeyendaCalor({required this.maxCount});
+  const _LeyendaCalor({required this.codigo, required this.maxCount});
+  final String codigo;
   final int maxCount;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'Menos búsquedas a más búsquedas, máximo $maxCount en una zona',
-    child: ExcludeSemantics(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-        decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: AppColors.border),
-          boxShadow: AppColors.sombraTarjeta,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Menos',
-              style: AppType.ui(
-                color: AppColors.textSecondary,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final rotulo = AppType.ui(
+      color: AppColors.textSecondary,
+      fontSize: 9.5,
+      fontWeight: FontWeight.w700,
+    );
+    return Semantics(
+      label:
+          'Ruta $codigo, solo por donde pasa. Menos búsquedas a más '
+          'búsquedas, máximo $maxCount en una zona',
+      child: ExcludeSemantics(
+        // 216 px: caben «Menos búsquedas» y «Más búsquedas» a 9,5 pt
+        // (unos 84 px cada uno en Plus Jakarta) con aire entre los dos, y
+        // la barra queda del ancho de la tarjeta.
+        child: Container(
+          width: 216,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppColors.sombraTarjeta,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  if (codigo.isNotEmpty) ...[
+                    // Blanco sobre el azul de botón: 7,1:1.
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.boton,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Text(
+                        codigo,
+                        style: AppType.ui(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: Text(
+                      'Solo por donde pasa',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.ui(
+                        color: AppColors.textMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 8),
-            // La barra continua del video, con la misma escala del mapa.
-            Container(
-              key: const ValueKey('leyenda-calor'),
-              width: 72,
-              height: 8,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: _coloresCalor),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
+              const SizedBox(height: 10),
+              // La barra continua del video, con la misma escala del mapa.
+              Container(
+                key: const ValueKey('leyenda-calor'),
+                height: 6,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: _coloresCalor),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Más',
-              style: AppType.ui(
-                color: AppColors.textSecondary,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Con letra más grande del sistema se cortan antes de
+                  // montarse una sobre otra.
+                  Flexible(
+                    child: Text(
+                      'Menos búsquedas',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: rotulo,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Más búsquedas',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: rotulo,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _AtribucionMapa extends StatelessWidget {

@@ -281,12 +281,12 @@ void main() {
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
     expect(find.text('Todo el día'), findsNWidgets(2));
     expect(find.byType(PolylineLayer), findsOneWidget);
-    expect(find.text('Menos'), findsOneWidget);
-    expect(find.text('Más'), findsOneWidget);
+    expect(find.text('Menos búsquedas'), findsOneWidget);
+    expect(find.text('Más búsquedas'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('alternar-calor')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsNothing);
-    expect(find.text('Menos'), findsNothing);
+    expect(find.text('Menos búsquedas'), findsNothing);
   });
 }
