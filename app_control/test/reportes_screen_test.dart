@@ -316,15 +316,18 @@ void main() {
 
     expect(find.byType(PolylineLayer), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
-    // La ruta va encima del calor, entera y sin apagarse (dueño, 2026-10-26).
+    // La ruta va debajo del calor y translúcida, para que el calor mande
+    // (dueño, 2026-10-26).
     final capas = tester.widget<FlutterMap>(find.byType(FlutterMap)).children;
     final ruta = capas.indexWhere((c) => c is PolylineLayer);
     final calor = capas.indexWhere(
       (c) => c.key == const ValueKey('capa-calor-R1'),
     );
-    expect(ruta, greaterThan(calor));
+    expect(ruta, lessThan(calor));
     final lineas = (capas[ruta] as PolylineLayer).polylines;
-    expect(lineas.last.color.a, closeTo(1, 0.01));
+    for (final l in lineas) {
+      expect(l.color.a, lessThanOrEqualTo(0.5));
+    }
     expect(find.byKey(const ValueKey('leyenda-calor')), findsOneWidget);
     expect(find.text('Menos'), findsOneWidget);
     expect(find.text('Más'), findsOneWidget);

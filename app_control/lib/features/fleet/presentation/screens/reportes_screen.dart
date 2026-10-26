@@ -1132,14 +1132,11 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   final _controller = MapController();
   List<LatLng> _routePoints = const [];
   bool _mapReady = false;
-  late final _calor = AnimationController(vsync: this)
-    ..addStatusListener(_alCambiarCalor);
+  late final _calor = AnimationController(vsync: this);
   late final _nivel = CurvedAnimation(
     parent: _calor,
     curve: AppMotion.curvaEntrada,
   );
-  // El pulso marca el foco más caliente cuando el calor termina de subir.
-  late final _pulso = AnimationController(vsync: this);
   late final _espera = AnimationController(
     vsync: this,
     value: widget.cargando ? 1 : 0,
@@ -1159,7 +1156,6 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _calor.duration = AppMotion.duracion(context, _crecerCalor);
-    _pulso.duration = AppMotion.duracion(context, AppMotion.pulso);
     _espera.duration = AppMotion.duracion(context, AppMotion.normal);
     // Al abrir, el calor crece desde la ruta como en el video.
     if (_calor.isDismissed) _crecer();
@@ -1188,19 +1184,11 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
     _calor.dispose();
     _atenuado.dispose();
     _espera.dispose();
-    _pulso.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  void _alCambiarCalor(AnimationStatus status) {
-    if (status == AnimationStatus.completed) _pulso.forward(from: 0);
-  }
-
-  void _crecer() {
-    _pulso.reset();
-    _calor.forward(from: 0);
-  }
+  void _crecer() => _calor.forward(from: 0);
 
   Future<void> _readRoute() async {
     try {
@@ -1279,34 +1267,35 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
                 sprites: style.sprites,
                 tileProviders: style.providers,
               ),
-            _CapaCalor(
-              key: ValueKey('capa-calor-${widget.routeId}'),
-              cells: widget.cells,
-              nivel: _nivel,
-              pulso: _pulso,
-              atenuado: _atenuado,
-            ),
-            // La ruta va siempre encima del calor, nítida, como en el
-            // pasajero: el calor dice dónde buscan y la línea por dónde pasa.
+            // La ruta va debajo del calor y a media luz (dueño, 2026-10-26):
+            // el calor manda y la línea solo asoma por dónde pasa.
             if (_routePoints.length > 1)
               PolylineLayer(
                 polylines: [
                   Polyline(
                     points: _routePoints,
-                    color: orla.withValues(alpha: EstiloRuta.orla.lineOpacity),
+                    color: orla.withValues(
+                      alpha: EstiloRuta.orla.lineOpacity * 0.5,
+                    ),
                     strokeWidth: EstiloRuta.orla.lineWidth,
                     strokeCap: StrokeCap.round,
                     strokeJoin: StrokeJoin.round,
                   ),
                   Polyline(
                     points: _routePoints,
-                    color: linea,
+                    color: linea.withValues(alpha: 0.45),
                     strokeWidth: EstiloRuta.linea.lineWidth,
                     strokeCap: StrokeCap.round,
                     strokeJoin: StrokeJoin.round,
                   ),
                 ],
               ),
+            _CapaCalor(
+              key: ValueKey('capa-calor-${widget.routeId}'),
+              cells: widget.cells,
+              nivel: _nivel,
+              atenuado: _atenuado,
+            ),
           ],
         ),
         Positioned(
@@ -1346,20 +1335,17 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
 /// Mapa de calor como el del video de Control: las búsquedas se suman en
 /// un campo de densidad continuo, así la ruta se lee como un corredor verde
 /// que se calienta a amarillo, naranja y rojo donde más buscan, en vez de
-/// manchas sueltas. Al pintarse nace verde y sube a sus tonos con [nivel];
-/// al final un anillo blanco se abre en cada pico, como en el video.
+/// manchas sueltas. Al pintarse nace verde y sube a sus tonos con [nivel].
 class _CapaCalor extends StatefulWidget {
   const _CapaCalor({
     super.key,
     required this.cells,
     required this.nivel,
-    required this.pulso,
     required this.atenuado,
   });
 
   final List<CeldaBusqueda> cells;
   final Animation<double> nivel;
-  final Animation<double> pulso;
   final Animation<double> atenuado;
 
   @override
@@ -1415,7 +1401,6 @@ class _CapaCalorState extends State<_CapaCalor> {
             camera: camera,
             raster: _raster,
             nivel: widget.nivel,
-            pulso: widget.pulso,
             atenuado: widget.atenuado,
           ),
         ),
@@ -1425,21 +1410,14 @@ class _CapaCalorState extends State<_CapaCalor> {
 }
 
 /// El campo de calor ya coloreado, en dos imágenes (verde del arranque y
-/// tonos finales) con sus esquinas en el mapa y sus picos.
+/// tonos finales) con sus esquinas en el mapa.
 class _RasterCalor {
-  _RasterCalor._(
-    this.verde,
-    this.color,
-    this.noroeste,
-    this.sureste,
-    this.picos,
-  );
+  _RasterCalor._(this.verde, this.color, this.noroeste, this.sureste);
 
   final ui.Image verde;
   final ui.Image color;
   final LatLng noroeste;
   final LatLng sureste;
-  final List<LatLng> picos;
 
   // Cada búsqueda se reparte en una campana de 200 m: con celdas de unos
   // 150 m (`PASO_LAT` del backend) las vecinas se funden en un corredor
@@ -1449,11 +1427,6 @@ class _RasterCalor {
   static const _sigmaMinimoPx = 12.0;
   // Un píxel del campo cubre al menos 2 del mapa; el lado no pasa de 1200.
   static const _ladoMaximo = 1200;
-  // Picos: sobre la mitad del máximo y a más de 1,2 km entre sí; tres como
-  // mucho, como en el video.
-  static const _picoDesde = 0.5;
-  static const _picosSeparacionMetros = 1200.0;
-  static const _picosMaximo = 3;
 
   static Future<_RasterCalor?> crear(
     MapCamera camera,
@@ -1540,25 +1513,6 @@ class _RasterCalor {
       _pixel(verde, i * 4, base, borde * 0.55);
     }
 
-    final separacion = _picosSeparacionMetros * pxPorMetro / escala;
-    final candidatos = [
-      for (var i = 0; i < d.length; i++)
-        if (d[i] >= _picoDesde * dMax) i,
-    ]..sort((a, b) => d[b].compareTo(d[a]));
-    final picos = <int>[];
-    for (final i in candidatos) {
-      if (picos.length == _picosMaximo) break;
-      final lejos = picos.every(
-        (p) =>
-            math.sqrt(
-              math.pow(p % ancho - i % ancho, 2) +
-                  math.pow(p ~/ ancho - i ~/ ancho, 2),
-            ) >=
-            separacion,
-      );
-      if (lejos) picos.add(i);
-    }
-
     LatLng aMapa(double x, double y) =>
         camera.unprojectAtZoom(Offset(minX + x * escala, minY + y * escala), z);
     final imagenes = await Future.wait([
@@ -1570,7 +1524,6 @@ class _RasterCalor {
       imagenes[1],
       aMapa(0, 0),
       aMapa(ancho.toDouble(), alto.toDouble()),
-      [for (final p in picos) aMapa((p % ancho) + 0.5, (p ~/ ancho) + 0.5)],
     );
   }
 
@@ -1612,21 +1565,13 @@ class _PintorCalor extends CustomPainter {
     required this.camera,
     required this.raster,
     required this.nivel,
-    required this.pulso,
     required this.atenuado,
-  }) : super(repaint: Listenable.merge([nivel, pulso, atenuado]));
+  }) : super(repaint: Listenable.merge([nivel, atenuado]));
 
   final MapCamera camera;
   final _RasterCalor? raster;
   final Animation<double> nivel;
-  final Animation<double> pulso;
   final Animation<double> atenuado;
-
-  // El anillo se abre de 5 a 26 px y se queda, como los del video, que
-  // rodean el foco sin salirse de la banda; el punto blanco marca el centro.
-  static const _anilloDesdePx = 5.0;
-  static const _anilloHastaPx = 26.0;
-  static const _puntoPx = 5.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1673,28 +1618,6 @@ class _PintorCalor extends CustomPainter {
           ..color = Color.fromRGBO(0, 0, 0, tono),
       )
       ..restore();
-
-    final p = pulso.value;
-    if (p <= 0) return;
-    final abre = Curves.easeOutCubic.transform(p);
-    final aparecePico = (p * 4).clamp(0.0, 1.0) * n * queda;
-    for (final pico in r.picos) {
-      final centro = camera.getOffsetFromOrigin(pico);
-      canvas
-        ..drawCircle(
-          centro,
-          _puntoPx,
-          Paint()..color = Colors.white.withValues(alpha: 0.95 * aparecePico),
-        )
-        ..drawCircle(
-          centro,
-          _anilloDesdePx + (_anilloHastaPx - _anilloDesdePx) * abre,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.6
-            ..color = Colors.white.withValues(alpha: 0.85 * aparecePico),
-        );
-    }
   }
 
   @override
@@ -1702,7 +1625,6 @@ class _PintorCalor extends CustomPainter {
       oldDelegate.camera != camera ||
       oldDelegate.raster != raster ||
       oldDelegate.nivel != nivel ||
-      oldDelegate.pulso != pulso ||
       oldDelegate.atenuado != atenuado;
 }
 
