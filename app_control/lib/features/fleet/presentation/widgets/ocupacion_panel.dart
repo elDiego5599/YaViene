@@ -1,17 +1,9 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
 import '../../../../core/theme/app_theme.dart';
-
-/// Ocupación por hora de un día de ejemplo, de 5 a. m. a 11 p. m. Ningún bus
-/// tiene aún cámara de aforo (`YaVieneBackend/prototipo-aforo`), así que la
-/// pestaña lo dice y enseña con datos de ejemplo lo que verá la empresa: los
-/// picos de la mañana y la tarde llenos, el mediodía y la noche vacíos.
-const _primeraHora = 5;
-const _ejemplo = [
-  38, 82, 88, 61, 42, 24, 18, 47, 44, 19, //
-  26, 53, 84, 90, 63, 41, 30, 20, 12,
-];
+import '../providers/ocupacion_provider.dart' show primeraHoraServicio;
 
 enum _Aforo {
   vacio('Vacío', AppColors.online),
@@ -36,174 +28,193 @@ String _meridiano(int h) => h % 24 < 12 ? 'a. m.' : 'p. m.';
 // Puestos del bus dibujado: seis ventanas, dos cabezas en cada una.
 const _puestos = 12;
 
-class OcupacionPanel extends StatefulWidget {
-  const OcupacionPanel({super.key});
+/// La ocupación bajo el ranking, en el lugar del resumen de todas las rutas:
+/// el bus y la cifra de la hora elegida arriba, las horas abajo para elegir.
+/// [horas] trae una por hora de servicio; null es una hora sin viajes aún.
+class OcupacionResumen extends StatefulWidget {
+  const OcupacionResumen({super.key, required this.horas, required this.buses});
+
+  final List<int?> horas;
+
+  /// Buses de la ruta: la ocupación es su promedio.
+  final int buses;
 
   @override
-  State<OcupacionPanel> createState() => _OcupacionPanelState();
+  State<OcupacionResumen> createState() => _OcupacionResumenState();
 }
 
-class _OcupacionPanelState extends State<OcupacionPanel> {
+class _OcupacionResumenState extends State<OcupacionResumen> {
   // Arranca en la hora más llena, la que la empresa quiere ver primero.
-  late int _elegida = _primeraHora + _ejemplo.indexOf(_ejemplo.reduce(_max));
+  late int? _elegida = _masLlena();
 
-  static int _max(int a, int b) => a > b ? a : b;
+  int? _masLlena() {
+    int? hora;
+    for (var i = 0; i < widget.horas.length; i++) {
+      final pct = widget.horas[i];
+      if (pct != null && (hora == null || pct > widget.horas[hora]!)) hora = i;
+    }
+    return hora == null ? null : primeraHoraServicio + hora;
+  }
+
+  // Otra ruta u otro periodo: las barras crecen o bajan a lo nuevo y la
+  // elegida vuelve a la más llena.
+  @override
+  void didUpdateWidget(OcupacionResumen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.horas, widget.horas)) _elegida = _masLlena();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pct = _ejemplo[_elegida - _primeraHora];
-    final aforo = _Aforo.de(pct);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppColors.sombraTarjeta,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Ocupación por hora',
-                  style: AppType.ui(
-                    color: AppColors.navy,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                  ),
+    final elegida = _elegida;
+    final pct = elegida == null
+        ? null
+        : widget.horas[elegida - primeraHoraServicio];
+    return Padding(
+      key: const ValueKey('ocupacion'),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Ocupación',
+                style: AppType.ui(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(width: 10),
-                Container(
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  widget.buses == 1
+                      ? 'de 1 bus'
+                      : 'promedio de ${widget.buses} buses',
+                  key: const ValueKey('ocupacion-buses'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.ui(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ),
+              const Spacer(),
+              // La nota de las cámaras va en el globo: aquí no cabe una línea
+              // entera sin quitarle alto a las barras.
+              Tooltip(
+                key: const ValueKey('ocupacion-sin-camaras'),
+                message:
+                    'Aún no hay buses con cámara de aforo conectada. Con ella, '
+                    'un modelo de IA dirá cómo va cada bus.',
+                child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 8,
+                    vertical: 3,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceRaised,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
-                  child: Text(
-                    'Datos de ejemplo',
-                    style: AppType.ui(
-                      color: AppColors.textSecondary,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.videocam_off_outlined,
+                        size: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Datos de ejemplo',
+                        style: AppType.ui(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            // Como en el video: el bus a la izquierda y la cifra a su lado,
-            // centrados en el aire que dejan el título y las barras.
-            Expanded(
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 340),
-                        child: _Bus(pct: pct, color: aforo.color),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 76 px con tracking negativo: a ese tamaño las
-                        // cifras se separan y el número deja de leerse junto.
-                        AnimatedDefaultTextStyle(
-                          duration: AppMotion.normal,
-                          curve: AppMotion.curvaCambio,
-                          style: AppType.ui(
-                            color: aforo.color,
-                            fontSize: 76,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                            letterSpacing: -2.5,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                          child: Text(
-                            '$pct %',
-                            key: const ValueKey('aforo-cifra'),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _Ficha(aforo: aforo),
-                            const SizedBox(width: 12),
-                            Text(
-                              'de ${_hora(_elegida)} a ${_hora(_elegida + 1)} '
-                              '${_meridiano(_elegida + 1)}',
-                              style: AppType.ui(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (pct == null || elegida == null)
+            // 49 px, el alto del bus: las barras no saltan.
+            SizedBox(
+              height: 49,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Aún no hay viajes en este periodo',
+                  key: const ValueKey('ocupacion-sin-viajes'),
+                  style: AppType.ui(
+                    color: AppColors.textSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            // Las barras van en su bandeja gris y bajas (132 px), como en el
-            // video: son el índice para elegir la hora, no el dato.
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceRaised,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  for (var i = 0; i < _ejemplo.length; i++)
-                    Expanded(
-                      child: _Barra(
-                        hora: _primeraHora + i,
-                        pct: _ejemplo[i],
-                        elegida: _primeraHora + i == _elegida,
-                        alTocar: () =>
-                            setState(() => _elegida = _primeraHora + i),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+            )
+          else
             Row(
-              key: const ValueKey('ocupacion-sin-camaras'),
               children: [
-                const Icon(
-                  Icons.videocam_off_outlined,
-                  size: 16,
-                  color: AppColors.textSecondary,
+                // 112 px: el bus a 2,3:1 mide 49 de alto, lo mismo que la cifra
+                // y su ficha juntas, y el renglón queda parejo.
+                SizedBox(
+                  width: 112,
+                  child: _Bus(pct: pct, color: _Aforo.de(pct).color),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 18),
+                // 30 px con tracking negativo, como el total de cada ruta.
+                AnimatedDefaultTextStyle(
+                  duration: AppMotion.normal,
+                  curve: AppMotion.curvaCambio,
+                  style: AppType.ui(
+                    color: _Aforo.de(pct).color,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    letterSpacing: -0.8,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  child: Text('$pct %', key: const ValueKey('aforo-cifra')),
+                ),
+                const SizedBox(width: 12),
+                _Ficha(aforo: _Aforo.de(pct)),
+                const SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                    'Aún no hay buses con cámara de aforo conectada. Con ella, '
-                    'un modelo de IA dirá cómo va cada bus.',
+                    'de ${_hora(elegida)} a ${_hora(elegida + 1)} '
+                    '${_meridiano(elegida + 1)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: AppType.ui(
                       color: AppColors.textSecondary,
-                      fontSize: 12,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var i = 0; i < widget.horas.length; i++)
+                Expanded(
+                  child: _Barra(
+                    hora: primeraHoraServicio + i,
+                    pct: widget.horas[i],
+                    elegida: primeraHoraServicio + i == elegida,
+                    alTocar: () =>
+                        setState(() => _elegida = primeraHoraServicio + i),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -220,7 +231,7 @@ class _Ficha extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedContainer(
     duration: AppMotion.normal,
     curve: AppMotion.curvaCambio,
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
       color: Color.alphaBlend(
         aforo.color.withValues(alpha: 0.08),
@@ -233,7 +244,7 @@ class _Ficha extends StatelessWidget {
       key: const ValueKey('aforo-estado'),
       style: AppType.ui(
         color: aforo.color,
-        fontSize: 15,
+        fontSize: 12.5,
         fontWeight: FontWeight.w800,
       ),
     ),
@@ -451,7 +462,9 @@ class _Barra extends StatefulWidget {
   });
 
   final int hora;
-  final int pct;
+
+  /// null: la hora aún no llega; queda una raya baja que no se toca.
+  final int? pct;
   final bool elegida;
   final VoidCallback alTocar;
 
@@ -460,15 +473,36 @@ class _Barra extends StatefulWidget {
 }
 
 class _BarraState extends State<_Barra> {
-  static const _alto = 132.0;
+  // 56 px: bajo el ranking las barras son el índice, no el dato.
+  static const _alto = 56.0;
   var _encima = false;
   var _presionada = false;
 
   @override
   Widget build(BuildContext context) {
-    final aforo = _Aforo.de(widget.pct);
+    final pct = widget.pct;
+    if (pct == null) {
+      return Semantics(
+        label:
+            '${_hora(widget.hora)} ${_meridiano(widget.hora)}, sin viajes aún',
+        child: Padding(
+          key: ValueKey('aforo-hora-${widget.hora}'),
+          padding: const EdgeInsets.fromLTRB(3, _alto - 4, 3, 32),
+          child: AnimatedContainer(
+            duration: AppMotion.normal,
+            curve: AppMotion.curvaCambio,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      );
+    }
+    final aforo = _Aforo.de(pct);
     final elegida = widget.elegida;
-    // Tintes sobre la bandeja (#F1F5F9): rojo y verde al 24 %, gris #DCE2EA;
+    // Tintes sobre la tarjeta blanca: rojo y verde al 24 %, gris #DCE2EA;
     // con el puntero encima suben a 40 % y #CBD3DE.
     final tinte = elegida
         ? aforo.color
@@ -476,11 +510,11 @@ class _BarraState extends State<_Barra> {
         ? (_encima ? const Color(0xFFCBD3DE) : const Color(0xFFDCE2EA))
         : Color.alphaBlend(
             aforo.color.withValues(alpha: _encima ? 0.4 : 0.24),
-            AppColors.surfaceRaised,
+            AppColors.surface,
           );
     final rotulo = AppType.ui(
       color: elegida ? AppColors.navy : AppColors.textSecondary,
-      fontSize: elegida ? 12.5 : 11,
+      fontSize: elegida ? 11 : 10,
       fontWeight: elegida ? FontWeight.w800 : FontWeight.w600,
       height: 1.15,
     );
@@ -489,7 +523,7 @@ class _BarraState extends State<_Barra> {
       selected: elegida,
       label:
           '${_hora(widget.hora)} ${_meridiano(widget.hora)}, '
-          '${widget.pct} %, ${aforo.texto}',
+          '$pct %, ${aforo.texto}',
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _encima = true),
@@ -504,8 +538,8 @@ class _BarraState extends State<_Barra> {
             widget.alTocar();
           },
           child: Padding(
-            // 5 px por lado: 10 de aire entre barras, como en el video.
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            // 3 px por lado: 6 de aire entre las 19 barras.
+            padding: const EdgeInsets.symmetric(horizontal: 3),
             child: Column(
               children: [
                 SizedBox(
@@ -520,18 +554,18 @@ class _BarraState extends State<_Barra> {
                       child: AnimatedContainer(
                         duration: AppMotion.normal,
                         curve: AppMotion.curvaCambio,
-                        // Nunca menos de 14 px, para que la hora más vacía
+                        // Nunca menos de 8 px, para que la hora más vacía
                         // siga siendo una barra que se puede tocar.
-                        height: (_alto * widget.pct / 100).clamp(14, _alto),
+                        height: (_alto * pct / 100).clamp(8, _alto),
                         decoration: BoxDecoration(
                           color: tinte,
-                          borderRadius: BorderRadius.circular(9),
+                          borderRadius: BorderRadius.circular(6),
                           boxShadow: [
                             if (elegida)
                               BoxShadow(
                                 color: aforo.color.withValues(alpha: 0.35),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
                           ],
                         ),
@@ -539,16 +573,16 @@ class _BarraState extends State<_Barra> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 SizedBox(
-                  height: 32,
+                  height: 26,
                   child: ExcludeSemantics(
                     child: AnimatedSwitcher(
                       duration: AppMotion.rapido,
                       switchInCurve: AppMotion.curvaCambio,
                       switchOutCurve: AppMotion.curvaSalida,
                       child: elegida || _encima
-                          // Dos líneas de 12,5 × 1,15 = 28,75 px caben en 32;
+                          // Dos líneas de 11 × 1,15 = 25,3 px caben en 26;
                           // con otra fuente se encoge en vez de desbordar.
                           ? FittedBox(
                               key: ValueKey(elegida),

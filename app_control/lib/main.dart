@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -95,6 +96,11 @@ class YaVieneControlApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,
+      // El panel es solo en español: sin esto el calendario de Reportes
+      // decía «October 2026» y S M T W.
+      locale: const Locale('es', 'CO'),
+      supportedLocales: const [Locale('es', 'CO')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       // El tamaño de letra del sistema se respeta hasta 2×, como en el
       // pasajero. Windows deja subirlo más (225 %), y ahí la fila de un bus
       // no desbordaba pero el nombre del conductor, que entonces llevaba,

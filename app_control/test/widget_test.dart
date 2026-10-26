@@ -34,4 +34,21 @@ void main() {
     expect(find.text('INGRESAR'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  // El calendario de «Fecha» en Reportes salía en inglés («October 2026»,
+  // S M T W): los textos de los widgets de Material siguen el idioma de la app.
+  testWidgets('los widgets de Material hablan español de Colombia', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(overrides: _conBackend, child: const YaVieneControlApp()),
+    );
+    await tester.pumpAndSettle();
+    final contexto = tester.element(find.byType(Scaffold).first);
+    expect(Localizations.localeOf(contexto), const Locale('es', 'CO'));
+    expect(
+      MaterialLocalizations.of(contexto).formatMonthYear(DateTime(2026, 10)),
+      'octubre de 2026',
+    );
+  });
 }

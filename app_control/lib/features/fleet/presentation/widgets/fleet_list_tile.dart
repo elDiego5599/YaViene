@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/shared/widgets/indicador_carga.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
@@ -170,11 +171,7 @@ class FleetListTile extends StatelessWidget {
                           width: 36,
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
+                            child: IndicadorCarga(size: 16),
                           ),
                         )
                       : Tooltip(

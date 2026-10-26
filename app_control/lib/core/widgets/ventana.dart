@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ya_viene_core/shared/widgets/indicador_carga.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
 import '../theme/app_theme.dart';
@@ -279,14 +280,7 @@ class _Botones extends StatelessWidget {
                 ),
               ),
               child: principal!.cargando
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                  ? const IndicadorCarga(size: 18, color: Colors.white)
                   : Text(principal!.texto),
             ),
           ),

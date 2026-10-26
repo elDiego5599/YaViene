@@ -82,6 +82,28 @@ void main() {
     expect(periodoSubtitulo(PeriodoReporte.mes), 'Últimos 30 días');
   });
 
+  test('un día del calendario va de medianoche a medianoche de Bogotá', () {
+    final ahora = DateTime.utc(2026, 10, 26, 20);
+    final dia = PeriodoReporte.delDia(DateTime(2026, 10, 24, 15));
+    expect(dia, PeriodoReporte.delDia(DateTime(2026, 10, 24)));
+    expect(dia, isNot(PeriodoReporte.delDia(DateTime(2026, 10, 23))));
+    expect(rangoPeriodo(dia, ahora), (
+      DateTime.utc(2026, 10, 24, 5),
+      DateTime.utc(2026, 10, 25, 5),
+    ));
+    // El día de hoy corta en este momento, no en la medianoche que viene.
+    expect(rangoPeriodo(PeriodoReporte.delDia(DateTime(2026, 10, 26)), ahora), (
+      DateTime.utc(2026, 10, 26, 5),
+      ahora,
+    ));
+    expect(periodoLabel(dia), '24 oct');
+    expect(periodoSubtitulo(dia), '24 de octubre');
+    expect(
+      periodoSubtitulo(PeriodoReporte.delDia(DateTime(2026, 1, 3))),
+      '3 de enero',
+    );
+  });
+
   late ProviderContainer container;
   late _Api api;
 

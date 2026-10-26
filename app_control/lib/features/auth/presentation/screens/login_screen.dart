@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ya_viene_core/shared/widgets/indicador_carga.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/ventana.dart';
@@ -466,13 +467,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
             child: auth.loading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                      color: Colors.white,
-                    ),
+                ? const IndicadorCarga(
+                    size: 20,
+                    color: Colors.white,
+                    semanticsLabel: 'Ingresando',
                   )
                 : const Text('INGRESAR'),
           ),

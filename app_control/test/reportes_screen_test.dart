@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/features/fleet/presentation/providers/ocupacion_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/screens/reportes_screen.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/control_map.dart'
     show estiloMapaProvider;
 import 'package:ya_viene_core/core/models/route_trajectory.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
+import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 
 RutaBusquedas _ruta(
   String id,
@@ -24,6 +28,12 @@ RutaBusquedas _ruta(
   horaPico: pico,
 );
 
+// Un día fijo, de 5 a. m. a 11 p. m.: el más lleno, a las 6 p. m. con 90 %.
+const _dia = <int?>[
+  38, 82, 88, 61, 42, 24, 18, 47, 44, 19, //
+  26, 53, 84, 90, 63, 41, 30, 20, 12,
+];
+
 const _celdas = [
   CeldaBusqueda(lat: 10.963, lng: -74.796, count: 5),
   CeldaBusqueda(lat: 10.97, lng: -74.8, count: 12),
@@ -33,6 +43,7 @@ Future<void> _montar(
   WidgetTester tester, {
   required Future<List<RutaBusquedas>> Function(int? hora) cargarRutas,
   Future<List<CeldaBusqueda>> Function(String routeId, int? hora)? cargarCalor,
+  List<int?> Function(String routeId, PeriodoReporte periodo)? ocupacion,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1500, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -46,6 +57,9 @@ Future<void> _montar(
           (ref, args) =>
               cargarCalor?.call(args.routeId, args.hora) ??
               Future.value(_celdas),
+        ),
+        ocupacionProvider.overrideWith(
+          (ref, args) => ocupacion?.call(args.routeId, args.periodo) ?? _dia,
         ),
         routeTrajectoryProvider.overrideWith(
           (ref, routeId) async => RouteTrajectory(
@@ -273,7 +287,7 @@ void main() {
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
   });
 
-  testWidgets('el mapa abre pintado y el botón quita y pinta el calor', (
+  testWidgets('el mapa siempre va pintado, sin botón para quitarlo', (
     tester,
   ) async {
     await _montar(
@@ -286,18 +300,10 @@ void main() {
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
     expect(find.byKey(const ValueKey('leyenda-calor')), findsOneWidget);
     expect(find.text('Solo por donde pasa'), findsOneWidget);
-    expect(find.text('Quitar calor'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
-    await tester.pumpAndSettle();
-    expect(find.text('Pintar calor'), findsOneWidget);
-    expect(find.byKey(const ValueKey('capa-calor-R1')), findsNothing);
-    expect(find.text('Menos búsquedas'), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
     expect(find.text('Más búsquedas'), findsOneWidget);
+    // El dueño no le vio función (2026-10-26).
+    expect(find.byKey(const ValueKey('alternar-calor')), findsNothing);
+    expect(find.text('Quitar calor'), findsNothing);
   });
 
   testWidgets('el periodo vuelve a cargar lista y mapa con su rango', (
@@ -348,6 +354,56 @@ void main() {
     await tester.pumpAndSettle();
     expect(periodos.last, PeriodoReporte.semana);
     expect(find.text('Últimos 7 días'), findsOneWidget);
+
+    // «Fecha» abre el calendario del mes; tocar un día lo elige y cierra.
+    final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+    const meses = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
+    final mes = meses[hoy.month - 1];
+    expect(find.text('Fecha'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+    await tester.pumpAndSettle();
+    // Un cuadro que sale bajo los periodos, no una ventana con velo, y con
+    // ancho para que el mes se lea holgado.
+    final calendario = find.byKey(const ValueKey('calendario-dia'));
+    expect(calendario, findsOneWidget);
+    expect(find.byKey(const ValueKey('ventana')), findsNothing);
+    expect(tester.getSize(calendario).width, greaterThanOrEqualTo(340));
+    expect(
+      tester.getTopLeft(calendario).dy,
+      greaterThan(
+        tester.getBottomLeft(find.byKey(const ValueKey('periodo-dia'))).dy,
+      ),
+    );
+    await tester.tap(find.descendant(of: calendario, matching: find.text('1')));
+    await tester.pumpAndSettle();
+    expect(calendario, findsNothing);
+    final primero = PeriodoReporte.delDia(DateTime(hoy.year, hoy.month));
+    expect(periodos.last, primero);
+    expect(periodosCalor.last, primero);
+    expect(find.text('1 de $mes'), findsOneWidget);
+    expect(find.text('1 ${mes.substring(0, 3)}'), findsOneWidget);
+
+    // Tocar fuera lo cierra y deja el día que estaba.
+    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+    await tester.pumpAndSettle();
+    expect(calendario, findsOneWidget);
+    await tester.tapAt(const Offset(5, 400));
+    await tester.pumpAndSettle();
+    expect(calendario, findsNothing);
+    expect(periodos.last, primero);
   });
 
   testWidgets('la tira de 24 horas solo sale en la ruta elegida', (
@@ -422,45 +478,7 @@ void main() {
     expect(find.byKey(const ValueKey('hora-mapa-todo')), findsNothing);
   });
 
-  testWidgets('bajo el ranking, todas las rutas suman sus búsquedas por hora', (
-    tester,
-  ) async {
-    final a = List<int>.filled(24, 0)
-      ..[7] = 30
-      ..[18] = 10;
-    final b = List<int>.filled(24, 0)
-      ..[7] = 5
-      ..[18] = 40;
-    await _montar(
-      tester,
-      cargarRutas: (_) async => [
-        _ruta('R1', 'C16 Ruta 1', 1200, 7, porHora: a),
-        _ruta('R2', 'B18 Ruta 2', 345, 18, porHora: b),
-      ],
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('resumen-rutas')), findsOneWidget);
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('resumen-total'))).data,
-      '1.545',
-    );
-    // 18 h suma 50 y gana a las 7 (35): la hora pico es de todas juntas.
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('resumen-pico'))).data,
-      '6 a 7 p. m.',
-    );
-    for (var h = 0; h < 24; h++) {
-      expect(find.byKey(ValueKey('resumen-hora-$h')), findsOneWidget);
-    }
-    final alto7 = tester.getSize(find.byKey(const ValueKey('resumen-hora-7')));
-    final alto18 = tester.getSize(
-      find.byKey(const ValueKey('resumen-hora-18')),
-    );
-    expect(alto7.height / alto18.height, closeTo(35 / 50, 0.02));
-  });
-
-  testWidgets('la pestaña Ocupación deja el aforo listo sin filtros', (
+  testWidgets('bajo el ranking va la ocupación, en la misma pantalla', (
     tester,
   ) async {
     await _montar(
@@ -468,10 +486,18 @@ void main() {
       cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('pestana-ocupacion')));
-    await tester.pumpAndSettle();
 
-    expect(find.text('Ocupación por hora'), findsOneWidget);
+    // Sin pestañas: la ocupación ocupa el lugar del resumen de todas las
+    // rutas, debajo del ranking.
+    expect(find.byKey(const ValueKey('pestana-ocupacion')), findsNothing);
+    expect(find.byKey(const ValueKey('resumen-rutas')), findsNothing);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('ocupacion'))).dy,
+      greaterThan(
+        tester.getBottomLeft(find.byKey(const ValueKey('fila-ruta-R1'))).dy,
+      ),
+    );
+    expect(find.text('Ocupación'), findsOneWidget);
     expect(find.text('Datos de ejemplo'), findsOneWidget);
     expect(find.byKey(const ValueKey('ocupacion-sin-camaras')), findsOneWidget);
     // Una barra por hora de servicio, de 5 a. m. a 11 p. m.
@@ -506,12 +532,84 @@ void main() {
     await tester.pumpAndSettle();
     expect((cifra(), estado()), ('47 %', 'Medio'));
     expect(bus(), 'Bus con 6 de 12 puestos ocupados');
-    expect(find.byKey(const ValueKey('periodo-hoy')), findsNothing);
-    expect(find.byKey(const ValueKey('filtro-hora')), findsNothing);
-    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsNothing);
+  });
 
-    await tester.tap(find.byKey(const ValueKey('pestana-busquedas')));
+  testWidgets('la ocupación sigue a la ruta y al periodo elegidos', (
+    tester,
+  ) async {
+    final pedidos = <(String, PeriodoReporte)>[];
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [
+        _ruta('R1', 'C16 Ruta 1', 9, 0),
+        _ruta('R2', 'B18 Ruta 2', 4, 0),
+      ],
+      ocupacion: (routeId, periodo) {
+        pedidos.add((routeId, periodo));
+        // R2 en la semana: más llena a las 7 a. m.
+        if (routeId == 'R2' && periodo == PeriodoReporte.semana) {
+          return [for (var i = 0; i < 19; i++) i == 2 ? 71 : 30];
+        }
+        return _dia;
+      },
+    );
     await tester.pumpAndSettle();
+    String cifra() =>
+        tester.widget<Text>(find.byKey(const ValueKey('aforo-cifra'))).data!;
+    expect(pedidos.last, ('R1', PeriodoReporte.mes));
+    expect(cifra(), '90 %');
+
+    await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
+    await tester.pumpAndSettle();
+    expect(pedidos.last, ('R2', PeriodoReporte.mes));
+
+    await tester.tap(find.byKey(const ValueKey('periodo-semana')));
+    await tester.pumpAndSettle();
+    expect(pedidos.last, ('R2', PeriodoReporte.semana));
+    // Lo nuevo arranca otra vez en su hora más llena.
+    expect(cifra(), '71 %');
+  });
+
+  testWidgets('sin viajes en el periodo lo dice, y las horas no se tocan', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
+      ocupacion: (_, _) => List<int?>.filled(19, null),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('ocupacion-sin-viajes')), findsOneWidget);
+    expect(find.byKey(const ValueKey('aforo-cifra')), findsNothing);
+    expect(find.byKey(const ValueKey('aforo-hora-5')), findsOneWidget);
+  });
+
+  testWidgets('mientras carga, la lista y el mapa laten con su forma', (
+    tester,
+  ) async {
+    final rutas = Completer<List<RutaBusquedas>>();
+    final calor = Completer<List<CeldaBusqueda>>();
+    await _montar(
+      tester,
+      cargarRutas: (_) => rutas.future,
+      cargarCalor: (_, _) => calor.future,
+    );
+    await tester.pump();
+
+    expect(find.byType(CargaFantasma), findsNWidgets(2));
+    expect(find.bySemanticsLabel('Cargando reportes'), findsOneWidget);
+    expect(find.bySemanticsLabel('Cargando el mapa'), findsOneWidget);
+    expect(find.byKey(const ValueKey('fantasma-ruta-0')), findsOneWidget);
+
+    rutas.complete([_ruta('R1', 'C16 Ruta 1', 40, 6)]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    // Llega la lista; el mapa de esa ruta sigue latiendo.
     expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
+    expect(find.bySemanticsLabel('Cargando zonas de búsqueda'), findsOneWidget);
+
+    calor.complete(_celdas);
+    await tester.pumpAndSettle();
+    expect(find.byType(CargaFantasma), findsNothing);
   });
 }

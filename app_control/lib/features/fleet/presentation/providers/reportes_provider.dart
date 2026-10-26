@@ -3,33 +3,87 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import 'fleet_providers.dart' show fleetApiProvider;
 
-enum PeriodoReporte { hoy, semana, mes }
+/// Periodo del reporte: una ventana móvil (hoy, 7 o 30 días) o un día del
+/// calendario. Es un valor: dos periodos del mismo día son iguales, para que
+/// los providers family no repitan la consulta.
+class PeriodoReporte {
+  const PeriodoReporte._(this.name, [this.dia]);
+
+  /// Un día del calendario de Bogotá; la hora de [fecha] no cuenta.
+  factory PeriodoReporte.delDia(DateTime fecha) =>
+      PeriodoReporte._('dia', DateTime.utc(fecha.year, fecha.month, fecha.day));
+
+  static const hoy = PeriodoReporte._('hoy');
+  static const semana = PeriodoReporte._('semana');
+  static const mes = PeriodoReporte._('mes');
+  static const values = [hoy, semana, mes];
+
+  final String name;
+  final DateTime? dia;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PeriodoReporte && other.name == name && other.dia == dia;
+
+  @override
+  int get hashCode => Object.hash(name, dia);
+}
+
+/// Bogotá va en UTC-5 todo el año: su medianoche es las 5:00 UTC.
+const _bogota = Duration(hours: 5);
 
 (DateTime, DateTime) rangoPeriodo(PeriodoReporte periodo, DateTime ahora) {
   final hasta = ahora.toUtc();
-  final desde = switch (periodo) {
-    PeriodoReporte.hoy => DateTime.utc(
-      hasta.subtract(const Duration(hours: 5)).year,
-      hasta.subtract(const Duration(hours: 5)).month,
-      hasta.subtract(const Duration(hours: 5)).day,
-    ).add(const Duration(hours: 5)),
-    PeriodoReporte.semana => hasta.subtract(const Duration(days: 7)),
-    PeriodoReporte.mes => hasta.subtract(const Duration(days: 30)),
+  final dia = periodo.dia;
+  if (dia != null) {
+    final desde = dia.add(_bogota);
+    final fin = desde.add(const Duration(days: 1));
+    // El día de hoy corta en este momento, no en la medianoche que viene.
+    return (desde, fin.isAfter(hasta) ? hasta : fin);
+  }
+  final local = hasta.subtract(_bogota);
+  final desde = switch (periodo.name) {
+    'hoy' => DateTime.utc(local.year, local.month, local.day).add(_bogota),
+    'semana' => hasta.subtract(const Duration(days: 7)),
+    _ => hasta.subtract(const Duration(days: 30)),
   };
   return (desde, hasta);
 }
 
-String periodoLabel(PeriodoReporte periodo) => switch (periodo) {
-  PeriodoReporte.hoy => 'Hoy',
-  PeriodoReporte.semana => '7 días',
-  PeriodoReporte.mes => '30 días',
-};
+const _meses = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
 
-String periodoSubtitulo(PeriodoReporte periodo) => switch (periodo) {
-  PeriodoReporte.hoy => 'Hoy',
-  PeriodoReporte.semana => 'Últimos 7 días',
-  PeriodoReporte.mes => 'Últimos 30 días',
-};
+String periodoLabel(PeriodoReporte periodo) {
+  final dia = periodo.dia;
+  if (dia != null) return '${dia.day} ${_meses[dia.month - 1].substring(0, 3)}';
+  return switch (periodo.name) {
+    'hoy' => 'Hoy',
+    'semana' => '7 días',
+    _ => '30 días',
+  };
+}
+
+String periodoSubtitulo(PeriodoReporte periodo) {
+  final dia = periodo.dia;
+  if (dia != null) return '${dia.day} de ${_meses[dia.month - 1]}';
+  return switch (periodo.name) {
+    'hoy' => 'Hoy',
+    'semana' => 'Últimos 7 días',
+    _ => 'Últimos 30 días',
+  };
+}
 
 class RutaBusquedas {
   const RutaBusquedas({

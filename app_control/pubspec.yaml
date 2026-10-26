@@ -30,6 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Los textos de Material (el calendario de Reportes) en español.
+  flutter_localizations:
+    sdk: flutter
 
   # El sistema de diseño vive aquí, compartido con la app del pasajero. El
   # panel se había quedado atrás —otra tipografía, otros colores, otro bus

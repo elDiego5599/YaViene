@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ya_viene_core/shared/widgets/indicador_carga.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/ventana.dart';
@@ -163,13 +164,10 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
                   ),
                 ),
                 child: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                    ? const IndicadorCarga(
+                        size: 16,
+                        color: Colors.white,
+                        semanticsLabel: 'Creando la ruta',
                       )
                     : const Text('CREAR'),
               ),

@@ -11,9 +11,12 @@ import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
+import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
 import '../../../../core/theme/app_theme.dart';
+import '../providers/fleet_providers.dart' show fleetProvider;
+import '../providers/ocupacion_provider.dart';
 import '../providers/reportes_provider.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
 import '../widgets/ocupacion_panel.dart';
@@ -38,13 +41,10 @@ class ReportesScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportesScreen> createState() => _ReportesScreenState();
 }
 
-enum _Pestana { busquedas, ocupacion }
-
 class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   int? _hora;
   PeriodoReporte _periodo = PeriodoReporte.mes;
   String? _ruta;
-  _Pestana _pestana = _Pestana.busquedas;
 
   // Otra hora u otro periodo no cambian la ruta elegida: el dueño compara
   // la misma ruta a distintas horas.
@@ -63,57 +63,56 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
             _CabeceraReportes(
               hora: _hora,
               periodo: _periodo,
-              pestana: _pestana,
               onBack: () => Navigator.of(context).maybePop(),
               onSelectHour: _seleccionarHora,
               onSelectPeriodo: (periodo) => setState(() => _periodo = periodo),
-              onSelectPestana: (pestana) => setState(() => _pestana = pestana),
             ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _pestana == _Pestana.ocupacion
-                    ? const OcupacionPanel()
-                    : reportes.when(
-                        loading: () => _dosPaneles(
-                          izquierda: const _TarjetaRanking(
-                            child: _EstadoReporte(
-                              icon: Icons.query_stats_outlined,
-                              message: 'Cargando reportes',
-                            ),
-                          ),
-                          derecha: const _TarjetaMapaEstado(
-                            child: _EstadoReporte(
-                              icon: Icons.map_outlined,
-                              message: 'Cargando reportes',
-                            ),
-                          ),
+                child: _Fundido(
+                  estado: reportes,
+                  child: reportes.when(
+                    loading: () => _dosPaneles(
+                      izquierda: const _TarjetaRanking(
+                        child: CargaFantasma(
+                          semanticsLabel: 'Cargando reportes',
+                          child: _FilasFantasma(),
                         ),
-                        error: (error, stack) => _dosPaneles(
-                          izquierda: _TarjetaRanking(
-                            child: _EstadoReporte(
-                              icon: Icons.error_outline,
-                              message: 'No se pudieron cargar los reportes',
-                              action: _Reintentar(
-                                key: const ValueKey('reintentar-lista'),
-                                onPressed: () => ref.invalidate(
-                                  reportesRutasProvider((
-                                    periodo: _periodo,
-                                    hora: _hora,
-                                  )),
-                                ),
-                              ),
-                            ),
-                          ),
-                          derecha: const _TarjetaMapaEstado(
-                            child: _EstadoReporte(
-                              icon: Icons.map_outlined,
-                              message: 'Elige una ruta para ver el mapa',
-                            ),
-                          ),
-                        ),
-                        data: _mostrarRutas,
                       ),
+                      derecha: const _TarjetaMapaEstado(
+                        child: CargaFantasma(
+                          semanticsLabel: 'Cargando el mapa',
+                          child: _MapaFantasma(),
+                        ),
+                      ),
+                    ),
+                    error: (error, stack) => _dosPaneles(
+                      izquierda: _TarjetaRanking(
+                        child: _EstadoReporte(
+                          icon: Icons.error_outline,
+                          message: 'No se pudieron cargar los reportes',
+                          action: _Reintentar(
+                            key: const ValueKey('reintentar-lista'),
+                            onPressed: () => ref.invalidate(
+                              reportesRutasProvider((
+                                periodo: _periodo,
+                                hora: _hora,
+                              )),
+                            ),
+                          ),
+                        ),
+                      ),
+                      derecha: const _TarjetaMapaEstado(
+                        child: _EstadoReporte(
+                          icon: Icons.map_outlined,
+                          message: 'Elige una ruta para ver el mapa',
+                        ),
+                      ),
+                    ),
+                    data: _mostrarRutas,
+                  ),
+                ),
               ),
             ),
           ],
@@ -173,7 +172,21 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               ),
             ),
             const Divider(height: 1),
-            _ResumenRutas(rutas: ordenadas),
+            OcupacionResumen(
+              horas: ref.watch(
+                ocupacionProvider((
+                  routeId: rutaSeleccionada.id,
+                  periodo: _periodo,
+                )),
+              ),
+              buses: ref.watch(
+                fleetProvider.select(
+                  (s) => s.buses.values
+                      .where((b) => b.routeId == rutaSeleccionada.id)
+                      .length,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -196,24 +209,65 @@ Widget _dosPaneles({required Widget izquierda, required Widget derecha}) => Row(
   ],
 );
 
+// Valor del segmento «Fecha» antes de elegir un día: nunca es el periodo
+// vigente, así que no sale marcado.
+final _sinDia = PeriodoReporte.delDia(DateTime(2000));
+
 class _CabeceraReportes extends StatelessWidget {
   const _CabeceraReportes({
     required this.hora,
     required this.periodo,
-    required this.pestana,
     required this.onBack,
     required this.onSelectHour,
     required this.onSelectPeriodo,
-    required this.onSelectPestana,
   });
 
   final int? hora;
   final PeriodoReporte periodo;
-  final _Pestana pestana;
   final VoidCallback onBack;
   final ValueChanged<int?> onSelectHour;
   final ValueChanged<PeriodoReporte> onSelectPeriodo;
-  final ValueChanged<_Pestana> onSelectPestana;
+
+  // El calendario va de hoy en Bogotá hasta 395 días atrás: el servidor
+  // guarda 396 (`RETENCION_MS`), y el más viejo ya puede venir a medias.
+  // Sale en un cuadro bajo los periodos, con el estilo del menú de la hora:
+  // es un filtro más, no una tarea que pida velo.
+  Widget _calendario(MenuController menu) {
+    final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+    final ultimo = DateTime(hoy.year, hoy.month, hoy.day);
+    final elegido = periodo.dia;
+    return Builder(
+      builder: (context) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(
+            context,
+          ).colorScheme.copyWith(primary: AppColors.boton),
+        ),
+        // 52 de cabecera y 7 filas de 42 (la de los días de la semana y seis
+        // semanas): el alto de un mes que ocupa seis, sin recortar.
+        // El menú ya rueda con el PrimaryScrollController: el mes y la lista
+        // de años del calendario no deben colgarse de él también.
+        child: PrimaryScrollController.none(
+          child: SizedBox(
+            key: const ValueKey('calendario-dia'),
+            width: 344,
+            height: 346,
+            child: CalendarDatePicker(
+              initialDate: elegido == null
+                  ? ultimo
+                  : DateTime(elegido.year, elegido.month, elegido.day),
+              firstDate: ultimo.subtract(const Duration(days: 395)),
+              lastDate: ultimo,
+              onDateChanged: (dia) {
+                menu.close();
+                onSelectPeriodo(PeriodoReporte.delDia(dia));
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Container(
@@ -247,36 +301,44 @@ class _CabeceraReportes extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              pestana == _Pestana.ocupacion
-                  ? 'Aforo con IA'
-                  : periodoSubtitulo(periodo),
+              periodoSubtitulo(periodo),
               style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),
-        const SizedBox(width: 28),
-        _Segmentos<_Pestana>(
-          valor: pestana,
-          opciones: const [
-            (_Pestana.busquedas, 'Búsquedas', 'pestana-busquedas'),
-            (_Pestana.ocupacion, 'Ocupación', 'pestana-ocupacion'),
-          ],
-          onSelect: onSelectPestana,
-        ),
         const Spacer(),
-        // El periodo y la hora solo filtran las búsquedas.
-        if (pestana == _Pestana.busquedas) ...[
-          _Segmentos<PeriodoReporte>(
+        MenuAnchor(
+          style: _estiloMenu,
+          alignmentOffset: const Offset(0, 6),
+          menuChildren: [
+            Builder(
+              builder: (context) =>
+                  _calendario(MenuController.maybeOf(context)!),
+            ),
+          ],
+          builder: (context, menu, _) => _Segmentos<PeriodoReporte>(
             valor: periodo,
             opciones: [
               for (final p in PeriodoReporte.values)
                 (p, periodoLabel(p), 'periodo-${p.name}'),
+              // El día elegido se queda escrito en su segmento; sin día, dice
+              // «Fecha» y abre el calendario.
+              periodo.dia == null
+                  ? (_sinDia, 'Fecha', 'periodo-dia')
+                  : (periodo, periodoLabel(periodo), 'periodo-dia'),
             ],
-            onSelect: onSelectPeriodo,
+            onSelect: (p) {
+              if (p.dia == null) {
+                menu.close();
+                onSelectPeriodo(p);
+              } else {
+                menu.isOpen ? menu.close() : menu.open();
+              }
+            },
           ),
-          const SizedBox(width: 10),
-          _FiltroHora(hora: hora, onSelectHour: onSelectHour),
-        ],
+        ),
+        const SizedBox(width: 10),
+        _FiltroHora(hora: hora, onSelectHour: onSelectHour),
       ],
     ),
   );
@@ -373,19 +435,7 @@ class _FiltroHora extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MenuAnchor(
-    style: MenuStyle(
-      backgroundColor: const WidgetStatePropertyAll(AppColors.surface),
-      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-      shadowColor: const WidgetStatePropertyAll(Color(0x2414274E)),
-      elevation: const WidgetStatePropertyAll(8),
-      padding: const WidgetStatePropertyAll(EdgeInsets.all(6)),
-      shape: WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          side: const BorderSide(color: AppColors.border),
-        ),
-      ),
-    ),
+    style: _estiloMenu,
     menuChildren: [
       MenuItemButton(
         key: const ValueKey('filtro-hora-todo'),
@@ -413,6 +463,20 @@ class _FiltroHora extends StatelessWidget {
     ),
   );
 }
+
+const _estiloMenu = MenuStyle(
+  backgroundColor: WidgetStatePropertyAll(AppColors.surface),
+  surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+  shadowColor: WidgetStatePropertyAll(Color(0x2414274E)),
+  elevation: WidgetStatePropertyAll(8),
+  padding: WidgetStatePropertyAll(EdgeInsets.all(6)),
+  shape: WidgetStatePropertyAll(
+    RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+      side: BorderSide(color: AppColors.border),
+    ),
+  ),
+);
 
 ButtonStyle _estiloContorno({required EdgeInsetsGeometry padding}) =>
     OutlinedButton.styleFrom(
@@ -472,141 +536,6 @@ class _TarjetaRanking extends StatelessWidget {
       ],
     ),
   );
-}
-
-/// Bajo el ranking, todas las rutas juntas: cuántas búsquedas suman y a qué
-/// hora se busca más en la empresa entera. Llena el hueco que dejan pocas
-/// rutas con lo que el ranking, ruta por ruta, no dice.
-class _ResumenRutas extends StatelessWidget {
-  const _ResumenRutas({required this.rutas});
-
-  final List<RutaBusquedas> rutas;
-
-  // 72 px: el alto de seis filas del ranking cabe sobre él en 900 px.
-  static const _altoBarras = 72.0;
-  static const _pico = TextStyle(
-    color: _ambarTexto,
-    fontSize: 12.5,
-    fontWeight: FontWeight.w600,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final porHora = List<int>.generate(
-      24,
-      (h) => rutas.fold(0, (suma, ruta) => suma + ruta.porHora[h]),
-    );
-    final total = rutas.fold(0, (suma, ruta) => suma + ruta.total);
-    final maximo = porHora.reduce(math.max);
-    final pico = maximo > 0 ? porHora.indexOf(maximo) : null;
-    const rotulo = TextStyle(
-      color: AppColors.textSecondary,
-      fontSize: 11,
-      fontWeight: FontWeight.w600,
-    );
-    return Padding(
-      key: const ValueKey('resumen-rutas'),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Todas tus rutas',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _formatearTotal(total),
-                key: const ValueKey('resumen-total'),
-                style: const TextStyle(
-                  color: AppColors.navy,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 3),
-                child: Text(
-                  'búsquedas',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (pico != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: Row(
-                    children: [
-                      const Text('Hora pico ', style: _pico),
-                      Text(
-                        horaPicoLabel(pico),
-                        key: const ValueKey('resumen-pico'),
-                        style: _pico.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: _altoBarras,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (var h = 0; h < 24; h++)
-                  Expanded(
-                    child: Padding(
-                      // 1,5 px por lado: 3 de aire, como las celdas de hora.
-                      padding: const EdgeInsets.symmetric(horizontal: 1.5),
-                      child: AnimatedContainer(
-                        key: ValueKey('resumen-hora-$h'),
-                        duration: AppMotion.normal,
-                        curve: AppMotion.curvaCambio,
-                        height: maximo > 0
-                            ? _altoBarras * porHora[h] / maximo
-                            : 0,
-                        decoration: BoxDecoration(
-                          color: _colorCalor(porHora[h], maximo),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(3),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('12 a. m.', style: rotulo),
-              Text('6 a. m.', style: rotulo),
-              Text('12 p. m.', style: rotulo),
-              Text('6 p. m.', style: rotulo),
-              Text('11 p. m.', style: rotulo),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _TarjetaMapaEstado extends StatelessWidget {
@@ -706,39 +635,42 @@ class _TarjetaMapa extends ConsumerWidget {
           ),
           const Divider(height: 1),
           Expanded(
-            child: heat.when(
-              loading: () => const _EstadoReporte(
-                icon: Icons.location_searching_outlined,
-                message: 'Cargando zonas de búsqueda',
-              ),
-              error: (error, stack) => _EstadoReporte(
-                icon: Icons.error_outline,
-                message: 'No se pudieron cargar los reportes',
-                action: _Reintentar(
-                  key: const ValueKey('reintentar-calor'),
-                  onPressed: () => ref.invalidate(
-                    reportesCalorProvider((
-                      routeId: route.id,
-                      periodo: periodo,
-                      hora: hora,
-                    )),
+            child: _Fundido(
+              estado: heat,
+              child: heat.when(
+                loading: () => const CargaFantasma(
+                  semanticsLabel: 'Cargando zonas de búsqueda',
+                  child: _MapaFantasma(),
+                ),
+                error: (error, stack) => _EstadoReporte(
+                  icon: Icons.error_outline,
+                  message: 'No se pudieron cargar los reportes',
+                  action: _Reintentar(
+                    key: const ValueKey('reintentar-calor'),
+                    onPressed: () => ref.invalidate(
+                      reportesCalorProvider((
+                        routeId: route.id,
+                        periodo: periodo,
+                        hora: hora,
+                      )),
+                    ),
                   ),
                 ),
+                data: (cells) => cells.isEmpty
+                    ? const _EstadoReporte(
+                        icon: Icons.location_off_outlined,
+                        message:
+                            'Aún no hay suficientes búsquedas con ubicación en esta ruta para mostrarlas. Se muestran zonas con al menos 5 búsquedas.',
+                      )
+                    : _MapaCalor(
+                        routeId: route.id,
+                        codigo: codigo,
+                        hora: hora,
+                        porHora: route.porHora,
+                        onSelectHour: onSelectHour,
+                        cells: cells,
+                      ),
               ),
-              data: (cells) => cells.isEmpty
-                  ? const _EstadoReporte(
-                      icon: Icons.location_off_outlined,
-                      message:
-                          'Aún no hay suficientes búsquedas con ubicación en esta ruta para mostrarlas. Se muestran zonas con al menos 5 búsquedas.',
-                    )
-                  : _MapaCalor(
-                      routeId: route.id,
-                      codigo: codigo,
-                      hora: hora,
-                      porHora: route.porHora,
-                      onSelectHour: onSelectHour,
-                      cells: cells,
-                    ),
             ),
           ),
         ],
@@ -1103,6 +1035,151 @@ class _CeldaHora extends StatelessWidget {
   }
 }
 
+/// La forma de [_FilaRuta] sin datos: puesto, ficha, nombre y total arriba,
+/// la barra debajo desde los 22 px del puesto, con el mismo relleno y el
+/// mismo radio, para que al llegar la lista las filas caigan donde estaban.
+class _FilasFantasma extends StatelessWidget {
+  const _FilasFantasma();
+
+  /// Nombres de largos distintos: iguales se leerían como un patrón.
+  static const _nombres = [148.0, 112.0, 164.0, 96.0, 130.0, 104.0];
+
+  /// La barra de cada fila, de la más buscada a la menos.
+  static const _barras = [1.0, 0.78, 0.6, 0.46, 0.34, 0.22];
+
+  @override
+  Widget build(BuildContext context) => ListView.separated(
+    padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+    physics: const NeverScrollableScrollPhysics(),
+    itemCount: _nombres.length,
+    separatorBuilder: (_, _) => const SizedBox(height: 4),
+    itemBuilder: (_, i) => Container(
+      key: ValueKey('fantasma-ruta-$i'),
+      padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // 22 px del puesto; su cifra mono de 12 pt mide unos 8 de ancho.
+              const SizedBox(
+                width: 22,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _Bloque(ancho: 9, alto: 10),
+                ),
+              ),
+              // La ficha: código de 10,5 pt con 7 y 3 de relleno.
+              const _Bloque(ancho: 34, alto: 19),
+              const SizedBox(width: 10),
+              _Bloque(ancho: _nombres[i], alto: 11),
+              const Spacer(),
+              const _Bloque(ancho: 82, alto: 10),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 22),
+            child: FractionallySizedBox(
+              widthFactor: _barras[i],
+              child: const _Bloque(alto: 6),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// El mapa mientras llega: el fondo de Voyager con unas manchas donde irían
+/// las zonas y la leyenda abajo, para que el calor llegue a un sitio tomado.
+class _MapaFantasma extends StatelessWidget {
+  const _MapaFantasma();
+
+  /// Centro (fracción del ancho y del alto) y radio de cada mancha.
+  static const _manchas = [
+    (0.32, 0.38, 46.0),
+    (0.58, 0.30, 30.0),
+    (0.66, 0.62, 54.0),
+    (0.40, 0.70, 26.0),
+  ];
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: ControlMap.fondo,
+    child: LayoutBuilder(
+      builder: (context, c) => Stack(
+        children: [
+          for (final (x, y, r) in _manchas)
+            Positioned(
+              left: c.maxWidth * x - r,
+              top: c.maxHeight * y - r,
+              child: _Bloque(ancho: r * 2, alto: r * 2, radio: r),
+            ),
+          // La leyenda: 8 abajo, como la de verdad.
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 8,
+            child: Center(
+              child: _Bloque(ancho: 220, alto: 30, radio: AppRadius.pill),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Al pasar de cargando a datos (o a error) lo nuevo se funde sobre lo que
+/// latía; dentro de un mismo estado los cambios van sin fundido, como antes.
+class _Fundido extends StatelessWidget {
+  const _Fundido({required this.estado, required this.child});
+  final AsyncValue<Object?> estado;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: AppMotion.duracion(context, AppMotion.normal),
+    switchInCurve: AppMotion.curvaEntrada,
+    switchOutCurve: AppMotion.curvaSalida,
+    layoutBuilder: (actual, previos) =>
+        Stack(fit: StackFit.expand, children: [...previos, ?actual]),
+    child: KeyedSubtree(
+      key: ValueKey(
+        estado.isLoading && !estado.hasValue && !estado.hasError
+            ? 'carga'
+            : estado.hasError
+            ? 'error'
+            : 'datos',
+      ),
+      child: child,
+    ),
+  );
+}
+
+/// Un trozo de esqueleto: el gris del borde fuerte, como las filas de la flota.
+class _Bloque extends StatelessWidget {
+  const _Bloque({this.ancho, required this.alto, this.radio = AppRadius.sm});
+  final double? ancho;
+  final double alto;
+  final double radio;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: ancho ?? double.infinity,
+    height: alto,
+    decoration: BoxDecoration(
+      color: AppColors.borderStrong,
+      borderRadius: BorderRadius.circular(radio),
+    ),
+  );
+}
+
 class _EstadoReporte extends StatelessWidget {
   const _EstadoReporte({
     required this.icon,
@@ -1200,15 +1277,11 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   final _controller = MapController();
   List<LatLng> _routePoints = const [];
   bool _mapReady = false;
-  // El mapa abre pintado (dueño, 2026-10-26); el botón lo quita y lo vuelve
-  // a pintar.
-  bool _pintado = true;
   late final _calor = AnimationController(vsync: this)
     ..addStatusListener(_alCambiarCalor);
   late final _nivel = CurvedAnimation(
     parent: _calor,
     curve: AppMotion.curvaEntrada,
-    reverseCurve: AppMotion.curvaSalida,
   );
   // El pulso marca el foco más caliente cuando el calor termina de subir.
   late final _pulso = AnimationController(vsync: this);
@@ -1222,12 +1295,10 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _calor
-      ..duration = AppMotion.duracion(context, _crecerCalor)
-      ..reverseDuration = AppMotion.duracion(context, AppMotion.normal);
+    _calor.duration = AppMotion.duracion(context, _crecerCalor);
     _pulso.duration = AppMotion.duracion(context, AppMotion.pulso);
     // Al abrir, el calor crece desde la ruta como en el video.
-    if (_pintado && _calor.isDismissed) _crecer();
+    if (_calor.isDismissed) _crecer();
   }
 
   @override
@@ -1238,7 +1309,7 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
         oldWidget.routeId != widget.routeId) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitCamera());
       // Otra ruta u otra hora: el calor vuelve a crecer desde la ruta.
-      if (_pintado) _crecer();
+      _crecer();
     }
   }
 
@@ -1253,18 +1324,11 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
 
   void _alCambiarCalor(AnimationStatus status) {
     if (status == AnimationStatus.completed) _pulso.forward(from: 0);
-    // Apagado del todo, la capa sale del árbol.
-    if (status == AnimationStatus.dismissed && mounted) setState(() {});
   }
 
   void _crecer() {
     _pulso.reset();
     _calor.forward(from: 0);
-  }
-
-  void _alternar() {
-    setState(() => _pintado = !_pintado);
-    _pintado ? _crecer() : _calor.reverse();
   }
 
   Future<void> _readRoute() async {
@@ -1377,19 +1441,13 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
                   );
                 },
               ),
-            if (_pintado || !_calor.isDismissed)
-              _CapaCalor(
-                key: ValueKey('capa-calor-${widget.routeId}'),
-                cells: widget.cells,
-                nivel: _nivel,
-                pulso: _pulso,
-              ),
+            _CapaCalor(
+              key: ValueKey('capa-calor-${widget.routeId}'),
+              cells: widget.cells,
+              nivel: _nivel,
+              pulso: _pulso,
+            ),
           ],
-        ),
-        Positioned(
-          left: 16,
-          top: 16,
-          child: _BotonPintar(pintado: _pintado, onTap: _alternar),
         ),
         Positioned(
           left: 16,
@@ -1399,31 +1457,9 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // La leyenda solo explica lo que está pintado; entra subiendo
-              // 8 px, como la tarjeta del video.
-              AnimatedSwitcher(
-                duration: AppMotion.duracion(context, AppMotion.normal),
-                switchInCurve: AppMotion.curvaEntrada,
-                switchOutCurve: AppMotion.curvaSalida,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween(
-                      begin: Offset(0, 0.1 * AppMotion.desplazamiento(context)),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                ),
-                child: _pintado
-                    ? Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _LeyendaCalor(
-                          codigo: widget.codigo,
-                          maxCount: maxCount,
-                        ),
-                      )
-                    : const SizedBox.shrink(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _LeyendaCalor(codigo: widget.codigo, maxCount: maxCount),
               ),
               _HorasMapa(
                 porHora: widget.porHora,
@@ -1791,71 +1827,6 @@ class _PintorCalor extends CustomPainter {
       oldDelegate.raster != raster ||
       oldDelegate.nivel != nivel ||
       oldDelegate.pulso != pulso;
-}
-
-/// Píldora que pinta o quita el calor. Apagada va blanca como las demás
-/// del mapa; encendida, llena en el azul de botón con letra blanca
-/// (#1E56A8 con blanco da 7,1:1).
-class _BotonPintar extends StatelessWidget {
-  const _BotonPintar({required this.pintado, required this.onTap});
-  final bool pintado;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tinta = pintado ? Colors.white : AppColors.navy;
-    return Semantics(
-      button: true,
-      toggled: pintado,
-      label: 'Pintar mapa de calor',
-      child: ExcludeSemantics(
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            key: const ValueKey('alternar-calor'),
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: AnimatedContainer(
-              duration: AppMotion.duracion(context, AppMotion.rapido),
-              curve: AppMotion.curvaCambio,
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-              decoration: BoxDecoration(
-                color: pintado
-                    ? AppColors.boton
-                    : AppColors.surface.withValues(alpha: 0.96),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(
-                  color: pintado ? AppColors.boton : AppColors.border,
-                ),
-                boxShadow: AppColors.sombraTarjeta,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    pintado
-                        ? Icons.layers_clear_outlined
-                        : Icons.local_fire_department_outlined,
-                    size: 15,
-                    color: tinta,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    pintado ? 'Quitar calor' : 'Pintar calor',
-                    style: AppType.ui(
-                      color: tinta,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// Las 24 horas de la ruta sobre el mapa: cada barra mide sus búsquedas en

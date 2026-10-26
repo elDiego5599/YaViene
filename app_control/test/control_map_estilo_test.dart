@@ -246,4 +246,21 @@ void main() {
 
     await _desmontar(tester);
   });
+
+  testWidgets('mientras llega el estilo el mapa lo dice, y al llegar se va', (
+    tester,
+  ) async {
+    final estilo = Completer<Style>();
+    await _montar(
+      tester,
+      estiloMapaProvider.overrideWith((ref) => estilo.future),
+    );
+    expect(find.bySemanticsLabel('Cargando el mapa'), findsOneWidget);
+
+    estilo.complete(_estiloMinimo());
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.bySemanticsLabel('Cargando el mapa'), findsNothing);
+    await _desmontar(tester);
+  });
 }

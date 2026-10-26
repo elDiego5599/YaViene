@@ -13,6 +13,7 @@ import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/app_motion.dart';
 import 'package:ya_viene_core/core/theme/estilo_mapa.dart';
 import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
+import 'package:ya_viene_core/shared/widgets/indicador_carga.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
@@ -161,7 +162,8 @@ class _ControlMapState extends ConsumerState<ControlMap>
       });
     });
     ref.listen<FleetState>(fleetProvider, _alMoverse);
-    final estilo = ref.watch(estiloMapaProvider).valueOrNull;
+    final estadoEstilo = ref.watch(estiloMapaProvider);
+    final estilo = estadoEstilo.valueOrNull;
     final fleet = ref.watch(fleetProvider);
     final size = _markerSize;
     final markers = fleet.fleetList
@@ -302,6 +304,23 @@ class _ControlMapState extends ConsumerState<ControlMap>
                 ),
               MarkerLayer(markers: [...markers, ...terminales]),
             ],
+          ),
+        ),
+        // Mientras llega el estilo solo se ve el fondo: la píldora dice que
+        // el mapa viene, y se funde al llegar.
+        Positioned(
+          top: 16,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: AppMotion.duracion(context, AppMotion.normal),
+              switchInCurve: AppMotion.curvaEntrada,
+              switchOutCurve: AppMotion.curvaSalida,
+              child: estadoEstilo.isLoading && estilo == null
+                  ? const _CargandoMapa()
+                  : const SizedBox.shrink(),
+            ),
           ),
         ),
         // CARTO y OpenStreetMap piden el crédito a la vista. Va discreto, en
@@ -700,4 +719,35 @@ class FleetLegend extends StatelessWidget {
       ),
     );
   }
+}
+
+/// «Cargando el mapa» con los tres puntos de la marca, en una píldora blanca
+/// que flota sobre el fondo de Voyager como la leyenda.
+class _CargandoMapa extends StatelessWidget {
+  const _CargandoMapa();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(12, 7, 14, 7),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      boxShadow: AppColors.sombraFlotante,
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const IndicadorCarga(size: 16),
+        const SizedBox(width: 8),
+        Text(
+          'Cargando el mapa',
+          style: AppType.ui(
+            color: AppColors.navy,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
 }
