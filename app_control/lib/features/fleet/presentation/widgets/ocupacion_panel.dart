@@ -33,6 +33,9 @@ enum _Aforo {
 String _hora(int h) => '${h > 12 ? h - 12 : h}';
 String _meridiano(int h) => h % 24 < 12 ? 'a. m.' : 'p. m.';
 
+// Puestos del bus dibujado: seis ventanas, dos cabezas en cada una.
+const _puestos = 12;
+
 class OcupacionPanel extends StatefulWidget {
   const OcupacionPanel({super.key});
 
@@ -93,46 +96,75 @@ class _OcupacionPanelState extends State<OcupacionPanel> {
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // 64 px: la cifra es el dato de la pestaña, como en el video.
-                Text(
-                  '$pct %',
-                  key: const ValueKey('aforo-cifra'),
-                  style: AppType.ui(
-                    color: aforo.color,
-                    fontSize: 64,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _Ficha(aforo: aforo),
-                ),
-                const SizedBox(width: 14),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'de ${_hora(_elegida)} a ${_hora(_elegida + 1)} '
-                    '${_meridiano(_elegida + 1)}',
-                    style: AppType.ui(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+            // Como en el video: el bus a la izquierda y la cifra a su lado,
+            // centrados en el aire que dejan el título y las barras.
             Expanded(
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 340),
+                        child: _Bus(pct: pct, color: aforo.color),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 76 px con tracking negativo: a ese tamaño las
+                        // cifras se separan y el número deja de leerse junto.
+                        AnimatedDefaultTextStyle(
+                          duration: AppMotion.normal,
+                          curve: AppMotion.curvaCambio,
+                          style: AppType.ui(
+                            color: aforo.color,
+                            fontSize: 76,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                            letterSpacing: -2.5,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                          child: Text(
+                            '$pct %',
+                            key: const ValueKey('aforo-cifra'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _Ficha(aforo: aforo),
+                            const SizedBox(width: 12),
+                            Text(
+                              'de ${_hora(_elegida)} a ${_hora(_elegida + 1)} '
+                              '${_meridiano(_elegida + 1)}',
+                              style: AppType.ui(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Las barras van en su bandeja gris y bajas (132 px), como en el
+            // video: son el índice para elegir la hora, no el dato.
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   for (var i = 0; i < _ejemplo.length; i++)
                     Expanded(
@@ -208,10 +240,209 @@ class _Ficha extends StatelessWidget {
   );
 }
 
-/// Una hora: barra alta según su ocupación y su hora debajo. Vacío y lleno
-/// van teñidos (rojo y verde al 30 %), lo medio en gris como en el video; la
-/// hora elegida, en su color entero.
-class _Barra extends StatelessWidget {
+/// El bus de lado con sus pasajeros: los puestos se llenan según la cifra y
+/// cada cabeza nueva entra con el resorte, en el color del estado.
+class _Bus extends StatelessWidget {
+  const _Bus({required this.pct, required this.color});
+
+  final int pct;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ocupados = (pct * _puestos / 100).round();
+    return Semantics(
+      key: const ValueKey('aforo-bus'),
+      container: true,
+      label: 'Bus con $ocupados de $_puestos puestos ocupados',
+      child: AspectRatio(
+        aspectRatio: 2.3,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: ocupados.toDouble()),
+          duration: AppMotion.normal,
+          curve: AppMotion.curvaCambio,
+          builder: (_, llenos, _) => TweenAnimationBuilder<Color?>(
+            tween: ColorTween(end: color),
+            duration: AppMotion.normal,
+            curve: AppMotion.curvaCambio,
+            builder: (_, tinte, _) => CustomPaint(
+              painter: _PintorBus(llenos: llenos, color: tinte ?? color),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PintorBus extends CustomPainter {
+  _PintorBus({required this.llenos, required this.color});
+
+  final double llenos;
+  final Color color;
+
+  static const _llanta = AppColors.navy;
+  static const _vidrio = Color(0xFFEAF0F7);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final linea = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = AppColors.borderStrong;
+    final ruedaR = h * 0.13;
+    final suelo = h - ruedaR * 0.35;
+    final abajo = suelo - ruedaR;
+
+    // Sombra suave bajo el bus, para que se pose en la tarjeta.
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, suelo),
+        width: w * 0.9,
+        height: h * 0.07,
+      ),
+      Paint()
+        ..color = AppColors.navy.withValues(alpha: 0.08)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+
+    // Techo con su caja del aire y la carrocería.
+    final techo = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.2, h * 0.02, w * 0.36, h * 0.07),
+      const Radius.circular(4),
+    );
+    canvas
+      ..drawRRect(techo, Paint()..color = AppColors.surfaceRaised)
+      ..drawRRect(techo, linea);
+    final cuerpo = RRect.fromRectAndCorners(
+      Rect.fromLTRB(0, h * 0.07, w, abajo),
+      topLeft: Radius.circular(h * 0.14),
+      topRight: Radius.circular(h * 0.2),
+      bottomLeft: Radius.circular(h * 0.06),
+      bottomRight: Radius.circular(h * 0.08),
+    );
+    canvas
+      ..drawRRect(cuerpo, Paint()..color = AppColors.surface)
+      ..drawRRect(cuerpo, linea);
+
+    // Seis ventanas de pasajeros y el parabrisas al frente.
+    final arriba = h * 0.16;
+    final altoVentana = h * 0.36;
+    const izq = 0.04;
+    const der = 0.78;
+    final hueco = w * 0.012;
+    final anchoVentana = (w * (der - izq) - hueco * 5) / 6;
+    final vidrio = Paint()..color = _vidrio;
+    for (var v = 0; v < 6; v++) {
+      final x = w * izq + v * (anchoVentana + hueco);
+      final ventana = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, arriba, anchoVentana, altoVentana),
+        Radius.circular(h * 0.04),
+      );
+      canvas
+        ..drawRRect(ventana, vidrio)
+        ..save()
+        ..clipRRect(ventana);
+      // Dos puestos por ventana; se llenan ventana por ventana a lo largo
+      // del bus, como sube la gente, y luego el segundo de cada una.
+      for (var lado = 0; lado < 2; lado++) {
+        final puesto = lado * 6 + v;
+        final alfa = (llenos - puesto).clamp(0.0, 1.0);
+        if (alfa == 0) continue;
+        _pasajero(
+          canvas,
+          Offset(x + anchoVentana * (lado == 0 ? 0.32 : 0.7), arriba),
+          altoVentana,
+          anchoVentana,
+          color.withValues(alpha: alfa),
+        );
+      }
+      canvas.restore();
+    }
+    final frente = RRect.fromRectAndCorners(
+      Rect.fromLTRB(w * 0.82, arriba, w * 0.965, arriba + altoVentana * 1.25),
+      topLeft: Radius.circular(h * 0.04),
+      bottomLeft: Radius.circular(h * 0.04),
+      topRight: Radius.circular(h * 0.1),
+      bottomRight: Radius.circular(h * 0.04),
+    );
+    canvas.drawRRect(frente, vidrio);
+
+    // Las franjas de la marca: azul y, debajo, la verde más corta.
+    final franja = arriba + altoVentana + h * 0.08;
+    canvas
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.015, franja, w * 0.78, h * 0.035),
+          const Radius.circular(3),
+        ),
+        Paint()..color = AppColors.boton,
+      )
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.015, franja + h * 0.05, w * 0.5, h * 0.02),
+          const Radius.circular(2),
+        ),
+        Paint()..color = AppColors.online,
+      )
+      // Farol ámbar al frente.
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * 0.955, franja + h * 0.01, w * 0.03, h * 0.045),
+          const Radius.circular(3),
+        ),
+        Paint()..color = const Color(0xFFF4C430),
+      );
+
+    // Ruedas: llanta en tinta y rin claro, sobre el suelo.
+    for (final cx in [w * 0.2, w * 0.8]) {
+      final c = Offset(cx, abajo);
+      canvas
+        ..drawCircle(c, ruedaR * 1.18, Paint()..color = AppColors.surface)
+        ..drawCircle(c, ruedaR, Paint()..color = _llanta)
+        ..drawCircle(c, ruedaR * 0.45, Paint()..color = AppColors.borderStrong)
+        ..drawCircle(c, ruedaR * 0.14, Paint()..color = _llanta);
+    }
+  }
+
+  // Cabeza y hombros, asomados desde el borde de abajo de la ventana.
+  void _pasajero(
+    Canvas canvas,
+    Offset arriba,
+    double altoVentana,
+    double anchoVentana,
+    Color color,
+  ) {
+    final pintura = Paint()..color = color;
+    final r = anchoVentana * 0.13;
+    final cabeza = arriba + Offset(0, altoVentana * 0.48);
+    canvas
+      ..drawCircle(cabeza, r, pintura)
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: cabeza + Offset(0, r * 2.9),
+            width: r * 3.1,
+            height: r * 3.2,
+          ),
+          Radius.circular(r * 1.4),
+        ),
+        pintura,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_PintorBus old) =>
+      old.llenos != llenos || old.color != color;
+}
+
+/// Una hora: barra baja y redonda según su ocupación. Llena y vacía van
+/// teñidas de su color, lo medio en gris como en el video; la elegida, en su
+/// color entero con un halo. Al pasar el puntero se oscurece y dice su hora;
+/// al presionar se hunde un poco, antes de soltar.
+class _Barra extends StatefulWidget {
   const _Barra({
     required this.hora,
     required this.pct,
@@ -225,60 +456,113 @@ class _Barra extends StatelessWidget {
   final VoidCallback alTocar;
 
   @override
+  State<_Barra> createState() => _BarraState();
+}
+
+class _BarraState extends State<_Barra> {
+  static const _alto = 132.0;
+  var _encima = false;
+  var _presionada = false;
+
+  @override
   Widget build(BuildContext context) {
-    final aforo = _Aforo.de(pct);
+    final aforo = _Aforo.de(widget.pct);
+    final elegida = widget.elegida;
+    // Tintes sobre la bandeja (#F1F5F9): rojo y verde al 24 %, gris #DCE2EA;
+    // con el puntero encima suben a 40 % y #CBD3DE.
     final tinte = elegida
         ? aforo.color
         : aforo == _Aforo.medio
-        ? AppColors.borderStrong
+        ? (_encima ? const Color(0xFFCBD3DE) : const Color(0xFFDCE2EA))
         : Color.alphaBlend(
-            aforo.color.withValues(alpha: 0.3),
-            AppColors.surface,
+            aforo.color.withValues(alpha: _encima ? 0.4 : 0.24),
+            AppColors.surfaceRaised,
           );
     final rotulo = AppType.ui(
       color: elegida ? AppColors.navy : AppColors.textSecondary,
-      fontSize: 11,
+      fontSize: elegida ? 12.5 : 11,
       fontWeight: elegida ? FontWeight.w800 : FontWeight.w600,
-      height: 1.2,
+      height: 1.15,
     );
     return Semantics(
       button: true,
       selected: elegida,
-      label: '${_hora(hora)} ${_meridiano(hora)}, $pct %, ${aforo.texto}',
+      label:
+          '${_hora(widget.hora)} ${_meridiano(widget.hora)}, '
+          '${widget.pct} %, ${aforo.texto}',
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _encima = true),
+        onExit: (_) => setState(() => _encima = false),
         child: GestureDetector(
-          key: ValueKey('aforo-hora-$hora'),
+          key: ValueKey('aforo-hora-${widget.hora}'),
           behavior: HitTestBehavior.opaque,
-          onTap: alTocar,
+          onTapDown: (_) => setState(() => _presionada = true),
+          onTapCancel: () => setState(() => _presionada = false),
+          onTap: () {
+            setState(() => _presionada = false);
+            widget.alTocar();
+          },
           child: Padding(
-            // 6 px por lado: 12 de aire entre barras, como el ranking.
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            // 5 px por lado: 10 de aire entre barras, como en el video.
+            padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Column(
               children: [
-                Expanded(
+                SizedBox(
+                  height: _alto,
                   child: Align(
                     alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      heightFactor: pct / 100,
+                    child: AnimatedScale(
+                      scale: _presionada ? 0.94 : 1,
+                      duration: AppMotion.instante,
+                      curve: AppMotion.curvaCambio,
+                      alignment: Alignment.bottomCenter,
                       child: AnimatedContainer(
                         duration: AppMotion.normal,
                         curve: AppMotion.curvaCambio,
+                        // Nunca menos de 14 px, para que la hora más vacía
+                        // siga siendo una barra que se puede tocar.
+                        height: (_alto * widget.pct / 100).clamp(14, _alto),
                         decoration: BoxDecoration(
                           color: tinte,
-                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          borderRadius: BorderRadius.circular(9),
+                          boxShadow: [
+                            if (elegida)
+                              BoxShadow(
+                                color: aforo.color.withValues(alpha: 0.35),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                ExcludeSemantics(
-                  child: Column(
-                    children: [
-                      Text(_hora(hora), style: rotulo),
-                      Text(_meridiano(hora), style: rotulo),
-                    ],
+                SizedBox(
+                  height: 32,
+                  child: ExcludeSemantics(
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.rapido,
+                      switchInCurve: AppMotion.curvaCambio,
+                      switchOutCurve: AppMotion.curvaSalida,
+                      child: elegida || _encima
+                          // Dos líneas de 12,5 × 1,15 = 28,75 px caben en 32;
+                          // con otra fuente se encoge en vez de desbordar.
+                          ? FittedBox(
+                              key: ValueKey(elegida),
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.topCenter,
+                              child: Column(
+                                children: [
+                                  Text(_hora(widget.hora), style: rotulo),
+                                  Text(_meridiano(widget.hora), style: rotulo),
+                                ],
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ],

@@ -484,13 +484,28 @@ void main() {
         tester.widget<Text>(find.byKey(const ValueKey('aforo-cifra'))).data!;
     String estado() =>
         tester.widget<Text>(find.byKey(const ValueKey('aforo-estado'))).data!;
+    // El bus dibujado lleva sus 12 puestos llenos según la cifra, y solo la
+    // barra elegida dice su hora (las demás la dicen al pasarles el puntero).
+    String bus() =>
+        tester.getSemantics(find.byKey(const ValueKey('aforo-bus'))).label;
+    Finder rotulo(int h) => find.descendant(
+      of: find.byKey(ValueKey('aforo-hora-$h')),
+      matching: find.text(h > 12 ? '${h - 12}' : '$h'),
+    );
     expect((cifra(), estado()), ('90 %', 'Lleno'));
+    expect(bus(), 'Bus con 11 de 12 puestos ocupados');
+    expect(rotulo(18), findsOneWidget);
+    expect(rotulo(11), findsNothing);
     await tester.tap(find.byKey(const ValueKey('aforo-hora-11')));
     await tester.pumpAndSettle();
     expect((cifra(), estado()), ('18 %', 'Vacío'));
+    expect(bus(), 'Bus con 2 de 12 puestos ocupados');
+    expect(rotulo(11), findsOneWidget);
+    expect(rotulo(18), findsNothing);
     await tester.tap(find.byKey(const ValueKey('aforo-hora-12')));
     await tester.pumpAndSettle();
     expect((cifra(), estado()), ('47 %', 'Medio'));
+    expect(bus(), 'Bus con 6 de 12 puestos ocupados');
     expect(find.byKey(const ValueKey('periodo-hoy')), findsNothing);
     expect(find.byKey(const ValueKey('filtro-hora')), findsNothing);
     expect(find.byKey(const ValueKey('fila-ruta-R1')), findsNothing);
