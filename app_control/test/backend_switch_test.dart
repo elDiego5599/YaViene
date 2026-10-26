@@ -1,12 +1,12 @@
 // Pruebas de cambiar de backend con el panel abierto.
 //
 // Lo que se protege: si el túnel de siempre se cae con el operador mirando la
-// flota, el panel tiene que pasar solo al respaldo sin cerrar la sesión ni
-// perder la ruta y el bus que tenía elegidos; y si allí el token no vale, tiene
-// que mandarlo a iniciar sesión con el aviso de siempre, no dejarlo con un
-// error genérico.
+// flota, el panel se queda en la principal y vuelve solo cuando ella vuelve;
+// no pasa al respaldo, donde el token de la principal no vale y salía «Tu
+// sesión expiró» a cada rato (dueño, 2026-10-26). Elegir otra vez queda para
+// antes del login, y un cambio de URL no pierde la ruta ni el bus elegidos.
 //
-// Van con `testWidgets` por el reloj de mentira: los 30 s del supervisor y las
+// Van con `testWidgets` por el reloj de mentira: las reconexiones y las
 // esperas de las sondas pasan con `pump`, sin esperarlos de verdad. Por eso
 // tampoco hay red real: los sockets y la API son de mentira y una `_Red`
 // decide qué backend contesta.
@@ -16,6 +16,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:socket_io_client/socket_io_client.dart' as sio;
+import 'package:ya_viene_control/features/auth/data/auth_api.dart';
 import 'package:ya_viene_control/features/auth/domain/auth_session.dart';
 import 'package:ya_viene_control/features/auth/presentation/providers/auth_providers.dart';
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
@@ -140,6 +141,19 @@ class _Red {
     for (final socket in abiertos) {
       if (socket.url == url) socket.connect();
     }
+  }
+}
+
+/// El login contra [baseUrl]: anota a qué backend fue y entra.
+class _AuthFalsa extends AuthApi {
+  _AuthFalsa(String url, this._logins) : super(baseUrl: url);
+
+  final List<String> _logins;
+
+  @override
+  Future<AuthSession> login(String username, String password) async {
+    _logins.add(baseUrl);
+    return _sesion;
   }
 }
 
@@ -307,60 +321,30 @@ Map<String, Object?> _posicion(String busId, {required int sequence}) => {
 
 void main() {
   testWidgets(
-    'el túnel cae con el panel abierto → en ≤ 45 s la flota está en el '
-    'respaldo, resuscrita y recargada',
+    'el túnel cae un buen rato y vuelve → el panel se queda en la principal '
+    'y el mismo socket vuelve',
     (tester) async {
       final red = _Red({principal, respaldo});
       final (panel, _) = await _abrir(tester, red);
-      expect(panel.read(fleetProvider).connection, FleetConnection.connected);
-      expect(red.pedidos, [principal]);
+      final socket = red.abiertos.single;
 
       red.tumbar(principal);
-      // Antes de 30 s sin conexión no se mueve: podría ser un parpadeo.
-      await tester.pump(const Duration(seconds: 29));
+      await tester.pump(const Duration(minutes: 10));
+      // Con la sesión abierta no se pasa al respaldo: el token es de la
+      // principal y allá daría «Tu sesión expiró».
       expect(panel.read(backendUrlProvider), principal);
-      expect(red.sockets, hasLength(1));
+      expect(red.sockets, [socket]);
+      expect(red.sondeos, 0);
 
-      await tester.pump(const Duration(seconds: 16));
-      expect(panel.read(backendUrlProvider), respaldo);
-      final vivo = red.abiertos.single;
-      expect(vivo.url, respaldo);
-      expect(vivo.connected, isTrue);
-      expect(vivo.suscritoAFlota, isTrue);
-      expect(red.pedidos, [principal, respaldo]);
-      final estado = panel.read(fleetProvider);
-      expect(estado.connection, FleetConnection.connected);
-      expect(estado.error, isNull);
+      red.revivir(principal);
+      await tester.pump();
+      expect(panel.read(fleetProvider).connection, FleetConnection.connected);
+      expect(panel.read(fleetProvider).sessionExpired, isFalse);
+      expect(red.sockets, [socket]);
 
       await _cerrar(tester, panel);
     },
   );
-
-  testWidgets('el túnel vuelve → el panel no se regresa hasta reiniciar', (
-    tester,
-  ) async {
-    final red = _Red({principal, respaldo});
-    final (panel, _) = await _abrir(tester, red);
-    red.tumbar(principal);
-    await tester.pump(const Duration(seconds: 45));
-    expect(red.abiertos.single.url, respaldo);
-
-    red.revivir(principal);
-    // Un corte del respaldo más corto que la paciencia tampoco lo mueve.
-    red.tumbar(respaldo);
-    await tester.pump(const Duration(seconds: 20));
-    red.revivir(respaldo);
-    await tester.pump(const Duration(minutes: 10));
-
-    // Volver a la principal queda para el próximo arranque en frío, que
-    // pregunta otra vez (`main.dart`).
-    expect(panel.read(backendUrlProvider), respaldo);
-    expect(red.sockets, hasLength(2));
-    expect(red.abiertos.single.url, respaldo);
-    expect(panel.read(fleetProvider).connection, FleetConnection.connected);
-
-    await _cerrar(tester, panel);
-  });
 
   testWidgets(
     'los dos caídos → sigue reintentando sin abrir sockets en bucle',
@@ -376,12 +360,9 @@ void main() {
         expect(red.abiertos.length, lessThanOrEqualTo(1));
       }
 
-      // Con los dos caídos la elección da la principal, que es la que ya tiene:
-      // ningún socket nuevo, el mismo reintentando cada 15 s, y la pregunta
-      // repitiéndose sin amontonarse.
+      // Ningún socket nuevo: el mismo reintenta cada 15 s.
       expect(red.sockets, hasLength(1));
       expect(red.sockets.single.intentos, greaterThanOrEqualTo(30));
-      expect(red.sondeos, inInclusiveRange(10, 40));
       expect(panel.read(backendUrlProvider), principal);
 
       red.revivir(principal);
@@ -392,6 +373,41 @@ void main() {
       await _cerrar(tester, panel);
     },
   );
+
+  // El arranque cayó al respaldo por un parpadeo del túnel. Sin elegir otra
+  // vez, el login sacaba un token del respaldo y, al volver la principal en
+  // el próximo arranque, ese token no valía allá.
+  testWidgets('el login elige otra vez el backend antes de pedir el token', (
+    tester,
+  ) async {
+    final red = _Red({principal, respaldo});
+    final logins = <String>[];
+    final panel = ProviderContainer(
+      overrides: [
+        backendUrlProvider.overrideWith(
+          () => BackendUrl(
+            respaldo,
+            principal: principal,
+            respaldo: respaldo,
+            sonda: red.sonda,
+          ),
+        ),
+        authApiProvider.overrideWith(
+          (ref) => _AuthFalsa(ref.watch(backendUrlProvider), logins),
+        ),
+      ],
+    );
+    addTearDown(panel.dispose);
+
+    // Sin esperar el final: después del token viene guardarlo en el llavero
+    // del sistema, que en la prueba no contesta. Lo que importa es a quién
+    // se le pidió.
+    unawaited(panel.read(authProvider.notifier).login('op', 'clave'));
+    await tester.pump(const Duration(seconds: 5));
+
+    expect(logins, [principal]);
+    expect(panel.read(backendUrlProvider), principal);
+  });
 
   testWidgets(
     'cambiar de backend no cierra la sesión ni pierde la ruta y el bus '
@@ -440,8 +456,7 @@ void main() {
   );
 
   testWidgets(
-    '401 en el respaldo → «Sesión expirada», que lleva al login, y no un '
-    'error genérico',
+    'la principal cae con sesión abierta → conserva backend y sesión',
     (tester) async {
       final red = _Red({principal, respaldo})..rechazanToken.add(respaldo);
       final (panel, _) = await _abrir(tester, red);
@@ -449,29 +464,20 @@ void main() {
       red.tumbar(principal);
       await tester.pump(const Duration(seconds: 45));
 
-      expect(panel.read(backendUrlProvider), respaldo);
+      expect(panel.read(backendUrlProvider), principal);
       final estado = panel.read(fleetProvider);
-      // Es la bandera con la que el dashboard avisa «Tu sesión expiró» y manda
-      // a iniciar sesión (`dashboard_screen.dart`); ese login va al respaldo.
-      expect(estado.sessionExpired, isTrue);
+      expect(estado.sessionExpired, isFalse);
       expect(estado.error, isNull);
       expect(estado.connection, FleetConnection.disconnected);
-      expect(panel.read(authProvider.notifier).api.baseUrl, respaldo);
-      // Ningún socket queda reintentando con una sesión que ya no vale.
-      expect(red.abiertos, isEmpty);
-
-      // Y nada sigue vigilando la conexión: no se vuelve a preguntar.
-      final sondeos = red.sondeos;
-      await tester.pump(const Duration(minutes: 10));
-      expect(red.sondeos, sondeos);
-      expect(red.sockets, hasLength(2));
+      expect(panel.read(authProvider.notifier).api.baseUrl, principal);
+      expect(red.abiertos.single.url, principal);
+      expect(red.sockets, hasLength(1));
 
       await _cerrar(tester, panel);
     },
   );
 
-  // T2.11. Un reinicio del backend dura menos que la paciencia del
-  // supervisor: el panel se queda donde estaba, el mismo socket vuelve con la
+  // T2.11. Un reinicio del backend: el panel se queda donde estaba, el mismo socket vuelve con la
   // reconexión del paquete y tiene que pedir la flota otra vez él solo,
   // porque el backend recién arrancado no sabe quién seguía qué.
   testWidgets(

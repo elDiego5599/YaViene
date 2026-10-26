@@ -811,7 +811,7 @@ void main() {
     },
   );
 
-  // El respaldo puede entrar con el panel abierto (`BackendSupervisor`).
+  // La URL puede cambiar con el panel abierto (al elegir antes del login).
   // Antes el cambio rehacía el notifier de la sesión, que volvía a
   // «desconocida», y el operador salía al login aunque su token siguiera
   // valiendo.

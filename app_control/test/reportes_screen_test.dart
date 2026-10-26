@@ -39,7 +39,9 @@ Future<void> _montar(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        reportesRutasProvider.overrideWith((ref, hora) => cargarRutas(hora)),
+        reportesRutasProvider.overrideWith(
+          (ref, args) => cargarRutas(args.hora),
+        ),
         reportesCalorProvider.overrideWith(
           (ref, args) =>
               cargarCalor?.call(args.routeId, args.hora) ??
@@ -84,7 +86,8 @@ void main() {
         tester.getTopLeft(find.byKey(const ValueKey('fila-ruta-R2'))).dy,
       ),
     );
-    expect(find.text('C16'), findsOneWidget);
+    // La ficha de la lista y la de la leyenda del mapa, que abre pintado.
+    expect(find.text('C16'), findsNWidgets(2));
     expect(find.text('Ruta 1'), findsNWidgets(2));
     expect(find.text('4.820 búsquedas'), findsOneWidget);
     expect(find.text('6 a 7 a. m.'), findsOneWidget);
@@ -163,7 +166,13 @@ void main() {
       (horaMaxima.decoration as BoxDecoration).color,
       const Color(0xFFE24B4A),
     );
-    expect(find.byTooltip('6 p. m., 450 búsquedas'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('celda-hora-R1-18')),
+        matching: find.byTooltip('6 p. m., 450 búsquedas'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('cambiar hora vuelve a cargar el provider con ese filtro', (
@@ -255,12 +264,10 @@ void main() {
     falla = false;
     await tester.tap(find.byKey(const ValueKey('reintentar-calor')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
-    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
   });
 
-  testWidgets('el mapa abre sin pintar y el botón pinta y quita el calor', (
+  testWidgets('el mapa abre pintado y el botón quita y pinta el calor', (
     tester,
   ) async {
     await _montar(
@@ -270,23 +277,164 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PolylineLayer), findsOneWidget);
-    expect(find.byKey(const ValueKey('capa-calor-R1')), findsNothing);
-    expect(find.byKey(const ValueKey('leyenda-calor')), findsNothing);
-    expect(find.text('Pintar calor'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Quitar calor'), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
-    expect(find.text('Todo el día'), findsNWidgets(2));
-    expect(find.byType(PolylineLayer), findsOneWidget);
-    expect(find.text('Menos búsquedas'), findsOneWidget);
-    expect(find.text('Más búsquedas'), findsOneWidget);
+    expect(find.byKey(const ValueKey('leyenda-calor')), findsOneWidget);
+    expect(find.text('Hasta 3 km de la ruta'), findsOneWidget);
+    expect(find.text('Quitar calor'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('alternar-calor')));
     await tester.pumpAndSettle();
+    expect(find.text('Pintar calor'), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsNothing);
     expect(find.text('Menos búsquedas'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('alternar-calor')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
+    expect(find.text('Más búsquedas'), findsOneWidget);
+  });
+
+  testWidgets('el periodo vuelve a cargar lista y mapa con su rango', (
+    tester,
+  ) async {
+    final periodos = <PeriodoReporte>[];
+    final periodosCalor = <PeriodoReporte>[];
+    await tester.binding.setSurfaceSize(const Size(1500, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          reportesRutasProvider.overrideWith((ref, args) async {
+            periodos.add(args.periodo);
+            return [_ruta('R1', 'C16 Ruta 1', 2, 0)];
+          }),
+          reportesCalorProvider.overrideWith((ref, args) async {
+            periodosCalor.add(args.periodo);
+            return _celdas;
+          }),
+          routeTrajectoryProvider.overrideWith(
+            (ref, routeId) async => RouteTrajectory(
+              routeId: routeId,
+              routeName: 'Ruta',
+              points: const [
+                GeoPoint(lat: 10.96, lon: -74.8),
+                GeoPoint(lat: 10.98, lon: -74.79),
+              ],
+            ),
+          ),
+          estiloMapaProvider.overrideWith((ref) async {
+            throw StateError('El estilo no se necesita en esta prueba');
+          }),
+        ],
+        child: const MaterialApp(home: ReportesScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(periodos, [PeriodoReporte.mes]);
+    expect(find.text('Últimos 30 días'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('periodo-hoy')));
+    await tester.pumpAndSettle();
+    expect(periodos.last, PeriodoReporte.hoy);
+    expect(periodosCalor.last, PeriodoReporte.hoy);
+
+    await tester.tap(find.byKey(const ValueKey('periodo-semana')));
+    await tester.pumpAndSettle();
+    expect(periodos.last, PeriodoReporte.semana);
+    expect(find.text('Últimos 7 días'), findsOneWidget);
+  });
+
+  testWidgets('la tira de 24 horas solo sale en la ruta elegida', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [
+        _ruta('R1', 'C16 Ruta 1', 40, 6),
+        _ruta('R2', 'B18 Ruta 2', 20, 7),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('celda-hora-R1-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('celda-hora-R2-0')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('celda-hora-R1-0')), findsNothing);
+    expect(find.byKey(const ValueKey('celda-hora-R2-0')), findsOneWidget);
+  });
+
+  testWidgets('las horas del mapa pintan esa hora y conservan la ruta', (
+    tester,
+  ) async {
+    final horas = <int?>[];
+    final calor = <(String, int?)>[];
+    final porHora = List<int>.filled(24, 0)..[7] = 30;
+    await _montar(
+      tester,
+      cargarRutas: (hora) async {
+        horas.add(hora);
+        return [
+          _ruta('R1', 'C16 Ruta 1', 30, 7, porHora: porHora),
+          _ruta('R2', 'B18 Ruta 2', 4, 7, porHora: porHora),
+        ];
+      },
+      cargarCalor: (routeId, hora) async {
+        calor.add((routeId, hora));
+        return _celdas;
+      },
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('hora-mapa-7')));
+    await tester.pumpAndSettle();
+    expect(horas.last, 7);
+    expect(calor.last, ('R2', 7));
+    expect(find.text('7 a 8 a. m.'), findsWidgets);
+
+    // Tocar la hora elegida vuelve al día entero (el día ya estaba en
+    // caché: el rótulo lo dice, sin otra carga).
+    await tester.tap(find.byKey(const ValueKey('hora-mapa-7')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
+      'Todo el día',
+    );
+    expect(find.byKey(const ValueKey('ruta-mapa-R2')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('hora-mapa-12')));
+    await tester.pumpAndSettle();
+    expect(calor.last, ('R2', 12));
+    await tester.tap(find.byKey(const ValueKey('hora-mapa-todo')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
+      'Todo el día',
+    );
+    expect(find.byKey(const ValueKey('hora-mapa-todo')), findsNothing);
+  });
+
+  testWidgets('la pestaña Ocupación deja el aforo listo sin filtros', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pestana-ocupacion')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ocupación de tus buses'), findsOneWidget);
+    expect(find.byKey(const ValueKey('ocupacion-sin-camaras')), findsOneWidget);
+    expect(find.byKey(const ValueKey('periodo-hoy')), findsNothing);
+    expect(find.byKey(const ValueKey('filtro-hora')), findsNothing);
+    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('pestana-busquedas')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
   });
 }

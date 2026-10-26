@@ -16,7 +16,6 @@ import '../providers/user_location_provider.dart';
 import '../utils/bus_hit_test.dart';
 import '../utils/camera_fit.dart';
 import '../utils/decision_camara.dart';
-import '../utils/estela.dart';
 import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
@@ -129,10 +128,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// Tramo de animación en curso por bus (interpolación entre fixes).
   final Map<String, BusMotion> _busMotions = {};
 
-  /// Por dónde vino cada bus ([sumarAEstela]): las fijaciones que ya dejó
-  /// atrás. La estela va de ahí al bus como se ve en pantalla.
-  final Map<String, List<GeoPoint>> _estelas = {};
-
   /// El reloj que mueve los buses. Es un `Ticker` y no un `Timer.periodic`
   /// por dos razones que se notan en el teléfono:
   ///
@@ -177,7 +172,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kBusSourceId = 'bus-source';
   static const _kBusLayerId = 'bus-layer';
   static const _kBusHaloLayerId = 'bus-selected-halo-layer';
-  static const _kBusEstelaLayerId = 'bus-estela-layer';
 
   /// Capas consideradas "el bus" al tocar: solo el ícono. El halo de selección
   /// NO cuenta: es grande y como los buses van sobre la ruta, tapar pines
@@ -384,7 +378,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // Cambio de ruta: sin animación, se pinta directo (los buses son otros).
     _rawBuses.clear();
     _busMotions.clear();
-    _estelas.clear();
     _busFeatures.clear();
     _stopBusAnimTicker();
     // Todos los buses de la ruta, sin recortar por distancia al punto de
@@ -407,7 +400,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     widget.onGuideBusTargetChanged?.call(null);
     _rawBuses.clear();
     _busMotions.clear();
-    _estelas.clear();
     _busFeatures.clear();
     _stopBusAnimTicker();
     _stopHaloPulse();
@@ -695,33 +687,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           iconAnchor: 'bottom',
         ));
 
-    // La estela, debajo del halo y del bus ([capasDeEstela]): cuatro capas
-    // de 0,12 que se pisan junto al bus dan 1 - 0,88^4 = 0,40 ahí y 0,12
-    // en la cola. El rojo del bus, para que se lea como suya y no como la
-    // ruta, que va en verde.
-    await _mapController!.addLineLayer(
-        _kBusSourceId,
-        _kBusEstelaLayerId,
-        const LineLayerProperties(
-          lineColor: '#E86A5E',
-          lineOpacity: 0.12,
-          lineWidth: [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            11,
-            3.0,
-            15,
-            6.0
-          ],
-          lineJoin: 'round',
-        ),
-        filter: [
-          '==',
-          ['geometry-type'],
-          'LineString'
-        ]);
-
     await _mapController!.addCircleLayer(
         _kBusSourceId,
         _kBusHaloLayerId,
@@ -810,13 +775,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
           iconIgnorePlacement: true,
           iconRotate: ['get', 'heading'],
           iconRotationAlignment: 'map',
-        ),
-        // La estela va en la misma fuente: un solo envío por cuadro.
-        filter: [
-          '==',
-          ['geometry-type'],
-          'Point'
-        ]);
+        ));
 
     _mapController!.onFeatureTapped
         .add((point, coordinates, id, layerId, annotation) async {
@@ -1036,7 +995,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (!byId.containsKey(id)) {
         _rawBuses.remove(id);
         _busMotions.remove(id);
-        _estelas.remove(id);
         _busFeatures.remove(id);
       }
     }
@@ -1053,13 +1011,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final needsMotion = !pos.isGhostBus &&
           prev != null &&
           (prev.lat != pos.lat || prev.lon != pos.lon);
-      if (pos.isGhostBus) _estelas.remove(id);
       if (!needsMotion) {
         _busMotions.remove(id);
         continue;
       }
-      _estelas[id] = sumarAEstela(
-          _estelas[id] ?? const [], GeoPoint(lat: prev.lat, lon: prev.lon));
 
       // Tramo nuevo desde la posición actual en pantalla (si hay una
       // animación en curso) para que no haya saltos ni retrocesos.
@@ -1202,22 +1157,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       final display = motion != null
           ? displayOf(motion, now)
           : (pos.lat, pos.lon, pos.heading ?? 0.0);
-      final estela = _estelas[id];
-      if (estela != null) {
-        for (final capa in capasDeEstela(
-            [...estela, GeoPoint(lat: display.$1, lon: display.$2)])) {
-          features.add({
-            'type': 'Feature',
-            'geometry': {
-              'type': 'LineString',
-              'coordinates': [
-                for (final p in capa) [p.lon, p.lat]
-              ],
-            },
-            'properties': {'busId': id},
-          });
-        }
-      }
       if (motion == null && guardado != null) {
         features.add(guardado);
         continue;

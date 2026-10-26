@@ -52,6 +52,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     FlutterSecureStorage? storage,
     bool web = kIsWeb,
     this.renovarCada = const Duration(hours: 1),
+    this.antesDeLogin,
   }) : _storage = web ? null : storage ?? almacenDelSistema,
        super(const AuthState());
 
@@ -94,13 +95,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   ({String usuario, String clave})? _recordadas;
   bool _recordadasConocidas = false;
   final Duration renovarCada;
+  final Future<void> Function()? antesDeLogin;
   Timer? _renovacionTimer;
   Future<void>? _renovando;
 
-  /// A qué backend van el login y la validación. Puede cambiar con el panel
-  /// abierto (`BackendSupervisor`): el provider la cambia aquí en vez de
-  /// rehacer el notifier, que dejaba la sesión en «desconocida» y sacaba al
-  /// operador al login aunque su token siguiera valiendo.
+  /// A qué backend van el login y la validación. Con la sesión abierta no
+  /// cambia (un token de la principal no vale en el respaldo); cambia solo
+  /// al elegir otra vez antes del login ([antesDeLogin]), y el provider la
+  /// cambia aquí en vez de rehacer el notifier, que dejaba la sesión en
+  /// «desconocida» y sacaba al operador al login.
   AuthApi api;
 
   /// Null en el navegador.
@@ -294,6 +297,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     final AuthSession session;
     try {
+      // Antes de pedir un token, vuelve a elegir el backend. Así una caída
+      // transitoria anterior no deja el login pegado al respaldo si la
+      // principal ya respondió.
+      await antesDeLogin?.call();
       session = await api.login(username, password);
     } on AuthApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
@@ -375,13 +382,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 /// El login contra el backend actual: el que resolvió el arranque
-/// (`main.dart`) o el respaldo si el túnel se cayó con el panel abierto.
+/// (`main.dart`) o el que se eligió otra vez justo antes del login.
 final authApiProvider = Provider<AuthApi>(
   (ref) => AuthApi(baseUrl: ref.watch(backendUrlProvider)),
 );
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final notifier = AuthNotifier(api: ref.read(authApiProvider));
+  late final AuthNotifier notifier;
+  notifier = AuthNotifier(
+    api: ref.read(authApiProvider),
+    antesDeLogin: () async {
+      await ref.read(backendUrlProvider.notifier).reResolver();
+      notifier.api = ref.read(authApiProvider);
+    },
+  );
   ref.listen<AuthApi>(authApiProvider, (_, api) => notifier.api = api);
   return notifier;
 });

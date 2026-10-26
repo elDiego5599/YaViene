@@ -116,8 +116,9 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 - **Señal perdida con gracia** (dueño, 2026-10-19, punto 10): sin datos
   de un bus, «último dato hace 20 s», el bus atenuado y una carga
-  elegante. Los puntos 4, 6 y 7 ya están (giro con resorte y estela,
-  cámara al bus tocado, doble toque al sonar).
+  elegante. Los puntos 4, 6 y 7 ya están (giro con resorte, cámara al
+  bus tocado, doble toque al sonar); la estela se quitó (dueño,
+  2026-10-26).
 
 - **La barra de abajo en la web** (2026-10-16, rama `referentes-movil`):
   la app cambió el menú lateral por la barra de cuatro pestañas (Mapa,

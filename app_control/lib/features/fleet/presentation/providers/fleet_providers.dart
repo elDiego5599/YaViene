@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:ya_viene_core/core/models/bus_position.dart' show esMasNueva;
-import 'package:ya_viene_core/core/network/backend_supervisor.dart';
 // Solo el provider de la URL: el resto del paquete choca con el tema local.
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show backendUrlProvider;
@@ -139,14 +138,12 @@ class FleetNotifier extends StateNotifier<FleetState> {
   FleetNotifier(
     this._ref, {
     FleetApi? api,
-    this._supervisor,
     this.resincronizarCada = const Duration(seconds: 60),
   }) : _apiFija = api,
        super(const FleetState());
 
   final Ref _ref;
   final FleetApi? _apiFija;
-  final BackendSupervisor? _supervisor;
 
   /// Cada cuánto el panel vuelve a pedir la flota por REST mientras está
   /// abierto. Es un parámetro para que las pruebas no esperen un minuto.
@@ -163,7 +160,7 @@ class FleetNotifier extends StateNotifier<FleetState> {
   Timer? _resync;
 
   /// Se lee en cada pedido y no una sola vez al crear el notifier: el
-  /// backend puede cambiar con el panel abierto (`BackendSupervisor`).
+  /// backend puede cambiar con el panel abierto (al elegir antes del login).
   FleetApi get _api => _apiFija ?? _ref.read(fleetApiProvider);
 
   /// La sesión abierta. Su token es null en el navegador: ahí la sesión va
@@ -200,7 +197,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
       connection: FleetConnection.disconnected,
       error: null,
     );
-    _supervisor?.detener();
     _recarga?.cancel();
     _resync?.cancel();
     for (final s in _subs) {
@@ -226,13 +222,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
     _socket = socket;
     _subs.add(
       socket.connectionStream.listen((connected) {
-        // Si el socket no vuelve en 30 s, el supervisor pregunta si el
-        // principal sigue vivo o toca pasar al respaldo.
-        if (connected) {
-          _supervisor?.conexionRecuperada();
-        } else {
-          _supervisor?.conexionPerdida();
-        }
         state = state.copyWith(
           connection: connected
               ? FleetConnection.connected
@@ -501,7 +490,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
   /// Cierra el socket de flota y reinicia el estado (usado al cerrar sesión:
   /// sin esto el socket seguía vivo consumiendo datos con la sesión muerta).
   void stop() {
-    _supervisor?.detener();
     _recarga?.cancel();
     _resync?.cancel();
     for (final s in _subs) {
@@ -511,16 +499,6 @@ class FleetNotifier extends StateNotifier<FleetState> {
     _socket?.dispose();
     _socket = null;
     state = const FleetState(connection: FleetConnection.disconnected);
-  }
-
-  /// El backend cambió con el panel abierto (el supervisor pasó al
-  /// respaldo): cierra el socket y abre otro contra el backend nuevo, que se
-  /// suscribe a la flota al conectar, y vuelve a pedir flota y rutas por
-  /// REST. El filtro de ruta y el bus elegido se quedan. Si el panel no está
-  /// abierto no hace nada: el próximo `start()` ya usa el backend nuevo.
-  void cambiarBackend() {
-    if (_socket == null) return;
-    start();
   }
 
   void cambiarToken() {
@@ -800,16 +778,7 @@ final fleetSocketFactoryProvider =
     });
 
 final fleetProvider = StateNotifierProvider<FleetNotifier, FleetState>((ref) {
-  // Si el socket pasa 30 s sin conexión, el supervisor vuelve a elegir
-  // backend. Si elige otro, el panel se muda sin cerrar la sesión.
-  final supervisor = BackendSupervisor(
-    reResolver: ref.read(backendUrlProvider.notifier).reResolver,
-  );
-  final notifier = FleetNotifier(ref, supervisor: supervisor);
-  // Se escucha la fábrica del socket y no la URL: quien escucha la URL se
-  // entera antes de que se rehagan los providers que dependen de ella, y
-  // leería la fábrica y la API del backend anterior.
-  ref.listen(fleetSocketFactoryProvider, (_, _) => notifier.cambiarBackend());
+  final notifier = FleetNotifier(ref);
   ref.listen<AuthState>(authProvider, (anterior, siguiente) {
     if (anterior?.session?.token != siguiente.session?.token &&
         siguiente.session != null) {
@@ -820,6 +789,5 @@ final fleetProvider = StateNotifierProvider<FleetNotifier, FleetState>((ref) {
       notifier.sesionRevocada();
     }
   });
-  ref.onDispose(supervisor.dispose);
   return notifier;
 });

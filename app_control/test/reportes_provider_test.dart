@@ -13,6 +13,8 @@ class _Api extends FleetApi {
   int? horaRutas;
   int? horaCalor;
   String? rutaCalor;
+  DateTime? desdeRutas;
+  DateTime? desdeCalor;
 
   @override
   Future<Map<String, dynamic>> fetchSearchReports(
@@ -22,6 +24,7 @@ class _Api extends FleetApi {
     int? hora,
   }) async {
     horaRutas = hora;
+    desdeRutas = desde;
     return {
       'rutas': [_route('R2', 'Ruta 2', 4, 6), _route('R1', 'Ruta 1', 12, 6)],
     };
@@ -36,6 +39,7 @@ class _Api extends FleetApi {
     int? hora,
   }) async {
     rutaCalor = routeId;
+    desdeCalor = desde;
     horaCalor = hora;
     return {
       'routeId': routeId,
@@ -55,6 +59,29 @@ class _Api extends FleetApi {
 }
 
 void main() {
+  test('rangoPeriodo usa medianoche de Bogotá y ventanas móviles', () {
+    final ahora = DateTime.utc(2026, 10, 26, 3);
+    expect(
+      rangoPeriodo(PeriodoReporte.hoy, ahora).$1,
+      DateTime.utc(2026, 10, 25, 5),
+    );
+    expect(rangoPeriodo(PeriodoReporte.hoy, ahora).$2, ahora);
+    expect(
+      rangoPeriodo(PeriodoReporte.semana, ahora).$1,
+      ahora.subtract(const Duration(days: 7)),
+    );
+    expect(
+      rangoPeriodo(PeriodoReporte.mes, ahora).$1,
+      ahora.subtract(const Duration(days: 30)),
+    );
+    expect(periodoLabel(PeriodoReporte.hoy), 'Hoy');
+    expect(periodoLabel(PeriodoReporte.semana), '7 días');
+    expect(periodoLabel(PeriodoReporte.mes), '30 días');
+    expect(periodoSubtitulo(PeriodoReporte.hoy), 'Hoy');
+    expect(periodoSubtitulo(PeriodoReporte.semana), 'Últimos 7 días');
+    expect(periodoSubtitulo(PeriodoReporte.mes), 'Últimos 30 días');
+  });
+
   late ProviderContainer container;
   late _Api api;
 
@@ -83,14 +110,29 @@ void main() {
   test(
     'providers ordenan rutas y pasan hora y ruta al cliente del panel',
     () async {
-      final routes = await container.read(reportesRutasProvider(8).future);
+      final routes = await container.read(
+        reportesRutasProvider((periodo: PeriodoReporte.mes, hora: 8)).future,
+      );
       expect(routes.map((route) => route.id), ['R1', 'R2']);
       expect(api.horaRutas, 8);
+      expect(DateTime.now().toUtc().difference(api.desdeRutas!).inDays, 30);
+      await container.read(
+        reportesRutasProvider((
+          periodo: PeriodoReporte.semana,
+          hora: null,
+        )).future,
+      );
+      expect(DateTime.now().toUtc().difference(api.desdeRutas!).inDays, 7);
 
       final cells = await container.read(
-        reportesCalorProvider((routeId: 'R2', hora: 8)).future,
+        reportesCalorProvider((
+          routeId: 'R2',
+          periodo: PeriodoReporte.semana,
+          hora: 8,
+        )).future,
       );
       expect(api.rutaCalor, 'R2');
+      expect(DateTime.now().toUtc().difference(api.desdeCalor!).inDays, 7);
       expect(api.horaCalor, 8);
       expect(cells.single.count, 5);
     },

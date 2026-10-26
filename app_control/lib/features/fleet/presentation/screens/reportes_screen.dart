@@ -13,6 +13,7 @@ import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 import '../../../../core/theme/app_theme.dart';
 import '../providers/reportes_provider.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
+import '../widgets/ocupacion_panel.dart';
 
 // La escala del video: verde donde casi no buscan, amarillo, naranja y el
 // rojo de los focos. Es continua: un foco pasa por todos los tonos hasta
@@ -34,20 +35,23 @@ class ReportesScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportesScreen> createState() => _ReportesScreenState();
 }
 
+enum _Pestana { busquedas, ocupacion }
+
 class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   int? _hora;
+  PeriodoReporte _periodo = PeriodoReporte.mes;
   String? _ruta;
+  _Pestana _pestana = _Pestana.busquedas;
 
-  void _seleccionarHora(int? hora) {
-    setState(() {
-      _hora = hora;
-      _ruta = null;
-    });
-  }
+  // Otra hora u otro periodo no cambian la ruta elegida: el dueño compara
+  // la misma ruta a distintas horas.
+  void _seleccionarHora(int? hora) => setState(() => _hora = hora);
 
   @override
   Widget build(BuildContext context) {
-    final reportes = ref.watch(reportesRutasProvider(_hora));
+    final reportes = ref.watch(
+      reportesRutasProvider((periodo: _periodo, hora: _hora)),
+    );
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -55,48 +59,58 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
           children: [
             _CabeceraReportes(
               hora: _hora,
+              periodo: _periodo,
+              pestana: _pestana,
               onBack: () => Navigator.of(context).maybePop(),
               onSelectHour: _seleccionarHora,
+              onSelectPeriodo: (periodo) => setState(() => _periodo = periodo),
+              onSelectPestana: (pestana) => setState(() => _pestana = pestana),
             ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: reportes.when(
-                  loading: () => _dosPaneles(
-                    izquierda: const _TarjetaRanking(
-                      child: _EstadoReporte(
-                        icon: Icons.query_stats_outlined,
-                        message: 'Cargando reportes',
-                      ),
-                    ),
-                    derecha: const _TarjetaMapaEstado(
-                      child: _EstadoReporte(
-                        icon: Icons.map_outlined,
-                        message: 'Cargando reportes',
-                      ),
-                    ),
-                  ),
-                  error: (error, stack) => _dosPaneles(
-                    izquierda: _TarjetaRanking(
-                      child: _EstadoReporte(
-                        icon: Icons.error_outline,
-                        message: 'No se pudieron cargar los reportes',
-                        action: _Reintentar(
-                          key: const ValueKey('reintentar-lista'),
-                          onPressed: () =>
-                              ref.invalidate(reportesRutasProvider(_hora)),
+                child: _pestana == _Pestana.ocupacion
+                    ? const OcupacionPanel()
+                    : reportes.when(
+                        loading: () => _dosPaneles(
+                          izquierda: const _TarjetaRanking(
+                            child: _EstadoReporte(
+                              icon: Icons.query_stats_outlined,
+                              message: 'Cargando reportes',
+                            ),
+                          ),
+                          derecha: const _TarjetaMapaEstado(
+                            child: _EstadoReporte(
+                              icon: Icons.map_outlined,
+                              message: 'Cargando reportes',
+                            ),
+                          ),
                         ),
+                        error: (error, stack) => _dosPaneles(
+                          izquierda: _TarjetaRanking(
+                            child: _EstadoReporte(
+                              icon: Icons.error_outline,
+                              message: 'No se pudieron cargar los reportes',
+                              action: _Reintentar(
+                                key: const ValueKey('reintentar-lista'),
+                                onPressed: () => ref.invalidate(
+                                  reportesRutasProvider((
+                                    periodo: _periodo,
+                                    hora: _hora,
+                                  )),
+                                ),
+                              ),
+                            ),
+                          ),
+                          derecha: const _TarjetaMapaEstado(
+                            child: _EstadoReporte(
+                              icon: Icons.map_outlined,
+                              message: 'Elige una ruta para ver el mapa',
+                            ),
+                          ),
+                        ),
+                        data: _mostrarRutas,
                       ),
-                    ),
-                    derecha: const _TarjetaMapaEstado(
-                      child: _EstadoReporte(
-                        icon: Icons.map_outlined,
-                        message: 'Elige una ruta para ver el mapa',
-                      ),
-                    ),
-                  ),
-                  data: _mostrarRutas,
-                ),
               ),
             ),
           ],
@@ -136,9 +150,9 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     return _dosPaneles(
       izquierda: _TarjetaRanking(
         child: ListView.separated(
-          padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
           itemCount: ordenadas.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
+          separatorBuilder: (context, index) => const SizedBox(height: 4),
           itemBuilder: (context, index) {
             final ruta = ordenadas[index];
             return _FilaRuta(
@@ -151,7 +165,12 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
           },
         ),
       ),
-      derecha: _TarjetaMapa(route: rutaSeleccionada, hora: _hora),
+      derecha: _TarjetaMapa(
+        route: rutaSeleccionada,
+        hora: _hora,
+        periodo: _periodo,
+        onSelectHour: _seleccionarHora,
+      ),
     );
   }
 }
@@ -168,13 +187,21 @@ Widget _dosPaneles({required Widget izquierda, required Widget derecha}) => Row(
 class _CabeceraReportes extends StatelessWidget {
   const _CabeceraReportes({
     required this.hora,
+    required this.periodo,
+    required this.pestana,
     required this.onBack,
     required this.onSelectHour,
+    required this.onSelectPeriodo,
+    required this.onSelectPestana,
   });
 
   final int? hora;
+  final PeriodoReporte periodo;
+  final _Pestana pestana;
   final VoidCallback onBack;
   final ValueChanged<int?> onSelectHour;
+  final ValueChanged<PeriodoReporte> onSelectPeriodo;
+  final ValueChanged<_Pestana> onSelectPestana;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -195,10 +222,10 @@ class _CabeceraReportes extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 18),
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Reportes',
               style: TextStyle(
                 color: AppColors.navy,
@@ -206,16 +233,122 @@ class _CabeceraReportes extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            SizedBox(height: 2),
+            const SizedBox(height: 2),
             Text(
-              'Últimos 30 días',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              pestana == _Pestana.ocupacion
+                  ? 'Aforo con IA'
+                  : periodoSubtitulo(periodo),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),
+        const SizedBox(width: 28),
+        _Segmentos<_Pestana>(
+          valor: pestana,
+          opciones: const [
+            (_Pestana.busquedas, 'Búsquedas', 'pestana-busquedas'),
+            (_Pestana.ocupacion, 'Ocupación', 'pestana-ocupacion'),
+          ],
+          onSelect: onSelectPestana,
+        ),
         const Spacer(),
-        _FiltroHora(hora: hora, onSelectHour: onSelectHour),
+        // El periodo y la hora solo filtran las búsquedas.
+        if (pestana == _Pestana.busquedas) ...[
+          _Segmentos<PeriodoReporte>(
+            valor: periodo,
+            opciones: [
+              for (final p in PeriodoReporte.values)
+                (p, periodoLabel(p), 'periodo-${p.name}'),
+            ],
+            onSelect: onSelectPeriodo,
+          ),
+          const SizedBox(width: 10),
+          _FiltroHora(hora: hora, onSelectHour: onSelectHour),
+        ],
       ],
+    ),
+  );
+}
+
+/// Control segmentado como el de macOS: un riel gris con la opción elegida
+/// en blanco y sombra. Alto de 38 px, el de los botones de la cabecera.
+/// Navy sobre blanco da 12,7:1 y el gris secundario sobre el riel, 4,9:1.
+class _Segmentos<T> extends StatelessWidget {
+  const _Segmentos({
+    required this.valor,
+    required this.opciones,
+    required this.onSelect,
+  });
+
+  final T valor;
+  final List<(T, String, String)> opciones;
+  final ValueChanged<T> onSelect;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 38,
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceRaised,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (opcion, texto, clave) in opciones)
+          _Segmento(
+            key: ValueKey(clave),
+            texto: texto,
+            elegido: opcion == valor,
+            onTap: () => onSelect(opcion),
+          ),
+      ],
+    ),
+  );
+}
+
+class _Segmento extends StatelessWidget {
+  const _Segmento({
+    super.key,
+    required this.texto,
+    required this.elegido,
+    required this.onTap,
+  });
+
+  final String texto;
+  final bool elegido;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: elegido,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: AnimatedContainer(
+          duration: AppMotion.duracion(context, AppMotion.rapido),
+          curve: AppMotion.curvaCambio,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: elegido ? AppColors.surface : AppColors.surfaceRaised,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            boxShadow: elegido ? AppColors.sombraTarjeta : const [],
+          ),
+          child: Text(
+            texto,
+            style: AppType.ui(
+              color: elegido ? AppColors.navy : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: elegido ? FontWeight.w800 : FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
     ),
   );
 }
@@ -311,29 +444,15 @@ class _TarjetaRanking extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Rutas más buscadas',
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Text(
-                'Hora pico',
-                style: AppType.ui(
-                  color: AppColors.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
+          child: Text(
+            'Rutas más buscadas',
+            style: TextStyle(
+              color: AppColors.navy,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         const Divider(height: 1),
@@ -371,15 +490,22 @@ class _TarjetaMapaEstado extends StatelessWidget {
 }
 
 class _TarjetaMapa extends ConsumerWidget {
-  const _TarjetaMapa({required this.route, required this.hora});
+  const _TarjetaMapa({
+    required this.route,
+    required this.hora,
+    required this.periodo,
+    required this.onSelectHour,
+  });
 
   final RutaBusquedas route;
   final int? hora;
+  final PeriodoReporte periodo;
+  final ValueChanged<int?> onSelectHour;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final heat = ref.watch(
-      reportesCalorProvider((routeId: route.id, hora: hora)),
+      reportesCalorProvider((routeId: route.id, periodo: periodo, hora: hora)),
     );
     final (codigo, nombre) = _partirNombreRuta(route);
     return _Tarjeta(
@@ -444,7 +570,11 @@ class _TarjetaMapa extends ConsumerWidget {
                 action: _Reintentar(
                   key: const ValueKey('reintentar-calor'),
                   onPressed: () => ref.invalidate(
-                    reportesCalorProvider((routeId: route.id, hora: hora)),
+                    reportesCalorProvider((
+                      routeId: route.id,
+                      periodo: periodo,
+                      hora: hora,
+                    )),
                   ),
                 ),
               ),
@@ -458,6 +588,8 @@ class _TarjetaMapa extends ConsumerWidget {
                       routeId: route.id,
                       codigo: codigo,
                       hora: hora,
+                      porHora: route.porHora,
+                      onSelectHour: onSelectHour,
                       cells: cells,
                     ),
             ),
@@ -554,7 +686,7 @@ class _FilaRutaState extends State<_FilaRuta> {
             onTap: widget.onTap,
             child: ExcludeSemantics(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 11, 9, 10),
+                padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
                 decoration: BoxDecoration(
                   color: _colorFondoFila(),
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -563,159 +695,166 @@ class _FilaRutaState extends State<_FilaRuta> {
                     width: _focused ? 1.6 : 1,
                   ),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(
-                      width: 25,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 1),
-                        child: Text(
-                          '${widget.puesto}',
-                          textAlign: TextAlign.center,
+                    Row(
+                      children: [
+                        // 22 px: caben dos cifras en mono a 12 pt.
+                        SizedBox(
+                          width: 22,
+                          child: Text(
+                            '${widget.puesto}',
+                            style: AppType.mono(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.online.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Text(
+                            codigo,
+                            style: AppType.ui(
+                              color: AppColors.navy,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            nombre,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppType.ui(
+                              color: AppColors.navy,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${_formatearTotal(widget.ruta.total)} búsquedas',
                           style: AppType.mono(
-                            color: AppColors.textMuted,
-                            fontSize: 13,
+                            color: AppColors.textPrimary,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                    const SizedBox(height: 10),
+                    // Barra y hora pico arrancan bajo la ficha (22 px del
+                    // puesto), así la fila lee en dos columnas limpias.
+                    Padding(
+                      padding: const EdgeInsets.only(left: 22),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                          Expanded(
+                            child: _BarraRuta(
+                              key: ValueKey('barra-ruta-${widget.ruta.id}'),
+                              value: widget.maxTotal == 0
+                                  ? 0
+                                  : widget.ruta.total / widget.maxTotal,
+                            ),
+                          ),
+                          if (etiquetaHora != null) ...[
+                            const SizedBox(width: 14),
+                            Row(
+                              key: ValueKey('pico-hora-${widget.ruta.id}'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Ámbar sobre blanco: 5,0:1.
+                                const Icon(
+                                  Icons.schedule_outlined,
+                                  size: 12,
+                                  color: _ambarTexto,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.online.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.sm,
-                                  ),
-                                ),
-                                child: Text(
-                                  codigo,
+                                const SizedBox(width: 4),
+                                Text(
+                                  etiquetaHora,
                                   style: AppType.ui(
-                                    color: AppColors.navy,
+                                    color: _ambarTexto,
                                     fontSize: 10.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  nombre,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppType.ui(
-                                    color: AppColors.navy,
-                                    fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${_formatearTotal(widget.ruta.total)} búsquedas',
-                                style: AppType.mono(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _BarraRuta(
-                                  key: ValueKey('barra-ruta-${widget.ruta.id}'),
-                                  value: widget.maxTotal == 0
-                                      ? 0
-                                      : widget.ruta.total / widget.maxTotal,
-                                ),
-                              ),
-                              if (etiquetaHora != null) ...[
-                                const SizedBox(width: 10),
-                                Container(
-                                  key: ValueKey('pico-hora-${widget.ruta.id}'),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _ambarTexto.withValues(alpha: 0.08),
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.pill,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    etiquetaHora,
-                                    style: AppType.ui(
-                                      color: _ambarTexto,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 7),
-                          Row(
-                            children: [
-                              for (var hora = 0; hora < 24; hora++)
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      right: hora == 23 ? 0 : 2,
-                                    ),
-                                    child: _CeldaHora(
-                                      key: ValueKey(
-                                        'celda-hora-${widget.ruta.id}-$hora',
-                                      ),
-                                      routeId: widget.ruta.id,
-                                      pico: horaPico == hora,
-                                      hora: hora,
-                                      count: widget.ruta.porHora[hora],
-                                      maxHora: maxHora,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              // Una marca cada seis horas: cada tramo ocupa
-                              // seis celdas, así la etiqueta cae sobre la suya.
-                              for (var hora = 0; hora < 24; hora += 6)
-                                Expanded(
-                                  child: Text(
-                                    horaOpcionLabel(hora),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.clip,
-                                    style: AppType.ui(
-                                      color: AppColors.textMuted,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ],
                       ),
+                    ),
+                    // Las 24 horas solo en la ruta elegida: repetidas en
+                    // cada fila amontonaban la lista.
+                    AnimatedSize(
+                      duration: AppMotion.duracion(context, AppMotion.normal),
+                      curve: AppMotion.curvaCambio,
+                      alignment: Alignment.topCenter,
+                      child: !widget.selected
+                          ? const SizedBox(width: double.infinity)
+                          : Padding(
+                              padding: const EdgeInsets.fromLTRB(22, 14, 0, 0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      for (var hora = 0; hora < 24; hora++)
+                                        Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              right: hora == 23 ? 0 : 2,
+                                            ),
+                                            child: _CeldaHora(
+                                              key: ValueKey(
+                                                'celda-hora-${widget.ruta.id}-$hora',
+                                              ),
+                                              routeId: widget.ruta.id,
+                                              pico: horaPico == hora,
+                                              hora: hora,
+                                              count: widget.ruta.porHora[hora],
+                                              maxHora: maxHora,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Row(
+                                    children: [
+                                      // Una marca cada seis horas: cada
+                                      // tramo ocupa seis celdas, así la
+                                      // etiqueta cae sobre la suya.
+                                      for (var hora = 0; hora < 24; hora += 6)
+                                        Expanded(
+                                          child: Text(
+                                            horaOpcionLabel(hora),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.clip,
+                                            style: AppType.ui(
+                                              color: AppColors.textMuted,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -890,11 +1029,15 @@ class _MapaCalor extends ConsumerStatefulWidget {
     required this.routeId,
     required this.codigo,
     required this.hora,
+    required this.porHora,
+    required this.onSelectHour,
     required this.cells,
   });
   final String routeId;
   final String codigo;
   final int? hora;
+  final List<int> porHora;
+  final ValueChanged<int?> onSelectHour;
   final List<CeldaBusqueda> cells;
 
   @override
@@ -910,8 +1053,9 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
   final _controller = MapController();
   List<LatLng> _routePoints = const [];
   bool _mapReady = false;
-  // Al abrir se ve solo la ruta; el calor se pinta cuando el dueño lo pide.
-  bool _pintado = false;
+  // El mapa abre pintado (dueño, 2026-10-26); el botón lo quita y lo vuelve
+  // a pintar.
+  bool _pintado = true;
   late final _calor = AnimationController(vsync: this)
     ..addStatusListener(_alCambiarCalor);
   late final _nivel = CurvedAnimation(
@@ -935,6 +1079,8 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
       ..duration = AppMotion.duracion(context, _crecerCalor)
       ..reverseDuration = AppMotion.duracion(context, AppMotion.normal);
     _pulso.duration = AppMotion.duracion(context, AppMotion.pulso);
+    // Al abrir, el calor crece desde la ruta como en el video.
+    if (_pintado && _calor.isDismissed) _crecer();
   }
 
   @override
@@ -1103,10 +1249,11 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
         Positioned(
           left: 16,
           bottom: 16,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          // En columna: con la ventana mínima (1200 px) la fila de las dos
+          // tarjetas pisaría la atribución del mapa.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _PildoraHora(hora: widget.hora),
               // La leyenda solo explica lo que está pintado; entra subiendo
               // 8 px, como la tarjeta del video.
               AnimatedSwitcher(
@@ -1125,13 +1272,18 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
                 ),
                 child: _pintado
                     ? Padding(
-                        padding: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.only(bottom: 8),
                         child: _LeyendaCalor(
                           codigo: widget.codigo,
                           maxCount: maxCount,
                         ),
                       )
                     : const SizedBox.shrink(),
+              ),
+              _HorasMapa(
+                porHora: widget.porHora,
+                hora: widget.hora,
+                onSelectHour: widget.onSelectHour,
               ),
             ],
           ),
@@ -1356,39 +1508,213 @@ class _BotonPintar extends StatelessWidget {
   }
 }
 
-class _PildoraHora extends StatelessWidget {
-  const _PildoraHora({required this.hora});
+/// Las 24 horas de la ruta sobre el mapa: cada barra mide sus búsquedas en
+/// la escala del calor y al tocarla el mapa se pinta solo a esa hora; tocar
+/// la elegida, o «Todo el día», vuelve al día entero.
+class _HorasMapa extends StatelessWidget {
+  const _HorasMapa({
+    required this.porHora,
+    required this.hora,
+    required this.onSelectHour,
+  });
+
+  final List<int> porHora;
   final int? hora;
+  final ValueChanged<int?> onSelectHour;
+
+  // 336 px: con 12 de aire por lado quedan 312 para 24 barras de 11 px y
+  // 23 huecos de 2 px, el ancho más chico que todavía se apunta con el
+  // ratón sin errar de hora.
+  static const _ancho = 336.0;
+  static const _altoBarras = 30.0;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: AppColors.surface.withValues(alpha: 0.96),
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      border: Border.all(color: AppColors.border),
-      boxShadow: AppColors.sombraTarjeta,
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.schedule_outlined, size: 14, color: AppColors.navy),
-        const SizedBox(width: 6),
-        Text(
-          hora == null ? 'Todo el día' : horaOpcionLabel(hora!),
-          style: AppType.ui(
-            color: AppColors.navy,
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final maximo = porHora.fold<int>(0, math.max);
+    return Container(
+      width: _ancho,
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.sombraTarjeta,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.schedule_outlined,
+                size: 14,
+                color: AppColors.navy,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  hora == null ? 'Todo el día' : horaPicoLabel(hora!),
+                  key: const ValueKey('hora-mapa-rotulo'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.ui(
+                    color: AppColors.navy,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (hora != null)
+                // Azul de botón sobre blanco: 7,1:1.
+                InkWell(
+                  key: const ValueKey('hora-mapa-todo'),
+                  onTap: () => onSelectHour(null),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    child: Text(
+                      'Todo el día',
+                      style: AppType.ui(
+                        color: AppColors.boton,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: _altoBarras,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var h = 0; h < 24; h++)
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: h == 23 ? 0 : 2),
+                      child: _BarraHoraMapa(
+                        key: ValueKey('hora-mapa-$h'),
+                        hora: h,
+                        count: porHora[h],
+                        maximo: maximo,
+                        elegida: hora == h,
+                        apagada: hora != null && hora != h,
+                        onTap: () => onSelectHour(hora == h ? null : h),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              // Como la tira de la lista: una marca cada seis barras.
+              for (var h = 0; h < 24; h += 6)
+                Expanded(
+                  child: Text(
+                    horaOpcionLabel(h),
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                    style: AppType.ui(
+                      color: AppColors.textMuted,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarraHoraMapa extends StatefulWidget {
+  const _BarraHoraMapa({
+    super.key,
+    required this.hora,
+    required this.count,
+    required this.maximo,
+    required this.elegida,
+    required this.apagada,
+    required this.onTap,
+  });
+
+  final int hora;
+  final int count;
+  final int maximo;
+  final bool elegida;
+  final bool apagada;
+  final VoidCallback onTap;
+
+  @override
+  State<_BarraHoraMapa> createState() => _BarraHoraMapaState();
+}
+
+class _BarraHoraMapaState extends State<_BarraHoraMapa> {
+  bool _encima = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Una hora sin búsquedas deja 3 px en el gris del filo: se ve el hueco.
+    final alto = widget.maximo == 0
+        ? 3.0
+        : 3 + (_HorasMapa._altoBarras - 3) * widget.count / widget.maximo;
+    // Con una hora elegida las otras bajan al 35 % y se leen como fondo.
+    final opacidad = widget.apagada && !_encima ? 0.35 : 1.0;
+    return Semantics(
+      button: true,
+      selected: widget.elegida,
+      label: '${horaOpcionLabel(widget.hora)}, ${widget.count} búsquedas',
+      child: ExcludeSemantics(
+        child: Tooltip(
+          message: '${horaOpcionLabel(widget.hora)}, ${widget.count} búsquedas',
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _encima = true),
+            onExit: (_) => setState(() => _encima = false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onTap,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: AnimatedContainer(
+                  duration: AppMotion.duracion(context, AppMotion.rapido),
+                  curve: AppMotion.curvaCambio,
+                  height: alto,
+                  decoration: BoxDecoration(
+                    color: _colorCalor(
+                      widget.count,
+                      widget.maximo,
+                    ).withValues(alpha: opacidad),
+                    borderRadius: BorderRadius.circular(2),
+                    // La elegida lleva el borde navy de la hora pico de la
+                    // lista.
+                    border: widget.elegida
+                        ? Border.all(color: AppColors.navy, width: 1.5)
+                        : null,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 /// Tarjeta de la leyenda como la del video de Control: la ficha de la ruta,
-/// que el calor solo cuenta por donde pasa, y la escala de menos a más.
+/// el alcance del aviso (se arma hasta 3 km a la redonda, así que se busca
+/// también lejos de la calle) y la escala de menos a más.
 class _LeyendaCalor extends StatelessWidget {
   const _LeyendaCalor({required this.codigo, required this.maxCount});
   final String codigo;
@@ -1403,14 +1729,13 @@ class _LeyendaCalor extends StatelessWidget {
     );
     return Semantics(
       label:
-          'Ruta $codigo, solo por donde pasa. Menos búsquedas a más '
+          'Ruta $codigo, hasta 3 km de la ruta. Menos búsquedas a más '
           'búsquedas, máximo $maxCount en una zona',
       child: ExcludeSemantics(
-        // 216 px: caben «Menos búsquedas» y «Más búsquedas» a 9,5 pt
-        // (unos 84 px cada uno en Plus Jakarta) con aire entre los dos, y
-        // la barra queda del ancho de la tarjeta.
+        // Del ancho de las horas, para que las dos tarjetas del mapa se
+        // lean como una sola columna alineada.
         child: Container(
-          width: 216,
+          width: _HorasMapa._ancho,
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           decoration: BoxDecoration(
             color: AppColors.surface.withValues(alpha: 0.96),
@@ -1448,7 +1773,7 @@ class _LeyendaCalor extends StatelessWidget {
                   ],
                   Expanded(
                     child: Text(
-                      'Solo por donde pasa',
+                      'Hasta 3 km de la ruta',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppType.ui(

@@ -236,8 +236,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (sin rebote, arrancan quietas); `curvaRebote` (0,7, se pasa 4,6 %) solo
   para lo que se acaba de marcar. Nada sin curva; nada de `easeOutBack`
   fuera de la escena del arranque y la seña de tocar el bus.
-  El bus gira a su rumbo con resorte (`BusMotion.giro`, 800 ms) y deja
-  una estela tenue de 200 m que se apaga hacia atrás (`estela.dart`); al
+  El bus gira a su rumbo con resorte (`BusMotion.giro`, 800 ms), sin
+  estela (la de 200 m se veía rara, dueño, 2026-10-26); al
   tocarlo la cámara va a él con resorte (`puntoDelViaje`, 600 ms; el dedo
   la suelta) y el aviso que suena da un doble toque en la mano
   (dueño, 2026-10-19).

@@ -3,6 +3,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import 'fleet_providers.dart' show fleetApiProvider;
 
+enum PeriodoReporte { hoy, semana, mes }
+
+(DateTime, DateTime) rangoPeriodo(PeriodoReporte periodo, DateTime ahora) {
+  final hasta = ahora.toUtc();
+  final desde = switch (periodo) {
+    PeriodoReporte.hoy => DateTime.utc(
+      hasta.subtract(const Duration(hours: 5)).year,
+      hasta.subtract(const Duration(hours: 5)).month,
+      hasta.subtract(const Duration(hours: 5)).day,
+    ).add(const Duration(hours: 5)),
+    PeriodoReporte.semana => hasta.subtract(const Duration(days: 7)),
+    PeriodoReporte.mes => hasta.subtract(const Duration(days: 30)),
+  };
+  return (desde, hasta);
+}
+
+String periodoLabel(PeriodoReporte periodo) => switch (periodo) {
+  PeriodoReporte.hoy => 'Hoy',
+  PeriodoReporte.semana => '7 días',
+  PeriodoReporte.mes => '30 días',
+};
+
+String periodoSubtitulo(PeriodoReporte periodo) => switch (periodo) {
+  PeriodoReporte.hoy => 'Hoy',
+  PeriodoReporte.semana => 'Últimos 7 días',
+  PeriodoReporte.mes => 'Últimos 30 días',
+};
+
 class RutaBusquedas {
   const RutaBusquedas({
     required this.id,
@@ -47,46 +75,47 @@ class CeldaBusqueda {
   );
 }
 
-final reportesRutasProvider = FutureProvider.family<List<RutaBusquedas>, int?>((
-  ref,
-  hora,
-) async {
-  final token = ref.watch(authProvider).session?.token;
-  final hasta = DateTime.now().toUtc();
-  final data = await ref
-      .watch(fleetApiProvider)
-      .fetchSearchReports(
-        token,
-        desde: hasta.subtract(const Duration(days: 30)),
-        hasta: hasta,
-        hora: hora,
-      );
-  final rutas = (data['rutas'] as List)
-      .map(
-        (item) =>
-            RutaBusquedas.fromJson(Map<String, dynamic>.from(item as Map)),
-      )
-      .toList();
-  return ordenarRutasBusquedas(rutas);
-});
+final reportesRutasProvider =
+    FutureProvider.family<
+      List<RutaBusquedas>,
+      ({PeriodoReporte periodo, int? hora})
+    >((ref, args) async {
+      final token = ref.watch(authProvider).session?.token;
+      final (desde, hasta) = rangoPeriodo(args.periodo, DateTime.now());
+      final data = await ref
+          .watch(fleetApiProvider)
+          .fetchSearchReports(
+            token,
+            desde: desde,
+            hasta: hasta,
+            hora: args.hora,
+          );
+      final rutas = (data['rutas'] as List)
+          .map(
+            (item) =>
+                RutaBusquedas.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+      return ordenarRutasBusquedas(rutas);
+    });
 
 /// Orden estable compartido por el provider y la pantalla del reporte.
 List<RutaBusquedas> ordenarRutasBusquedas(Iterable<RutaBusquedas> rutas) =>
     rutas.toList()..sort((a, b) => b.total.compareTo(a.total));
 
 final reportesCalorProvider =
-    FutureProvider.family<List<CeldaBusqueda>, ({String routeId, int? hora})>((
-      ref,
-      args,
-    ) async {
+    FutureProvider.family<
+      List<CeldaBusqueda>,
+      ({String routeId, PeriodoReporte periodo, int? hora})
+    >((ref, args) async {
       final token = ref.watch(authProvider).session?.token;
-      final hasta = DateTime.now().toUtc();
+      final (desde, hasta) = rangoPeriodo(args.periodo, DateTime.now());
       final data = await ref
           .watch(fleetApiProvider)
           .fetchSearchHeatmap(
             token,
             routeId: args.routeId,
-            desde: hasta.subtract(const Duration(days: 30)),
+            desde: desde,
             hasta: hasta,
             hora: args.hora,
           );
