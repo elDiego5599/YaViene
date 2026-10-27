@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/widgets/cabecera_degradada.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_arranque.dart';
@@ -56,9 +57,10 @@ void main() {
       (tester) async {
     await tester
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
-    final mascara = tester.widget<ShaderMask>(find.byType(ShaderMask));
-    expect(mascara.blendMode, BlendMode.dstIn);
     final dibujo = find.byType(Image).first;
+    final mascara = tester.widget<ShaderMask>(
+        find.ancestor(of: dibujo, matching: find.byType(ShaderMask)));
+    expect(mascara.blendMode, BlendMode.dstIn);
     expect(find.ancestor(of: dibujo, matching: find.byType(ShaderMask)),
         findsOneWidget);
     final degradado = FondoIlustrado.desvanecido(const Size(390, 844));
@@ -167,6 +169,25 @@ void main() {
     final imagenes = tester.widgetList<Image>(find.byType(Image)).toList();
     expect(imagenes, isNotEmpty);
     expect(imagenes.every((i) => i.excludeFromSemantics), isTrue);
+  });
+
+  // «Incluye ese degradado en la parte de Info pero en el fondo de arriba
+  // que tiene las figuritas, el de abajo déjalo blanco liso» (dueño,
+  // 2026-10-26): el de Avisos y Buzón, detrás de los dibujos, apagado con
+  // ellos al pie de la franja.
+  testWidgets('arriba, el degradado de Avisos; abajo, blanco liso',
+      (tester) async {
+    await tester
+        .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
+    final caja = tester.widget<DecoratedBox>(find.descendant(
+        of: find.byKey(const ValueKey('info-degradado')),
+        matching: find.byType(DecoratedBox).first));
+    expect((caja.decoration as BoxDecoration).gradient,
+        CabeceraDegradada.degradado);
+    final apagado = FondoIlustrado.desvanecido(const Size(390, 844), velo: 1);
+    expect(apagado.colors.first.a, 1);
+    expect(apagado.colors.last.a, 0);
+    expect(apagado.stops!.last * 844, closeTo(FondoIlustrado.franja, 0.5));
   });
 
   // «Atenúa un poco las imágenes en la pantalla de Info» (dueño,

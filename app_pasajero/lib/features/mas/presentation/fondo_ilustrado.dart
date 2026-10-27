@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../core/widgets/cabecera_degradada.dart';
 import '../../splash/presentation/widgets/escena_arranque.dart';
 
 /// Los dibujos de Barranquilla del fondo de Info. La Ventana al Mundo no es
@@ -67,8 +68,12 @@ class FondoIlustrado extends StatelessWidget {
   static final _cacheCeldas = <(Size, double), List<Celda>>{};
 
   /// El degradado con que se apagan en una caja de [caja], para [arriba]
-  /// de barra de estado.
-  static LinearGradient desvanecido(Size caja, {double arriba = 0}) {
+  /// de barra de estado; con [velo] 1 apaga el degradado de color de abajo.
+  static LinearGradient desvanecido(
+    Size caja, {
+    double arriba = 0,
+    double velo = FondoIlustrado.velo,
+  }) {
     double donde(double y) => ((arriba + y) / caja.height).clamp(0.0, 1.0);
     return LinearGradient(
       begin: Alignment.topCenter,
@@ -171,6 +176,26 @@ class FondoIlustrado extends StatelessWidget {
                 // Blanco liso, sin la trama de puntos (dueño, 2026-10-26).
                 const Positioned.fill(
                     child: ColoredBox(color: AppColors.surface)),
+                // Detrás de los dibujos, el degradado de Avisos y Buzón, que
+                // se apaga con ellos: abajo queda blanco liso («para que todo
+                // se vea más elegante», dueño, 2026-10-26).
+                Positioned.fill(
+                  key: const ValueKey('info-degradado'),
+                  child: ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (r) =>
+                        desvanecido(r.size, arriba: arriba, velo: 1)
+                            .createShader(r),
+                    child: const DecoratedBox(
+                      decoration:
+                          BoxDecoration(gradient: CabeceraDegradada.degradado),
+                      child: DecoratedBox(
+                        decoration:
+                            BoxDecoration(gradient: CabeceraDegradada.brillo),
+                      ),
+                    ),
+                  ),
+                ),
                 // Un solo velo para todos: una capa, no una por dibujo.
                 Positioned.fill(
                   child: ShaderMask(

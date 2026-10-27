@@ -265,7 +265,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `coralAccessible`.
   Fondo blanco con trama de puntos (`FondoTexturizado`, tinta al 7 %,
   contraste medido en el archivo) solo en el arranque; Avisos, Buzón e
-  Info van en blanco liso (dueño, 2026-10-26). La
+  Info van en blanco liso (dueño, 2026-10-26). En Info, el degradado de
+  la cabecera va detrás de las figuritas de arriba y se apaga con ellas;
+  abajo, blanco liso (dueño, 2026-10-26). Quieto, sin moverse. La
   bienvenida lleva el matizado azul y verde detrás del logo (dueño,
   2026-10-21).
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso
