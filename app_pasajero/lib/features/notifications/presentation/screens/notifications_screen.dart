@@ -10,7 +10,6 @@ import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/barra_vidrio.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/ficha_ruta.dart';
-import '../../../../core/widgets/fondo_texturizado.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
 import '../../../../core/widgets/titulo_seccion.dart';
@@ -98,22 +97,11 @@ class NotificationsScreen extends ConsumerWidget {
               // la barra de abajo y no hay detrás a dónde volver.
               : null,
           automaticallyImplyLeading: false,
-          actions: entries.isEmpty
-              ? null
-              : [
-                  MediaQuery.withClampedTextScaling(
-                    maxScaleFactor: 1.3,
-                    child: const PildoraVidrio(
-                        compacta: true, child: _SelectAction()),
-                  ),
-                  const SizedBox(width: 20),
-                ],
         ),
         // Al borrar el último, la lista se apaga y el estado vacío aparece en
         // su lugar; antes era un corte seco.
         body: Stack(
           children: [
-            const Positioned.fill(child: FondoTexturizado()),
             // El gris de la cabecera con su raya: bajo el título, hasta donde
             // termina la barra (el relleno de arriba del cuerpo ya la suma).
             Positioned(
@@ -153,13 +141,11 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
-/// La nota de arriba: qué se hace en esta pestaña (dueño, 2026-10-18:
-/// «vuélvele a colocar el texto de antes, pero pones algo como gestiona,
-/// borra, desactiva tus avisos aquí, con su icono»). Es la tarjeta que
-/// decía «En iPhone el aviso suena con la app abierta»: la misma nota que
-/// la hoja de distancia (`_NotaHoja` en `eta_bottom_sheet.dart`), tarjeta
-/// blanca con filo y baldosa de 30, para que una nota se vea igual en toda
-/// la app.
+/// La nota de arriba: qué se hace en esta pestaña y, en el mismo cuadro,
+/// «Seleccionar» («probemos poniendo solo el texto "Gestiona tus avisos
+/// aquí" y al lado el botón de seleccionar en ese mismo cuadrito», dueño,
+/// 2026-10-26). Antes llevaba su baldosa con icono y Seleccionar iba en la
+/// barra. Tarjeta blanca con filo, como la nota de la hoja de distancia.
 class _NotaAvisos extends StatelessWidget {
   const _NotaAvisos();
 
@@ -171,39 +157,28 @@ class _NotaAvisos extends StatelessWidget {
       child: Container(
         key: const ValueKey('nota-avisos'),
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        // 1 de filo + 3 + 6 del toque de 48: la píldora de 36 queda a 10 del
+        // borde arriba y abajo, los mismos 10 (1 + 9) que a los lados. La
+        // nota mide 56.
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
         // El filo devuelve el contorno de la nota sobre el fondo blanco.
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.filo),
         ),
-        child: Row(
+        // Con el texto del sistema muy grande, el botón ya no cabe al lado
+        // (a 300 % se salía 138 px): baja a su propia línea, bajo el texto.
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
           children: [
-            // El par tinte/tinta de los medallones, que ya pasa los 3:1. El
-            // glifo no se lee: la frase lo dice todo.
-            ExcludeSemantics(
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(
-                  Icons.edit_notifications_outlined,
-                  size: 18,
-                  color: AppColors.primaryAccessible,
-                ),
-              ),
+            Text(
+              'Gestiona tus avisos aquí',
+              style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Gestiona, borra o desactiva tus avisos aquí.',
-                style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
-              ),
-            ),
+            const _SelectAction(),
           ],
         ),
       ),
@@ -293,7 +268,7 @@ ButtonStyle estiloPildora(Color color) => TextButton.styleFrom(
       shape: const StadiumBorder(),
     );
 
-/// Acción "Seleccionar"/"Borrar todas" en la barra superior.
+/// Acción "Seleccionar"/"Borrar todas" en la nota de arriba.
 class _SelectAction extends ConsumerWidget {
   const _SelectAction();
 
@@ -312,11 +287,27 @@ class _SelectAction extends ConsumerWidget {
           ref.read(alertSelectionProvider.notifier).enter();
         }
       },
-      style: estiloPildora(selecting ? AppColors.error : AppColors.primaryDeep),
+      // La píldora tonal de «Desactivar»; «Borrar todas» en su rojo.
+      style: _estiloTonal(
+          selecting ? AppColors.coralAccessible : AppColors.primaryDeep),
       child: Text(selecting ? 'Borrar todas' : 'Seleccionar'),
     );
   }
 }
+
+/// La píldora tonal de las tarjetas y la nota: gris de superficie con su
+/// raya, 36 de cara y 48 de toque (`padded`). [color] es el del texto:
+/// `coralAccessible` pasa 4,96:1 sobre `surfaceMuted`; el `error` daba 4,41.
+ButtonStyle _estiloTonal(Color color) => TextButton.styleFrom(
+      textStyle: AppTextStyles.etiqueta,
+      foregroundColor: color,
+      backgroundColor: AppColors.surfaceMuted,
+      side: const BorderSide(color: AppColors.hairline),
+      shape: const StadiumBorder(),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      minimumSize: const Size(0, 36),
+      tapTargetSize: MaterialTapTargetSize.padded,
+    );
 
 /// Estado del modo selección: activo o no, y las entradas marcadas (por
 /// [AlertHistoryEntry.id]: el mismo bus puede estar enviado y esperando).
@@ -785,8 +776,6 @@ class _AlertTile extends StatelessWidget {
           )
         : sent
             ? null
-            // Rojo de error para algo que se deshace en un toque desde el
-            // mapa. El rojo queda para "Borrar todas", que sí borra.
             : Semantics(
                 // En una lista de avisos, cinco botones que dicen
                 // «Desactivar» y nada más son cinco botones iguales.
@@ -801,16 +790,8 @@ class _AlertTile extends StatelessWidget {
                   // superficie y no verde: desactivar no es la acción
                   // principal de la pantalla. El blanco sigue siendo de 48
                   // (`padded`) aunque la píldora mida 36.
-                  style: TextButton.styleFrom(
-                    textStyle: AppTextStyles.etiqueta,
-                    foregroundColor: AppColors.primaryDeep,
-                    backgroundColor: AppColors.surfaceMuted,
-                    side: const BorderSide(color: AppColors.hairline),
-                    shape: const StadiumBorder(),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    minimumSize: const Size(0, 36),
-                    tapTargetSize: MaterialTapTargetSize.padded,
-                  ),
+                  // Texto en el rojo de «Cambiar» (dueño, 2026-10-26).
+                  style: _estiloTonal(AppColors.coralAccessible),
                   child: const Text('Desactivar'),
                 ),
               );

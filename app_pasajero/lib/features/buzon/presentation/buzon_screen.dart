@@ -5,7 +5,6 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
-import '../../../core/widgets/fondo_texturizado.dart';
 import '../../../core/widgets/titulo_seccion.dart';
 import '../data/buzon.dart';
 
@@ -101,7 +100,6 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
         top: false,
         child: Stack(
           children: [
-            const Positioned.fill(child: FondoTexturizado()),
             // El gris de la cabecera con su raya: bajo el título, hasta donde
             // termina la barra (el relleno de arriba del cuerpo ya la suma).
             Positioned(

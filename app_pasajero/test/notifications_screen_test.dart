@@ -148,7 +148,9 @@ void main() {
     await pumpScreen(tester, const []);
     await tester.pump();
     exigeFondoBlanco(tester);
-    expect(find.byType(FondoTexturizado), findsOneWidget);
+    // «Tiene como unos puntitos en vez de ser blancos lisos» (dueño,
+    // 2026-10-26): Avisos va en blanco liso, sin la trama.
+    expect(find.byType(FondoTexturizado), findsNothing);
     final cabecera = tester
         .widget<DecoratedBox>(find.byKey(const ValueKey('avisos-cabecera')));
     final decoracion = cabecera.decoration as BoxDecoration;
@@ -658,13 +660,12 @@ void main() {
     expect(find.text('Selecciona avisos'), findsOneWidget);
   });
 
-  // «Vuélvele a colocar el texto de antes, pero pones algo como gestiona,
-  // borra, desactiva tus avisos aquí, con su icono» (dueño, 2026-10-18):
-  // la tarjeta de la nota vuelve arriba, ahora en los dos teléfonos.
-  testWidgets('arriba, la nota de qué se hace aquí, con su icono',
+  // «Probemos poniendo solo el texto "Gestiona tus avisos aquí" y al lado
+  // el botón de seleccionar en ese mismo cuadrito» (dueño, 2026-10-26).
+  testWidgets('arriba, la nota con Seleccionar en el mismo cuadro',
       (tester) async {
     final container = await pumpScreen(tester, [bus('A-1')]);
-    const texto = 'Gestiona, borra o desactiva tus avisos aquí.';
+    const texto = 'Gestiona tus avisos aquí';
     // Sin avisos, el estado vacío ya dice cómo armar uno.
     expect(find.text(texto), findsNothing);
 
@@ -675,8 +676,8 @@ void main() {
         of: find.text(texto),
         matching: find.byKey(const ValueKey('nota-avisos')));
     expect(
-        find.descendant(
-            of: nota, matching: find.byIcon(Icons.edit_notifications_outlined)),
+        find.descendant(of: nota, matching: find.byType(Icon)), findsNothing);
+    expect(find.descendant(of: nota, matching: find.text('Seleccionar')),
         findsOneWidget);
     final decoracion =
         tester.widget<Container>(nota).decoration as BoxDecoration;
@@ -956,13 +957,19 @@ void main() {
     // Los botones de la barra flotan en sus píldoras, como en iOS 26.
     Finder enPildora(String texto) => find.ancestor(
         of: find.text(texto), matching: find.byType(PildoraVidrio));
-    expect(enPildora('Seleccionar'), findsOneWidget);
-    await exigeBarraVidrio(
-        tester, find.text('Gestiona, borra o desactiva tus avisos aquí.'));
+    // Seleccionar ya no va en la barra: vive en la nota.
+    expect(enPildora('Seleccionar'), findsNothing);
+    // Se toca antes de bajar: al subir, la nota pasa bajo la barra.
     await tester.tap(find.text('Seleccionar'));
     await tester.pumpAndSettle();
+    await exigeBarraVidrio(tester, find.text('Gestiona tus avisos aquí'));
     expect(enPildora('Cancelar'), findsOneWidget);
-    expect(enPildora('Borrar todas'), findsOneWidget);
+    expect(enPildora('Borrar todas'), findsNothing);
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('nota-avisos')),
+            matching: find.text('Borrar todas')),
+        findsOneWidget);
   });
   testWidgets(
       'Seleccionar y Cancelar son píldoras compactas, a ras de las '
@@ -975,8 +982,6 @@ void main() {
     final container = await pumpScreen(tester, [bus('A-1')]);
     arm(container, 'A-1');
     await tester.pump();
-    final ancho = tester.view.physicalSize.width / tester.view.devicePixelRatio;
-
     // La cara va detrás del texto, en la misma píldora.
     Rect cara(String texto) => tester.getRect(find.descendant(
         of: find
@@ -988,15 +993,40 @@ void main() {
         .ancestor(of: find.text(texto), matching: find.byType(TextButton))
         .first);
 
-    expect(cara('Seleccionar').height, 36);
-    expect(cara('Seleccionar').right, ancho - 20);
+    // En la nota, Seleccionar es la píldora tonal de «Desactivar»: 36 de
+    // cara, 48 de toque y 10 de aire hasta el borde de la nota, a los
+    // lados y arriba y abajo.
+    final nota = tester.getRect(find.byKey(const ValueKey('nota-avisos')));
+    final enNota = tester.getRect(find
+        .ancestor(
+            of: find.text('Seleccionar'), matching: find.byType(TextButton))
+        .first);
     expect(toque('Seleccionar').height, greaterThanOrEqualTo(48));
+    final caraNota =
+        Rect.fromCenter(center: enNota.center, width: enNota.width, height: 36);
+    expect(nota.right - caraNota.right, 10);
+    expect(caraNota.top - nota.top, 10);
+    expect(nota.bottom - caraNota.bottom, 10);
 
     await tester.tap(find.text('Seleccionar'));
     await tester.pumpAndSettle();
     expect(cara('Cancelar').height, 36);
     expect(cara('Cancelar').left, 20);
     expect(toque('Cancelar').height, greaterThanOrEqualTo(48));
-    expect(cara('Borrar todas').right, ancho - 20);
+    expect(find.text('Borrar todas'), findsOneWidget);
+  });
+
+  // «El botón de desactivar que tenga el desactivar en rojo» (dueño,
+  // 2026-10-26): el rojo accesible de «Cambiar», 4,96:1 sobre la píldora.
+  testWidgets('Desactivar va en rojo', (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1')]);
+    arm(container, 'A-1');
+    await tester.pump();
+    final boton = tester.widget<TextButton>(find
+        .ancestor(
+            of: find.text('Desactivar'), matching: find.byType(TextButton))
+        .first);
+    expect(
+        boton.style!.foregroundColor!.resolve({}), AppColors.coralAccessible);
   });
 }

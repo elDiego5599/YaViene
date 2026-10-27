@@ -256,9 +256,13 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   la marca al 20 %, como Stripe o Linear) y una raya del mismo filo en
   cada tarjeta de Avisos; el mensaje del buzón sin raya, con la nota de
   privacidad fuera. Arriba, bajo la barra, una cabecera gris
-  (`surfaceMuted`) con una raya sutil (media línea de tinta al 8 %); la nota «Gestiona…» con su cuadro.
+  (`surfaceMuted`) con una raya sutil (media línea de tinta al 8 %); la nota «Gestiona tus avisos aquí» con su cuadro y, dentro, la píldora
+  tonal «Seleccionar» (que pasa a «Borrar todas»; dueño, 2026-10-26); en la
+  barra solo queda «Cancelar». «Desactivar» lleva la letra en
+  `coralAccessible`.
   Fondo blanco con trama de puntos (`FondoTexturizado`, tinta al 7 %,
-  contraste medido en el archivo) en arranque, Avisos, Buzón e Info; la
+  contraste medido en el archivo) solo en el arranque; Avisos, Buzón e
+  Info van en blanco liso (dueño, 2026-10-26). La
   bienvenida lleva el matizado azul y verde detrás del logo (dueño,
   2026-10-21).
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso

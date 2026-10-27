@@ -43,7 +43,8 @@ void main() {
 
   testWidgets('abre con sus secciones', (tester) async {
     await abrirMas(tester);
-    expect(find.byType(FondoTexturizado), findsOneWidget);
+    // Blanco liso, sin la trama de puntos (dueño, 2026-10-26).
+    expect(find.byType(FondoTexturizado), findsNothing);
 
     expect(find.text('Ya Viene'), findsOneWidget);
     expect(find.text('Sin ruta activa'), findsOneWidget);

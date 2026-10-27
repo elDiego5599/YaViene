@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/features/mas/presentation/fondo_ilustrado.dart';
 import 'package:ya_viene_pasajero/features/splash/presentation/widgets/escena_arranque.dart';
@@ -155,8 +156,14 @@ void main() {
       (tester) async {
     await tester
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
-    // El blanco con su trama, como Avisos y Buzón (dueño, 2026-10-19).
-    expect(find.byType(FondoTexturizado), findsOneWidget);
+    // Blanco liso, sin la trama de puntos, como Avisos y Buzón (dueño,
+    // 2026-10-26: «en vez de ser blancos lisos»).
+    expect(find.byType(FondoTexturizado), findsNothing);
+    expect(
+        tester
+            .widgetList<ColoredBox>(find.byType(ColoredBox))
+            .any((c) => c.color == AppColors.surface),
+        isTrue);
     final imagenes = tester.widgetList<Image>(find.byType(Image)).toList();
     expect(imagenes, isNotEmpty);
     expect(imagenes.every((i) => i.excludeFromSemantics), isTrue);
@@ -165,7 +172,8 @@ void main() {
   // «Atenúa un poco las imágenes en la pantalla de Info» (dueño,
   // 2026-10-18), y sin los puntitos ni las estrellitas de los huecos: con
   // los dibujos de fondo, sobraban. La trama fija del blanco no es relleno
-  // de los huecos: va pareja en toda la pantalla (dueño, 2026-10-19).
+  // de los huecos (dueño, 2026-10-19). Desde el 2026-10-26 el blanco va
+  // liso, sin trama.
   testWidgets('los dibujos, atenuados y sin relleno entre ellos',
       (tester) async {
     await tester
@@ -176,7 +184,7 @@ void main() {
         .whereType<CustomPainter>()
         .map((p) => p.runtimeType)
         .toSet();
-    expect(pintores, {PintorFondoTexturizado, PintorVentana});
+    expect(pintores, {PintorVentana});
     final dibujos = [
       ...find.byType(Image).evaluate(),
       ...find

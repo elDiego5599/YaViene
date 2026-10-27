@@ -176,7 +176,8 @@ void main() {
             cliente: MockClient((_) async => http.Response('', 201)),
           ));
       exigeFondoBlanco(tester);
-      expect(find.byType(FondoTexturizado), findsOneWidget);
+      // Blanco liso, sin la trama de puntos (dueño, 2026-10-26).
+      expect(find.byType(FondoTexturizado), findsNothing);
       final cabecera = tester
           .widget<DecoratedBox>(find.byKey(const ValueKey('buzon-cabecera')));
       final decoracion = cabecera.decoration as BoxDecoration;
