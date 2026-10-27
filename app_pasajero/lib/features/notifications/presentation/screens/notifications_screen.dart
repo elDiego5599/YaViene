@@ -11,6 +11,7 @@ import '../../../../core/widgets/barra_vidrio.dart';
 import '../../../../core/widgets/cabecera_degradada.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/ficha_ruta.dart';
+import '../../../../core/widgets/fondo_texturizado.dart';
 import '../../../../core/widgets/placa_bus.dart';
 import '../../../../core/widgets/tamano_animado.dart';
 import '../../../../core/widgets/titulo_seccion.dart';
@@ -105,6 +106,9 @@ class NotificationsScreen extends ConsumerWidget {
         // su lugar; antes era un corte seco.
         body: Stack(
           children: [
+            // El grano de la bienvenida en la parte blanca; la cabecera,
+            // opaca, lo tapa arriba (dueño, 2026-10-27).
+            const Positioned.fill(child: Grano(key: ValueKey('avisos-grano'))),
             // El degradado de la cabecera con su raya: bajo el título, hasta
             // donde termina la barra (el relleno de arriba del cuerpo ya la
             // suma).

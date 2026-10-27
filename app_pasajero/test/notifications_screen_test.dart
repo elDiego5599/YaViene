@@ -150,8 +150,15 @@ void main() {
     await tester.pump();
     exigeFondoBlanco(tester);
     // «Tiene como unos puntitos en vez de ser blancos lisos» (dueño,
-    // 2026-10-26): Avisos va en blanco liso, sin la trama.
+    // 2026-10-26): Avisos va sin la trama. El grano de la bienvenida va en
+    // la parte blanca y no en la de color (dueño, 2026-10-27).
     expect(find.byType(FondoTexturizado), findsNothing);
+    expect(find.byKey(const ValueKey('avisos-grano')), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('avisos-cabecera')),
+            matching: find.byType(Grano)),
+        findsNothing);
     // «En vez de gris, un degradadito fino entre azul y verde» (dueño,
     // 2026-10-26).
     expect(

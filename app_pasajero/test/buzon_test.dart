@@ -177,8 +177,15 @@ void main() {
             cliente: MockClient((_) async => http.Response('', 201)),
           ));
       exigeFondoBlanco(tester);
-      // Blanco liso, sin la trama de puntos (dueño, 2026-10-26).
+      // Sin la trama de puntos (dueño, 2026-10-26); el grano de la
+      // bienvenida en la parte blanca, no en la de color (dueño, 2026-10-27).
       expect(find.byType(FondoTexturizado), findsNothing);
+      expect(find.byKey(const ValueKey('buzon-grano')), findsOneWidget);
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('buzon-cabecera')),
+              matching: find.byType(Grano)),
+          findsNothing);
       // «En vez de gris, un degradadito fino entre azul y verde» (dueño,
       // 2026-10-26).
       expect(

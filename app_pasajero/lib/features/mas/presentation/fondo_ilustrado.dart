@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/widgets/cabecera_degradada.dart';
 import '../../../core/widgets/fondo_texturizado.dart';
@@ -174,9 +173,9 @@ class FondoIlustrado extends StatelessWidget {
             builder: (context, caja) => Stack(
               clipBehavior: Clip.hardEdge,
               children: [
-                // Blanco liso, sin la trama de puntos (dueño, 2026-10-26).
-                const Positioned.fill(
-                    child: ColoredBox(color: AppColors.surface)),
+                // Blanco con el grano de la bienvenida: la textura va en la
+                // parte blanca y no en la de color (dueño, 2026-10-27).
+                const Positioned.fill(child: FondoTexturizado()),
                 // Detrás de los dibujos, el degradado de Avisos y Buzón, que
                 // se apaga con ellos: abajo queda blanco liso («para que todo
                 // se vea más elegante», dueño, 2026-10-26).
@@ -193,9 +192,6 @@ class FondoIlustrado extends StatelessWidget {
                       child: DecoratedBox(
                         decoration:
                             BoxDecoration(gradient: CabeceraDegradada.brillo),
-                        // El grano de la bienvenida, que se apaga con el
-                        // degradado (dueño, 2026-10-27).
-                        child: Grano(),
                       ),
                     ),
                   ),

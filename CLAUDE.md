@@ -267,10 +267,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `coralAccessible`.
   El grano de la bienvenida, sin su color (`Grano`, blanco al 50 % y
   tinta al 3 %), va en el arranque (`FondoTexturizado`, blanco con grano;
-  la trama de puntos se fue) y sobre el degradado de arriba de Avisos,
-  Buzón e Info (dueño, 2026-10-27); el resto de esas pantallas, blanco liso. En Info, el degradado de
-  la cabecera va detrás de las figuritas de arriba y se apaga con ellas;
-  abajo, blanco liso (dueño, 2026-10-26). Quieto, sin moverse. La
+  la trama de puntos se fue) y en la parte blanca de Avisos, Buzón e Info;
+  el degradado de arriba va liso, sin grano (dueño, 2026-10-27). En Info,
+  el degradado de la cabecera va detrás de las figuritas de arriba y se
+  apaga con ellas sobre el blanco con grano (dueño, 2026-10-26). Quieto, sin moverse. La
   bienvenida lleva el matizado azul y verde detrás del logo (dueño,
   2026-10-21).
 - **Actividad en vivo** (dueño, 2026-10-19, iOS 16.2+): cada aviso

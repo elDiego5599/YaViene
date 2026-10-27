@@ -24,10 +24,10 @@ void main() {
         closeTo(14.0, 0.1));
   });
 
-  // «Haz que lo tengan la parte de arriba de Avisos, Buzón e Info» (dueño,
-  // 2026-10-27): el grano de la bienvenida, sin su color, sobre el degradado.
-  testWidgets('la cabecera lleva el grano de la bienvenida', (tester) async {
+  // «El texturizado en Avisos e Info quítaselo a la parte de color y ponlo
+  // en la parte blanca» (dueño, 2026-10-27): el degradado va liso.
+  testWidgets('la cabecera va sin grano', (tester) async {
     await tester.pumpWidget(const CabeceraDegradada());
-    expect(find.byType(Grano), findsOneWidget);
+    expect(find.byType(Grano), findsNothing);
   });
 }

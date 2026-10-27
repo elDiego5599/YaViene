@@ -6,6 +6,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/cabecera_degradada.dart';
+import '../../../core/widgets/fondo_texturizado.dart';
 import '../../../core/widgets/titulo_seccion.dart';
 import '../data/buzon.dart';
 
@@ -101,6 +102,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
         top: false,
         child: Stack(
           children: [
+            // El grano de la bienvenida en la parte blanca; la cabecera,
+            // opaca, lo tapa arriba (dueño, 2026-10-27).
+            const Positioned.fill(child: Grano(key: ValueKey('buzon-grano'))),
             // El degradado de la cabecera con su raya: bajo el título, hasta
             // donde termina la barra (el relleno de arriba del cuerpo ya la
             // suma).
