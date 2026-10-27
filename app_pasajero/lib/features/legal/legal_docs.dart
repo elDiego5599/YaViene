@@ -278,7 +278,7 @@ const LegalDoc legalPrivacidad = LegalDoc(
 const LegalDoc legalTerminos = LegalDoc(
   id: 'terminos',
   title: 'Términos de uso',
-  updated: '15 de septiembre de 2026',
+  updated: '27 de octubre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es un servicio en pruebas. Estas son las reglas del trato, '
@@ -297,6 +297,13 @@ const LegalDoc legalTerminos = LegalDoc(
       'bus en ese momento. Si el bus sale de servicio, se queda sin señal o '
       'su empresa lo apaga, ese bus deja de verse. Que un bus no aparezca '
       'no quiere decir que no exista.',
+    ),
+    // Nada exacto (dueño, 2026-10-27). Va con la versión 7, del mismo día.
+    LegalBlock.p(
+      'Las distancias y las demás cifras que muestra la app son aproximadas. '
+      'Salen del GPS del bus y de un cálculo sobre el trazado de la calle, y '
+      'el GPS puede tardar o desviarse unos metros. Tómalas como una '
+      'referencia, no como una medida exacta.',
     ),
     LegalBlock.p(
       'Por eso Ya Viene no es un horario ni una garantía de llegada, y no '
