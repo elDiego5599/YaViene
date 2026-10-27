@@ -476,10 +476,24 @@ class DashboardHeader extends ConsumerWidget {
     // Con D1 = espejo de la demo, el respaldo sirve una flota simulada: el
     // operador tiene que saber que lo que ve no es la flota del túnel.
     final enRespaldo = ref.watch(enRespaldoProvider);
-    final (label, color) = switch (connection) {
-      FleetConnection.connected => ('En línea', AppColors.online),
-      FleetConnection.disconnected => ('Sin conexión', AppColors.danger),
-      FleetConnection.connecting => ('Conectando…', AppColors.ghost),
+    // En línea y sin conexión van llenos con la letra blanca (dueño,
+    // 2026-10-27); conectando, que dura un instante, en su matiz ámbar.
+    final (label, fondo, color) = switch (connection) {
+      FleetConnection.connected => (
+        'En línea',
+        AppColors.capsula,
+        Colors.white,
+      ),
+      FleetConnection.disconnected => (
+        'Sin conexión',
+        AppColors.sinConexion,
+        Colors.white,
+      ),
+      FleetConnection.connecting => (
+        'Conectando…',
+        AppColors.ghost.withValues(alpha: 0.1),
+        AppColors.ghost,
+      ),
     };
     return Container(
       key: const ValueKey('cabecera'),
@@ -517,9 +531,10 @@ class DashboardHeader extends ConsumerWidget {
             const SizedBox(width: 12),
           ],
           Container(
+            key: const ValueKey('chip-conexion'),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: fondo,
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Row(
@@ -824,9 +839,9 @@ class _PestanaState extends State<_Pestana> {
 
   @override
   Widget build(BuildContext context) {
-    // Verde accesible sobre la cápsula (4,94:1); gris secundario sobre el
+    // Blanco sobre la cápsula verde oscuro (5,48:1); gris secundario sobre el
     // blanco (5,38:1).
-    final color = widget.elegida ? AppColors.online : AppColors.textSecondary;
+    final color = widget.elegida ? Colors.white : AppColors.textSecondary;
     return Semantics(
       button: true,
       selected: widget.elegida,

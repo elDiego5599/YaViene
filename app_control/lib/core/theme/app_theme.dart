@@ -82,9 +82,15 @@ abstract class AppColors {
   /// es ese mismo verde en su variante accesible.
   static const Color online = core.AppColors.primaryAccessible;
 
-  /// La cápsula de la pestaña puesta (Flota o Reportes): el verde claro de
-  /// la píldora del pasajero, con la pestaña en [online] encima (4,94:1).
-  static const Color capsula = core.AppColors.primaryTint;
+  /// Lo puesto (la pestaña Flota o Reportes, la ruta elegida y «En línea»),
+  /// lleno en el verde oscuro de la marca con la letra blanca encima
+  /// (5,48:1; dueño, 2026-10-27; antes el verde claro con letra verde).
+  static const Color capsula = core.AppColors.primaryAccessible;
+
+  /// «Sin conexión», lleno con la letra blanca: el rojo de la web
+  /// (`--coral-accessible`, #CE2D1D), más fuerte que [danger]; blanco encima
+  /// da 5,23:1 (dueño, 2026-10-27).
+  static const Color sinConexion = Color(0xFFCE2D1D);
 
   /// El filo de la píldora de las pestañas, el mismo de la del pasajero.
   static const Color filoPildora = core.AppColors.hairline;

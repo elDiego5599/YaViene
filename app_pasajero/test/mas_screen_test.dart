@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/services/abrir_enlace.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
@@ -254,7 +255,7 @@ void main() {
     for (final (texto, color) in [
       ('Ya Viene', AppColors.textPrimary),
     ]) {
-      final letra = find.textContaining(texto);
+      final letra = find.text(texto);
       expect(tester.widget<Text>(letra).style!.color, color);
       final pildora = tester.widget<DecoratedBox>(find
           .ancestor(of: letra, matching: find.byKey(MasScreen.pildoraKey))
@@ -362,5 +363,41 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('el mapa'), findsOneWidget);
     expect(container.read(pedirSelectorProvider), 1);
+  });
+
+  testWidgets('al pie, la firma de Ya Viene Tech abre su web', (tester) async {
+    final abiertos = <Uri>[];
+    final container = ProviderContainer(overrides: [
+      abrirEnlaceProvider.overrideWithValue((uri) async {
+        abiertos.add(uri);
+        return true;
+      }),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: MasScreen()),
+      ),
+    );
+    await tester.pump();
+
+    final firma =
+        find.text('Una solución de Ya Viene Tech', findRichText: true);
+    expect(firma, findsOneWidget);
+    expect(
+        tester.getSemantics(find.byKey(MasScreen.firmaKey)),
+        matchesSemantics(
+            isLink: true,
+            hasTapAction: true,
+            label: 'Una solución de Ya Viene Tech',
+            hint: 'Abre yavienetech.com'));
+    // Cabe un dedo: 44 de alto como mínimo, como pide la HIG.
+    expect(tester.getSize(find.byKey(MasScreen.firmaKey)).height,
+        greaterThanOrEqualTo(44));
+
+    await tester.tap(firma);
+    await tester.pump();
+    expect(abiertos, [Uri.parse('https://yavienetech.com')]);
   });
 }

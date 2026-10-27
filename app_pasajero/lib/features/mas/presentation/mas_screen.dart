@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../core/app_info.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/abrir_enlace.dart';
 import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/dialogo.dart';
 import '../../../core/widgets/titulo_seccion.dart';
@@ -39,6 +40,9 @@ class MasScreen extends ConsumerWidget {
 
   /// La píldora blanca de la marca sobre las ilustraciones.
   static const pildoraKey = ValueKey('mas-pildora');
+
+  /// La firma del pie, «Una solución de Ya Viene Tech».
+  static const firmaKey = ValueKey('mas-firma');
 
   /// El aire a cada lado de la columna, más que el de las demás pestañas:
   /// sobre las ilustraciones, el fondo que se ve a los lados es el que hace
@@ -231,7 +235,88 @@ class MasScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                  // La firma va al fondo de la pantalla, no pegada a la
+                  // última tarjeta (dueño, 2026-10-27): el hueco que sobra
+                  // se lo come este sliver, y si no sobra, va después.
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: _Firma(),
+                    ),
+                  ),
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Una solución de Ya Viene Tech», chiquita y gris al pie de Info, con el
+/// nombre en el azul de los enlaces: abre yavienetech.com en el navegador.
+/// Como una firma al pie y no como otra fila: no es algo que se use, es de
+/// quién es la app.
+class _Firma extends ConsumerStatefulWidget {
+  const _Firma();
+
+  @override
+  ConsumerState<_Firma> createState() => _FirmaState();
+}
+
+class _FirmaState extends ConsumerState<_Firma> {
+  static final _web = Uri.parse('https://yavienetech.com');
+  bool _pressed = false;
+
+  void _abrir() => ref.read(abrirEnlaceProvider)(_web);
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      key: MasScreen.firmaKey,
+      link: true,
+      label: 'Una solución de Ya Viene Tech',
+      hint: 'Abre yavienetech.com',
+      onTap: _abrir,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: _abrir,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        behavior: HitTestBehavior.opaque,
+        // Al tocarla se aclara, como un enlace de iOS.
+        child: AnimatedOpacity(
+          opacity: _pressed ? 0.5 : 1,
+          duration: AppMotion.instante,
+          curve: AppMotion.curvaSalida,
+          // 44 de alto: lo que pide la HIG para un dedo, aunque la letra
+          // sea chica.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(
+                widthFactor: 1,
+                child: Text.rich(
+                  TextSpan(
+                    text: 'Una solución de ',
+                    children: [
+                      TextSpan(
+                        text: 'Ya Viene Tech',
+                        // #1E56A8 sobre blanco: 7,1:1.
+                        style: AppTextStyles.pie.copyWith(
+                          color: AppColors.acento,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.pie,
+                ),
               ),
             ),
           ),

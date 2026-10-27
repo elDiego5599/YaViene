@@ -464,7 +464,7 @@ void main() {
     Color? letra(String texto) =>
         tester.widget<Text>(find.text(texto)).style?.color;
     expect(relleno('Tcherassi (2)'), AppColors.capsula);
-    expect(letra('Tcherassi (2)'), AppColors.online);
+    expect(letra('Tcherassi (2)'), Colors.white);
     expect(relleno('Todos'), AppColors.surface);
     expect(letra('Todos'), AppColors.textPrimary);
     expect(relleno('En Línea'), Colors.transparent);

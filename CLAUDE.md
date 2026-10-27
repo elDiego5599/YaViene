@@ -367,8 +367,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   lleva su recorrido como en el pasajero (`rutas.json` vive en el core,
   `kRutasAsset`); sin conductor ni chip de ruta; mapa acotado (60 km, zoom ≥ 11);
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
-  Flota y Reportes en una píldora blanca con cápsula verde
-  (`AppColors.capsula`) que se desliza con el resorte de la píldora del
+  Flota y Reportes en una píldora blanca con cápsula en el verde oscuro
+  de la marca y letra blanca (`AppColors.capsula`, #047857, 5,48:1; dueño,
+  2026-10-27; igual las rutas elegidas y «En línea», y «Sin conexión» en el
+  rojo de la web, `sinConexion`, #CE2D1D, 5,23:1; en Reportes, «Ver ruta» es
+  una casilla bajo una raya en la leyenda del mapa) que se desliza con el resorte de la píldora del
   pasajero, y el cuerpo se desliza de lado con él; la ruta elegida en esa
   cápsula y la pestaña de estado en lámina blanca, sin azul lleno; el
   interruptor de la fila sin rótulo PERMITIDO/OCULTO (dueño, 2026-10-26);

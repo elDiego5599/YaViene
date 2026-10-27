@@ -1259,14 +1259,8 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
             periodo: widget.periodo,
             sinZonas: widget.cells.isEmpty && !widget.cargando,
             onSelectHour: widget.onSelectHour,
-          ),
-        ),
-        Positioned(
-          top: 14,
-          right: 14,
-          child: _BotonRuta(
-            pintada: _verRuta,
-            onTap: () => setState(() => _verRuta = !_verRuta),
+            verRuta: _verRuta,
+            onVerRuta: () => setState(() => _verRuta = !_verRuta),
           ),
         ),
         const Positioned(right: 8, bottom: 5, child: _AtribucionMapa()),
@@ -1587,6 +1581,8 @@ class _HorasMapa extends StatelessWidget {
     required this.periodo,
     required this.sinZonas,
     required this.onSelectHour,
+    required this.verRuta,
+    required this.onVerRuta,
   });
 
   final String routeId;
@@ -1596,6 +1592,8 @@ class _HorasMapa extends StatelessWidget {
   final PeriodoReporte periodo;
   final bool sinZonas;
   final ValueChanged<int?> onSelectHour;
+  final bool verRuta;
+  final VoidCallback onVerRuta;
 
   // 420 px, un cuarto más que antes para leerse de lejos (dueño,
   // 2026-10-26): con 14 de aire por lado quedan 392 para 24 barras de
@@ -1803,60 +1801,109 @@ class _HorasMapa extends StatelessWidget {
                 ),
               ),
             ),
+          // «Ver ruta» va al pie de la leyenda, bajo una raya, como casilla
+          // (dueño, 2026-10-27): antes era una píldora suelta en la esquina.
+          const SizedBox(height: 10),
+          Container(
+            key: const ValueKey('separador-ruta'),
+            height: 1,
+            color: AppColors.border,
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _CasillaRuta(pintada: verRuta, onTap: onVerRuta),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Píldora que pinta o quita la ruta. Apagada va blanca como la tarjeta de
-/// las horas; encendida, llena en el azul de botón con letra blanca
-/// (#1E56A8 con blanco da 7,1:1).
-class _BotonRuta extends StatelessWidget {
-  const _BotonRuta({required this.pintada, required this.onTap});
+/// La casilla que pinta o quita la ruta, como la de macOS pero más
+/// redonda: apagada, el filo fuerte sobre blanco; puesta, llena en el verde
+/// oscuro de la cápsula con la palomita blanca (5,48:1). La palomita se
+/// dibuja con su resorte y la casilla se hunde al apretar.
+class _CasillaRuta extends StatefulWidget {
+  const _CasillaRuta({required this.pintada, required this.onTap});
 
   final bool pintada;
   final VoidCallback onTap;
 
   @override
+  State<_CasillaRuta> createState() => _CasillaRutaState();
+}
+
+class _CasillaRutaState extends State<_CasillaRuta> {
+  bool _apretada = false;
+
+  void _apretar(bool si) => setState(() => _apretada = si);
+
+  @override
   Widget build(BuildContext context) {
-    final tinta = pintada ? Colors.white : AppColors.navy;
-    return Semantics(
-      button: true,
-      toggled: pintada,
-      label: 'Pintar la ruta',
-      child: ExcludeSemantics(
+    final pintada = widget.pintada;
+    // Un solo nodo con su estado, el toque y el foco del InkWell: con
+    // ExcludeSemantics encima, el lector de pantalla no podía tocarla.
+    return MergeSemantics(
+      child: Semantics(
+        checked: pintada,
+        label: 'Ver ruta',
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             key: const ValueKey('alternar-ruta'),
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: AnimatedContainer(
-              duration: AppMotion.duracion(context, AppMotion.rapido),
-              curve: AppMotion.curvaCambio,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: pintada
-                    ? AppColors.boton
-                    : AppColors.surface.withValues(alpha: 0.96),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                border: Border.all(
-                  color: pintada ? AppColors.boton : AppColors.border,
-                ),
-                boxShadow: AppColors.sombraTarjeta,
-              ),
+            onTap: widget.onTap,
+            onTapDown: (_) => _apretar(true),
+            onTapUp: (_) => _apretar(false),
+            onTapCancel: () => _apretar(false),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            hoverColor: AppColors.navy.withValues(alpha: 0.04),
+            splashFactory: NoSplash.splashFactory,
+            highlightColor: Colors.transparent,
+            child: Padding(
+              // 18 de casilla y 6 por lado: 30 de alto para el puntero.
+              padding: const EdgeInsets.fromLTRB(2, 6, 8, 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.route_outlined, size: 16, color: tinta),
-                  const SizedBox(width: 6),
-                  Text(
-                    pintada ? 'Quitar ruta' : 'Ver ruta',
-                    style: AppType.ui(
-                      color: tinta,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                  AnimatedScale(
+                    scale: _apretada ? 0.88 : 1,
+                    duration: AppMotion.duracion(context, AppMotion.instante),
+                    curve: AppMotion.curvaSalida,
+                    child: AnimatedContainer(
+                      key: const ValueKey('casilla-ruta'),
+                      duration: AppMotion.duracion(context, AppMotion.rapido),
+                      curve: AppMotion.curvaCambio,
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: pintada ? AppColors.capsula : AppColors.surface,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                          color: pintada
+                              ? AppColors.capsula
+                              : AppColors.borderStrong,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(end: pintada ? 1 : 0),
+                        duration: AppMotion.duracion(context, AppMotion.normal),
+                        curve: AppMotion.curvaRebote,
+                        builder: (context, t, _) =>
+                            CustomPaint(painter: _Palomita(t.clamp(0, 1))),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ExcludeSemantics(
+                    child: Text(
+                      'Ver ruta',
+                      style: AppType.ui(
+                        color: AppColors.navy,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -1867,6 +1914,35 @@ class _BotonRuta extends StatelessWidget {
       ),
     );
   }
+}
+
+/// La palomita blanca de [_CasillaRuta], dibujada hasta [t] (0 a 1).
+class _Palomita extends CustomPainter {
+  const _Palomita(this.t);
+
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t == 0) return;
+    final trazo = ui.Path()
+      ..moveTo(size.width * 0.24, size.height * 0.52)
+      ..lineTo(size.width * 0.42, size.height * 0.70)
+      ..lineTo(size.width * 0.76, size.height * 0.32);
+    final metrica = trazo.computeMetrics().first;
+    canvas.drawPath(
+      metrica.extractPath(0, metrica.length * t),
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_Palomita vieja) => vieja.t != t;
 }
 
 class _BarraHoraMapa extends StatefulWidget {

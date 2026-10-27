@@ -361,13 +361,50 @@ void main() {
     // La ruta arranca sin pintar; el botón la pone y la quita (dueño,
     // 2026-10-26).
     expect(find.byType(PolylineLayer), findsNothing);
+    // Es una casilla al pie de la leyenda, bajo una raya (dueño,
+    // 2026-10-27), no una píldora suelta en la esquina del mapa.
     final boton = find.byKey(const ValueKey('alternar-ruta'));
     expect(boton, findsOneWidget);
+    final leyenda = find.byKey(const ValueKey('horas-mapa'));
+    expect(find.descendant(of: leyenda, matching: boton), findsOneWidget);
+    final raya = find.byKey(const ValueKey('separador-ruta'));
+    expect(find.descendant(of: leyenda, matching: raya), findsOneWidget);
+    expect(
+      tester.getRect(raya).top,
+      greaterThan(
+        tester.getRect(find.byKey(const ValueKey('leyenda-calor'))).bottom,
+      ),
+    );
+    expect(tester.getRect(boton).top, greaterThan(tester.getRect(raya).bottom));
+    expect(tester.getSize(boton).height, greaterThanOrEqualTo(28));
     expect(find.text('Ver ruta'), findsOneWidget);
+    expect(
+      tester.getSemantics(boton),
+      matchesSemantics(
+        label: 'Ver ruta',
+        hasCheckedState: true,
+        isChecked: false,
+        hasTapAction: true,
+        hasFocusAction: true,
+        isFocusable: true,
+      ),
+    );
     await tester.tap(boton);
     await tester.pumpAndSettle();
     expect(find.byType(PolylineLayer), findsOneWidget);
-    expect(find.text('Quitar ruta'), findsOneWidget);
+    expect(find.text('Ver ruta'), findsOneWidget);
+    expect(find.text('Quitar ruta'), findsNothing);
+    expect(
+      tester.getSemantics(boton),
+      matchesSemantics(
+        label: 'Ver ruta',
+        hasCheckedState: true,
+        isChecked: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+        isFocusable: true,
+      ),
+    );
     // La ruta va debajo del calor y translúcida, para que el calor mande
     // (dueño, 2026-10-26).
     final capas = tester.widget<FlutterMap>(find.byType(FlutterMap)).children;

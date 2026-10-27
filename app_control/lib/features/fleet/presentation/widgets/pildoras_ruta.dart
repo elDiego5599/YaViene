@@ -73,8 +73,8 @@ class PildoraRuta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // La ruta elegida en la cápsula verde de Flota y Reportes (el verde de la
-    // ruta en el mapa), no llena de azul: online sobre capsula da 4,94:1.
+    // La ruta elegida en la cápsula verde oscuro de Flota y Reportes, con la
+    // letra blanca (5,48:1; dueño, 2026-10-27).
     return Semantics(
       button: true,
       selected: active,
@@ -90,7 +90,7 @@ class PildoraRuta extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.pill),
               border: Border.all(
-                color: active ? AppColors.online : AppColors.borderStrong,
+                color: active ? AppColors.capsula : AppColors.borderStrong,
               ),
             ),
             child: Text(
@@ -98,7 +98,7 @@ class PildoraRuta extends StatelessWidget {
               style: AppType.ui(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
-                color: active ? AppColors.online : AppColors.textSecondary,
+                color: active ? Colors.white : AppColors.textSecondary,
               ),
             ),
           ),

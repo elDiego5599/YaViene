@@ -35,8 +35,9 @@ Color _letra(WidgetTester tester, String texto) => tester
 /// La cabecera sola, al ancho del panel, con la conexión en línea.
 Future<ProviderContainer> _montar(
   WidgetTester tester,
-  BackendUrl Function() backend,
-) async {
+  BackendUrl Function() backend, {
+  FleetConnection conexion = FleetConnection.connected,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1600, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final panel = ProviderContainer(
@@ -49,10 +50,7 @@ Future<ProviderContainer> _montar(
       child: MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
-          body: DashboardHeader(
-            connection: FleetConnection.connected,
-            onLogout: () {},
-          ),
+          body: DashboardHeader(connection: conexion, onLogout: () {}),
         ),
       ),
     ),
@@ -155,12 +153,7 @@ void main() {
     expect(deco.gradient, isNull);
     expect(deco.color, AppColors.surface);
 
-    for (final texto in [
-      'Reportes',
-      'Conectado al respaldo',
-      'Salir',
-      'En línea',
-    ]) {
+    for (final texto in ['Reportes', 'Conectado al respaldo', 'Salir']) {
       expect(
         _contraste(_letra(tester, texto), AppColors.surface),
         greaterThanOrEqualTo(4.5),
@@ -186,10 +179,10 @@ void main() {
     expect(find.text('CONTROL DE FLOTA'), findsNothing);
     expect(find.byKey(const ValueKey('pestana-flota')), findsOneWidget);
     expect(find.byKey(const ValueKey('pestana-reportes')), findsOneWidget);
-    expect(_letra(tester, 'Flota'), AppColors.online);
+    expect(_letra(tester, 'Flota'), Colors.white);
     expect(_letra(tester, 'Reportes'), AppColors.textSecondary);
     expect(
-      _contraste(AppColors.online, AppColors.capsula),
+      _contraste(Colors.white, AppColors.capsula),
       greaterThanOrEqualTo(4.5),
     );
     expect(
@@ -207,4 +200,26 @@ void main() {
     // 34 dentro de la píldora de 3: los 40 de la cabecera.
     expect(flota.height, greaterThanOrEqualTo(34));
   });
+
+  // El estado de la conexión va lleno, con la letra blanca (dueño,
+  // 2026-10-27): en línea en el verde oscuro de la cápsula y sin conexión en
+  // el rojo de la web, más fuerte que el de error.
+  for (final (conexion, texto, fondo) in [
+    (FleetConnection.connected, 'En línea', AppColors.capsula),
+    (FleetConnection.disconnected, 'Sin conexión', AppColors.sinConexion),
+  ]) {
+    testWidgets('«$texto» va lleno con la letra blanca', (tester) async {
+      await _montar(
+        tester,
+        () => BackendUrl(principal, principal: principal, respaldo: respaldo),
+        conexion: conexion,
+      );
+      final chip = tester.widget<Container>(
+        find.byKey(const ValueKey('chip-conexion')),
+      );
+      expect((chip.decoration! as BoxDecoration).color, fondo);
+      expect(_letra(tester, texto), Colors.white);
+      expect(_contraste(Colors.white, fondo), greaterThanOrEqualTo(4.5));
+    });
+  }
 }
