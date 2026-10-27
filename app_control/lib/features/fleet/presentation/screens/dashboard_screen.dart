@@ -668,9 +668,9 @@ final _resortePestanas = SpringDescription.withDampingRatio(
 
 /// Flota y Reportes como la píldora de abajo del pasajero (dueño,
 /// 2026-10-26: el riel gris con su lámina se veía raro): una píldora
-/// blanca con su filo y la pestaña puesta sobre una cápsula verde clara,
-/// que va de una a otra con [_resortePestanas]. La puesta en verde
-/// accesible sobre la cápsula (4,94:1) y la otra en gris secundario sobre
+/// blanca con su filo y la pestaña puesta sobre una cápsula azul,
+/// que va de una a otra con [_resortePestanas]. La puesta en blanco sobre
+/// la cápsula (7,1:1) y la otra en gris secundario sobre
 /// blanco (5,38:1). Las dos miden lo que la más ancha (con su texto,
 /// también agrandado), así la cápsula no cambia de ancho al moverse.
 class _Pestanas extends StatefulWidget {
@@ -839,7 +839,7 @@ class _PestanaState extends State<_Pestana> {
 
   @override
   Widget build(BuildContext context) {
-    // Blanco sobre la cápsula verde oscuro (5,48:1); gris secundario sobre el
+    // Blanco sobre la cápsula azul (7,1:1); gris secundario sobre el
     // blanco (5,38:1).
     final color = widget.elegida ? Colors.white : AppColors.textSecondary;
     return Semantics(

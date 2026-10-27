@@ -164,8 +164,8 @@ void main() {
   });
 
   // El rótulo «YA VIENE / CONTROL DE FLOTA» se va y en su sitio quedan dos
-  // pestañas en una píldora blanca (dueño, 2026-10-26): la elegida en verde
-  // sobre su cápsula, que se desliza como la píldora del pasajero; la otra,
+  // pestañas en una píldora blanca (dueño, 2026-10-26): la elegida en blanco
+  // sobre su cápsula azul, que se desliza como la píldora del pasajero; la otra,
   // gris secundario sobre el blanco.
   testWidgets('la cabecera lleva Flota y Reportes como pestañas', (
     tester,
@@ -180,6 +180,8 @@ void main() {
     expect(find.byKey(const ValueKey('pestana-flota')), findsOneWidget);
     expect(find.byKey(const ValueKey('pestana-reportes')), findsOneWidget);
     expect(_letra(tester, 'Flota'), Colors.white);
+    // Lo puesto va en el azul de la ruta de la leyenda (dueño, 2026-10-27).
+    expect(AppColors.capsula, AppColors.boton);
     expect(_letra(tester, 'Reportes'), AppColors.textSecondary);
     expect(
       _contraste(Colors.white, AppColors.capsula),
@@ -202,7 +204,7 @@ void main() {
   });
 
   // El estado de la conexión va lleno, con la letra blanca (dueño,
-  // 2026-10-27): en línea en el verde oscuro de la cápsula y sin conexión en
+  // 2026-10-27): en línea en el azul de la cápsula y sin conexión en
   // el rojo de la web, más fuerte que el de error.
   for (final (conexion, texto, fondo) in [
     (FleetConnection.connected, 'En línea', AppColors.capsula),

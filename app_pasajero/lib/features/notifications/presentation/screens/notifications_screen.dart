@@ -38,12 +38,14 @@ class NotificationsScreen extends ConsumerWidget {
           ));
 
     // Orden editorial: primero los activos, luego los enviados (cada grupo
-    // con su encabezado, en `_HistoryList`). El orden de persistencia se
-    // conserva dentro de cada grupo para que la selección sea estable.
+    // con su encabezado, en `_HistoryList`). Los activos van en el orden de
+    // persistencia; los enviados, el que sonó de último arriba (dueño,
+    // 2026-10-27). Los dos órdenes son estables: la selección no salta.
     final entries = [
       ...history.where((e) => !e.sent),
-      ...history.where((e) => e.sent),
-    ].toList();
+      ...history.where((e) => e.sent).toList()
+        ..sort((a, b) => b.sentAt!.compareTo(a.sentAt!)),
+    ];
     final selecting = ref.watch(alertSelectionProvider).active;
 
     return BackdropGroup(

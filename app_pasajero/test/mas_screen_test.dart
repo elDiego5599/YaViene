@@ -396,6 +396,14 @@ void main() {
     expect(tester.getSize(find.byKey(MasScreen.firmaKey)).height,
         greaterThanOrEqualTo(44));
 
+    // Justo debajo del cuadro de Información, no al fondo de la pantalla
+    // (dueño, 2026-10-27).
+    final cuadro = tester.getRect(find
+        .ancestor(of: find.text('Acerca de'), matching: find.byType(FilaMas))
+        .first);
+    final pie = tester.getRect(find.byKey(MasScreen.firmaKey));
+    expect(pie.top - cuadro.bottom, inInclusiveRange(0, 12));
+
     await tester.tap(firma);
     await tester.pump();
     expect(abiertos, [Uri.parse('https://yavienetech.com')]);

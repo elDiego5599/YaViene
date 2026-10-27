@@ -229,20 +229,15 @@ class MasScreen extends ConsumerWidget {
                                   onTap: () => _acercaDe(context),
                                 ),
                               ]),
+                              // Justo debajo del cuadro de Información
+                              // (dueño, 2026-10-27; al fondo de la pantalla
+                              // quedaba lejos). Sus 44 de alto ya dejan aire
+                              // entre el filo y la letra.
+                              const Center(child: _Firma()),
                             ],
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  // La firma va al fondo de la pantalla, no pegada a la
-                  // última tarjeta (dueño, 2026-10-27): el hueco que sobra
-                  // se lo come este sliver, y si no sobra, va después.
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: _Firma(),
                     ),
                   ),
                 ],

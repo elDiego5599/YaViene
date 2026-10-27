@@ -1821,8 +1821,8 @@ class _HorasMapa extends StatelessWidget {
 }
 
 /// La casilla que pinta o quita la ruta, como la de macOS pero más
-/// redonda: apagada, el filo fuerte sobre blanco; puesta, llena en el verde
-/// oscuro de la cápsula con la palomita blanca (5,48:1). La palomita se
+/// redonda: apagada, el filo fuerte sobre blanco; puesta, llena en el azul
+/// de la cápsula con la palomita blanca (7,1:1). La palomita se
 /// dibuja con su resorte y la casilla se hunde al apretar.
 class _CasillaRuta extends StatefulWidget {
   const _CasillaRuta({required this.pintada, required this.onTap});

@@ -73,8 +73,8 @@ class PildoraRuta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // La ruta elegida en la cápsula verde oscuro de Flota y Reportes, con la
-    // letra blanca (5,48:1; dueño, 2026-10-27).
+    // La ruta elegida en la cápsula azul de Flota y Reportes, con la letra
+    // blanca (7,1:1; dueño, 2026-10-27).
     return Semantics(
       button: true,
       selected: active,

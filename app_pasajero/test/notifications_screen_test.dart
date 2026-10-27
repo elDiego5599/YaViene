@@ -597,6 +597,17 @@ void main() {
     }
   });
 
+  // «Que se pongan en orden del más reciente primero» (dueño, 2026-10-27).
+  testWidgets('en «Enviados» el que sonó de último va arriba', (tester) async {
+    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
+    historicoSonado(container, 'A-1');
+    historicoSonado(container, 'A-2');
+    await tester.pump();
+
+    double y(Finder f) => tester.getTopLeft(f).dy;
+    expect(y(aviso('A-2')), lessThan(y(aviso('A-1'))));
+  });
+
   testWidgets('sin avisos enviados no sale el grupo «Enviados»',
       (tester) async {
     final container = await pumpScreen(tester, const []);
