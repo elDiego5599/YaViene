@@ -371,9 +371,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   login partido con «¿Olvidaste tu contraseña?» → WhatsApp del equipo;
   Flota y Reportes en una píldora blanca con cápsula en el azul de la
   ruta de la leyenda y letra blanca (`AppColors.capsula` = `boton`, #1E56A8,
-  7,1:1; dueño, 2026-10-27, el verde oscuro no gustó; igual las rutas elegidas y «En línea», y «Sin conexión» en el
+  7,1:1; dueño, 2026-10-27, el verde oscuro no gustó; igual las rutas elegidas; «En línea» en el verde oscuro, `online`, 5,48:1, y «Sin conexión» en el
   rojo de la web, `sinConexion`, #CE2D1D, 5,23:1; en Reportes, «Ver ruta» es
-  una casilla bajo una raya en la leyenda del mapa) que se desliza con el resorte de la píldora del
+  una casilla bajo una raya en la leyenda del mapa; sin zonas de 5 o más, D17, el pie dice cuántas búsquedas hubo, y con una hora elegida cuenta solo esa) que se desliza con el resorte de la píldora del
   pasajero, y el cuerpo se desliza de lado con él; la pestaña de estado en
   lámina blanca; el
   interruptor de la fila sin rótulo PERMITIDO/OCULTO (dueño, 2026-10-26);

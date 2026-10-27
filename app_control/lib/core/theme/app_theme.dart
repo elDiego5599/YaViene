@@ -82,8 +82,8 @@ abstract class AppColors {
   /// es ese mismo verde en su variante accesible.
   static const Color online = core.AppColors.primaryAccessible;
 
-  /// Lo puesto (la pestaña Flota o Reportes, la ruta elegida, «En línea» y
-  /// la casilla «Ver ruta»), lleno en el azul de la ruta de la leyenda con la
+  /// Lo puesto (la pestaña Flota o Reportes, la ruta elegida y la casilla
+  /// «Ver ruta»; «En línea» va en [online]), lleno en el azul de la ruta de la leyenda con la
   /// letra blanca encima (7,1:1; dueño, 2026-10-27; el verde oscuro no gustó).
   static const Color capsula = boton;
 

@@ -112,6 +112,31 @@ String totalPeriodoLabel(PeriodoReporte periodo, DateTime ahora) {
   return periodo.dia != null ? 'Total del $cuando' : 'Total de $cuando';
 }
 
+/// El pie del mapa con una hora elegida: lo que suma esa hora, no el día.
+String totalHoraLabel(
+  PeriodoReporte periodo,
+  DateTime ahora, {
+  required int hora,
+  required int busquedas,
+}) {
+  final cuantas = busquedas == 1 ? '1 búsqueda' : '$busquedas búsquedas';
+  final cuando = _periodoConFechas(periodo, ahora);
+  final enPeriodo = periodo.dia != null
+      ? ' del $cuando'
+      : periodo.name == 'hoy'
+      ? ', $cuando'
+      : ' en $cuando';
+  return '$cuantas de ${horaPicoLabel(hora)}$enPeriodo';
+}
+
+/// Sin zonas que mostrar: el mapa solo pinta celdas con 5 o más (D17), y
+/// con pocas búsquedas el pie dice que sí las hubo.
+String sinZonasLabel(int busquedas) {
+  if (busquedas == 0) return 'Sin zonas con 5 búsquedas o más';
+  final cuantas = busquedas == 1 ? '1 búsqueda' : '$busquedas búsquedas';
+  return 'Hay $cuantas, pero ninguna zona llega a 5';
+}
+
 /// Lo que promedia la ocupación: los buses de la ruta, día por día.
 String promedioPeriodoLabel(
   PeriodoReporte periodo,

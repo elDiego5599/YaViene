@@ -1691,7 +1691,14 @@ class _HorasMapa extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            totalPeriodoLabel(periodo, DateTime.now()),
+            hora == null
+                ? totalPeriodoLabel(periodo, DateTime.now())
+                : totalHoraLabel(
+                    periodo,
+                    DateTime.now(),
+                    hora: hora!,
+                    busquedas: porHora[hora!],
+                  ),
             key: const ValueKey('mapa-rango'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1771,7 +1778,11 @@ class _HorasMapa extends StatelessWidget {
           const SizedBox(height: 10),
           if (sinZonas)
             Text(
-              'Sin zonas con 5 búsquedas o más',
+              sinZonasLabel(
+                hora == null
+                    ? porHora.fold(0, (a, b) => a + b)
+                    : porHora[hora!],
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: pie,

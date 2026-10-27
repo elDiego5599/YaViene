@@ -204,10 +204,11 @@ void main() {
   });
 
   // El estado de la conexión va lleno, con la letra blanca (dueño,
-  // 2026-10-27): en línea en el azul de la cápsula y sin conexión en
-  // el rojo de la web, más fuerte que el de error.
+  // 2026-10-27): en línea en el verde oscuro de la marca (el azul de la
+  // cápsula no gustó ahí) y sin conexión en el rojo de la web, más fuerte
+  // que el de error.
   for (final (conexion, texto, fondo) in [
-    (FleetConnection.connected, 'En línea', AppColors.capsula),
+    (FleetConnection.connected, 'En línea', AppColors.online),
     (FleetConnection.disconnected, 'Sin conexión', AppColors.sinConexion),
   ]) {
     testWidgets('«$texto» va lleno con la letra blanca', (tester) async {

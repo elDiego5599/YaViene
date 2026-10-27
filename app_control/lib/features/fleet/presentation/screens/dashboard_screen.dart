@@ -477,13 +477,11 @@ class DashboardHeader extends ConsumerWidget {
     // operador tiene que saber que lo que ve no es la flota del túnel.
     final enRespaldo = ref.watch(enRespaldoProvider);
     // En línea y sin conexión van llenos con la letra blanca (dueño,
-    // 2026-10-27); conectando, que dura un instante, en su matiz ámbar.
+    // 2026-10-27): en línea en el verde oscuro de la marca (5,48:1; el azul
+    // de la cápsula no gustó ahí); conectando, que dura un instante, en su
+    // matiz ámbar.
     final (label, fondo, color) = switch (connection) {
-      FleetConnection.connected => (
-        'En línea',
-        AppColors.capsula,
-        Colors.white,
-      ),
+      FleetConnection.connected => ('En línea', AppColors.online, Colors.white),
       FleetConnection.disconnected => (
         'Sin conexión',
         AppColors.sinConexion,

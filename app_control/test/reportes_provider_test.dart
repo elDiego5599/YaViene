@@ -223,6 +223,32 @@ void main() {
       );
     });
 
+    test('con una hora elegida el pie cuenta solo esa hora', () {
+      expect(
+        totalHoraLabel(PeriodoReporte.hoy, ahora, hora: 12, busquedas: 3),
+        '3 búsquedas de 12 p. m. a 1 p. m., hoy, 27 oct',
+      );
+      expect(
+        totalHoraLabel(PeriodoReporte.mes, ahora, hora: 7, busquedas: 1),
+        '1 búsqueda de 7 a 8 a. m. en los 30 días, 27 sep a 27 oct',
+      );
+      expect(
+        totalHoraLabel(
+          PeriodoReporte.delDia(DateTime(2026, 10, 12)),
+          ahora,
+          hora: 7,
+          busquedas: 0,
+        ),
+        '0 búsquedas de 7 a 8 a. m. del 12 oct',
+      );
+    });
+
+    test('sin zonas dice si hubo búsquedas que no llegan a 5', () {
+      expect(sinZonasLabel(0), 'Sin zonas con 5 búsquedas o más');
+      expect(sinZonasLabel(1), 'Hay 1 búsqueda, pero ninguna zona llega a 5');
+      expect(sinZonasLabel(4), 'Hay 4 búsquedas, pero ninguna zona llega a 5');
+    });
+
     test('la ocupación dice que promedia sus buses en el periodo', () {
       expect(
         promedioPeriodoLabel(PeriodoReporte.mes, ahora, buses: 3),

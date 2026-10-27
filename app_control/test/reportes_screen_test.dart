@@ -328,6 +328,42 @@ void main() {
     expect(find.byKey(const ValueKey('ruta-mapa-R1')), findsOneWidget);
   });
 
+  testWidgets('con pocas búsquedas dice cuántas hubo, y por hora solo esa', (
+    tester,
+  ) async {
+    final porHora = List<int>.filled(24, 0)
+      ..[7] = 4
+      ..[12] = 3;
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [
+        _ruta('R1', 'C16 Ruta 1', 7, 7, porHora: porHora),
+      ],
+      cargarCalor: (_, _) async => [],
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Hay 7 búsquedas, pero ninguna zona llega a 5'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('hora-mapa-12')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Hay 3 búsquedas, pero ninguna zona llega a 5'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+      totalHoraLabel(
+        PeriodoReporte.mes,
+        DateTime.now(),
+        hora: 12,
+        busquedas: 3,
+      ),
+    );
+  });
+
   testWidgets('el error del mapa permite reintentar la carga de calor', (
     tester,
   ) async {
