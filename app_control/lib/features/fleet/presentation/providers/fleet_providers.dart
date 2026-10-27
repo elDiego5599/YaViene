@@ -391,7 +391,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
     // tarde o falle, y asegura que aparezcan los buses sin posición.
     refresh();
     _resync?.cancel();
-    _resync = Timer.periodic(resincronizarCada, (_) => refresh());
+    _resync = Timer.periodic(resincronizarCada, (_) {
+      refresh();
+      // Sin catálogo no hay filtro de ruta y el mapa mostraría toda la flota.
+      if (state.routes.isEmpty) refreshRoutes();
+    });
   }
 
   /// La ventana del panel vuelve al frente. Un panel en segundo plano puede

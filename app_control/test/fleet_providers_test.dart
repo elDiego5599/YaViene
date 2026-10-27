@@ -64,6 +64,22 @@ class _FakeFleetApi extends FleetApi {
   }
 }
 
+/// El catálogo de rutas falla la primera vez (red caída al arrancar).
+class _RutasQueFallanUnaVez extends _FakeFleetApi {
+  _RutasQueFallanUnaVez({super.routes});
+
+  var _fallo = false;
+
+  @override
+  Future<List<FleetRoute>> fetchRoutes(String? token) async {
+    if (!_fallo) {
+      _fallo = true;
+      throw Exception('sin red');
+    }
+    return super.fetchRoutes(token);
+  }
+}
+
 /// Un socket sin red: lo que se mete en [posiciones], [lotes] o [visibles] le
 /// llega al notifier como si el backend hubiera emitido `bus:position`,
 /// `fleet:batch` o `bus:visible`.
@@ -495,6 +511,41 @@ void main() {
         reason: 'volver a la ventana no debería esperar al siguiente minuto',
       );
     });
+
+    // «En un momento se quitan los filtros de ruta y se muestran todos los
+    // buses en el mismo mapa» (dueño, 2026-10-27): si el catálogo falla al
+    // arrancar, sin rutas no hay filtro, y la resincronización no lo volvía
+    // a pedir.
+    test(
+      'si el catálogo falla al arrancar, la resincronización lo trae',
+      () async {
+        final api = _RutasQueFallanUnaVez(
+          routes: [
+            const FleetRoute(
+              routeId: 'R-1',
+              name: 'Ruta 1',
+              total: 0,
+              online: 0,
+            ),
+          ],
+        );
+        final container = _containerWith(
+          api,
+          socket: _FakeSocket(),
+          resincronizarCada: const Duration(milliseconds: 20),
+        );
+        final notifier = container.read(fleetProvider.notifier)..start();
+        await _vaciar();
+        expect(notifier.state.routes, isEmpty);
+
+        await api.alLlegarA(api.pedidas + 2);
+        await _vaciar();
+
+        expect(notifier.state.routes.map((r) => r.routeId), ['R-1']);
+        expect(notifier.state.routeFilter, 'R-1');
+        notifier.stop();
+      },
+    );
 
     test('stop() apaga la resincronización', () async {
       final api = _FakeFleetApi();
