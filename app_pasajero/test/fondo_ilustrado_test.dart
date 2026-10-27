@@ -158,9 +158,9 @@ void main() {
       (tester) async {
     await tester
         .pumpWidget(const MaterialApp(home: FondoIlustrado(child: SizedBox())));
-    // Blanco con el grano de la bienvenida, como Avisos y Buzón: la
-    // textura va en la parte blanca y no en la de color (dueño, 2026-10-27).
-    expect(find.byType(FondoTexturizado), findsOneWidget);
+    // Blanco liso, sin la trama de puntos, como Avisos y Buzón (dueño,
+    // 2026-10-26: «en vez de ser blancos lisos»).
+    expect(find.byType(FondoTexturizado), findsNothing);
     expect(
         tester
             .widgetList<ColoredBox>(find.byType(ColoredBox))
@@ -184,13 +184,13 @@ void main() {
         matching: find.byType(DecoratedBox).first));
     expect((caja.decoration as BoxDecoration).gradient,
         CabeceraDegradada.degradado);
-    // El degradado va liso: el grano es de la parte blanca (dueño,
+    // Con el grano de la bienvenida, que se apaga con el degradado (dueño,
     // 2026-10-27).
     expect(
         find.descendant(
             of: find.byKey(const ValueKey('info-degradado')),
             matching: find.byType(Grano)),
-        findsNothing);
+        findsOneWidget);
     final apagado = FondoIlustrado.desvanecido(const Size(390, 844), velo: 1);
     expect(apagado.colors.first.a, 1);
     expect(apagado.colors.last.a, 0);
@@ -212,8 +212,8 @@ void main() {
         .whereType<CustomPainter>()
         .map((p) => p.runtimeType)
         .toSet();
-    // El grano no es relleno: va en el blanco de abajo, no entre los
-    // dibujos (dueño, 2026-10-27).
+    // El grano de la cabecera no es relleno: va en el degradado, no entre
+    // los dibujos (dueño, 2026-10-27).
     expect(pintores, {PintorVentana, PintorGrano});
     final dibujos = [
       ...find.byType(Image).evaluate(),
