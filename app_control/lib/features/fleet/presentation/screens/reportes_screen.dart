@@ -15,6 +15,7 @@ import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/ventana.dart';
 import '../providers/fleet_providers.dart' show fleetProvider;
 import '../providers/ocupacion_provider.dart';
 import '../providers/reportes_provider.dart';
@@ -232,6 +233,13 @@ Widget _dosPaneles({required Widget izquierda, required Widget derecha}) => Row(
 // Valor del segmento «Fecha» antes de elegir un día: nunca es el periodo
 // vigente, así que no sale marcado.
 final _sinDia = PeriodoReporte.delDia(DateTime(2000));
+final _sinRango = PeriodoReporte.entre(DateTime(2000), DateTime(2000, 1, 2));
+
+/// Hoy en Bogotá, como día del calendario: el último que se puede elegir.
+DateTime _ultimoDia() {
+  final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+  return DateTime(hoy.year, hoy.month, hoy.day);
+}
 
 class _CabeceraReportes extends StatelessWidget {
   const _CabeceraReportes({
@@ -253,9 +261,8 @@ class _CabeceraReportes extends StatelessWidget {
   // Sale en un cuadro bajo los periodos, con el estilo del menú de la hora:
   // es un filtro más, no una tarea que pida velo.
   Widget _calendario(MenuController menu) {
-    final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
-    final ultimo = DateTime(hoy.year, hoy.month, hoy.day);
-    final elegido = periodo.dia;
+    final ultimo = _ultimoDia();
+    final elegido = periodo.esRango ? null : periodo.dia;
     return Builder(
       builder: (context) => Theme(
         data: Theme.of(context).copyWith(
@@ -324,15 +331,26 @@ class _CabeceraReportes extends StatelessWidget {
               for (final p in PeriodoReporte.values)
                 (p, periodoLabel(p), 'periodo-${p.name}'),
               // El día elegido se queda escrito en su segmento; sin día, dice
-              // «Fecha» y abre el calendario.
-              periodo.dia == null
+              // «Fecha» y abre el calendario. Igual el rango, que abre su
+              // ventana.
+              periodo.dia == null || periodo.esRango
                   ? (_sinDia, 'Fecha', 'periodo-dia')
                   : (periodo, periodoLabel(periodo), 'periodo-dia'),
+              periodo.esRango
+                  ? (periodo, periodoLabel(periodo), 'periodo-rango')
+                  : (_sinRango, 'Rango', 'periodo-rango'),
             ],
-            onSelect: (p) {
+            onSelect: (p) async {
               if (p.dia == null) {
                 menu.close();
                 onSelectPeriodo(p);
+              } else if (p.esRango) {
+                menu.close();
+                final rango = await mostrarVentana<PeriodoReporte>(
+                  context,
+                  (_) => _VentanaRango(periodo: periodo),
+                );
+                if (rango != null) onSelectPeriodo(rango);
               } else {
                 menu.isOpen ? menu.close() : menu.open();
               }
@@ -342,6 +360,184 @@ class _CabeceraReportes extends StatelessWidget {
         const SizedBox(width: 10),
         _FiltroHora(hora: hora, onSelectHour: onSelectHour),
       ],
+    ),
+  );
+}
+
+/// Desde y hasta, con un solo calendario: arriba los dos extremos, y el
+/// calendario elige el que está marcado. El primer día tocado es el desde y
+/// pasa solo al hasta, que no deja días antes del desde. Nada se vuelve a
+/// pedir hasta APLICAR. Ventana con velo y no el cuadro del día: son dos
+/// elecciones y un botón, una pequeña tarea.
+class _VentanaRango extends StatefulWidget {
+  const _VentanaRango({required this.periodo});
+
+  final PeriodoReporte periodo;
+
+  @override
+  State<_VentanaRango> createState() => _VentanaRangoState();
+}
+
+class _VentanaRangoState extends State<_VentanaRango> {
+  final _ultimo = _ultimoDia();
+  late DateTime _desde;
+  late DateTime _hasta;
+  var _editaHasta = false;
+
+  @override
+  void initState() {
+    super.initState();
+    DateTime local(DateTime d) => DateTime(d.year, d.month, d.day);
+    final p = widget.periodo;
+    // Sin rango previo, la última semana: los 7 días que ya conoce.
+    _desde = p.esRango
+        ? local(p.dia!)
+        : _ultimo.subtract(const Duration(days: 6));
+    _hasta = p.esRango ? local(p.fin!) : _ultimo;
+  }
+
+  void _elegir(DateTime dia) => setState(() {
+    if (_editaHasta) {
+      _hasta = dia;
+      return;
+    }
+    _desde = dia;
+    if (_hasta.isBefore(dia)) _hasta = dia;
+    _editaHasta = true;
+  });
+
+  String _fecha(DateTime d) {
+    final texto = periodoLabel(PeriodoReporte.delDia(d));
+    return d.year == _ultimo.year ? texto : '$texto ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) => Ventana(
+    icono: Icons.date_range_outlined,
+    titulo: 'Elegir fechas',
+    contenido: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _CampoFecha(
+                key: const ValueKey('rango-desde'),
+                rotulo: 'Desde',
+                fecha: _fecha(_desde),
+                activo: !_editaHasta,
+                onTap: () => setState(() => _editaHasta = false),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _CampoFecha(
+                key: const ValueKey('rango-hasta'),
+                rotulo: 'Hasta',
+                fecha: _fecha(_hasta),
+                activo: _editaHasta,
+                onTap: () => setState(() => _editaHasta = true),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: AppColors.boton),
+          ),
+          // Lo mismo que el calendario del día: 346 de alto para un mes de
+          // seis semanas, y sin colgarse del scroll de la ventana.
+          child: PrimaryScrollController.none(
+            child: SizedBox(
+              key: const ValueKey('calendario-rango'),
+              height: 346,
+              child: CalendarDatePicker(
+                // Otra llave al cambiar de extremo: el mes a la vista salta
+                // al del extremo marcado.
+                key: ValueKey(_editaHasta),
+                initialDate: _editaHasta ? _hasta : _desde,
+                firstDate: _ultimo.subtract(const Duration(days: 395)),
+                lastDate: _ultimo,
+                selectableDayPredicate: _editaHasta
+                    ? (d) => !d.isBefore(_desde)
+                    : null,
+                onDateChanged: _elegir,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+    secundaria: VentanaAccion('Cancelar', () => Navigator.of(context).pop()),
+    principal: VentanaAccion(
+      'APLICAR',
+      () => Navigator.of(context).pop(PeriodoReporte.entre(_desde, _hasta)),
+    ),
+  );
+}
+
+/// Un extremo del rango: rótulo chico y la fecha. El marcado lleva el filo
+/// del azul de botón (7,1:1 sobre blanco) y fondo blanco; el otro, el riel
+/// gris de los segmentos.
+class _CampoFecha extends StatelessWidget {
+  const _CampoFecha({
+    super.key,
+    required this.rotulo,
+    required this.fecha,
+    required this.activo,
+    required this.onTap,
+  });
+
+  final String rotulo;
+  final String fecha;
+  final bool activo;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: activo,
+    child: Material(
+      color: activo ? AppColors.surface : AppColors.surfaceRaised,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        side: BorderSide(
+          color: activo ? AppColors.boton : AppColors.border,
+          width: activo ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                rotulo,
+                style: AppType.ui(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                fecha,
+                style: AppType.ui(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.navy,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

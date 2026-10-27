@@ -3,15 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import 'fleet_providers.dart' show fleetApiProvider;
 
-/// Periodo del reporte: una ventana móvil (hoy, 7 o 30 días) o un día del
-/// calendario. Es un valor: dos periodos del mismo día son iguales, para que
-/// los providers family no repitan la consulta.
+/// Periodo del reporte: una ventana móvil (hoy, 7 o 30 días), un día del
+/// calendario o un rango de días. Es un valor: dos periodos de los mismos
+/// días son iguales, para que los providers family no repitan la consulta.
 class PeriodoReporte {
-  const PeriodoReporte._(this.name, [this.dia]);
+  const PeriodoReporte._(this.name, [this.dia, this.fin]);
 
   /// Un día del calendario de Bogotá; la hora de [fecha] no cuenta.
   factory PeriodoReporte.delDia(DateTime fecha) =>
-      PeriodoReporte._('dia', DateTime.utc(fecha.year, fecha.month, fecha.day));
+      PeriodoReporte._('dia', _soloDia(fecha));
+
+  /// Del primer día al último, ambos enteros, en cualquier orden. Un rango
+  /// de un solo día es ese día.
+  factory PeriodoReporte.entre(DateTime a, DateTime b) {
+    final (x, y) = (_soloDia(a), _soloDia(b));
+    if (x == y) return PeriodoReporte.delDia(x);
+    return x.isBefore(y)
+        ? PeriodoReporte._('rango', x, y)
+        : PeriodoReporte._('rango', y, x);
+  }
+
+  static DateTime _soloDia(DateTime f) => DateTime.utc(f.year, f.month, f.day);
 
   static const hoy = PeriodoReporte._('hoy');
   static const semana = PeriodoReporte._('semana');
@@ -19,14 +31,24 @@ class PeriodoReporte {
   static const values = [hoy, semana, mes];
 
   final String name;
+
+  /// El primer día del calendario (el único, en un día suelto).
   final DateTime? dia;
+
+  /// El último día de un rango; nulo en lo demás.
+  final DateTime? fin;
+
+  bool get esRango => fin != null;
 
   @override
   bool operator ==(Object other) =>
-      other is PeriodoReporte && other.name == name && other.dia == dia;
+      other is PeriodoReporte &&
+      other.name == name &&
+      other.dia == dia &&
+      other.fin == fin;
 
   @override
-  int get hashCode => Object.hash(name, dia);
+  int get hashCode => Object.hash(name, dia, fin);
 }
 
 /// Bogotá va en UTC-5 todo el año: su medianoche es las 5:00 UTC.
@@ -37,7 +59,7 @@ const _bogota = Duration(hours: 5);
   final dia = periodo.dia;
   if (dia != null) {
     final desde = dia.add(_bogota);
-    final fin = desde.add(const Duration(days: 1));
+    final fin = (periodo.fin ?? dia).add(_bogota).add(const Duration(days: 1));
     // El día de hoy corta en este momento, no en la medianoche que viene.
     return (desde, fin.isAfter(hasta) ? hasta : fin);
   }
@@ -66,8 +88,14 @@ const _meses = [
 ];
 
 String periodoLabel(PeriodoReporte periodo) {
+  String mes(DateTime d) => _meses[d.month - 1].substring(0, 3);
   final dia = periodo.dia;
-  if (dia != null) return '${dia.day} ${_meses[dia.month - 1].substring(0, 3)}';
+  final fin = periodo.fin;
+  if (fin != null && dia != null) {
+    if (dia.month == fin.month) return '${dia.day} a ${fin.day} ${mes(fin)}';
+    return '${dia.day} ${mes(dia)} a ${fin.day} ${mes(fin)}';
+  }
+  if (dia != null) return '${dia.day} ${mes(dia)}';
   return switch (periodo.name) {
     'hoy' => 'Hoy',
     'semana' => '7 días',
@@ -95,7 +123,8 @@ String rangoFechasLabel(PeriodoReporte periodo, DateTime ahora) {
   return '${fecha(ini)} a ${fecha(fin)}';
 }
 
-/// «los 30 días, 27 sep a 27 oct», «hoy, 27 oct» o «12 oct» (un día).
+/// «los 30 días, 27 sep a 27 oct», «hoy, 27 oct», «12 oct» (un día) o
+/// «20 a 25 oct» (un rango).
 String _periodoConFechas(PeriodoReporte periodo, DateTime ahora) {
   final rango = rangoFechasLabel(periodo, ahora);
   if (periodo.dia != null) return rango;
@@ -147,6 +176,7 @@ String promedioPeriodoLabel(
   final quien = buses == 1 ? 'De 1 bus' : 'Promedio de $buses buses';
   final cuando = _periodoConFechas(periodo, ahora);
   if (periodo.name == 'hoy') return '$quien $cuando';
+  if (periodo.esRango) return '$quien del $cuando';
   return periodo.dia != null ? '$quien el $cuando' : '$quien en $cuando';
 }
 

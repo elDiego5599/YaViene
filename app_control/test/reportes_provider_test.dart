@@ -96,6 +96,71 @@ void main() {
     expect(periodoLabel(dia), '24 oct');
   });
 
+  test('un rango va de la medianoche del primero a la del último', () {
+    final ahora = DateTime.utc(2026, 10, 27, 20);
+    // El orden de los extremos no cuenta, ni su hora.
+    final rango = PeriodoReporte.entre(
+      DateTime(2026, 10, 25, 9),
+      DateTime(2026, 10, 20),
+    );
+    expect(
+      rango,
+      PeriodoReporte.entre(DateTime(2026, 10, 20), DateTime(2026, 10, 25)),
+    );
+    expect(
+      rango,
+      isNot(
+        PeriodoReporte.entre(DateTime(2026, 10, 20), DateTime(2026, 10, 24)),
+      ),
+    );
+    expect(rangoPeriodo(rango, ahora), (
+      DateTime.utc(2026, 10, 20, 5),
+      DateTime.utc(2026, 10, 26, 5),
+    ));
+    // Hasta hoy corta en este momento.
+    expect(
+      rangoPeriodo(
+        PeriodoReporte.entre(DateTime(2026, 10, 20), DateTime(2026, 10, 27)),
+        ahora,
+      ).$2,
+      ahora,
+    );
+    // Un rango de un solo día es ese día.
+    final unDia = PeriodoReporte.delDia(DateTime(2026, 10, 20));
+    expect(
+      PeriodoReporte.entre(DateTime(2026, 10, 20), DateTime(2026, 10, 20, 8)),
+      unDia,
+    );
+    expect(unDia.esRango, isFalse);
+    expect(rango.esRango, isTrue);
+    expect(rango.fin, DateTime.utc(2026, 10, 25));
+    expect(periodoLabel(rango), '20 a 25 oct');
+    expect(
+      periodoLabel(
+        PeriodoReporte.entre(DateTime(2026, 9, 28), DateTime(2026, 10, 3)),
+      ),
+      '28 sep a 3 oct',
+    );
+  });
+
+  test('los rótulos del rango cuentan sus días', () {
+    final ahora = DateTime.utc(2026, 10, 27, 20);
+    final rango = PeriodoReporte.entre(
+      DateTime(2026, 10, 20),
+      DateTime(2026, 10, 25),
+    );
+    expect(rangoFechasLabel(rango, ahora), '20 a 25 oct');
+    expect(totalPeriodoLabel(rango, ahora), 'Total del 20 a 25 oct');
+    expect(
+      totalHoraLabel(rango, ahora, hora: 7, busquedas: 4),
+      '4 búsquedas de 7 a 8 a. m. del 20 a 25 oct',
+    );
+    expect(
+      promedioPeriodoLabel(rango, ahora, buses: 2),
+      'Promedio de 2 buses del 20 a 25 oct',
+    );
+  });
+
   late ProviderContainer container;
   late _Api api;
 

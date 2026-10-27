@@ -567,6 +567,88 @@ void main() {
     await tester.pumpAndSettle();
     expect(calendario, findsNothing);
     expect(periodos.last, primero);
+
+    // «Rango» abre una ventana propia con «Desde» y «Hasta»: el primer día
+    // tocado es el desde y pasa solo al hasta.
+    expect(find.text('Rango'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('periodo-rango')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('ventana')), findsOneWidget);
+    final cal = find.byKey(const ValueKey('calendario-rango'));
+    await tester.tap(find.descendant(of: cal, matching: find.text('1')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: cal, matching: find.text('${hoy.day}')),
+    );
+    await tester.pumpAndSettle();
+    final rango = PeriodoReporte.entre(
+      DateTime(hoy.year, hoy.month),
+      DateTime(hoy.year, hoy.month, hoy.day),
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('rango-desde')),
+        matching: find.text('1 ${mes.substring(0, 3)}'),
+      ),
+      findsOneWidget,
+    );
+    // Hasta que se aplique, nada se vuelve a pedir.
+    expect(periodos.last, primero);
+    await tester.tap(find.text('APLICAR'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('ventana')), findsNothing);
+    expect(periodos.last, rango);
+    expect(periodosCalor.last, rango);
+    expect(find.text(periodoLabel(rango)), findsOneWidget);
+    // El día suelto vuelve a decir «Fecha».
+    expect(find.text('Fecha'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+      totalPeriodoLabel(rango, DateTime.now()),
+    );
+
+    // Cancelar deja el rango que estaba.
+    await tester.tap(find.byKey(const ValueKey('periodo-rango')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('calendario-rango')),
+        matching: find.text('1'),
+      ),
+    );
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('ventana')), findsNothing);
+    expect(periodos.last, rango);
+  });
+
+  testWidgets('en el rango, el hasta no deja días antes del desde', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('periodo-rango')));
+    await tester.pumpAndSettle();
+    final cal = find.byKey(const ValueKey('calendario-rango'));
+    final picker = find.descendant(
+      of: cal,
+      matching: find.byType(CalendarDatePicker),
+    );
+    // Se abre en la última semana, con el desde a la vista.
+    final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+    final ultimo = DateTime(hoy.year, hoy.month, hoy.day);
+    final desde = ultimo.subtract(const Duration(days: 6));
+    expect(tester.widget<CalendarDatePicker>(picker).initialDate, desde);
+    await tester.tap(find.byKey(const ValueKey('rango-hasta')));
+    await tester.pumpAndSettle();
+    final hasta = tester.widget<CalendarDatePicker>(picker);
+    expect(hasta.initialDate, ultimo);
+    final antes = desde.subtract(const Duration(days: 1));
+    expect(hasta.selectableDayPredicate!(antes), isFalse);
+    expect(hasta.selectableDayPredicate!(desde), isTrue);
   });
 
   testWidgets('las horas del mapa pintan esa hora y conservan la ruta', (
