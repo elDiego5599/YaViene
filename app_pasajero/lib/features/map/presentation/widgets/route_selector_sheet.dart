@@ -962,7 +962,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                       // en voz más baja. Son dos niveles, no dos etiquetas.
                       badgeColor: AppColors.primaryAccessible,
                       title: codigo?.rest ?? route.name,
-                      subtitle: _routeSubtitle(route) ?? 'Tiempo real',
+                      subtitle: _routeSubtitle(route) ?? 'En vivo',
                       dicho: '${route.name}${_terminalesDichos(route)}',
                       selected: selectedRoute?.id == route.id,
                       onTap: () {

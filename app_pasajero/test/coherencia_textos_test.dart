@@ -61,7 +61,7 @@ void main() {
     'Localizando tu ubicación…': ['píldora localizando'],
     'Arrástralo para moverlo': ['píldora con pin'],
     'Fija tu punto de espera': ['guía sin ubicación'],
-    'Tu ciudad en tiempo real.': ['portada'],
+    'Tu ciudad en vivo.': ['portada'],
   };
 
   /// Afirma que todas las frases de [escena] están en pantalla ahora.

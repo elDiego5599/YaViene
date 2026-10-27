@@ -116,11 +116,11 @@ void main() {
     await abrir(tester);
     final pantalla = tester.view.physicalSize;
     // Incluso sobre blanco puro, peor caso del matizado: Ya Viene da
-    // 18,11:1 y Tu ciudad en tiempo real da 7,58:1. Ambos superan WCAG AA
+    // 18,11:1 y Tu ciudad en vivo da 7,58:1. Ambos superan WCAG AA
     // de 4,5:1; abajo se verifica cada punto del fondo bajo las letras.
     final piezas = [
       (find.text('Ya Viene'), AppColors.ink, 4.5),
-      (find.text('Tu ciudad en tiempo real.'), AppColors.textBody, 4.5),
+      (find.text('Tu ciudad en vivo.'), AppColors.textBody, 4.5),
     ];
     for (final (f, letra, _) in piezas) {
       expect(tester.widget<Text>(f).style!.color, letra);

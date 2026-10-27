@@ -61,7 +61,7 @@ class InkHero extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Tu ciudad en tiempo real.',
+          'Tu ciudad en vivo.',
           style: AppTextStyles.cuerpoFuerte.copyWith(
             color: AppColors.textBody,
           ),
