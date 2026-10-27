@@ -18,6 +18,9 @@ export 'core/network/backend_supervisor.dart';
 export 'core/network/fallo_red.dart';
 export 'core/network/zona_socket.dart';
 
+// --- Ocupación ---
+export 'core/ocupacion/ocupacion_simulada.dart';
+
 // --- Observabilidad ---
 export 'core/observability/medidor_latencia.dart';
 
@@ -29,6 +32,7 @@ export 'core/providers/providers.dart';
 // --- Theme ---
 export 'core/theme/app_motion.dart';
 export 'core/theme/app_theme.dart';
+export 'core/theme/escala_calor.dart';
 export 'core/theme/estilo_mapa.dart';
 export 'core/theme/estilo_ruta.dart';
 

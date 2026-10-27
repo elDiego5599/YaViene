@@ -358,6 +358,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   calle a 334 m, 30 km en la C16, dueño, 2026-10-21). La barra de
   vidrio sale al bajar, al paso del dedo, y en reposo no hay nada.
   Con un bus tocado se va la píldora de tu punto y buses cerca.
+  Bajo «km de ti», la tarjeta del bus dice «Ocupación aprox.» con su
+  porcentaje en tinta y una pista de 6 pt en la escala de calor del panel
+  (`coloresCalor`, ya en el core; dueño, 2026-10-27): de ejemplo
+  (`ocupacionSimulada`), sube y baja por tramos de la ruta, distinta en
+  cada bus, y se esconde sin ruta o con la rueda abierta.
   La píldora dice «N buses cerca de tu punto» igual con GPS o con pin, y
   activar un aviso no abre ventana (solo la de cambiar de bus seguido;
   dueño, 2026-10-26).

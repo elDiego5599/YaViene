@@ -28,6 +28,7 @@ import '../providers/user_location_provider.dart';
 import '../utils/geo.dart';
 import 'alert_guards.dart' as guards;
 import 'map_recenter_button.dart';
+import 'ocupacion_bus.dart';
 import 'rueda_distancia.dart';
 import 'sena_tocar_bus.dart';
 
@@ -1094,6 +1095,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final staleLabel = _staleLabel(bus);
     final ghostBlocked = !isActive && bus != null && bus.isGhostBus;
     final distance = _distanceToBus(bus);
+    // Ya escuchado por `_distanceToBus`: aquí solo se lee.
+    final ocupacion = bus == null
+        ? null
+        : ocupacionEnRuta(ref.read(seguidorRutaProvider(bus.routeId)), bus);
     final route = ref.watch(selectedRouteProvider);
     // F6: misma "ruta - placa" que ya usa Notificaciones, en vez de "Bus $id"
     // crudo — el mismo bus no debe tener dos nombres distintos en la app.
@@ -1420,7 +1425,23 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     // hay nada a lo que volver.
                     normal: staleLabel != null
                         ? const SizedBox(width: double.infinity)
-                        : cifra,
+                        : ocupacion == null
+                            ? cifra
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  cifra,
+                                  // 14 bajo la unidad, como del filo de
+                                  // arriba al número; 14 a los lados para
+                                  // que el filo no toque el marco.
+                                  const SizedBox(height: 14),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14),
+                                    child: OcupacionBus(porcentaje: ocupacion),
+                                  ),
+                                ],
+                              ),
                     rueda: eleccion == null
                         ? null
                         : _preguntaRueda(

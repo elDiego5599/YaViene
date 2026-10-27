@@ -247,6 +247,15 @@ mide antes de sumarlo.
 
 ## Después
 
+- **La ocupación de verdad.** La tarjeta del bus dice «Ocupación aprox.»
+  con un porcentaje que sube y baja por tramos de la ruta, distinto en cada
+  bus y más alto en hora pico, pero es de ejemplo (`ocupacionSimulada` en
+  el core, 2026-10-27). Cuando haya cámaras en los buses
+  (`YaVieneBackend/prototipo-aforo`), el conteo llega del servidor y
+  reemplaza esa función en `ocupacionEnRuta`
+  (`app_pasajero/.../widgets/ocupacion_bus.dart`).
+
+
 Una **auditoría con ojos frescos**, en una sesión nueva sin este contexto, con
 el prompt de `archivo/prompt-revision.md` (en la raíz del workspace). Si
 encuentra algo grave, entra aquí antes de dar el plan por cerrado.
