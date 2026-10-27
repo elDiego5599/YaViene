@@ -33,12 +33,13 @@ Color _tono(int pct) => colorEnEscala(pct / 100);
 /// misma escala de color del mapa.
 /// [horas] trae una por hora de servicio; null es una hora sin viajes aún.
 class OcupacionResumen extends StatefulWidget {
-  const OcupacionResumen({super.key, required this.horas, required this.buses});
+  const OcupacionResumen({super.key, required this.horas, required this.rango});
 
   final List<int?> horas;
 
-  /// Buses de la ruta: la ocupación es su promedio.
-  final int buses;
+  /// De cuántos buses y de qué fechas es el promedio, a la vista bajo el
+  /// título («nadie sabe si es un promedio», dueño, 2026-10-27).
+  final String rango;
 
   @override
   State<OcupacionResumen> createState() => _OcupacionResumenState();
@@ -79,21 +80,39 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
         children: [
           Row(
             children: [
-              Text(
-                'Ocupación',
-                style: AppType.ui(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ocupación promedio',
+                      style: AppType.ui(
+                        color: AppColors.navy,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.rango,
+                      key: const ValueKey('ocupacion-rango'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.ui(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
               // La nota de las cámaras va en el globo: aquí no cabe una línea
               // entera sin quitarle alto a las barras.
               Tooltip(
                 key: const ValueKey('ocupacion-sin-camaras'),
                 message:
-                    '${widget.buses == 1 ? 'De 1 bus' : 'Promedio de ${widget.buses} buses'}. '
                     'Aún no hay buses con cámara de aforo conectada. Con ella, '
                     'un modelo de IA dirá cómo va cada bus.',
                 child: Container(
@@ -182,20 +201,27 @@ class _OcupacionResumenState extends State<OcupacionResumen> {
                   ),
           ),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (var i = 0; i < widget.horas.length; i++)
-                Expanded(
-                  child: _Barra(
-                    hora: primeraHoraServicio + i,
-                    pct: widget.horas[i],
-                    elegida: primeraHoraServicio + i == elegida,
-                    alTocar: () =>
-                        setState(() => _elegida = primeraHoraServicio + i),
-                  ),
-                ),
-            ],
+          // Las barras toman el alto que deja la tarjeta: con una ruta sola
+          // en el cuadro no queda un hueco blanco abajo (dueño, 2026-10-27).
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, caja) => Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < widget.horas.length; i++)
+                    Expanded(
+                      child: _Barra(
+                        hora: primeraHoraServicio + i,
+                        pct: widget.horas[i],
+                        alto: caja.maxHeight,
+                        elegida: primeraHoraServicio + i == elegida,
+                        alTocar: () =>
+                            setState(() => _elegida = primeraHoraServicio + i),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           // Un eje fijo bajo la primera barra de cada seis horas: los
@@ -278,11 +304,13 @@ class _Barra extends StatefulWidget {
   const _Barra({
     required this.hora,
     required this.pct,
+    required this.alto,
     required this.elegida,
     required this.alTocar,
   });
 
   final int hora;
+  final double alto;
 
   /// null: la hora aún no llega; queda una raya baja que no se toca.
   final int? pct;
@@ -294,22 +322,20 @@ class _Barra extends StatefulWidget {
 }
 
 class _BarraState extends State<_Barra> {
-  // 96 px: la ocupación tiene su espacio bajo el ranking y la diferencia
-  // entre horas se ve sin leer cifras (dueño, 2026-10-26).
-  static const _alto = 96.0;
   var _encima = false;
   var _presionada = false;
 
   @override
   Widget build(BuildContext context) {
     final pct = widget.pct;
+    final alto = widget.alto;
     if (pct == null) {
       return Semantics(
         label:
             '${_hora(widget.hora)} ${_meridiano(widget.hora)}, sin viajes aún',
         child: Padding(
           key: ValueKey('aforo-hora-${widget.hora}'),
-          padding: const EdgeInsets.fromLTRB(3, _alto - 4, 3, 0),
+          padding: EdgeInsets.fromLTRB(3, alto - 4, 3, 0),
           child: AnimatedContainer(
             duration: AppMotion.normal,
             curve: AppMotion.curvaCambio,
@@ -360,7 +386,7 @@ class _BarraState extends State<_Barra> {
                   '${_hora(widget.hora)} ${_meridiano(widget.hora)}, '
                   '$pct %',
               child: SizedBox(
-                height: _alto,
+                height: alto,
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: AnimatedScale(
@@ -373,7 +399,7 @@ class _BarraState extends State<_Barra> {
                       curve: AppMotion.curvaCambio,
                       // Nunca menos de 8 px, para que la hora más vacía siga
                       // siendo una barra que se puede tocar.
-                      height: (_alto * pct / 100).clamp(8, _alto),
+                      height: (alto * pct / 100).clamp(8, alto),
                       decoration: BoxDecoration(
                         color: tinte,
                         borderRadius: BorderRadius.circular(6),

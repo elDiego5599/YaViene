@@ -82,7 +82,11 @@ Future<void> _montar(
 }
 
 void main() {
-  testWidgets('ordena rutas, muestra barras y la franja pico', (tester) async {
+  // «Igual que la flota: arriba todas las rutas y en el cuadro solo la
+  // ruta tocada; por defecto, la primera» (dueño, 2026-10-27).
+  testWidgets('arriba las rutas en píldoras; el cuadro, solo la elegida', (
+    tester,
+  ) async {
     final horas = List<int>.filled(24, 0)..[6] = 4820;
     await _montar(
       tester,
@@ -95,36 +99,55 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Rutas más buscadas'), findsNothing);
+    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsNothing);
+    // Todas las rutas, en una fila sobre los dos paneles; sin catálogo de
+    // Flota todavía, en el orden del ranking.
+    final pildoras = [
+      for (final id in ['R1', 'R2', 'R3', 'R4'])
+        find.byKey(ValueKey('pildora-ruta-$id')),
+    ];
+    for (var i = 0; i < pildoras.length; i++) {
+      expect(pildoras[i], findsOneWidget);
+      if (i > 0) {
+        expect(
+          tester.getTopLeft(pildoras[i]).dx,
+          greaterThan(tester.getTopLeft(pildoras[i - 1]).dx),
+        );
+      }
+      expect(
+        tester.getBottomLeft(pildoras[i]).dy,
+        lessThan(tester.getTopLeft(find.byKey(const ValueKey('ocupacion'))).dy),
+      );
+    }
     expect(
-      tester.getTopLeft(find.byKey(const ValueKey('fila-ruta-R1'))).dy,
-      lessThan(
-        tester.getTopLeft(find.byKey(const ValueKey('fila-ruta-R2'))).dy,
-      ),
-    );
-    // La ficha de la lista y la de la tira del mapa; el nombre, una vez.
-    expect(find.text('C16'), findsNWidgets(2));
-    expect(find.text('Ruta 1'), findsOneWidget);
-    // Menos texto (dueño, 2026-10-26): la cifra sola, sin «búsquedas», y
-    // la hora pico vive en la tira del mapa, no en la fila.
-    expect(find.text('4.820'), findsOneWidget);
-    expect(find.text('4.820 búsquedas'), findsNothing);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('fila-ruta-R1')),
-        matching: find.text('6 a 7 a. m.'),
-      ),
-      findsNothing,
+      tester.getSemantics(pildoras.first),
+      isSemantics(isSelected: true, isButton: true),
     );
     expect(
-      find.bySemanticsLabel(
-        'Puesto 1, ruta C16 Ruta 1, 4.820 búsquedas, hora pico 6 a 7 a. m.',
-      ),
-      findsOneWidget,
+      tester.getSemantics(pildoras[1]),
+      isSemantics(isSelected: false, isButton: true),
     );
-    expect(find.byKey(const ValueKey('pico-hora-R1-6')), findsNothing);
-    expect(find.byKey(const ValueKey('celda-hora-R1-0')), findsNothing);
-    expect(find.byKey(const ValueKey('barra-ruta-R1')), findsOneWidget);
-    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
+
+    // El cuadro habla de una ruta: su cifra, su puesto y su hora pico.
+    String texto(String key) =>
+        tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+    expect(texto('busquedas-cifra'), '4.820');
+    expect(texto('busquedas-puesto'), 'Puesto 1 de 4');
+    expect(texto('busquedas-pico'), horaPicoLabel(6));
+    expect(
+      texto('busquedas-rango'),
+      totalPeriodoLabel(PeriodoReporte.mes, DateTime.now()),
+    );
+    expect(find.byKey(const ValueKey('ruta-mapa-R1')), findsOneWidget);
+
+    await tester.tap(pildoras[2]);
+    await tester.pumpAndSettle();
+    expect(texto('busquedas-cifra'), '3');
+    expect(texto('busquedas-puesto'), 'Puesto 3 de 4');
+    expect(texto('busquedas-pico'), horaPicoLabel(12));
+    expect(find.byKey(const ValueKey('ruta-mapa-R3')), findsOneWidget);
+    expect(tester.getSemantics(pildoras[2]), isSemantics(isSelected: true));
   });
 
   testWidgets('la primera ruta del ranking queda elegida y carga su mapa', (
@@ -198,8 +221,15 @@ void main() {
     expect(punto.dy, lessThan(barra.top));
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Pico 6 a 7 p. m.',
+      'Hora pico 6 a 7 p. m.',
     );
+    // «Escojo 30 días y la leyenda dice todo el día» (dueño, 2026-10-27):
+    // la tira dice qué suma el mapa y entre qué fechas.
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+      totalPeriodoLabel(PeriodoReporte.mes, DateTime.now()),
+    );
+    expect(find.text('Todo el día'), findsNothing);
     // La leyenda va en la misma tira.
     expect(
       find.descendant(
@@ -222,8 +252,20 @@ void main() {
       },
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('filtro-hora')));
+    final filtro = find.byKey(const ValueKey('filtro-hora'));
+    expect(
+      find.descendant(of: filtro, matching: find.text('Todas las horas')),
+      findsOneWidget,
+    );
+    await tester.tap(filtro);
     await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('filtro-hora-todo')),
+        matching: find.text('Todas las horas'),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('filtro-hora-6')));
     await tester.pumpAndSettle();
 
@@ -251,7 +293,7 @@ void main() {
     falla = false;
     await tester.tap(find.byKey(const ValueKey('reintentar-lista')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pildora-ruta-R1')), findsOneWidget);
   });
 
   testWidgets('una ruta sin búsquedas no muestra franja pico', (tester) async {
@@ -262,11 +304,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('0'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('busquedas-cifra'))).data,
+      '0',
+    );
+    expect(find.byKey(const ValueKey('busquedas-pico')), findsNothing);
     expect(find.byKey(const ValueKey('ruta-mapa-R0')), findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Todo el día',
+      'Sin búsquedas',
     );
     expect(find.byKey(const ValueKey('hora-mapa-pico')), findsNothing);
   });
@@ -395,6 +441,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('periodo-semana')));
     await tester.pumpAndSettle();
     expect(periodos.last, PeriodoReporte.semana);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+      totalPeriodoLabel(PeriodoReporte.semana, DateTime.now()),
+    );
 
     // «Fecha» abre el calendario del mes; tocar un día lo elige y cierra.
     final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
@@ -467,12 +517,12 @@ void main() {
       },
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
+    await tester.tap(find.byKey(const ValueKey('pildora-ruta-R2')));
     await tester.pumpAndSettle();
     // Sin hora elegida, el rótulo dice el pico del día.
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Pico 7 a 8 a. m.',
+      'Hora pico 7 a 8 a. m.',
     );
 
     await tester.tap(find.byKey(const ValueKey('hora-mapa-7')));
@@ -487,18 +537,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Pico 7 a 8 a. m.',
+      'Hora pico 7 a 8 a. m.',
     );
     expect(find.byKey(const ValueKey('ruta-mapa-R2')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('hora-mapa-12')));
     await tester.pumpAndSettle();
     expect(calor.last, ('R2', 12));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('hora-mapa-todo')),
+        matching: find.text('Todas las horas'),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('hora-mapa-todo')));
     await tester.pumpAndSettle();
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('hora-mapa-rotulo'))).data,
-      'Pico 7 a 8 a. m.',
+      'Hora pico 7 a 8 a. m.',
     );
     expect(find.byKey(const ValueKey('hora-mapa-todo')), findsNothing);
   });
@@ -519,10 +576,16 @@ void main() {
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('ocupacion'))).dy,
       greaterThan(
-        tester.getBottomLeft(find.byKey(const ValueKey('fila-ruta-R1'))).dy,
+        tester.getBottomLeft(find.byKey(const ValueKey('busquedas-cifra'))).dy,
       ),
     );
-    expect(find.text('Ocupación'), findsOneWidget);
+    // «Nadie sabe si es un promedio» (dueño, 2026-10-27): lo dice a la
+    // vista, con sus buses y sus fechas, no en un globo.
+    expect(find.text('Ocupación promedio'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('ocupacion-rango'))).data,
+      promedioPeriodoLabel(PeriodoReporte.mes, DateTime.now(), buses: 0),
+    );
     expect(find.text('Datos de ejemplo'), findsOneWidget);
     expect(find.byKey(const ValueKey('ocupacion-sin-camaras')), findsOneWidget);
     // «promedio de N buses» va en el globo de la ficha, no en la cabecera.
@@ -592,7 +655,7 @@ void main() {
     expect(pedidos.last, ('R1', PeriodoReporte.mes));
     expect(cifra(), '90 %');
 
-    await tester.tap(find.byKey(const ValueKey('fila-ruta-R2')));
+    await tester.tap(find.byKey(const ValueKey('pildora-ruta-R2')));
     await tester.pumpAndSettle();
     expect(pedidos.last, ('R2', PeriodoReporte.mes));
 
@@ -632,13 +695,13 @@ void main() {
     expect(find.byType(CargaFantasma), findsNWidgets(2));
     expect(find.bySemanticsLabel('Cargando reportes'), findsOneWidget);
     expect(find.bySemanticsLabel('Cargando el mapa'), findsOneWidget);
-    expect(find.byKey(const ValueKey('fantasma-ruta-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('fantasma-busquedas')), findsOneWidget);
 
     rutas.complete([_ruta('R1', 'C16 Ruta 1', 40, 6)]);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     // Llega la lista; el mapa de esa ruta sigue latiendo.
-    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pildora-ruta-R1')), findsOneWidget);
     expect(find.bySemanticsLabel('Cargando zonas de búsqueda'), findsOneWidget);
 
     calor.complete(_celdas);
@@ -667,7 +730,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     // Nada de fantasmas: lo de antes sigue, apagado, con su píldora.
     expect(find.byType(CargaFantasma), findsNothing);
-    expect(find.byKey(const ValueKey('fila-ruta-R1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pildora-ruta-R1')), findsOneWidget);
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
     expect(find.byKey(const ValueKey('mapa-cargando')), findsOneWidget);
 

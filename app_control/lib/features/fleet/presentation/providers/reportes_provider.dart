@@ -75,6 +75,56 @@ String periodoLabel(PeriodoReporte periodo) {
   };
 }
 
+/// Las fechas del periodo en Bogotá, de la primera a la última que toca:
+/// «27 sep a 27 oct», «20 a 27 oct» o «27 oct». El año sale solo cuando no
+/// es el de ahora.
+String rangoFechasLabel(PeriodoReporte periodo, DateTime ahora) {
+  final (desde, hasta) = rangoPeriodo(periodo, ahora);
+  final ini = desde.subtract(_bogota);
+  // El fin es exclusivo: la medianoche que cierra un día no es del otro.
+  var fin = hasta.subtract(_bogota).subtract(const Duration(microseconds: 1));
+  if (fin.isBefore(ini)) fin = ini;
+  final anio = ahora.toUtc().subtract(_bogota).year;
+  String mes(DateTime d) => _meses[d.month - 1].substring(0, 3);
+  String fecha(DateTime d) =>
+      '${d.day} ${mes(d)}${d.year == anio ? '' : ' ${d.year}'}';
+  if (ini.year == fin.year && ini.month == fin.month) {
+    if (ini.day == fin.day) return fecha(fin);
+    return '${ini.day} a ${fecha(fin)}';
+  }
+  return '${fecha(ini)} a ${fecha(fin)}';
+}
+
+/// «los 30 días, 27 sep a 27 oct», «hoy, 27 oct» o «12 oct» (un día).
+String _periodoConFechas(PeriodoReporte periodo, DateTime ahora) {
+  final rango = rangoFechasLabel(periodo, ahora);
+  if (periodo.dia != null) return rango;
+  return switch (periodo.name) {
+    'hoy' => 'hoy, $rango',
+    'semana' => 'los 7 días, $rango',
+    _ => 'los 30 días, $rango',
+  };
+}
+
+/// Lo que suma el mapa de calor: todas las búsquedas del periodo.
+String totalPeriodoLabel(PeriodoReporte periodo, DateTime ahora) {
+  final cuando = _periodoConFechas(periodo, ahora);
+  return periodo.dia != null ? 'Total del $cuando' : 'Total de $cuando';
+}
+
+/// Lo que promedia la ocupación: los buses de la ruta, día por día.
+String promedioPeriodoLabel(
+  PeriodoReporte periodo,
+  DateTime ahora, {
+  required int buses,
+}) {
+  if (buses == 0) return 'Esta ruta aún no tiene buses';
+  final quien = buses == 1 ? 'De 1 bus' : 'Promedio de $buses buses';
+  final cuando = _periodoConFechas(periodo, ahora);
+  if (periodo.name == 'hoy') return '$quien $cuando';
+  return periodo.dia != null ? '$quien el $cuando' : '$quien en $cuando';
+}
+
 class RutaBusquedas {
   const RutaBusquedas({
     required this.id,
@@ -146,6 +196,21 @@ final reportesRutasProvider =
 /// Orden estable compartido por el provider y la pantalla del reporte.
 List<RutaBusquedas> ordenarRutasBusquedas(Iterable<RutaBusquedas> rutas) =>
     rutas.toList()..sort((a, b) => b.total.compareTo(a.total));
+
+/// Las píldoras de Reportes van en el orden de las de Flota («igual que la
+/// flota», dueño, 2026-10-27); las rutas que Flota no tiene, al final, en el
+/// orden en que llegan.
+List<RutaBusquedas> ordenarComoFlota(
+  List<RutaBusquedas> rutas,
+  List<String> catalogo,
+) {
+  final porId = {for (final r in rutas) r.id: r};
+  final enFlota = catalogo.toSet();
+  return [
+    for (final id in catalogo) ?porId[id],
+    ...rutas.where((r) => !enFlota.contains(r.id)),
+  ];
+}
 
 final reportesCalorProvider =
     FutureProvider.family<

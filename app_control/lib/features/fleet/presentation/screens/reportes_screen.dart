@@ -21,6 +21,7 @@ import '../providers/reportes_provider.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
 import '../widgets/escala_calor.dart';
 import '../widgets/ocupacion_panel.dart';
+import '../widgets/pildoras_ruta.dart';
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -50,6 +51,22 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     if (reportes.valueOrNull case final rutas?) _previas = rutas;
     final recargando = reportes.isLoading && !reportes.hasValue;
     if (recargando && _previas != null) reportes = AsyncData(_previas!);
+    final ordenadas = ordenarComoFlota(
+      ordenarRutasBusquedas(reportes.valueOrNull ?? const []),
+      ref
+          .watch(
+            fleetProvider.select(
+              (s) => [for (final r in s.routes) r.routeId].join('\n'),
+            ),
+          )
+          .split('\n'),
+    );
+    final elegida = ordenadas.isEmpty
+        ? null
+        : ordenadas.firstWhere(
+            (ruta) => ruta.id == _ruta,
+            orElse: () => ordenadas.first,
+          );
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -60,6 +77,15 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
               periodo: _periodo,
               onSelectHour: _seleccionarHora,
               onSelectPeriodo: (periodo) => setState(() => _periodo = periodo),
+              rutas: [
+                for (final ruta in ordenadas)
+                  PildoraRuta(
+                    key: ValueKey('pildora-ruta-${ruta.id}'),
+                    label: ruta.nombre,
+                    active: ruta.id == elegida?.id,
+                    onTap: () => setState(() => _ruta = ruta.id),
+                  ),
+              ],
             ),
             Expanded(
               child: Padding(
@@ -68,10 +94,10 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                   estado: reportes,
                   child: reportes.when(
                     loading: () => _dosPaneles(
-                      izquierda: const _TarjetaRanking(
+                      izquierda: const _TarjetaBusquedas(
                         child: CargaFantasma(
                           semanticsLabel: 'Cargando reportes',
-                          child: _FilasFantasma(),
+                          child: _ResumenFantasma(),
                         ),
                       ),
                       derecha: const _TarjetaMapaEstado(
@@ -82,7 +108,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                       ),
                     ),
                     error: (error, stack) => _dosPaneles(
-                      izquierda: _TarjetaRanking(
+                      izquierda: _TarjetaBusquedas(
                         child: _EstadoReporte(
                           icon: Icons.error_outline,
                           message: 'No se pudieron cargar los reportes',
@@ -104,8 +130,11 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                         ),
                       ),
                     ),
-                    data: (rutas) =>
-                        _mostrarRutas(rutas, recargando: recargando),
+                    data: (_) => _mostrarRuta(
+                      elegida,
+                      ordenadas: ordenadas,
+                      recargando: recargando,
+                    ),
                   ),
                 ),
               ),
@@ -116,11 +145,14 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     );
   }
 
-  Widget _mostrarRutas(List<RutaBusquedas> rutas, {required bool recargando}) {
-    final ordenadas = ordenarRutasBusquedas(rutas);
-    if (ordenadas.isEmpty) {
+  Widget _mostrarRuta(
+    RutaBusquedas? ruta, {
+    required List<RutaBusquedas> ordenadas,
+    required bool recargando,
+  }) {
+    if (ruta == null) {
       return _dosPaneles(
-        izquierda: const _TarjetaRanking(
+        izquierda: const _TarjetaBusquedas(
           child: _EstadoReporte(
             icon: Icons.search_off_outlined,
             message: 'Aún no hay búsquedas en este periodo',
@@ -135,64 +167,51 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
       );
     }
 
-    final rutaSeleccionada = ordenadas.firstWhere(
-      (ruta) => ruta.id == _ruta,
-      orElse: () => ordenadas.first,
-    );
-    final maxTotal = ordenadas.fold<int>(
-      0,
-      (maximo, ruta) => ruta.total > maximo ? ruta.total : maximo,
-    );
-
+    // El puesto sale del ranking, no del orden de las píldoras, que es el
+    // de Flota.
+    final ranking = ordenarRutasBusquedas(ordenadas);
+    final ahora = DateTime.now();
     return _dosPaneles(
-      izquierda: _TarjetaRanking(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: AnimatedOpacity(
-                opacity: recargando ? 0.45 : 1,
-                duration: AppMotion.duracion(context, AppMotion.normal),
-                curve: AppMotion.curvaCambio,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-                  itemCount: ordenadas.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 4),
-                  itemBuilder: (context, index) {
-                    final ruta = ordenadas[index];
-                    return _FilaRuta(
-                      puesto: index + 1,
-                      ruta: ruta,
-                      maxTotal: maxTotal,
-                      selected: ruta.id == rutaSeleccionada.id,
-                      onTap: () => setState(() => _ruta = ruta.id),
-                    );
-                  },
+      izquierda: _TarjetaBusquedas(
+        ruta: ruta,
+        child: AnimatedOpacity(
+          opacity: recargando ? 0.45 : 1,
+          duration: AppMotion.duracion(context, AppMotion.normal),
+          curve: AppMotion.curvaCambio,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ResumenBusquedas(
+                ruta: ruta,
+                puesto: ranking.indexWhere((r) => r.id == ruta.id) + 1,
+                de: ranking.length,
+                rango: totalPeriodoLabel(_periodo, ahora),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: OcupacionResumen(
+                  horas: ref.watch(
+                    ocupacionProvider((routeId: ruta.id, periodo: _periodo)),
+                  ),
+                  rango: promedioPeriodoLabel(
+                    _periodo,
+                    ahora,
+                    buses: ref.watch(
+                      fleetProvider.select(
+                        (s) => s.buses.values
+                            .where((b) => b.routeId == ruta.id)
+                            .length,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const Divider(height: 1),
-            OcupacionResumen(
-              horas: ref.watch(
-                ocupacionProvider((
-                  routeId: rutaSeleccionada.id,
-                  periodo: _periodo,
-                )),
-              ),
-              buses: ref.watch(
-                fleetProvider.select(
-                  (s) => s.buses.values
-                      .where((b) => b.routeId == rutaSeleccionada.id)
-                      .length,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       derecha: _TarjetaMapa(
-        route: rutaSeleccionada,
+        route: ruta,
         hora: _hora,
         periodo: _periodo,
         onSelectHour: _seleccionarHora,
@@ -220,12 +239,14 @@ class _CabeceraReportes extends StatelessWidget {
     required this.periodo,
     required this.onSelectHour,
     required this.onSelectPeriodo,
+    required this.rutas,
   });
 
   final int? hora;
   final PeriodoReporte periodo;
   final ValueChanged<int?> onSelectHour;
   final ValueChanged<PeriodoReporte> onSelectPeriodo;
+  final List<Widget> rutas;
 
   // El calendario va de hoy en Bogotá hasta 395 días atrás: el servidor
   // guarda 396 (`RETENCION_MS`), y el más viejo ya puede venir a medias.
@@ -274,13 +295,20 @@ class _CabeceraReportes extends StatelessWidget {
       color: AppColors.surface,
       boxShadow: AppColors.sombraCabecera,
     ),
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    // 12 + los 8 de cada píldora: la primera arranca en 20, con las tarjetas.
+    padding: const EdgeInsets.fromLTRB(12, 12, 20, 12),
     child: Row(
       children: [
-        // Sin título ni periodo a la izquierda: Reportes es una pestaña de
-        // la cabecera y el periodo ya se lee en los filtros, que van a la
-        // derecha (dueño, 2026-10-26).
-        const Spacer(),
+        // Las rutas como en Flota, y el cuadro de abajo habla solo de la
+        // tocada (dueño, 2026-10-27). La tira lleva 9 de barra bajo sus 33:
+        // bajarla 4,5 deja las píldoras al centro de los filtros de 38.
+        Expanded(
+          child: Transform.translate(
+            offset: const Offset(0, 4.5),
+            child: TiraPildoras(children: rutas),
+          ),
+        ),
+        const SizedBox(width: 16),
         MenuAnchor(
           style: _estiloMenu,
           alignmentOffset: const Offset(0, 6),
@@ -415,7 +443,7 @@ class _FiltroHora extends StatelessWidget {
         key: const ValueKey('filtro-hora-todo'),
         onPressed: () => onSelectHour(null),
         style: _estiloOpcionMenu(selected: hora == null),
-        child: const SizedBox(width: 180, child: Text('Todo el día')),
+        child: const SizedBox(width: 180, child: Text('Todas las horas')),
       ),
       for (var value = 0; value < 24; value++)
         MenuItemButton(
@@ -430,7 +458,7 @@ class _FiltroHora extends StatelessWidget {
       onPressed: () =>
           controller.isOpen ? controller.close() : controller.open(),
       icon: const Icon(Icons.schedule_outlined, size: 17),
-      label: Text(hora == null ? 'Todo el día' : horaOpcionLabel(hora!)),
+      label: Text(hora == null ? 'Todas las horas' : horaOpcionLabel(hora!)),
       style: _estiloContorno(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
@@ -485,31 +513,53 @@ ButtonStyle _estiloOpcionMenu({required bool selected}) => ButtonStyle(
   ),
 );
 
-class _TarjetaRanking extends StatelessWidget {
-  const _TarjetaRanking({required this.child});
+class _TarjetaBusquedas extends StatelessWidget {
+  const _TarjetaBusquedas({required this.child, this.ruta});
   final Widget child;
 
+  /// La ruta del cuadro: su ficha y su nombre son el título, porque dentro
+  /// van sus búsquedas y su ocupación (dueño, 2026-10-27).
+  final RutaBusquedas? ruta;
+
   @override
-  Widget build(BuildContext context) => _Tarjeta(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 18, 20, 12),
-          child: Text(
-            'Rutas más buscadas',
-            style: TextStyle(
-              color: AppColors.navy,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
+  Widget build(BuildContext context) {
+    const estilo = TextStyle(
+      color: AppColors.navy,
+      fontSize: 17,
+      fontWeight: FontWeight.w800,
+    );
+    final ruta = this.ruta;
+    final (codigo, nombre) = ruta == null ? ('', '') : _partirNombreRuta(ruta);
+    return _Tarjeta(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+            child: ruta == null
+                ? const Text('Búsquedas', style: estilo)
+                : Row(
+                    children: [
+                      _FichaCodigo(codigo),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          nombre,
+                          key: const ValueKey('cuadro-ruta'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: estilo,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
-        ),
-        const Divider(height: 1),
-        Expanded(child: child),
-      ],
-    ),
-  );
+          const Divider(height: 1),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
 }
 
 class _TarjetaMapaEstado extends StatelessWidget {
@@ -619,6 +669,7 @@ class _TarjetaMapaState extends ConsumerState<_TarjetaMapa> {
                     routeId: route.id,
                     codigo: _partirNombreRuta(route).$1,
                     hora: widget.hora,
+                    periodo: widget.periodo,
                     porHora: route.porHora,
                     onSelectHour: widget.onSelectHour,
                     cells: cells,
@@ -653,266 +704,173 @@ class _Tarjeta extends StatelessWidget {
   );
 }
 
-class _FilaRuta extends StatefulWidget {
-  const _FilaRuta({
-    required this.puesto,
+/// Lo de la ruta elegida: su ficha, cuántas veces la buscaron en el periodo
+/// (con las fechas a la vista), su puesto entre todas y su hora pico.
+class _ResumenBusquedas extends StatelessWidget {
+  const _ResumenBusquedas({
     required this.ruta,
-    required this.maxTotal,
-    required this.selected,
-    required this.onTap,
+    required this.puesto,
+    required this.de,
+    required this.rango,
   });
 
-  final int puesto;
   final RutaBusquedas ruta;
-  final int maxTotal;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  State<_FilaRuta> createState() => _FilaRutaState();
-}
-
-class _FilaRutaState extends State<_FilaRuta> {
-  bool _hovered = false;
-  bool _focused = false;
+  final int puesto;
+  final int de;
+  final String rango;
 
   @override
   Widget build(BuildContext context) {
-    final (codigo, nombre) = _partirNombreRuta(widget.ruta);
-    final horaPico = widget.ruta.total == 0 ? null : widget.ruta.horaPico;
-    final etiquetaHora = horaPico == null ? null : horaPicoLabel(horaPico);
-    final etiquetaSemantica = [
-      'Puesto ${widget.puesto}',
-      'ruta $codigo $nombre',
-      '${_formatearTotal(widget.ruta.total)} búsquedas',
-      if (etiquetaHora != null) 'hora pico $etiquetaHora',
-    ].join(', ');
-
-    return FocusableActionDetector(
-      shortcuts: const {
-        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-        SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-      },
-      actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(
-          onInvoke: (_) {
-            widget.onTap();
-            return null;
-          },
-        ),
-      },
-      onShowHoverHighlight: (value) => setState(() => _hovered = value),
-      onShowFocusHighlight: (value) => setState(() => _focused = value),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          child: Semantics(
-            key: ValueKey('fila-ruta-${widget.ruta.id}'),
-            label: etiquetaSemantica,
-            button: true,
-            selected: widget.selected,
-            onTap: widget.onTap,
-            child: ExcludeSemantics(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
-                decoration: BoxDecoration(
-                  color: _colorFondoFila(),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: _colorBordeFila(),
-                    width: _focused ? 1.6 : 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        // 22 px: caben dos cifras en mono a 12 pt.
-                        SizedBox(
-                          width: 22,
-                          child: Text(
-                            '${widget.puesto}',
-                            style: AppType.mono(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.online.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: Text(
-                            codigo,
-                            style: AppType.ui(
-                              color: AppColors.navy,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            nombre,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppType.ui(
-                              color: AppColors.navy,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        // La cifra sola: la cabecera ya dice que son
-                        // búsquedas (dueño, 2026-10-26: «demasiado texto»).
-                        Text(
-                          _formatearTotal(widget.ruta.total),
-                          style: AppType.mono(
-                            color: AppColors.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // La barra arranca bajo la ficha (22 px del puesto). La
-                    // hora pico y las 24 horas viven en la tira del mapa: una
-                    // sola tira, no dos.
-                    Padding(
-                      padding: const EdgeInsets.only(left: 22),
-                      child: _BarraRuta(
-                        key: ValueKey('barra-ruta-${widget.ruta.id}'),
-                        value: widget.maxTotal == 0
-                            ? 0
-                            : widget.ruta.total / widget.maxTotal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _colorFondoFila() {
-    if (widget.selected) {
-      return Color.alphaBlend(
-        AppColors.selection.withValues(alpha: 0.07),
-        AppColors.surface,
-      );
-    }
-    if (_hovered) {
-      return Color.alphaBlend(
-        AppColors.selection.withValues(alpha: 0.035),
-        AppColors.surface,
-      );
-    }
-    return AppColors.surface;
-  }
-
-  Color _colorBordeFila() {
-    if (widget.selected) return AppColors.selection.withValues(alpha: 0.45);
-    if (_focused) return AppColors.navy;
-    return Colors.transparent;
-  }
-}
-
-class _BarraRuta extends StatelessWidget {
-  const _BarraRuta({super.key, required this.value});
-  final double value;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => Container(
-      height: 7,
-      decoration: BoxDecoration(
-        color: AppColors.border,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Container(
-        width: constraints.maxWidth * value.clamp(0.0, 1.0).toDouble(),
-        height: 7,
-        decoration: BoxDecoration(
-          color: AppColors.boton,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-        ),
-      ),
-    ),
-  );
-}
-
-/// La forma de [_FilaRuta] sin datos: puesto, ficha, nombre y total arriba,
-/// la barra debajo desde los 22 px del puesto, con el mismo relleno y el
-/// mismo radio, para que al llegar la lista las filas caigan donde estaban.
-class _FilasFantasma extends StatelessWidget {
-  const _FilasFantasma();
-
-  /// Nombres de largos distintos: iguales se leerían como un patrón.
-  static const _nombres = [148.0, 112.0, 164.0, 96.0, 130.0, 104.0];
-
-  /// La barra de cada fila, de la más buscada a la menos.
-  static const _barras = [1.0, 0.78, 0.6, 0.46, 0.34, 0.22];
-
-  @override
-  Widget build(BuildContext context) => ListView.separated(
-    padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-    physics: const NeverScrollableScrollPhysics(),
-    itemCount: _nombres.length,
-    separatorBuilder: (_, _) => const SizedBox(height: 4),
-    itemBuilder: (_, i) => Container(
-      key: ValueKey('fantasma-ruta-$i'),
-      padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
-      ),
+    final pico = ruta.total == 0 ? null : ruta.horaPico;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              // 22 px del puesto; su cifra mono de 12 pt mide unos 8 de ancho.
-              const SizedBox(
-                width: 22,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _Bloque(ancho: 9, alto: 10),
+              // Mismo rótulo que «Ocupación promedio», debajo.
+              Expanded(
+                child: Text(
+                  'Búsquedas',
+                  style: AppType.ui(
+                    color: AppColors.navy,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              // La ficha: código de 10,5 pt con 7 y 3 de relleno.
-              const _Bloque(ancho: 34, alto: 19),
-              const SizedBox(width: 10),
-              _Bloque(ancho: _nombres[i], alto: 11),
-              const Spacer(),
-              const _Bloque(ancho: 82, alto: 10),
+              const SizedBox(width: 12),
+              // Gris secundario sobre el riel: 4,9:1, como los segmentos.
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceRaised,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  'Puesto $puesto de $de',
+                  key: const ValueKey('busquedas-puesto'),
+                  style: AppType.ui(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.only(left: 22),
-            child: FractionallySizedBox(
-              widthFactor: _barras[i],
-              child: const _Bloque(alto: 6),
+          const SizedBox(height: 14),
+          Text(
+            _formatearTotal(ruta.total),
+            key: const ValueKey('busquedas-cifra'),
+            style: AppType.ui(
+              color: AppColors.navy,
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              height: 1.05,
+              letterSpacing: -1,
+            ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            rango,
+            key: const ValueKey('busquedas-rango'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.ui(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
+          if (pico != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.schedule_outlined,
+                  size: 15,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Hora pico ',
+                  style: AppType.ui(
+                    color: AppColors.textSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  horaPicoLabel(pico),
+                  key: const ValueKey('busquedas-pico'),
+                  style: AppType.ui(
+                    color: AppColors.navy,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// El código de la ruta en su ficha verde clara (navy encima, 11,9:1).
+class _FichaCodigo extends StatelessWidget {
+  const _FichaCodigo(this.codigo);
+  final String codigo;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+    decoration: BoxDecoration(
+      color: AppColors.online.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+    ),
+    child: Text(
+      codigo,
+      style: AppType.ui(
+        color: AppColors.navy,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
+}
+
+/// La forma de [_ResumenBusquedas] sin datos, con el mismo relleno, para que
+/// al llegar la cifra caiga donde latía.
+class _ResumenFantasma extends StatelessWidget {
+  const _ResumenFantasma();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    key: ValueKey('fantasma-busquedas'),
+    padding: EdgeInsets.fromLTRB(22, 18, 22, 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _Bloque(ancho: 34, alto: 19),
+            SizedBox(width: 10),
+            _Bloque(ancho: 120, alto: 11),
+            Spacer(),
+            _Bloque(ancho: 78, alto: 19, radio: AppRadius.pill),
+          ],
+        ),
+        SizedBox(height: 14),
+        _Bloque(ancho: 110, alto: 34),
+        SizedBox(height: 8),
+        _Bloque(ancho: 210, alto: 10),
+        SizedBox(height: 16),
+        _Bloque(ancho: 150, alto: 12),
+      ],
     ),
   );
 }
@@ -1075,6 +1033,7 @@ class _MapaCalor extends ConsumerStatefulWidget {
     required this.routeId,
     required this.codigo,
     required this.hora,
+    required this.periodo,
     required this.porHora,
     required this.onSelectHour,
     required this.cells,
@@ -1083,6 +1042,7 @@ class _MapaCalor extends ConsumerStatefulWidget {
   final String routeId;
   final String codigo;
   final int? hora;
+  final PeriodoReporte periodo;
   final List<int> porHora;
   final ValueChanged<int?> onSelectHour;
   final List<CeldaBusqueda> cells;
@@ -1296,6 +1256,7 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
             codigo: widget.codigo,
             porHora: widget.porHora,
             hora: widget.hora,
+            periodo: widget.periodo,
             sinZonas: widget.cells.isEmpty && !widget.cargando,
             onSelectHour: widget.onSelectHour,
           ),
@@ -1613,7 +1574,9 @@ class _PintorCalor extends CustomPainter {
 /// La única tira de horas de Reportes, sobre el mapa: la ficha de la ruta,
 /// la hora pico marcada con un punto, cada barra en la escala del calor y,
 /// debajo, esa escala de menos a más. Tocar una barra pinta el mapa solo a
-/// esa hora; tocar la elegida, o «Todo el día», vuelve al día entero.
+/// esa hora; tocar la elegida, o «Todas las horas», vuelve al día entero.
+/// Bajo el rótulo, de qué fechas es la suma: con 30 días, «Todo el día» no
+/// decía de cuándo (dueño, 2026-10-27).
 class _HorasMapa extends StatelessWidget {
   const _HorasMapa({
     super.key,
@@ -1621,6 +1584,7 @@ class _HorasMapa extends StatelessWidget {
     required this.codigo,
     required this.porHora,
     required this.hora,
+    required this.periodo,
     required this.sinZonas,
     required this.onSelectHour,
   });
@@ -1629,6 +1593,7 @@ class _HorasMapa extends StatelessWidget {
   final String codigo;
   final List<int> porHora;
   final int? hora;
+  final PeriodoReporte periodo;
   final bool sinZonas;
   final ValueChanged<int?> onSelectHour;
 
@@ -1644,8 +1609,8 @@ class _HorasMapa extends StatelessWidget {
     final pico = maximo == 0 ? null : porHora.indexOf(maximo);
     final rotulo = switch ((hora, pico)) {
       (final h?, _) => horaPicoLabel(h),
-      (null, final p?) => 'Pico ${horaPicoLabel(p)}',
-      _ => 'Todo el día',
+      (null, final p?) => 'Hora pico ${horaPicoLabel(p)}',
+      _ => 'Sin búsquedas',
     };
     final pie = AppType.ui(
       color: AppColors.textSecondary,
@@ -1715,7 +1680,7 @@ class _HorasMapa extends StatelessWidget {
                       vertical: 2,
                     ),
                     child: Text(
-                      'Todo el día',
+                      'Todas las horas',
                       style: AppType.ui(
                         color: AppColors.boton,
                         fontSize: 12,
@@ -1725,6 +1690,14 @@ class _HorasMapa extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            totalPeriodoLabel(periodo, DateTime.now()),
+            key: const ValueKey('mapa-rango'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: pie.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           // El punto navy sobre la barra más alta: el pico se ve sin leerlo.

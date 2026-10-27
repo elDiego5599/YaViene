@@ -170,4 +170,112 @@ void main() {
 
     expect(ruta.horaPico, isNull);
   });
+
+  // «Escojo 30 días y la leyenda dice todo el día» (dueño, 2026-10-27): el
+  // mapa y la ocupación dicen qué cuentan y entre qué fechas, en Bogotá.
+  group('rango del periodo en palabras', () {
+    final ahora = DateTime.utc(2026, 10, 27, 20); // 3 p. m. en Bogotá
+
+    test('fechas exactas del periodo', () {
+      expect(rangoFechasLabel(PeriodoReporte.mes, ahora), '27 sep a 27 oct');
+      expect(rangoFechasLabel(PeriodoReporte.semana, ahora), '20 a 27 oct');
+      expect(rangoFechasLabel(PeriodoReporte.hoy, ahora), '27 oct');
+      expect(
+        rangoFechasLabel(PeriodoReporte.delDia(DateTime(2026, 10, 12)), ahora),
+        '12 oct',
+      );
+    });
+
+    test('a primera hora de Bogotá, hoy sigue siendo hoy', () {
+      // 0:30 a. m. del 27 en Bogotá son las 5:30 UTC.
+      final temprano = DateTime.utc(2026, 10, 27, 5, 30);
+      expect(rangoFechasLabel(PeriodoReporte.hoy, temprano), '27 oct');
+    });
+
+    test('el año solo sale cuando no es el de ahora', () {
+      final enero = DateTime.utc(2027, 1, 10, 20);
+      expect(
+        rangoFechasLabel(PeriodoReporte.mes, enero),
+        '11 dic 2026 a 10 ene',
+      );
+      expect(
+        rangoFechasLabel(PeriodoReporte.delDia(DateTime(2026, 12, 31)), enero),
+        '31 dic 2026',
+      );
+    });
+
+    test('el mapa dice que suma las búsquedas del periodo', () {
+      expect(
+        totalPeriodoLabel(PeriodoReporte.mes, ahora),
+        'Total de los 30 días, 27 sep a 27 oct',
+      );
+      expect(
+        totalPeriodoLabel(PeriodoReporte.semana, ahora),
+        'Total de los 7 días, 20 a 27 oct',
+      );
+      expect(
+        totalPeriodoLabel(PeriodoReporte.hoy, ahora),
+        'Total de hoy, 27 oct',
+      );
+      expect(
+        totalPeriodoLabel(PeriodoReporte.delDia(DateTime(2026, 10, 12)), ahora),
+        'Total del 12 oct',
+      );
+    });
+
+    test('la ocupación dice que promedia sus buses en el periodo', () {
+      expect(
+        promedioPeriodoLabel(PeriodoReporte.mes, ahora, buses: 3),
+        'Promedio de 3 buses en los 30 días, 27 sep a 27 oct',
+      );
+      expect(
+        promedioPeriodoLabel(PeriodoReporte.semana, ahora, buses: 1),
+        'De 1 bus en los 7 días, 20 a 27 oct',
+      );
+      expect(
+        promedioPeriodoLabel(PeriodoReporte.hoy, ahora, buses: 2),
+        'Promedio de 2 buses hoy, 27 oct',
+      );
+      expect(
+        promedioPeriodoLabel(
+          PeriodoReporte.delDia(DateTime(2026, 10, 12)),
+          ahora,
+          buses: 2,
+        ),
+        'Promedio de 2 buses el 12 oct',
+      );
+      expect(
+        promedioPeriodoLabel(PeriodoReporte.mes, ahora, buses: 0),
+        'Esta ruta aún no tiene buses',
+      );
+    });
+  });
+
+  // «Igual que la flota» (dueño, 2026-10-27): las píldoras van en el orden
+  // del catálogo de Flota, no en el del ranking.
+  test('las rutas siguen el orden de Flota; las que no están, al final', () {
+    RutaBusquedas r(String id, int total) => RutaBusquedas(
+      id: id,
+      nombre: id,
+      total: total,
+      porHora: List<int>.filled(24, 0),
+      horaPico: null,
+    );
+    final rutas = [r('R3', 9), r('X', 8), r('R1', 5), r('Y', 4), r('R2', 1)];
+    expect(ordenarComoFlota(rutas, ['R1', 'R2', 'R3']).map((r) => r.id), [
+      'R1',
+      'R2',
+      'R3',
+      'X',
+      'Y',
+    ]);
+    // Sin catálogo todavía, el orden en que vinieron.
+    expect(ordenarComoFlota(rutas, const []).map((r) => r.id), [
+      'R3',
+      'X',
+      'R1',
+      'Y',
+      'R2',
+    ]);
+  });
 }

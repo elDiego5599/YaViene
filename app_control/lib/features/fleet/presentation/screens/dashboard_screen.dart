@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
-import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +25,7 @@ import '../providers/reportes_provider.dart';
 import '../widgets/bus_dialog.dart';
 import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
+import '../widgets/pildoras_ruta.dart';
 import '../widgets/route_dialog.dart';
 import '../widgets/ultimo_reporte.dart';
 import '../widgets/velocidad_bus.dart';
@@ -1181,14 +1181,6 @@ class _RouteFilters extends StatefulWidget {
 }
 
 class _RouteFiltersState extends State<_RouteFilters> {
-  final _controller = ScrollController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final fleet = widget.fleet;
@@ -1231,92 +1223,16 @@ class _RouteFiltersState extends State<_RouteFilters> {
     );
   }
 
-  Widget _rutas(FleetState fleet) {
-    return Listener(
-      onPointerSignal: (event) {
-        if (event is PointerScrollEvent && _controller.hasClients) {
-          final next = (_controller.offset + event.scrollDelta.dy).clamp(
-            0.0,
-            _controller.position.maxScrollExtent,
-          );
-          if (next != _controller.offset) {
-            _controller.jumpTo(next);
-          }
-        }
-      },
-      child: Scrollbar(
-        controller: _controller,
-        interactive: true,
-        thumbVisibility: false,
-        thickness: 4,
-        radius: const Radius.circular(AppRadius.pill),
-        child: SizedBox(
-          height: 42,
-          child: ListView(
-            controller: _controller,
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(bottom: 9),
-            children: [
-              ...fleet.routes.map(
-                (route) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: _FilterChip(
-                    label: '${route.name} (${route.total})',
-                    active: fleet.routeFilter == route.routeId,
-                    onTap: () => widget.onSelect(route.routeId),
-                  ),
-                ),
-              ),
-            ],
-          ),
+  Widget _rutas(FleetState fleet) => TiraPildoras(
+    children: [
+      for (final route in fleet.routes)
+        PildoraRuta(
+          label: '${route.name} (${route.total})',
+          active: fleet.routeFilter == route.routeId,
+          onTap: () => widget.onSelect(route.routeId),
         ),
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // La ruta elegida en la cápsula verde de Flota y Reportes (el verde de la
-    // ruta en el mapa), no llena de azul: online sobre capsula da 4,94:1.
-    return Material(
-      color: active ? AppColors.capsula : AppColors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(
-              color: active ? AppColors.online : AppColors.borderStrong,
-            ),
-          ),
-          child: Text(
-            label,
-            style: AppType.ui(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: active ? AppColors.online : AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+    ],
+  );
 }
 
 /// El filo entre buses, igual en las filas de verdad y en las fantasma: mismo
