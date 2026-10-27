@@ -237,8 +237,9 @@ mide antes de sumarlo.
 1. **El día anterior, no antes**: desplegar el respaldo en Fly y cargarle
    los datos (T2.3 y T2.4).
 2. **Con Fly arriba**: matar ngrok tres veces y cronometrar que el pasajero
-   y el panel se pasan solos al respaldo en 45 s o menos (simulacro a de
-   T10.5).
+   y el panel se pasan solos al respaldo en 55 s o menos (simulacro a de
+   T10.5), y que al revivir ngrok vuelven solos a él en 30 s o menos
+   (`BackendUrl.vueltaCada`).
 3. **El repaso del día anterior, el día mismo y lo de después** (T10.6,
    T10.7 y T10.8). `check-demo.sh` revisa todo lo que se puede revisar solo.
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -43,8 +44,45 @@ class BackendUrl extends Notifier<String> {
   final String respaldo;
   final Future<bool> Function(String url, Duration espera)? _sonda;
 
+  /// Cada cuánto, en el respaldo, se pregunta si la principal ya contesta.
+  /// Antes la app se quedaba en la flota simulada del respaldo toda la sesión
+  /// aunque ngrok reviviera (dueño, 2026-10-26).
+  static const Duration vueltaCada = Duration(seconds: 30);
+
+  Timer? _vuelta;
+  bool _preguntando = false;
+
   @override
-  String build() => _inicial;
+  String build() {
+    ref.onDispose(() => _vuelta?.cancel());
+    listenSelf((_, url) => _vigilarVuelta(url));
+    _vigilarVuelta(_inicial);
+    return _inicial;
+  }
+
+  /// En el respaldo, pregunta por la principal hasta que conteste; fuera de
+  /// él, no pregunta nada.
+  void _vigilarVuelta(String url) {
+    _vuelta?.cancel();
+    _vuelta = null;
+    if (respaldo.isEmpty || respaldo == principal || url != respaldo) return;
+    _vuelta = Timer.periodic(vueltaCada, (_) async {
+      if (_preguntando) return;
+      _preguntando = true;
+      try {
+        final preguntar = _sonda ?? BackendResolver.responde;
+        if (await preguntar(
+              principal,
+              BackendResolver.esperaPrincipalReintento,
+            ) &&
+            state == respaldo) {
+          state = principal;
+        }
+      } finally {
+        _preguntando = false;
+      }
+    });
+  }
 
   /// Vuelve a elegir con `BackendResolver` y cambia solo si la respuesta es
   /// otra: con la misma URL, quien la mira no tiene por qué reconstruirse.

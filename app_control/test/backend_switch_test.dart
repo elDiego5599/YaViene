@@ -424,7 +424,8 @@ void main() {
 
       red.tumbar(principal);
       final cambio = panel.read(backendUrlProvider.notifier).reResolver();
-      await tester.pump(const Duration(seconds: 11));
+      // 3 s y 10 s de la principal, más el arranque en frío del respaldo.
+      await tester.pump(const Duration(seconds: 21));
       await cambio;
       await tester.pump();
 

@@ -55,7 +55,31 @@ void main() {
       sonda: f.sonda,
     );
     expect(elegida, respaldo);
-    expect(f.preguntadas, [principal, respaldo]);
+    // La principal se pregunta dos veces antes de rendirse.
+    expect(f.preguntadas, [principal, principal, respaldo]);
+  });
+
+  test('una principal lenta la primera vez se reintenta antes del respaldo',
+      () async {
+    // Medido (2026-10-26): la primera petición a ngrok tras un rato quieto
+    // tardó 3,3 s y la siguiente 1,8. Con una sola pregunta de 3 s la app se
+    // iba a la flota simulada del respaldo, con ngrok vivo.
+    final preguntadas = <String>[];
+    final esperas = <Duration>[];
+    var intentos = 0;
+    final elegida = await BackendResolver.resolver(
+      principal: principal,
+      respaldo: respaldo,
+      sonda: (url, espera) async {
+        preguntadas.add(url);
+        esperas.add(espera);
+        return url == principal && ++intentos > 1;
+      },
+    );
+    expect(elegida, principal);
+    expect(preguntadas, [principal, principal]);
+    expect(esperas.last, BackendResolver.esperaPrincipalReintento);
+    expect(esperas.last, greaterThan(BackendResolver.esperaPrincipal));
   });
 
   test('si ninguna contesta se devuelve la principal', () async {

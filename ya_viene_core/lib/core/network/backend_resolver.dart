@@ -33,6 +33,12 @@ class BackendResolver {
   /// respaldo.
   static const Duration esperaPrincipal = Duration(seconds: 3);
 
+  /// Segunda pregunta a la principal antes de irse al respaldo. Medido
+  /// (2026-10-26): tras un rato quieto, la primera petición a ngrok tardó
+  /// 3,3 s y con una sola pregunta de 3 s la app caía a la flota simulada con
+  /// el túnel vivo. Un túnel caído de verdad no conecta y falla antes.
+  static const Duration esperaPrincipalReintento = Duration(seconds: 10);
+
   /// Espera para el respaldo. Larga porque la máquina de Fly duerme cuando no
   /// se usa y la primera petición la levanta: medido, ese arranque en frío
   /// tarda unos 8 segundos.
@@ -55,6 +61,7 @@ class BackendResolver {
     if (respaldo.isEmpty || respaldo == principal) return principal;
 
     if (await preguntar(principal, tiempoPrincipal)) return principal;
+    if (await preguntar(principal, esperaPrincipalReintento)) return principal;
     if (await preguntar(respaldo, tiempoRespaldo)) return respaldo;
     return principal;
   }
@@ -64,9 +71,8 @@ class BackendResolver {
   /// proveedor, que también es 200 y dejaría pasar un backend muerto.
   static Future<bool> responde(String url, Duration espera) async {
     try {
-      final respuesta = await http
-          .get(Uri.parse('$url$rutaSalud'))
-          .timeout(espera);
+      final respuesta =
+          await http.get(Uri.parse('$url$rutaSalud')).timeout(espera);
       if (respuesta.statusCode != 200) return false;
       final cuerpo = jsonDecode(respuesta.body);
       return cuerpo is Map && cuerpo['status'] == 'ok';

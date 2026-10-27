@@ -49,6 +49,7 @@ Map<String, dynamic> _mapa(String nombre) =>
 class _Contrato implements HttpClientAdapter {
   static const _archivos = {
     'POST /api/admin/login': 'rest-admin-login',
+    'POST /api/fleet/renovar': 'rest-panel-renovar',
     'GET /api/fleet/positions': 'rest-fleet-positions',
     'GET /api/fleet/routes': 'rest-fleet-routes',
     'GET /api/panel/busquedas': 'rest-panel-busquedas',
@@ -105,6 +106,13 @@ void main() {
       baseUrl: _backend,
       dio: _dio(),
     ).login('u', 'c');
+    expect(sesion.token, isNotEmpty);
+    expect(sesion.companyId, 'EMP-01');
+    expect(sesion.companyName, 'Sobusa');
+  });
+
+  test('POST /api/fleet/renovar se lee como la sesión del panel', () async {
+    final sesion = await AuthApi(baseUrl: _backend, dio: _dio()).renovar('tok');
     expect(sesion.token, isNotEmpty);
     expect(sesion.companyId, 'EMP-01');
     expect(sesion.companyName, 'Sobusa');

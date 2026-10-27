@@ -76,7 +76,7 @@ void main() {
   testWidgets('en el respaldo lo dice, al lado del estado de la conexión', (
     tester,
   ) async {
-    await _montar(
+    final panel = await _montar(
       tester,
       () => BackendUrl(respaldo, principal: principal, respaldo: respaldo),
     );
@@ -90,6 +90,9 @@ void main() {
       lessThan(tester.getTopLeft(find.text('En línea')).dx),
     );
     expect(tester.takeException(), isNull);
+    // En el respaldo `BackendUrl` vigila la vuelta con un reloj; se cierra
+    // dentro de la prueba para que el reloj no quede vivo al final.
+    panel.dispose();
   });
 
   testWidgets(
@@ -111,6 +114,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Conectado al respaldo'), findsOneWidget);
+      panel.dispose();
     },
   );
 
@@ -138,7 +142,7 @@ void main() {
   // letra va encima de todo el ancho, así que se mide contra el borde más
   // claro que se ve, no contra el azul de la izquierda.
   testWidgets('la cabecera es blanca y su texto se lee', (tester) async {
-    await _montar(
+    final panel = await _montar(
       tester,
       () => BackendUrl(respaldo, principal: principal, respaldo: respaldo),
     );
@@ -163,6 +167,7 @@ void main() {
         reason: '«$texto» sobre la cabecera blanca',
       );
     }
+    panel.dispose();
   });
 
   // El rótulo «YA VIENE / CONTROL DE FLOTA» se va y en su sitio quedan dos

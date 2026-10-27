@@ -8,15 +8,13 @@ import 'dart:async';
 /// salida era cerrar la app y volver a abrirla. Esto vigila la conexión y,
 /// tras [sinConexionMaxima] sin ella, vuelve a preguntar.
 ///
-/// Con las esperas de `BackendResolver` (3 s para la principal) y el arranque
-/// en frío del respaldo (unos 8 s), la app queda en el respaldo unos 41 s
-/// después de perder la principal.
+/// Con las esperas de `BackendResolver` (3 s y luego 10 s para la principal)
+/// y el arranque en frío del respaldo (unos 8 s), la app queda en el respaldo
+/// unos 51 s después de perder la principal.
 ///
-/// Solo pregunta cuando se pierde la conexión. Por eso, una vez en el
-/// respaldo, la app no vuelve a la principal aunque esta reviva: vuelve en el
-/// siguiente arranque en frío, o si el respaldo también pasa
-/// [sinConexionMaxima] sin conexión. Así no cambia de sitio cada vez que el
-/// túnel parpadea.
+/// Esto solo pregunta cuando se pierde la conexión. La vuelta a la principal
+/// la vigila `BackendUrl`: en el respaldo, le pregunta cada 30 s
+/// (`BackendUrl.vueltaCada`) y vuelve en cuanto contesta (dueño, 2026-10-26).
 class BackendSupervisor {
   /// [reResolver] es la pregunta: elige otra vez y, si la respuesta cambia,
   /// cambia la URL (`BackendUrl.reResolver`).

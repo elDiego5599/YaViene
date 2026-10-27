@@ -21,7 +21,7 @@ void main() async {
 
   // Lo primero es pintar. Antes el primer cuadro de Flutter salía después de
   // saber a qué backend hablar, y esa pregunta va en serie:
-  // hasta 3 s por el principal y, si no contesta, hasta 20 s más por el
+  // hasta 3 s y 10 s más por el principal y, si no contesta, hasta 20 s por el
   // respaldo (BackendResolver). Todo ese rato el teléfono se quedaba en la
   // pantalla nativa, quieta, sin decir si la app seguía viva. Preguntar a los
   // dos a la vez acortaría la espera, pero despertaría la máquina de respaldo

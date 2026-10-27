@@ -2,7 +2,7 @@
 //
 // Lo que se protege: si el túnel de siempre se cae con el pasajero mirando el
 // mapa, la app tiene que pasar sola al respaldo, con las mismas rutas y sin
-// reiniciar; y una vez allí no debe ir y volver cada vez que algo parpadea.
+// reiniciar; y volver solo al túnel cuando revive (`BackendUrl.vueltaCada`).
 //
 // Van con `testWidgets` por el reloj de mentira: los 30 s del supervisor y
 // las esperas de las sondas pasan con `pump`, sin esperarlos de verdad. Por
@@ -183,7 +183,7 @@ Future<void> _cerrar(WidgetTester tester, ProviderContainer app) async {
 
 void main() {
   testWidgets(
-      'el primario cae después de conectar → en ≤ 45 s está en el respaldo y '
+      'el primario cae después de conectar → en ≤ 55 s está en el respaldo y '
       'resuscrito', (tester) async {
     final red = _Red({principal, respaldo});
     final app = _app(red);
@@ -198,7 +198,7 @@ void main() {
     expect(app.read(backendUrlProvider), principal);
     expect(red.sockets, hasLength(1));
 
-    await tester.pump(const Duration(seconds: 16));
+    await tester.pump(const Duration(seconds: 26));
     expect(app.read(backendUrlProvider), respaldo);
     final vivo = red.abiertos.single;
     expect(vivo.url, respaldo);
@@ -209,28 +209,26 @@ void main() {
     await _cerrar(tester, app);
   });
 
-  testWidgets('el primario vuelve → no se regresa hasta reiniciar',
+  testWidgets('el primario vuelve → en ≤ 30 s vuelve a él, resuscrito',
       (tester) async {
+    // Antes se quedaba en la flota simulada del respaldo hasta reiniciar,
+    // con ngrok ya vivo (dueño, 2026-10-26).
     final red = _Red({principal, respaldo});
     final app = _app(red);
     final realtime = app.read(realtimeServiceProvider)..connect();
+    realtime.subscribeToRoute('R-101');
     await tester.pump();
     red.tumbar(principal);
-    await tester.pump(const Duration(seconds: 45));
-    expect(red.abiertos.single.url, respaldo);
+    await tester.pump(const Duration(seconds: 60));
+    expect(app.read(backendUrlProvider), respaldo);
 
     red.revivir(principal);
-    // Un corte del respaldo más corto que la paciencia tampoco lo mueve.
-    red.tumbar(respaldo);
-    await tester.pump(const Duration(seconds: 20));
-    red.revivir(respaldo);
-    await tester.pump(const Duration(minutes: 10));
-
-    // Volver a la principal queda para el próximo arranque en frío, que
-    // pregunta otra vez (`main.dart`).
-    expect(app.read(backendUrlProvider), respaldo);
-    expect(red.sockets, hasLength(2));
-    expect(red.abiertos.single.url, respaldo);
+    await tester.pump(BackendUrl.vueltaCada);
+    expect(app.read(backendUrlProvider), principal);
+    final vivo = red.abiertos.single;
+    expect(vivo.url, principal);
+    expect(vivo.connected, isTrue);
+    expect(vivo.suscripciones, ['R-101']);
     expect(realtime.isConnected, isTrue);
 
     await _cerrar(tester, app);
@@ -283,7 +281,8 @@ void main() {
 
     red.tumbar(principal);
     final cambio = app.read(backendUrlProvider.notifier).reResolver();
-    await tester.pump(const Duration(seconds: 11));
+    // 3 s y 10 s de la principal, más el arranque en frío del respaldo.
+    await tester.pump(const Duration(seconds: 21));
     await cambio;
 
     expect(app.read(realtimeServiceProvider), same(realtime));

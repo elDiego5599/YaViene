@@ -147,4 +147,71 @@ void main() {
     expect(cambios, [respaldo]);
     expect(container.read(backendUrlProvider), respaldo);
   });
+
+  group('vuelta a la principal', () {
+    ({ProviderContainer container, Set<String> vivas, List<String> preguntadas})
+        montar(String inicial, Set<String> vivas) {
+      final preguntadas = <String>[];
+      final container = ProviderContainer(overrides: [
+        backendUrlProvider.overrideWith(() => BackendUrl(
+              inicial,
+              principal: principal,
+              respaldo: respaldo,
+              sonda: (url, _) async {
+                preguntadas.add(url);
+                return vivas.contains(url);
+              },
+            )),
+      ]);
+      container.read(backendUrlProvider);
+      return (container: container, vivas: vivas, preguntadas: preguntadas);
+    }
+
+    testWidgets('en el respaldo, vuelve sola a la principal cuando contesta',
+        (tester) async {
+      // Antes, una vez en el respaldo, la app se quedaba en la flota
+      // simulada toda la sesión aunque ngrok reviviera (dueño, 2026-10-26).
+      final m = montar(respaldo, {respaldo});
+      addTearDown(m.container.dispose);
+
+      await tester.pump(BackendUrl.vueltaCada);
+      expect(m.container.read(backendUrlProvider), respaldo);
+      expect(m.preguntadas, [principal]);
+
+      m.vivas.add(principal);
+      await tester.pump(BackendUrl.vueltaCada);
+      expect(m.container.read(backendUrlProvider), principal);
+
+      // De vuelta en la principal no se sigue preguntando.
+      final antes = m.preguntadas.length;
+      await tester.pump(BackendUrl.vueltaCada * 3);
+      expect(m.preguntadas.length, antes);
+    });
+
+    testWidgets('caer al respaldo con la app abierta también vigila la vuelta',
+        (tester) async {
+      final m = montar(principal, {respaldo});
+      addTearDown(m.container.dispose);
+      await m.container.read(backendUrlProvider.notifier).reResolver();
+      expect(m.container.read(backendUrlProvider), respaldo);
+
+      m.vivas.add(principal);
+      await tester.pump(BackendUrl.vueltaCada);
+      expect(m.container.read(backendUrlProvider), principal);
+    });
+
+    testWidgets('en la principal no se pregunta nada', (tester) async {
+      final m = montar(principal, {principal, respaldo});
+      addTearDown(m.container.dispose);
+      await tester.pump(BackendUrl.vueltaCada * 3);
+      expect(m.preguntadas, isEmpty);
+    });
+
+    testWidgets('tras cerrar, ya no pregunta', (tester) async {
+      final m = montar(respaldo, {respaldo});
+      m.container.dispose();
+      await tester.pump(BackendUrl.vueltaCada * 3);
+      expect(m.preguntadas, isEmpty);
+    });
+  });
 }

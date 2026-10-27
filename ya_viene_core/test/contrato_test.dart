@@ -70,6 +70,7 @@ void main() {
       for (final n in [
         'push-bus-cerca',
         'rest-admin-login',
+        'rest-panel-renovar',
         'rest-aviso-creado',
         'rest-aviso-enviado',
         'rest-busqueda-registrada',
