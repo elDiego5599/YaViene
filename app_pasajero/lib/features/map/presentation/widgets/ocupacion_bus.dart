@@ -1,23 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-/// La ocupación de [bus] en el tramo por donde va, a la hora de su
-/// posición; null sin ruta o con el bus fuera de ella: sin tramo no hay qué
-/// decir. Es de ejemplo (`ocupacionSimulada`) hasta que lleguen las cámaras.
-/// La hora es la de la posición y no la del reloj: la cifra cambia cuando
-/// el bus se mueve, no sola.
-int? ocupacionEnRuta(SeguidorRuta? seguidor, BusPosition bus) {
-  if (seguidor == null || seguidor.ruta.largo <= 0) return null;
-  final avance = seguidor.avanceDe(bus);
-  if (avance == null) return null;
-  return ocupacionSimulada(
-    busId: bus.busId,
-    routeId: bus.routeId,
-    tramo: avance / seguidor.ruta.largo,
-    hora: bus.timestamp.toLocal(),
-  );
-}
-
 /// «Ocupación aprox.» y su porcentaje, con una pista que se llena en la
 /// escala de calor del panel (dueño, 2026-10-27). La cifra va en tinta: los
 /// tonos de la escala no llegan a 4,5:1 sobre blanco, así que el color va

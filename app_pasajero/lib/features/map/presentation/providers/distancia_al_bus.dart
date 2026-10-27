@@ -3,7 +3,6 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../utils/geo.dart';
-import 'tracking_providers.dart';
 import 'user_location_provider.dart';
 
 /// Distancia del punto de espera a [bus] por su recorrido, como la mide el

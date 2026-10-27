@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../geo/por_ruta.dart';
 import '../models/bus_position.dart';
 import '../models/bus_stop.dart';
 import '../models/route_trajectory.dart';
@@ -119,6 +120,20 @@ final routeTrajectoryProvider = FutureProvider.autoDispose
   }
   debugPrint('[rutas] ruta $routeId no encontrada en rutas.json');
   return RouteTrajectory(routeId: routeId, routeName: '', points: const []);
+});
+
+/// Quien sigue a los buses de una ruta por su recorrido, para medir la
+/// distancia por la calle y no en línea recta. Recuerda dónde iba cada bus
+/// (no salta de carril en una calle de ida y vuelta), así que la hoja, el
+/// vigía de avisos y la ficha del panel comparten el mismo mientras alguno
+/// lo escuche. `null` sin recorrido: se mide en línea recta
+/// (`distanciaAlBus`).
+final seguidorRutaProvider =
+    Provider.autoDispose.family<SeguidorRuta?, String>((ref, routeId) {
+  final puntos =
+      ref.watch(routeTrajectoryProvider(routeId)).valueOrNull?.points;
+  final ruta = puntos == null ? null : RutaMedible.de(puntos);
+  return ruta == null ? null : SeguidorRuta(ruta);
 });
 
 /// Paradas de una ruta (vacías en la mayoría: buses sin paradas fijas).

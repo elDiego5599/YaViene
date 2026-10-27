@@ -381,7 +381,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   rojo de la web, `sinConexion`, #CE2D1D, 5,23:1; en Reportes, «Ver ruta» es
   una casilla bajo una raya en la leyenda del mapa; sin zonas de 5 o más, D17, el pie dice cuántas búsquedas hubo, y con una hora elegida cuenta solo esa) que se desliza con el resorte de la píldora del
   pasajero, y el cuerpo se desliza de lado con él; la pestaña de estado en
-  lámina blanca; el
+  lámina blanca; en la ficha del bus, bajo la velocidad, «OCUPACIÓN
+  APROX.» con su porcentaje y la pista de calor, la misma del pasajero
+  (`ocupacionEnRuta` y `seguidorRutaProvider` en el core), solo si
+  transmite (dueño, 2026-10-27); el
   interruptor de la fila sin rótulo PERMITIDO/OCULTO (dueño, 2026-10-26);
   filas planas, carril de estados, barra de flota de 48, «Agregar bus» de
   36, ventana mínima 1200×700 (`ventanaMinima`); «Recordar contraseña» con

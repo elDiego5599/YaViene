@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 
+import '../geo/por_ruta.dart';
+import '../models/bus_position.dart';
+
 /// FNV-1a de 32 bits: `String.hashCode` no promete ser el mismo entre
 /// ejecuciones, y el ejemplo tiene que serlo (como en la ocupación del
 /// panel, `ocupacion_provider.dart`).
@@ -52,4 +55,21 @@ int ocupacionSimulada({
       0.5 + 0.5 * math.sin(2 * math.pi * (vueltas * tramo + _azar(semilla)));
   final mezcla = 0.45 * onda(2, 'ruta $routeId') + 0.55 * onda(3, 'bus $busId');
   return (100 * dia * (0.2 + 0.8 * mezcla)).round().clamp(0, 100);
+}
+
+/// La ocupación de [bus] en el tramo por donde va, a la hora de su
+/// posición; null sin ruta o con el bus fuera de ella: sin tramo no hay qué
+/// decir. La hora es la de la posición y no la del reloj: la cifra cambia
+/// cuando el bus se mueve, no sola. La comparten la tarjeta del bus del
+/// pasajero y la ficha del bus del panel.
+int? ocupacionEnRuta(SeguidorRuta? seguidor, BusPosition bus) {
+  if (seguidor == null || seguidor.ruta.largo <= 0) return null;
+  final avance = seguidor.avanceDe(bus);
+  if (avance == null) return null;
+  return ocupacionSimulada(
+    busId: bus.busId,
+    routeId: bus.routeId,
+    tramo: avance / seguidor.ruta.largo,
+    hora: bus.timestamp.toLocal(),
+  );
 }

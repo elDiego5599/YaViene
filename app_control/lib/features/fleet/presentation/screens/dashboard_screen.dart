@@ -12,7 +12,8 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
     show enRespaldoProvider;
 import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 import 'package:ya_viene_core/shared/widgets/recuadro_latencia.dart';
-import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
+import 'package:ya_viene_core/ya_viene_core.dart'
+    show AppMotion, seguidorRutaProvider;
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/ventana.dart';
@@ -25,6 +26,7 @@ import '../providers/reportes_provider.dart';
 import '../widgets/bus_dialog.dart';
 import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
+import '../widgets/ocupacion_bus.dart';
 import '../widgets/pildoras_ruta.dart';
 import '../widgets/route_dialog.dart';
 import '../widgets/ultimo_reporte.dart';
@@ -1725,21 +1727,35 @@ class _SelectedBusCard extends StatelessWidget {
             ),
             child: Consumer(
               builder: (context, ref, _) {
-                final (reportadoEn, velocidad) = ref.watch(
+                final (reportadoEn, transmitiendo) = ref.watch(
                   fleetProvider.select((s) {
                     final vivo = s.buses[bus.busId];
                     return (
                       vivo?.receivedAt ?? vivo?.capturedAt,
-                      vivo != null && BusEstado.transmite(vivo)
-                          ? vivo.speedKmh
-                          : null,
+                      vivo != null && BusEstado.transmite(vivo) ? vivo : null,
                     );
                   }),
                 );
+                // La ocupación, como la velocidad, solo si transmite: la de
+                // un bus callado es la de un tramo por donde ya no va.
+                final routeId = transmitiendo?.routeId;
+                final ocupacion = transmitiendo == null || routeId == null
+                    ? null
+                    : ocupacionDeFlota(
+                        ref.watch(seguidorRutaProvider(routeId)),
+                        transmitiendo,
+                      );
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    VelocidadBus(kmh: velocidad),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: VelocidadBus(kmh: transmitiendo?.speedKmh),
+                    ),
+                    if (ocupacion != null) ...[
+                      const SizedBox(height: 10),
+                      OcupacionBus(porcentaje: ocupacion),
+                    ],
                     const SizedBox(height: 8),
                     UltimoReporte(reportadoEn: reportadoEn),
                   ],
