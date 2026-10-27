@@ -5,7 +5,8 @@
 // pintaba y en 1600 salía cortado («Vivero Pa…»), y el nombre del
 // conductor de la flota de ejemplo («Conductor 3001») no le decía nada al
 // operador. El dueño pidió quitar los dos: la fila es la placa y su estado,
-// y la ruta ya la dice la pestaña elegida arriba.
+// y la ruta ya la dice la pestaña elegida arriba. El nombre ya ni llega:
+// el backend dejó de mandarlo (no hay app de conductor, 2026-10-27).
 //
 // Estas pruebas miden con la tipografía de verdad. Con Ahem, la de cajas
 // que usa `flutter test` si no se le da otra, cada letra es un cuadrado y
@@ -67,15 +68,11 @@ const _placaMasAncha = 'WWW000';
 const _rutaCorta = 'Tcherassi';
 const _rutaLarga = 'Vivero Paraíso';
 
-/// Como llegan los de la flota de ejemplo.
-const _conductor = 'Conductor 3001';
-
 Future<void> _montar(
   WidgetTester tester, {
   required double ancho,
   required String placa,
   String? ruta,
-  String? conductor,
   bool enTerminal = false,
 }) async {
   await tester.pumpWidget(
@@ -96,7 +93,6 @@ Future<void> _montar(
                     busId: placa,
                     companyId: 'empresa',
                     placa: placa,
-                    driverName: conductor,
                     visible: true,
                     online: false,
                     isGhost: true,
@@ -164,13 +160,7 @@ void main() {
         'a ${ancho.toStringAsFixed(0)} con $placa la fila es la placa y su '
         'estado, sin ruta ni conductor',
         (tester) async {
-          await _montar(
-            tester,
-            ancho: ancho,
-            placa: placa,
-            ruta: _rutaLarga,
-            conductor: _conductor,
-          );
+          await _montar(tester, ancho: ancho, placa: placa, ruta: _rutaLarga);
 
           expect(tester.takeException(), isNull, reason: 'la fila se desborda');
           expect(
@@ -182,11 +172,6 @@ void main() {
             find.text(_rutaLarga),
             findsNothing,
             reason: 'volvió el chip de la ruta',
-          );
-          expect(
-            find.text(_conductor),
-            findsNothing,
-            reason: 'volvió el renglón del conductor',
           );
 
           final icono = tester.getRect(find.byIcon(Icons.pause_circle_outline));

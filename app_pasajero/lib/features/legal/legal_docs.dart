@@ -63,19 +63,23 @@ class LegalDoc {
 // Sube a 5 el 6 de octubre de 2026: el aviso ya no suena a un kilómetro sino
 // a la distancia que elige la persona, y esa distancia viaja con el punto.
 // Cambian lo que se promete y lo que sale del teléfono.
-const int kLegalVersion = 6;
+// Sube a 6 el 18 de octubre de 2026: el buzón (D14).
+// Sube a 7 el 27 de octubre de 2026: al elegir una ruta sale la casilla
+// redondeada de tu punto para los reportes de la empresa dueña (D17 del
+// backend), también en iPhone, donde antes la ubicación no salía nunca.
+const int kLegalVersion = 7;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '18 de octubre de 2026',
+  updated: '27 de octubre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
       'necesita muy poco, y lo poco que necesita casi todo se queda dentro '
       'de tu teléfono. Esto dice exactamente qué es cada cosa.',
     ),
-    LegalBlock.heading('Tu ubicación se queda en el teléfono, salvo una vez'),
+    LegalBlock.heading('Tu ubicación se queda en el teléfono, salvo dos veces'),
     LegalBlock.p(
       'La app te pide permiso de ubicación para dos cosas: centrar el mapa '
       'donde estás y calcular cuántos metros te separan del bus. Las dos se '
@@ -90,7 +94,7 @@ const LegalDoc legalPrivacidad = LegalDoc(
     // redondea a tres decimales en `avisos_push.dart` y el servidor borra la
     // fila al quitar el aviso, cuando la app ve que sonó o al vencer.
     LegalBlock.p(
-      'La excepción es el aviso en Android, para que suene con la app '
+      'La primera excepción es el aviso en Android, para que suene con la app '
       'cerrada. Mientras tienes uno armado, tu teléfono le deja al servidor el '
       'punto desde el que esperas (el que marcaste a mano o tu última '
       'posición), redondeado a unos 100 metros, y lo pone al día cada 20 '
@@ -99,8 +103,31 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'que Firebase Cloud Messaging le hace llegar la notificación a tu '
       'teléfono. Se borra cuando quitas el aviso o cuando la '
       'app ve que sonó, y como mucho a las tres horas de armarlo. No se '
-      'comparte con la empresa de transporte ni con nadie más. En iPhone tu '
-      'ubicación no sale del teléfono.',
+      'comparte con la empresa de transporte ni con nadie más. En iPhone el '
+      'aviso no deja tu punto en el servidor.',
+    ),
+    // La segunda (D17 del backend): `busquedas_api.dart` manda la ruta y el
+    // centro de la casilla de `centroCeldaBusqueda` (unos 150 m), sin
+    // reintentos; `busquedas.ts` solo suma a un contador por ruta, hora y
+    // casilla, muestra una zona desde K_BUSQUEDAS (5) y borra a los 396 días.
+    LegalBlock.heading('Las búsquedas de ruta, para las empresas'),
+    LegalBlock.p(
+      'Cada vez que eliges una empresa y una ruta para verla en el mapa, tu '
+      'teléfono le cuenta al servidor que alguien buscó esa ruta. Si la app '
+      'conoce tu punto (tu posición o el que marcaste a mano), manda también '
+      'la zona donde estás, redondeada a una casilla de unos 150 metros de '
+      'lado: tu posición exacta no viaja. Pasa igual en Android y en iPhone. '
+      'El servidor no guarda quién eres, ni tu teléfono, ni tu dirección IP, '
+      'ni un código tuyo: solo suma uno al contador de esa ruta, esa hora y '
+      'esa casilla.',
+    ),
+    LegalBlock.p(
+      'Solo la empresa dueña de cada ruta ve esos contadores, en su panel, '
+      'para saber a qué horas y en qué zonas la esperan y poner los buses '
+      'donde hacen falta. Así ganan los dos: tú esperas menos y la empresa '
+      'sabe dónde la necesitan. Una zona solo aparece con al menos cinco '
+      'búsquedas, los contadores no se venden ni se ceden a nadie más y se '
+      'borran a los 13 meses.',
     ),
     LegalBlock.heading('El aviso lo calcula tu propio teléfono'),
     LegalBlock.p(
@@ -117,16 +144,19 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'dice), pero tu ubicación deja de actualizarse: la app pide el permiso '
       'de ubicación solo mientras la usas y no el de segundo plano, así que '
       'la distancia se mide contra el último punto que conoció, o contra el '
-      'punto de espera que hayas marcado a mano. Si cierras la app del todo, '
-      'el seguimiento se detiene y la notificación desaparece: el aviso queda '
-      'guardado y vuelve a vigilar cuando abres la app otra vez, y en Android '
-      'mientras tanto vigila el servidor. En iPhone el aviso solo suena con '
-      'la app abierta.',
+      'punto de espera que hayas marcado a mano. En iPhone, con un aviso '
+      'armado, la app sigue midiendo con la pantalla bloqueada, con el mismo '
+      'permiso de mientras la usas, y lo ves en la flecha azul de arriba. Si '
+      'cierras la app del todo, el seguimiento se detiene y la notificación '
+      'desaparece: el aviso queda guardado y vuelve a vigilar cuando abres la '
+      'app otra vez, y en Android mientras tanto vigila el servidor.',
     ),
     LegalBlock.heading('Sin analítica, sin rastreo, sin publicidad'),
     LegalBlock.p(
       'La aplicación no incluye herramientas de analítica, de perfiles de '
-      'uso ni de publicidad, y no vende ni cede datos a terceros.',
+      'uso ni de publicidad, y no vende ni cede datos a terceros. El conteo '
+      'de búsquedas de arriba no dice quién buscó: es un número por ruta, '
+      'hora y zona.',
     ),
     LegalBlock.heading('Lo que se queda guardado en tu teléfono'),
     LegalBlock.p(
@@ -239,8 +269,8 @@ const LegalDoc legalPrivacidad = LegalDoc(
       'Si algo de esto cambia, cambia también este texto y su fecha, y la '
       'app te lo vuelve a mostrar. Ya Viene está en pruebas y todavía '
       'crece; lo que no va a cambiar es la parte de arriba: tu ubicación solo '
-      'sale del teléfono para el aviso de Android, redondeada y por unas '
-      'horas.',
+      'sale del teléfono redondeada, para el aviso de Android por unas horas '
+      'y al buscar una ruta como una casilla que solo ve la empresa dueña.',
     ),
   ],
 );

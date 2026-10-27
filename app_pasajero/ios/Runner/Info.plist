@@ -42,7 +42,7 @@
 		<string>location</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Para centrar el mapa donde estás y calcular cuántos metros te separan del bus. Tu ubicación no sale del teléfono.</string>
+	<string>Para centrar el mapa donde estás y calcular cuántos metros te separan del bus. Al elegir una ruta solo sale tu zona, redondeada a una casilla, para la empresa de esa ruta.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -79,6 +79,7 @@ void main() {
       // 5: la distancia del aviso la elige la persona y viaja con el punto
       //    (6 de octubre).
       // 6: el buzón (18 de octubre; lo vigila `legal_buzon_test.dart`).
+      // 7: las búsquedas de ruta (27 de octubre; `legal_busquedas_test.dart`).
       expect(kLegalVersion, greaterThanOrEqualTo(5));
     });
   });
@@ -111,10 +112,11 @@ void main() {
   group('la privacidad y los avisos con la app cerrada', () {
     test('dice qué sale, cuándo, redondeado y hasta cuándo', () {
       final texto = textoDe(legalPrivacidad);
-      expect(texto, contains('La excepción es el aviso en Android'));
+      expect(texto, contains('La primera excepción es el aviso en Android'));
       expect(texto, contains('redondeado a unos 100 metros'));
       expect(texto, contains('como mucho a las tres horas de armarlo'));
-      expect(texto, contains('En iPhone tu ubicación no sale del teléfono.'));
+      expect(texto,
+          contains('En iPhone el aviso no deja tu punto en el servidor.'));
       expect(texto, isNot(contains('no usa ningún servicio de mensajería')));
       expect(texto, isNot(contains('Tu ubicación no sale del teléfono')));
     });

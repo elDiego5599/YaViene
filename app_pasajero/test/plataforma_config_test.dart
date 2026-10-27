@@ -25,7 +25,8 @@ void main() {
     test('el texto del permiso de ubicación dice lo mismo que la privacidad',
         () {
       // T5.6: lo que iOS muestra al pedir la ubicación es lo primero que se
-      // lee de la política. Dice los dos usos y que no sale del teléfono, con
+      // lee de la política. Dice los dos usos y que al elegir ruta solo sale
+      // la casilla redondeada (D17), con
       // las palabras de `legal_docs.dart` (espejo de `privacidad.html`).
       final plist = _leer('ios/Runner/Info.plist');
       final texto = RegExp(
@@ -35,7 +36,7 @@ void main() {
       for (final frase in [
         'centrar el mapa',
         'cuántos metros te separan del bus',
-        'no sale del teléfono',
+        'redondeada a una casilla',
       ]) {
         expect(texto, contains(frase));
         expect(privacidad.replaceAll(RegExp(r"'\s*'"), ''), contains(frase));
@@ -115,7 +116,10 @@ void main() {
       expect(kts, contains('tasks.configureEach'));
       expect(kts, contains('GradleException('));
       expect(kts, contains('firmaDebugEnRelease'));
-      expect(kts, contains('No se puede compilar release: falta android/key.properties.'));
+      expect(
+          kts,
+          contains(
+              'No se puede compilar release: falta android/key.properties.'));
       expect(
         kts,
         matches(RegExp(

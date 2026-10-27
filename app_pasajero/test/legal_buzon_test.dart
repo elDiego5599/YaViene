@@ -38,9 +38,9 @@ void main() {
     );
   });
 
-  test('el texto nuevo vuelve a pedir el sí, con su fecha', () {
+  test('el texto nuevo vuelve a pedir el sí', () {
     // 6: el buzón manda lo que escribes al correo del equipo (18 de octubre).
+    // La fecha la lleva ahora `legal_busquedas_test.dart` (7, 27 de octubre).
     expect(kLegalVersion, greaterThanOrEqualTo(6));
-    expect(legalPrivacidad.updated, '18 de octubre de 2026');
   });
 }

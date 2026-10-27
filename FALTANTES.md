@@ -70,8 +70,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   Y los reportes de búsquedas (D17, 2026-10-25): al elegir una ruta, la
   app manda la ruta y la celda de unos 150 m del punto; el backend guarda
   solo conteos por ruta, hora y celda (sin IP ni equipo), 13 meses, y el
-  panel muestra celdas con 5 búsquedas o más. Falta decidir con el abogado
-  si la política de privacidad de la web lo nombra.
+  panel muestra celdas con 5 búsquedas o más. La privacidad ya lo dice
+  (versión 7, 2026-10-27, app y web: solo lo ve la empresa dueña de la
+  ruta, un trato en el que ganan los dos); falta que el abogado revise ese
+  texto.
 
 ## Lo que tienes que hacer tú
 

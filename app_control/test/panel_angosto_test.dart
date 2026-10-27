@@ -41,7 +41,6 @@ class _FakeFleetApi extends FleetApi {
       companyId: 'c-1',
       routeId: 'R-1',
       placa: 'ABC123',
-      driverName: 'Ana Pérez',
       visible: true,
       online: true,
       lat: 10.98,

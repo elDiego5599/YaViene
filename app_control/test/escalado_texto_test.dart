@@ -134,7 +134,6 @@ void main() {
                           busId: 'WWW000',
                           companyId: 'empresa',
                           placa: 'WWW000',
-                          driverName: 'Conductor de nombre largo',
                           visible: true,
                           online: true,
                           isGhost: false,

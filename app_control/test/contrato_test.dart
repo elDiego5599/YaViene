@@ -127,7 +127,6 @@ void main() {
       expect(bus.companyId, 'EMP-01');
       expect(bus.placa, isNotEmpty);
       expect(bus.interno, isNotEmpty);
-      expect(bus.driverName, isNotEmpty);
       expect(bus.routeId, 'R-101');
       expect(bus.visible, isTrue);
       expect(bus.online, isTrue);
@@ -281,7 +280,6 @@ void main() {
       expect(movido.lon, -74.7889);
       expect(movido.placa, 'ABC123');
       expect(movido.interno, '001');
-      expect(movido.driverName, 'Conductor 1');
       expect(movido.online, isTrue);
       expect(movido.visible, isTrue);
 

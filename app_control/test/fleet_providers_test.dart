@@ -631,7 +631,6 @@ void main() {
       routeId: 'R-1',
       placa: 'ABC123',
       interno: '0457',
-      driverName: 'Carlos Pérez',
       visible: true,
       online: true,
     );
@@ -665,7 +664,7 @@ void main() {
       },
     );
 
-    test('una posición en vivo no borra placa, interno ni conductor', () async {
+    test('una posición en vivo no borra placa ni interno', () async {
       final (notifier, socket, _) = await arrancar();
 
       socket.posiciones.add(_posicion('B-1', sequence: 7));
@@ -674,7 +673,6 @@ void main() {
       final bus = notifier.state.buses['B-1']!;
       expect(bus.placa, 'ABC123');
       expect(bus.interno, '0457');
-      expect(bus.driverName, 'Carlos Pérez');
       expect(bus.sequence, 7);
       expect(bus.lat, closeTo(10.9807, 1e-9));
       expect(bus.online, true);
