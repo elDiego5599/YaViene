@@ -1345,9 +1345,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
         children: [
           // Sin franja de color arriba (diseño «A», dueño 2026-09-30): el
           // número ya lleva la urgencia en su color y la franja la repetía.
-          // Los 18 que la separaban del título pasan a 12: sin franja, el
-          // asa de la hoja queda justo encima y no hace falta más aire.
-          const SizedBox(height: 12),
+          // Los 18 que la separaban del título pasan a 12, y a 8 desde que
+          // la tarjeta lleva la ocupación (dueño, 2026-10-27: el mapa
+          // quedaba sin espacio): el asa de la hoja queda justo encima.
+          const SizedBox(height: 8),
           // Quién es y cuánto falta, en una tarjeta con marco (prueba del
           // dueño, 2026-09-30): blanca con el filo y la sombra suave de las
           // filas del selector, que es lo que la separa de la hoja blanca
@@ -1358,9 +1359,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
           Container(
             key: const ValueKey('hoja-tarjeta'),
             width: double.infinity,
-            // 14 arriba y 18 abajo: la unidad de 15 no trae aire propio
-            // debajo, y con 14 quedaba más pegada al marco que la placa.
-            padding: const EdgeInsets.only(top: 14, bottom: 18),
+            // 12 arriba y 14 abajo (antes 14 y 18; dueño, 2026-10-27, más
+            // mapa): la pista de la ocupación cierra la tarjeta y no la
+            // unidad, que no traía aire propio debajo.
+            padding: const EdgeInsets.only(top: 12, bottom: 14),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.card),
@@ -1399,17 +1401,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     ],
                   ),
                 ),
-                // El filo que separa quién es de cuánto falta. 10 debajo de la
-                // placa y 14 hasta el número: el número de 64 trae su propio
-                // aire por arriba (alto de línea 0,9), así que 14 se ve como
-                // 10.
-                const SizedBox(height: 10),
+                // El filo que separa quién es de cuánto falta. 8 debajo de la
+                // placa y 10 hasta el número: el número trae su propio aire
+                // por arriba (alto de línea 0,9), así que 10 se ve como 8.
+                const SizedBox(height: 8),
                 Container(
                   key: const ValueKey('hoja-filo'),
                   height: 1,
                   color: AppColors.hairline,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 // El alto se anima aquí y no dentro del vaivén: la tarjeta
                 // va a media hoja y lo de abajo tiene que deslizarse con su
                 // borde. El vaivén de abajo es el pie de la hoja y su alto
@@ -1431,10 +1432,10 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   cifra,
-                                  // 14 bajo la unidad, como del filo de
+                                  // 10 bajo la unidad, como del filo de
                                   // arriba al número; 14 a los lados para
                                   // que el filo no toque el marco.
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 10),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 14),
@@ -1460,7 +1461,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _NotaAnimada(stateDetail),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 12),
                       _StickyAlertButton(
                         key: widget.alertKey,
                         onBlockedChanged: widget.onGuideAlertBlocked,
@@ -2101,7 +2102,9 @@ class _StickyAlertButtonState extends State<_StickyAlertButton> {
             duration: AppMotion.normal,
             curve: AppMotion.curvaEntrada,
             width: double.infinity,
-            height: 60,
+            // 52 y no 60 (dueño, 2026-10-27, más mapa): sigue por encima
+            // de los 44 de Apple y el círculo de 30 conserva 11 de aire.
+            height: 52,
             decoration: BoxDecoration(
               color: backgroundColor,
               borderRadius: BorderRadius.circular(AppRadius.pill),

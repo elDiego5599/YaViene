@@ -18,11 +18,11 @@ export 'core/network/backend_supervisor.dart';
 export 'core/network/fallo_red.dart';
 export 'core/network/zona_socket.dart';
 
-// --- Ocupación ---
-export 'core/ocupacion/ocupacion_simulada.dart';
-
 // --- Observabilidad ---
 export 'core/observability/medidor_latencia.dart';
+
+// --- Ocupación ---
+export 'core/ocupacion/ocupacion_simulada.dart';
 
 // --- Providers (capa de estado) ---
 export 'core/providers/app_providers.dart';

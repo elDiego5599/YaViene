@@ -214,9 +214,10 @@ abstract class AppTextStyles {
   /// El número que la app existe para dar: los metros que faltan.
   ///
   /// Es el único sitio donde el peso más fino tiene sentido, porque es el
-  /// único texto lo bastante grande para sostenerlo.
+  /// único texto lo bastante grande para sostenerlo. 54 y no 64 desde que la
+  /// tarjeta del bus lleva la ocupación (dueño, 2026-10-27: le quitaba mapa).
   static final TextStyle dato = _base.copyWith(
-    fontSize: 64.0,
+    fontSize: 54.0,
     fontWeight: FontWeight.w200,
     height: 0.9,
     letterSpacing: -2.0,
