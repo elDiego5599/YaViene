@@ -27,7 +27,7 @@ void main() {
     await asentar(tester);
     final guia = mapa.container.read(mapGuideProvider.notifier);
     await tester.runAsync(() async {
-      await guia.restart(hasLocation: true, locationSettled: true);
+      await guia.restart(hasLocation: true);
       await guia.moveTo(MapGuideStep.buses);
     });
     await asentar(tester);

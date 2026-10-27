@@ -140,6 +140,7 @@ class MapaDePrueba {
     WidgetTester tester, {
     bool bienvenida = false,
     bool conPosicionInicial = true,
+    Offset corrimiento = Offset.zero,
   }) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_seen': true,
@@ -183,7 +184,14 @@ class MapaDePrueba {
     container.read(selectedRouteProvider.notifier).select(rutaDePrueba);
     await tester.pumpWidget(UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: MapScreen()),
+      // [corrimiento] deja la pantalla como a mitad del deslizamiento de
+      // las pestañas: la misma traslación que pinta `PestanasDeslizantes`.
+      child: MaterialApp(
+        home: Transform.translate(
+          offset: corrimiento,
+          child: const MapScreen(),
+        ),
+      ),
     ));
     await tester.pump(const Duration(milliseconds: 50));
     return MapaDePrueba._(container, repo, servicio, avisados);

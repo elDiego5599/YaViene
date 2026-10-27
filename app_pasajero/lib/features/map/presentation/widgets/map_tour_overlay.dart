@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../../core/widgets/tamano_animado.dart';
 
@@ -84,10 +87,21 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   late final CurvedAnimation _scale;
   late final CurvedAnimation _fade;
   late final Animation<double> _escala;
-  late final AnimationController _stepController;
-  Rect? _stepStartRect;
-  Rect? _stepEndRect;
-  Rect? _visibleRect;
+
+  /// Los cuatro bordes del hueco (izquierda, arriba, derecha, abajo), cada
+  /// uno con su resorte. Antes era una curva de 0 a 1 que volvía a empezar
+  /// desde el reposo con cada objetivo nuevo: si el objetivo se movía en
+  /// marcha (la hoja que crece, la pestaña que entra), el hueco frenaba en
+  /// seco y volvía a salir. El resorte parte de donde está y con la
+  /// velocidad que lleva, como en iOS (dueño, 2026-10-27).
+  late final List<AnimationController> _bordes;
+
+  /// Amortiguado del todo y con respuesta de [AppMotion.pausado]: lo que
+  /// tardaba la curva de antes.
+  static final SpringDescription _resorte = SpringDescription.withDampingRatio(
+    mass: 1,
+    stiffness: math.pow(2 * math.pi / 0.36, 2).toDouble(),
+  );
 
   /// F14: pulso breve en el borde del hueco cuando un tap cae fuera — antes
   /// la barrera lo absorbía en silencio, sin ninguna señal de "ahí no es".
@@ -117,10 +131,13 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     _escala = Tween<double>(begin: 0.92, end: 1).animate(_scale);
     _fade = CurvedAnimation(parent: _controller, curve: AppMotion.curvaEntrada);
     _controller.forward();
-    _stepController = AnimationController(
-      vsync: this,
-      duration: AppMotion.pausado,
-    )..addListener(_onStepTick);
+    final hueco = _holeFor(widget);
+    _bordes = [
+      for (final borde in [hueco.left, hueco.top, hueco.right, hueco.bottom])
+        AnimationController.unbounded(vsync: this, value: borde)
+          ..addListener(_onStepTick),
+    ];
+    _conObjetivo = !widget.target.isEmpty;
 
     _missTapController = AnimationController(
       vsync: this,
@@ -138,7 +155,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
   void _onMissTap() => _missTapController.forward(from: 0);
 
   void _onStepTick() {
-    if (mounted && _stepController.value > 0) setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -147,12 +164,7 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     if (old.target != widget.target ||
         old.centered != widget.centered ||
         old.cartaAbajo != widget.cartaAbajo) {
-      final current = _visibleRect ?? _holeFor(old);
-      _stepStartRect = current;
-      _stepEndRect = _holeFor(widget);
-      _stepController
-        ..duration = AppMotion.duracion(context, AppMotion.pausado)
-        ..forward(from: 0);
+      _irA(widget);
     }
     // Cada paso trae su texto y sus botones: la carta cambia de alto y la
     // medida del paso anterior la ponía donde ya no cabía.
@@ -167,6 +179,35 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       // AnimatedSwitcher mantiene un instante la carta saliente junto a la
       // entrante. Cada una necesita su propia GlobalKey mientras se funden.
       _cardKey = GlobalKey();
+    }
+  }
+
+  /// Si los bordes ya están sobre un objetivo de verdad. La pantalla pasa
+  /// `Rect.zero` mientras mide el del paso nuevo: antes el hueco salía hacia
+  /// la esquina de arriba y volvía, un cuadro iluminado que cruzaba la
+  /// pantalla. Ahora se queda donde está hasta que llega la medida, y el
+  /// primero se pone sin viaje (la guía entra fundiéndose).
+  bool _conObjetivo = false;
+
+  void _irA(MapGuideOverlay value) {
+    if (value.target.isEmpty) return;
+    final hueco = _holeFor(value);
+    final destino = [hueco.left, hueco.top, hueco.right, hueco.bottom];
+    final reducido = AppMotion.reducido(context) || !_conObjetivo;
+    _conObjetivo = true;
+    for (var i = 0; i < 4; i++) {
+      final borde = _bordes[i];
+      if (reducido) {
+        borde.value = destino[i];
+      } else {
+        borde.animateWith(SpringSimulation(
+          _resorte,
+          borde.value,
+          destino[i],
+          borde.velocity,
+          snapToEnd: true,
+        ));
+      }
     }
   }
 
@@ -186,7 +227,9 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
     _fade.dispose();
     _missTapCurva.dispose();
     _controller.dispose();
-    _stepController.dispose();
+    for (final borde in _bordes) {
+      borde.dispose();
+    }
     _missTapController.dispose();
     super.dispose();
   }
@@ -197,15 +240,12 @@ class _MapGuideOverlayState extends State<MapGuideOverlay>
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final bounds = Offset.zero & size;
-        final rawHole = _holeFor(widget);
-        final destinationHole = rawHole.intersect(bounds);
-        final startHole = _stepStartRect ?? destinationHole;
-        final endHole = _stepEndRect ?? destinationHole;
-        final progress = AppMotion.reducido(context)
-            ? 1.0
-            : AppMotion.curvaCambio.transform(_stepController.value);
-        var hole = Rect.lerp(startHole, endHole, progress)!.intersect(bounds);
-        _visibleRect = hole;
+        var hole = Rect.fromLTRB(
+          _bordes[0].value,
+          _bordes[1].value,
+          _bordes[2].value,
+          _bordes[3].value,
+        ).intersect(bounds);
         final bottomInset = MediaQuery.of(context).viewPadding.bottom;
         final topInset = MediaQuery.of(context).viewPadding.top;
         final card = _buildCard();
@@ -701,7 +741,16 @@ class PintorHueco extends CustomPainter {
     canvas.drawRRect(rrect, Paint()..blendMode = BlendMode.clear);
     canvas.restore();
 
-    // Solo efectos alrededor del borde, nunca otro velo sobre el objetivo.
+    // Solo efectos alrededor del borde, nunca otro velo sobre el objetivo:
+    // el halo se recorta por fuera para que su desenfoque no entre al hueco.
+    canvas.save();
+    canvas.clipPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(Offset.zero & size),
+        Path()..addRRect(rrect),
+      ),
+    );
     canvas.drawRRect(
       rrect.inflate(2),
       Paint()
@@ -710,6 +759,7 @@ class PintorHueco extends CustomPainter {
         ..strokeWidth = 8
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
+    canvas.restore();
     canvas.drawRRect(
       rrect,
       Paint()
@@ -717,13 +767,6 @@ class PintorHueco extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
     );
-    final light = RadialGradient(
-      colors: [
-        Colors.white.withValues(alpha: 0.12),
-        Colors.transparent,
-      ],
-    ).createShader(hole);
-    canvas.drawRRect(rrect, Paint()..shader = light);
   }
 
   @override

@@ -99,7 +99,7 @@ void main() {
 
         // Ubicación: el mapa libre entre la cabecera y la hoja.
         await tester.runAsync(() async {
-          await guia.restart(hasLocation: false, locationSettled: true);
+          await guia.restart(hasLocation: false);
         });
         await asentar(tester);
         comun(tester, t, 'ubicación');
@@ -207,7 +207,7 @@ void main() {
             .read(selectedBusesProvider.notifier)
             .toggleBus('BUS-SQA220');
         await tester.runAsync(() async {
-          await guia.restart(hasLocation: true, locationSettled: true);
+          await guia.restart(hasLocation: true);
           await guia.moveTo(MapGuideStep.alert);
         });
         await asentar(tester);

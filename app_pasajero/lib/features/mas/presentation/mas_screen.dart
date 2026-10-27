@@ -133,8 +133,6 @@ class MasScreen extends ConsumerWidget {
     final location = ref.read(userLocationProvider);
     await ref.read(mapGuideProvider.notifier).restart(
           hasLocation: location.hasPosition,
-          locationSettled: location.mode != UserLocationMode.unknown &&
-              location.mode != UserLocationMode.locating,
         );
     // Sin ubicación la guía empieza pidiendo el punto de espera: hay que
     // mostrar la ciudad para saber dónde tocar, aunque la cámara esté en

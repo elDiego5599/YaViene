@@ -57,7 +57,10 @@ class AvisoTarjeta extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.hairline),
-        boxShadow: AppShadows.floating,
+        // La sombra corta, no la flotante: con 32 de desenfoque bajaba 48
+        // por debajo y se veía como una franja clara bajo el cuadrito
+        // (dueño, 2026-10-27). Esta cabe en los 16 del margen.
+        boxShadow: AppShadows.soft,
       ),
       child: Row(
         children: [
@@ -137,6 +140,9 @@ void mostrarAviso(
         // cola, la voz y el gesto; lo que se ve es la tarjeta.
         backgroundColor: Colors.transparent,
         elevation: 0,
+        // Sin recorte: el `SnackBar` corta su contenido en seco y partía la
+        // sombra de la tarjeta en una raya.
+        clipBehavior: Clip.none,
         padding: EdgeInsets.zero,
         behavior: SnackBarBehavior.floating,
         // 16 a los lados y abajo: el margen de las píldoras del mapa.

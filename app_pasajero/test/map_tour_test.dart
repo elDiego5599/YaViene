@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -260,10 +262,17 @@ void main() {
       expect(guide.state.skipped, isTrue);
       expect(guide.state.step, isNull);
 
-      await guide.restart(
-        hasLocation: false,
-        locationSettled: true,
-      );
+      await guide.restart(hasLocation: false);
+      expect(guide.state.step, MapGuideStep.location);
+    });
+
+    // Con el GPS todavía buscando, «Ver guía» limpiaba la ruta y no
+    // arrancaba nada (dueño, 2026-10-27: «no empezaba»). Arranca en la
+    // ubicación, que se completa sola cuando llega el punto.
+    test('reiniciar con el GPS buscando arranca en la ubicación', () async {
+      final guide = MapGuideNotifier();
+      addTearDown(guide.dispose);
+      await guide.restart(hasLocation: false);
       expect(guide.state.step, MapGuideStep.location);
     });
   });
@@ -806,10 +815,9 @@ void main() {
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    await mapa.container.read(mapGuideProvider.notifier).restart(
-          hasLocation: false,
-          locationSettled: true,
-        );
+    await mapa.container
+        .read(mapGuideProvider.notifier)
+        .restart(hasLocation: false);
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -835,10 +843,9 @@ void main() {
       conPosicionInicial: false,
     );
     mapa.container.read(mapPreparingProvider.notifier).state = false;
-    await mapa.container.read(mapGuideProvider.notifier).restart(
-          hasLocation: false,
-          locationSettled: true,
-        );
+    await mapa.container
+        .read(mapGuideProvider.notifier)
+        .restart(hasLocation: false);
 
     Future<void> comprobarPildora(
         UserLocationMode mode, String textoAccion) async {
@@ -894,6 +901,85 @@ void main() {
     expect(estilo.decoration, TextDecoration.none);
     expect(estilo.fontSize, 25);
     expect(estilo.color, AppColors.primaryDeep);
+  });
+
+  // El hueco llevaba un degradado blanco encima del objetivo: un brillo en
+  // medio de la barra o de la fila que no cuadraba con nada (dueño,
+  // 2026-10-27: «espacios iluminados»). Y el halo azul del borde se metía
+  // unos píxeles dentro. Dentro del hueco no se pinta nada.
+  testWidgets('dentro del hueco no se pinta nada', (tester) async {
+    const tam = Size(200, 200);
+    const hueco = Rect.fromLTWH(40, 60, 120, 60);
+    final bytes = await tester.runAsync(() async {
+      final grabadora = ui.PictureRecorder();
+      const PintorHueco(hole: hueco, radio: 24).paint(Canvas(grabadora), tam);
+      final imagen = await grabadora
+          .endRecording()
+          .toImage(tam.width.toInt(), tam.height.toInt());
+      return (await imagen.toByteData())!;
+    });
+    int alfa(Offset p) => bytes!
+        .getUint8(((p.dy.toInt() * tam.width.toInt()) + p.dx.toInt()) * 4 + 3);
+    expect(alfa(hueco.center), 0, reason: 'el centro');
+    // A 4 px del borde, por dentro: el halo no entra.
+    expect(alfa(Offset(hueco.center.dx, hueco.top + 4)), 0,
+        reason: 'el borde de arriba, por dentro');
+    expect(alfa(const Offset(10, 10)), greaterThan(0), reason: 'el velo');
+  });
+
+  // Cada cambio de objetivo arrancaba el hueco desde el reposo: si el
+  // objetivo se movía mientras iba (la hoja que crece, la pestaña que
+  // entra), el hueco frenaba en seco y volvía a salir (dueño, 2026-10-27:
+  // «los movimientos no son resorte»). Un resorte de verdad conserva la
+  // velocidad que lleva.
+  testWidgets('al cambiar de objetivo en marcha el hueco no frena en seco',
+      (tester) async {
+    Rect objetivo = const Rect.fromLTWH(20, 100, 100, 70);
+    Widget montar() => MediaQuery(
+          data: const MediaQueryData(),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: SizedBox.expand(
+              child: MapGuideOverlay(
+                target: objetivo,
+                title: 'Paso',
+                message: 'Mensaje de prueba',
+                icon: Icons.search,
+                stepIndex: 0,
+                stepCount: 3,
+                onSkip: () {},
+              ),
+            ),
+          ),
+        );
+    double izquierda() => (tester
+            .widget<CustomPaint>(find.byKey(const ValueKey('guide_scrim')))
+            .painter! as PintorHueco)
+        .hole
+        .left;
+
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(montar());
+    await tester.pump(const Duration(milliseconds: 450));
+
+    objetivo = const Rect.fromLTWH(260, 100, 100, 70);
+    await tester.pumpWidget(montar());
+    await tester.pump(const Duration(milliseconds: 80));
+    final a = izquierda();
+    await tester.pump(const Duration(milliseconds: 16));
+    final antes = izquierda() - a;
+
+    objetivo = const Rect.fromLTWH(270, 100, 100, 70);
+    await tester.pumpWidget(montar());
+    final b = izquierda();
+    await tester.pump(const Duration(milliseconds: 16));
+    final despues = izquierda() - b;
+    expect(antes, greaterThan(0));
+    expect(despues, greaterThan(antes * 0.6),
+        reason: 'antes $antes px por cuadro, después $despues');
   });
 
   testWidgets('el hueco interpola entre pasos y se puede interrumpir',

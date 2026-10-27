@@ -40,6 +40,11 @@ class MapScreen extends ConsumerStatefulWidget {
 
 class _MapScreenState extends ConsumerState<MapScreen> {
   final GlobalKey _mapKey = GlobalKey();
+
+  /// La pila de la pantalla, donde vive la guía: los huecos se miden en ella
+  /// y no en la pantalla, porque la pestaña entra deslizándose y la guía se
+  /// desliza con ella.
+  final GlobalKey _pilaKey = GlobalKey();
   final GlobalKey _pillKey = GlobalKey();
   final GlobalKey _cabeceraKey = GlobalKey();
   final GlobalKey _locationGuideKey = GlobalKey();
@@ -312,8 +317,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   Rect? _rectFor(GlobalKey key) {
     final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final pila = _pilaKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.attached || box.size.width <= 0) return null;
-    return box.localToGlobal(Offset.zero) & box.size;
+    if (pila == null || !pila.attached) return null;
+    return box.localToGlobal(Offset.zero, ancestor: pila) & box.size;
   }
 
   /// El usuario necesita poder mover el mapa y tocar cualquier bus. Se
@@ -435,6 +442,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
       body: Stack(
+        key: _pilaKey,
         children: [
           Positioned.fill(
             // Lo que el lector de pantalla oye del mapa va aparte: mira las

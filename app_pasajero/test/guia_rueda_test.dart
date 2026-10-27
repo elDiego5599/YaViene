@@ -34,7 +34,7 @@ void main() {
     mapa.container.read(selectedBusesProvider.notifier).toggleBus('BUS-SQA220');
     final guia = mapa.container.read(mapGuideProvider.notifier);
     await tester.runAsync(() async {
-      await guia.restart(hasLocation: true, locationSettled: true);
+      await guia.restart(hasLocation: true);
       await guia.moveTo(MapGuideStep.alert);
     });
     await asentar(tester);

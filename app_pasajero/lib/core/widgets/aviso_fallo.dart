@@ -190,7 +190,7 @@ class _AvisoFalloState extends ConsumerState<AvisoFallo>
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Row(
             children: [
-              _medallon(causa, lado: 44, icono: 22),
+              _medallon(causa, lado: 44, icono: 22, aro: 0),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -223,12 +223,11 @@ class _AvisoFalloState extends ConsumerState<AvisoFallo>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _reintentando
-                      ? AppColors.surfaceMuted
-                      : AppColors.primaryTint,
+                  color:
+                      _reintentando ? AppColors.surfaceMuted : AppColors.acento,
                   shape: BoxShape.circle,
                 ),
-                child: _icono(tamano: 20),
+                child: _icono(tamano: 20, lleno: !_reintentando),
               ),
             ],
           ),
@@ -237,105 +236,155 @@ class _AvisoFalloState extends ConsumerState<AvisoFallo>
     );
   }
 
-  /// En el sitio de una lista: centrado, con aire, y el botón lleno de tinte
-  /// para que se lea como lo único que hay que hacer.
+  /// En el sitio de una lista: una tarjeta plana con su filo, como las de
+  /// Avisos y el buzón, el medallón con su aro de la causa y un botón lleno
+  /// del azul de los botones. Antes iba suelto sobre el fondo, con un cuadro
+  /// de color y una píldora tenue: se veía pobre (dueño, 2026-10-27).
   Widget _completo(_Causa causa) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Semantics(
-            liveRegion: true,
-            container: true,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _medallon(causa, lado: 56, icono: 28),
-                const SizedBox(height: 14),
-                Text(
-                  causa.titulo,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.subtitulo
-                      .copyWith(color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'No cargaron ${widget.que}. ${causa.detalle}',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.cuerpo
-                      .copyWith(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: AppColors.filo),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.md + 4,
           ),
-          const SizedBox(height: 18),
-          Semantics(
-            button: true,
-            enabled: !_reintentando,
-            label: _reintentando ? 'Reintentando' : 'Reintentar',
-            onTap: _reintentando ? null : _reintentar,
-            excludeSemantics: true,
-            child: Material(
-              color: AppColors.primaryTint,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                onTap: _reintentando ? null : _reintentar,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 44),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                liveRegion: true,
+                container: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _medallon(causa, lado: 56, icono: 26, aro: 10),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      causa.titulo,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.subtitulo
+                          .copyWith(color: AppColors.textPrimary),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _icono(tamano: 18),
-                        const SizedBox(width: AppSpacing.sm),
-                        // El ancho cambia con el texto; que lo haga
-                        // deslizando y no a saltos.
-                        TamanoAnimado(
-                          duracion: AppMotion.rapido,
-                          child: Text(
-                            _reintentando ? 'Reintentando…' : 'Reintentar',
-                            style: AppTextStyles.boton.copyWith(
-                              color: AppColors.primaryAccessible,
-                            ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'No cargaron ${widget.que}. ${causa.detalle}',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.cuerpo
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Semantics(
+                button: true,
+                enabled: !_reintentando,
+                label: _reintentando ? 'Reintentando' : 'Reintentar',
+                onTap: _reintentando ? null : _reintentar,
+                excludeSemantics: true,
+                // Blanco sobre [AppColors.acento] da 7,1:1; mientras
+                // intenta se apaga a gris y los puntos van en verde.
+                child: AnimatedContainer(
+                  duration: AppMotion.rapido,
+                  curve: AppMotion.curvaCambio,
+                  decoration: BoxDecoration(
+                    color: _reintentando
+                        ? AppColors.surfaceMuted
+                        : AppColors.acento,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      onTap: _reintentando ? null : _reintentar,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: 48,
+                          minWidth: double.infinity,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _icono(tamano: 18, lleno: !_reintentando),
+                              const SizedBox(width: AppSpacing.sm),
+                              // El ancho cambia con el texto; que lo haga
+                              // deslizando y no a saltos.
+                              TamanoAnimado(
+                                duracion: AppMotion.rapido,
+                                child: Text(
+                                  _reintentando
+                                      ? 'Reintentando…'
+                                      : 'Reintentar',
+                                  style: AppTextStyles.boton.copyWith(
+                                    color: _reintentando
+                                        ? AppColors.textSecondary
+                                        : AppColors.surface,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _medallon(_Causa causa,
-      {required double lado, required double icono}) {
+  /// El ícono de la causa en un círculo de su tinte y, con [aro], un halo
+  /// del mismo tinte a media fuerza alrededor: se lee como un estado, no
+  /// como un botón cuadrado.
+  Widget _medallon(
+    _Causa causa, {
+    required double lado,
+    required double icono,
+    required double aro,
+  }) {
     return AnimatedContainer(
       duration: AppMotion.rapido,
       curve: AppMotion.curvaEntrada,
-      width: lado,
-      height: lado,
+      width: lado + aro * 2,
+      height: lado + aro * 2,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: causa.tinte,
-        borderRadius:
-            BorderRadius.circular(lado > 44 ? AppRadius.lg : AppRadius.md),
+        color: causa.tinte.withValues(alpha: aro > 0 ? 0.5 : 0),
+        shape: BoxShape.circle,
       ),
-      child: Icon(causa.icono, size: icono, color: causa.color),
+      child: AnimatedContainer(
+        duration: AppMotion.rapido,
+        curve: AppMotion.curvaEntrada,
+        width: lado,
+        height: lado,
+        decoration: BoxDecoration(color: causa.tinte, shape: BoxShape.circle),
+        child: Icon(causa.icono, size: icono, color: causa.color),
+      ),
     );
   }
 
   /// La flecha de reintentar o, mientras se intenta, los puntos de espera
   /// de toda la app. Se cruzan en vez de saltar.
-  Widget _icono({required double tamano}) {
+  Widget _icono({required double tamano, bool lleno = false}) {
     return AnimatedSwitcher(
       duration: AppMotion.duracion(context, AppMotion.rapido),
       switchInCurve: AppMotion.curvaEntrada,
@@ -354,7 +403,7 @@ class _AvisoFalloState extends ConsumerState<AvisoFallo>
               Icons.refresh_rounded,
               key: const ValueKey('listo'),
               size: tamano,
-              color: AppColors.primaryAccessible,
+              color: lleno ? AppColors.surface : AppColors.primaryAccessible,
             ),
     );
   }

@@ -188,11 +188,9 @@ class MapGuideNotifier extends StateNotifier<MapGuideState> {
     );
   }
 
-  Future<void> restart({
-    required bool hasLocation,
-    required bool locationSettled,
-  }) async {
-    if (!locationSettled) return;
+  /// «Ver guía». No espera a que el GPS se asiente: sin punto todavía
+  /// arranca en la ubicación, que se completa sola cuando llega.
+  Future<void> restart({required bool hasLocation}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kVersion, _version);
     await prefs.remove(_kStatus);
