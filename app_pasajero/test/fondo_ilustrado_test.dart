@@ -184,6 +184,13 @@ void main() {
         matching: find.byType(DecoratedBox).first));
     expect((caja.decoration as BoxDecoration).gradient,
         CabeceraDegradada.degradado);
+    // Con el grano de la bienvenida, que se apaga con el degradado (dueño,
+    // 2026-10-27).
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('info-degradado')),
+            matching: find.byType(Grano)),
+        findsOneWidget);
     final apagado = FondoIlustrado.desvanecido(const Size(390, 844), velo: 1);
     expect(apagado.colors.first.a, 1);
     expect(apagado.colors.last.a, 0);
@@ -205,7 +212,9 @@ void main() {
         .whereType<CustomPainter>()
         .map((p) => p.runtimeType)
         .toSet();
-    expect(pintores, {PintorVentana});
+    // El grano de la cabecera no es relleno: va en el degradado, no entre
+    // los dibujos (dueño, 2026-10-27).
+    expect(pintores, {PintorVentana, PintorGrano});
     final dibujos = [
       ...find.byType(Image).evaluate(),
       ...find

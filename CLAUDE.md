@@ -265,9 +265,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   arriba (dueño, 2026-10-27). En Info, «Una solución de Ya Viene Tech»
   va justo debajo del cuadro de Información. «Desactivar» lleva la letra en
   `coralAccessible`.
-  Fondo blanco con trama de puntos (`FondoTexturizado`, tinta al 7 %,
-  contraste medido en el archivo) solo en el arranque; Avisos, Buzón e
-  Info van en blanco liso (dueño, 2026-10-26). En Info, el degradado de
+  El grano de la bienvenida, sin su color (`Grano`, blanco al 50 % y
+  tinta al 3 %), va en el arranque (`FondoTexturizado`, blanco con grano;
+  la trama de puntos se fue) y sobre el degradado de arriba de Avisos,
+  Buzón e Info (dueño, 2026-10-27); el resto de esas pantallas, blanco liso. En Info, el degradado de
   la cabecera va detrás de las figuritas de arriba y se apaga con ellas;
   abajo, blanco liso (dueño, 2026-10-26). Quieto, sin moverse. La
   bienvenida lleva el matizado azul y verde detrás del logo (dueño,

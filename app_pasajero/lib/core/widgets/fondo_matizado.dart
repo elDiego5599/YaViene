@@ -1,8 +1,9 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+
+import 'fondo_texturizado.dart';
 
 /// El fondo de la bienvenida, el que tuvo el arranque (dueño, 2026-10-18:
 /// «texturizado matizado, que tenga como azulito con verde suavecito»): manchas
@@ -86,23 +87,8 @@ class PintorMatizado extends CustomPainter {
               .withValues(alpha: 0.33 + azar.nextDouble() * 0.28),
       );
     }
-    // El grano: puntos de un píxel, claros y oscuros, casi invisibles uno
-    // por uno.
-    final claros = <Offset>[];
-    final oscuros = <Offset>[];
-    final granos = (size.width * size.height / 9).round();
-    for (var i = 0; i < granos; i++) {
-      final p = Offset(
-          azar.nextDouble() * size.width, azar.nextDouble() * size.height);
-      (i.isEven ? claros : oscuros).add(p);
-    }
-    final punto = Paint()
-      ..strokeWidth = 1
-      ..strokeCap = StrokeCap.square;
-    canvas.drawPoints(ui.PointMode.points, claros,
-        punto..color = Colors.white.withValues(alpha: 0.5));
-    canvas.drawPoints(ui.PointMode.points, oscuros,
-        punto..color = AppColors.ink.withValues(alpha: 0.03));
+    // El grano, el mismo de la carga y las cabeceras.
+    PintorGrano.pintar(canvas, size, azar);
   }
 
   @override

@@ -83,6 +83,12 @@ void main() {
         .descendant(of: find.byType(SplashScreen), matching: find.byType(Stack))
         .first);
     expect(pila.children.first, isA<FondoTexturizado>());
+    // El blanco con el grano de la bienvenida, no la trama de puntos (dueño,
+    // 2026-10-27: «solo la textura, no el color»).
+    expect(
+        find.descendant(
+            of: find.byType(FondoTexturizado), matching: find.byType(Grano)),
+        findsOneWidget);
     expect(
         find.descendant(
             of: find.byWidget(pila), matching: find.byType(EscenaArranque)),

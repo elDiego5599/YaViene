@@ -1,59 +1,65 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-/// El blanco de la carga, la bienvenida, Avisos, Buzón e Info, con una trama
-/// de puntos fija en la tinta de la marca (dueño, 2026-10-19: «fondo blanco
-/// pero texturizado»). Quieta y sin azar: se pinta una vez y los goldens no
-/// tiemblan.
+/// El blanco de la carga, con el grano de la bienvenida y sin su color
+/// (dueño, 2026-10-27: «solo la textura, no el color»; antes, una trama de
+/// puntos fija).
 class FondoTexturizado extends StatelessWidget {
   const FondoTexturizado({super.key});
 
   @override
+  Widget build(BuildContext context) =>
+      const ColoredBox(color: AppColors.surface, child: Grano());
+}
+
+/// El grano de la bienvenida (`PintorMatizado`), solo, sobre lo que haya
+/// debajo: la carga y las cabeceras de Avisos, Buzón e Info (dueño,
+/// 2026-10-27). Quieto: la semilla es fija, se pinta una vez y los goldens
+/// no tiemblan.
+class Grano extends StatelessWidget {
+  const Grano({super.key});
+
+  @override
   Widget build(BuildContext context) => const RepaintBoundary(
         child: CustomPaint(
-          painter: PintorFondoTexturizado(),
+          painter: PintorGrano(),
           size: Size.infinite,
           isComplex: true,
         ),
       );
 }
 
-class PintorFondoTexturizado extends CustomPainter {
-  const PintorFondoTexturizado();
+class PintorGrano extends CustomPainter {
+  const PintorGrano();
 
-  /// 16 pt entre puntos: la retícula de 8 de la app, al doble.
-  static const double separacion = 16;
-
-  /// 0,8 pt de radio: un punto de 1,6 pt, que se ve como grano y no como
-  /// lunares.
-  static const double radio = 0.8;
-
-  /// La tinta al 7 %: a 3,5 % no se veía en el teléfono. Lo más oscuro queda
-  /// en #EEEFF0, y sobre eso `textSecondary`, el gris más claro con texto,
-  /// sigue a 4,68:1 (WCAG pide 4,5:1); `textBody` a 6,58:1 y la tinta a
-  /// 15,7:1.
-  static const double opacidad = 0.07;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawColor(AppColors.surface, BlendMode.src);
-    final puntos = <Offset>[
-      for (var y = separacion / 2; y < size.height; y += separacion)
-        for (var x = separacion / 2; x < size.width; x += separacion)
-          Offset(x, y),
-    ];
-    // Una sola llamada para toda la trama, no un círculo por punto.
-    canvas.drawPoints(
-        ui.PointMode.points,
-        puntos,
-        Paint()
-          ..color = AppColors.ink.withValues(alpha: opacidad)
-          ..strokeWidth = radio * 2
-          ..strokeCap = StrokeCap.round);
+  /// Un grano cada 9 pt², la mitad blanco al 50 % y la mitad tinta al 3 %:
+  /// los puntos oscuros solo restan un 3 % de luz, así que la letra pierde
+  /// menos que con la trama de antes, que iba al 7 %.
+  static void pintar(Canvas canvas, Size size, math.Random azar) {
+    // Puntos de un píxel, claros y oscuros, casi invisibles uno por uno.
+    final claros = <Offset>[];
+    final oscuros = <Offset>[];
+    final granos = (size.width * size.height / 9).round();
+    for (var i = 0; i < granos; i++) {
+      final p = Offset(
+          azar.nextDouble() * size.width, azar.nextDouble() * size.height);
+      (i.isEven ? claros : oscuros).add(p);
+    }
+    final punto = Paint()
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.square;
+    canvas.drawPoints(ui.PointMode.points, claros,
+        punto..color = Colors.white.withValues(alpha: 0.5));
+    canvas.drawPoints(ui.PointMode.points, oscuros,
+        punto..color = AppColors.ink.withValues(alpha: 0.03));
   }
 
   @override
-  bool shouldRepaint(PintorFondoTexturizado oldDelegate) => false;
+  void paint(Canvas canvas, Size size) => pintar(canvas, size, math.Random(18));
+
+  @override
+  bool shouldRepaint(PintorGrano oldDelegate) => false;
 }

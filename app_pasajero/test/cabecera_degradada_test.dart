@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/cabecera_degradada.dart';
+import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 
 double _contraste(Color a, Color b) {
   final la = a.computeLuminance(), lb = b.computeLuminance();
@@ -21,5 +22,12 @@ void main() {
     }
     expect(_contraste(AppColors.textPrimary, CabeceraDegradada.azul),
         closeTo(14.0, 0.1));
+  });
+
+  // «Haz que lo tengan la parte de arriba de Avisos, Buzón e Info» (dueño,
+  // 2026-10-27): el grano de la bienvenida, sin su color, sobre el degradado.
+  testWidgets('la cabecera lleva el grano de la bienvenida', (tester) async {
+    await tester.pumpWidget(const CabeceraDegradada());
+    expect(find.byType(Grano), findsOneWidget);
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/widgets/cabecera_degradada.dart';
+import '../../../core/widgets/fondo_texturizado.dart';
 import '../../splash/presentation/widgets/escena_arranque.dart';
 
 /// Los dibujos de Barranquilla del fondo de Info. La Ventana al Mundo no es
@@ -192,6 +193,9 @@ class FondoIlustrado extends StatelessWidget {
                       child: DecoratedBox(
                         decoration:
                             BoxDecoration(gradient: CabeceraDegradada.brillo),
+                        // El grano de la bienvenida, que se apaga con el
+                        // degradado (dueño, 2026-10-27).
+                        child: Grano(),
                       ),
                     ),
                   ),

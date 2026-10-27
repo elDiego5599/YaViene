@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'fondo_texturizado.dart';
+
 /// La cabecera de Avisos y Buzón, bajo la barra (dueño, 2026-10-26: «en
 /// vez de gris usemos un degradadito fino entre azul y verde, algo bien
 /// lindo como la foto»). Los tonos del matizado de la bienvenida
 /// (`PintorMatizado`), de izquierda a derecha, con un brillo blanco difuso
 /// arriba a la izquierda para que se vea luz y no una franja plana. El
 /// título va en tinta: sobre el tono más oscuro (el azul) da 14,0:1
-/// (`test/cabecera_degradada_test.dart`).
+/// (`test/cabecera_degradada_test.dart`). Encima, el grano de la bienvenida
+/// (dueño, 2026-10-27).
 class CabeceraDegradada extends StatelessWidget {
   const CabeceraDegradada({super.key});
 
@@ -44,7 +47,10 @@ class CabeceraDegradada extends StatelessWidget {
   Widget build(BuildContext context) {
     return const DecoratedBox(
       decoration: decoracion,
-      child: DecoratedBox(decoration: BoxDecoration(gradient: brillo)),
+      child: DecoratedBox(
+        decoration: BoxDecoration(gradient: brillo),
+        child: Grano(),
+      ),
     );
   }
 }

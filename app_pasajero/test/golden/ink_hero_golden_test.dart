@@ -13,9 +13,11 @@ import 'golden_harness.dart';
 /// Sobre el blanco texturizado de la bienvenida, como en la pantalla: el
 /// contraste de la letra sobre él lo mide `onboarding_hoja_test`.
 void main() {
-  Widget sobreTextura(Widget hijo) => CustomPaint(
-        painter: const PintorFondoTexturizado(),
-        child: Center(child: hijo),
+  Widget sobreTextura(Widget hijo) => Stack(
+        children: [
+          const Positioned.fill(child: FondoTexturizado()),
+          Center(child: hijo)
+        ],
       );
 
   testWidgets('marca de la bienvenida', (tester) async {
