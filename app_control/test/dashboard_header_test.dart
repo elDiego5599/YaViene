@@ -166,8 +166,8 @@ void main() {
   });
 
   // El rótulo «YA VIENE / CONTROL DE FLOTA» se va y en su sitio quedan dos
-  // pestañas firmes (dueño, 2026-10-26): la elegida, llena en el azul de
-  // botón con letra blanca; la otra, gris sobre el riel.
+  // pestañas como el segmentado de macOS (dueño, 2026-10-26): la elegida en
+  // tinta sobre su lámina blanca; la otra, gris secundario sobre el riel.
   testWidgets('la cabecera lleva Flota y Reportes como pestañas', (
     tester,
   ) async {
@@ -180,9 +180,14 @@ void main() {
     expect(find.text('CONTROL DE FLOTA'), findsNothing);
     expect(find.byKey(const ValueKey('pestana-flota')), findsOneWidget);
     expect(find.byKey(const ValueKey('pestana-reportes')), findsOneWidget);
-    expect(_letra(tester, 'Flota'), AppColors.surface);
+    expect(_letra(tester, 'Flota'), AppColors.textPrimary);
+    expect(_letra(tester, 'Reportes'), AppColors.textSecondary);
     expect(
-      _contraste(AppColors.surface, AppColors.boton),
+      _contraste(AppColors.textPrimary, AppColors.surface),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contraste(AppColors.textSecondary, AppColors.surfaceRaised),
       greaterThanOrEqualTo(4.5),
     );
     // Van a la izquierda, donde estaba el rótulo, y del mismo alto.
@@ -193,6 +198,7 @@ void main() {
     expect(flota.left, lessThan(200));
     expect(reportes.left, greaterThan(flota.right - 1));
     expect(reportes.height, flota.height);
-    expect(flota.height, greaterThanOrEqualTo(36));
+    // 34 dentro del riel de 3: los 40 de la cabecera.
+    expect(flota.height, greaterThanOrEqualTo(34));
   });
 }

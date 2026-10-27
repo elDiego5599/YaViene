@@ -77,9 +77,6 @@ void main() {
     expect(periodoLabel(PeriodoReporte.hoy), 'Hoy');
     expect(periodoLabel(PeriodoReporte.semana), '7 días');
     expect(periodoLabel(PeriodoReporte.mes), '30 días');
-    expect(periodoSubtitulo(PeriodoReporte.hoy), 'Hoy');
-    expect(periodoSubtitulo(PeriodoReporte.semana), 'Últimos 7 días');
-    expect(periodoSubtitulo(PeriodoReporte.mes), 'Últimos 30 días');
   });
 
   test('un día del calendario va de medianoche a medianoche de Bogotá', () {
@@ -97,11 +94,6 @@ void main() {
       ahora,
     ));
     expect(periodoLabel(dia), '24 oct');
-    expect(periodoSubtitulo(dia), '24 de octubre');
-    expect(
-      periodoSubtitulo(PeriodoReporte.delDia(DateTime(2026, 1, 3))),
-      '3 de enero',
-    );
   });
 
   late ProviderContainer container;

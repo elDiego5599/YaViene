@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
@@ -18,6 +20,7 @@ import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/fleet_bus.dart';
 import '../bus_estado.dart';
 import '../providers/fleet_providers.dart';
+import '../providers/reportes_provider.dart';
 import '../widgets/bus_dialog.dart';
 import '../widgets/control_map.dart';
 import '../widgets/fleet_list_tile.dart';
@@ -46,6 +49,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   String _query = '';
   bool _refreshing = false;
   ProviderSubscription<bool>? _sessionExpiredSub;
+
+  /// Cada búsqueda de un pasajero suma en el servidor al momento: con
+  /// Reportes a la vista se vuelve a pedir cada 30 s para que se vea sumar
+  /// sin tocar nada. Con Flota a la vista no se pide.
+  late final Timer _reportesAlDia;
 
   @override
   void initState() {
@@ -77,6 +85,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       },
     );
     WidgetsBinding.instance.addObserver(this);
+    _reportesAlDia = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_pestana == PestanaPanel.reportes) _actualizarReportes();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(fleetProvider.notifier).start();
     });
@@ -95,6 +106,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _reportesAlDia.cancel();
     _sessionExpiredSub?.close();
     _searchController.dispose();
     _searchFocus.dispose();
@@ -105,6 +117,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     if (_refreshing) return;
     setState(() => _refreshing = true);
     final started = DateTime.now();
+    _actualizarReportes();
     try {
       await ref.read(fleetProvider.notifier).refresh();
     } finally {
@@ -116,6 +129,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       }
       if (mounted) setState(() => _refreshing = false);
     }
+  }
+
+  void _actualizarReportes() {
+    ref
+      ..invalidate(reportesRutasProvider)
+      ..invalidate(reportesCalorProvider);
   }
 
   Future<void> _logout() async {
@@ -216,6 +235,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             DashboardHeader(
               connection: fleet.connection,
               onLogout: _logout,
+              refreshing: _refreshing,
+              onRefresh: _refresh,
               pestana: _pestana,
               onPestana: (pestana) => setState(() {
                 _pestana = pestana;
@@ -256,11 +277,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         _seccion(
           2,
           _TopBar(
-            refreshing: _refreshing,
             searchController: _searchController,
             searchFocus: _searchFocus,
             onSearchChanged: (v) => setState(() => _query = v),
-            onRefresh: _refresh,
             onToggleAllVisibility: () {
               final visible = !fleet.buses.values.every((b) => b.visible);
               ref.read(fleetProvider.notifier).setAllVisibility(visible);
@@ -443,12 +462,19 @@ class DashboardHeader extends ConsumerWidget {
     required this.onLogout,
     this.pestana = PestanaPanel.flota,
     this.onPestana,
+    this.refreshing = false,
+    this.onRefresh,
   });
 
   final FleetConnection connection;
   final VoidCallback onLogout;
   final PestanaPanel pestana;
   final ValueChanged<PestanaPanel>? onPestana;
+  final bool refreshing;
+
+  /// Pone al día la flota y los reportes: va en la cabecera para servir a
+  /// las dos pestañas.
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -468,27 +494,20 @@ class DashboardHeader extends ConsumerWidget {
         color: AppColors.surface,
         boxShadow: AppColors.sombraCabecera,
       ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      padding: const EdgeInsets.fromLTRB(20, 10, 16, 10),
       child: Row(
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceRaised,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: SvgPicture.asset(
-              'assets/logo/ya_viene_logo.svg',
-              fit: BoxFit.contain,
-            ),
+          // El logo solo, sin el cuadro gris que lo encerraba (dueño,
+          // 2026-10-26): 32 de alto, centrado con las pestañas.
+          SvgPicture.asset(
+            'assets/logo/ya_viene_logo.svg',
+            height: 32,
+            fit: BoxFit.contain,
           ),
           // Donde iba el rótulo «Ya Viene, control de flota», las dos
           // pestañas del panel (dueño, 2026-10-26): el logo ya dice de quién
           // es, y el texto sobraba.
-          const SizedBox(width: 14),
+          const SizedBox(width: 18),
           _Pestanas(pestana: pestana, onPestana: onPestana ?? (_) {}),
           const Spacer(),
           if (enRespaldo) ...[
@@ -531,7 +550,9 @@ class DashboardHeader extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
+          _BotonActualizar(refreshing: refreshing, onRefresh: onRefresh),
+          const SizedBox(width: 8),
           // Salir revoca el token en el servidor, y eso corta todas las
           // sesiones de la cuenta (`AuthApi.logout`): quien tenga el panel
           // abierto con el mismo usuario en otro equipo vuelve a pedir la
@@ -545,6 +566,7 @@ class DashboardHeader extends ConsumerWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.textSecondary,
                 side: const BorderSide(color: AppColors.borderStrong),
+                minimumSize: const Size(0, 36),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
@@ -552,10 +574,7 @@ class DashboardHeader extends ConsumerWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             ),
           ),
@@ -565,12 +584,76 @@ class DashboardHeader extends ConsumerWidget {
   }
 }
 
-/// Flota y Reportes, firmes: un riel gris de 44 px de alto (el logo más
-/// los 8 de su aire) con la pestaña elegida llena en el azul de botón y
-/// letra blanca (7,1:1); la otra, gris secundario sobre el riel (4,9:1). El
-/// relleno se desliza de una a otra con el resorte de los cambios, como el
-/// control segmentado de macOS. Las dos miden lo que la más ancha (con su
-/// texto, también agrandado), así el relleno no cambia de ancho al moverse.
+/// Actualizar, del mismo alto y filo que Salir (36): un cuadro con la
+/// flecha que da una vuelta con el resorte de los cambios cada vez que se
+/// pulsa, mientras se piden los datos.
+class _BotonActualizar extends StatefulWidget {
+  const _BotonActualizar({required this.refreshing, required this.onRefresh});
+
+  final bool refreshing;
+  final VoidCallback? onRefresh;
+
+  @override
+  State<_BotonActualizar> createState() => _BotonActualizarState();
+}
+
+class _BotonActualizarState extends State<_BotonActualizar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _vuelta = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  );
+
+  @override
+  void didUpdateWidget(_BotonActualizar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshing && !oldWidget.refreshing) {
+      _vuelta.duration = AppMotion.duracion(
+        context,
+        const Duration(milliseconds: 800),
+      );
+      _vuelta.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _vuelta.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    key: const ValueKey('actualizar'),
+    onPressed: widget.refreshing ? null : widget.onRefresh,
+    tooltip: 'Actualizar',
+    icon: RotationTransition(
+      turns: CurvedAnimation(parent: _vuelta, curve: AppMotion.curvaCambio),
+      child: const Icon(Icons.refresh, size: 18),
+    ),
+    style: IconButton.styleFrom(
+      // El mínimo de 40 del tema le ganaba al tamaño fijo.
+      minimumSize: const Size(36, 36),
+      fixedSize: const Size(36, 36),
+      padding: EdgeInsets.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      foregroundColor: AppColors.textSecondary,
+      disabledForegroundColor: AppColors.textSecondary,
+      side: const BorderSide(color: AppColors.borderStrong),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+    ),
+  );
+}
+
+/// Flota y Reportes como el control segmentado de macOS: un riel gris
+/// claro y la pestaña elegida en una lámina blanca con sombra corta, que se
+/// desliza de una a otra con el resorte de los cambios. La elegida en tinta
+/// sobre blanco (13,9:1) y la otra en gris secundario sobre el riel (4,9:1),
+/// sin el azul lleno que pesaba más que el resto de la cabecera (dueño,
+/// 2026-10-26). Las dos miden lo que la más ancha (con su texto, también
+/// agrandado), así la lámina no cambia de ancho al moverse.
 class _Pestanas extends StatelessWidget {
   const _Pestanas({required this.pestana, required this.onPestana});
 
@@ -590,7 +673,6 @@ class _Pestanas extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
       ),
       child: IntrinsicWidth(
         child: Stack(
@@ -607,9 +689,22 @@ class _Pestanas extends StatelessWidget {
                   heightFactor: 1,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.boton,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(AppRadius.sm),
-                      boxShadow: AppColors.sombraTarjeta,
+                      // Una sombra corta y un filo de media línea, como la
+                      // lámina del segmentado de macOS: se despega del riel
+                      // sin flotar.
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.navy.withValues(alpha: 0.12),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                        BoxShadow(
+                          color: AppColors.navy.withValues(alpha: 0.06),
+                          spreadRadius: 0.5,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -662,28 +757,29 @@ class _Pestana extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.sm),
-        // 36 de alto, como el logo: con el riel de 3 y su filo, 44.
+        hoverColor: Colors.transparent,
+        // 34 de alto: con el riel de 3, los 40 de la cabecera.
         child: Container(
-          constraints: const BoxConstraints(minHeight: 36),
+          constraints: const BoxConstraints(minHeight: 34),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
           child: TweenAnimationBuilder<Color?>(
             duration: duracion,
             curve: AppMotion.curvaCambio,
             tween: ColorTween(
-              end: elegida ? AppColors.surface : AppColors.textSecondary,
+              end: elegida ? AppColors.textPrimary : AppColors.textSecondary,
             ),
             builder: (context, color, _) => Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icono, size: 17, color: color),
-                const SizedBox(width: 8),
+                Icon(icono, size: 16, color: color),
+                const SizedBox(width: 7),
                 Text(
                   texto,
                   style: AppType.ui(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                     color: color,
                   ),
                 ),
@@ -696,78 +792,32 @@ class _Pestana extends StatelessWidget {
   );
 }
 
-class _TopBar extends StatefulWidget {
+/// La barra de Flota, sin título (dueño, 2026-10-26: la pestaña ya lo
+/// dice): el buscador y ocultar todos a la izquierda, donde iba «Flota», y
+/// el reloj a la derecha. Actualizar subió a la cabecera.
+class _TopBar extends StatelessWidget {
   const _TopBar({
-    required this.refreshing,
     required this.searchController,
     required this.searchFocus,
     required this.onSearchChanged,
-    required this.onRefresh,
     required this.onToggleAllVisibility,
     required this.allBusesVisible,
   });
 
-  final bool refreshing;
   final TextEditingController searchController;
   final FocusNode searchFocus;
   final ValueChanged<String> onSearchChanged;
-  final VoidCallback onRefresh;
   final VoidCallback onToggleAllVisibility;
   final bool allBusesVisible;
 
   @override
-  State<_TopBar> createState() => _TopBarState();
-}
-
-class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
-  late final AnimationController _spin = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 800),
-  );
-
-  @override
-  void didUpdateWidget(_TopBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.refreshing && !oldWidget.refreshing) {
-      _spin.forward(from: 0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _spin.dispose();
-    super.dispose();
-  }
-
-  /// Los botones de la barra: 40 de lado, que con los 3 de relleno y el filo
-  /// de la barra dan los 48 del buscador; radio sm, que es md menos esos 3
-  /// + 1, para que las esquinas vayan paralelas a las de la barra. Sin el
-  /// blanco táctil de 48 que Material añade en móvil: en escritorio ya no lo
-  /// lleva, y así la barra mide lo mismo en cualquier plataforma.
-  static final _botonDeBarra = IconButton.styleFrom(
-    fixedSize: const Size(40, 40),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-    ),
-  );
-
-  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 14),
+      padding: const EdgeInsets.fromLTRB(20, 16, 24, 12),
       child: Row(
         children: [
-          Text(
-            'Flota',
-            style: AppType.ui(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.6,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const Spacer(),
+          // 20 a la izquierda: el buscador arranca en línea con el logo y
+          // con las rutas de abajo.
           // El buscador y la barra de la flota, del mismo alto: la barra se
           // estira a lo que mida el campo (IntrinsicHeight), así que si la
           // letra crece los dos crecen juntos.
@@ -776,20 +826,20 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: 260,
+                  width: 300,
                   // Esc vacía la búsqueda y deja el foco en ella, para escribir
                   // otra sin volver a buscarla.
                   child: CallbackShortcuts(
                     bindings: {
                       const SingleActivator(LogicalKeyboardKey.escape): () {
-                        widget.searchController.clear();
-                        widget.onSearchChanged('');
+                        searchController.clear();
+                        onSearchChanged('');
                       },
                     },
                     child: TextField(
-                      controller: widget.searchController,
-                      focusNode: widget.searchFocus,
-                      onChanged: widget.onSearchChanged,
+                      controller: searchController,
+                      focusNode: searchFocus,
+                      onChanged: onSearchChanged,
                       style: AppType.ui(fontSize: 13.5),
                       decoration: const InputDecoration(
                         hintText: 'Buscar placa o ruta…',
@@ -808,9 +858,8 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Una barra y no dos círculos sueltos junto a un buscador
-                // rectangular: mismo filo y mismo radio que el campo, como la
-                // barra de herramientas de una ventana de macOS.
+                // Mismo filo y mismo radio que el campo, como la barra de
+                // herramientas de una ventana de macOS.
                 Container(
                   key: const ValueKey('barra-flota'),
                   padding: const EdgeInsets.all(3),
@@ -819,50 +868,31 @@ class _TopBarState extends State<_TopBar> with SingleTickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(color: AppColors.borderStrong),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: widget.refreshing ? null : widget.onRefresh,
-                        icon: RotationTransition(
-                          turns: _spin,
-                          child: const Icon(
-                            Icons.refresh,
-                            size: 20,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        tooltip: 'Actualizar flota',
-                        style: _botonDeBarra,
+                  // 40 de lado, que con los 3 de relleno y el filo dan los
+                  // 48 del buscador; radio sm para ir paralelo a la barra.
+                  child: IconButton(
+                    onPressed: onToggleAllVisibility,
+                    icon: Icon(
+                      allBusesVisible ? Icons.visibility_off : Icons.visibility,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    tooltip: allBusesVisible
+                        ? 'Ocultar todos los buses'
+                        : 'Mostrar todos los buses',
+                    style: IconButton.styleFrom(
+                      fixedSize: const Size(40, 40),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
-                      // 7 = 3 de aire, el filo y 3 de aire; a media altura
-                      // para que separe sin partir la barra en dos.
-                      const VerticalDivider(
-                        width: 7,
-                        indent: 10,
-                        endIndent: 10,
-                      ),
-                      IconButton(
-                        onPressed: widget.onToggleAllVisibility,
-                        icon: Icon(
-                          widget.allBusesVisible
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          size: 20,
-                          color: AppColors.textSecondary,
-                        ),
-                        tooltip: widget.allBusesVisible
-                            ? 'Ocultar todos los buses'
-                            : 'Mostrar todos los buses',
-                        style: _botonDeBarra,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 14),
+          const Spacer(),
           const ClockWidget(
             timeColor: AppColors.textPrimary,
             dateColor: AppColors.textMuted,

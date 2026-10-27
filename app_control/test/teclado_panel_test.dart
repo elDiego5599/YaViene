@@ -21,6 +21,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
 import 'package:ya_viene_control/core/widgets/ventana.dart';
@@ -40,6 +41,8 @@ import 'package:ya_viene_core/core/providers/app_providers.dart'
 
 class _FakeFleetApi extends FleetApi {
   _FakeFleetApi() : super(baseUrl: 'http://localhost:3000');
+
+  int cargas = 0;
 
   final flota = <FleetBus>[
     const FleetBus(
@@ -65,7 +68,10 @@ class _FakeFleetApi extends FleetApi {
   ];
 
   @override
-  Future<List<FleetBus>> fetchPositions(String? token) async => [...flota];
+  Future<List<FleetBus>> fetchPositions(String? token) async {
+    cargas++;
+    return [...flota];
+  }
 
   @override
   Future<List<FleetRoute>> fetchRoutes(String? token) async => const [
@@ -222,9 +228,9 @@ void main() {
     const vuelta = [
       'Flota',
       'Reportes',
+      'Actualizar',
       'Salir',
       'buscar',
-      'Actualizar flota',
       'Ocultar todos los buses',
       'Tcherassi (2)',
       'Agregar ruta',
@@ -249,6 +255,72 @@ void main() {
   // Flota y Reportes son dos pestañas de la cabecera (dueño, 2026-10-26):
   // Reportes ya no tapa el panel con su propia pantalla y su «Volver»; la
   // cabecera se queda y la flota sigue montada detrás, con su mapa.
+  testWidgets('Actualizar va en la cabecera y pone al día flota y reportes', (
+    tester,
+  ) async {
+    var consultas = 0;
+    await _montar(
+      tester,
+      overrides: [
+        reportesRutasProvider.overrideWith((ref, args) async {
+          consultas++;
+          return const <RutaBusquedas>[];
+        }),
+      ],
+    );
+    final cabecera = find.byKey(const ValueKey('cabecera'));
+    final actualizar = find.descendant(
+      of: cabecera,
+      matching: find.byKey(const ValueKey('actualizar')),
+    );
+    expect(actualizar, findsOneWidget);
+    // La barra de Flota ya no lo trae, ni el título «Flota»: solo la pestaña.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('barra-flota')),
+        matching: find.byIcon(Icons.refresh),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Flota'), findsOneWidget);
+    // El logo va solo, sin el cuadro gris detrás.
+    final cajas = tester
+        .widgetList<Container>(
+          find.ancestor(
+            of: find.descendant(
+              of: cabecera,
+              matching: find.byType(SvgPicture),
+            ),
+            matching: find.byType(Container),
+          ),
+        )
+        .where((c) => c.key != const ValueKey('cabecera'))
+        .where((c) => c.decoration != null);
+    expect(cajas, isEmpty);
+
+    final cargasFlota = _api!.cargas;
+    await tester.tap(actualizar);
+    await tester.pump(const Duration(seconds: 1));
+    expect(_api!.cargas, greaterThan(cargasFlota));
+
+    await tester.tap(find.byKey(const ValueKey('pestana-reportes')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    // «Hoy» solo en el periodo: el texto suelto de la izquierda se fue.
+    expect(find.text('Hoy'), findsOneWidget);
+    final antes = consultas;
+    await tester.tap(actualizar);
+    await tester.pump(const Duration(seconds: 1));
+    expect(consultas, greaterThan(antes));
+
+    // Solas: con Reportes abierto, las búsquedas nuevas se suman sin tocar.
+    final quietas = consultas;
+    await tester.pump(const Duration(seconds: 31));
+    expect(consultas, greaterThan(quietas));
+    expect(tester.takeException(), isNull);
+    await _desmontar(tester);
+  });
+
   testWidgets('Reportes es una pestaña: la cabecera se queda y Flota vuelve', (
     tester,
   ) async {

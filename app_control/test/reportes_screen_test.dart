@@ -384,7 +384,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(periodos, [PeriodoReporte.mes]);
-    expect(find.text('Últimos 30 días'), findsOneWidget);
+    // El periodo ya no se repite a la izquierda: se lee en los filtros.
+    expect(find.text('Últimos 30 días'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('periodo-hoy')));
     await tester.pumpAndSettle();
@@ -394,7 +395,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('periodo-semana')));
     await tester.pumpAndSettle();
     expect(periodos.last, PeriodoReporte.semana);
-    expect(find.text('Últimos 7 días'), findsOneWidget);
 
     // «Fecha» abre el calendario del mes; tocar un día lo elige y cierra.
     final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
@@ -434,7 +434,6 @@ void main() {
     final primero = PeriodoReporte.delDia(DateTime(hoy.year, hoy.month));
     expect(periodos.last, primero);
     expect(periodosCalor.last, primero);
-    expect(find.text('1 de $mes'), findsOneWidget);
     expect(find.text('1 ${mes.substring(0, 3)}'), findsOneWidget);
 
     // Tocar fuera lo cierra y deja el día que estaba.

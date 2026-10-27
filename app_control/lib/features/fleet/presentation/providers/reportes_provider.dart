@@ -75,16 +75,6 @@ String periodoLabel(PeriodoReporte periodo) {
   };
 }
 
-String periodoSubtitulo(PeriodoReporte periodo) {
-  final dia = periodo.dia;
-  if (dia != null) return '${dia.day} de ${_meses[dia.month - 1]}';
-  return switch (periodo.name) {
-    'hoy' => 'Hoy',
-    'semana' => 'Últimos 7 días',
-    _ => 'Últimos 30 días',
-  };
-}
-
 class RutaBusquedas {
   const RutaBusquedas({
     required this.id,

@@ -244,7 +244,9 @@ void main() {
       expect(buscador.height, closeTo(48, 0.5));
       expect(barra.center.dy, closeTo(buscador.center.dy, 0.5));
       // B-2 está oculto, así que el segundo ofrece mostrarlos todos.
-      for (final tooltip in ['Actualizar flota', 'Mostrar todos los buses']) {
+      // Actualizar subió a la cabecera (dueño, 2026-10-26): en la barra solo
+      // queda mostrar u ocultar todos.
+      for (final tooltip in ['Mostrar todos los buses']) {
         final boton = _botonConTooltip(tooltip);
         expect(
           find.descendant(
@@ -261,6 +263,16 @@ void main() {
             .resolve({});
         expect(forma, isA<RoundedRectangleBorder>(), reason: tooltip);
       }
+      final actualizar = find.byKey(const ValueKey('actualizar'));
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('cabecera')),
+          matching: actualizar,
+        ),
+        findsOneWidget,
+      );
+      // Cuadrado de 36, del alto de Salir.
+      expect(tester.getSize(actualizar), const Size(36, 36));
     });
   });
 

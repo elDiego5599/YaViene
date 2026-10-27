@@ -277,16 +277,9 @@ class _CabeceraReportes extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
     child: Row(
       children: [
-        // Sin «Volver» ni el título: Reportes es una pestaña de la
-        // cabecera del panel, que ya lo dice (dueño, 2026-10-26).
-        Text(
-          periodoSubtitulo(periodo),
-          style: AppType.ui(
-            color: AppColors.navy,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+        // Sin título ni periodo a la izquierda: Reportes es una pestaña de
+        // la cabecera y el periodo ya se lee en los filtros, que van a la
+        // derecha (dueño, 2026-10-26).
         const Spacer(),
         MenuAnchor(
           style: _estiloMenu,
