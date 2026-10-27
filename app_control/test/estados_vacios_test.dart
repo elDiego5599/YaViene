@@ -17,6 +17,8 @@ import 'package:ya_viene_control/features/fleet/presentation/providers/'
     'fleet_providers.dart';
 import 'package:ya_viene_control/features/fleet/presentation/screens/'
     'dashboard_screen.dart';
+import 'package:ya_viene_control/features/fleet/presentation/screens/'
+    'reportes_screen.dart';
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
 
@@ -78,10 +80,18 @@ class _FakeFleetApi extends FleetApi {
   /// las rutas ya llegaron y la flota sigue en camino.
   Completer<void>? flotaEnCamino;
 
+  /// Cuando está puesto, la flota falla como un backend caído.
+  bool fallar = false;
+
+  /// Cuántas veces se pidió la flota (para ver que «Reintentar» pide).
+  int pedidos = 0;
+
   @override
   Future<List<FleetBus>> fetchPositions(String? token) async {
+    pedidos++;
     await flotaEnCamino?.future;
     if (expirar) throw const SessionExpiredException();
+    if (fallar) throw Exception('backend caído');
     return [...buses];
   }
 
@@ -369,6 +379,80 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Tu sesión expiró'), findsOneWidget);
+
+    await _desmontar(tester);
+  });
+
+  // ── Flota que no se pudo actualizar ─────────────────────────────────
+  testWidgets('el fallo de la flota es una píldora en la barra, no una '
+      'franja rosada de lado a lado', (tester) async {
+    // La franja de antes se veía mal hecha (dueño, 2026-10-26): ahora el
+    // aviso vive en la barra de arriba, junto al reloj, redondeado.
+    final (container, api) = await _montar(tester);
+    api.fallar = true;
+    await container.read(fleetProvider.notifier).refresh();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final aviso = find.byKey(const ValueKey('aviso-flota'));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('barra-superior')),
+        matching: aviso,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: aviso,
+        matching: find.text('No se pudo actualizar la flota.'),
+      ),
+      findsOneWidget,
+    );
+    final caja = tester.widget<DecoratedBox>(
+      find.descendant(of: aviso, matching: find.byType(DecoratedBox)).first,
+    );
+    final deco = caja.decoration as BoxDecoration;
+    expect(deco.borderRadius, BorderRadius.circular(AppRadius.pill));
+    expect(tester.getSize(aviso).width, lessThan(600));
+
+    // Reintentar vuelve a pedir la flota; si contesta, el aviso se va.
+    api.fallar = false;
+    final antes = api.pedidos;
+    await tester.tap(
+      find.descendant(of: aviso, matching: find.text('Reintentar')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(api.pedidos, greaterThan(antes));
+    expect(find.text('No se pudo actualizar la flota.'), findsNothing);
+
+    await _desmontar(tester);
+  });
+
+  // ── Paso entre Flota y Reportes ─────────────────────────────────────
+  testWidgets('Flota y Reportes se funden al cambiar, sin corte', (
+    tester,
+  ) async {
+    // El salto seco se veía fatal (dueño, 2026-10-26): la pestaña nueva
+    // aparece sobre la vieja y la vieja se apaga, a la par del pulgar.
+    await _montar(tester);
+
+    double opacidadDe(Finder f) => tester
+        .widget<FadeTransition>(
+          find.ancestor(of: f, matching: find.byType(FadeTransition)).first,
+        )
+        .opacity
+        .value;
+
+    await tester.tap(find.byKey(const ValueKey('pestana-reportes')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    final reportes = find.byType(ReportesScreen);
+    expect(opacidadDe(reportes), inExclusiveRange(0.0, 1.0));
+
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(opacidadDe(reportes), 1.0);
 
     await _desmontar(tester);
   });

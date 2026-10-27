@@ -248,20 +248,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           // sigue donde estaba, y Reportes conserva su periodo y su ruta.
           // Reportes se arma la primera vez que se abre, no antes.
           Expanded(
-            child: IndexedStack(
-              index: _pestana.index,
-              sizing: StackFit.expand,
+            child: _FundidoPestanas(
+              indice: _pestana.index,
               children: [
-                TickerMode(
-                  enabled: _pestana == PestanaPanel.flota,
-                  child: _flota(fleet, buses),
-                ),
-                TickerMode(
-                  enabled: _pestana == PestanaPanel.reportes,
-                  child: _reportesAbiertos
-                      ? _seccion(2, const ReportesScreen())
-                      : const SizedBox.shrink(),
-                ),
+                _flota(fleet, buses),
+                _reportesAbiertos
+                    ? _seccion(2, const ReportesScreen())
+                    : const SizedBox.shrink(),
               ],
             ),
           ),
@@ -287,10 +280,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             allBusesVisible:
                 fleet.buses.isNotEmpty &&
                 fleet.buses.values.every((b) => b.visible),
+            error: fleet.error,
+            onReintentar: () => ref.read(fleetProvider.notifier).refresh(),
           ),
         ),
-        if (fleet.error != null)
-          _seccion(3, _ErrorBanner(message: fleet.error!)),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: _seccion(
@@ -802,6 +795,8 @@ class _TopBar extends StatelessWidget {
     required this.onSearchChanged,
     required this.onToggleAllVisibility,
     required this.allBusesVisible,
+    required this.error,
+    required this.onReintentar,
   });
 
   final TextEditingController searchController;
@@ -809,10 +804,13 @@ class _TopBar extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onToggleAllVisibility;
   final bool allBusesVisible;
+  final String? error;
+  final VoidCallback onReintentar;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
+      key: const ValueKey('barra-superior'),
       padding: const EdgeInsets.fromLTRB(20, 16, 24, 12),
       child: Row(
         children: [
@@ -893,10 +891,171 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          // El fallo se dice junto al reloj, en una píldora que entra y se
+          // va sola, como la de estado de Mail; antes era una franja rosada
+          // de lado a lado que empujaba todo hacia abajo (dueño, 2026-10-26).
+          AnimatedSwitcher(
+            duration: AppMotion.duracion(context, AppMotion.normal),
+            switchInCurve: AppMotion.curvaEntrada,
+            switchOutCurve: AppMotion.curvaSalida,
+            transitionBuilder: (child, animacion) => FadeTransition(
+              opacity: animacion,
+              child: ScaleTransition(
+                scale: Tween(begin: 0.96, end: 1.0).animate(animacion),
+                alignment: Alignment.centerRight,
+                child: child,
+              ),
+            ),
+            child: error == null
+                ? const SizedBox.shrink()
+                : Padding(
+                    key: ValueKey(error),
+                    padding: const EdgeInsets.only(right: 20),
+                    child: _AvisoFlota(
+                      mensaje: error!,
+                      onReintentar: onReintentar,
+                    ),
+                  ),
+          ),
           const ClockWidget(
             timeColor: AppColors.textPrimary,
             dateColor: AppColors.textMuted,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Píldora blanca con filo, el punto rojo y «Reintentar» dentro. El texto
+/// va en tinta (15,2:1 sobre blanco) y el rojo solo en el ícono: rojo
+/// sobre rosado leía como franja de error de formulario.
+class _AvisoFlota extends StatelessWidget {
+  const _AvisoFlota({required this.mensaje, required this.onReintentar});
+
+  final String mensaje;
+  final VoidCallback onReintentar;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    key: const ValueKey('aviso-flota'),
+    liveRegion: true,
+    container: true,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.28)),
+        boxShadow: AppColors.sombraTarjeta,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_rounded, color: AppColors.danger, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              mensaje,
+              style: AppType.ui(
+                color: AppColors.textPrimary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Píldora dentro de la píldora: 4 de aire alrededor, radio
+            // concéntrico.
+            TextButton(
+              onPressed: onReintentar,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.boton,
+                backgroundColor: AppColors.boton.withValues(alpha: 0.08),
+                minimumSize: const Size(0, 28),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const StadiumBorder(),
+                textStyle: AppType.ui(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Flota y Reportes montadas a la vez, fundidas al cambiar: la que llega
+/// sube de 0 a 1 mientras la otra baja, con el mismo resorte y el mismo
+/// tiempo que el pulgar de las pestañas, así contenido y pulgar llegan
+/// juntos (dueño, 2026-10-26: el corte seco con el pulgar aún en camino se
+/// veía fatal). Si se cambia a mitad, sigue desde donde iba. La que queda
+/// atrás se saca de escena (Offstage, sin foco ni relojes), como hacía el
+/// IndexedStack.
+class _FundidoPestanas extends StatefulWidget {
+  const _FundidoPestanas({required this.indice, required this.children});
+
+  final int indice;
+  final List<Widget> children;
+
+  @override
+  State<_FundidoPestanas> createState() => _FundidoPestanasState();
+}
+
+class _FundidoPestanasState extends State<_FundidoPestanas>
+    with SingleTickerProviderStateMixin {
+  late final _t = AnimationController(
+    vsync: this,
+    value: widget.indice.toDouble(),
+  );
+
+  @override
+  void didUpdateWidget(_FundidoPestanas viejo) {
+    super.didUpdateWidget(viejo);
+    if (viejo.indice != widget.indice) {
+      _t.animateTo(
+        widget.indice.toDouble(),
+        duration: AppMotion.duracion(context, AppMotion.normal),
+        curve: AppMotion.curvaCambio,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final opacidades = [ReverseAnimation(_t), _t];
+    return ListenableBuilder(
+      listenable: _t,
+      builder: (context, _) => Stack(
+        fit: StackFit.expand,
+        children: [
+          for (var i = 0; i < widget.children.length; i++)
+            Offstage(
+              offstage: opacidades[i].value == 0,
+              child: ExcludeFocus(
+                excluding: i != widget.indice,
+                child: IgnorePointer(
+                  ignoring: i != widget.indice,
+                  child: TickerMode(
+                    enabled: opacidades[i].value > 0,
+                    child: FadeTransition(
+                      opacity: opacidades[i],
+                      child: widget.children[i],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1637,40 +1796,6 @@ class _SelectedBusCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: color,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends ConsumerWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      color: AppColors.danger.withValues(alpha: 0.08),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: AppColors.danger, size: 17),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: AppType.ui(
-                color: AppColors.danger,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => ref.read(fleetProvider.notifier).refresh(),
-            child: const Text('Reintentar'),
           ),
         ],
       ),
