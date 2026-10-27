@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
-/// Controla el stream de ubicación que mantiene activa la app con la pantalla
+/// Controla la ubicación que mantiene activa la app con la pantalla
 /// bloqueada mientras queda al menos un aviso armado.
 abstract interface class ServicioMantenerVivo {
   Future<void> iniciar();
@@ -11,11 +12,24 @@ abstract interface class ServicioMantenerVivo {
   Future<void> detener();
 }
 
-class MantenerVivoGeolocator implements ServicioMantenerVivo {
-  MantenerVivoGeolocator({bool Function()? esIos}) : _esIos = esIos ?? _ios;
+/// Pide al lado nativo (`MantenerVivo` en `ActividadEnVivo.swift`) su propio
+/// CLLocationManager con actualizaciones en segundo plano. No usa el stream
+/// de geolocator: en iOS es uno solo para toda la app y, si el mapa lo abrió
+/// antes (sin segundo plano), pedirlo otra vez devuelve ese mismo, sin
+/// `allowsBackgroundLocationUpdates`, e iOS suspende la app con el aviso
+/// armado.
+class MantenerVivoIos implements ServicioMantenerVivo {
+  MantenerVivoIos({
+    bool Function()? esIos,
+    Future<LocationPermission> Function()? permiso,
+  })  : _esIos = esIos ?? _ios,
+        _permiso = permiso ?? Geolocator.checkPermission;
+
+  static const _canal = MethodChannel('yaviene/mantener_vivo');
 
   final bool Function() _esIos;
-  StreamSubscription<Position>? _suscripcion;
+  final Future<LocationPermission> Function() _permiso;
+  bool _activo = false;
   bool _solicitado = false;
   Future<void>? _inicioPendiente;
 
@@ -24,7 +38,7 @@ class MantenerVivoGeolocator implements ServicioMantenerVivo {
   @override
   Future<void> iniciar() async {
     _solicitado = true;
-    if (!_esIos() || _suscripcion != null) return;
+    if (!_esIos() || _activo) return;
     final pendiente = _inicioPendiente;
     if (pendiente != null) return pendiente;
     final inicio = _iniciarSiPermitido();
@@ -38,25 +52,14 @@ class MantenerVivoGeolocator implements ServicioMantenerVivo {
 
   Future<void> _iniciarSiPermitido() async {
     // Revisar el permiso existente nunca abre un diálogo ni solicita Always.
-    final permiso = await Geolocator.checkPermission();
+    final permiso = await _permiso();
     if (!_solicitado ||
         (permiso != LocationPermission.whileInUse &&
             permiso != LocationPermission.always)) {
       return;
     }
-    final ajustes = AppleSettings(
-      accuracy: LocationAccuracy.reduced,
-      distanceFilter: 100,
-      allowBackgroundLocationUpdates: true,
-      showBackgroundLocationIndicator: true,
-      pauseLocationUpdatesAutomatically: false,
-      activityType: ActivityType.otherNavigation,
-    );
-    // Las posiciones se ignoran: este stream existe solo para que iOS no
-    // suspenda la app con la pantalla bloqueada mientras hay avisos armados.
-    _suscripcion = Geolocator.getPositionStream(
-      locationSettings: ajustes,
-    ).listen((_) {}, onError: (Object error, StackTrace stack) {});
+    await _canal.invokeMethod<void>('iniciar');
+    _activo = true;
   }
 
   @override
@@ -64,7 +67,8 @@ class MantenerVivoGeolocator implements ServicioMantenerVivo {
     _solicitado = false;
     final pendiente = _inicioPendiente;
     if (pendiente != null) await pendiente;
-    await _suscripcion?.cancel();
-    _suscripcion = null;
+    if (!_activo) return;
+    _activo = false;
+    await _canal.invokeMethod<void>('detener');
   }
 }

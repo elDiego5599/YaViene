@@ -14,6 +14,7 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     if let registrador = engineBridge.pluginRegistry.registrar(forPlugin: "ActividadEnVivo") {
       ActividadEnVivo.registrar(con: registrador)
+      MantenerVivo.registrar(con: registrador)
     }
   }
 }

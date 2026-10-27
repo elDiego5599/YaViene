@@ -1,6 +1,48 @@
 import ActivityKit
+import CoreLocation
 import Flutter
 import Foundation
+
+/// El lado nativo de `mantener_vivo.dart`: mientras hay un aviso armado, un
+/// CLLocationManager propio con segundo plano evita que iOS suspenda la app
+/// con la pantalla bloqueada (sin eso no hay barrido, ni aviso, ni actividad
+/// al día). Propio porque el stream de geolocator es uno solo y el del mapa
+/// lo abre sin segundo plano. Las posiciones no se leen.
+enum MantenerVivo {
+  private static var gestor: CLLocationManager?
+
+  static func registrar(con registrador: FlutterPluginRegistrar) {
+    FlutterMethodChannel(
+      name: "yaviene/mantener_vivo",
+      binaryMessenger: registrador.messenger()
+    ).setMethodCallHandler { llamada, responder in
+      switch llamada.method {
+      case "iniciar":
+        iniciar()
+        responder(nil)
+      case "detener":
+        gestor?.stopUpdatingLocation()
+        gestor = nil
+        responder(nil)
+      default:
+        responder(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private static func iniciar() {
+    guard gestor == nil else { return }
+    let nuevo = CLLocationManager()
+    nuevo.desiredAccuracy = kCLLocationAccuracyThreeKilometers
+    nuevo.distanceFilter = 100
+    nuevo.activityType = .otherNavigation
+    nuevo.pausesLocationUpdatesAutomatically = false
+    nuevo.allowsBackgroundLocationUpdates = true
+    nuevo.showsBackgroundLocationIndicator = true
+    nuevo.startUpdatingLocation()
+    gestor = nuevo
+  }
+}
 
 /// El lado nativo de `actividad_en_vivo.dart`: pone, pone al día y quita la
 /// actividad en vivo del bus seguido. Antes de iOS 16.2, o con las

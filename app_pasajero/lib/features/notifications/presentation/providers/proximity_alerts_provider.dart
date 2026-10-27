@@ -74,7 +74,7 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     ServicioMantenerVivo? mantenerVivo,
     Future<void> Function()? sentir,
   })  : _enVivo = enVivo,
-        _mantenerVivo = mantenerVivo ?? MantenerVivoGeolocator(),
+        _mantenerVivo = mantenerVivo ?? MantenerVivoIos(),
         _sentir = sentir ?? _dobleToque,
         _notify = notify ?? _defaultNotify,
         _permiso = permiso ?? BusNotificationService.puedeAvisar,
