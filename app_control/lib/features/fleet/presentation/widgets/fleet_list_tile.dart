@@ -163,49 +163,27 @@ class FleetListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
               ),
               const SizedBox(width: 2),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  updating
-                      ? const SizedBox(
-                          width: 36,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: IndicadorCarga(size: 16),
-                          ),
-                        )
-                      : Tooltip(
-                          message: bus.visible
-                              ? 'Los pasajeros pueden ver este bus'
-                              : 'Oculto para los pasajeros',
-                          child: Switch(
-                            value: bus.visible,
-                            onChanged: (v) => onToggle(v),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                  const SizedBox(height: 2),
-                  // El interruptor ya dice su estado y su tooltip lo explica.
-                  // A 9 y no a 8, que en un proyector no se leía; el
-                  // espaciado baja de 1,2 a 0,8 para que «PERMITIDO» mida
-                  // casi lo mismo y no le quite sitio a la placa
-                  // (fleet_list_tile_test.dart).
-                  ExcludeSemantics(
-                    child: Text(
-                      bus.visible ? 'PERMITIDO' : 'OCULTO',
-                      style: AppType.ui(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                        color: bus.visible
-                            ? AppColors.online
-                            : AppColors.hidden,
+              // El interruptor solo, sin «PERMITIDO» ni «OCULTO» debajo
+              // (dueño, 2026-10-26): su estado ya se ve y su tooltip lo
+              // explica.
+              updating
+                  // Lo que mide el interruptor (52 × 32), para que la fila
+                  // no se mueva mientras se guarda.
+                  ? const SizedBox(
+                      width: 52,
+                      height: 32,
+                      child: Center(child: IndicadorCarga(size: 16)),
+                    )
+                  : Tooltip(
+                      message: bus.visible
+                          ? 'Los pasajeros pueden ver este bus'
+                          : 'Oculto para los pasajeros',
+                      child: Switch(
+                        value: bus.visible,
+                        onChanged: (v) => onToggle(v),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),

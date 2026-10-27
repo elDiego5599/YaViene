@@ -446,10 +446,11 @@ void main() {
     await _desmontar(tester);
   }, variant: _escritorio);
 
-  // Lo activo lleno —el filtro de ruta y la pestaña de estado elegidos— va
-  // en el azul de los botones del pasajero (#1E56A8), no en el #17325F de
-  // los íconos: el dueño vio el mismo azul en la app y otro en el panel.
-  testWidgets('el filtro y la pestaña activos van en el azul de los botones', (
+  // Lo activo ya no va lleno de azul (dueño, 2026-10-26, pulido general):
+  // el filtro de ruta elegido lleva la cápsula verde de las pestañas Flota y
+  // Reportes, el verde de la ruta en el mapa; la pestaña de estado elegida,
+  // la lámina blanca del segmentado de macOS con la tinta encima.
+  testWidgets('el filtro y la pestaña activos van sin azul lleno', (
     tester,
   ) async {
     await _montar(tester);
@@ -460,9 +461,14 @@ void main() {
               .first,
         )
         .color;
-    expect(relleno('Tcherassi (2)'), AppColors.boton);
-    expect(relleno('Todos'), AppColors.boton);
-    expect(relleno('En Línea'), isNot(AppColors.boton));
+    Color? letra(String texto) =>
+        tester.widget<Text>(find.text(texto)).style?.color;
+    expect(relleno('Tcherassi (2)'), AppColors.capsula);
+    expect(letra('Tcherassi (2)'), AppColors.online);
+    expect(relleno('Todos'), AppColors.surface);
+    expect(letra('Todos'), AppColors.textPrimary);
+    expect(relleno('En Línea'), Colors.transparent);
+    expect(letra('En Línea'), AppColors.textSecondary);
     await _desmontar(tester);
   });
 }

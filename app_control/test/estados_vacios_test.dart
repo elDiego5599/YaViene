@@ -431,28 +431,29 @@ void main() {
   });
 
   // ── Paso entre Flota y Reportes ─────────────────────────────────────
-  testWidgets('Flota y Reportes se funden al cambiar, sin corte', (
+  testWidgets('Flota y Reportes se deslizan de lado con la cápsula', (
     tester,
   ) async {
-    // El salto seco se veía fatal (dueño, 2026-10-26): la pestaña nueva
-    // aparece sobre la vieja y la vieja se apaga, a la par del pulgar.
+    // El fundido se veía raro (dueño, 2026-10-26): como la píldora del
+    // pasajero, la pantalla nueva entra de lado y la cápsula va con ella,
+    // las dos en el mismo resorte.
     await _montar(tester);
-
-    double opacidadDe(Finder f) => tester
-        .widget<FadeTransition>(
-          find.ancestor(of: f, matching: find.byType(FadeTransition)).first,
-        )
-        .opacity
-        .value;
+    final carril = tester.getRect(
+      find.byKey(const ValueKey('carril-pestanas')),
+    );
+    final capsula = find.byKey(const ValueKey('capsula-pestanas'));
+    final xCapsula = tester.getRect(capsula).left;
 
     await tester.tap(find.byKey(const ValueKey('pestana-reportes')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 60));
-    final reportes = find.byType(ReportesScreen);
-    expect(opacidadDe(reportes), inExclusiveRange(0.0, 1.0));
+    final reportes = tester.getRect(find.byType(ReportesScreen));
+    expect(reportes.left, greaterThan(carril.left));
+    expect(reportes.left, lessThan(carril.right));
+    expect(tester.getRect(capsula).left, greaterThan(xCapsula));
 
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(opacidadDe(reportes), 1.0);
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(tester.getRect(find.byType(ReportesScreen)).left, carril.left);
 
     await _desmontar(tester);
   });

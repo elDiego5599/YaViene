@@ -20,7 +20,7 @@ const ventanaMinima = Size(1200, 700);
 /// barra de direcciones ≈ 643. Medido con el tablero entero a 1200 de ancho
 /// (como panel_angosto_test.dart): a 643 nada se desborda ni se sale de la
 /// pantalla con la letra a 1×, 1,5× y 2×; a 620, con la letra a 2×, la
-/// barra de la flota ya corta «PERMITIDO».
+/// barra de la flota ya se corta.
 const ventanaMinimaWeb = Size(1200, 643);
 
 /// El tablero en una pestaña del navegador, que nadie detiene bajo

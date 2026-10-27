@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -248,7 +250,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           // sigue donde estaba, y Reportes conserva su periodo y su ruta.
           // Reportes se arma la primera vez que se abre, no antes.
           Expanded(
-            child: _FundidoPestanas(
+            child: _CarrilPestanas(
               indice: _pestana.index,
               children: [
                 _flota(fleet, buses),
@@ -640,149 +642,242 @@ class _BotonActualizarState extends State<_BotonActualizar>
   );
 }
 
-/// Flota y Reportes como el control segmentado de macOS: un riel gris
-/// claro y la pestaña elegida en una lámina blanca con sombra corta, que se
-/// desliza de una a otra con el resorte de los cambios. La elegida en tinta
-/// sobre blanco (13,9:1) y la otra en gris secundario sobre el riel (4,9:1),
-/// sin el azul lleno que pesaba más que el resto de la cabecera (dueño,
-/// 2026-10-26). Las dos miden lo que la más ancha (con su texto, también
-/// agrandado), así la lámina no cambia de ancho al moverse.
-class _Pestanas extends StatelessWidget {
+/// El resorte de la píldora del pasajero (`PildoraNavegacion.resorte`):
+/// amortiguado del todo y con respuesta de 0,3 s. Cápsula y pantalla se
+/// mueven con él, así llegan juntas; si se cambia a mitad, sigue desde
+/// donde iba y con la velocidad que traía.
+final _resortePestanas = SpringDescription.withDampingRatio(
+  mass: 1,
+  stiffness: math.pow(2 * math.pi / 0.3, 2).toDouble(),
+);
+
+/// Flota y Reportes como la píldora de abajo del pasajero (dueño,
+/// 2026-10-26: el riel gris con su lámina se veía raro): una píldora
+/// blanca con su filo y la pestaña puesta sobre una cápsula verde clara,
+/// que va de una a otra con [_resortePestanas]. La puesta en verde
+/// accesible sobre la cápsula (4,94:1) y la otra en gris secundario sobre
+/// blanco (5,38:1). Las dos miden lo que la más ancha (con su texto,
+/// también agrandado), así la cápsula no cambia de ancho al moverse.
+class _Pestanas extends StatefulWidget {
   const _Pestanas({required this.pestana, required this.onPestana});
 
   final PestanaPanel pestana;
   final ValueChanged<PestanaPanel> onPestana;
 
   static const _opciones = [
-    (PestanaPanel.flota, 'Flota', Icons.directions_bus_outlined),
-    (PestanaPanel.reportes, 'Reportes', Icons.insights_outlined),
+    (
+      PestanaPanel.flota,
+      'Flota',
+      Icons.directions_bus_outlined,
+      Icons.directions_bus_rounded,
+    ),
+    (
+      PestanaPanel.reportes,
+      'Reportes',
+      Icons.insights_outlined,
+      Icons.insights_rounded,
+    ),
   ];
+
+  /// Margen entre la cápsula y el canto de la píldora: con las pestañas de
+  /// 34, los 40 de la cabecera.
+  static const double margen = 3;
+
+  @override
+  State<_Pestanas> createState() => _PestanasState();
+}
+
+class _PestanasState extends State<_Pestanas>
+    with SingleTickerProviderStateMixin {
+  /// Dónde está la cápsula, en pestañas. Sin límites para que el resorte
+  /// llegue con su velocidad.
+  late final _capsula = AnimationController.unbounded(
+    vsync: this,
+    value: widget.pestana.index.toDouble(),
+  );
+
+  @override
+  void didUpdateWidget(_Pestanas viejo) {
+    super.didUpdateWidget(viejo);
+    if (viejo.pestana != widget.pestana) {
+      _deslizar(_capsula, widget.pestana.index, context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _capsula.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final duracion = AppMotion.duracion(context, AppMotion.normal);
-    return Container(
-      padding: const EdgeInsets.all(3),
+    final ultima = _Pestanas._opciones.length - 1;
+    return DecoratedBox(
+      // El blanco, el filo y la sombra de la píldora del pasajero, con la
+      // sombra más corta: aquí va dentro de la cabecera, no flota.
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.filoPildora),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navy.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: IntrinsicWidth(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: AnimatedAlign(
-                duration: duracion,
-                curve: AppMotion.curvaCambio,
-                alignment: pestana == PestanaPanel.flota
-                    ? Alignment.centerLeft
-                    : Alignment.centerRight,
-                child: FractionallySizedBox(
-                  widthFactor: 1 / _opciones.length,
-                  heightFactor: 1,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      // Una sombra corta y un filo de media línea, como la
-                      // lámina del segmentado de macOS: se despega del riel
-                      // sin flotar.
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.navy.withValues(alpha: 0.12),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
+      child: Padding(
+        padding: const EdgeInsets.all(_Pestanas.margen),
+        child: IntrinsicWidth(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _capsula,
+                  builder: (context, child) => Align(
+                    // 0 a la izquierda, la última a la derecha.
+                    alignment: Alignment(-1 + 2 * _capsula.value / ultima, 0),
+                    child: child,
+                  ),
+                  child: FractionallySizedBox(
+                    key: const ValueKey('capsula-pestanas'),
+                    widthFactor: 1 / _Pestanas._opciones.length,
+                    heightFactor: 1,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.capsula,
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(AppRadius.pill),
                         ),
-                        BoxShadow(
-                          color: AppColors.navy.withValues(alpha: 0.06),
-                          spreadRadius: 0.5,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Row(
-              children: [
-                for (final (valor, texto, icono) in _opciones)
-                  Expanded(
-                    child: _Pestana(
-                      key: ValueKey('pestana-${valor.name}'),
-                      texto: texto,
-                      icono: icono,
-                      elegida: valor == pestana,
-                      duracion: duracion,
-                      onTap: () => onPestana(valor),
+              Row(
+                children: [
+                  for (final (valor, texto, icono, iconoPuesto)
+                      in _Pestanas._opciones)
+                    Expanded(
+                      child: _Pestana(
+                        key: ValueKey('pestana-${valor.name}'),
+                        texto: texto,
+                        icono: valor == widget.pestana ? iconoPuesto : icono,
+                        elegida: valor == widget.pestana,
+                        onTap: () => widget.onPestana(valor),
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Pestana extends StatelessWidget {
+/// Lleva [t] a [indice] con [_resortePestanas], desde donde va y con la
+/// velocidad que trae. Con el movimiento reducido, salta.
+void _deslizar(AnimationController t, int indice, BuildContext context) {
+  if (AppMotion.reducido(context)) {
+    t.value = indice.toDouble();
+    return;
+  }
+  t.animateWith(
+    SpringSimulation(
+      _resortePestanas,
+      t.value,
+      indice.toDouble(),
+      t.velocity,
+      // Termina justo en su sitio: a una diezmilésima, la pantalla que sale
+      // seguiría montada.
+      snapToEnd: true,
+    ),
+  );
+}
+
+class _Pestana extends StatefulWidget {
   const _Pestana({
     super.key,
     required this.texto,
     required this.icono,
     required this.elegida,
-    required this.duracion,
     required this.onTap,
   });
 
   final String texto;
   final IconData icono;
   final bool elegida;
-  final Duration duracion;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    selected: elegida,
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        hoverColor: Colors.transparent,
-        // 34 de alto: con el riel de 3, los 40 de la cabecera.
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 34),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-          child: TweenAnimationBuilder<Color?>(
-            duration: duracion,
-            curve: AppMotion.curvaCambio,
-            tween: ColorTween(
-              end: elegida ? AppColors.textPrimary : AppColors.textSecondary,
-            ),
-            builder: (context, color, _) => Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icono, size: 16, color: color),
-                const SizedBox(width: 7),
-                Text(
-                  texto,
-                  style: AppType.ui(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
+  State<_Pestana> createState() => _PestanaState();
+}
+
+class _PestanaState extends State<_Pestana> {
+  bool _apretada = false;
+
+  void _apretar(bool si) => setState(() => _apretada = si);
+
+  @override
+  Widget build(BuildContext context) {
+    // Verde accesible sobre la cápsula (4,94:1); gris secundario sobre el
+    // blanco (5,38:1).
+    final color = widget.elegida ? AppColors.online : AppColors.textSecondary;
+    return Semantics(
+      button: true,
+      selected: widget.elegida,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          onTapDown: (_) => _apretar(true),
+          onTapUp: (_) => _apretar(false),
+          onTapCancel: () => _apretar(false),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          hoverColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
+          child: AnimatedScale(
+            // Responde en el instante en que se aprieta, no al soltar, como
+            // la píldora del pasajero.
+            scale: _apretada ? 0.94 : 1,
+            duration: AppMotion.duracion(context, AppMotion.instante),
+            curve: AppMotion.curvaSalida,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 34),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: TweenAnimationBuilder<Color?>(
+                duration: AppMotion.duracion(context, AppMotion.normal),
+                curve: AppMotion.curvaCambio,
+                tween: ColorTween(end: color),
+                builder: (context, color, _) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(widget.icono, size: 16, color: color),
+                    const SizedBox(width: 7),
+                    Text(
+                      widget.texto,
+                      style: AppType.ui(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// La barra de Flota, sin título (dueño, 2026-10-26: la pestaña ya lo
@@ -989,68 +1084,76 @@ class _AvisoFlota extends StatelessWidget {
   );
 }
 
-/// Flota y Reportes montadas a la vez, fundidas al cambiar: la que llega
-/// sube de 0 a 1 mientras la otra baja, con el mismo resorte y el mismo
-/// tiempo que el pulgar de las pestañas, así contenido y pulgar llegan
-/// juntos (dueño, 2026-10-26: el corte seco con el pulgar aún en camino se
-/// veía fatal). Si se cambia a mitad, sigue desde donde iba. La que queda
-/// atrás se saca de escena (Offstage, sin foco ni relojes), como hacía el
-/// IndexedStack.
-class _FundidoPestanas extends StatefulWidget {
-  const _FundidoPestanas({required this.indice, required this.children});
+/// Flota y Reportes montadas a la vez, una junto a la otra, como las
+/// pantallas del pasajero bajo su píldora: al cambiar, la nueva entra de
+/// lado con el mismo resorte que la cápsula, y llegan juntas (dueño,
+/// 2026-10-26: el fundido se veía raro). La que queda fuera se saca de
+/// escena (Offstage, sin foco ni relojes), como hacía el IndexedStack. Con
+/// el movimiento reducido no hay deslizamiento: la nueva aparece con un
+/// fundido corto.
+class _CarrilPestanas extends StatefulWidget {
+  const _CarrilPestanas({required this.indice, required this.children});
 
   final int indice;
   final List<Widget> children;
 
   @override
-  State<_FundidoPestanas> createState() => _FundidoPestanasState();
+  State<_CarrilPestanas> createState() => _CarrilPestanasState();
 }
 
-class _FundidoPestanasState extends State<_FundidoPestanas>
-    with SingleTickerProviderStateMixin {
-  late final _t = AnimationController(
+class _CarrilPestanasState extends State<_CarrilPestanas>
+    with TickerProviderStateMixin {
+  late final _posicion = AnimationController.unbounded(
     vsync: this,
     value: widget.indice.toDouble(),
   );
+  late final _fundido = AnimationController(vsync: this, value: 1);
 
   @override
-  void didUpdateWidget(_FundidoPestanas viejo) {
+  void didUpdateWidget(_CarrilPestanas viejo) {
     super.didUpdateWidget(viejo);
-    if (viejo.indice != widget.indice) {
-      _t.animateTo(
-        widget.indice.toDouble(),
-        duration: AppMotion.duracion(context, AppMotion.normal),
-        curve: AppMotion.curvaCambio,
-      );
+    if (viejo.indice == widget.indice) return;
+    _deslizar(_posicion, widget.indice, context);
+    if (AppMotion.reducido(context)) {
+      _fundido.duration = AppMotion.rapido;
+      _fundido.forward(from: 0);
     }
   }
 
   @override
   void dispose() {
-    _t.dispose();
+    _posicion.dispose();
+    _fundido.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final opacidades = [ReverseAnimation(_t), _t];
-    return ListenableBuilder(
-      listenable: _t,
+  Widget build(BuildContext context) => ClipRect(
+    key: const ValueKey('carril-pestanas'),
+    child: ListenableBuilder(
+      listenable: _posicion,
       builder: (context, _) => Stack(
         fit: StackFit.expand,
         children: [
           for (var i = 0; i < widget.children.length; i++)
             Offstage(
-              offstage: opacidades[i].value == 0,
+              offstage: (i - _posicion.value).abs() >= 1,
               child: ExcludeFocus(
                 excluding: i != widget.indice,
                 child: IgnorePointer(
                   ignoring: i != widget.indice,
                   child: TickerMode(
-                    enabled: opacidades[i].value > 0,
-                    child: FadeTransition(
-                      opacity: opacidades[i],
-                      child: widget.children[i],
+                    enabled: (i - _posicion.value).abs() < 1,
+                    child: FractionalTranslation(
+                      translation: Offset(i - _posicion.value, 0),
+                      // Siempre envuelta, para que el cambio no vuelva a
+                      // montar la pantalla (el mapa perdería su sitio).
+                      child: FadeTransition(
+                        opacity: i == widget.indice
+                            ? _fundido
+                            : kAlwaysCompleteAnimation,
+                        child: widget.children[i],
+                      ),
                     ),
                   ),
                 ),
@@ -1058,8 +1161,8 @@ class _FundidoPestanasState extends State<_FundidoPestanas>
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _RouteFilters extends StatefulWidget {
@@ -1185,8 +1288,10 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // La ruta elegida en la cápsula verde de Flota y Reportes (el verde de la
+    // ruta en el mapa), no llena de azul: online sobre capsula da 4,94:1.
     return Material(
-      color: active ? AppColors.boton : AppColors.surface,
+      color: active ? AppColors.capsula : AppColors.surface,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: InkWell(
         onTap: onTap,
@@ -1197,7 +1302,7 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
-              color: active ? AppColors.boton : AppColors.borderStrong,
+              color: active ? AppColors.online : AppColors.borderStrong,
             ),
           ),
           child: Text(
@@ -1205,7 +1310,7 @@ class _FilterChip extends StatelessWidget {
             style: AppType.ui(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
-              color: active ? Colors.white : AppColors.textSecondary,
+              color: active ? AppColors.online : AppColors.textSecondary,
             ),
           ),
         ),
@@ -1508,8 +1613,13 @@ class _StatusTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // La elegida, en la lámina blanca del segmentado de macOS con una sombra
+    // de un punto, no llena de azul: tinta sobre blanco y el número en gris
+    // secundario (5,4:1).
     return Material(
-      color: active ? AppColors.boton : Colors.transparent,
+      color: active ? AppColors.surface : Colors.transparent,
+      elevation: active ? 1 : 0,
+      shadowColor: AppColors.textPrimary.withValues(alpha: 0.25),
       borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
         onTap: onTap,
@@ -1529,7 +1639,9 @@ class _StatusTab extends StatelessWidget {
                   style: AppType.ui(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: active ? Colors.white : AppColors.textSecondary,
+                    color: active
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 5),
@@ -1538,7 +1650,7 @@ class _StatusTab extends StatelessWidget {
                   style: AppType.ui(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: active ? Colors.white70 : AppColors.textMuted,
+                    color: AppColors.textMuted,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),

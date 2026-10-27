@@ -7,7 +7,8 @@
 // - Las filas de la lista eran tarjetas con borde dentro de la tarjeta con
 //   borde de la lista. Ahora son filas planas; solo la elegida lleva marco.
 // - «PERMITIDO»/«OCULTO» iba a 8 pt, por debajo de lo que se lee en un
-//   proyector.
+//   proyector; luego se quitó (dueño, 2026-10-26): el interruptor ya lo
+//   dice y su tooltip lo explica.
 // - «Agregar bus» heredaba los 52 de alto del botón de entrar y pesaba más
 //   que la lista que encabeza.
 // - Las pestañas de estado flotaban sueltas: ahora van en su carril, como
@@ -193,12 +194,13 @@ void main() {
     });
   });
 
-  testWidgets('«PERMITIDO» y «OCULTO» se leen: 9 pt o más', (tester) async {
+  testWidgets('el interruptor se basta solo, sin rótulo en mayúsculas', (
+    tester,
+  ) async {
     await _conPanel(tester, const Size(1440, 900), (_) async {
-      for (final rotulo in ['PERMITIDO', 'OCULTO']) {
-        final estilo = tester.widget<Text>(find.text(rotulo)).style!;
-        expect(estilo.fontSize, greaterThanOrEqualTo(9), reason: rotulo);
-      }
+      expect(find.byType(Switch), findsWidgets);
+      expect(find.text('PERMITIDO'), findsNothing);
+      expect(find.text('OCULTO'), findsNothing);
     });
   });
 

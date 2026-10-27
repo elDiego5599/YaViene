@@ -82,6 +82,13 @@ abstract class AppColors {
   /// es ese mismo verde en su variante accesible.
   static const Color online = core.AppColors.primaryAccessible;
 
+  /// La cápsula de la pestaña puesta (Flota o Reportes): el verde claro de
+  /// la píldora del pasajero, con la pestaña en [online] encima (4,94:1).
+  static const Color capsula = core.AppColors.primaryTint;
+
+  /// El filo de la píldora de las pestañas, el mismo de la del pasajero.
+  static const Color filoPildora = core.AppColors.hairline;
+
   /// Lleva más de 90 s sin mandar posición pero la sesión sigue viva. Ámbar,
   /// que en el sistema significa «reintenta o espera»: el bus está ahí y lo
   /// que falla es el equipo, no el turno.
