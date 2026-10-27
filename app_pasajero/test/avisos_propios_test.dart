@@ -41,7 +41,6 @@ class _ToggleFijo extends AlertToggleController {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({
         'explicacion_seguir_bus_oculta': true,
-        'explicacion_aviso_cercania_oculta': true,
       }));
 
   Future<ProviderContainer> montar(

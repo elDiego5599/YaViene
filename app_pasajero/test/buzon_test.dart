@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppColors;
 import 'package:ya_viene_pasajero/core/app_info.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
+import 'package:ya_viene_pasajero/core/widgets/cabecera_degradada.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
 import 'package:ya_viene_pasajero/core/widgets/titulo_seccion.dart';
 import 'package:ya_viene_pasajero/features/buzon/data/buzon.dart';
@@ -167,7 +168,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('el buzón separa la cabecera gris del contenido blanco',
+    testWidgets('el buzón separa la cabecera en degradado del contenido blanco',
         (tester) async {
       await abrir(
           tester,
@@ -178,10 +179,19 @@ void main() {
       exigeFondoBlanco(tester);
       // Blanco liso, sin la trama de puntos (dueño, 2026-10-26).
       expect(find.byType(FondoTexturizado), findsNothing);
-      final cabecera = tester
-          .widget<DecoratedBox>(find.byKey(const ValueKey('buzon-cabecera')));
-      final decoracion = cabecera.decoration as BoxDecoration;
-      expect(decoracion.color, AppColors.surfaceMuted);
+      // «En vez de gris, un degradadito fino entre azul y verde» (dueño,
+      // 2026-10-26).
+      expect(
+          find.descendant(
+              of: find.byKey(const ValueKey('buzon-cabecera')),
+              matching: find.byType(DecoratedBox)),
+          findsWidgets);
+      const decoracion = CabeceraDegradada.decoracion;
+      expect(decoracion.color, isNull);
+      expect(
+          (decoracion.gradient! as LinearGradient).colors,
+          containsAllInOrder(
+              [CabeceraDegradada.azul, CabeceraDegradada.verde]));
       // «Que no se note mucho, algo sutil» (dueño, 2026-10-19): media
       // línea de tinta al 8 %, más clara que el filo de las tarjetas.
       final raya = (decoracion.border! as Border).bottom;

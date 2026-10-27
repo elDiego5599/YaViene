@@ -255,8 +255,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   planas sin sombra con su filo (`AppColors.filo`, #D0D4DC, la tinta de
   la marca al 20 %, como Stripe o Linear) y una raya del mismo filo en
   cada tarjeta de Avisos; el mensaje del buzón sin raya, con la nota de
-  privacidad fuera. Arriba, bajo la barra, una cabecera gris
-  (`surfaceMuted`) con una raya sutil (media línea de tinta al 8 %); la nota «Gestiona tus avisos aquí» con su cuadro y, dentro, la píldora
+  privacidad fuera. Arriba, bajo la barra, una cabecera en degradado
+  fino de azul a verde con un brillo blanco (`CabeceraDegradada`, los tonos
+  de la bienvenida; el gris no gustó, dueño, 2026-10-26) y una raya sutil
+  (media línea de tinta al 8 %); la nota «Gestiona tus avisos aquí» con su
+  ícono y su cuadro y, dentro, la píldora
   tonal «Seleccionar» (que pasa a «Borrar todas»; dueño, 2026-10-26); en la
   barra solo queda «Cancelar». «Desactivar» lleva la letra en
   `coralAccessible`.
@@ -350,6 +353,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   calle a 334 m, 30 km en la C16, dueño, 2026-10-21). La barra de
   vidrio sale al bajar, al paso del dedo, y en reposo no hay nada.
   Con un bus tocado se va la píldora de tu punto y buses cerca.
+  La píldora dice «N buses cerca de tu punto» igual con GPS o con pin, y
+  activar un aviso no abre ventana (solo la de cambiar de bus seguido;
+  dueño, 2026-10-26).
 - **Panel**: tablero con fondo y cabecera blancos (el degradado en la
   cabecera no gustó), filo entre buses centrado en la barra y sombras
   realzadas en tinta (`sombraCabecera` / `sombraTarjeta` /

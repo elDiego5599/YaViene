@@ -227,11 +227,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
   /// aviso o ventana.
   Future<void> _toggleAlert(String busId, {String? reemplazarBusId}) async {
     if (reemplazarBusId != null && !await _explicarSeguimiento()) return;
-    if (reemplazarBusId == null &&
-        !ref.read(activeAlertsProvider).contains(busId) &&
-        !await _explicarAvisoCercania()) {
-      return;
-    }
     final result = await ref.read(alertToggleProvider).toggle(busId,
         reemplazarBusId: reemplazarBusId,
         elegirDistancia: (desde, hasta) => _preguntarDistancia(busId,
@@ -286,16 +281,6 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       icono: Icons.directions_bus_outlined,
       titulo: 'Ya sigues un bus',
       mensaje: 'Si sigues este bus, el aviso actual se cambiará por el nuevo.',
-    );
-  }
-
-  Future<bool> _explicarAvisoCercania() async {
-    return _mostrarExplicacion(
-      clave: PrefsKeys.explicacionAvisoCercaniaOculta,
-      icono: Icons.notifications_active_outlined,
-      titulo: 'Aviso cuando esté cerca',
-      mensaje: 'Te avisaremos cuando el bus se acerque a tu punto. Puedes '
-          'cambiar de aplicación; no cierres Ya Viene del todo.',
     );
   }
 

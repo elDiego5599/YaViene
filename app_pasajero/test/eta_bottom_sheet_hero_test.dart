@@ -42,10 +42,8 @@ void main() {
 
   Future<ProviderContainer> pumpHero(
       WidgetTester tester, List<BusPosition> buses,
-      {bool omitirExplicacionAviso = true,
-      bool omitirExplicacionSeguimiento = true}) async {
+      {bool omitirExplicacionSeguimiento = true}) async {
     SharedPreferences.setMockInitialValues({
-      'explicacion_aviso_cercania_oculta': omitirExplicacionAviso,
       'explicacion_seguir_bus_oculta': omitirExplicacionSeguimiento,
     });
     final container = ProviderContainer(overrides: [
@@ -191,50 +189,25 @@ void main() {
     await tester.pump();
 
     expect(find.text('Aviso activado'), findsOneWidget);
-    expect(
-        find.text('Puedes cambiar de aplicación; no cierres Ya Viene del todo'),
-        findsNothing);
   });
 
-  testWidgets('la primera activación explica el aviso y permite ocultarlo',
+  // «Ese pop up no debe existir, solo el de que ya sigue a un bus y quiere
+  // seguir otro» (dueño, 2026-10-26): la primera activación va directo a la
+  // rueda, sin la ventana «Aviso cuando esté cerca».
+  testWidgets('la primera activación no explica nada: abre la rueda',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     addTearDown(() => SharedPreferences.setMockInitialValues({}));
-    final container =
-        await pumpHero(tester, [busAt(0.02)], omitirExplicacionAviso: false);
+    final container = await pumpHero(tester, [busAt(0.02)]);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('explicacion_aviso_cercania_oculta');
+    await prefs.clear();
     await tester.pumpAndSettle();
-    expect(find.text('Avisarme cuando esté cerca'), findsOneWidget);
 
     await tester.tap(find.text('Avisarme cuando esté cerca'));
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(find.byType(Dialogo), findsOneWidget);
-    expect(find.text('Aviso cuando esté cerca'), findsOneWidget);
-    expect(find.textContaining('no cierres Ya Viene del todo'), findsOneWidget);
-    final fila = find.byKey(const ValueKey('explicacion-no-mostrar'));
-    expect(tester.getSize(fila).height, greaterThanOrEqualTo(44));
-    expect(
-      tester.getSemantics(fila),
-      matchesSemantics(
-        label: 'No volver a mostrar',
-        hasCheckedState: true,
-        isChecked: false,
-        hasTapAction: true,
-      ),
-    );
-
-    await tester.tap(fila);
-    await tester.pump();
-    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
-    await tester.tap(fila);
-    await tester.pump();
-    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
-    await tester.tap(find.text('No volver a mostrar'));
-    await tester.tap(find.text('Entendido'));
-    await tester.pumpAndSettle();
-    expect(prefs.getBool('explicacion_aviso_cercania_oculta'), isTrue);
+    expect(find.byType(Dialogo), findsNothing);
+    expect(find.text('Aviso cuando esté cerca'), findsNothing);
     expect(find.byType(RuedaDistancia), findsOneWidget);
     container.dispose();
   });
@@ -340,7 +313,6 @@ void main() {
     final container = await pumpHero(
       tester,
       [busAt(0.02), busAt(0.02, busId: 'B-1')],
-      omitirExplicacionAviso: false,
       omitirExplicacionSeguimiento: false,
     );
     container.read(activeAlertsProvider.notifier).activateAlert('A-1');

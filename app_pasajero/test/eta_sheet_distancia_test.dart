@@ -62,7 +62,6 @@ void main() {
     SharedPreferences.setMockInitialValues(
       {
         if (guardada != null) 'distancia_aviso_m': guardada,
-        'explicacion_aviso_cercania_oculta': true,
       },
     );
     // Un iPhone 13 salvo que la prueba pida otro.
@@ -663,7 +662,6 @@ void main() {
         (tester) async {
       SharedPreferences.setMockInitialValues({
         'distancia_aviso_m': 1500,
-        'explicacion_aviso_cercania_oculta': true,
       });
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;

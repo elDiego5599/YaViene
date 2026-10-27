@@ -5,6 +5,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
+import '../../../core/widgets/cabecera_degradada.dart';
 import '../../../core/widgets/titulo_seccion.dart';
 import '../data/buzon.dart';
 
@@ -100,8 +101,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
         top: false,
         child: Stack(
           children: [
-            // El gris de la cabecera con su raya: bajo el título, hasta donde
-            // termina la barra (el relleno de arriba del cuerpo ya la suma).
+            // El degradado de la cabecera con su raya: bajo el título, hasta
+            // donde termina la barra (el relleno de arriba del cuerpo ya la
+            // suma).
             Positioned(
               top: 0,
               left: 0,
@@ -109,13 +111,8 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
               child: Builder(
                 builder: (context) => SizedBox(
                   height: MediaQuery.paddingOf(context).top,
-                  child: const DecoratedBox(
-                    key: ValueKey('buzon-cabecera'),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceMuted,
-                      border: Border(bottom: _raya),
-                    ),
-                  ),
+                  child:
+                      const CabeceraDegradada(key: ValueKey('buzon-cabecera')),
                 ),
               ),
             ),
@@ -598,8 +595,3 @@ class _Gracias extends StatelessWidget {
     );
   }
 }
-
-// La raya de la cabecera, sutil (dueño, 2026-10-19: «que no se note
-// mucho»): media línea de la tinta (#0B1628) al 8 % (0x14), que sobre el
-// gris queda #DFE2E7, más clara que el filo de las tarjetas (#D0D4DC).
-const _raya = BorderSide(color: Color(0x140B1628), width: 0.5);

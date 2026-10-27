@@ -158,8 +158,7 @@ class LocationStatusChip extends ConsumerWidget {
       key: 'manual-near$sufijo',
       icon: Icons.location_on_outlined,
       iconColor: AppColors.primaryAccessible,
-      text: '$nearbyCount bus${nearbyCount == 1 ? '' : 'es'} '
-          'cerca de tu punto',
+      text: _busesCerca(nearbyCount),
       sub: pinHint,
       actionLabel: 'Quitar',
       onAction: () => notifier.clearManualPin(),
@@ -207,9 +206,13 @@ class LocationStatusChip extends ConsumerWidget {
       key: 'gps-near',
       icon: Icons.my_location_outlined,
       iconColor: AppColors.primaryAccessible,
-      text: 'Usando tu ubicación, $nearbyCount '
-          'bus${nearbyCount == 1 ? '' : 'es'} cerca',
+      // El mismo texto que con el pin (dueño, 2026-10-26: «que no varíe
+      // sin importar si usa GPS o pin»): el ícono ya dice que es el GPS.
+      text: _busesCerca(nearbyCount),
       tint: AppColors.primaryTint,
     ));
   }
 }
+
+/// «n buses cerca de tu punto», igual con el GPS que con el pin.
+String _busesCerca(int n) => '$n bus${n == 1 ? '' : 'es'} cerca de tu punto';

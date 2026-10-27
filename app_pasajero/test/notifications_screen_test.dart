@@ -12,6 +12,7 @@ import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
 import 'package:ya_viene_pasajero/core/widgets/barra_vidrio.dart';
+import 'package:ya_viene_pasajero/core/widgets/cabecera_degradada.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/core/widgets/ficha_ruta.dart';
 import 'package:ya_viene_pasajero/core/widgets/fondo_texturizado.dart';
@@ -143,7 +144,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Avisos separa la cabecera gris del contenido blanco',
+  testWidgets('Avisos separa la cabecera en degradado del contenido blanco',
       (tester) async {
     await pumpScreen(tester, const []);
     await tester.pump();
@@ -151,10 +152,17 @@ void main() {
     // «Tiene como unos puntitos en vez de ser blancos lisos» (dueño,
     // 2026-10-26): Avisos va en blanco liso, sin la trama.
     expect(find.byType(FondoTexturizado), findsNothing);
-    final cabecera = tester
-        .widget<DecoratedBox>(find.byKey(const ValueKey('avisos-cabecera')));
-    final decoracion = cabecera.decoration as BoxDecoration;
-    expect(decoracion.color, AppColors.surfaceMuted);
+    // «En vez de gris, un degradadito fino entre azul y verde» (dueño,
+    // 2026-10-26).
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('avisos-cabecera')),
+            matching: find.byType(DecoratedBox)),
+        findsWidgets);
+    const decoracion = CabeceraDegradada.decoracion;
+    expect(decoracion.color, isNull);
+    expect((decoracion.gradient! as LinearGradient).colors,
+        containsAllInOrder([CabeceraDegradada.azul, CabeceraDegradada.verde]));
     // «Que no se note mucho, algo sutil» (dueño, 2026-10-19): media
     // línea de tinta al 8 %, más clara que el filo de las tarjetas.
     final raya = (decoracion.border! as Border).bottom;
@@ -661,7 +669,8 @@ void main() {
   });
 
   // «Probemos poniendo solo el texto "Gestiona tus avisos aquí" y al lado
-  // el botón de seleccionar en ese mismo cuadrito» (dueño, 2026-10-26).
+  // el botón de seleccionar en ese mismo cuadrito» (dueño, 2026-10-26), con
+  // su icono delante.
   testWidgets('arriba, la nota con Seleccionar en el mismo cuadro',
       (tester) async {
     final container = await pumpScreen(tester, [bus('A-1')]);
@@ -675,8 +684,13 @@ void main() {
     final nota = find.ancestor(
         of: find.text(texto),
         matching: find.byKey(const ValueKey('nota-avisos')));
-    expect(
-        find.descendant(of: nota, matching: find.byType(Icon)), findsNothing);
+    // «Le quitaste el icono al gestiona tus avisos aquí» (dueño,
+    // 2026-10-26): la baldosa va delante del texto.
+    final icono = find.descendant(
+        of: nota, matching: find.byKey(const ValueKey('nota-avisos-icono')));
+    expect(icono, findsOneWidget);
+    expect(tester.getRect(icono).right,
+        lessThan(tester.getRect(find.text(texto)).left));
     expect(find.descendant(of: nota, matching: find.text('Seleccionar')),
         findsOneWidget);
     final decoracion =

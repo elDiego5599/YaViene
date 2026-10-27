@@ -21,8 +21,6 @@
 /// parada, no va en SharedPreferences.
 abstract final class PrefsKeys {
   static const explicacionSeguirBusOculta = 'explicacion_seguir_bus_oculta';
-  static const explicacionAvisoCercaniaOculta =
-      'explicacion_aviso_cercania_oculta';
   // La ruta/empresa NO se persiste a propósito: al reabrir la app el usuario
   // elige su ruta de nuevo; solo el pin manual sobrevive al arranque (vive en
   // user_location_provider). Si en el futuro hay más claves, viven aquí.

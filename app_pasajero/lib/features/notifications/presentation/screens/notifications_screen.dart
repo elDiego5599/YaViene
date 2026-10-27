@@ -8,6 +8,7 @@ import '../../../../core/utils/color_empresa.dart';
 import '../../../../core/utils/distancia.dart';
 import '../../../../core/widgets/aviso.dart';
 import '../../../../core/widgets/barra_vidrio.dart';
+import '../../../../core/widgets/cabecera_degradada.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../../core/widgets/ficha_ruta.dart';
 import '../../../../core/widgets/placa_bus.dart';
@@ -102,8 +103,9 @@ class NotificationsScreen extends ConsumerWidget {
         // su lugar; antes era un corte seco.
         body: Stack(
           children: [
-            // El gris de la cabecera con su raya: bajo el título, hasta donde
-            // termina la barra (el relleno de arriba del cuerpo ya la suma).
+            // El degradado de la cabecera con su raya: bajo el título, hasta
+            // donde termina la barra (el relleno de arriba del cuerpo ya la
+            // suma).
             Positioned(
               top: 0,
               left: 0,
@@ -111,13 +113,8 @@ class NotificationsScreen extends ConsumerWidget {
               child: Builder(
                 builder: (context) => SizedBox(
                   height: MediaQuery.paddingOf(context).top,
-                  child: const DecoratedBox(
-                    key: ValueKey('avisos-cabecera'),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceMuted,
-                      border: Border(bottom: _raya),
-                    ),
-                  ),
+                  child:
+                      const CabeceraDegradada(key: ValueKey('avisos-cabecera')),
                 ),
               ),
             ),
@@ -144,8 +141,8 @@ class NotificationsScreen extends ConsumerWidget {
 /// La nota de arriba: qué se hace en esta pestaña y, en el mismo cuadro,
 /// «Seleccionar» («probemos poniendo solo el texto "Gestiona tus avisos
 /// aquí" y al lado el botón de seleccionar en ese mismo cuadrito», dueño,
-/// 2026-10-26). Antes llevaba su baldosa con icono y Seleccionar iba en la
-/// barra. Tarjeta blanca con filo, como la nota de la hoja de distancia.
+/// 2026-10-26), con su baldosa de icono delante. Antes Seleccionar iba en
+/// la barra. Tarjeta blanca con filo, como la nota de la hoja de distancia.
 class _NotaAvisos extends StatelessWidget {
   const _NotaAvisos();
 
@@ -174,9 +171,37 @@ class _NotaAvisos extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 12,
           children: [
-            Text(
-              'Gestiona tus avisos aquí',
-              style: AppTextStyles.pie.copyWith(color: AppColors.textBody),
+            // La baldosa de 30 vuelve («le quitaste el icono», dueño,
+            // 2026-10-26): el par tinte/tinta de los medallones, que pasa
+            // los 3:1. El glifo no se lee: la frase lo dice todo.
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: Container(
+                    key: const ValueKey('nota-avisos-icono'),
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTint,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Icon(
+                      Icons.edit_notifications_outlined,
+                      size: 18,
+                      color: AppColors.primaryAccessible,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    'Gestiona tus avisos aquí',
+                    style:
+                        AppTextStyles.pie.copyWith(color: AppColors.textBody),
+                  ),
+                ),
+              ],
             ),
             const _SelectAction(),
           ],
@@ -1180,8 +1205,3 @@ class _LineaDistancia extends StatelessWidget {
     );
   }
 }
-
-// La raya de la cabecera, sutil (dueño, 2026-10-19: «que no se note
-// mucho»): media línea de la tinta (#0B1628) al 8 % (0x14), que sobre el
-// gris queda #DFE2E7, más clara que el filo de las tarjetas (#D0D4DC).
-const _raya = BorderSide(color: Color(0x140B1628), width: 0.5);

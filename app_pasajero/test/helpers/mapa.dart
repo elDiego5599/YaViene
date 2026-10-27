@@ -144,7 +144,6 @@ class MapaDePrueba {
     SharedPreferences.setMockInitialValues({
       'onboarding_seen': true,
       'explicacion_seguir_bus_oculta': true,
-      'explicacion_aviso_cercania_oculta': true,
       if (!bienvenida) ...{
         'map_guide_version': 2,
         'map_guide_status': 'skipped',
