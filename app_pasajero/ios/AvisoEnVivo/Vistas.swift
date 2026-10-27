@@ -79,15 +79,16 @@ struct IslaLider: View {
     HStack(alignment: .center, spacing: 8) {
       // Abierta, la isla muestra el logo y la distancia, igual que la
       // pantalla bloqueada (dueño, 2026-10-21).
-      LogoYaViene(lado: 44)
+      LogoYaViene(lado: 48)
       ContenidoAviso(atributos: atributos, estado: estado)
     }
       .fixedSize(horizontal: true, vertical: false)
       .padding(.leading, 6)
       .frame(maxHeight: .infinity, alignment: .center)
-      // 4 pt arriba, igual que la pista de abajo: en el iPhone sobraban
-      // 26 pt sobre el logo y 12 bajo el rótulo (dueño, 2026-10-25).
-      .offset(y: -4)
+      // 8 pt arriba: 4 por los 26 pt que sobraban sobre el logo (dueño,
+      // 2026-10-25) y 4 más para dejarle sitio al bus de 28 pt, que sube
+      // 2,5 pt (dueño, 2026-10-26).
+      .offset(y: -8)
       .opacity(caduco ? 0.5 : 1)
   }
 }
@@ -99,7 +100,8 @@ struct IslaAbajo: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco)
+      // En la isla el bus va un 10 % más grande: 28 × 59,5 pt (dueño, 2026-10-26).
+      Pista(atributos: atributos, estado: estado, muestraRotulos: false, caduco: caduco, altoBus: 28)
         // El margen exterior de 8 pt deja los elementos fuera de la curva.
         // Dentro, leading 6 + inicio 3 - radio 3 y leading 6 del rótulo ponen
         // punto y campana en x=14. A la derecha, el aro llega fin + 10
@@ -218,10 +220,12 @@ private struct Pista: View {
   let atributos: AvisoAtributos; let estado: AvisoAtributos.ContentState; var muestraRotulos: Bool
   var caduco = false
   private let altura: CGFloat = 34
-  private let altoBus: CGFloat = 25.4
-  private let anchoBus: CGFloat = 54
-  // Radio de llanta: 4,5 unidades del dibujo × 25,4 / 32 = 3,57 pt.
-  private let radioLlanta: CGFloat = 4.5 * 25.4 / 32
+  /// 25,4 pt en la pantalla bloqueada; la isla lo pinta un poco más grande.
+  var altoBus: CGFloat = 25.4
+  // El dibujo es de 68 × 32: 25,4 pt de alto dan 54 de ancho.
+  private var anchoBus: CGFloat { altoBus * 68 / 32 }
+  // Radio de llanta: 4,5 unidades del dibujo × alto / 32 (3,57 pt a 25,4).
+  private var radioLlanta: CGFloat { 4.5 * altoBus / 32 }
   var body: some View {
     VStack(spacing: muestraRotulos ? 8 : 5) {
       GeometryReader { geo in
