@@ -379,7 +379,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   ruta de la leyenda y letra blanca (`AppColors.capsula` = `boton`, #1E56A8,
   7,1:1; dueño, 2026-10-27, el verde oscuro no gustó; igual las rutas elegidas; «En línea» en el verde oscuro, `online`, 5,48:1, y «Sin conexión» en el
   rojo de la web, `sinConexion`, #CE2D1D, 5,23:1; en Reportes, «Ver ruta» es
-  una casilla bajo una raya en la leyenda del mapa; sin zonas de 5 o más, D17, el pie dice cuántas búsquedas hubo, y con una hora elegida cuenta solo esa) que se desliza con el resorte de la píldora del
+  una casilla bajo una raya en la leyenda del mapa; sin zonas de 5 o más, D17, el pie dice cuántas búsquedas hubo, y con una hora elegida cuenta solo esa); el rango de fechas va dentro del menú de
+  «Fecha», en un cuadrito bajo el calendario con «Desde» y «Hasta»: elegir
+  los dos lo aplica, sin ventana ni botón (dueño, 2026-10-27); cerrar
+  sesión y volver a entrar trae otra vez las rutas que se desliza con el resorte de la píldora del
   pasajero, y el cuerpo se desliza de lado con él; la pestaña de estado en
   lámina blanca; en la ficha del bus, bajo la velocidad, «OCUPACIÓN
   APROX.» con su porcentaje y la pista de calor, la misma del pasajero

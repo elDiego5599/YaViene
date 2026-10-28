@@ -213,6 +213,11 @@ class FleetNotifier extends StateNotifier<FleetState> {
     final sesion = _sesion;
     if (sesion == null) return;
     final token = sesion.token;
+    // Una sesión nueva no viene expirada. Al cerrar sesión el dashboard para
+    // la flota y luego sale, y esa salida llega aquí como revocación: la
+    // marca quedaba puesta y, al volver a entrar, refresh y refreshRoutes no
+    // pedían nada. El panel se quedaba sin rutas (dueño, 2026-10-27).
+    if (state.sessionExpired) state = state.copyWith(sessionExpired: false);
     for (final s in _subs) {
       s.cancel();
     }

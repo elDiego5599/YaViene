@@ -197,6 +197,35 @@ void main() {
     expect(notifier.state.sessionExpired, true);
   });
 
+  // El dashboard para la flota y luego cierra la sesión: ese cierre llegaba
+  // al notifier como una sesión revocada y la marca se quedaba puesta. Al
+  // volver a entrar, ni las rutas ni la flota se pedían y el panel quedaba
+  // sin filtros de ruta (dueño, 2026-10-27).
+  test('cerrar sesión y volver a entrar pide otra vez las rutas', () async {
+    final container = _containerWith(
+      _FakeFleetApi(
+        routes: [
+          const FleetRoute(routeId: 'R-1', name: 'Ruta 1', total: 1, online: 1),
+        ],
+      ),
+      socket: _FakeSocket(),
+    );
+    final notifier = container.read(fleetProvider.notifier);
+
+    notifier.start();
+    await _vaciar();
+    notifier.stop();
+    // Lo que hace el listener de fleetProvider al quedar sin sesión; aquí el
+    // notifier va sin él (override), así que se llama a mano.
+    notifier.sesionRevocada();
+    notifier.start();
+    await _vaciar();
+
+    expect(notifier.state.sessionExpired, false);
+    expect(notifier.state.routes.map((r) => r.routeId), ['R-1']);
+    expect(notifier.state.routeFilter, 'R-1');
+  });
+
   // En el navegador la sesión no tiene token: la lleva la cookie. Que el
   // token falte no es «sin sesión»; sin sesión es no tener AuthSession.
   test(

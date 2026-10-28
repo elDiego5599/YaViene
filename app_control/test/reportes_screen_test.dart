@@ -568,23 +568,23 @@ void main() {
     expect(calendario, findsNothing);
     expect(periodos.last, primero);
 
-    // «Rango» abre una ventana propia con «Desde» y «Hasta»: el primer día
-    // tocado es el desde y pasa solo al hasta.
-    expect(find.text('Rango'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('periodo-rango')));
+    // El rango va en el mismo cuadro, en un cuadrito bajo el calendario:
+    // se marca «Desde», el día tocado pasa solo al «Hasta» y, con los dos,
+    // se aplica y se cierra (dueño, 2026-10-27). Nada de ventana ni APLICAR.
+    expect(find.text('Rango'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('ventana')), findsOneWidget);
-    final cal = find.byKey(const ValueKey('calendario-rango'));
-    await tester.tap(find.descendant(of: cal, matching: find.text('1')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: cal, matching: find.text('${hoy.day}')),
+    final cuadro = find.byKey(const ValueKey('cuadro-rango'));
+    expect(cuadro, findsOneWidget);
+    expect(
+      tester.getTopLeft(cuadro).dy,
+      greaterThanOrEqualTo(tester.getBottomLeft(calendario).dy),
     );
+    expect(find.text('Elegir'), findsNWidgets(2));
+    await tester.tap(find.byKey(const ValueKey('rango-desde')));
     await tester.pumpAndSettle();
-    final rango = PeriodoReporte.entre(
-      DateTime(hoy.year, hoy.month),
-      DateTime(hoy.year, hoy.month, hoy.day),
-    );
+    await tester.tap(find.descendant(of: calendario, matching: find.text('1')));
+    await tester.pumpAndSettle();
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('rango-desde')),
@@ -592,34 +592,55 @@ void main() {
       ),
       findsOneWidget,
     );
-    // Hasta que se aplique, nada se vuelve a pedir.
+    // Con solo el desde, nada se vuelve a pedir y el cuadro sigue abierto.
+    expect(calendario, findsOneWidget);
     expect(periodos.last, primero);
-    await tester.tap(find.text('APLICAR'));
+    await tester.tap(
+      find.descendant(of: calendario, matching: find.text('${hoy.day}')),
+    );
     await tester.pumpAndSettle();
+    final rango = PeriodoReporte.entre(
+      DateTime(hoy.year, hoy.month),
+      DateTime(hoy.year, hoy.month, hoy.day),
+    );
+    expect(calendario, findsNothing);
     expect(find.byKey(const ValueKey('ventana')), findsNothing);
     expect(periodos.last, rango);
     expect(periodosCalor.last, rango);
-    expect(find.text(periodoLabel(rango)), findsOneWidget);
-    // El día suelto vuelve a decir «Fecha».
-    expect(find.text('Fecha'), findsOneWidget);
+    // El rango queda escrito en el segmento de la fecha.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('periodo-dia')),
+        matching: find.text(periodoLabel(rango)),
+      ),
+      findsOneWidget,
+    );
     expect(
       tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
       totalPeriodoLabel(rango, DateTime.now()),
     );
 
-    // Cancelar deja el rango que estaba.
-    await tester.tap(find.byKey(const ValueKey('periodo-rango')));
+    // Al abrirlo otra vez trae el rango, y tocar un día sin marcar ningún
+    // extremo vuelve a un día suelto.
+    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
     await tester.pumpAndSettle();
-    await tester.tap(
+    expect(
       find.descendant(
-        of: find.byKey(const ValueKey('calendario-rango')),
-        matching: find.text('1'),
+        of: find.byKey(const ValueKey('rango-hasta')),
+        matching: find.text(periodoLabel(PeriodoReporte.delDia(hoy))),
       ),
+      findsOneWidget,
     );
-    await tester.tap(find.text('Cancelar'));
+    await tester.tap(find.descendant(of: calendario, matching: find.text('1')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('ventana')), findsNothing);
-    expect(periodos.last, rango);
+    // El día 1 ya se pidió antes: el segmento lo dice sin otra consulta.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('periodo-dia')),
+        matching: find.text('1 ${mes.substring(0, 3)}'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('en el rango, el hasta no deja días antes del desde', (
@@ -630,25 +651,30 @@ void main() {
       cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('periodo-rango')));
+    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
     await tester.pumpAndSettle();
-    final cal = find.byKey(const ValueKey('calendario-rango'));
     final picker = find.descendant(
-      of: cal,
+      of: find.byKey(const ValueKey('calendario-dia')),
       matching: find.byType(CalendarDatePicker),
     );
-    // Se abre en la última semana, con el desde a la vista.
     final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
     final ultimo = DateTime(hoy.year, hoy.month, hoy.day);
-    final desde = ultimo.subtract(const Duration(days: 6));
-    expect(tester.widget<CalendarDatePicker>(picker).initialDate, desde);
+    // «Hasta» sin desde marca el desde: no tiene contra qué medirse.
     await tester.tap(find.byKey(const ValueKey('rango-hasta')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<CalendarDatePicker>(picker).selectableDayPredicate,
+      isNull,
+    );
+    await tester.tap(
+      find.descendant(of: picker, matching: find.text('${hoy.day}')),
+    );
     await tester.pumpAndSettle();
     final hasta = tester.widget<CalendarDatePicker>(picker);
     expect(hasta.initialDate, ultimo);
-    final antes = desde.subtract(const Duration(days: 1));
+    final antes = ultimo.subtract(const Duration(days: 1));
     expect(hasta.selectableDayPredicate!(antes), isFalse);
-    expect(hasta.selectableDayPredicate!(desde), isTrue);
+    expect(hasta.selectableDayPredicate!(ultimo), isTrue);
   });
 
   testWidgets('las horas del mapa pintan esa hora y conservan la ruta', (
