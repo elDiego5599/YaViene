@@ -166,7 +166,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 15. Las decisiones D1–D14 (`YaVieneBackend/docs/decisiones/`) también son
     reglas. D2 (el equipo GPS) espera la respuesta del AMB a la PQRS.
 16. Coolitoral está en la app para que no quede solo Sobusa (dueño,
-    2026-10-06): no hay nada pendiente con ellos.
+    2026-10-06): no hay nada pendiente con ellos. Coochofal (EMP-04,
+    R-111 a R-116, de sus KMZ) entró el 2026-10-28 con su rojito
+    #B3261E (6,54:1 con blanco; `colorEmpresa`) y 96 buses de ejemplo.
 
 ## Estado (al 2026-10-06)
 - **NO es monorepo**: `YaViene/YaViene` (Flutter: `app_pasajero`,

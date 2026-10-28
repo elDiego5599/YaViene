@@ -20,10 +20,21 @@ const coloresEmpresa = [
   Color(0xFF3B6B2E), // oliva
 ];
 
+/// El rojito de Coochofal, pedido por el dueño (2026-10-28). Más hondo que
+/// el coral del bus en el mapa (#E86A5E) y que `coralAccessible` (#C0392B),
+/// para que su ficha no se lea como un bus ni como un aviso: 6,54:1 con
+/// letra blanca.
+const rojoCoochofal = Color(0xFFB3261E);
+
+/// Las empresas que eligen su color; las demás salen del escalón.
+const _coloresPropios = {'EMP-04': rojoCoochofal};
+
 /// El color de la empresa [companyId]: el de su insignia en «Elige
 /// empresa» y el de la ficha de sus avisos (dueño, 2026-10-19), para que el
 /// aviso se reconozca por su empresa.
 Color colorEmpresa(String companyId) {
+  final propio = _coloresPropios[companyId];
+  if (propio != null) return propio;
   final hash = companyId.codeUnits.fold<int>(0, (sum, c) => sum + c);
   return coloresEmpresa[hash % coloresEmpresa.length];
 }

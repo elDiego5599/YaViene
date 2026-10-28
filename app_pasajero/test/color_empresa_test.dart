@@ -18,7 +18,17 @@ void main() {
   });
 
   test('las empresas de hoy no se confunden entre sí', () {
-    expect(colorEmpresa('EMP-01'), isNot(colorEmpresa('EMP-03')));
+    final colores = ['EMP-01', 'EMP-03', 'EMP-04'].map(colorEmpresa).toSet();
+    expect(colores, hasLength(3));
+  });
+
+  test('Coochofal va en su rojito, con letra blanca legible', () {
+    // El dueño lo pidió rojito (2026-10-28).
+    expect(colorEmpresa('EMP-04'), rojoCoochofal);
+    expect(_contraste(rojoCoochofal, const Color(0xFFFFFFFF)),
+        greaterThanOrEqualTo(4.5));
+    // No es el coral del bus en el mapa: una ficha no se confunde con él.
+    expect(rojoCoochofal, isNot(AppColors.busActive));
   });
 
   test('la letra blanca de la insignia y la ficha se lee: 4,5:1 o más', () {

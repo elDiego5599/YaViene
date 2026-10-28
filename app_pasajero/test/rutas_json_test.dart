@@ -9,8 +9,7 @@ import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('rutas.json trae las rutas de Sobusa y Coolitoral con geometría',
-      () async {
+  test('rutas.json trae las rutas de Sobusa, Coolitoral y Coochofal', () async {
     final raw = await rootBundle.loadString(kRutasAsset);
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     final rutas = (decoded['rutas'] as List<dynamic>)
@@ -19,11 +18,13 @@ void main() {
 
     // R-101…R-106 son de Sobusa y R-107, R-109 y R-110 de Coolitoral (A1,
     // A3 y A4), con los mismos identificadores que su catálogo en el
-    // backend. A2 (R-108) se quitó (dueño, 2026-10-05): era el mismo
-    // recorrido que A1; su número no se reusa.
+    // backend; R-111…R-116 son de Coochofal (2026-10-28). A2 (R-108) se
+    // quitó (dueño, 2026-10-05): era el mismo recorrido que A1; su número no
+    // se reusa.
     expect(rutas.map((r) => r.routeId), [
       'R-101', 'R-102', 'R-103', 'R-104', 'R-105', 'R-106', //
-      'R-107', 'R-109', 'R-110',
+      'R-107', 'R-109', 'R-110', //
+      'R-111', 'R-112', 'R-113', 'R-114', 'R-115', 'R-116',
     ]);
 
     for (final ruta in rutas) {
@@ -66,6 +67,41 @@ void main() {
           reason: '$id no sale de la Calle 17');
       // Los puntos van cada 80 m como mínimo: a 100 m del punto más lejano
       // siempre queda uno si la ruta llega hasta allá.
+      final cerca = ruta.waypoints
+          .map((p) => haversineMeters(lejano.$1, lejano.$2, p.lat, p.lon))
+          .reduce((a, b) => a < b ? a : b);
+      expect(cerca, lessThan(100), reason: '$id no llega a $lejano');
+      expect(ruta.lengthKm, km, reason: '$id no mide lo de su KMZ');
+    }
+  });
+
+  // Coochofal mandó sus KMZ el 2026-10-28: seis circuitos cerrados. A15 sale
+  // de Soledad, por la Avenida Murillo; las otras cinco, de Villa Valery,
+  // en la Circunvalar. Igual que con Coolitoral, aquí van la salida, el
+  // punto más lejano y la longitud que mide el convertidor.
+  test('Coochofal sigue los circuitos de sus KMZ', () async {
+    final raw = await rootBundle.loadString(kRutasAsset);
+    final rutas =
+        ((jsonDecode(raw) as Map<String, dynamic>)['rutas'] as List<dynamic>)
+            .map((e) => RutaSobusa.fromJson(e as Map<String, dynamic>))
+            .toList();
+    const soledad = (10.891144, -74.804320);
+    const villaValery = (10.922688, -74.814592);
+    const circuitos = {
+      'R-111': (soledad, 46.0, (11.012571, -74.797959)), // A15, El Golf
+      'R-112': (villaValery, 30.0, (10.982517, -74.775519)), // C2, Centro
+      'R-113': (villaValery, 25.2, (11.007818, -74.790442)), // C4
+      'R-114': (villaValery, 33.3, (11.003148, -74.786300)), // C9, Santa Ana
+      'R-115': (villaValery, 32.7, (11.003266, -74.786219)), // C18, Santa Ana
+      'R-116': (villaValery, 33.4, (11.012547, -74.797975)), // D20, El Golf
+    };
+    for (final MapEntry(key: id, value: (salida, km, lejano))
+        in circuitos.entries) {
+      final ruta = rutas.firstWhere((r) => r.routeId == id);
+      final primero = ruta.waypoints.first;
+      expect(haversineMeters(salida.$1, salida.$2, primero.lat, primero.lon),
+          lessThan(1),
+          reason: '$id no sale de donde sale su KMZ');
       final cerca = ruta.waypoints
           .map((p) => haversineMeters(lejano.$1, lejano.$2, p.lat, p.lon))
           .reduce((a, b) => a < b ? a : b);

@@ -53,6 +53,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   `capturas-a2/` en la raíz del workspace: en la B18, el mismo bus a
   614 m en recta (antes, que bloqueaba el aviso) y a 3,4 km por la ruta
   (ahora). Si no te convence, se revierte el commit de A2.
+- **Los nombres de las 6 rutas de Coochofal** (2026-10-28): los KMZ
+  solo traen el código (A15, C2, C4, C9, C18, D20); los nombres salieron
+  de los barrios del recorrido (`COOCHOFAL_MAP` en
+  `YaVieneBackend/scripts/convert-rutas.mjs`). Si tienes los oficiales,
+  se cambian ahí y en la migración 37.
 - **NEW-27**: si se revisa cómo se arrastra la hoja de distancia.
 - **NEW-36**: la revisión del flujo entero del pasajero (bienvenida,
   aceptar las políticas, las tarjetas y sus textos). La aplazaste a
@@ -115,6 +120,10 @@ Necesitan un teléfono, una cuenta o estar presente.
   alerta (T7.1).
 
 ## Lo que puedo hacer yo
+
+- **Búsquedas de ejemplo de Coochofal en Reportes** (2026-10-28): la
+  siembra de `busquedas_demo.ts` solo cubre Sobusa y Coolitoral. Espera
+  a que se cierre el cambio que otra sesión dejó a medias en ese archivo.
 
 - **Señal perdida con gracia** (dueño, 2026-10-19, punto 10): sin datos
   de un bus, «último dato hace 20 s», el bus atenuado y una carga
