@@ -264,7 +264,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   en el panel y el pasajero (`estilo_retocado.dart` en el core): papel
   #F4F2EE, calles gris azulado más oscuras que las manzanas, con filo
   (las blancas no gustaron), edificios beige desde zoom 15, barrios y
-  calles en mayúsculas grises y sin POI. El pasajero lo baja y se lo da a
+  calles en mayúsculas grises y sin POI. De lejos (hasta zoom 12,5) cada
+  calle es una sola línea, sin el filo de dos tonos que parecía vías de
+  tren; las avenidas, gris azulado más oscuro y más anchas, hacen el
+  esqueleto, y la trama de calles menores sale desde 11,5 (dueño,
+  2026-10-28, «de lejos se ve horrible»). El pasajero lo baja y se lo da a
   MapLibre en JSON (`estiloMapaProvider`); sin red, el Voyager de siempre.
   El pintor del panel solo entiende filtros viejos: `estiloParaPintor`
   los reescribe, y cada cambio de colores sube `versionRetoque` (la llave

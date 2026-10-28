@@ -39,6 +39,17 @@ Map<String, dynamic> _por(Map<String, dynamic> estilo, String id) =>
           (capa) => capa['id'] == id,
         );
 
+/// El color de un tramo `{'stops': [[zoom, color], ...]}` al zoom más alto.
+String _deCerca(Object? color) => ((color as Map)['stops'] as List).last[1];
+
+/// El color de un tramo al zoom más bajo.
+String _deLejos(Object? color) => ((color as Map)['stops'] as List).first[1];
+
+/// La suma de los canales de un `#RRGGBB`: menos es más oscuro.
+int _luz(String hex) => [1, 3, 5]
+    .map((i) => int.parse(hex.substring(i, i + 2), radix: 16))
+    .reduce((a, b) => a + b);
+
 void main() {
   test('sin nombres de sitios ni negocios', () {
     final ids = (estiloRetocado(_voyager())['layers'] as List).map(
@@ -56,13 +67,34 @@ void main() {
       fondoMapaHex,
     );
     final fill = _por(panel, 'road_minor_fill')['paint'] as Map;
-    expect(fill['line-color'], '#D9DCE4');
+    expect(_deCerca(fill['line-color']), '#D9DCE4');
     // Lo que no se retoca se queda como en Voyager.
     expect(fill['line-opacity'], 1);
-    expect(_por(panel, 'road_minor_case')['paint']['line-color'], '#BCC1CC');
     expect(
-      _por(panel, 'road_trunk_fill_noramp')['paint']['line-color'],
+      _deCerca(_por(panel, 'road_minor_case')['paint']['line-color']),
+      '#BCC1CC',
+    );
+    expect(
+      _deCerca(_por(panel, 'road_trunk_fill_noramp')['paint']['line-color']),
       '#CED2DB',
+    );
+  });
+
+  // De lejos el filo y el relleno de dos tonos se veían como vías de tren
+  // (dueño, 2026-10-28, «el mapa de lejos se ve horrible»): hasta zoom 12,5
+  // cada calle es una sola línea, las avenidas más oscuras que el resto, y
+  // la trama de calles menores sale desde 11,5, como en Yandex.
+  test('de lejos cada calle es una sola línea y las avenidas mandan', () {
+    final panel = estiloRetocado(_voyager());
+    String deLejos(String id) =>
+        _deLejos(_por(panel, id)['paint']['line-color']);
+    expect(
+        deLejos('road_minor_case'), isNot(deLejos('road_trunk_fill_noramp')));
+    expect(_por(panel, 'road_minor_case')['minzoom'], 11.5);
+    expect(_por(panel, 'road_minor_fill')['minzoom'], greaterThan(13));
+    expect(
+      _luz(deLejos('road_trunk_fill_noramp')),
+      lessThan(_luz(deLejos('road_minor_case'))),
     );
   });
 

@@ -15,7 +15,7 @@ const fondoMapaHex = '#F4F2EE';
 /// La versión del retoque. El panel guarda en disco las teselas ya pintadas
 /// con la llave `id-vversión` del estilo: cada cambio de colores sube esta
 /// versión para que no salgan las pintadas con los de antes.
-const versionRetoque = '2026-10-28.2';
+const versionRetoque = '2026-10-28.3';
 
 /// Capas que no van: los rótulos de estadios, parques y lagos (los POI de
 /// Voyager) y el tinte de las zonas residenciales, que ensuciaba el papel.
@@ -52,6 +52,31 @@ const _montserrat = [
   'Noto Sans Regular',
 ];
 
+/// Un color de calle que pasa de [lejos] (hasta zoom 12,5) a [cerca] (desde
+/// zoom 14).
+Map<String, Object> _deLejosACerca(String lejos, String cerca) => {
+      'stops': [
+        [12.5, lejos],
+        [14, cerca],
+      ],
+    };
+
+/// El filo de las avenidas: de lejos un poco más ancho que en Voyager, para
+/// que se lean como el esqueleto de la ciudad.
+const Map<String, Object> _anchoAvenida = {
+  'stops': [
+    [8, 1],
+    [11, 2.6],
+    [12, 3.4],
+    [13, 4.4],
+    [14, 6],
+    [15, 8],
+    [16, 10],
+    [17, 14],
+    [18, 18],
+  ],
+};
+
 final List<_Retoque> _retoques = [
   _r(['background'], paint: {'background-color': fondoMapaHex}),
   // Verde de parque más vivo que el de Voyager, como el de Yandex.
@@ -71,43 +96,57 @@ final List<_Retoque> _retoques = [
   _r(['water_shadow'], paint: {'fill-color': '#C4E4FA'}),
   _r(['waterway'], paint: {'line-color': '#A2D5F8'}),
   // Calles gris azulado sobre el papel, con filo más oscuro: más oscuras
-  // que las manzanas, como en Yandex (las blancas no gustaron).
+  // que las manzanas, como en Yandex (las blancas no gustaron). De lejos el
+  // filo y el relleno son del mismo tono: una calle es una sola raya, y no
+  // dos rayitas con un hilo claro en medio, que de lejos se veían como
+  // vías de tren (dueño, 2026-10-28). De cerca se separan en filo y calle.
   _r(
     ['*_case', '*_case_noramp', '*_case_ramp'],
-    paint: {'line-color': '#BCC1CC'},
-  ),
-  _r(
-    [
-      'road_trunk_case*',
-      'road_mot_case*',
-      'bridge_trunk_case',
-      'bridge_mot_case',
-    ],
-    paint: {'line-color': '#A8AFBD'},
+    paint: {'line-color': _deLejosACerca('#C9CED8', '#BCC1CC')},
   ),
   _r(
     ['*_fill', '*_fill_noramp', '*_fill_ramp'],
-    paint: {'line-color': '#D9DCE4'},
+    paint: {'line-color': _deLejosACerca('#C9CED8', '#D9DCE4')},
+  ),
+  // Las avenidas y autopistas, más azules y más anchas que las calles: de
+  // lejos son el esqueleto de la ciudad, como en Yandex.
+  _r(
+    [
+      'road_pri_case*',
+      'road_trunk_case*',
+      'road_mot_case*',
+      'bridge_pri_case',
+      'bridge_trunk_case',
+      'bridge_mot_case',
+    ],
+    paint: {
+      'line-color': _deLejosACerca('#A9B5CA', '#A8AFBD'),
+      'line-width': _anchoAvenida,
+    },
   ),
   _r(
     [
+      'road_pri_fill*',
       'road_trunk_fill*',
       'road_mot_fill*',
+      'bridge_pri_fill',
       'bridge_trunk_fill',
       'bridge_mot_fill',
     ],
-    paint: {'line-color': '#CED2DB'},
+    paint: {'line-color': _deLejosACerca('#A9B5CA', '#CED2DB')},
   ),
-  // Las calles de barrio salen antes y más anchas que en Voyager: en
-  // Yandex la cuadrícula ya se ve entera a zoom 13.
+  // Las calles de barrio salen desde zoom 11,5, finas y claras: en Yandex
+  // la cuadrícula se ve entera de lejos y le da trama a la ciudad, en vez
+  // de manchas de papel vacío entre avenidas.
   _r(
     ['road_minor_case', 'bridge_minor_case'],
-    minzoom: 12.5,
+    minzoom: 11.5,
     paint: {
+      'line-color': _deLejosACerca('#CDD1DA', '#BCC1CC'),
       'line-width': {
         'stops': [
-          [12.5, 0.8],
-          [13, 1.4],
+          [11.5, 0.5],
+          [13, 1.2],
           [14, 2.6],
           [15, 4.4],
           [16, 6.6],
@@ -119,12 +158,11 @@ final List<_Retoque> _retoques = [
   ),
   _r(
     ['road_minor_fill', 'bridge_minor_fill'],
-    minzoom: 12.5,
+    minzoom: 13.5,
     paint: {
       'line-width': {
         'stops': [
-          [12.5, 0.4],
-          [13, 0.8],
+          [13.5, 0.6],
           [14, 1.6],
           [15, 3],
           [16, 5],
