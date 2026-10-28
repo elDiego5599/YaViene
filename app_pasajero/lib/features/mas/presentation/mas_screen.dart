@@ -251,7 +251,7 @@ class MasScreen extends ConsumerWidget {
 }
 
 /// «Una solución de Ya Viene Tech», chiquita y gris al pie de Info, con el
-/// nombre en el azul de los enlaces: abre yavienetech.com en el navegador.
+/// nombre en el verde de la marca: abre yavienetech.com en el navegador.
 /// Como una firma al pie y no como otra fila: no es algo que se use, es de
 /// quién es la app.
 class _Firma extends ConsumerStatefulWidget {
@@ -301,9 +301,11 @@ class _FirmaState extends ConsumerState<_Firma> {
                     children: [
                       TextSpan(
                         text: 'Ya Viene Tech',
-                        // #1E56A8 sobre blanco: 7,1:1.
+                        // El verde de la marca (#00A859) bajado lo justo
+                        // para leerse chiquito sobre blanco: #00824C da
+                        // 4,89:1 (el azul no convencía, dueño, 2026-10-28).
                         style: AppTextStyles.pie.copyWith(
-                          color: AppColors.acento,
+                          color: const Color(0xFF00824C),
                           fontWeight: FontWeight.w600,
                         ),
                       ),

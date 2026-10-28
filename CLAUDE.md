@@ -273,8 +273,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   (`EstiloRuta`) y el bus en su rojo (`AppColors.busActive`); el color por
   ruta, como Transit, se probó y no gustó (dueño, 2026-10-19). La barra de
   avance bajo la cifra de la hoja tampoco gustó (2026-10-19): solo queda en
-  la actividad en vivo. Solo la ficha de la ruta del
-  aviso (bandeja y tarjeta de Avisos) va en el color de
+  la actividad en vivo. La ficha de la ruta del
+  aviso (bandeja y tarjeta de Avisos) y la insignia de cada ruta en
+  «Elige ruta» (letra blanca; dueño, 2026-10-28) van en el color de
   su empresa en «Elige empresa» (`colorEmpresa`,
   `app_pasajero/lib/core/utils/color_empresa.dart`; el aviso guarda su
   `companyId`; los de antes, sin empresa, en el azul de botón).
@@ -291,7 +292,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   tonal «Seleccionar» (que pasa a «Borrar todas»; dueño, 2026-10-26); en la
   barra solo queda «Cancelar». En «Enviados», el que sonó de último va
   arriba (dueño, 2026-10-27). En Info, «Una solución de Ya Viene Tech»
-  va justo debajo del cuadro de Información. «Desactivar» lleva la letra en
+  va justo debajo del cuadro de Información, con el nombre en verde
+  #00824C (4,89:1; el azul no convencía, dueño, 2026-10-28). «Desactivar» lleva la letra en
   `coralAccessible`.
   El grano de la bienvenida, sin su color (`Grano`, blanco al 50 % y
   tinta al 3 %), va en el arranque (`FondoTexturizado`, blanco con grano;

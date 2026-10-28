@@ -954,13 +954,13 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                     start: _escalonFila(i),
                     _compactTile(
                       icon: Icons.alt_route_outlined,
-                      iconColor: AppColors.primary,
-                      iconBackground: AppColors.primaryTint,
+                      iconColor: Colors.white,
+                      // La insignia de la ruta va en el color de su empresa,
+                      // con letra blanca: es la misma ficha del aviso, y así
+                      // la ruta se reconoce por su empresa en los dos sitios
+                      // (dueño, 2026-10-28; antes iba en verde claro).
+                      iconBackground: colorEmpresa(selectedCompany.id),
                       badgeInitials: codigo?.code,
-                      // Verde oscuro sobre el verde claro de la insignia: la
-                      // empresa lleva tinta sólida y letra blanca, la ruta va
-                      // en voz más baja. Son dos niveles, no dos etiquetas.
-                      badgeColor: AppColors.primaryAccessible,
                       title: codigo?.rest ?? route.name,
                       subtitle: _routeSubtitle(route) ?? 'En vivo',
                       dicho: '${route.name}${_terminalesDichos(route)}',

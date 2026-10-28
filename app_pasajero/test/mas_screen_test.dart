@@ -392,6 +392,14 @@ void main() {
             hasTapAction: true,
             label: 'Una solución de Ya Viene Tech',
             hint: 'Abre yavienetech.com'));
+    // «Ya Viene Tech» en un verde de la marca que se lee sobre blanco
+    // (dueño, 2026-10-28: el azul no convencía).
+    TextSpan? nombre;
+    tester.widget<RichText>(firma).text.visitChildren((span) {
+      if (span is TextSpan && span.text == 'Ya Viene Tech') nombre = span;
+      return nombre == null;
+    });
+    expect(nombre?.style?.color, const Color(0xFF00824C));
     // Cabe un dedo: 44 de alto como mínimo, como pide la HIG.
     expect(tester.getSize(find.byKey(MasScreen.firmaKey)).height,
         greaterThanOrEqualTo(44));
