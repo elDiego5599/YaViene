@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../providers/estilo_mapa_provider.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/pin_hint_provider.dart';
@@ -1248,123 +1249,131 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       return const ColoredBox(color: AppColors.background);
     }
 
+    // Mientras baja el estilo no hay mapa que crear: el velo de abajo
+    // (MapStylePlaceholder) ya cubre la pantalla hasta que haya capas.
+    final estilo = ref.watch(estiloMapaProvider).value;
+
     return Stack(
       children: [
-        Positioned.fill(
-          // Tocar el mapa suelta el viaje de la cámara hacia el bus: el dedo
-          // manda sobre la animación.
-          child: Listener(
-            onPointerDown: (_) => _pararViaje(),
-            child: MapLibreMap(
-              key: ValueKey('map-$_mapGeneration'),
-              onMapCreated: _onMapCreated,
-              onStyleLoadedCallback: _onStyleLoadedCallback,
-              // El mapa nativo silencia map#onMapClick cuando el toque cae
-              // sobre un feature (línea de ruta, paradas, pins, buses...
-              // dentro de ±10 px) y deja solo feature#onTap. Con este flag,
-              // el toque SIEMPRE dispara onMapClick: se coloca el pin en
-              // cualquier lado (la selección de bus se decide en
-              // _selectBusAtTap).
-              featureTapsTriggersMapClick: true,
-              // Al detenerse la cámara el pin queda en una posición de pantalla
-              // distinta: se re-proyecta para que el pulso siga clavado en la
-              // punta del pin.
-              onCameraIdle: () {
-                unawaited(_refreshPinScreenPos());
-                unawaited(_refreshGuideBusTarget());
-              },
-              // Estilo Voyager de CARTO, el mismo del panel (`kEstiloMapa`).
-              // El verde de la ruta y los buses resaltan sobre él.
-              styleString: kEstiloMapa,
-              // Abre en el plano más lejano que permite el mapa, centrado en
-              // el área servida: la primera imagen es Malambo, Soledad y
-              // Barranquilla a la vez, que es exactamente hasta dónde llega la
-              // app.
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(
-                  MapConstants.areaCentroLat,
-                  MapConstants.areaCentroLon,
+        if (estilo != null)
+          Positioned.fill(
+            // Tocar el mapa suelta el viaje de la cámara hacia el bus: el
+            // dedo manda sobre la animación.
+            child: Listener(
+              onPointerDown: (_) => _pararViaje(),
+              child: MapLibreMap(
+                key: ValueKey('map-$_mapGeneration'),
+                onMapCreated: _onMapCreated,
+                onStyleLoadedCallback: _onStyleLoadedCallback,
+                // El mapa nativo silencia map#onMapClick cuando el toque cae
+                // sobre un feature (línea de ruta, paradas, pins, buses...
+                // dentro de ±10 px) y deja solo feature#onTap. Con este flag,
+                // el toque SIEMPRE dispara onMapClick: se coloca el pin en
+                // cualquier lado (la selección de bus se decide en
+                // _selectBusAtTap).
+                featureTapsTriggersMapClick: true,
+                // Al detenerse la cámara el pin queda en una posición de
+                // pantalla distinta: se re-proyecta para que el pulso siga
+                // clavado en la punta del pin.
+                onCameraIdle: () {
+                  unawaited(_refreshPinScreenPos());
+                  unawaited(_refreshGuideBusTarget());
+                },
+                // Voyager de CARTO retocado como el del panel
+                // (`estiloMapaProvider`). El verde de la ruta y los buses
+                // resaltan sobre él.
+                styleString: estilo,
+                // Abre en el plano más lejano que permite el mapa, centrado en
+                // el área servida: la primera imagen es Malambo, Soledad y
+                // Barranquilla a la vez, que es exactamente hasta dónde llega
+                // la app.
+                initialCameraPosition: const CameraPosition(
+                  target: LatLng(
+                    MapConstants.areaCentroLat,
+                    MapConstants.areaCentroLon,
+                  ),
+                  zoom: MapConstants.zoomMinimo,
                 ),
-                zoom: MapConstants.zoomMinimo,
-              ),
-              compassEnabled: false,
-              // La "i" azul de MapLibre era el único elemento de la pantalla
-              // fuera de la paleta. Los créditos que exigen OpenStreetMap y
-              // CARTO se leen enteros en el menú lateral —que es atribución
-              // "razonablemente visible" en el sentido de la ODbL, y es lo que
-              // hacen las apps de mapas que no tienen una esquina que gastar—,
-              // así que aquí sobra.
-              //
-              // El plugin no trae forma de esconderla: `MapLibreMap` solo deja
-              // moverla. Se manda mil puntos fuera de la esquina inferior
-              // izquierda, que en Android es margen negativo dentro de un
-              // contenedor que recorta y en iOS un origen fuera de la pantalla.
-              // En ninguna de las dos vuelve a asomar, y al no estar no roba
-              // toques.
-              attributionButtonPosition: AttributionButtonPosition.bottomLeft,
-              attributionButtonMargins: const math.Point(-1000, -1000),
-              myLocationEnabled: false,
-              onMapClick: (point, latLng) async {
-                // El mapa aún no está listo (estilo/fuentes cargando): no se
-                // pueden colocar pins ni seleccionar buses sobre un mapa que
-                // todavía no pinta. El placeholder además bloquea el toque.
-                if (!_layersReady) return;
-                // Durante el paso "location" de la guía, el único gesto
-                // permitido es fijar el pin: un bus bajo el toque no debe
-                // robárselo y desviar el flujo.
-                final guideBlocksBusTap =
-                    ref.read(mapGuideProvider).step == MapGuideStep.location;
-                // Un bus cerca del toque (aunque quede debajo/encima del pin) se
-                // selecciona y NO se mueve el pin manual.
-                if (!guideBlocksBusTap && await _selectBusAtTap(point)) return;
-                if (!mounted) return;
-                // Y tocar el mapa fuera de un bus suelta el que estuviera
-                // elegido. Sin esto la hoja se quedaba clavada en un bus hasta
-                // que el usuario acertaba a tocar ese mismo bus otra vez: la
-                // única salida de la selección era el objeto más pequeño y más
-                // móvil de la pantalla. Tocar al lado es como se cierra una
-                // ficha en cualquier mapa.
+                compassEnabled: false,
+                // La "i" azul de MapLibre era el único elemento de la pantalla
+                // fuera de la paleta. Los créditos que exigen OpenStreetMap y
+                // CARTO se leen enteros en el menú lateral —que es atribución
+                // "razonablemente visible" en el sentido de la ODbL, y es lo
+                // que hacen las apps de mapas que no tienen una esquina que
+                // gastar—, así que aquí sobra.
                 //
-                // El toque se consume: soltar el bus y plantar el pin son dos
-                // cosas distintas y no pueden pasar con el mismo dedo.
-                if (!guideBlocksBusTap &&
-                    ref.read(selectedBusesProvider).isNotEmpty) {
-                  ref.read(selectedBusesProvider.notifier).clear();
-                  return;
-                }
-                final location = ref.read(userLocationProvider);
-                // Con el GPS activo el pin sigue al usuario: el toque no lo
-                // mueve. Durante la búsqueda de GPS el toque sí coloca el pin
-                // manual (cancela la espera de localización).
-                if (location.mode == UserLocationMode.gps) {
-                  return;
-                }
-                // Pin fijo: una vez puesto no se mueve con toques (evita
-                // moverlo por accidente al tocar el mapa); se arrastra directo
-                // —la píldora de estado lo dice con palabras hasta que se
-                // aprende— o se quita con "Quitar".
-                if (location.mode == UserLocationMode.manual) {
-                  return;
-                }
-                ref
-                    .read(userLocationProvider.notifier)
-                    .setManualPin(latLng.latitude, latLng.longitude);
-              },
-              rotateGesturesEnabled: true,
-              scrollGesturesEnabled: true,
-              tiltGesturesEnabled: false,
-              zoomGesturesEnabled: true,
-              // Con 5.0 se podía alejar hasta ver el Caribe entero: media
-              // docena de niveles de teselas que se descargan y se dibujan
-              // para enseñar seis rutas del tamaño de un dedo.
-              minMaxZoomPreference: const MinMaxZoomPreference(
-                MapConstants.zoomMinimo,
-                MapConstants.zoomMaximo,
+                // El plugin no trae forma de esconderla: `MapLibreMap` solo
+                // deja moverla. Se manda mil puntos fuera de la esquina
+                // inferior izquierda, que en Android es margen negativo dentro
+                // de un contenedor que recorta y en iOS un origen fuera de la
+                // pantalla. En ninguna de las dos vuelve a asomar, y al no
+                // estar no roba toques.
+                attributionButtonPosition: AttributionButtonPosition.bottomLeft,
+                attributionButtonMargins: const math.Point(-1000, -1000),
+                myLocationEnabled: false,
+                onMapClick: (point, latLng) async {
+                  // El mapa aún no está listo (estilo/fuentes cargando): no se
+                  // pueden colocar pins ni seleccionar buses sobre un mapa que
+                  // todavía no pinta. El placeholder además bloquea el toque.
+                  if (!_layersReady) return;
+                  // Durante el paso "location" de la guía, el único gesto
+                  // permitido es fijar el pin: un bus bajo el toque no debe
+                  // robárselo y desviar el flujo.
+                  final guideBlocksBusTap =
+                      ref.read(mapGuideProvider).step == MapGuideStep.location;
+                  // Un bus cerca del toque (aunque quede debajo/encima del pin)
+                  // se selecciona y NO se mueve el pin manual.
+                  if (!guideBlocksBusTap && await _selectBusAtTap(point)) {
+                    return;
+                  }
+                  if (!mounted) return;
+                  // Y tocar el mapa fuera de un bus suelta el que estuviera
+                  // elegido. Sin esto la hoja se quedaba clavada en un bus
+                  // hasta que el usuario acertaba a tocar ese mismo bus otra
+                  // vez: la única salida de la selección era el objeto más
+                  // pequeño y más móvil de la pantalla. Tocar al lado es como
+                  // se cierra una ficha en cualquier mapa.
+                  //
+                  // El toque se consume: soltar el bus y plantar el pin son dos
+                  // cosas distintas y no pueden pasar con el mismo dedo.
+                  if (!guideBlocksBusTap &&
+                      ref.read(selectedBusesProvider).isNotEmpty) {
+                    ref.read(selectedBusesProvider.notifier).clear();
+                    return;
+                  }
+                  final location = ref.read(userLocationProvider);
+                  // Con el GPS activo el pin sigue al usuario: el toque no lo
+                  // mueve. Durante la búsqueda de GPS el toque sí coloca el pin
+                  // manual (cancela la espera de localización).
+                  if (location.mode == UserLocationMode.gps) {
+                    return;
+                  }
+                  // Pin fijo: una vez puesto no se mueve con toques (evita
+                  // moverlo por accidente al tocar el mapa); se arrastra
+                  // directo —la píldora de estado lo dice con palabras hasta
+                  // que se aprende— o se quita con "Quitar".
+                  if (location.mode == UserLocationMode.manual) {
+                    return;
+                  }
+                  ref
+                      .read(userLocationProvider.notifier)
+                      .setManualPin(latLng.latitude, latLng.longitude);
+                },
+                rotateGesturesEnabled: true,
+                scrollGesturesEnabled: true,
+                tiltGesturesEnabled: false,
+                zoomGesturesEnabled: true,
+                // Con 5.0 se podía alejar hasta ver el Caribe entero: media
+                // docena de niveles de teselas que se descargan y se dibujan
+                // para enseñar seis rutas del tamaño de un dedo.
+                minMaxZoomPreference: const MinMaxZoomPreference(
+                  MapConstants.zoomMinimo,
+                  MapConstants.zoomMaximo,
+                ),
+                cameraTargetBounds: CameraTargetBounds(_areaMetropolitana),
               ),
-              cameraTargetBounds: CameraTargetBounds(_areaMetropolitana),
             ),
           ),
-        ),
         // El radar verde del pin solo acompaña el paso de ubicación de la
         // guía. Fuera de ese paso no debe flotar sobre el mapa (ni asomarse
         // detrás de las hojas de empresa/ruta).

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -6,12 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:ya_viene_core/core/models/bus_motion.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/app_motion.dart';
 import 'package:ya_viene_core/core/theme/estilo_mapa.dart';
+import 'package:ya_viene_core/core/theme/estilo_retocado.dart';
 import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
 import 'package:ya_viene_core/shared/widgets/indicador_carga.dart';
 
@@ -19,13 +22,59 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
 import '../bus_estado.dart';
 import '../providers/fleet_providers.dart';
+import 'estilo_para_pintor.dart';
 
-/// El estilo del mapa, el mismo del pasajero ([kEstiloMapa]): se lee una
-/// vez por sesión —el JSON, la lista de teselas y los íconos de las
-/// ciudades— y las teselas se piden después, según la cámara.
-final estiloMapaProvider = FutureProvider<Style>(
-  (ref) => StyleReader(uri: kEstiloMapa).read(),
-);
+/// El estilo del mapa: Voyager ([kEstiloMapa]) retocado como el del
+/// pasajero ([estiloRetocado]). Se lee una vez por sesión —el JSON, la
+/// lista de teselas y los íconos de las ciudades— y las teselas se piden
+/// después, según la cámara.
+final estiloMapaProvider = FutureProvider<Style>((ref) {
+  final cliente = _ClienteEstiloPanel(http.Client());
+  return http
+      .runWithClient(() => StyleReader(uri: kEstiloMapa).read(), () => cliente)
+      .whenComplete(cliente.cerrar);
+});
+
+/// El cliente con el que [StyleReader] baja el estilo: todo pasa igual
+/// salvo el JSON de Voyager, que sale ya retocado por [estiloRetocado] y
+/// escrito como lo entiende el pintor ([estiloParaPintor]).
+/// `StyleReader` no recibe el JSON, solo la dirección: por eso el retoque
+/// va en el camino y no después.
+class _ClienteEstiloPanel extends http.BaseClient {
+  _ClienteEstiloPanel(this._dentro);
+
+  final http.Client _dentro;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest pedido) async {
+    final respuesta = await _dentro.send(pedido);
+    if (pedido.url.toString() != kEstiloMapa || respuesta.statusCode != 200) {
+      return respuesta;
+    }
+    final voyager = jsonDecode(await respuesta.stream.bytesToString());
+    final cuerpo = utf8.encode(
+      jsonEncode(
+        estiloParaPintor(
+          estiloRetocado((voyager as Map).cast<String, dynamic>()),
+        ),
+      ),
+    );
+    return http.StreamedResponse(
+      Stream.value(cuerpo),
+      200,
+      contentLength: cuerpo.length,
+      request: pedido,
+      headers: {...respuesta.headers}..remove('content-length'),
+    );
+  }
+
+  // Cada `http.get` de StyleReader cierra su cliente al terminar; el de
+  // dentro se cierra una vez, al final de la lectura.
+  @override
+  void close() {}
+
+  void cerrar() => _dentro.close();
+}
 
 class ControlMap extends ConsumerStatefulWidget {
   const ControlMap({super.key});
@@ -61,10 +110,11 @@ class ControlMap extends ConsumerStatefulWidget {
   /// hasta reiniciar el panel, aunque la red ya hubiera vuelto.
   static const Duration reintentoEstilo = Duration(seconds: 10);
 
-  /// El fondo de Voyager (su capa `background`, #fbf8f3): es lo que se ve
-  /// mientras llegan el estilo y las teselas, en vez del gris de
-  /// flutter_map, que hacía parecer roto el mapa por un segundo.
-  static const Color fondo = Color(0xFFFBF8F3);
+  /// El papel del mapa ([fondoMapaHex], la capa `background` del estilo
+  /// del panel): es lo que se ve mientras llegan el estilo y las teselas,
+  /// en vez del gris de flutter_map, que hacía parecer roto el mapa por un
+  /// segundo.
+  static const Color fondo = Color(0xFFF4F2EE);
 
   @override
   ConsumerState<ControlMap> createState() => _ControlMapState();
@@ -250,7 +300,7 @@ class _ControlMapState extends ConsumerState<ControlMap>
               },
             ),
             children: [
-              // El mismo mapa del pasajero: Voyager de CARTO, en vectores.
+              // Voyager de CARTO en vectores, retocado para el panel.
               // Antes iban las teselas de OpenStreetMap, porque CARTO solo da
               // sus rasterizadas —las que flutter_map pinta solo— con «API
               // KEY REQUIRED» atravesado; las vectoriales siguen limpias y
@@ -722,7 +772,7 @@ class FleetLegend extends StatelessWidget {
 }
 
 /// «Cargando el mapa» con los tres puntos de la marca, en una píldora blanca
-/// que flota sobre el fondo de Voyager como la leyenda.
+/// que flota sobre el papel del mapa como la leyenda.
 class _CargandoMapa extends StatelessWidget {
   const _CargandoMapa();
 

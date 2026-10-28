@@ -34,6 +34,7 @@ export 'core/theme/app_motion.dart';
 export 'core/theme/app_theme.dart';
 export 'core/theme/escala_calor.dart';
 export 'core/theme/estilo_mapa.dart';
+export 'core/theme/estilo_retocado.dart';
 export 'core/theme/estilo_ruta.dart';
 
 // --- Widgets compartidos ---

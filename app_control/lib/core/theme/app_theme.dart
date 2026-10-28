@@ -127,8 +127,8 @@ abstract class AppColors {
   //
   // Lo que sí se queda es que el bus del mapa va en verde y no en el coral
   // del pasajero. Nació porque OpenStreetMap pintaba las arterias en salmón
-  // y el coral se perdía encima; desde que el panel pinta el mismo Voyager
-  // del pasajero (2026-09-30) esa razón ya no está, pero el verde es el del
+  // y el coral se perdía encima; desde que el panel pinta Voyager en
+  // vectores (2026-09-30) esa razón ya no está, pero el verde es el del
   // estado «en línea», y así lo lee el operador.
 
   // Las sombras del panel, propias y no las de `core.AppShadows`, que

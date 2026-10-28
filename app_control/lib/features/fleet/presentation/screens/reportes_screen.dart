@@ -1065,7 +1065,7 @@ class _ResumenFantasma extends StatelessWidget {
   );
 }
 
-/// El mapa mientras llega: el fondo de Voyager con unas manchas donde irían
+/// El mapa mientras llega: el papel del mapa con unas manchas donde irían
 /// las zonas y la leyenda abajo, para que el calor llegue a un sitio tomado.
 class _MapaFantasma extends StatelessWidget {
   const _MapaFantasma();

@@ -5,7 +5,8 @@
 // colores. Voyager no entraba en el panel porque CARTO ya solo da sus
 // teselas rasterizadas —las que flutter_map sabía pintar— con «API KEY
 // REQUIRED» encima; las vectoriales, las del pasajero, siguen limpias. Ahora
-// el panel pinta esas mismas vectoriales con el mismo estilo.
+// el panel pinta esas mismas vectoriales, y desde el 2026-10-28 con el
+// estilo retocado como Yandex y sin negocios ([estiloRetocado]).
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -155,6 +156,13 @@ void main() {
                 'type': 'background',
                 'paint': {'background-color': '#fbf8f3'},
               },
+              {
+                'id': 'poi_stadium',
+                'type': 'fill',
+                'source': 'carto',
+                'source-layer': 'pois',
+                'paint': {'fill-color': '#d2b17d'},
+              },
             ],
           }),
           200,
@@ -183,6 +191,12 @@ void main() {
     expect(pedidas.first, kEstiloMapa);
     expect(kEstiloMapa, contains('voyager'));
     expect(estilo.providers.tileProviderBySource.keys, ['carto']);
+    // Llega retocado para el panel: sin rótulos de sitios (dueño,
+    // 2026-10-28), que se confundían con los buses.
+    expect(
+      estilo.theme.layers.map((capa) => capa.id),
+      isNot(contains('poi_stadium')),
+    );
   });
 
   testWidgets('con el estilo listo, el mapa es de vectores y no de OSM', (
@@ -207,7 +221,7 @@ void main() {
   });
 
   testWidgets(
-    'mientras llega el estilo, el fondo es el papel de Voyager y no gris',
+    'mientras llega el estilo, el fondo es el papel del mapa y no gris',
     (tester) async {
       await _montar(
         tester,
@@ -217,7 +231,7 @@ void main() {
       expect(find.byType(VectorTileLayer), findsNothing);
       expect(find.byType(TileLayer), findsNothing);
       final mapa = tester.widget<FlutterMap>(find.byType(FlutterMap));
-      expect(mapa.options.backgroundColor, const Color(0xFFFBF8F3));
+      expect(mapa.options.backgroundColor, const Color(0xFFF4F2EE));
 
       await _desmontar(tester);
     },

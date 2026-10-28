@@ -141,7 +141,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
    cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en
    `archivo/`).
 4. `app_control` (panel) solo macOS + Windows.
-5. Sin modo oscuro; mapa CARTO Voyager; **distancia, no ETA**.
+5. Sin modo oscuro; mapa CARTO Voyager, retocado como Yandex y sin nombres
+   de sitios ni negocios en las dos apps (`estiloRetocado`, core; dueño,
+   2026-10-28: se confundían con los buses); **distancia, no ETA**.
 6. Solo teléfonos; el bloqueo vertical se queda.
 7. Cambio en la app → build Android **e** iOS con
    `--dart-define=BACKEND_URL=https://occupy-shed-squatter.ngrok-free.dev`
@@ -258,6 +260,15 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   tocarlo la cámara va a él con resorte (`puntoDelViaje`, 600 ms; el dedo
   la suelta) y el aviso que suena da un doble toque en la mano
   (dueño, 2026-10-19).
+- **Mapa** (dueño, 2026-10-28): el Voyager de CARTO retocado como Yandex
+  en el panel y el pasajero (`estilo_retocado.dart` en el core): papel
+  #F4F2EE, calles gris azulado más oscuras que las manzanas, con filo
+  (las blancas no gustaron), edificios beige desde zoom 15, barrios y
+  calles en mayúsculas grises y sin POI. El pasajero lo baja y se lo da a
+  MapLibre en JSON (`estiloMapaProvider`); sin red, el Voyager de siempre.
+  El pintor del panel solo entiende filtros viejos: `estiloParaPintor`
+  los reescribe, y cada cambio de colores sube `versionRetoque` (la llave
+  de las teselas que el panel guarda en disco).
 - **Ruta y bus**: la ruta del mapa en verde sobre orla blanca
   (`EstiloRuta`) y el bus en su rojo (`AppColors.busActive`); el color por
   ruta, como Transit, se probó y no gustó (dueño, 2026-10-19). La barra de
