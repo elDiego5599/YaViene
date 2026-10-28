@@ -22,6 +22,23 @@ o no se marca ☑. El plan usa `[YA]`, `[BLOQUEADA: X]`, `[DUEÑO]`,
 `[FECHA: pitch]` y `[CONTINUO]` (ver su §0.4). Lo honesto se queda: la
 etiqueta «Simulación», la flota demo y `empty-pick-bus`.
 
+## Lo mejor, no lo mínimo (dueño, 2026-10-27)
+La meta es la mayor calidad de código y el mejor aspecto, nunca «lo mínimo
+que funcione». Lo simple se busca porque es más claro, no porque cueste
+menos: si la versión corta es más pobre de leer, de probar o de ver, se
+hace la buena. Tampoco se infla: nada de capas, opciones ni abstracciones
+que nadie pidió; la complejidad crece con lo que el problema pide, no más.
+- **Diseño**: lo más bonito posible a la primera, para que el dueño no
+  tenga que iterar. Antes de enseñar: mirar una referencia de primer nivel
+  (iOS, Airbnb, Linear, Stripe, incident.io), pensar cada estado (vacío,
+  activo, elegido, error), el movimiento con resorte, la jerarquía de
+  letra y cómo se ve con lo que lo rodea; renderizar, criticar contra la
+  referencia y pulir al menos una vuelta. Medido siempre (contraste, pt,
+  radios) y dentro de las reglas del producto.
+- **Código**: nombres que dicen lo que hacen, módulos con una razón para
+  cambiar, tipos que modelan el dominio, pruebas que cuentan el
+  comportamiento y comentarios que explican el porqué.
+
 ## Para arrancar en frío
 1. **`FALTANTES.md`** (vive en `YaViene/FALTANTES.md`; en la raíz hay un
    enlace): lo que queda, por grupos — espera a terceros, decide el dueño,
@@ -51,7 +68,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
 
 | Cuándo | Skill / herramienta |
 |---|---|
-| Siempre, en todo lo que se escribe | **`ponytail`** (nivel full): escalera YAGNI — ¿hace falta?, ¿ya existe aquí?, stdlib, plataforma, dependencia instalada, una línea, y solo entonces lo mínimo. **Nunca** recorta validación en fronteras, manejo de errores que evita pérdida de datos, seguridad ni accesibilidad. Bug = causa raíz en la función compartida, no parche por llamador. |
+| Siempre, en todo lo que se escribe | **`ponytail`** (nivel full), sujeto a «Lo mejor, no lo mínimo»: contra lo innecesario, nunca contra la calidad ni el diseño. Escalera YAGNI — ¿hace falta?, ¿ya existe aquí?, stdlib, plataforma, dependencia instalada, una línea, y solo entonces lo mínimo. **Nunca** recorta validación en fronteras, manejo de errores que evita pérdida de datos, seguridad ni accesibilidad. Bug = causa raíz en la función compartida, no parche por llamador. |
 | Feature grande | `grill-me` (o `grill-with-docs`) → `to-spec` → `to-tickets` → `implement` / `implement-spec` |
 | Toda lógica nueva o bug | **`tdd`**: la prueba primero, roja, y luego verde. Sin roja no hay ☑ |
 | Algo falla y no se sabe por qué | `systematic-debugging` / `diagnosing-bugs`: reproducir, aislar, causa raíz antes de tocar |
