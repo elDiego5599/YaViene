@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -79,6 +80,7 @@ void main() {
   ProviderContainer contenedor({
     DateTime Function()? ahora,
     bool seleccionarRuta = true,
+    Future<bool> Function()? avisar,
   }) {
     final c = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
@@ -92,8 +94,8 @@ void main() {
                     String? routeName,
                     String? routeId,
                     String? companyId,
-                    required int distanceMeters}) async =>
-                true,
+                    required int distanceMeters}) =>
+                avisar?.call() ?? Future.value(true),
             retirar: (_) async {},
             permiso: () async => true,
             ahora: ahora,
@@ -165,8 +167,10 @@ void main() {
           'distancia',
           'aviso',
           'avance',
-          'avanceAviso'
+          'avanceAviso',
+          'llego'
         ]));
+    expect(e.llego, isFalse);
     expect(enVivo.terminados, isEmpty);
   });
 
@@ -204,6 +208,25 @@ void main() {
     expect(enVivo.mostrados.single.routeId, 'R1');
     expect(enVivo.mostrados.single.distancia, '400 m');
     expect(enVivo.terminados, [(busId: 'A-1', llego: true)]);
+  });
+
+  // El aviso es local, no push: con la app suspendida puede no salir a
+  // tiempo, pero la actividad dice «cerca» en cuanto el bus entra al radio
+  // (dueño, 2026-10-29: con un aviso de 1 km se quedó en «Está a 985 m»).
+  test('dentro del radio la actividad dice cerca aunque el aviso no salga',
+      () async {
+    posiciones = [bus(0.00886)]; // Unos 985 m: dentro del radio de 1 km.
+    final avisos = await armado(contenedor(
+      avisar: () => Completer<bool>().future,
+    ));
+
+    unawaited(avisos.check());
+    await Future<void>.delayed(Duration.zero);
+
+    final e = enVivo.mostrados.last;
+    expect(e.distancia, '985 m');
+    expect(e.llego, isTrue);
+    expect(e.aMapa()['llego'], isTrue);
   });
 
   test('pasados 10 km, la cifra lleva el decimal como la hoja', () async {

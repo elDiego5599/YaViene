@@ -42,6 +42,12 @@ typedef PermisoDeAvisos = Future<bool> Function();
 /// Quita de la bandeja el aviso de un bus (inyectable en tests).
 typedef RetirarAviso = Future<void> Function(String busId);
 
+/// Deja listo lo que el aviso de una ruta pinta (inyectable en tests).
+typedef PrepararAviso = Future<void> Function({
+  String? routeName,
+  String? companyId,
+});
+
 /// Cada cuánto late en el servidor un aviso armado: el latido mueve el
 /// punto y el token, y responde 410 si el servidor ya avisó. El servidor
 /// vigila el aviso desde que se arma, sin esperar a que los latidos falten
@@ -73,7 +79,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     ActividadEnVivo enVivo = const ActividadEnVivoCanal(),
     ServicioMantenerVivo? mantenerVivo,
     Future<void> Function()? sentir,
+    PrepararAviso? preparar,
   })  : _enVivo = enVivo,
+        _preparar = preparar ?? BusNotificationService.prepararFicha,
         _mantenerVivo = mantenerVivo ?? MantenerVivoIos(),
         _sentir = sentir ?? _dobleToque,
         _notify = notify ?? _defaultNotify,
@@ -89,6 +97,10 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   final BusNearNotifier _notify;
   final PermisoDeAvisos _permiso;
   final RetirarAviso _retirar;
+
+  /// Lo que el aviso necesita de la GPU, pintado al armarlo con la app
+  /// delante: con el iPhone bloqueado ya no se puede.
+  final PrepararAviso _preparar;
 
   /// La pantalla bloqueada y la Dynamic Island del bus que se sigue.
   final ActividadEnVivo _enVivo;
@@ -406,6 +418,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             radioM: radioM,
           );
     }
+    final entrada = _entradaActiva(busId);
+    unawaited(_preparar(
+      routeName: entrada?.routeName,
+      companyId: entrada?.companyId,
+    ));
     // Ancla del aviso: el punto de espera con el que se armó. Aunque luego se
     // quite el pin (sin GPS la app queda sin ubicación) o se ponga otro pin
     // para armar otro bus, este aviso sigue midiendo desde donde se armó.
@@ -497,10 +514,11 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       aviso: 'Te avisamos a ${distanciaAviso(radio)}',
       avance: EstadoEnVivo.avanceDe(metros),
       avanceAviso: EstadoEnVivo.avanceDe(radio.toDouble()),
+      llego: metros <= radio,
     );
     final clave = '${estado.companyId}|${estado.routeId}|${estado.distancia}|'
         '${estado.aviso}|${estado.ruta}|'
-        '${estado.avance.toStringAsFixed(2)}';
+        '${estado.avance.toStringAsFixed(2)}|${estado.llego}';
     final ahora = _ahora();
     final ultimo = _enVivoMostrado[busId];
     if (ultimo != null &&

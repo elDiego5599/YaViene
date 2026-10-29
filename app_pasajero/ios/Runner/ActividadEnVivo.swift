@@ -134,7 +134,7 @@ private enum Gestor {
       aviso: datos["aviso"] as? String ?? "",
       avance: datos["avance"] as? Double ?? 0,
       avanceAviso: datos["avanceAviso"] as? Double ?? 0,
-      llego: false
+      llego: datos["llego"] as? Bool ?? false
     )
     let contenido = ActivityContent(
       state: estado, staleDate: Date().addingTimeInterval(vigencia))

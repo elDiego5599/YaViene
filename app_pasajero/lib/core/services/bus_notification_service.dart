@@ -332,13 +332,57 @@ class BusNotificationService {
     }
   }
 
+  /// Quién pinta la ficha (inyectable en pruebas: una GPU apagada no se
+  /// simula de otro modo).
+  @visibleForTesting
+  static Future<Uint8List> Function(String codigo, Color color) pintarFicha =
+      fichaRuta;
+
+  /// Las fichas ya pintadas, por código y color. Pocas: una por ruta con
+  /// aviso en esta sesión.
+  static final _fichas = <String, Uint8List>{};
+
+  /// Lo que se espera a la GPU cuando la ficha no estaba pintada.
+  static const _esperaFicha = Duration(seconds: 2);
+
+  @visibleForTesting
+  static void olvidarFichas() => _fichas.clear();
+
+  /// Pinta la ficha del aviso al armarlo, con la app delante. Con el iPhone
+  /// bloqueado iOS apaga la GPU de la app y `toImage` no termina nunca: el
+  /// aviso que sonaba ahí se quedaba esperando y, con él, el barrido
+  /// (dueño, 2026-10-29).
+  static Future<void> prepararFicha({
+    String? routeName,
+    String? companyId,
+  }) async {
+    final codigo = codigoRuta(routeName);
+    if (codigo == null) return;
+    final color = colorFicha(companyId: companyId);
+    final clave = _claveFicha(codigo, color);
+    if (_fichas.containsKey(clave)) return;
+    try {
+      _fichas[clave] = await pintarFicha(codigo, color);
+    } catch (e) {
+      debugPrint('no se pudo pintar la ficha de $codigo: $e');
+    }
+  }
+
+  static String _claveFicha(String codigo, Color color) =>
+      '$codigo|${color.toARGB32()}';
+
   /// La ficha con el código de la ruta (B18, C16) que el aviso lleva de
-  /// ícono (dueño, 2026-10-19). Si no hay código o no se pudo pintar, el
-  /// aviso sale igual, sin ficha: nunca se pierde por un ícono.
+  /// ícono (dueño, 2026-10-19). Si no hay código, no se pudo pintar o la GPU
+  /// no contesta a tiempo, el aviso sale igual, sin ficha: nunca se pierde
+  /// ni se atasca por un ícono.
   static Future<Uint8List?> _ficha(String? codigo, Color color) async {
     if (codigo == null) return null;
+    final clave = _claveFicha(codigo, color);
+    final guardada = _fichas[clave];
+    if (guardada != null) return guardada;
     try {
-      return await fichaRuta(codigo, color);
+      return _fichas[clave] =
+          await pintarFicha(codigo, color).timeout(_esperaFicha);
     } catch (e) {
       debugPrint('no se pudo pintar la ficha de $codigo: $e');
       return null;

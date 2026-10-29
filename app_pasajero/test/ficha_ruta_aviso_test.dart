@@ -1,6 +1,7 @@
 // La ruta va en el ícono del aviso (dueño, 2026-10-19): «que en el icono
 // salga es la ruta tipo B18 C16». Android la lleva como ícono grande; iOS
 // no deja cambiar el ícono de la app y la lleva como imagen adjunta.
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -104,6 +105,8 @@ void main() {
   }
 
   tearDown(() {
+    BusNotificationService.pintarFicha = fichaRuta;
+    BusNotificationService.olvidarFichas();
     debugDefaultTargetPlatformOverride = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_canal, null);
@@ -150,5 +153,47 @@ void main() {
       isTrue,
     );
     expect((mostrada['platformSpecifics'] as Map)['largeIcon'], isNull);
+  });
+
+  // Con el iPhone bloqueado iOS apaga la GPU de la app y `toImage` no
+  // termina nunca: el barrido se quedaba esperando el aviso y la actividad
+  // en vivo, congelada en 985 m, no pasaba a «cerca» (dueño, 2026-10-29).
+  group('la ficha nunca deja colgado el aviso', () {
+    test('si pintarla no termina, el aviso sale sin ficha', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      IOSFlutterLocalNotificationsPlugin.registerWith();
+      instalar();
+      BusNotificationService.pintarFicha =
+          (_, __) => Completer<Uint8List>().future;
+      expect(
+        await BusNotificationService.notifyBusNear(
+                busId: 'BUS-SQA223', routeName: 'C16 Calle 72 Uninorte')
+            .timeout(const Duration(seconds: 10)),
+        isTrue,
+      );
+      final ios = mostrada['platformSpecifics'] as Map;
+      expect(ios['attachments'], isEmpty);
+    });
+
+    test('la ficha pintada al armar el aviso sirve con la GPU apagada',
+        () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      IOSFlutterLocalNotificationsPlugin.registerWith();
+      instalar();
+      await BusNotificationService.prepararFicha(
+          routeName: 'C16 Calle 72 Uninorte', companyId: 'C1');
+      BusNotificationService.pintarFicha =
+          (_, __) => Completer<Uint8List>().future;
+      expect(
+        await BusNotificationService.notifyBusNear(
+                busId: 'BUS-SQA223',
+                routeName: 'C16 Calle 72 Uninorte',
+                companyId: 'C1')
+            .timeout(const Duration(seconds: 1)),
+        isTrue,
+      );
+      final ios = mostrada['platformSpecifics'] as Map;
+      expect(ios['attachments'], hasLength(1));
+    });
   });
 }

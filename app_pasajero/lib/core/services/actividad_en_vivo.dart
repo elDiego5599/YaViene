@@ -22,6 +22,7 @@ class EstadoEnVivo {
     required this.aviso,
     required this.avance,
     required this.avanceAviso,
+    this.llego = false,
   });
 
   final String busId;
@@ -50,6 +51,11 @@ class EstadoEnVivo {
   /// Dónde va la marca del aviso en la misma barra.
   final double avanceAviso;
 
+  /// El bus ya entró al radio del aviso: la actividad dice que está cerca.
+  /// No espera a la notificación, que es local y puede tardar con la app
+  /// suspendida (dueño, 2026-10-29).
+  final bool llego;
+
   /// Qué tanto de la barra lleva un bus a [metros] de tu punto: 0 a 3 km o
   /// más, 1 en tu punto.
   static double avanceDe(double metros) =>
@@ -65,6 +71,7 @@ class EstadoEnVivo {
         'aviso': aviso,
         'avance': avance,
         'avanceAviso': avanceAviso,
+        'llego': llego,
       };
 }
 
