@@ -45,6 +45,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que decidir tú
 
+- **El mapa de calor de Reportes se puede restar** (AUD29-01 de
+  `reporte-auditoria-2026-10-29.md`, en la raíz): el umbral de 5 de D17 se
+  mira sobre la suma del rango, y dos rangos solapados revelan celdas con
+  menos de 5. Con los datos de ejemplo, un umbral por día y celda deja ver
+  el 71 % por día, el 3 % por día y hora, el 96 % por semana, el 42 % por
+  semana y hora y el 68 % por mes y hora. Opciones: umbral por cada cubeta
+  (lo más seguro), días de Bogotá enteros, o rangos con tope.
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
@@ -74,6 +81,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   (versión 7, 2026-10-27, app y web: solo lo ve la empresa dueña de la
   ruta, un trato en el que ganan los dos); falta que el abogado revise ese
   texto.
+- **Los nombres de cuatro rutas de Coochofal** (auditoría del
+  2026-10-29, AUD29-34): con la insignia del código delante, la fila se lee
+  C2 Ruta C-2, C4 Ruta C4, C9 Ruta C9 y C18 Ruta C18, con el código dos
+  veces y el guion desigual. Son los nombres que diste el 28 (`66bf635`);
+  si quieres, van sin el código repetido, como las demás. Y la R-108 no
+  existe en ningún momento de la historia: confirmar que el hueco es a
+  propósito.
 
 ## Lo que tienes que hacer tú
 
@@ -233,6 +247,38 @@ Necesitan un teléfono, una cuenta o estar presente.
   así que «Calculando» y «Buscando la posición del bus…» solo salen sin
   ubicación con un aviso del pin anterior y sin ancla. Revisar si se
   quitan (con `inventario-estados.md`) o si falta un estado de verdad.
+
+- **Endurecer el backend, lo corto** (hallado el 2026-10-29, AUD29-05 a
+  AUD29-18): los timers de búsquedas sin `vueltaProtegida`; el login sin
+  tope por cuenta entre IPs; el POST de búsquedas, anónimo, que puede
+  inflar Reportes; el alta de admin sin validar la empresa; la renovación
+  del token sin vida absoluta; los controles bidi y los separadores de
+  línea que deja pasar el buzón; el topic crudo en el log del MQTT; sin
+  HSTS y con los encabezados en dos sitios; `uptime` en `/api/health`;
+  errores en inglés; un `console.log` por conexión; el gzip del panel web
+  en cada petición, y `ip-address` en `npm audit` (lo demás es de
+  desarrollo).
+
+- **La app, seguridad y lógica** (hallado el 2026-10-29, AUD29-19 a
+  AUD29-30): `esSegura` al core para que el pasajero también exija https;
+  `dataSync` sin `onTimeout` en Android 15 (plausible, va con T5.5); la
+  web con una sola URL, sin respaldo; un comentario viejo y un `dispose`
+  incompleto en `proximity_alerts_provider.dart`; el `load()` del
+  historial, que pisa lo armado mientras lee; `_ultimo` de `por_ruta.dart`,
+  que no se poda; el doble reintento del socket; el ruido de
+  `LateInitializationError` en las pruebas; `_rename` sin `mounted` en el
+  panel; seis archivos de más de 1.200 líneas, a partir cuando se toquen;
+  los conteos de pruebas de `CLAUDE.md`, del 8 de octubre, y el 404 de
+  `critico.css` en Vitest.
+
+- **Retoques de diseño** (hallado el 2026-10-29, AUD29-31 a AUD29-42):
+  el monograma CO repetido en Coochofal y Coolitoral; el subtítulo de
+  transporte masivo de las empresas (mirar antes T6.5); el ícono genérico
+  de empresa en vez del monograma en su color; la píldora de estado más
+  ancha que la cabecera; la rueda cortada en seco en la quinta fila; la
+  ruta encima de los rótulos del mapa (`belowLayerId`); las figuritas de
+  Info bajo la barra de estado; y en Info, el tracking de la tarjeta de la
+  ruta activa, sus terminales centradas y el chevrón que solo lleva ella.
 
 Ojo con la web: el CSS va en 118,5 de 121 KB (98 %; dueño, 2026-10-16: puede
 subir) y la carpeta `dist` en 719,2 de 797. Cualquier cambio de la web se

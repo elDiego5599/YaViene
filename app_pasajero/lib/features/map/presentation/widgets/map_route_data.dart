@@ -47,6 +47,26 @@ extension _MapRouteData on _MapWidgetState {
     return true;
   }
 
+  /// Con el pin ya encuadrado, lo abre hasta el bus más cercano si ninguno
+  /// cae cerca: sin esto, una ruta que no pasa por el pin dejaba el mapa sin
+  /// buses a la vista (AUD29-04). Si el usuario ya movió el mapa,
+  /// `moveCameraToBounds` no lo pisa.
+  void openToNearestBus() {
+    final ubicacion = ref.read(userLocationProvider);
+    final lat = ubicacion.lat;
+    final lon = ubicacion.lon;
+    if (lat == null || lon == null) return;
+    final caja = esperaConBusMasCercano((
+      lat: lat,
+      lon: lon
+    ), [
+      for (final bus in _rawBuses.values) (lat: bus.lat, lon: bus.lon),
+    ]);
+    if (caja != null) {
+      moveCameraToBounds(caja, animated: true, bajoLaPildora: true);
+    }
+  }
+
   /// Encuadra lo que está vivo: el punto de espera si existe y, si no, los
   /// buses de la ruta.
   ///
@@ -70,6 +90,7 @@ extension _MapRouteData on _MapWidgetState {
     FitBounds caja, {
     required bool animated,
     bool pedidoExplicito = false,
+    bool bajoLaPildora = false,
   }) {
     if (!_decisionCamara.permiteEncuadreAutomatico && !pedidoExplicito) {
       return;
@@ -84,14 +105,19 @@ extension _MapRouteData on _MapWidgetState {
           (!_decisionCamara.permiteEncuadreAutomatico && !pedidoExplicito)) {
         return;
       }
-      _moverCamaraA(caja, animated: animated);
+      _moverCamaraA(caja, animated: animated, bajoLaPildora: bajoLaPildora);
     });
   }
 
-  void _moverCamaraA(FitBounds caja, {required bool animated}) {
+  void _moverCamaraA(
+    FitBounds caja, {
+    required bool animated,
+    bool bajoLaPildora = false,
+  }) {
     final relleno = rellenoDelEncuadre(
       hoja: _currentBottomInset,
       ios: defaultTargetPlatform == TargetPlatform.iOS,
+      bajoLaPildora: bajoLaPildora,
       foco: ref.read(mapGuideFocusProvider),
       alto: context.size?.height,
     );
@@ -160,16 +186,31 @@ extension _MapRouteData on _MapWidgetState {
 /// relleno de abajo; en Android el relleno lo sustituye. Sin restarlo, en
 /// iPhone la hoja contaba dos veces y el pin quedaba alto: así salía el
 /// botón de tu pin (dueño, 2026-10-16).
+///
+/// [bajoLaPildora] es para cajas cuyo borde de arriba importa, como la del
+/// pin con el bus más cercano: ahí lo de arriba es un bus y no puede quedar
+/// debajo de la píldora de tu punto.
 EdgeInsets rellenoDelEncuadre({
   required double hoja,
   required bool ios,
   Rect? foco,
   double? alto,
+  bool bajoLaPildora = false,
 }) {
   final yaDescontado = ios ? hoja : 0.0;
   if (foco != null && alto != null) {
     return EdgeInsets.fromLTRB(
         40, foco.top, 40, math.max(0.0, alto - foco.bottom - yaDescontado));
   }
-  return EdgeInsets.fromLTRB(40, 148, 40, hoja + 32 - yaDescontado);
+  return EdgeInsets.fromLTRB(
+    40,
+    bajoLaPildora ? rellenoBajoLaPildora : 148,
+    40,
+    hoja + 32 - yaDescontado,
+  );
 }
+
+/// El borde de arriba que deja libre la píldora de tu punto: en el iPhone 17
+/// termina en y≈205 pt (barra de 133 y píldora de dos líneas debajo), más
+/// 24 pt de aire para que el bus no la roce.
+const double rellenoBajoLaPildora = 229;

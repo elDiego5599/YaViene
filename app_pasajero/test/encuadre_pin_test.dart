@@ -26,4 +26,14 @@ void main() {
         rellenoDelEncuadre(hoja: 120, ios: false, foco: foco, alto: 844).bottom,
         844 - 600);
   });
+
+  // AUD29-04: al abrir hasta el bus más cercano la píldora «N buses cerca de
+  // tu punto» sigue arriba; con 148 pt el bus quedaba debajo de ella.
+  test('bajo la píldora, el borde de arriba la deja libre', () {
+    final r = rellenoDelEncuadre(hoja: 360, ios: true, bajoLaPildora: true);
+    expect(r.top, rellenoBajoLaPildora);
+    expect(r.top, greaterThan(205));
+    expect(r.bottom, 32);
+    expect(rellenoDelEncuadre(hoja: 360, ios: true).top, 148);
+  });
 }

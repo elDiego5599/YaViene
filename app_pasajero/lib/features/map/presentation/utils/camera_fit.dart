@@ -8,6 +8,8 @@
 
 import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
 
+import 'geo.dart';
+
 /// Un punto a enmarcar, sin depender de los tipos de MapLibre para que esto
 /// se pueda probar sin mapa.
 typedef FitPoint = ({double lat, double lon});
@@ -77,6 +79,28 @@ FitBounds waitingPointBounds(
     [(lat: lat, lon: lon)],
     minSpanDeg: spanDeg,
   )!;
+}
+
+/// Caja del punto de espera abierta hasta el bus más cercano, o `null` si
+/// ya hay un bus dentro de [waitingPointBounds] (o no hay buses): entonces
+/// manda el encuadre del punto.
+///
+/// Con una ruta que no pasa cerca del pin la cámara se quedaba en el pin,
+/// sin un solo bus a la vista, y la pantalla parecía rota justo al elegir
+/// ruta (AUD29-04). Solo se suma el más cercano: todos juntos abrían la caja
+/// a media ciudad y el pin volvía a ser una mota.
+FitBounds? esperaConBusMasCercano(FitPoint espera, List<FitPoint> buses) {
+  final delPunto = waitingPointBounds(espera.lat, espera.lon);
+  bool dentro(FitPoint p) =>
+      p.lat >= delPunto.minLat &&
+      p.lat <= delPunto.maxLat &&
+      p.lon >= delPunto.minLon &&
+      p.lon <= delPunto.maxLon;
+  if (buses.isEmpty || buses.any(dentro)) return null;
+  double metros(FitPoint p) =>
+      haversineMeters(espera.lat, espera.lon, p.lat, p.lon);
+  final cercano = buses.reduce((a, b) => metros(a) <= metros(b) ? a : b);
+  return liveViewportBounds([espera, cercano]);
 }
 
 /// Caja del aviso que se tocó: el bus y el punto de espera juntos.

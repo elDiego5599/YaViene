@@ -96,6 +96,51 @@ void main() {
     });
   });
 
+  group('esperaConBusMasCercano', () {
+    const espera = (lat: 11.0041, lon: -74.8070);
+
+    test('con un bus dentro del encuadre del punto, no se abre', () {
+      expect(
+        esperaConBusMasCercano(espera, const [
+          (lat: 11.0080, lon: -74.8030),
+          (lat: 10.90, lon: -74.90),
+        ]),
+        isNull,
+      );
+    });
+
+    test('sin buses no hay nada que sumar', () {
+      expect(esperaConBusMasCercano(espera, const []), isNull);
+    });
+
+    test('ningún bus cerca: abre hasta el más cercano, no hasta todos', () {
+      // AUD29-04: con la A15, que no pasa cerca del pin, la cámara se quedaba
+      // en el pin, sin ningún bus a la vista, y parecía rota.
+      const cercano = (lat: 11.0300, lon: -74.8070);
+      final caja = esperaConBusMasCercano(espera, const [
+        (lat: 10.90, lon: -74.90),
+        cercano,
+      ])!;
+
+      expect(caja.minLat, lessThanOrEqualTo(espera.lat));
+      expect(caja.maxLat, greaterThanOrEqualTo(cercano.lat));
+      expect(caja.minLon, lessThanOrEqualTo(espera.lon));
+      expect(caja.maxLon, greaterThanOrEqualTo(espera.lon));
+      expect(caja.minLat, greaterThan(10.95), reason: 'el lejano no entra');
+    });
+
+    test('mide la cercanía en metros, no en grados sueltos', () {
+      // A esta latitud un grado de longitud es ~0,98 de uno de latitud: con
+      // grados sin corregir ganaría el del este, que está más lejos.
+      const norte = (lat: 11.0341, lon: -74.8070); // ~3,34 km
+      const este = (lat: 11.0041, lon: -74.7765); // ~3,33 km
+      final caja = esperaConBusMasCercano(espera, const [norte, este])!;
+
+      expect(caja.maxLon, greaterThanOrEqualTo(este.lon));
+      expect(caja.maxLat, lessThan(norte.lat));
+    });
+  });
+
   group('avisoBounds', () {
     const bus = (lat: 11.0, lon: -74.80);
     const espera = (lat: 11.03, lon: -74.77);

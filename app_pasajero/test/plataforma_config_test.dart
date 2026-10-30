@@ -46,7 +46,6 @@ void main() {
     test('el iPhone abre solo en vertical, como bloquea main.dart (T5.6)', () {
       // `SystemChrome.setPreferredOrientations` llega cuando Flutter ya
       // arrancó: antes, la pantalla de carga giraba con el teléfono acostado.
-      // El iPad (`~ipad`) conserva las cuatro: la multitarea las exige.
       final plist = _leer('ios/Runner/Info.plist');
       final iphone = RegExp(
         r'<key>UISupportedInterfaceOrientations</key>\s*<array>(.*?)</array>',
@@ -57,6 +56,19 @@ void main() {
           .map((m) => m.group(1))
           .toList();
       expect(orientaciones, ['UIInterfaceOrientationPortrait']);
+    });
+
+    test('solo iPhone: ni el proyecto ni el plist abren en iPad', () {
+      // Regla del producto: solo teléfonos (AUD29-03). Con "1,2" la App Store
+      // la ofrecía en iPad, con la hoja y el mapa pensados para un teléfono.
+      final proyecto = _leer('ios/Runner.xcodeproj/project.pbxproj');
+      final familias = RegExp(r'TARGETED_DEVICE_FAMILY = "?([\d,]+)"?;')
+          .allMatches(proyecto)
+          .map((m) => m.group(1))
+          .toSet();
+      expect(familias, {'1'});
+      expect(_leer('ios/Runner/Info.plist'),
+          isNot(contains('UISupportedInterfaceOrientations~ipad')));
     });
 
     test('el mínimo de iOS es 15, el que pide Firebase', () {

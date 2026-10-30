@@ -14,6 +14,7 @@ import '../providers/pin_hint_provider.dart';
 import '../providers/tracking_providers.dart'
     show busPositionsSourceProvider, nearbyRadiusMeters, selectedBusesProvider;
 import '../providers/user_location_provider.dart';
+import '../utils/apertura_hasta_bus.dart';
 import '../utils/bus_hit_test.dart';
 import '../utils/camera_fit.dart';
 import '../utils/decision_camara.dart';
@@ -51,6 +52,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<int>? _recenterRequestSubscription;
   ProviderSubscription<Set<String>>? _busSelectionSubscription;
   ProviderSubscription<Object?>? _enfoqueSubscription;
+  ProviderSubscription<bool>? _selectorSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
   double _currentBottomInset = 0;
@@ -64,6 +66,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   int _mapGeneration = 0;
   bool _styleInitInFlight = false;
   bool _hasFitInitialRoute = false;
+
+  /// La cámara ya fue al pin de la ruta recién elegida: si ningún bus cae
+  /// cerca del pin, se abre hasta el más cercano (`esperaConBusMasCercano`),
+  /// con el selector ya cerrado y al día con la hoja.
+  final _aperturaHastaBus = AperturaHastaBus();
 
   final _decisionCamara = DecisionCamara();
 
@@ -257,6 +264,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (next != null) _decisionCamara.pedirFocoDeAviso();
       scheduleMicrotask(_enfocarBusPedido);
     });
+    // La ruta se elige dentro del selector: su encuadre espera a que cierre.
+    _selectorSubscription =
+        ref.listenManual<bool>(routeSelectorOpenProvider, (previous, next) {
+      if (next || !mounted || !_layersReady) return;
+      if (_aperturaHastaBus.alCerrarSelector(_momentoDelMapa)) {
+        openToNearestBus();
+      }
+    });
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
     // un fallo de MapLibre), el placeholder nunca debe quedarse para
     // siempre. Pasado el límite se funde y deja ver el mapa (o el fondo).
@@ -299,6 +314,16 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _scheduleStyleTimeout();
   }
 
+  /// Lo que la apertura hasta el bus necesita saber de la pantalla. Un bus
+  /// tocado o el que pidió un aviso tienen la cámara: no se les mueve.
+  MomentoDelMapa get _momentoDelMapa => (
+        selectorAbierto: ref.read(routeSelectorOpenProvider),
+        busElegido: ref.read(selectedBusesProvider).isNotEmpty ||
+            ref.read(enfoqueDeBusProvider) != null ||
+            !_decisionCamara.permiteEncuadreAutomatico,
+        hayBuses: _rawBuses.isNotEmpty,
+      );
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -311,6 +336,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _recenterRequestSubscription?.close();
     _busSelectionSubscription?.close();
     _enfoqueSubscription?.close();
+    _selectorSubscription?.close();
     _trajectorySub?.close();
     _stopsSub?.close();
     // Hay que desecharlo, no solo pararlo: `TickerProviderStateMixin` afirma
@@ -521,6 +547,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         // esperar al primer lote —que con una ruta sin buses no llega nunca—.
         if (_centrarEnElUsuario(animated: true)) {
           _hasFitInitialRoute = true;
+          _aperturaHastaBus.rutaElegida();
+        } else {
+          _aperturaHastaBus.dedo();
         }
       } else {
         _teardownBusSubscription();
@@ -538,6 +567,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _layersReady = false;
       _styleInitInFlight = false;
       _hasFitInitialRoute = false;
+      _aperturaHastaBus.dedo();
       _hasCenteredOnUser = false;
     }
     _mapController = controller;
@@ -578,6 +608,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // cámara a propósito (reiniciar la guía), esa manda.
       if (!camaraPedida && _centrarEnElUsuario(animated: false)) {
         _hasFitInitialRoute = true;
+        if (widget.routeId != null) _aperturaHastaBus.rutaElegida();
       }
       // Si ya había un bus seleccionado antes de que el estilo terminara de
       // cargar (p. ej. al recrear la vista nativa), el halo no debe esperar
@@ -962,6 +993,11 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     } catch (e, st) {
       debugPrint('updateContentInsets failed: $e\n$st');
     }
+    // La hoja cambió de alto con el bus más cercano ya encuadrado: el hueco
+    // libre es otro y hay que volver a encuadrarlo.
+    if (mounted && _aperturaHastaBus.alMargen(_momentoDelMapa)) {
+      openToNearestBus();
+    }
   }
 
   /// Aplica una solicitud de cámara pendiente (contador > 0) al mapa.
@@ -1047,6 +1083,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _hasFitInitialRoute = true;
       fitLiveViewport(animated: true);
     }
+    if (_aperturaHastaBus.alLote(_momentoDelMapa)) openToNearestBus();
     _enfocarBusPedido();
   }
 
@@ -1260,7 +1297,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             // Tocar el mapa suelta el viaje de la cámara hacia el bus: el
             // dedo manda sobre la animación.
             child: Listener(
-              onPointerDown: (_) => _pararViaje(),
+              onPointerDown: (_) {
+                _pararViaje();
+                _aperturaHastaBus.dedo();
+              },
               child: MapLibreMap(
                 key: ValueKey('map-$_mapGeneration'),
                 onMapCreated: _onMapCreated,
