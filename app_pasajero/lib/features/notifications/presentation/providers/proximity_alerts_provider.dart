@@ -535,6 +535,22 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
     _encolarEnVivo(() => _enVivo.terminar(busId, llego: llego));
   }
 
+  /// La actividad de [busId] da el aviso, en su turno de la cola. `false`
+  /// si no hay actividad o no se pudo: el que llama saca el banner.
+  Future<bool> _sonarEnVivo(String busId) {
+    if (_enVivoMostrado.remove(busId) == null) return Future.value(false);
+    final sono = Completer<bool>();
+    _encolarEnVivo(() async {
+      var viva = false;
+      try {
+        viva = await _enVivo.sonar(busId);
+      } finally {
+        sono.complete(viva);
+      }
+    });
+    return sono.future;
+  }
+
   void _encolarEnVivo(Future<void> Function() accion) {
     _colaEnVivo.add(accion);
     _despacharEnVivo();
@@ -862,13 +878,16 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
             break;
           }
         }
-        final mostrado = await _notify(
-          busId: entry.key,
-          routeName: routeName,
-          routeId: _alertRoutes[entry.key],
-          companyId: companyId,
-          distanceMeters: entry.value,
-        );
+        // Un solo aviso (dueño, 2026-10-30): la actividad en vivo suena
+        // sola; el banner sale solo si no hay ninguna viva.
+        final mostrado = await _sonarEnVivo(entry.key) ||
+            await _notify(
+              busId: entry.key,
+              routeName: routeName,
+              routeId: _alertRoutes[entry.key],
+              companyId: companyId,
+              distanceMeters: entry.value,
+            );
         if (!mounted) return;
         if (!mostrado) {
           fallidos++;

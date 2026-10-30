@@ -67,6 +67,8 @@ enum ActividadEnVivo {
         avisoPendiente = nil
         return responder(nil)
       }
+      // Antes de 16.2 no hay actividad: `sonar` lee nil como «no hay» y
+      // el aviso sale en banner.
       guard #available(iOS 16.2, *) else { return responder(nil) }
       guard let datos = llamada.arguments as? [String: Any],
         let busId = datos["busId"] as? String, !busId.isEmpty
@@ -83,6 +85,8 @@ enum ActividadEnVivo {
       case "terminar":
         Gestor.terminar(busId: busId, llego: datos["llego"] as? Bool ?? false)
         responder(nil)
+      case "sonar":
+        Gestor.sonar(busId: busId) { viva in responder(viva) }
       default:
         responder(FlutterMethodNotImplemented)
       }
@@ -167,6 +171,26 @@ private enum Gestor {
       } catch {
         NSLog("actividad en vivo de \(busId) no arrancó: \(error)")
       }
+    }
+  }
+
+  /// El bus llegó: la actividad da el aviso (pantalla encendida, sonido y,
+  /// en la isla, abierta) y se queda [despedida] diciendo que está cerca. Es
+  /// el único aviso: el banner solo sale si responde `false`.
+  static func sonar(busId: String, alTerminar: @escaping (Bool) -> Void) {
+    guard let viva = Activity<AvisoAtributos>.activities.first(where: {
+      $0.attributes.busId == busId && $0.activityState == .active
+    }) else { return alTerminar(false) }
+    var estado = viva.content.state
+    estado.llego = true
+    let contenido = ActivityContent(state: estado, staleDate: nil)
+    let alerta = AlertConfiguration(
+      title: "Tu bus está cerca de ti", body: "", sound: .default)
+    Task {
+      await viva.update(contenido, alertConfiguration: alerta)
+      await viva.end(
+        contenido, dismissalPolicy: .after(Date().addingTimeInterval(despedida)))
+      DispatchQueue.main.async { alTerminar(true) }
     }
   }
 

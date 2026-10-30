@@ -83,6 +83,11 @@ abstract class ActividadEnVivo {
   /// Quita la actividad de [busId]. Con [llego] se queda un rato diciendo
   /// que el bus está cerca; si no (aviso quitado), se va enseguida.
   Future<void> terminar(String busId, {required bool llego});
+
+  /// El bus llegó: la actividad de [busId] da el aviso con su sonido y se
+  /// queda un rato diciendo que está cerca. `false` si no hay ninguna viva
+  /// (iOS viejo, apagadas en Ajustes, Android): entonces suena el banner.
+  Future<bool> sonar(String busId);
 }
 
 /// La de verdad: un canal con el `AppDelegate`, que la lleva a ActivityKit.
@@ -101,16 +106,21 @@ class ActividadEnVivoCanal implements ActividadEnVivo {
 
   @override
   Future<void> terminar(String busId, {required bool llego}) =>
-      _llamar('terminar', {'busId': busId, 'llego': llego});
+      _llamar<void>('terminar', {'busId': busId, 'llego': llego});
 
-  Future<void> _llamar(String metodo, Map<String, Object?> datos) async {
-    if (!_activa) return;
+  @override
+  Future<bool> sonar(String busId) async =>
+      await _llamar<bool>('sonar', {'busId': busId}) ?? false;
+
+  Future<T?> _llamar<T>(String metodo, Map<String, Object?> datos) async {
+    if (!_activa) return null;
     try {
-      await _canal.invokeMethod<void>(metodo, datos);
+      return await _canal.invokeMethod<T>(metodo, datos);
     } on MissingPluginException {
       // Sin el lado nativo (pruebas, o un iOS sin la extensión): nada.
     } catch (e) {
       debugPrint('actividad en vivo ($metodo) falló: $e');
     }
+    return null;
   }
 }

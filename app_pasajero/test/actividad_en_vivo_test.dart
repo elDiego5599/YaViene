@@ -10,6 +10,7 @@ import 'package:ya_viene_pasajero/core/services/actividad_en_vivo.dart';
 import 'package:ya_viene_pasajero/core/services/mantener_vivo.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/tracking_providers.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
+import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
@@ -19,9 +20,19 @@ class _TestUserLocation extends UserLocationNotifier {
 class _EnVivoFalso implements ActividadEnVivo {
   final mostrados = <EstadoEnVivo>[];
   final terminados = <({String busId, bool llego})>[];
+  final sonados = <String>[];
+
+  /// Si hay actividad viva que dé el aviso (iOS 16.2 o más, encendidas).
+  bool viva = false;
 
   @override
   Future<void> mostrar(EstadoEnVivo estado) async => mostrados.add(estado);
+
+  @override
+  Future<bool> sonar(String busId) async {
+    sonados.add(busId);
+    return viva;
+  }
 
   @override
   Future<void> terminar(String busId, {required bool llego}) async =>
@@ -207,7 +218,7 @@ void main() {
     expect(enVivo.mostrados.single.busId, 'A-1');
     expect(enVivo.mostrados.single.routeId, 'R1');
     expect(enVivo.mostrados.single.distancia, '400 m');
-    expect(enVivo.terminados, [(busId: 'A-1', llego: true)]);
+    expect(enVivo.sonados, ['A-1']);
   });
 
   // El aviso es local, no push: con la app suspendida puede no salir a
@@ -290,8 +301,16 @@ void main() {
         ['Te avisamos a 1,0 km', 'Te avisamos a 800 m']);
   });
 
-  test('cuando suena, la actividad termina diciendo que llegó', () async {
-    final c = contenedor();
+  // Un solo aviso (dueño, 2026-10-30): con la actividad viva, ella suena y
+  // el banner no sale; sin ella (iOS viejo, apagadas en Ajustes, Android),
+  // sale el banner de siempre.
+  Future<int> llega({required bool viva}) async {
+    enVivo.viva = viva;
+    var banners = 0;
+    final c = contenedor(avisar: () async {
+      banners++;
+      return true;
+    });
     final avisos = await armado(c);
     await avisos.check();
 
@@ -300,7 +319,19 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     await avisos.check();
 
-    expect(enVivo.terminados, [(busId: 'A-1', llego: true)]);
+    expect(enVivo.sonados, ['A-1']);
+    expect(enVivo.terminados, isEmpty);
+    expect(c.read(activeAlertsProvider), isEmpty);
+    expect(c.read(alertHistoryProvider).single.sent, isTrue);
+    return banners;
+  }
+
+  test('con la actividad viva, suena ella sola y no sale el banner', () async {
+    expect(await llega(viva: true), 0);
+  });
+
+  test('sin actividad viva, sale el banner', () async {
+    expect(await llega(viva: false), 1);
   });
 
   test('quitar el aviso termina la actividad sin decir que llegó', () async {

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/services/actividad_en_vivo.dart';
 import 'package:ya_viene_pasajero/core/utils/color_empresa.dart';
 import 'package:ya_viene_pasajero/core/utils/distancia.dart';
 import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
@@ -28,6 +29,19 @@ import 'helpers/barra.dart';
 
 class _TestUserLocation extends UserLocationNotifier {
   void set(UserLocationState state) => this.state = state;
+}
+
+/// Sin actividad en vivo, como un iPhone viejo: al llegar el bus suena el
+/// banner. Las pruebas que fingen iOS no colgarían de un canal que en la
+/// prueba nadie contesta (el barrido espera a `sonar`).
+class _SinActividadEnVivo implements ActividadEnVivo {
+  const _SinActividadEnVivo();
+  @override
+  Future<void> mostrar(EstadoEnVivo estado) async {}
+  @override
+  Future<void> terminar(String busId, {required bool llego}) async {}
+  @override
+  Future<bool> sonar(String busId) async => false;
 }
 
 void main() {
@@ -82,6 +96,7 @@ void main() {
       // que sí.
       proximityAlertsProvider.overrideWith(
         (ref) => ProximityAlertsNotifier(ref,
+            enVivo: const _SinActividadEnVivo(),
             notify: ({
               required String busId,
               String? routeName,

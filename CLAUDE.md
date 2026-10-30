@@ -332,7 +332,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
   poder renderizarlo en el Mac). Al sonar dice «Tu bus está cerca de
-  ti» (como la notificación, dueño, 2026-10-30) y se va a los 10 minutos; sin datos en 2 minutos lo
+  ti» con su sonido y es el único aviso: el banner sale solo si no hay
+  actividad viva (dueño, 2026-10-30); se va a los 10 minutos; sin datos en 2 minutos lo
   dice. Con un aviso armado la app pide la ubicación en segundo plano
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
