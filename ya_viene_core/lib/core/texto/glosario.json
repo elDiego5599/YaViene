@@ -20,8 +20,7 @@
     "_nota": "Distancia, nunca tiempo de llegada (regla 5). Menos de 1 km en metros enteros; desde 1 km con una cifra decimal y coma. En las frases (avisos, historial, voz) desde 10 km sin decimales; la cifra grande de la hoja guarda siempre su decimal."
   },
   "aviso": {
-    "landing": "Tu bus está cerca de ti",
-    "app": "Tu bus de la ruta {ruta} está cerca de ti",
-    "_nota": "Distintos a propósito (regla 12): la landing no nombra la ruta; la app sí, sin placa ni distancia (dueño, 2026-10-02)."
+    "texto": "Tu bus está cerca de ti",
+    "_nota": "Uno solo en la landing y en la app, sin ruta, placa ni distancia: el de la actividad en vivo (dueño, 2026-10-30). La ruta va en la ficha del aviso."
   }
 }

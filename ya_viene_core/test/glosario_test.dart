@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// `app_control/test/glosario_test.dart` y
 /// `app_pasajero/test/glosario_test.dart`.
 const kHashGlosario =
-    '0dd131a5163095d0a970bd26ee4cd17b21b27609c047311ff44fce4c3294cf7b';
+    '65ac0343916432e7685db56de8d9017ffeef5559a4974c68ab18498d7d55a221';
 
 const _ruta = 'lib/core/texto/glosario.json';
 
@@ -44,14 +44,12 @@ void main() {
         containsAll(['placa', 'ruta', 'interno', 'sentido']));
     expect((g['distancia'] as Map).keys,
         containsAll(['metros', 'kilometros', 'separadorDecimal']));
-    final aviso = g['aviso'] as Map;
-    // Regla 12: distintos a propósito. Si un día coinciden, alguien
-    // unificó lo que no se unifica.
-    expect(aviso['landing'], isNot(aviso['app']));
-    expect(aviso['landing'], isNot(contains('{ruta}')));
-    // La app nombra la ruta y nada más: ni placa ni distancia (dueño,
-    // 2026-10-02). La placa y los metros siguen en la hoja y el historial.
-    expect(aviso['app'], contains('{ruta}'));
-    expect(aviso['app'], isNot(contains('{placa}')));
+    final aviso = (g['aviso'] as Map)['texto'] as String;
+    // Un solo aviso, el mismo en la landing y en la app (dueño, 2026-10-30:
+    // «Tu bus de la ruta X» se leía largo junto a la actividad en vivo,
+    // que ya decía lo corto). Sin ruta, placa ni distancia: la ficha de la
+    // ruta va en la imagen del aviso.
+    expect(aviso, 'Tu bus está cerca de ti');
+    expect(aviso, isNot(contains('{')));
   });
 }

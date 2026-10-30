@@ -86,24 +86,25 @@ void main() {
           routeName: 'Ruta 106',
         );
 
-    test('el aviso dice solo la ruta, sin placa ni distancia (regla 12)',
-        () async {
-      // El dueño lo pidió así al probarlo en un Android (2026-10-02): una
-      // línea, «Tu bus de la ruta X está cerca de ti». La placa y los metros
-      // siguen en la hoja y en el historial.
+    test(
+        'el aviso dice lo mismo que la actividad en vivo, sin ruta, placa '
+        'ni distancia', () async {
+      // El dueño lo pidió al probarlo en el iPhone (2026-10-30): «Tu bus de
+      // la ruta X» se leía largo al lado de la actividad en vivo. La ruta va
+      // en la ficha adjunta; la placa y los metros, en la hoja y el historial.
       await avisar();
-      final plantilla = (_glosario['aviso'] as Map)['app'] as String;
-      expect(mostrada['title'], plantilla.replaceAll('{ruta}', 'Ruta 106'));
+      final texto = (_glosario['aviso'] as Map)['texto'] as String;
+      expect(mostrada['title'], texto);
       expect(mostrada['body'], isNull);
     });
 
-    test('sin nombre de ruta, usa su id; sin ninguno, no inventa', () async {
+    test('con o sin ruta dice lo mismo, y el toque lleva al bus', () async {
       await BusNotificationService.notifyBusNear(
         busId: 'BUS-SQA223',
         routeId: 'r106',
         companyId: 'coolitoral',
       );
-      expect(mostrada['title'], 'Tu bus de la ruta r106 está cerca de ti');
+      expect(mostrada['title'], 'Tu bus está cerca de ti');
       // Lleva el bus y su ruta: tocarlo abre el mapa en ese bus.
       expect(
           BusNotificationService.leerCarga(mostrada['payload'] as String?),

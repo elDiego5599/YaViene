@@ -284,7 +284,6 @@ class BusNotificationService {
     String? routeId,
     String? companyId,
   }) async {
-    final ruta = rutaLegible(routeName, routeId);
     try {
       if (!await puedeAvisar()) return false;
       final ficha =
@@ -295,10 +294,9 @@ class BusNotificationService {
               : await _adjuntar(ficha);
       await _plugin.show(
         id: _stableNotificationId(busId),
-        // El texto es el del glosario (`aviso.app`); glosario_test lo ata.
-        title: ruta == null
-            ? 'Tu bus está cerca de ti'
-            : 'Tu bus de la ruta $ruta está cerca de ti',
+        // El texto es el del glosario (`aviso.texto`), el mismo de la
+        // actividad en vivo; la ruta va en la ficha. glosario_test lo ata.
+        title: 'Tu bus está cerca de ti',
         payload: routeId == null || routeId.isEmpty
             ? null
             : carga(busId, routeId, companyId),

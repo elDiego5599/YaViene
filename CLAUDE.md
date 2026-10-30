@@ -153,9 +153,9 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
    trío 360px, sangrado 0.14).
 9. Gitignore: `google-services.json`, `key.properties`,
    `upload-keystore.jks`.
-10. Aviso de la landing SIN placa ni ruta («Tu bus está cerca de ti»); app
-    CON ruta, sin placa ni distancia («Tu bus de la ruta X está cerca de
-    ti», dueño 2026-10-02) — no unificar.
+10. Un solo aviso, en la landing y en la app: «Tu bus está cerca de ti»,
+    sin ruta, placa ni distancia, como la actividad en vivo (dueño,
+    2026-10-30; antes la app llevaba la ruta). La ruta va en la ficha.
 11. Los mockups web espejan Dart con comentarios que justifican cada número;
     cambio nuevo trae su comentario.
 12. El estado vacío `empty-pick-bus` es intencional, no se «arregla».
@@ -331,8 +331,8 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   de llegar; caduco conserva opacidad 0,5. La campana marca dónde suena el
   aviso;
   sin datos nuevos, todo en gris (`Vistas.swift`, puro SwiftUI para
-  poder renderizarlo en el Mac). Al sonar dice «Tu bus de la ruta X
-  está cerca de ti» y se va a los 10 minutos; sin datos en 2 minutos lo
+  poder renderizarlo en el Mac). Al sonar dice «Tu bus está cerca de
+  ti» (como la notificación, dueño, 2026-10-30) y se va a los 10 minutos; sin datos en 2 minutos lo
   dice. Con un aviso armado la app pide la ubicación en segundo plano
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
