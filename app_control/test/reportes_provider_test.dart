@@ -59,7 +59,9 @@ class _Api extends FleetApi {
 }
 
 void main() {
-  test('rangoPeriodo usa medianoche de Bogotá y ventanas móviles', () {
+  // El servidor cuenta días de Bogotá enteros (AUD29-01): «7 días» es hoy y
+  // los 6 anteriores, desde su medianoche, no 7 × 24 h que tocan un octavo.
+  test('rangoPeriodo usa días enteros de Bogotá', () {
     final ahora = DateTime.utc(2026, 10, 26, 3);
     expect(
       rangoPeriodo(PeriodoReporte.hoy, ahora).$1,
@@ -68,12 +70,13 @@ void main() {
     expect(rangoPeriodo(PeriodoReporte.hoy, ahora).$2, ahora);
     expect(
       rangoPeriodo(PeriodoReporte.semana, ahora).$1,
-      ahora.subtract(const Duration(days: 7)),
+      DateTime.utc(2026, 10, 19, 5),
     );
     expect(
       rangoPeriodo(PeriodoReporte.mes, ahora).$1,
-      ahora.subtract(const Duration(days: 30)),
+      DateTime.utc(2026, 9, 26, 5),
     );
+    expect(rangoPeriodo(PeriodoReporte.mes, ahora).$2, ahora);
     expect(periodoLabel(PeriodoReporte.hoy), 'Hoy');
     expect(periodoLabel(PeriodoReporte.semana), '7 días');
     expect(periodoLabel(PeriodoReporte.mes), '30 días');
@@ -194,14 +197,15 @@ void main() {
       );
       expect(routes.map((route) => route.id), ['R1', 'R2']);
       expect(api.horaRutas, 8);
-      expect(DateTime.now().toUtc().difference(api.desdeRutas!).inDays, 30);
+      // Hoy y los 29 días anteriores, desde su medianoche.
+      expect(DateTime.now().toUtc().difference(api.desdeRutas!).inDays, 29);
       await container.read(
         reportesRutasProvider((
           periodo: PeriodoReporte.semana,
           hora: null,
         )).future,
       );
-      expect(DateTime.now().toUtc().difference(api.desdeRutas!).inDays, 7);
+      expect(DateTime.now().toUtc().difference(api.desdeRutas!).inDays, 6);
 
       final cells = await container.read(
         reportesCalorProvider((
@@ -211,7 +215,7 @@ void main() {
         )).future,
       );
       expect(api.rutaCalor, 'R2');
-      expect(DateTime.now().toUtc().difference(api.desdeCalor!).inDays, 7);
+      expect(DateTime.now().toUtc().difference(api.desdeCalor!).inDays, 6);
       expect(api.horaCalor, 8);
       expect(cells.single.count, 5);
     },
@@ -242,8 +246,8 @@ void main() {
     final ahora = DateTime.utc(2026, 10, 27, 20); // 3 p. m. en Bogotá
 
     test('fechas exactas del periodo', () {
-      expect(rangoFechasLabel(PeriodoReporte.mes, ahora), '27 sep a 27 oct');
-      expect(rangoFechasLabel(PeriodoReporte.semana, ahora), '20 a 27 oct');
+      expect(rangoFechasLabel(PeriodoReporte.mes, ahora), '28 sep a 27 oct');
+      expect(rangoFechasLabel(PeriodoReporte.semana, ahora), '21 a 27 oct');
       expect(rangoFechasLabel(PeriodoReporte.hoy, ahora), '27 oct');
       expect(
         rangoFechasLabel(PeriodoReporte.delDia(DateTime(2026, 10, 12)), ahora),
@@ -261,7 +265,7 @@ void main() {
       final enero = DateTime.utc(2027, 1, 10, 20);
       expect(
         rangoFechasLabel(PeriodoReporte.mes, enero),
-        '11 dic 2026 a 10 ene',
+        '12 dic 2026 a 10 ene',
       );
       expect(
         rangoFechasLabel(PeriodoReporte.delDia(DateTime(2026, 12, 31)), enero),
@@ -272,11 +276,11 @@ void main() {
     test('el mapa dice que suma las búsquedas del periodo', () {
       expect(
         totalPeriodoLabel(PeriodoReporte.mes, ahora),
-        'Total de los 30 días, 27 sep a 27 oct',
+        'Total de los 30 días, 28 sep a 27 oct',
       );
       expect(
         totalPeriodoLabel(PeriodoReporte.semana, ahora),
-        'Total de los 7 días, 20 a 27 oct',
+        'Total de los 7 días, 21 a 27 oct',
       );
       expect(
         totalPeriodoLabel(PeriodoReporte.hoy, ahora),
@@ -295,7 +299,7 @@ void main() {
       );
       expect(
         totalHoraLabel(PeriodoReporte.mes, ahora, hora: 7, busquedas: 1),
-        '1 búsqueda de 7 a 8 a. m. en los 30 días, 27 sep a 27 oct',
+        '1 búsqueda de 7 a 8 a. m. en los 30 días, 28 sep a 27 oct',
       );
       expect(
         totalHoraLabel(
@@ -317,11 +321,11 @@ void main() {
     test('la ocupación dice que promedia sus buses en el periodo', () {
       expect(
         promedioPeriodoLabel(PeriodoReporte.mes, ahora, buses: 3),
-        'Promedio de 3 buses en los 30 días, 27 sep a 27 oct',
+        'Promedio de 3 buses en los 30 días, 28 sep a 27 oct',
       );
       expect(
         promedioPeriodoLabel(PeriodoReporte.semana, ahora, buses: 1),
-        'De 1 bus en los 7 días, 20 a 27 oct',
+        'De 1 bus en los 7 días, 21 a 27 oct',
       );
       expect(
         promedioPeriodoLabel(PeriodoReporte.hoy, ahora, buses: 2),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -170,7 +171,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     // El puesto sale del ranking, no del orden de las píldoras, que es el
     // de Flota.
     final ranking = ordenarRutasBusquedas(ordenadas);
-    final ahora = DateTime.now();
+    final ahora = clock.now();
     return _dosPaneles(
       izquierda: _TarjetaBusquedas(
         ruta: ruta,
@@ -235,7 +236,7 @@ final _sinDia = PeriodoReporte.delDia(DateTime(2000));
 
 /// Hoy en Bogotá, como día del calendario: el último que se puede elegir.
 DateTime _ultimoDia() {
-  final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
+  final hoy = clock.now().toUtc().subtract(const Duration(hours: 5));
   return DateTime(hoy.year, hoy.month, hoy.day);
 }
 
@@ -1882,10 +1883,10 @@ class _HorasMapa extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             hora == null
-                ? totalPeriodoLabel(periodo, DateTime.now())
+                ? totalPeriodoLabel(periodo, clock.now())
                 : totalHoraLabel(
                     periodo,
-                    DateTime.now(),
+                    clock.now(),
                     hora: hora!,
                     busquedas: porHora[hora!],
                   ),

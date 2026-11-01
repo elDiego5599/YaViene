@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -63,13 +64,16 @@ const _bogota = Duration(hours: 5);
     // El día de hoy corta en este momento, no en la medianoche que viene.
     return (desde, fin.isAfter(hasta) ? hasta : fin);
   }
+  // Días de Bogotá enteros, hoy incluido: el servidor redondea el rango a
+  // medianoches (AUD29-01) y 7 × 24 h le tocarían un octavo día.
   final local = hasta.subtract(_bogota);
-  final desde = switch (periodo.name) {
-    'hoy' => DateTime.utc(local.year, local.month, local.day).add(_bogota),
-    'semana' => hasta.subtract(const Duration(days: 7)),
-    _ => hasta.subtract(const Duration(days: 30)),
+  final hoy = DateTime.utc(local.year, local.month, local.day).add(_bogota);
+  final dias = switch (periodo.name) {
+    'hoy' => 1,
+    'semana' => 7,
+    _ => 30,
   };
-  return (desde, hasta);
+  return (hoy.subtract(Duration(days: dias - 1)), hasta);
 }
 
 const _meses = [
@@ -230,7 +234,7 @@ final reportesRutasProvider =
       ({PeriodoReporte periodo, int? hora})
     >((ref, args) async {
       final token = ref.watch(authProvider).session?.token;
-      final (desde, hasta) = rangoPeriodo(args.periodo, DateTime.now());
+      final (desde, hasta) = rangoPeriodo(args.periodo, clock.now());
       final data = await ref
           .watch(fleetApiProvider)
           .fetchSearchReports(
@@ -273,7 +277,7 @@ final reportesCalorProvider =
       ({String routeId, PeriodoReporte periodo, int? hora})
     >((ref, args) async {
       final token = ref.watch(authProvider).session?.token;
-      final (desde, hasta) = rangoPeriodo(args.periodo, DateTime.now());
+      final (desde, hasta) = rangoPeriodo(args.periodo, clock.now());
       final data = await ref
           .watch(fleetApiProvider)
           .fetchSearchHeatmap(

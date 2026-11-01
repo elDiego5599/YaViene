@@ -45,13 +45,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que decidir tú
 
-- **El mapa de calor de Reportes se puede restar** (AUD29-01 de
-  `reporte-auditoria-2026-10-29.md`, en la raíz): el umbral de 5 de D17 se
-  mira sobre la suma del rango, y dos rangos solapados revelan celdas con
-  menos de 5. Con los datos de ejemplo, un umbral por día y celda deja ver
-  el 71 % por día, el 3 % por día y hora, el 96 % por semana, el 42 % por
-  semana y hora y el 68 % por mes y hora. Opciones: umbral por cada cubeta
-  (lo más seguro), días de Bogotá enteros, o rangos con tope.
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por

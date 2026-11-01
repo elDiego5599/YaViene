@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -466,216 +468,224 @@ void main() {
     expect(find.text('Quitar calor'), findsNothing);
   });
 
-  testWidgets('el periodo vuelve a cargar lista y mapa con su rango', (
-    tester,
-  ) async {
-    final periodos = <PeriodoReporte>[];
-    final periodosCalor = <PeriodoReporte>[];
-    await tester.binding.setSurfaceSize(const Size(1500, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          reportesRutasProvider.overrideWith((ref, args) async {
-            periodos.add(args.periodo);
-            return [_ruta('R1', 'C16 Ruta 1', 2, 0)];
-          }),
-          reportesCalorProvider.overrideWith((ref, args) async {
-            periodosCalor.add(args.periodo);
-            return _celdas;
-          }),
-          routeTrajectoryProvider.overrideWith(
-            (ref, routeId) async => RouteTrajectory(
-              routeId: routeId,
-              routeName: 'Ruta',
-              points: const [
-                GeoPoint(lat: 10.96, lon: -74.8),
-                GeoPoint(lat: 10.98, lon: -74.79),
-              ],
+  testWidgets(
+    'el periodo vuelve a cargar lista y mapa con su rango',
+    (tester) => _aMitadDeMes(() async {
+      final periodos = <PeriodoReporte>[];
+      final periodosCalor = <PeriodoReporte>[];
+      await tester.binding.setSurfaceSize(const Size(1500, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            reportesRutasProvider.overrideWith((ref, args) async {
+              periodos.add(args.periodo);
+              return [_ruta('R1', 'C16 Ruta 1', 2, 0)];
+            }),
+            reportesCalorProvider.overrideWith((ref, args) async {
+              periodosCalor.add(args.periodo);
+              return _celdas;
+            }),
+            routeTrajectoryProvider.overrideWith(
+              (ref, routeId) async => RouteTrajectory(
+                routeId: routeId,
+                routeName: 'Ruta',
+                points: const [
+                  GeoPoint(lat: 10.96, lon: -74.8),
+                  GeoPoint(lat: 10.98, lon: -74.79),
+                ],
+              ),
             ),
-          ),
-          estiloMapaProvider.overrideWith((ref) async {
-            throw StateError('El estilo no se necesita en esta prueba');
-          }),
-        ],
-        child: const MaterialApp(home: ReportesScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(periodos, [PeriodoReporte.mes]);
-    // El periodo ya no se repite a la izquierda: se lee en los filtros.
-    expect(find.text('Últimos 30 días'), findsNothing);
+            estiloMapaProvider.overrideWith((ref) async {
+              throw StateError('El estilo no se necesita en esta prueba');
+            }),
+          ],
+          child: const MaterialApp(home: ReportesScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(periodos, [PeriodoReporte.mes]);
+      // El periodo ya no se repite a la izquierda: se lee en los filtros.
+      expect(find.text('Últimos 30 días'), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('periodo-hoy')));
-    await tester.pumpAndSettle();
-    expect(periodos.last, PeriodoReporte.hoy);
-    expect(periodosCalor.last, PeriodoReporte.hoy);
+      await tester.tap(find.byKey(const ValueKey('periodo-hoy')));
+      await tester.pumpAndSettle();
+      expect(periodos.last, PeriodoReporte.hoy);
+      expect(periodosCalor.last, PeriodoReporte.hoy);
 
-    await tester.tap(find.byKey(const ValueKey('periodo-semana')));
-    await tester.pumpAndSettle();
-    expect(periodos.last, PeriodoReporte.semana);
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
-      totalPeriodoLabel(PeriodoReporte.semana, DateTime.now()),
-    );
+      await tester.tap(find.byKey(const ValueKey('periodo-semana')));
+      await tester.pumpAndSettle();
+      expect(periodos.last, PeriodoReporte.semana);
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+        totalPeriodoLabel(PeriodoReporte.semana, clock.now()),
+      );
 
-    // «Fecha» abre el calendario del mes; tocar un día lo elige y cierra.
-    final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
-    const meses = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
-    ];
-    final mes = meses[hoy.month - 1];
-    expect(find.text('Fecha'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
-    await tester.pumpAndSettle();
-    // Un cuadro que sale bajo los periodos, no una ventana con velo, y con
-    // ancho para que el mes se lea holgado.
-    final calendario = find.byKey(const ValueKey('calendario-dia'));
-    expect(calendario, findsOneWidget);
-    expect(find.byKey(const ValueKey('ventana')), findsNothing);
-    expect(tester.getSize(calendario).width, greaterThanOrEqualTo(340));
-    expect(
-      tester.getTopLeft(calendario).dy,
-      greaterThan(
-        tester.getBottomLeft(find.byKey(const ValueKey('periodo-dia'))).dy,
-      ),
-    );
-    await tester.tap(find.descendant(of: calendario, matching: find.text('1')));
-    await tester.pumpAndSettle();
-    expect(calendario, findsNothing);
-    final primero = PeriodoReporte.delDia(DateTime(hoy.year, hoy.month));
-    expect(periodos.last, primero);
-    expect(periodosCalor.last, primero);
-    expect(find.text('1 ${mes.substring(0, 3)}'), findsOneWidget);
+      // «Fecha» abre el calendario del mes; tocar un día lo elige y cierra.
+      final hoy = clock.now().toUtc().subtract(const Duration(hours: 5));
+      const meses = [
+        'enero',
+        'febrero',
+        'marzo',
+        'abril',
+        'mayo',
+        'junio',
+        'julio',
+        'agosto',
+        'septiembre',
+        'octubre',
+        'noviembre',
+        'diciembre',
+      ];
+      final mes = meses[hoy.month - 1];
+      expect(find.text('Fecha'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      // Un cuadro que sale bajo los periodos, no una ventana con velo, y con
+      // ancho para que el mes se lea holgado.
+      final calendario = find.byKey(const ValueKey('calendario-dia'));
+      expect(calendario, findsOneWidget);
+      expect(find.byKey(const ValueKey('ventana')), findsNothing);
+      expect(tester.getSize(calendario).width, greaterThanOrEqualTo(340));
+      expect(
+        tester.getTopLeft(calendario).dy,
+        greaterThan(
+          tester.getBottomLeft(find.byKey(const ValueKey('periodo-dia'))).dy,
+        ),
+      );
+      await tester.tap(
+        find.descendant(of: calendario, matching: find.text('1')),
+      );
+      await tester.pumpAndSettle();
+      expect(calendario, findsNothing);
+      final primero = PeriodoReporte.delDia(DateTime(hoy.year, hoy.month));
+      expect(periodos.last, primero);
+      expect(periodosCalor.last, primero);
+      expect(find.text('1 ${mes.substring(0, 3)}'), findsOneWidget);
 
-    // Tocar fuera lo cierra y deja el día que estaba.
-    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
-    await tester.pumpAndSettle();
-    expect(calendario, findsOneWidget);
-    await tester.tapAt(const Offset(5, 400));
-    await tester.pumpAndSettle();
-    expect(calendario, findsNothing);
-    expect(periodos.last, primero);
+      // Tocar fuera lo cierra y deja el día que estaba.
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      expect(calendario, findsOneWidget);
+      await tester.tapAt(const Offset(5, 400));
+      await tester.pumpAndSettle();
+      expect(calendario, findsNothing);
+      expect(periodos.last, primero);
 
-    // El rango va en el mismo cuadro, en un cuadrito bajo el calendario:
-    // se marca «Desde», el día tocado pasa solo al «Hasta» y, con los dos,
-    // se aplica y se cierra (dueño, 2026-10-27). Nada de ventana ni APLICAR.
-    expect(find.text('Rango'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
-    await tester.pumpAndSettle();
-    final cuadro = find.byKey(const ValueKey('cuadro-rango'));
-    expect(cuadro, findsOneWidget);
-    expect(
-      tester.getTopLeft(cuadro).dy,
-      greaterThanOrEqualTo(tester.getBottomLeft(calendario).dy),
-    );
-    expect(find.text('Elegir'), findsNWidgets(2));
-    await tester.tap(find.byKey(const ValueKey('rango-desde')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(of: calendario, matching: find.text('1')));
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('rango-desde')),
-        matching: find.text('1 ${mes.substring(0, 3)}'),
-      ),
-      findsOneWidget,
-    );
-    // Con solo el desde, nada se vuelve a pedir y el cuadro sigue abierto.
-    expect(calendario, findsOneWidget);
-    expect(periodos.last, primero);
-    await tester.tap(
-      find.descendant(of: calendario, matching: find.text('${hoy.day}')),
-    );
-    await tester.pumpAndSettle();
-    final rango = PeriodoReporte.entre(
-      DateTime(hoy.year, hoy.month),
-      DateTime(hoy.year, hoy.month, hoy.day),
-    );
-    expect(calendario, findsNothing);
-    expect(find.byKey(const ValueKey('ventana')), findsNothing);
-    expect(periodos.last, rango);
-    expect(periodosCalor.last, rango);
-    // El rango queda escrito en el segmento de la fecha.
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('periodo-dia')),
-        matching: find.text(periodoLabel(rango)),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
-      totalPeriodoLabel(rango, DateTime.now()),
-    );
+      // El rango va en el mismo cuadro, en un cuadrito bajo el calendario:
+      // se marca «Desde», el día tocado pasa solo al «Hasta» y, con los dos,
+      // se aplica y se cierra (dueño, 2026-10-27). Nada de ventana ni APLICAR.
+      expect(find.text('Rango'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      final cuadro = find.byKey(const ValueKey('cuadro-rango'));
+      expect(cuadro, findsOneWidget);
+      expect(
+        tester.getTopLeft(cuadro).dy,
+        greaterThanOrEqualTo(tester.getBottomLeft(calendario).dy),
+      );
+      expect(find.text('Elegir'), findsNWidgets(2));
+      await tester.tap(find.byKey(const ValueKey('rango-desde')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: calendario, matching: find.text('1')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('rango-desde')),
+          matching: find.text('1 ${mes.substring(0, 3)}'),
+        ),
+        findsOneWidget,
+      );
+      // Con solo el desde, nada se vuelve a pedir y el cuadro sigue abierto.
+      expect(calendario, findsOneWidget);
+      expect(periodos.last, primero);
+      await tester.tap(
+        find.descendant(of: calendario, matching: find.text('${hoy.day}')),
+      );
+      await tester.pumpAndSettle();
+      final rango = PeriodoReporte.entre(
+        DateTime(hoy.year, hoy.month),
+        DateTime(hoy.year, hoy.month, hoy.day),
+      );
+      expect(calendario, findsNothing);
+      expect(find.byKey(const ValueKey('ventana')), findsNothing);
+      expect(periodos.last, rango);
+      expect(periodosCalor.last, rango);
+      // El rango queda escrito en el segmento de la fecha.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('periodo-dia')),
+          matching: find.text(periodoLabel(rango)),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+        totalPeriodoLabel(rango, clock.now()),
+      );
 
-    // Al abrirlo otra vez trae el rango, y tocar un día sin marcar ningún
-    // extremo vuelve a un día suelto.
-    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('rango-hasta')),
-        matching: find.text(periodoLabel(PeriodoReporte.delDia(hoy))),
-      ),
-      findsOneWidget,
-    );
-    await tester.tap(find.descendant(of: calendario, matching: find.text('1')));
-    await tester.pumpAndSettle();
-    // El día 1 ya se pidió antes: el segmento lo dice sin otra consulta.
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('periodo-dia')),
-        matching: find.text('1 ${mes.substring(0, 3)}'),
-      ),
-      findsOneWidget,
-    );
-  });
+      // Al abrirlo otra vez trae el rango, y tocar un día sin marcar ningún
+      // extremo vuelve a un día suelto.
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('rango-hasta')),
+          matching: find.text(periodoLabel(PeriodoReporte.delDia(hoy))),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.descendant(of: calendario, matching: find.text('1')),
+      );
+      await tester.pumpAndSettle();
+      // El día 1 ya se pidió antes: el segmento lo dice sin otra consulta.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('periodo-dia')),
+          matching: find.text('1 ${mes.substring(0, 3)}'),
+        ),
+        findsOneWidget,
+      );
+    }),
+  );
 
-  testWidgets('en el rango, el hasta no deja días antes del desde', (
-    tester,
-  ) async {
-    await _montar(
-      tester,
-      cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('periodo-dia')));
-    await tester.pumpAndSettle();
-    final picker = find.descendant(
-      of: find.byKey(const ValueKey('calendario-dia')),
-      matching: find.byType(CalendarDatePicker),
-    );
-    final hoy = DateTime.now().toUtc().subtract(const Duration(hours: 5));
-    final ultimo = DateTime(hoy.year, hoy.month, hoy.day);
-    // «Hasta» sin desde marca el desde: no tiene contra qué medirse.
-    await tester.tap(find.byKey(const ValueKey('rango-hasta')));
-    await tester.pumpAndSettle();
-    expect(
-      tester.widget<CalendarDatePicker>(picker).selectableDayPredicate,
-      isNull,
-    );
-    await tester.tap(
-      find.descendant(of: picker, matching: find.text('${hoy.day}')),
-    );
-    await tester.pumpAndSettle();
-    final hasta = tester.widget<CalendarDatePicker>(picker);
-    expect(hasta.initialDate, ultimo);
-    final antes = ultimo.subtract(const Duration(days: 1));
-    expect(hasta.selectableDayPredicate!(antes), isFalse);
-    expect(hasta.selectableDayPredicate!(ultimo), isTrue);
-  });
+  testWidgets(
+    'en el rango, el hasta no deja días antes del desde',
+    (tester) => _aMitadDeMes(() async {
+      await _montar(
+        tester,
+        cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 2, 0)],
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      final picker = find.descendant(
+        of: find.byKey(const ValueKey('calendario-dia')),
+        matching: find.byType(CalendarDatePicker),
+      );
+      final hoy = clock.now().toUtc().subtract(const Duration(hours: 5));
+      final ultimo = DateTime(hoy.year, hoy.month, hoy.day);
+      // «Hasta» sin desde marca el desde: no tiene contra qué medirse.
+      await tester.tap(find.byKey(const ValueKey('rango-hasta')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<CalendarDatePicker>(picker).selectableDayPredicate,
+        isNull,
+      );
+      await tester.tap(
+        find.descendant(of: picker, matching: find.text('${hoy.day}')),
+      );
+      await tester.pumpAndSettle();
+      final hasta = tester.widget<CalendarDatePicker>(picker);
+      expect(hasta.initialDate, ultimo);
+      final antes = ultimo.subtract(const Duration(days: 1));
+      expect(hasta.selectableDayPredicate!(antes), isFalse);
+      expect(hasta.selectableDayPredicate!(ultimo), isTrue);
+    }),
+  );
 
   testWidgets('las horas del mapa pintan esa hora y conservan la ruta', (
     tester,
@@ -922,3 +932,8 @@ void main() {
     expect(find.byKey(const ValueKey('capa-calor-R1')), findsOneWidget);
   });
 }
+
+/// El calendario de Reportes a mitad de mes: el día 1 no cabe un rango dentro
+/// del mes a la vista y estas pruebas fallaban ese día.
+Future<void> _aMitadDeMes(Future<void> Function() cuerpo) =>
+    withClock(Clock.fixed(DateTime.utc(2026, 10, 15, 17)), cuerpo);
