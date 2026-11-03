@@ -84,10 +84,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que hacer tú
 
-- **PIN de la flota demo**: ya no se usa (cada bus tiene su propia credencial). Borra la clave `PIN` de `YaVieneBackend/local.env` cuando quieras; el backend ya no la lee.
-
-Necesitan un teléfono, una cuenta o estar presente.
-
 - **Probar la lista desde la web** (D15): `WEB_ORIGINS` ya abre
   `https://yavienetech.com` (2026-10-15). Falta mandar un número propio
   desde la web publicada y verlo en `GET /api/admin/lanzamiento`.
