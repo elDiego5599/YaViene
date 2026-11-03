@@ -47,6 +47,7 @@ void main() {
       );
       expect(adapter.request!.path, '/api/panel/busquedas');
       expect(adapter.request!.queryParameters['hora'], 6);
+      expect(adapter.request!.queryParameters.containsKey('dias'), false);
       expect(adapter.request!.headers['Authorization'], 'Bearer sesion');
 
       await api.fetchSearchHeatmap(
@@ -55,9 +56,11 @@ void main() {
         desde: desde,
         hasta: hasta,
         hora: 23,
+        dias: [1, 3],
       );
       expect(adapter.request!.path, '/api/panel/busquedas/R%20%2F%201/calor');
       expect(adapter.request!.queryParameters['hora'], 23);
+      expect(adapter.request!.queryParameters['dias'], '1,3');
       expect(adapter.request!.headers['Authorization'], 'Bearer sesion');
     },
   );

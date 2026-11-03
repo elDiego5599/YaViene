@@ -123,6 +123,12 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
+- **Días de la semana en Reportes, en el backend vivo** (2026-11-02): el
+  panel ya manda `dias` (lunes a domingo dentro del rango) y el backend de
+  `prueba` lo filtra con su prueba, pero el que corre bajo launchd es el de
+  antes y lo ignora (cuenta todos los días). Falta aplicarlo:
+  `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
+
 - **Búsquedas de ejemplo de Coochofal en Reportes** (2026-10-28): la
   siembra de `busquedas_demo.ts` solo cubre Sobusa y Coolitoral. Espera
   a que se cierre el cambio que otra sesión dejó a medias en ese archivo.

@@ -72,6 +72,7 @@ class FleetApi {
     required DateTime desde,
     required DateTime hasta,
     int? hora,
+    List<int> dias = const [],
   }) async {
     final response = await _guard(
       () => _dio.get<Map<String, dynamic>>(
@@ -80,6 +81,8 @@ class FleetApi {
           'desde': desde.toUtc().toIso8601String(),
           'hasta': hasta.toUtc().toIso8601String(),
           'hora': ?hora,
+          // Del 1 (lunes) al 7 (domingo); sin días, todos.
+          if (dias.isNotEmpty) 'dias': dias.join(','),
         },
         options: _auth(token),
       ),
@@ -93,6 +96,7 @@ class FleetApi {
     required DateTime desde,
     required DateTime hasta,
     int? hora,
+    List<int> dias = const [],
   }) async {
     final response = await _guard(
       () => _dio.get<Map<String, dynamic>>(
@@ -101,6 +105,8 @@ class FleetApi {
           'desde': desde.toUtc().toIso8601String(),
           'hasta': hasta.toUtc().toIso8601String(),
           'hora': ?hora,
+          // Del 1 (lunes) al 7 (domingo); sin días, todos.
+          if (dias.isNotEmpty) 'dias': dias.join(','),
         },
         options: _auth(token),
       ),

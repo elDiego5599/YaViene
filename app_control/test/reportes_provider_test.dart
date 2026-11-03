@@ -15,6 +15,8 @@ class _Api extends FleetApi {
   String? rutaCalor;
   DateTime? desdeRutas;
   DateTime? desdeCalor;
+  List<int>? diasRutas;
+  List<int>? diasCalor;
 
   @override
   Future<Map<String, dynamic>> fetchSearchReports(
@@ -22,8 +24,10 @@ class _Api extends FleetApi {
     required DateTime desde,
     required DateTime hasta,
     int? hora,
+    List<int> dias = const [],
   }) async {
     horaRutas = hora;
+    diasRutas = dias;
     desdeRutas = desde;
     return {
       'rutas': [_route('R2', 'Ruta 2', 4, 6), _route('R1', 'Ruta 1', 12, 6)],
@@ -37,8 +41,10 @@ class _Api extends FleetApi {
     required DateTime desde,
     required DateTime hasta,
     int? hora,
+    List<int> dias = const [],
   }) async {
     rutaCalor = routeId;
+    diasCalor = dias;
     desdeCalor = desde;
     horaCalor = hora;
     return {
@@ -164,6 +170,117 @@ void main() {
     );
   });
 
+  group('días de la semana dentro del rango', () {
+    final ahora = DateTime.utc(2026, 11, 2, 20);
+    final rango = PeriodoReporte.entre(
+      DateTime(2026, 9, 2),
+      DateTime(2026, 11, 2),
+      dias: {3, 1},
+    );
+
+    test('es un valor: los mismos días en otro orden son el mismo periodo', () {
+      expect(rango.dias, [1, 3]);
+      expect(
+        rango,
+        PeriodoReporte.entre(
+          DateTime(2026, 11, 2),
+          DateTime(2026, 9, 2),
+          dias: [1, 3, 3],
+        ),
+      );
+      expect(
+        rango.hashCode,
+        PeriodoReporte.entre(
+          DateTime(2026, 9, 2),
+          DateTime(2026, 11, 2),
+          dias: {1, 3},
+        ).hashCode,
+      );
+      expect(
+        rango,
+        isNot(
+          PeriodoReporte.entre(DateTime(2026, 9, 2), DateTime(2026, 11, 2)),
+        ),
+      );
+    });
+
+    test('los siete días son lo mismo que ninguno', () {
+      expect(
+        PeriodoReporte.entre(
+          DateTime(2026, 9, 2),
+          DateTime(2026, 11, 2),
+          dias: {1, 2, 3, 4, 5, 6, 7},
+        ),
+        PeriodoReporte.entre(DateTime(2026, 9, 2), DateTime(2026, 11, 2)),
+      );
+    });
+
+    test('un día que no es de la semana no entra', () {
+      expect(
+        () => PeriodoReporte.entre(
+          DateTime(2026, 9, 2),
+          DateTime(2026, 11, 2),
+          dias: {0},
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('dice si alguno de los días cae en el rango', () {
+      // Del martes 20 al miércoles 21 de octubre.
+      final corto = DateTime(2026, 10, 20);
+      final fin = DateTime(2026, 10, 21);
+      expect(PeriodoReporte.entre(corto, fin, dias: {7}).cuentaAlgunDia, false);
+      expect(
+        PeriodoReporte.entre(corto, fin, dias: {7, 3}).cuentaAlgunDia,
+        true,
+      );
+      expect(PeriodoReporte.entre(corto, fin).cuentaAlgunDia, true);
+      expect(PeriodoReporte.mes.cuentaAlgunDia, true);
+    });
+
+    test('los rótulos dicen qué días cuentan', () {
+      final lunes = PeriodoReporte.entre(
+        DateTime(2026, 9, 2),
+        DateTime(2026, 11, 2),
+        dias: {1},
+      );
+      final finde = PeriodoReporte.entre(
+        DateTime(2026, 9, 2),
+        DateTime(2026, 11, 2),
+        dias: {6, 7},
+      );
+      expect(periodoLabel(lunes), '2 sep a 2 nov, lunes');
+      expect(periodoLabel(rango), '2 sep a 2 nov, lun y mié');
+      expect(
+        periodoLabel(
+          PeriodoReporte.entre(
+            DateTime(2026, 9, 2),
+            DateTime(2026, 11, 2),
+            dias: {5, 1, 3},
+          ),
+        ),
+        '2 sep a 2 nov, lun, mié y vie',
+      );
+      expect(
+        totalPeriodoLabel(lunes, ahora),
+        'Total de los lunes, 2 sep a 2 nov',
+      );
+      expect(
+        totalPeriodoLabel(finde, ahora),
+        'Total de los sábados y domingos, 2 sep a 2 nov',
+      );
+      expect(
+        totalHoraLabel(rango, ahora, hora: 7, busquedas: 4),
+        '4 búsquedas de 7 a 8 a. m. de los lunes y miércoles, 2 sep a 2 nov',
+      );
+      expect(
+        promedioPeriodoLabel(lunes, ahora, buses: 2),
+        'Promedio de 2 buses de los lunes, 2 sep a 2 nov',
+      );
+    });
+  });
+
   late ProviderContainer container;
   late _Api api;
 
@@ -220,6 +337,54 @@ void main() {
       expect(cells.single.count, 5);
     },
   );
+
+  test('los providers piden solo los días elegidos', () async {
+    final lunes = PeriodoReporte.entre(
+      DateTime(2026, 9, 2),
+      DateTime(2026, 11, 2),
+      dias: {3, 1},
+    );
+    await container.read(
+      reportesRutasProvider((periodo: lunes, hora: null)).future,
+    );
+    expect(api.diasRutas, [1, 3]);
+    await container.read(
+      reportesCalorProvider((routeId: 'R1', periodo: lunes, hora: 8)).future,
+    );
+    expect(api.diasCalor, [1, 3]);
+    await container.read(
+      reportesRutasProvider((periodo: PeriodoReporte.mes, hora: null)).future,
+    );
+    expect(api.diasRutas, isEmpty);
+  });
+
+  // Ningún domingo cae del martes al jueves: la lista sale vacía sin
+  // gastar una lectura del servidor (le caben 120 por minuto).
+  test('sin ningún día elegido en el rango no se pide nada', () async {
+    final domingos = PeriodoReporte.entre(
+      DateTime(2026, 10, 13),
+      DateTime(2026, 10, 15),
+      dias: {DateTime.sunday},
+    );
+    expect(
+      await container.read(
+        reportesRutasProvider((periodo: domingos, hora: null)).future,
+      ),
+      isEmpty,
+    );
+    expect(
+      await container.read(
+        reportesCalorProvider((
+          routeId: 'R1',
+          periodo: domingos,
+          hora: 8,
+        )).future,
+      ),
+      isEmpty,
+    );
+    expect(api.diasRutas, isNull);
+    expect(api.diasCalor, isNull);
+  });
 
   test('franjas de hora pico usan formato colombiano de 12 horas', () {
     expect(horaPicoLabel(6), '6 a 7 a. m.');

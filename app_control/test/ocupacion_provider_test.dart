@@ -122,4 +122,32 @@ void main() {
   test('una ruta sin buses no tiene ocupación', () {
     expect(_de(const []), everyElement(isNull));
   });
+
+  test('con días elegidos solo promedia esos días', () {
+    // Del lunes 19 al domingo 25 de octubre.
+    final semana = PeriodoReporte.entre(
+      DateTime(2026, 10, 19),
+      DateTime(2026, 10, 25),
+    );
+    final lunes = PeriodoReporte.entre(
+      DateTime(2026, 10, 19),
+      DateTime(2026, 10, 25),
+      dias: {1},
+    );
+    final soloLunes = PeriodoReporte.delDia(DateTime(2026, 10, 19));
+    expect(_de(['b1'], periodo: lunes), _de(['b1'], periodo: soloLunes));
+    expect(_de(['b1'], periodo: lunes), isNot(_de(['b1'], periodo: semana)));
+    // Ningún domingo entre el martes 20 y el miércoles 21.
+    expect(
+      _de(
+        ['b1'],
+        periodo: PeriodoReporte.entre(
+          DateTime(2026, 10, 20),
+          DateTime(2026, 10, 21),
+          dias: {7},
+        ),
+      ),
+      everyElement(isNull),
+    );
+  });
 }

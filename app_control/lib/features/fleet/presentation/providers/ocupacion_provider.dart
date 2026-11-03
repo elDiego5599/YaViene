@@ -76,6 +76,8 @@ List<int?> ocupacionEjemplo({
     dia.add(_bogota).isBefore(hasta);
     dia = dia.add(const Duration(days: 1))
   ) {
+    final dias = periodo.dias;
+    if (dias.isNotEmpty && !dias.contains(dia.weekday)) continue;
     final fecha = '${dia.year}-${dia.month}-${dia.day}';
     // Sábado y domingo se mueve menos gente.
     final finde = dia.weekday >= DateTime.saturday ? 0.7 : 1.0;

@@ -286,6 +286,8 @@ class _CabeceraReportes extends StatelessWidget {
                   MenuController.maybeOf(context)!.close();
                   onSelectPeriodo(p);
                 },
+                // Los días se tocan de a uno: el cuadro sigue abierto.
+                onFiltrar: onSelectPeriodo,
               ),
             ),
           ],
@@ -324,13 +326,22 @@ class _CabeceraReportes extends StatelessWidget {
 /// días antes del desde, y al tener los dos se aplica y se cierra. Sin botón
 /// de aplicar: elegir los dos ya es decir que sí.
 ///
+/// Bajo los extremos, los días de la semana («todos los lunes entre hoy y
+/// hace 2 meses»): con el rango ya puesto, cada día tocado se aplica sin
+/// cerrar; antes, esperan al rango.
+///
 /// El calendario va de hoy en Bogotá hasta 395 días atrás: el servidor
 /// guarda 396 (`RETENCION_MS`), y el más viejo ya puede venir a medias.
 class _CalendarioFecha extends StatefulWidget {
-  const _CalendarioFecha({required this.periodo, required this.onSelect});
+  const _CalendarioFecha({
+    required this.periodo,
+    required this.onSelect,
+    required this.onFiltrar,
+  });
 
   final PeriodoReporte periodo;
   final ValueChanged<PeriodoReporte> onSelect;
+  final ValueChanged<PeriodoReporte> onFiltrar;
 
   @override
   State<_CalendarioFecha> createState() => _CalendarioFechaState();
@@ -342,6 +353,7 @@ class _CalendarioFechaState extends State<_CalendarioFecha> {
   final _ultimo = _ultimoDia();
   DateTime? _desde;
   DateTime? _hasta;
+  late final Set<int> _dias = {...widget.periodo.dias};
 
   /// El extremo que llena el próximo día tocado; nulo, un día suelto.
   _Extremo? _marcado;
@@ -368,8 +380,32 @@ class _CalendarioFechaState extends State<_CalendarioFecha> {
           _marcado = _Extremo.hasta;
         });
       case _Extremo.hasta:
-        widget.onSelect(PeriodoReporte.entre(_desde!, dia));
+        widget.onSelect(PeriodoReporte.entre(_desde!, dia, dias: _dias));
     }
+  }
+
+  void _alternarDia(int dia) {
+    setState(() => _dias.contains(dia) ? _dias.remove(dia) : _dias.add(dia));
+    _filtrar();
+  }
+
+  void _todosLosDias() {
+    setState(_dias.clear);
+    _filtrar();
+  }
+
+  // Solo el rango que ya está puesto se vuelve a pedir; a medio elegir, los
+  // días esperan a que llegue el hasta.
+  void _filtrar() {
+    if (!widget.periodo.esRango || _marcado != null) return;
+    widget.onFiltrar(PeriodoReporte.entre(_desde!, _hasta!, dias: _dias));
+  }
+
+  /// Con los dos extremos, si ninguno de los días elegidos cae entre ellos.
+  bool get _sinDiasEnRango {
+    final (desde, hasta) = (_desde, _hasta);
+    if (desde == null || hasta == null || _dias.isEmpty) return false;
+    return !PeriodoReporte.entre(desde, hasta, dias: _dias).cuentaAlgunDia;
   }
 
   // El hasta sin desde no tiene contra qué medirse: marca el desde.
@@ -440,26 +476,38 @@ class _CalendarioFechaState extends State<_CalendarioFecha> {
                 color: AppColors.surfaceRaised,
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: _CampoFecha(
-                      key: const ValueKey('rango-desde'),
-                      rotulo: 'Desde',
-                      fecha: _fecha(desde),
-                      activo: _marcado == _Extremo.desde,
-                      onTap: () => _marcar(_Extremo.desde),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CampoFecha(
+                          key: const ValueKey('rango-desde'),
+                          rotulo: 'Desde',
+                          fecha: _fecha(desde),
+                          activo: _marcado == _Extremo.desde,
+                          onTap: () => _marcar(_Extremo.desde),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CampoFecha(
+                          key: const ValueKey('rango-hasta'),
+                          rotulo: 'Hasta',
+                          fecha: _fecha(_hasta),
+                          activo: _marcado == _Extremo.hasta,
+                          onTap: () => _marcar(_Extremo.hasta),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _CampoFecha(
-                      key: const ValueKey('rango-hasta'),
-                      rotulo: 'Hasta',
-                      fecha: _fecha(_hasta),
-                      activo: _marcado == _Extremo.hasta,
-                      onTap: () => _marcar(_Extremo.hasta),
-                    ),
+                  const SizedBox(height: 12),
+                  _DiasSemana(
+                    elegidos: _dias,
+                    sinDiasEnRango: _sinDiasEnRango,
+                    onAlternar: _alternarDia,
+                    onTodos: _todosLosDias,
                   ),
                 ],
               ),
@@ -469,6 +517,184 @@ class _CalendarioFechaState extends State<_CalendarioFecha> {
       ),
     );
   }
+}
+
+/// Los siete días, de lunes a domingo, en una fila del ancho del cuadrito:
+/// (316 - 6 × 4) / 7 ≈ 41,7 de ancho y 30 de alto, con el radio chico de los
+/// extremos. Sin elegir van blancos con su filo y la letra en navy
+/// (12,7:1); elegidos, llenos del azul de botón con la letra blanca (7,1:1).
+/// Arriba, el rótulo como el de «Desde» y, con algún día, «Todos» para
+/// volver a contarlos todos. Si ninguno cae entre las fechas, lo dice.
+class _DiasSemana extends StatelessWidget {
+  const _DiasSemana({
+    required this.elegidos,
+    required this.sinDiasEnRango,
+    required this.onAlternar,
+    required this.onTodos,
+  });
+
+  final Set<int> elegidos;
+  final bool sinDiasEnRango;
+  final ValueChanged<int> onAlternar;
+  final VoidCallback onTodos;
+
+  static const _nombres = [
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'domingo',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final rotulo = AppType.ui(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      color: AppColors.textSecondary,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 18,
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 2),
+                child: Text('Solo estos días', style: rotulo),
+              ),
+              const Spacer(),
+              if (elegidos.isNotEmpty)
+                Semantics(
+                  button: true,
+                  child: InkWell(
+                    key: const ValueKey('dias-todos'),
+                    onTap: onTodos,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        'Todos',
+                        style: AppType.ui(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.boton,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (var dia = DateTime.monday; dia <= DateTime.sunday; dia++) ...[
+              if (dia > DateTime.monday) const SizedBox(width: 4),
+              Expanded(
+                child: _DiaSemana(
+                  key: ValueKey('dia-semana-$dia'),
+                  corto: _nombres[dia - 1].substring(0, 2),
+                  nombre: _nombres[dia - 1],
+                  elegido: elegidos.contains(dia),
+                  onTap: () => onAlternar(dia),
+                ),
+              ),
+            ],
+          ],
+        ),
+        AnimatedSize(
+          duration: AppMotion.duracion(context, AppMotion.rapido),
+          curve: AppMotion.curvaCambio,
+          alignment: Alignment.topCenter,
+          child: sinDiasEnRango
+              ? Padding(
+                  key: const ValueKey('dias-sin-resultado'),
+                  padding: const EdgeInsets.fromLTRB(2, 10, 2, 0),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          elegidos.length == 1
+                              ? 'Ningún ${_nombres[elegidos.single - 1]} '
+                                    'cae en estas fechas'
+                              : 'Ninguno de esos días cae en estas fechas',
+                          style: AppType.ui(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
+    );
+  }
+}
+
+class _DiaSemana extends StatelessWidget {
+  const _DiaSemana({
+    super.key,
+    required this.corto,
+    required this.nombre,
+    required this.elegido,
+    required this.onTap,
+  });
+
+  final String corto;
+  final String nombre;
+  final bool elegido;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: elegido,
+    label: nombre,
+    excludeSemantics: true,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: AnimatedContainer(
+          duration: AppMotion.duracion(context, AppMotion.rapido),
+          curve: AppMotion.curvaCambio,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: elegido ? AppColors.boton : AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            border: Border.all(
+              color: elegido ? AppColors.boton : AppColors.border,
+            ),
+          ),
+          child: Text(
+            corto[0].toUpperCase() + corto.substring(1),
+            style: AppType.ui(
+              fontSize: 12,
+              fontWeight: elegido ? FontWeight.w800 : FontWeight.w700,
+              color: elegido ? Colors.white : AppColors.navy,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// Un extremo del rango: rótulo chico y la fecha, o «Elegir» sin ella. Va

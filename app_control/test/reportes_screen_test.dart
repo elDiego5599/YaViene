@@ -652,6 +652,162 @@ void main() {
     }),
   );
 
+  // «Todos los lunes entre hoy y hace 2 meses»: los días van en el mismo
+  // cuadrito del rango y, con el rango puesto, se aplican sin cerrarlo.
+  testWidgets(
+    'los días de la semana recortan el rango sin cerrar el cuadro',
+    (tester) => _aMitadDeMes(() async {
+      final periodos = <PeriodoReporte>[];
+      final periodosCalor = <PeriodoReporte>[];
+      await tester.binding.setSurfaceSize(const Size(1500, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            reportesRutasProvider.overrideWith((ref, args) async {
+              periodos.add(args.periodo);
+              return [_ruta('R1', 'C16 Ruta 1', 2, 0)];
+            }),
+            reportesCalorProvider.overrideWith((ref, args) async {
+              periodosCalor.add(args.periodo);
+              return _celdas;
+            }),
+            routeTrajectoryProvider.overrideWith(
+              (ref, routeId) async => RouteTrajectory(
+                routeId: routeId,
+                routeName: 'Ruta',
+                points: const [
+                  GeoPoint(lat: 10.96, lon: -74.8),
+                  GeoPoint(lat: 10.98, lon: -74.79),
+                ],
+              ),
+            ),
+            estiloMapaProvider.overrideWith((ref) async {
+              throw StateError('El estilo no se necesita en esta prueba');
+            }),
+          ],
+          child: const MaterialApp(home: ReportesScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final calendario = find.byKey(const ValueKey('calendario-dia'));
+      Finder dia(int d) => find.byKey(ValueKey('dia-semana-$d'));
+      Color? fondo(int d) =>
+          (tester
+                      .widget<AnimatedContainer>(
+                        find.descendant(
+                          of: dia(d),
+                          matching: find.byType(AnimatedContainer),
+                        ),
+                      )
+                      .decoration!
+                  as BoxDecoration)
+              .color;
+      Future<void> tocarDia(String n) async {
+        await tester.tap(
+          find.descendant(of: calendario, matching: find.text(n)),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      final cuadro = find.byKey(const ValueKey('cuadro-rango'));
+      for (var d = 1; d <= 7; d++) {
+        expect(find.descendant(of: cuadro, matching: dia(d)), findsOneWidget);
+        expect(fondo(d), AppColors.surface);
+      }
+      expect(find.text('Solo estos días'), findsOneWidget);
+      expect(find.byKey(const ValueKey('dias-todos')), findsNothing);
+      expect(find.byKey(const ValueKey('dias-sin-resultado')), findsNothing);
+
+      // Sin rango todavía, el lunes espera: nada se pide y sigue abierto.
+      final pedidos = periodos.length;
+      await tester.tap(dia(DateTime.monday));
+      await tester.pumpAndSettle();
+      expect(periodos, hasLength(pedidos));
+      expect(calendario, findsOneWidget);
+      expect(fondo(DateTime.monday), AppColors.boton);
+      expect(find.byKey(const ValueKey('dias-todos')), findsOneWidget);
+
+      // Al completar el rango se lleva el lunes y cierra.
+      await tester.tap(find.byKey(const ValueKey('rango-desde')));
+      await tester.pumpAndSettle();
+      await tocarDia('1');
+      await tocarDia('15');
+      final lunes = PeriodoReporte.entre(
+        DateTime(2026, 10, 1),
+        DateTime(2026, 10, 15),
+        dias: {DateTime.monday},
+      );
+      expect(calendario, findsNothing);
+      expect(periodos.last, lunes);
+      expect(periodosCalor.last, lunes);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('periodo-dia')),
+          matching: find.text(periodoLabel(lunes)),
+        ),
+        findsOneWidget,
+      );
+
+      // Con el rango puesto, cada día tocado se aplica y el cuadro sigue.
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      expect(fondo(DateTime.monday), AppColors.boton);
+      await tester.tap(dia(DateTime.wednesday));
+      await tester.pumpAndSettle();
+      final lunesYMiercoles = PeriodoReporte.entre(
+        DateTime(2026, 10, 1),
+        DateTime(2026, 10, 15),
+        dias: {DateTime.monday, DateTime.wednesday},
+      );
+      expect(calendario, findsOneWidget);
+      expect(periodos.last, lunesYMiercoles);
+      expect(periodosCalor.last, lunesYMiercoles);
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('mapa-rango'))).data,
+        totalPeriodoLabel(lunesYMiercoles, clock.now()),
+      );
+
+      // «Todos» vuelve a contar la semana entera.
+      await tester.tap(find.byKey(const ValueKey('dias-todos')));
+      await tester.pumpAndSettle();
+      expect(
+        periodos.last,
+        PeriodoReporte.entre(DateTime(2026, 10, 1), DateTime(2026, 10, 15)),
+      );
+      expect(fondo(DateTime.monday), AppColors.surface);
+      expect(find.byKey(const ValueKey('dias-todos')), findsNothing);
+
+      // Del martes 13 al miércoles 14 no hay domingo: lo dice en el cuadro.
+      await tester.tap(dia(DateTime.sunday));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('rango-desde')));
+      await tester.pumpAndSettle();
+      await tocarDia('13');
+      await tocarDia('14');
+      expect(
+        periodos.last,
+        PeriodoReporte.entre(
+          DateTime(2026, 10, 13),
+          DateTime(2026, 10, 14),
+          dias: {DateTime.sunday},
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('periodo-dia')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('dias-sin-resultado')), findsOneWidget);
+      expect(find.text('Ningún domingo cae en estas fechas'), findsOneWidget);
+      await tester.tap(dia(DateTime.saturday));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Ninguno de esos días cae en estas fechas'),
+        findsOneWidget,
+      );
+    }),
+  );
+
   testWidgets(
     'en el rango, el hasta no deja días antes del desde',
     (tester) => _aMitadDeMes(() async {
