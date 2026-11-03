@@ -15,7 +15,7 @@ const fondoMapaHex = '#F4F2EE';
 /// La versión del retoque. El panel guarda en disco las teselas ya pintadas
 /// con la llave `id-vversión` del estilo: cada cambio de colores sube esta
 /// versión para que no salgan las pintadas con los de antes.
-const versionRetoque = '2026-10-28.3';
+const versionRetoque = '2026-11-03.1';
 
 /// Capas que no van: los rótulos de estadios, parques y lagos (los POI de
 /// Voyager) y el tinte de las zonas residenciales, que ensuciaba el papel.
@@ -29,12 +29,14 @@ const _quitar = {
 /// Un retoque: a qué capas se aplica y qué cambia en ellas.
 ///
 /// Cada id es exacto, `prefijo*` o `*sufijo`. `paint` y `layout` se mezclan
-/// encima de los de Voyager, así que lo que no se nombra queda igual. Los
-/// retoques se aplican en orden: el último que toca una propiedad gana.
+/// encima de los de Voyager, así que lo que no se nombra queda igual; `filter`
+/// reemplaza el de la capa entero. Los retoques se aplican en orden: el
+/// último que toca una propiedad gana.
 typedef _Retoque = ({
   List<String> ids,
   Map<String, Object>? paint,
   Map<String, Object>? layout,
+  List<Object>? filter,
   double? minzoom,
 });
 
@@ -42,9 +44,18 @@ _Retoque _r(
   List<String> ids, {
   Map<String, Object>? paint,
   Map<String, Object>? layout,
+  List<Object>? filter,
   double? minzoom,
 }) =>
-    (ids: ids, paint: paint, layout: layout, minzoom: minzoom);
+    (ids: ids, paint: paint, layout: layout, filter: filter, minzoom: minzoom);
+
+/// `["in", ["get", "kind"], ["literal", kinds]]`, la forma que usa Voyager y
+/// que el pintor del panel sabe leer (`estiloParaPintor`).
+List<Object> _kindEn(List<String> kinds) => [
+      'in',
+      ['get', 'kind'],
+      ['literal', kinds],
+    ];
 
 const _montserrat = [
   'Montserrat Medium',
@@ -79,22 +90,36 @@ const Map<String, Object> _anchoAvenida = {
 
 final List<_Retoque> _retoques = [
   _r(['background'], paint: {'background-color': fondoMapaHex}),
-  // Verde de parque más vivo que el de Voyager, como el de Yandex.
+  // Las zonas verdes sólidas y en el verde de Yandex: Voyager las pinta con
+  // una veladura al 40 % que en Barranquilla casi no se veía (dueño,
+  // 2026-11-03, «le faltan zonas verdes»). De lejos un verde suave que no
+  // manche la ciudad; de cerca, más vivo.
   _r(
     ['landcover', 'park_*', 'landuse'],
     paint: {
       'fill-color': {
         'stops': [
-          [10, '#DCEBCB'],
-          [14, '#CBE8B6'],
+          [10, '#D6EBC4'],
+          [13, '#CDE8B7'],
+          [15, '#C6E5AE'],
         ],
       },
+      'fill-opacity': 1,
     },
   ),
-  // El río en azul claro y limpio: el Magdalena tiene que leerse de lejos.
-  _r(['water'], paint: {'fill-color': '#9FD0F5'}),
-  _r(['water_shadow'], paint: {'fill-color': '#C4E4FA'}),
-  _r(['waterway'], paint: {'line-color': '#A2D5F8'}),
+  // Como en Yandex, las canchas y los parques infantiles también son verdes:
+  // en los barrios son casi todo el verde que hay (en el centro, 20 canchas
+  // por 29 parques en una tesela de zoom 14).
+  _r(
+    ['landuse'],
+    filter: _kindEn(['cemetery', 'stadium', 'pitch', 'playground']),
+  ),
+  // El río en el azul de Yandex: el Magdalena tiene que leerse de lejos.
+  // `water_shadow` va encima de `water`, corrida unos píxeles, así que lo
+  // que se ve es la sombra y el agua queda de orilla, un poco más honda.
+  _r(['water'], paint: {'fill-color': '#8EC6EE'}),
+  _r(['water_shadow'], paint: {'fill-color': '#A4D2F4'}),
+  _r(['waterway'], paint: {'line-color': '#A4D2F4'}),
   // Calles gris azulado sobre el papel, con filo más oscuro: más oscuras
   // que las manzanas, como en Yandex (las blancas no gustaron). De lejos el
   // filo y el relleno son del mismo tono: una calle es una sola raya, y no
@@ -279,6 +304,7 @@ Map<String, dynamic> estiloRetocado(Map<String, dynamic> voyager) {
       if (retoque.layout case final layout?) {
         capa['layout'] = {...?(capa['layout'] as Map?), ...layout};
       }
+      if (retoque.filter case final filter?) capa['filter'] = filter;
       if (retoque.minzoom case final minzoom?) capa['minzoom'] = minzoom;
     }
     capas.add(capa);

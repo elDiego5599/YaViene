@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
 import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
@@ -19,6 +18,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../providers/fleet_providers.dart' show fleetProvider;
 import '../providers/ocupacion_provider.dart';
 import '../providers/reportes_provider.dart';
+import '../widgets/capa_voyager.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
 import '../widgets/escala_calor.dart';
 import '../widgets/ocupacion_panel.dart';
@@ -1612,12 +1612,7 @@ class _MapaCalorState extends ConsumerState<_MapaCalor>
             },
           ),
           children: [
-            if (style != null)
-              VectorTileLayer(
-                theme: style.theme,
-                sprites: style.sprites,
-                tileProviders: style.providers,
-              ),
+            if (style != null) CapaVoyager(estilo: style),
             // La ruta va debajo del calor y a media luz (dueño, 2026-10-26):
             // el calor manda y la línea solo asoma por dónde pasa.
             if (_verRuta && _routePoints.length > 1)

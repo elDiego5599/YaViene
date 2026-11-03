@@ -22,6 +22,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/fleet_bus.dart';
 import '../bus_estado.dart';
 import '../providers/fleet_providers.dart';
+import 'capa_voyager.dart';
 import 'estilo_para_pintor.dart';
 
 /// El estilo del mapa: Voyager ([kEstiloMapa]) retocado como el del
@@ -306,12 +307,7 @@ class _ControlMapState extends ConsumerState<ControlMap>
               // KEY REQUIRED» atravesado; las vectoriales siguen limpias y
               // `vector_map_tiles` las pinta en escritorio (dueño,
               // 2026-09-30; test/control_map_estilo_test.dart).
-              if (estilo != null)
-                VectorTileLayer(
-                  theme: estilo.theme,
-                  sprites: estilo.sprites,
-                  tileProviders: estilo.providers,
-                ),
+              if (estilo != null) CapaVoyager(estilo: estilo),
               // El recorrido de la ruta elegida, debajo de los buses y con
               // la definición compartida (`EstiloRuta` en ya_viene_core):
               // rojo de los buses activos sobre orla blanca, variante propia

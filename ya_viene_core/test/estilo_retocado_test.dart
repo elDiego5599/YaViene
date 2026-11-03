@@ -22,6 +22,35 @@ Map<String, dynamic> _voyager() => {
         _capa('road_minor_case', {'line-color': '#ebe7e1', 'line-width': 1}),
         _capa('road_minor_fill', {'line-color': '#fff', 'line-opacity': 1}),
         _capa('road_trunk_fill_noramp', {'line-color': '#ffe9a6'}),
+        {
+          'id': 'landuse',
+          'type': 'fill',
+          'source-layer': 'landuse',
+          'filter': [
+            'in',
+            ['get', 'kind'],
+            [
+              'literal',
+              ['cemetery', 'stadium'],
+            ],
+          ],
+          'paint': {'fill-color': 'rgba(197, 225, 178, 0.4)'},
+        },
+        {
+          'id': 'landcover',
+          'type': 'fill',
+          'paint': {'fill-color': 'rgba(197, 225, 178, 0.4)'},
+        },
+        {
+          'id': 'water',
+          'type': 'fill',
+          'paint': {'fill-color': '#b0d0d6'},
+        },
+        {
+          'id': 'water_shadow',
+          'type': 'fill',
+          'paint': {'fill-color': 'rgba(203, 225, 228, 1)'},
+        },
         _capa('poi_stadium'),
         _capa('poi_park'),
         _capa('watername_lake_pois'),
@@ -96,6 +125,43 @@ void main() {
       _luz(deLejos('road_trunk_fill_noramp')),
       lessThan(_luz(deLejos('road_minor_case'))),
     );
+  });
+
+  // El verde de Voyager era una veladura al 40 % y solo cubría parques y
+  // bosques: en Barranquilla casi no se veía (dueño, 2026-11-03, «le faltan
+  // zonas verdes»). Como en Yandex, las canchas y los parques infantiles
+  // también son verdes, y el verde es sólido.
+  test('las canchas y los parques infantiles también son zona verde', () {
+    final landuse = _por(estiloRetocado(_voyager()), 'landuse');
+    final filtro = landuse['filter'] as List;
+    expect(filtro.take(2), [
+      'in',
+      ['get', 'kind'],
+    ]);
+    expect(
+      (filtro[2] as List)[1],
+      containsAll(['cemetery', 'stadium', 'pitch', 'playground']),
+    );
+  });
+
+  test('el verde es sólido, más vivo de cerca que de lejos', () {
+    final panel = estiloRetocado(_voyager());
+    for (final id in ['landuse', 'landcover']) {
+      final verde = _por(panel, id)['paint']['fill-color'];
+      expect(_deCerca(verde), '#C6E5AE');
+      expect(_luz(_deCerca(verde)), lessThan(_luz(_deLejos(verde))));
+    }
+  });
+
+  // `water_shadow` va encima de `water`, corrida unos píxeles: lo que se ve
+  // del río es la sombra, y el agua queda como su orilla. El azul de Yandex
+  // va en la sombra y la orilla un poco más honda.
+  test('el agua en el azul de Yandex, con su orilla más honda', () {
+    final panel = estiloRetocado(_voyager());
+    final rio = _por(panel, 'water_shadow')['paint']['fill-color'] as String;
+    final orilla = _por(panel, 'water')['paint']['fill-color'] as String;
+    expect(rio, '#A4D2F4');
+    expect(_luz(orilla), lessThan(_luz(rio)));
   });
 
   test('los barrios en mayúsculas espaciadas y gris', () {

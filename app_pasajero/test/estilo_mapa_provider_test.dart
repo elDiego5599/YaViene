@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/estilo_mapa_provider.dart';
 
@@ -17,6 +18,8 @@ Future<String> _leer(http.Client cliente) => http.runWithClient(() {
     }, () => cliente);
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   test('baja Voyager y lo entrega retocado, sin negocios', () async {
     final pedidas = <Uri>[];
     final estilo = await _leer(

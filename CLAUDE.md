@@ -270,7 +270,12 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   en el panel y el pasajero (`estilo_retocado.dart` en el core): papel
   #F4F2EE, calles gris azulado más oscuras que las manzanas, con filo
   (las blancas no gustaron), edificios beige desde zoom 15, barrios y
-  calles en mayúsculas grises y sin POI. De lejos (hasta zoom 12,5) cada
+  calles en mayúsculas grises y sin POI. Las zonas verdes van sólidas en el
+  verde de Yandex (también canchas y parques infantiles) y el agua en su
+  azul (dueño, 2026-11-03, «le faltan zonas verdes»). El pasajero arranca
+  de la copia del estilo que guardó (`estilo_guardado.dart`) y la refresca
+  por detrás; el panel guarda en disco hasta 256 MB de teselas
+  (`CapaVoyager`; con los 50 MB de fábrica borraba y volvía a pintar). De lejos (hasta zoom 12,5) cada
   calle es una sola línea, sin el filo de dos tonos que parecía vías de
   tren; las avenidas, gris azulado más oscuro y más anchas, hacen el
   esqueleto, y la trama de calles menores sale desde 11,5 (dueño,
