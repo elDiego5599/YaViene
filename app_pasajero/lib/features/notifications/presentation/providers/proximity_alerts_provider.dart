@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' show DartPluginRegistrant;
+import 'dart:ui' show AppLifecycleState, DartPluginRegistrant;
 
 import 'package:firebase_messaging/firebase_messaging.dart' show RemoteMessage;
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
@@ -91,6 +91,14 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         _push = push,
         super({}) {
     _ref.listen<UserLocationState>(userLocationProvider, _alMoverUbicacion);
+    // iOS solo deja pedir la actividad en vivo con la app delante: al volver
+    // a ella se mide enseguida, por si faltaba (dueño, 2026-11-03).
+    _ref.listen<AppLifecycleState>(appLifecycleProvider, (antes, ahora) {
+      if (ahora == AppLifecycleState.resumed &&
+          antes != AppLifecycleState.resumed) {
+        _medirPronto();
+      }
+    });
   }
 
   final Ref _ref;
@@ -432,6 +440,9 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
         busPositionsSourceProvider(routeId),
         (previous, next) {
           _routePositions[routeId] = next.value ?? const [];
+          // Con las primeras posiciones se mide ya: la actividad en vivo se
+          // pide con la app delante, no en el barrido de dentro de 5 s.
+          if (next.hasValue && !(previous?.hasValue ?? false)) _medirPronto();
         },
         fireImmediately: true,
       );
@@ -441,7 +452,27 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       () => _ref.listen(seguidorRutaProvider(routeId), (_, __) {}),
     );
     unawaited(sincronizarPush());
+    _medirPronto();
   }
+
+  /// Mide en cuanto termina lo que se está haciendo, y no a los 5 s del
+  /// barrido: la actividad en vivo solo se puede pedir con la app delante,
+  /// y quien arma un aviso puede bloquear el teléfono enseguida (dueño,
+  /// 2026-11-03: a veces la isla solo decía que se usaba la ubicación).
+  /// Después y no ahora, para que un [restore] arme todos antes; varias
+  /// llamadas en la misma vuelta piden una sola medida, y un barrido que
+  /// arranca antes ya la hace (y la deja sin pedir).
+  void _medirPronto() {
+    if (_medidaPedida) return;
+    _medidaPedida = true;
+    scheduleMicrotask(() {
+      if (!_medidaPedida || !mounted) return;
+      _medidaPedida = false;
+      unawaited(_check());
+    });
+  }
+
+  bool _medidaPedida = false;
 
   /// Olvida la ruta del bus; si era el último aviso de esa ruta, se cierra la
   /// suscripción (se desuscribe del socket).
@@ -527,7 +558,13 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
       return;
     }
     _enVivoMostrado[busId] = (clave, ahora);
-    _encolarEnVivo(() => _enVivo.mostrar(estado));
+    _encolarEnVivo(() async {
+      if (await _enVivo.mostrar(estado)) return;
+      // No quedó viva (iOS la negó con la app atrás, o no hay): sin la
+      // marca, el barrido siguiente la vuelve a pedir sin esperar los 30 s
+      // y, si el bus llega antes, suena el banner.
+      if (_enVivoMostrado[busId]?.$1 == clave) _enVivoMostrado.remove(busId);
+    });
   }
 
   void _terminarEnVivo(String busId, {required bool llego}) {
@@ -538,12 +575,17 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// La actividad de [busId] da el aviso, en su turno de la cola. `false`
   /// si no hay actividad o no se pudo: el que llama saca el banner.
   Future<bool> _sonarEnVivo(String busId) {
-    if (_enVivoMostrado.remove(busId) == null) return Future.value(false);
+    if (!_enVivoMostrado.containsKey(busId)) return Future.value(false);
     final sono = Completer<bool>();
     _encolarEnVivo(() async {
       var viva = false;
       try {
-        viva = await _enVivo.sonar(busId);
+        // La marca se mira en el turno y no antes: el `mostrar` de delante
+        // en la cola la quita si iOS no dejó arrancar la actividad, y
+        // entonces suena el banner.
+        if (_enVivoMostrado.remove(busId) != null) {
+          viva = await _enVivo.sonar(busId);
+        }
       } finally {
         sono.complete(viva);
       }
@@ -780,18 +822,15 @@ class ProximityAlertsNotifier extends StateNotifier<Set<String>> {
   /// se muestre: el primer aviso en iOS se queda esperando a que la persona
   /// conteste el permiso, y ese rato puede durar varios ticks. El tick
   /// siguiente veía el mismo bus dentro del radio, todavía sin marcar, y lo
-  /// avisaba otra vez. Mientras uno corre, los que llegan se saltan; el
-  /// siguiente tick libre vuelve a medir con datos frescos.
-  bool _checkInFlight = false;
+  /// avisaba otra vez. Mientras uno corre, los que llegan no miden a la
+  /// vez: esperan a que termine. Antes se saltaban, y quien esperaba la
+  /// medida (un aviso recién armado) seguía sin ella.
+  Future<void>? _barrido;
 
-  Future<void> _check() async {
-    if (_checkInFlight) return;
-    _checkInFlight = true;
-    try {
-      await _checkOnce();
-    } finally {
-      _checkInFlight = false;
-    }
+  Future<void> _check() {
+    if (_barrido case final enCurso?) return enCurso;
+    _medidaPedida = false;
+    return _barrido = _checkOnce().whenComplete(() => _barrido = null);
   }
 
   Future<void> _checkOnce() async {

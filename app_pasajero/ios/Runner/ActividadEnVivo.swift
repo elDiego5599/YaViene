@@ -81,7 +81,9 @@ enum ActividadEnVivo {
         // Dart puede completar el aviso y pedir `terminar` en la misma
         // vuelta (bus ya dentro del radio). Responder después de ActivityKit
         // evita que `terminar` busque antes de que `request` cree la actividad.
-        Gestor.mostrar(busId: busId, datos: datos) { responder(nil) }
+        // Responde si quedó viva: iOS no deja pedirla con la app atrás, y
+        // Dart la vuelve a pedir en el barrido siguiente.
+        Gestor.mostrar(busId: busId, datos: datos) { viva in responder(viva) }
       case "terminar":
         Gestor.terminar(busId: busId, llego: datos["llego"] as? Bool ?? false)
         responder(nil)
@@ -131,7 +133,7 @@ private enum Gestor {
   static func mostrar(
     busId: String,
     datos: [String: Any],
-    alTerminar: @escaping () -> Void
+    alTerminar: @escaping (Bool) -> Void
   ) {
     let estado = AvisoAtributos.ContentState(
       distancia: datos["distancia"] as? String ?? "",
@@ -157,18 +159,23 @@ private enum Gestor {
       ruta: datos["ruta"] as? String ?? ""
     )
     Task {
-      defer { DispatchQueue.main.async { alTerminar() } }
+      var quedoViva = false
+      defer { DispatchQueue.main.async { alTerminar(quedoViva) } }
       for actividad in porTerminar {
         await actividad.end(nil, dismissalPolicy: .immediate)
       }
       if let viva {
         await viva.update(contenido)
+        quedoViva = true
         return
       }
       guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
       do {
         _ = try Activity.request(attributes: atributos, content: contenido)
+        quedoViva = true
       } catch {
+        // Con la app atrás (pantalla bloqueada) iOS la niega: Dart lo sabe
+        // por la respuesta y la vuelve a pedir.
         NSLog("actividad en vivo de \(busId) no arrancó: \(error)")
       }
     }

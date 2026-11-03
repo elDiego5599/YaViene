@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,8 +26,15 @@ class _EnVivoFalso implements ActividadEnVivo {
   /// Si hay actividad viva que dé el aviso (iOS 16.2 o más, encendidas).
   bool viva = false;
 
+  /// Si `mostrar` deja una actividad viva. iOS no deja pedirla con la app
+  /// atrás (pantalla bloqueada): entonces no queda ninguna.
+  bool arranca = true;
+
   @override
-  Future<void> mostrar(EstadoEnVivo estado) async => mostrados.add(estado);
+  Future<bool> mostrar(EstadoEnVivo estado) async {
+    mostrados.add(estado);
+    return arranca;
+  }
 
   @override
   Future<bool> sonar(String busId) async {
@@ -56,6 +64,11 @@ void main() {
   test('ActivityKit conserva viva solo la actividad actual del bus seguido',
       () {
     final nativo = File('ios/Runner/ActividadEnVivo.swift').readAsStringSync();
+
+    // `mostrar` le dice a Dart si quedó una actividad viva: si iOS no la
+    // dejó arrancar, el barrido la vuelve a pedir.
+    expect(nativo,
+        contains('Gestor.mostrar(busId: busId, datos: datos) { viva in'));
 
     expect(nativo, contains(r'$0.activityState == .active'));
     expect(nativo, contains(r'$0.id != viva?.id'));
@@ -185,6 +198,62 @@ void main() {
     expect(enVivo.terminados, isEmpty);
   });
 
+  // El dueño, 2026-11-03: a veces, con el aviso armado, la isla solo
+  // mostraba la ubicación en uso. La actividad se pedía en el barrido de
+  // cada 5 s; si el teléfono se bloqueaba antes, iOS la negaba (no deja
+  // pedirla con la app atrás) y nadie la volvía a pedir.
+  test('al armar el aviso la actividad se pide enseguida, con la app delante',
+      () async {
+    await armado(contenedor());
+    await Future<void>.delayed(Duration.zero);
+
+    expect(enVivo.mostrados, hasLength(1));
+    expect(enVivo.mostrados.single.distancia, '1,5 km');
+  });
+
+  test('si la actividad no arrancó, el barrido siguiente la vuelve a pedir',
+      () async {
+    enVivo.arranca = false;
+    final avisos = await armado(contenedor());
+    await avisos.check();
+    final antes = enVivo.mostrados.length;
+
+    await avisos.check();
+
+    expect(enVivo.mostrados, hasLength(antes + 1));
+  });
+
+  test('al volver la app al frente, la actividad que faltaba se pide ya',
+      () async {
+    enVivo.arranca = false;
+    final c = contenedor();
+    final avisos = await armado(c);
+    await avisos.check();
+    final antes = enVivo.mostrados.length;
+    enVivo.arranca = true;
+
+    c.read(appLifecycleProvider.notifier).state = AppLifecycleState.paused;
+    c.read(appLifecycleProvider.notifier).state = AppLifecycleState.resumed;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(enVivo.mostrados, hasLength(antes + 1));
+  });
+
+  test('sin actividad viva, el bus que llega suena en banner', () async {
+    enVivo.arranca = false;
+    var banners = 0;
+    posiciones = [bus(0.0036)]; // Unos 400 m: dentro del radio de 1 km.
+    final avisos = await armado(contenedor(avisar: () async {
+      banners++;
+      return true;
+    }));
+
+    await avisos.check();
+
+    expect(enVivo.sonados, isEmpty);
+    expect(banners, 1);
+  });
+
   test('restaurado dentro del radio publica actividad antes de llegar',
       () async {
     SharedPreferences.setMockInitialValues({
@@ -205,14 +274,12 @@ void main() {
     final c = contenedor(seleccionarRuta: false);
     final avisos = c.read(proximityAlertsProvider.notifier);
 
+    // Al reabrir se mide enseguida, sin esperar el barrido.
     await avisos.restore();
     await Future<void>.delayed(Duration.zero);
-    expect(c.read(activeAlertsProvider), {'A-1'});
+    await Future<void>.delayed(Duration.zero);
     expect(c.read(selectedRouteProvider), isNull);
     expect(c.read(selectedCompanyProvider), isNull);
-
-    await avisos.check();
-    await Future<void>.delayed(Duration.zero);
 
     expect(enVivo.mostrados, hasLength(1));
     expect(enVivo.mostrados.single.busId, 'A-1');

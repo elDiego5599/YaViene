@@ -78,7 +78,9 @@ class EstadoEnVivo {
 /// La actividad en vivo de los avisos (inyectable en tests).
 abstract class ActividadEnVivo {
   /// Pone o pone al día la actividad del aviso de [EstadoEnVivo.busId].
-  Future<void> mostrar(EstadoEnVivo estado);
+  /// `true` si quedó viva. iOS no deja pedirla con la app atrás (pantalla
+  /// bloqueada), y en Android o iOS viejo no hay: entonces `false`.
+  Future<bool> mostrar(EstadoEnVivo estado);
 
   /// Quita la actividad de [busId]. Con [llego] se queda un rato diciendo
   /// que el bus está cerca; si no (aviso quitado), se va enseguida.
@@ -101,8 +103,8 @@ class ActividadEnVivoCanal implements ActividadEnVivo {
   bool get _activa => defaultTargetPlatform == TargetPlatform.iOS;
 
   @override
-  Future<void> mostrar(EstadoEnVivo estado) =>
-      _llamar('mostrar', estado.aMapa());
+  Future<bool> mostrar(EstadoEnVivo estado) async =>
+      await _llamar<bool>('mostrar', estado.aMapa()) ?? false;
 
   @override
   Future<void> terminar(String busId, {required bool llego}) =>

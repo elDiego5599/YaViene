@@ -346,7 +346,10 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   dice. Con un aviso armado la app pide la ubicación en segundo plano
   (`mantener_vivo.dart`, flecha azul, sin pedir «Siempre») para que iOS no
   la suspenda con la pantalla bloqueada, y la reenvía cada 30 s; cerrada
-  del todo no se pone al día (APNs, FALTANTES). Al volver a abrir la app con
+  del todo no se pone al día (APNs, FALTANTES). iOS solo deja pedir la
+  actividad con la app delante: se pide al armar y al volver la app al
+  frente, y si iOS la negó se vuelve a pedir (dueño, 2026-11-03, la isla
+  a veces solo decía «ubicación en uso»). Al volver a abrir la app con
   el aviso armado y el bus ya dentro del radio, la actividad sale igual
   (dueño, 2026-10-21). La isla lleva el ícono de
   Ya Viene (`LogoYaViene`, cuadradito como el de la app), cerrada y

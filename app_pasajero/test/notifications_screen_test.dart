@@ -37,7 +37,7 @@ class _TestUserLocation extends UserLocationNotifier {
 class _SinActividadEnVivo implements ActividadEnVivo {
   const _SinActividadEnVivo();
   @override
-  Future<void> mostrar(EstadoEnVivo estado) async {}
+  Future<bool> mostrar(EstadoEnVivo estado) async => false;
   @override
   Future<void> terminar(String busId, {required bool llego}) async {}
   @override
@@ -47,6 +47,9 @@ class _SinActividadEnVivo implements ActividadEnVivo {
 void main() {
   const userLat = 6.2442;
   const userLon = -75.5812;
+  // Unos 5,5 km al norte: fuera del radio del aviso, que espera. El aviso
+  // mide al armarse, y un bus encima sonaría en el acto.
+  const lejos = userLat + 0.05;
 
   BusPosition bus(String id, {double lat = userLat}) => BusPosition(
         busId: id,
@@ -78,7 +81,10 @@ void main() {
 
   Future<ProviderContainer> pumpScreen(
       WidgetTester tester, List<BusPosition> buses,
-      {List<GeoPoint>? ruta, double lat = userLat, double abajo = 0}) async {
+      {List<GeoPoint>? ruta,
+      double lat = userLat,
+      double abajo = 0,
+      Stream<List<BusPosition>>? fuente}) async {
     final container = ProviderContainer(overrides: [
       userLocationProvider.overrideWith((ref) => _TestUserLocation()),
       if (ruta != null)
@@ -87,7 +93,7 @@ void main() {
               routeId: routeId, routeName: 'Ruta 1', points: ruta),
         ),
       busPositionsSourceProvider.overrideWith(
-        (ref, routeId) => Stream.value(buses),
+        (ref, routeId) => fuente ?? Stream.value(buses),
       ),
       // La notificación de verdad no se puede pintar en un test (el plugin
       // no tiene canal), y desde que `notifyBusNear` devuelve si de verdad
@@ -313,7 +319,7 @@ void main() {
 
   testWidgets('desactivar un aviso activo lo borra de la lista',
       (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1')]);
+    final container = await pumpScreen(tester, [bus('A-1', lat: lejos)]);
     arm(container, 'A-1');
     await tester.pump();
 
@@ -361,9 +367,11 @@ void main() {
       return rect;
     }
 
-    final cerca = await resto(userLat + 0.00008, '9 m');
-    final lejos = await resto(userLat + 0.1296, '14 km');
-    expect(lejos, cerca);
+    // A 1,2 km, la cifra más ancha que todavía espera (el aviso suena a
+    // 1 km), y a 14 km.
+    final cerca = await resto(userLat + 0.0108, '1,2 km');
+    final muyLejos = await resto(userLat + 0.1296, '14 km');
+    expect(muyLejos, cerca);
     // Una fila de `pie` (12 × 1,3), no dos.
     expect(cerca.height, lessThan(20));
   });
@@ -641,7 +649,8 @@ void main() {
 
   testWidgets('en modo selección, tocar la tarjeta entera la marca',
       (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
+    final container =
+        await pumpScreen(tester, [bus('A-1'), bus('A-2', lat: lejos)]);
     historicoSonado(container, 'A-1');
     arm(container, 'A-2');
     await tester.pump();
@@ -749,7 +758,7 @@ void main() {
   // —también «Desactivar»— se puede deshacer desde la tarjeta de abajo.
   testWidgets('borrar pide confirmación y «Cancelar» no borra nada',
       (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1')]);
+    final container = await pumpScreen(tester, [bus('A-1', lat: lejos)]);
     arm(container, 'A-1');
     await tester.pump();
 
@@ -770,8 +779,11 @@ void main() {
 
   testWidgets('deshacer «Desactivar» devuelve el aviso armado y con su fecha',
       (tester) async {
-    // El bus está encima, pero nadie mide hasta después de deshacer.
-    final container = await pumpScreen(tester, [bus('A-1')]);
+    // El bus va lejos: el aviso espera.
+    final buses = StreamController<List<BusPosition>>();
+    addTearDown(buses.close);
+    buses.add([bus('A-1', lat: lejos)]);
+    final container = await pumpScreen(tester, const [], fuente: buses.stream);
     arm(container, 'A-1');
     await tester.pump();
     final antes = container.read(alertHistoryProvider).single;
@@ -788,7 +800,9 @@ void main() {
     final despues = container.read(alertHistoryProvider).single;
     // La misma fecha: es la que dice cuándo vence el aviso.
     expect(despues.createdAt, antes.createdAt);
-    // Y vuelve a vigilar: con el bus encima, suena.
+    // Y vuelve a vigilar: el bus llega y suena.
+    buses.add([bus('A-1')]);
+    await tester.pump();
     await container.read(proximityAlertsProvider.notifier).check();
     expect(container.read(alertHistoryProvider).single.sent, isTrue);
   });
@@ -853,10 +867,17 @@ void main() {
 
   testWidgets('el bus que ya sonó y se volvió a armar sale en los dos grupos',
       (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1')]);
+    // Al armarlo, con el bus encima, suena en el acto; luego el bus se va
+    // y el aviso que se vuelve a armar espera.
+    final buses = StreamController<List<BusPosition>>();
+    addTearDown(buses.close);
+    buses.add([bus('A-1')]);
+    final container = await pumpScreen(tester, const [], fuente: buses.stream);
     arm(container, 'A-1');
     await tester.pump();
-    await container.read(proximityAlertsProvider.notifier).check();
+    expect(container.read(alertHistoryProvider).single.sent, isTrue);
+    buses.add([bus('A-1', lat: lejos)]);
+    await tester.pump();
     arm(container, 'A-1');
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -922,7 +943,8 @@ void main() {
   // mientras tanto no se puede tocar ni la lee el lector.
   testWidgets('al desactivar, la tarjeta se despide antes de irse',
       (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1'), bus('A-2')]);
+    final container =
+        await pumpScreen(tester, [bus('A-1', lat: lejos), bus('A-2')]);
     arm(container, 'A-1');
     historicoSonado(container, 'A-2');
     await tester.pump(const Duration(milliseconds: 800));
@@ -1066,7 +1088,7 @@ void main() {
   // «El botón de desactivar que tenga el desactivar en rojo» (dueño,
   // 2026-10-26): el rojo accesible de «Cambiar», 4,96:1 sobre la píldora.
   testWidgets('Desactivar va en rojo', (tester) async {
-    final container = await pumpScreen(tester, [bus('A-1')]);
+    final container = await pumpScreen(tester, [bus('A-1', lat: lejos)]);
     arm(container, 'A-1');
     await tester.pump();
     final boton = tester.widget<TextButton>(find

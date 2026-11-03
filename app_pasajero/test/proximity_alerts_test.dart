@@ -205,13 +205,20 @@ void main() {
     c.read(selectedRouteProvider.notifier).select(route());
     c.read(activeAlertsProvider.notifier).toggleAlert('A-1');
 
+    // El segundo espera al primero, que espera a la notificación: quien
+    // pide una medida no recibe una que no se hizo.
     final notifier = c.read(proximityAlertsProvider.notifier);
     final primero = notifier.check();
-    await notifier.check();
+    var segundoListo = false;
+    unawaited(notifier.check().then((_) => segundoListo = true));
+    await Future<void>.delayed(Duration.zero);
+    expect(segundoListo, isFalse);
     suelta.complete(true);
     await primero;
+    await Future<void>.delayed(Duration.zero);
 
     expect(llamadas, 1);
+    expect(segundoListo, isTrue);
   });
 
   test('no notifica dos veces por el mismo acercamiento', () async {
@@ -537,7 +544,11 @@ void main() {
 
     test('a 2 km suena con el bus a 1,6 km', () async {
       armar(2000);
-      await busEn(a1600);
+      // Sin `busEn`: armar ya mide en cuanto llegan las posiciones, y un
+      // barrido de más aquí, con la lista vacía, borraría la marca de «ya
+      // avisó» que esta prueba necesita.
+      posiciones.add([a1600]);
+      await Future<void>.delayed(Duration.zero);
       expect(sonados, hasLength(1));
       expect(avisos.radioDe('A-1'), isNull,
           reason: 'el que sonó ya no está armado');
@@ -584,7 +595,11 @@ void main() {
     test('ya avisado a 2 km, no vuelve a sonar hasta pasar los 2,5 km',
         () async {
       armar(2000);
-      await busEn(a1600);
+      // Sin `busEn`: armar ya mide en cuanto llegan las posiciones, y un
+      // barrido de más aquí, con la lista vacía, borraría la marca de «ya
+      // avisó» que esta prueba necesita.
+      posiciones.add([a1600]);
+      await Future<void>.delayed(Duration.zero);
       expect(sonados, hasLength(1));
 
       // Activo otra vez por el camino viejo, sin re-armar: la marca de «ya
@@ -843,18 +858,11 @@ void main() {
   });
 
   test('el ancla del pin sobrevive a cerrar y reabrir la app', () async {
-    // Se arma con el pin puesto en la parada (encima del bus).
-    (container.read(userLocationProvider.notifier) as _TestUserLocation).set(
-      UserLocationState(
-        mode: UserLocationMode.manual,
-        lat: 6.2442,
-        lon: -75.5812,
-        updatedAt: DateTime.now(),
-      ),
-    );
-    container.read(selectedRouteProvider.notifier).select(route());
-    container.read(activeAlertsProvider.notifier).toggleAlert('A-1');
-    container.read(proximityAlertsProvider.notifier).armAlert('A-1', 'R1');
+    // La sesión de antes dejó el aviso armado con el pin en la parada
+    // (encima del bus). Se escribe su historial y no se arma aquí: armar
+    // mide enseguida y, con el bus encima, sonaría antes de «cerrar».
+    container.read(alertHistoryProvider.notifier).upsert('A-1',
+        routeId: 'R1', refLat: 6.2442, refLon: -75.5812, radioM: 1000);
     // Fuerza el vaciado del historial a disco antes de "reabrir".
     await container.read(alertHistoryProvider.notifier).load();
 
