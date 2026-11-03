@@ -1,8 +1,8 @@
 # Lo que falta
 
-Al 2026-10-08. Todo lo que se podía hacer desde aquí sin esperar a nadie ya
-está hecho y subido a las ramas de trabajo (`diseno-21st` en app y web,
-`prueba` en el backend); a `main` se sube por lotes cuando lo pidas
+Al 2026-11-03, cotejado contra el código. Las ramas de trabajo son
+`referentes-movil` (app), `referentes-web` (web) y `prueba` (backend); a
+`main` se sube por lotes cuando lo pidas
 (regla de trabajo 2 de `CLAUDE.md`). Lo que queda está repartido según
 de quién depende. Cuando algo se cierre, se borra de aquí; cuando aparezca
 algo nuevo, se apunta en su grupo.
@@ -123,11 +123,15 @@ Necesitan un teléfono, una cuenta o estar presente.
 
 ## Lo que puedo hacer yo
 
-- **Días de la semana en Reportes, en el backend vivo** (2026-11-02): el
-  panel ya manda `dias` (lunes a domingo dentro del rango) y el backend de
-  `prueba` lo filtra con su prueba, pero el que corre bajo launchd es el de
-  antes y lo ignora (cuenta todos los días). Falta aplicarlo:
-  `npm run build` y `launchctl kickstart -k gui/$UID/com.yaviene.backend`.
+- **Commitear los arreglos de la auditoría que quedaron en el árbol**
+  (2026-11-01, sin commit en `referentes-movil`): AUD29-19 (`esUrlSegura`
+  en el core, el pasajero exige https), 23 (`load()` ya no pisa lo armado),
+  26 (`retirar` sin iniciar), 27 (`_rename` mira `mounted`), 32 (el
+  subtítulo dice «Transporte público urbano»), 36 (la rueda se desvanece en
+  los bordes) y 39 (las figuritas de Info no pasan bajo la barra de estado).
+  Falta correr sus pruebas, el render y commitearlos. El 37 (la ruta bajo
+  los rótulos) va con la sesión del mapa, que además dejó `MEDIR-TEMP` en
+  `map_widget.dart` para quitar antes del commit.
 
 - **Búsquedas de ejemplo de Coochofal en Reportes** (2026-10-28): la
   siembra de `busquedas_demo.ts` solo cubre Sobusa y Coolitoral. Espera
@@ -209,7 +213,7 @@ Necesitan un teléfono, una cuenta o estar presente.
 - **El aviso con la app cerrada, por la ruta** (D13, hallado en A2,
   2026-10-08): la app ya mide la distancia por la ruta (`por_ruta.dart`
   del core), pero el servidor que manda el push de Android
-  (`revisarAvisos` en `YaVieneBackend/src/avisos_push.ts`) sigue en línea
+  (`revisarAvisos` en `YaVieneBackend/src/data/avisos_push.ts`) sigue en línea
   recta. Con la app cerrada, un bus a 400 m en recta y a 3 km por la ruta
   todavía avisa antes de tiempo. Falta portar la medida al backend con sus
   mismas pruebas (la U de 1500 × 400 m del core; del 2026-10-18 y
@@ -234,11 +238,10 @@ Necesitan un teléfono, una cuenta o estar presente.
   cuan…». Falta la prueba roja que lo ate y acomodarlo (la píldora debajo
   del texto con letra grande, como en `notifications_screen.dart:813`).
 
-- **Dos specs de Playwright que fallan con 5 hilos** (hallado el
-  2026-10-16): `carrusel-lamina.spec.ts` y `contraste.spec.ts` fallan solo
-  con la carga en paralelo y pasan con `--workers=1`, con y sin el cambio
-  del hero. Falta la causa (tiempos de animación bajo carga) y volverlas
-  firmes.
+- **Un spec de Playwright que falla con 5 hilos** (hallado el
+  2026-10-16): `contraste.spec.ts` falla solo con la carga en paralelo y
+  pasa con `--workers=1`. Falta la causa y volverlo firme
+  (`carrusel-lamina.spec.ts` ya quedó firme en `6ec85f6`).
 
 - **«Calculando» en la hoja del bus, casi inalcanzable** (hallado el
   2026-10-16): un bus elegido sin posición cae al estado vacío
@@ -247,37 +250,31 @@ Necesitan un teléfono, una cuenta o estar presente.
   ubicación con un aviso del pin anterior y sin ancla. Revisar si se
   quitan (con `inventario-estados.md`) o si falta un estado de verdad.
 
-- **Endurecer el backend, lo corto** (hallado el 2026-10-29, AUD29-05 a
-  AUD29-18): los timers de búsquedas sin `vueltaProtegida`; el login sin
-  tope por cuenta entre IPs; el POST de búsquedas, anónimo, que puede
-  inflar Reportes; el alta de admin sin validar la empresa; la renovación
-  del token sin vida absoluta; los controles bidi y los separadores de
-  línea que deja pasar el buzón; el topic crudo en el log del MQTT; sin
-  HSTS y con los encabezados en dos sitios; `uptime` en `/api/health`;
-  errores en inglés; un `console.log` por conexión; el gzip del panel web
-  en cada petición, y `ip-address` en `npm audit` (lo demás es de
-  desarrollo).
+- **Endurecer el backend, lo que queda** (AUD29-06, 07, 08, 10 y 17; los
+  demás del 05 al 18 ya están en `main`): el login sin tope por cuenta
+  entre IPs (los dos limitadores llevan la IP); el POST de búsquedas,
+  anónimo, que puede inflar Reportes; el alta de admin sin 404 si la
+  empresa no existe (hoy la crea con `ensureEmpresa`) ni tope al largo del
+  usuario; U+202E, U+2028 y U+2029 que el buzón deja pasar
+  (`reportes.ts:34`), y el gzip del panel web en cada petición
+  (`panel_web.ts:117`).
 
-- **La app, seguridad y lógica** (hallado el 2026-10-29, AUD29-19 a
-  AUD29-30): `esSegura` al core para que el pasajero también exija https;
-  `dataSync` sin `onTimeout` en Android 15 (plausible, va con T5.5); la
-  web con una sola URL, sin respaldo; un comentario viejo y un `dispose`
-  incompleto en `proximity_alerts_provider.dart`; el `load()` del
-  historial, que pisa lo armado mientras lee; `_ultimo` de `por_ruta.dart`,
-  que no se poda; el doble reintento del socket; el ruido de
-  `LateInitializationError` en las pruebas; `_rename` sin `mounted` en el
-  panel; seis archivos de más de 1.200 líneas, a partir cuando se toquen;
-  los conteos de pruebas de `CLAUDE.md`, del 8 de octubre, y el 404 de
-  `critico.css` en Vitest.
+- **La app, seguridad y lógica, lo que queda** (AUD29-20 a 29, salvo lo
+  del árbol de arriba): `dataSync` sin `onTimeout` en Android 15
+  (plausible, va con T5.5); la web con una sola URL, sin respaldo (Fly ya
+  existe, así que ya se puede); el comentario viejo y el `dispose`
+  incompleto en `proximity_alerts_provider.dart`; `_ultimo` de
+  `por_ruta.dart`, que solo se poda en un camino; el doble reintento del
+  socket (`realtime_service.dart:169`); seis archivos de más de 1.200
+  líneas, a partir cuando se toquen, y los conteos de pruebas de
+  `CLAUDE.md`, del 8 de octubre.
 
-- **Retoques de diseño** (hallado el 2026-10-29, AUD29-31 a AUD29-42):
-  el monograma CO repetido en Coochofal y Coolitoral; el subtítulo de
-  transporte masivo de las empresas (mirar antes T6.5); el ícono genérico
-  de empresa en vez del monograma en su color; la píldora de estado más
-  ancha que la cabecera; la rueda cortada en seco en la quinta fila; la
-  ruta encima de los rótulos del mapa (`belowLayerId`); las figuritas de
-  Info bajo la barra de estado; y en Info, el tracking de la tarjeta de la
-  ruta activa, sus terminales centradas y el chevrón que solo lleva ella.
+- **Retoques de diseño, lo que queda** (AUD29-31 a 42, salvo lo del árbol
+  de arriba): el monograma CO repetido en Coochofal y Coolitoral; el ícono
+  genérico de empresa (`Icons.business_outlined`) en vez del monograma en
+  su color; la píldora de estado más ancha que la cabecera; y en Info, el
+  tracking de la tarjeta de la ruta activa (`letterSpacing: 1.2`), sus
+  terminales centradas y el chevrón que solo lleva ella.
 
 Ojo con la web: el CSS va en 118,5 de 121 KB (98 %; dueño, 2026-10-16: puede
 subir) y la carpeta `dist` en 719,2 de 797. Cualquier cambio de la web se
@@ -285,8 +282,8 @@ mide antes de sumarlo.
 
 ## El día antes y el día del pitch
 
-1. **El día anterior, no antes**: desplegar el respaldo en Fly y cargarle
-   los datos (T2.3 y T2.4).
+1. **El respaldo en Fly ya está arriba** (2026-11-02, la máquina siempre
+   prendida): el día anterior, cargarle los datos al día (T2.4).
 2. **Con Fly arriba**: matar ngrok tres veces y cronometrar que el pasajero
    y el panel se pasan solos al respaldo en 55 s o menos (simulacro a de
    T10.5), y que al revivir ngrok vuelven solos a él en 30 s o menos
