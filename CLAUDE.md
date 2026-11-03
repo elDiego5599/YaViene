@@ -140,7 +140,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
    respaldo, no se despliega hasta un día antes de presentar; nada de
    cloudflared (`start-test.sh` se borró; `build-demo.sh` quedó en
    `archivo/`).
-4. `app_control` (panel) solo macOS + Windows.
+4. `app_control` (panel) solo macOS + Windows. En el Mac queda **un solo
+   Ya Viene Control**, el más nuevo, en `/Applications` (dueño, 2026-11-03,
+   había tres): tras cada build se mueve la de `build/macos/.../Release` a
+   `/Applications` (la vieja a la papelera) y la de `Debug`, si se hizo,
+   también a la papelera; Spotlight y el Launchpad muestran cada copia.
 5. Sin modo oscuro; mapa CARTO Voyager, retocado como Yandex y sin nombres
    de sitios ni negocios en las dos apps (`estiloRetocado`, core; dueño,
    2026-10-28: se confundían con los buses); **distancia, no ETA**.
