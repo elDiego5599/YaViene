@@ -5,10 +5,10 @@
   "devDependencies": {
     "@ai-sdk/openai": "^4.0.84",
     "@ai-sdk/openai-compatible": "^3.0.63",
-    "@e2e-dev/mobile": "^0.10.0",
+    "@e2e-dev/mobile": "^0.12.5",
     "@types/node": "^26.6.4",
     "ai": "^7.0.128",
-    "e2e": "^0.18.0",
+    "e2e": "^0.22.0",
     "typescript": "^7.0.2"
   },
   "engines": {
