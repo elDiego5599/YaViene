@@ -11,6 +11,12 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 /// (dueño, 2026-11-03, «carga muy lento»). Con 256 MB caben Barranquilla y
 /// Soledad de zoom 12 a 16 (unos 180 MB) y las teselas crudas, con holgura
 /// para las de un retoque anterior hasta que se borren por viejas.
+///
+/// Las teselas de CARTO son de 512 px, como las de Mapbox, y el estilo cuenta
+/// sus zooms así. Con el desfase de fábrica (teselas de 256) el panel pintaba
+/// cada vista con el estilo de un zoom más cerca que el pasajero: calles gordas
+/// y apretadas de lejos (dueño, 2026-11-03, «toca acercarme mucho para que se
+/// vea bien»). `TileOffset.mapbox` lo deja como MapLibre.
 class CapaVoyager extends StatelessWidget {
   const CapaVoyager({super.key, required this.estilo});
 
@@ -24,5 +30,6 @@ class CapaVoyager extends StatelessWidget {
     sprites: estilo.sprites,
     tileProviders: estilo.providers,
     fileCacheMaximumSizeInBytes: tamanoCacheDisco,
+    tileOffset: TileOffset.mapbox,
   );
 }

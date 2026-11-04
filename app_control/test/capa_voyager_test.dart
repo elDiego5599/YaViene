@@ -88,4 +88,26 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
   });
+
+  // Las teselas de CARTO son de 512 px, como las de Mapbox, y el estilo
+  // cuenta sus zooms así. Con el desfase de fábrica (teselas de 256) el panel
+  // pintaba cada vista con el estilo de un zoom más cerca: calles gordas y
+  // apretadas y el papel de la ciudad, que se mide en metros, al doble
+  // (dueño, 2026-11-03, «toca acercarme mucho para que se vea bien»). El
+  // pasajero, con MapLibre, ya las leía bien.
+  testWidgets('lee las teselas de 512 px como el pasajero', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FlutterMap(
+          options: const MapOptions(initialCenter: LatLng(10.98, -74.81)),
+          children: [CapaVoyager(estilo: _estiloMinimo())],
+        ),
+      ),
+    );
+    final capa = tester.widget<VectorTileLayer>(find.byType(VectorTileLayer));
+    expect(capa.tileOffset.zoomOffset, TileOffset.mapbox.zoomOffset);
+    expect(TileOffset.mapbox.zoomOffset, -1);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 4));
+  });
 }

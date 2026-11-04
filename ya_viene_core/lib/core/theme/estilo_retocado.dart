@@ -39,7 +39,7 @@ const Map<String, Object> fondoDelMapa = {
 /// La versión del retoque. El panel guarda en disco las teselas ya pintadas
 /// con la llave `id-vversión` del estilo: cada cambio de colores sube esta
 /// versión para que no salgan las pintadas con los de antes.
-const versionRetoque = '2026-11-03.3';
+const versionRetoque = '2026-11-03.4';
 
 /// Capas que no van: los rótulos de estadios, parques y lagos (los POI de
 /// Voyager) y el tinte de las zonas residenciales, que ensuciaba el papel.
