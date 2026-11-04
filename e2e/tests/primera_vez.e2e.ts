@@ -11,7 +11,7 @@ test.beforeEach(async ({ device, app }) => {
 });
 
 test('la bienvenida no deja seguir hasta aceptar', async ({ screen }) => {
-  await expect(screen.getByText(/Tu ciudad en tiempo real/)).toBeVisible();
+  await expect(screen.getByText(/Tu ciudad en vivo/)).toBeVisible();
   await expect(screen.getByRole('button', /^Permitir ubicación/)).toBeDisabled();
   await expect(screen.getByRole('button', /^Ahora no/)).toBeDisabled();
   await screen.getByRole('switch', /^He leído y acepto/).tap();

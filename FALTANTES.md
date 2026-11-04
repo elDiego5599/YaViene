@@ -236,13 +236,12 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   ubicación con un aviso del pin anterior y sin ancla. Revisar si se
   quitan (con `inventario-estados.md`) o si falta un estado de verdad.
 
-- **Endurecer el backend, lo que queda** (AUD29-06, 07, 08, 10 y 17; los
-  demás del 05 al 18 ya están en `main`): el login sin tope por cuenta
-  entre IPs (los dos limitadores llevan la IP); el POST de búsquedas,
-  anónimo, que puede inflar Reportes; el alta de admin sin 404 si la
-  empresa no existe (hoy la crea con `ensureEmpresa`) ni tope al largo del
-  usuario; U+202E, U+2028 y U+2029 que el buzón deja pasar
-  (`reportes.ts:34`), y el gzip del panel web en cada petición
+- **Endurecer el backend, lo que queda** (AUD29-06, 07, 08 y 17; los
+  demás del 05 al 18 ya están en `main` o en `prueba`): el login sin tope
+  por cuenta entre IPs (los dos limitadores llevan la IP); el POST de
+  búsquedas, anónimo, que puede inflar Reportes; el alta de admin sin 404
+  si la empresa no existe (hoy la crea con `ensureEmpresa`) ni tope al
+  largo del usuario, y el gzip del panel web en cada petición
   (`panel_web.ts:117`).
 
 - **La app, seguridad y lógica, lo que queda** (AUD29-20 a 29, salvo lo

@@ -474,19 +474,19 @@
     "que": "mensaje del servidor"
   },
   {
-    "archivo": "app_control/lib/config.dart",
+    "archivo": "ya_viene_core/lib/core/network/url_segura.dart",
     "de": "if (uri.scheme == 'https') return true;",
     "a": "if (uri.scheme != 'http') return true;",
     "que": "solo https afuera"
   },
   {
-    "archivo": "app_control/lib/config.dart",
+    "archivo": "ya_viene_core/lib/core/network/url_segura.dart",
     "de": "uri.host == '127.0.0.1' ||",
     "a": "uri.host == '127.0.0.2' ||",
     "que": "http solo en esta máquina (IPv4)"
   },
   {
-    "archivo": "app_control/lib/config.dart",
+    "archivo": "ya_viene_core/lib/core/network/url_segura.dart",
     "de": "(uri.host == 'localhost' ||",
     "a": "(uri.host.endsWith('localhost') ||",
     "que": "http solo en localhost exacto"
