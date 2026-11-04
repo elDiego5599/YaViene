@@ -627,6 +627,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
     await _mapController!.addSource(
         _kRouteSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
+    // La ruta va bajo los rótulos del mapa, no encima: si no, la línea verde
+    // tapa «Soledad» o el nombre de la calle por donde pasa (AUD29-37).
+    // Paradas, buses y el pin sí van arriba de todo.
+    final bajoRotulos = switch (ref.read(estiloMapaProvider).value) {
+      final estilo? => primeraCapaDeRotulos(estilo),
+      null => null,
+    };
     // La orla va primero, debajo: es lo que despega la línea de las calles.
     await _mapController!.addLineLayer(
         _kRouteSourceId,
@@ -636,7 +643,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             lineWidth: EstiloRuta.orla.lineWidth,
             lineOpacity: EstiloRuta.orla.lineOpacity,
             lineCap: EstiloRuta.orla.lineCap,
-            lineJoin: EstiloRuta.orla.lineJoin));
+            lineJoin: EstiloRuta.orla.lineJoin),
+        belowLayerId: bajoRotulos);
     await _mapController!.addLineLayer(
         _kRouteSourceId,
         _kRouteLayerId,
@@ -645,7 +653,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
             lineWidth: EstiloRuta.linea.lineWidth,
             lineOpacity: EstiloRuta.linea.lineOpacity,
             lineCap: EstiloRuta.linea.lineCap,
-            lineJoin: EstiloRuta.linea.lineJoin));
+            lineJoin: EstiloRuta.linea.lineJoin),
+        belowLayerId: bajoRotulos);
 
     await _mapController!.addSource(
         _kStopsFijaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));

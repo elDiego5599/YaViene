@@ -57,4 +57,49 @@ void main() {
       kEstiloMapa,
     );
   });
+
+  group('primeraCapaDeRotulos', () {
+    // La ruta se mete bajo los rótulos para que «Soledad» o «BARRANQUILLA»
+    // se lean encima de la línea verde (AUD29-37).
+    test('da la primera capa de símbolos del estilo', () {
+      final estilo = jsonEncode({
+        'layers': [
+          {'id': 'background', 'type': 'background'},
+          {'id': 'road', 'type': 'line'},
+          {'id': 'place_city', 'type': 'symbol'},
+          {'id': 'road_label', 'type': 'symbol'},
+        ],
+      });
+      expect(primeraCapaDeRotulos(estilo), 'place_city');
+    });
+
+    // Voyager pone `waterway_label` antes de calles y edificios: meter la
+    // ruta bajo ese rótulo la dejaba tapada por todo el mapa.
+    test('salta los rótulos que van debajo de calles y edificios', () {
+      final estilo = jsonEncode({
+        'layers': [
+          {'id': 'water', 'type': 'fill'},
+          {'id': 'waterway_label', 'type': 'symbol'},
+          {'id': 'road_pri_fill', 'type': 'line'},
+          {'id': 'building', 'type': 'fill'},
+          {'id': 'place_suburbs', 'type': 'symbol'},
+          {'id': 'roadname_pri', 'type': 'symbol'},
+        ],
+      });
+      expect(primeraCapaDeRotulos(estilo), 'place_suburbs');
+    });
+
+    test('sin símbolos, sin capas o con la dirección de Voyager, nada', () {
+      expect(
+        primeraCapaDeRotulos(jsonEncode({
+          'layers': [
+            {'id': 'road', 'type': 'line'},
+          ],
+        })),
+        isNull,
+      );
+      expect(primeraCapaDeRotulos(jsonEncode({'version': 8})), isNull);
+      expect(primeraCapaDeRotulos(kEstiloMapa), isNull);
+    });
+  });
 }
