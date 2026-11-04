@@ -54,7 +54,7 @@ void main() {
     expect(
       (jsonDecode(estilo)['layers'] as List).single['paint']
           ['background-color'],
-      fondoMapaHex,
+      monteMapaHex,
     );
 
     // Lo que llega después refresca la copia para el próximo arranque.

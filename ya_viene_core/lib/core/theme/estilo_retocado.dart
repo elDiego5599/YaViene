@@ -8,14 +8,23 @@
 // escribir un estilo propio entero: las teselas, las fuentes y los filtros
 // siguen siendo los de CARTO, y aquí solo vive lo que cambia.
 
-/// El fondo del mapa, el papel claro entre manzanas: lo que se ve mientras
-/// llegan las teselas tiene que ser este mismo color.
+/// El papel de la ciudad, claro entre manzanas: lo que se ve mientras llegan
+/// las teselas tiene que ser este mismo color, porque las apps abren sobre
+/// Barranquilla.
 const fondoMapaHex = '#F4F2EE';
+
+/// El monte: el suelo de todo lo que no está construido, en el verde claro
+/// de Yandex (#D3EBB9; dueño, 2026-11-03). La ciudad se pinta encima.
+const monteMapaHex = '#D6ECBF';
+
+/// Parques, bosques, canchas y humedales: un verde más vivo que el monte,
+/// para que se lean como manchas sobre él, como en Yandex.
+const parqueMapaHex = '#C4E3A5';
 
 /// La versión del retoque. El panel guarda en disco las teselas ya pintadas
 /// con la llave `id-vversión` del estilo: cada cambio de colores sube esta
 /// versión para que no salgan las pintadas con los de antes.
-const versionRetoque = '2026-11-03.1';
+const versionRetoque = '2026-11-03.2';
 
 /// Capas que no van: los rótulos de estadios, parques y lagos (los POI de
 /// Voyager) y el tinte de las zonas residenciales, que ensuciaba el papel.
@@ -57,6 +66,163 @@ List<Object> _kindEn(List<String> kinds) => [
       ['literal', kinds],
     ];
 
+/// Lo construido, que va en papel sobre el monte. Todo uso de suelo que no
+/// es verde ni agua.
+const _usosDeCiudad = [
+  'residential',
+  'industrial',
+  'commercial',
+  'retail',
+  'school',
+  'kindergarten',
+  'hospital',
+  'clinic',
+  'university',
+  'college',
+  'military',
+  'naval_base',
+  'aerodrome',
+  'railway',
+  'pedestrian',
+  'place_of_worship',
+  'parking',
+  'garages',
+  'prison',
+  'construction',
+  'brownfield',
+  'landfill',
+  'quarry',
+  'platform',
+  'port',
+  'marina',
+  'zoo',
+  'theme_park',
+  'fairground',
+  'attraction',
+  'tourism',
+  'sports_centre',
+  'other',
+];
+
+/// Lo verde. Voyager deja fuera humedales, cultivos, reservas y playas, que
+/// alrededor de la Ciénaga de Mallorquín y del río son casi todo.
+const _usosVerdes = [
+  'wood',
+  'forest',
+  'grass',
+  'park',
+  'meadow',
+  'scrub',
+  'garden',
+  'recreation_ground',
+  'village_green',
+  'allotments',
+  'golf_course',
+  'grassland',
+  'heath',
+  'wetland',
+  'farmland',
+  'orchard',
+  'vineyard',
+  'plant_nursery',
+  'nature_reserve',
+  'national_park',
+  'protected_area',
+  'beach',
+];
+
+/// Metros por píxel por 2^zoom a la latitud de Barranquilla (11° N), en
+/// teselas de 512: 40.075.016 · cos 11° / 512.
+const _metrosPorPixelZ0 = 76832.0;
+
+/// Un ancho de línea de [metros] en el suelo, igual a todo zoom: con base 2
+/// cada zoom de más dobla los píxeles, como dobla el mapa.
+Map<String, Object> _anchoEnMetros(List<(int, double)> zoomYMetros) => {
+      'base': 2,
+      'stops': [
+        for (final (zoom, metros) in zoomYMetros)
+          [zoom, metros * (1 << zoom) / _metrosPorPixelZ0],
+      ],
+    };
+
+/// El papel de la ciudad, que va justo encima del monte ([fuente] es la de
+/// las teselas de Voyager). OSM no dibuja el monte ni marca el uso de cada
+/// manzana: lo que tiene uso de ciudad es papel, y bajo cada calle va una
+/// franja de papel ancha como una manzana a lado y lado, que cubre los
+/// barrios sin uso marcado. Las autopistas cruzan el monte y no llevan.
+List<Map<String, dynamic>> _sueloDeCiudad(String fuente) {
+  Map<String, dynamic> calles(String id, List<Object> filtro, Object ancho) => {
+        'id': id,
+        'type': 'line',
+        'source': fuente,
+        'source-layer': 'roads',
+        'filter': filtro,
+        'layout': {'line-cap': 'round', 'line-join': 'round'},
+        'paint': {'line-color': fondoMapaHex, 'line-width': ancho},
+      };
+  return [
+    {
+      'id': 'suelo_ciudad',
+      'type': 'fill',
+      'source': fuente,
+      'source-layer': 'landuse',
+      'filter': _kindEn(_usosDeCiudad),
+      'paint': {'fill-color': fondoMapaHex},
+    },
+    // De lejos más ancho: sin la trama de calles menores (solo llegan en
+    // las teselas de zoom 14), las avenidas tienen que tapar los barrios.
+    calles(
+      'suelo_avenidas',
+      [
+        'all',
+        [
+          '==',
+          ['get', 'kind'],
+          'major_road'
+        ],
+        [
+          '!',
+          [
+            'in',
+            ['get', 'kind_detail'],
+            [
+              'literal',
+              ['motorway', 'motorway_link', 'trunk', 'trunk_link'],
+            ],
+          ],
+        ],
+      ],
+      _anchoEnMetros([(9, 700), (11, 600), (13, 250), (15, 160), (18, 160)]),
+    ),
+    calles(
+      'suelo_calles',
+      [
+        'all',
+        [
+          '==',
+          ['get', 'kind'],
+          'minor_road'
+        ],
+        [
+          'in',
+          ['get', 'kind_detail'],
+          [
+            'literal',
+            [
+              'residential',
+              'living_street',
+              'service',
+              'unclassified',
+              'alley'
+            ],
+          ],
+        ],
+      ],
+      _anchoEnMetros([(12, 120), (18, 120)]),
+    ),
+  ];
+}
+
 const _montserrat = [
   'Montserrat Medium',
   'Open Sans Regular',
@@ -89,24 +255,15 @@ const Map<String, Object> _anchoAvenida = {
 };
 
 final List<_Retoque> _retoques = [
-  _r(['background'], paint: {'background-color': fondoMapaHex}),
-  // Las zonas verdes sólidas y en el verde de Yandex: Voyager las pinta con
-  // una veladura al 40 % que en Barranquilla casi no se veía (dueño,
-  // 2026-11-03, «le faltan zonas verdes»). De lejos un verde suave que no
-  // manche la ciudad; de cerca, más vivo.
+  _r(['background'], paint: {'background-color': monteMapaHex}),
+  // Las zonas verdes sólidas y más vivas que el monte: Voyager las pinta
+  // con una veladura al 40 % que en Barranquilla casi no se veía (dueño,
+  // 2026-11-03, «le faltan zonas verdes»).
   _r(
     ['landcover', 'park_*', 'landuse'],
-    paint: {
-      'fill-color': {
-        'stops': [
-          [10, '#D6EBC4'],
-          [13, '#CDE8B7'],
-          [15, '#C6E5AE'],
-        ],
-      },
-      'fill-opacity': 1,
-    },
+    paint: {'fill-color': parqueMapaHex, 'fill-opacity': 1},
   ),
+  _r(['landcover'], filter: _kindEn(_usosVerdes)),
   // Como en Yandex, las canchas y los parques infantiles también son verdes:
   // en los barrios son casi todo el verde que hay (en el centro, 20 canchas
   // por 29 parques en una tesela de zoom 14).
@@ -114,12 +271,13 @@ final List<_Retoque> _retoques = [
     ['landuse'],
     filter: _kindEn(['cemetery', 'stadium', 'pitch', 'playground']),
   ),
-  // El río en el azul de Yandex: el Magdalena tiene que leerse de lejos.
-  // `water_shadow` va encima de `water`, corrida unos píxeles, así que lo
-  // que se ve es la sombra y el agua queda de orilla, un poco más honda.
-  _r(['water'], paint: {'fill-color': '#8EC6EE'}),
-  _r(['water_shadow'], paint: {'fill-color': '#A4D2F4'}),
-  _r(['waterway'], paint: {'line-color': '#A4D2F4'}),
+  // El río en el azul de Yandex (#9FD1F6), limpio y vivo: el Magdalena
+  // tiene que leerse de lejos. `water_shadow` va encima de `water`, corrida
+  // unos píxeles, así que lo que se ve es la sombra y el agua queda de
+  // orilla, un poco más honda.
+  _r(['water'], paint: {'fill-color': '#86C3EE'}),
+  _r(['water_shadow'], paint: {'fill-color': '#9FD1F6'}),
+  _r(['waterway'], paint: {'line-color': '#9FD1F6'}),
   // Calles gris azulado sobre el papel, con filo más oscuro: más oscuras
   // que las manzanas, como en Yandex (las blancas no gustaron). De lejos el
   // filo y el relleno son del mismo tono: una calle es una sola raya, y no
@@ -134,7 +292,9 @@ final List<_Retoque> _retoques = [
     paint: {'line-color': _deLejosACerca('#C9CED8', '#D9DCE4')},
   ),
   // Las avenidas y autopistas, más azules y más anchas que las calles: de
-  // lejos son el esqueleto de la ciudad, como en Yandex.
+  // lejos son el esqueleto de la ciudad, como en Yandex. De cerca, filo gris
+  // azulado y centro claro: con el centro gris se veían pesadas y lavadas a
+  // la vez (dueño, 2026-11-03).
   _r(
     [
       'road_pri_case*',
@@ -145,7 +305,7 @@ final List<_Retoque> _retoques = [
       'bridge_mot_case',
     ],
     paint: {
-      'line-color': _deLejosACerca('#A9B5CA', '#A8AFBD'),
+      'line-color': _deLejosACerca('#9EACC4', '#9AA7BD'),
       'line-width': _anchoAvenida,
     },
   ),
@@ -158,7 +318,7 @@ final List<_Retoque> _retoques = [
       'bridge_trunk_fill',
       'bridge_mot_fill',
     ],
-    paint: {'line-color': _deLejosACerca('#A9B5CA', '#CED2DB')},
+    paint: {'line-color': _deLejosACerca('#9EACC4', '#E4E8EF')},
   ),
   // Las calles de barrio salen desde zoom 11,5, finas y claras: en Yandex
   // la cuadrícula se ve entera de lejos y le da trama a la ciudad, en vez
@@ -225,7 +385,7 @@ final List<_Retoque> _retoques = [
   ),
   _r(['rail', 'tunnel_rail'], paint: {'line-color': '#D2CCC3'}),
   // Barrios en mayúsculas espaciadas y gris: se leen sin pelear con los
-  // buses.
+  // buses. 3,5:1 sobre su halo de papel y 3,1:1 sobre el monte.
   _r(
     ['place_suburbs', 'place_hamlet'],
     layout: {
@@ -234,7 +394,7 @@ final List<_Retoque> _retoques = [
       'text-font': _montserrat,
     },
     paint: {
-      'text-color': '#A29B92',
+      'text-color': '#878077',
       'text-halo-color': fondoMapaHex,
       'text-halo-width': 1.5,
     },
@@ -276,7 +436,8 @@ final List<_Retoque> _retoques = [
   ),
   _r(
     ['waterway_label', 'watername_*'],
-    paint: {'text-color': '#3E8FC4', 'text-halo-color': '#E6F3FC'},
+    // 4,6:1 sobre su halo, que es lo que rodea cada letra.
+    paint: {'text-color': '#2A72A6', 'text-halo-color': '#E6F3FC'},
   ),
 ];
 
@@ -291,8 +452,16 @@ bool _toca(String patron, String id) {
 /// El estilo de Ya Viene a partir del de Voyager. No toca [voyager]: devuelve
 /// una copia con sus capas retocadas y sin las que no van.
 Map<String, dynamic> estiloRetocado(Map<String, dynamic> voyager) {
+  final originales = (voyager['layers'] as List).cast<Map>();
+  // El papel sale de la misma fuente de la que Voyager lee el uso del
+  // suelo. Un estilo sin esa capa no tiene manzanas que pintar.
+  final fuente = originales
+      .where((capa) => capa['source-layer'] == 'landuse')
+      .map((capa) => capa['source'])
+      .whereType<String>()
+      .firstOrNull;
   final capas = <Map<String, dynamic>>[];
-  for (final original in (voyager['layers'] as List).cast<Map>()) {
+  for (final original in originales) {
     final id = original['id'] as String;
     if (_quitar.contains(id)) continue;
     final capa = Map<String, dynamic>.of(original.cast<String, dynamic>());
@@ -308,6 +477,9 @@ Map<String, dynamic> estiloRetocado(Map<String, dynamic> voyager) {
       if (retoque.minzoom case final minzoom?) capa['minzoom'] = minzoom;
     }
     capas.add(capa);
+    if (id == 'background' && fuente != null) {
+      capas.addAll(_sueloDeCiudad(fuente));
+    }
   }
   return {
     ...voyager,

@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart';
 import 'package:ya_viene_control/features/fleet/presentation/widgets/estilo_para_pintor.dart';
+import 'package:ya_viene_core/core/theme/estilo_retocado.dart';
 
 class _Avisos implements Logger {
   final avisos = <String>[];
@@ -88,6 +89,43 @@ void main() {
         ['get', 'zoom'],
         13,
       ],
+    ]);
+  });
+
+  // El suelo de monte con la ciudad en papel encima (dueño, 2026-11-03):
+  // si el pintor no entendiera sus filtros, el panel sería todo verde.
+  test('entiende el papel de la ciudad sobre el monte', () {
+    final avisos = _Avisos();
+    final tema = ThemeReader(logger: avisos).read(
+      estiloParaPintor(
+        estiloRetocado({
+          'version': 8,
+          'sources': {
+            'protomaps': {'type': 'vector'},
+          },
+          'layers': [
+            {
+              'id': 'background',
+              'type': 'background',
+              'paint': {'background-color': '#fbf8f3'},
+            },
+            {
+              'id': 'landcover',
+              'type': 'fill',
+              'source': 'protomaps',
+              'source-layer': 'landuse',
+            },
+          ],
+        }),
+      ),
+    );
+    expect(avisos.avisos, isEmpty);
+    expect(tema.layers.map((capa) => capa.id), [
+      'background',
+      'suelo_ciudad',
+      'suelo_avenidas',
+      'suelo_calles',
+      'landcover',
     ]);
   });
 

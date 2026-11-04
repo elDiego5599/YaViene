@@ -270,9 +270,14 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   en el panel y el pasajero (`estilo_retocado.dart` en el core): papel
   #F4F2EE, calles gris azulado más oscuras que las manzanas, con filo
   (las blancas no gustaron), edificios beige desde zoom 15, barrios y
-  calles en mayúsculas grises y sin POI. Las zonas verdes van sólidas en el
-  verde de Yandex (también canchas y parques infantiles) y el agua en su
-  azul (dueño, 2026-11-03, «le faltan zonas verdes»). El pasajero arranca
+  calles en mayúsculas grises y sin POI. Como en Yandex, el suelo es monte
+  verde claro (#D6ECBF) y la ciudad va encima en papel: los usos de suelo
+  urbanos y una franja bajo cada calle, en metros (`suelo_*`; sin
+  autopistas, que cruzan el monte). Parques, bosques, canchas, humedales y
+  cultivos en un verde más vivo (#C4E3A5); el agua en su azul #9FD1F6 con
+  orilla más honda; avenidas con filo gris azulado y centro claro (dueño,
+  2026-11-03, «el de Yandex se ve espectacular y el nuestro barato»).
+  Barrios #878077 (3,1:1 sobre el monte). El pasajero arranca
   de la copia del estilo que guardó (`estilo_guardado.dart`) y la refresca
   por detrás; el panel guarda en disco hasta 256 MB de teselas
   (`CapaVoyager`; con los 50 MB de fábrica borraba y volvía a pintar). De lejos (hasta zoom 12,5) cada
