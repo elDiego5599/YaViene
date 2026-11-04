@@ -53,6 +53,11 @@ class BusNotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
+  /// Si `init()` ya dejó listo el plugin. Antes de eso el plugin no tiene su
+  /// estado y cualquier llamada lanza: `retirar` lo deja en el log en cada
+  /// arranque y tapa los errores de verdad (AUD29-26).
+  static bool _iniciado = false;
+
   static Future<void> init() async {
     _actividad.setMethodCallHandler((llamada) async {
       if (llamada.method != 'avisoTocado') return;
@@ -105,6 +110,7 @@ class BusNotificationService {
         if (aviso != null) _tocados.agregar(aviso);
       },
     );
+    _iniciado = true;
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await android?.createNotificationChannel(
@@ -410,6 +416,8 @@ class BusNotificationService {
   /// el nuevo no sonaría (`onlyAlertOnce`). Falla blando, como
   /// [notifyBusNear].
   static Future<void> retirar(String busId) async {
+    // Sin iniciar no hay nada en la bandeja que retirar.
+    if (!_iniciado) return;
     try {
       await _plugin.cancel(id: _stableNotificationId(busId));
     } catch (e) {

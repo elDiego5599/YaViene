@@ -67,7 +67,8 @@ class _RouteDialogState extends ConsumerState<RouteDialog> {
       context,
       (_) => _VentanaRenombrar(nombre: route.name),
     );
-    if (newName == null || newName == route.name) return;
+    // El catálogo pudo cerrarse mientras se escribía el nombre.
+    if (!mounted || newName == null || newName == route.name) return;
     final routes = ref.read(fleetProvider).routes;
     final exists = routes.any(
       (r) => r.name.toLowerCase() == newName.toLowerCase(),

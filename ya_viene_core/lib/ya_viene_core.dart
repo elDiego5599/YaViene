@@ -16,6 +16,7 @@ export 'core/models/route_trajectory.dart';
 export 'core/network/backend_resolver.dart';
 export 'core/network/backend_supervisor.dart';
 export 'core/network/fallo_red.dart';
+export 'core/network/url_segura.dart';
 export 'core/network/zona_socket.dart';
 
 // --- Observabilidad ---

@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart' show kReleaseMode, visibleForTesting;
+import 'package:ya_viene_core/ya_viene_core.dart' show esUrlSegura;
 
 class AppConfig {
   static const String _backendUrl = String.fromEnvironment('BACKEND_URL');
@@ -6,9 +7,18 @@ class AppConfig {
   /// Sin `--dart-define=BACKEND_URL=...` un build de release apuntaría en
   /// silencio a localhost y fallaría en el teléfono sin explicación: mejor
   /// que el propio arranque diga qué falta.
-  static String get backendUrl {
-    if (_backendUrl.isEmpty) {
-      if (kReleaseMode) {
+  static String get backendUrl =>
+      backendUrlPara(_backendUrl, release: kReleaseMode);
+
+  /// La regla de `backendUrl`, con el modo a la vista para poder probarla
+  /// (`kReleaseMode` es falso en toda prueba). En release tampoco vale
+  /// `http://` remoto: mandaría en claro el token de los avisos y el punto
+  /// donde espera el pasajero (AUD29-19), igual que el panel no deja ir su
+  /// clave.
+  @visibleForTesting
+  static String backendUrlPara(String definida, {required bool release}) {
+    if (definida.isEmpty) {
+      if (release) {
         throw StateError(
           'Falta BACKEND_URL: compila con '
           '--dart-define=BACKEND_URL=<url del backend>',
@@ -16,8 +26,19 @@ class AppConfig {
       }
       return 'http://localhost:3000';
     }
-    return _backendUrl;
+    if (release && !esUrlSegura(definida)) {
+      throw StateError(
+        'BACKEND_URL debe ser https:// para no mandar en claro el token de '
+        'los avisos ni el punto del pasajero (recibido: $definida)',
+      );
+    }
+    return definida;
   }
+
+  static const String _fallbackBackendUrl = String.fromEnvironment(
+    'BACKEND_URL_FALLBACK',
+    defaultValue: 'https://ya-viene-backend.fly.dev',
+  );
 
   /// Dirección de respaldo, para cuando la principal no contesta.
   ///
@@ -33,10 +54,17 @@ class AppConfig {
   /// desactiva el respaldo.
   ///
   /// Quién decide entre las dos es `BackendResolver`, en el arranque.
-  static const String fallbackBackendUrl = String.fromEnvironment(
-    'BACKEND_URL_FALLBACK',
-    defaultValue: 'https://ya-viene-backend.fly.dev',
-  );
+  static String get fallbackBackendUrl =>
+      respaldoPara(_fallbackBackendUrl, release: kReleaseMode);
+
+  /// El respaldo pasa por el mismo filtro que la principal, pero no revienta
+  /// el arranque: es un camino que solo se pisa cuando ya algo va mal. Un
+  /// respaldo inseguro simplemente no se usa.
+  @visibleForTesting
+  static String respaldoPara(String definido, {required bool release}) {
+    if (release && !esUrlSegura(definido)) return '';
+    return definido;
+  }
 
   static const String wsPath = '/ws';
   static const bool useMockData = bool.fromEnvironment(

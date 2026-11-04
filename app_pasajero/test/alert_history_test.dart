@@ -360,6 +360,32 @@ void main() {
     });
   });
 
+  test('un aviso armado mientras carga el historial no se pierde', () async {
+    final antes = DateTime.now().subtract(const Duration(hours: 1));
+    SharedPreferences.setMockInitialValues({
+      'alert_history': jsonEncode([
+        {
+          'busId': 'A-0',
+          'routeId': 'R1',
+          'createdAt': antes.toIso8601String(),
+          'sentAt': antes.toIso8601String(),
+        }
+      ]),
+    });
+    final notifier = AlertHistoryNotifier();
+
+    // La carga lee el disco en varios pasos; el pasajero arma un aviso en
+    // medio. Lo leído antes del cambio no puede pisar lo que se acaba de
+    // armar.
+    final cargando = notifier.load();
+    notifier.upsert('A-1', routeId: 'R1');
+    await cargando;
+
+    final porBus = {for (final e in notifier.state) e.busId: e};
+    expect(porBus.keys, unorderedEquals(['A-0', 'A-1']));
+    expect(porBus['A-1']!.sent, isFalse);
+  });
+
   group('purga del historial', () {
     Map<String, dynamic> entrada(String busId, {required int diasAtras}) {
       final cuando = DateTime.now().subtract(Duration(days: diasAtras));

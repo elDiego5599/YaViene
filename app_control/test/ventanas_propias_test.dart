@@ -257,6 +257,35 @@ void main() {
     await _desmontar(tester);
   });
 
+  testWidgets('renombrar con el catálogo ya cerrado no revienta (AUD29-27)', (
+    tester,
+  ) async {
+    await _montar(tester);
+
+    await tester.tap(find.text('Agregar ruta'));
+    await tester.pumpAndSettle();
+    final catalogo = ModalRoute.of(tester.element(ventana('Rutas')))!;
+    await tester.tap(find.byTooltip('Renombrar ruta'));
+    await tester.pumpAndSettle();
+
+    // El catálogo se va mientras la ventana de renombrar sigue abierta.
+    catalogo.navigator!.removeRoute(catalogo);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: ventana('Renombrar ruta'),
+        matching: find.byType(TextField),
+      ),
+      'Ruta nueva',
+    );
+    await tester.tap(find.text('GUARDAR'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(Ventana), findsNothing);
+    await _desmontar(tester);
+  });
+
   testWidgets('borrar el bus pregunta en rojo y, si falla, avisa en la '
       'tarjeta del panel', (tester) async {
     final (container, _) = await _montar(tester);

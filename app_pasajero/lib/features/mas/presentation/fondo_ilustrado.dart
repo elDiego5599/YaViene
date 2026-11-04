@@ -111,8 +111,13 @@ class FondoIlustrado extends StatelessWidget {
     final usos = {for (final m in Motivo.values) m: 0};
     final celdas = <Celda>[];
     final hasta = arriba + franja;
-    for (final centro
-        in regar(azar, pantalla, 8, separacion, aparte: (p) => p.dy > hasta)) {
+    // AUD29-39: con la barra de estado, un sol salía detrás de la hora y una
+    // marimonda bajo la batería. Ningún dibujo, ni el más grande (lado por
+    // 1,15), asoma por encima de ella; sin barra se sigue sangrando arriba.
+    final desde =
+        arriba > 0 ? arriba + _lado * 1.15 / 2 : double.negativeInfinity;
+    for (final centro in regar(azar, pantalla, 8, separacion,
+        aparte: (p) => p.dy > hasta || p.dy < desde)) {
       final vecinos = {
         for (final c in celdas)
           if ((c.centro - centro).distance <= separacion * 1.5) c.motivo,

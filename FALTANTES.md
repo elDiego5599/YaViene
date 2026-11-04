@@ -119,16 +119,6 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que puedo hacer yo
 
-- **Commitear los arreglos de la auditoría que quedaron en el árbol**
-  (2026-11-01, sin commit en `referentes-movil`): AUD29-19 (`esUrlSegura`
-  en el core, el pasajero exige https), 23 (`load()` ya no pisa lo armado),
-  26 (`retirar` sin iniciar), 27 (`_rename` mira `mounted`), 32 (el
-  subtítulo dice «Transporte público urbano»), 36 (la rueda se desvanece en
-  los bordes) y 39 (las figuritas de Info no pasan bajo la barra de estado).
-  Falta correr sus pruebas, el render y commitearlos. El 37 (la ruta bajo
-  los rótulos) va con la sesión del mapa, que además dejó `MEDIR-TEMP` en
-  `map_widget.dart` para quitar antes del commit.
-
 - **Búsquedas de ejemplo de Coochofal en Reportes** (2026-10-28): la
   siembra de `busquedas_demo.ts` solo cubre Sobusa y Coolitoral. Espera
   a que se cierre el cambio que otra sesión dejó a medias en ese archivo.

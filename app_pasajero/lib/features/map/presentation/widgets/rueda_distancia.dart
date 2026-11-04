@@ -126,41 +126,63 @@ class _RuedaDistanciaState extends State<RuedaDistancia> {
         // aplastadas. Dividido por él caben justo [filas], y la rueda queda
         // más baja.
         height: fila * filas / _apriete,
-        child: CupertinoPicker(
-          scrollController: _control,
-          itemExtent: fila,
-          squeeze: _apriete,
-          useMagnifier: true,
-          magnification: 1.08,
-          selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
-            background: franjaRuedaDistancia,
-          ),
-          // Cada paso se siente en el dedo, como en la alarma del iPhone. En
-          // iOS el picker ya lo da; en Android no daba nada.
-          onSelectedItemChanged: (i) {
-            if (defaultTargetPlatform != TargetPlatform.iOS) {
-              HapticFeedback.selectionClick();
-            }
-            widget.alCambiar(_opciones[i]);
+        // Las filas de los bordes se apagan hacia fuera, como en la rueda
+        // del iPhone, en vez de cortarse en seco contra la tarjeta
+        // (AUD29-36). El desvanecido ocupa el alto de una fila de las
+        // que se ven (fila / alto = apriete / filas) y arranca en el 15 %,
+        // no en cero, para que la del borde se lea todavía.
+        child: ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (caja) {
+            final borde = _apriete / filas;
+            return LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: const [
+                Color(0x26000000),
+                Color(0xFF000000),
+                Color(0xFF000000),
+                Color(0x26000000),
+              ],
+              stops: [0, borde, 1 - borde, 1],
+            ).createShader(caja);
           },
-          children: [
-            for (final m in _opciones)
-              Center(
-                child: Semantics(
-                  label: distanciaAvisoHablada(m),
-                  excludeSemantics: true,
-                  child: Text(
-                    distanciaAviso(m),
-                    // Cifras de ancho fijo: al girar, «1,1 km» y «1,8 km»
-                    // ocupan lo mismo y la columna no baila.
-                    style: AppTextStyles.titulo.copyWith(
-                      color: AppColors.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+          child: CupertinoPicker(
+            scrollController: _control,
+            itemExtent: fila,
+            squeeze: _apriete,
+            useMagnifier: true,
+            magnification: 1.08,
+            selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
+              background: franjaRuedaDistancia,
+            ),
+            // Cada paso se siente en el dedo, como en la alarma del iPhone. En
+            // iOS el picker ya lo da; en Android no daba nada.
+            onSelectedItemChanged: (i) {
+              if (defaultTargetPlatform != TargetPlatform.iOS) {
+                HapticFeedback.selectionClick();
+              }
+              widget.alCambiar(_opciones[i]);
+            },
+            children: [
+              for (final m in _opciones)
+                Center(
+                  child: Semantics(
+                    label: distanciaAvisoHablada(m),
+                    excludeSemantics: true,
+                    child: Text(
+                      distanciaAviso(m),
+                      // Cifras de ancho fijo: al girar, «1,1 km» y «1,8 km»
+                      // ocupan lo mismo y la columna no baila.
+                      style: AppTextStyles.titulo.copyWith(
+                        color: AppColors.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

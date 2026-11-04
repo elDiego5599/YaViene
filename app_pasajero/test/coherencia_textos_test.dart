@@ -46,7 +46,7 @@ void main() {
     'Cuál esperas': ['selector al abrir'],
     'Elegir empresa': ['selector al abrir'],
     'Elige empresa': ['selector lista de empresas'],
-    'Empresa de transporte masivo': ['selector con empresa'],
+    'Transporte público urbano': ['selector con empresa'],
     'Elige ruta': ['selector lista de rutas'],
     'Ver buses en vivo': ['selector con ruta'],
     'Toca el mapa para indicar dónde estás': ['hoja sin punto'],

@@ -44,11 +44,12 @@ void main() {
     late Map<String, Object?> mostrada;
     late List<Object?> retiradas;
 
-    setUp(() {
+    setUp(() async {
       retiradas = [];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(_canal, (call) async {
         switch (call.method) {
+          case 'initialize':
           case 'areNotificationsEnabled':
             return true;
           case 'getNotificationChannels':
@@ -76,6 +77,8 @@ void main() {
         }
         return null;
       });
+      // Sin iniciar, `retirar` no llega al plugin (AUD29-26).
+      await BusNotificationService.init();
     });
     tearDown(() => TestDefaultBinaryMessengerBinding
         .instance.defaultBinaryMessenger

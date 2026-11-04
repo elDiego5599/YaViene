@@ -263,6 +263,13 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
 
   Future<void> _saveQueue = Future<void>.value();
 
+  /// Cuántas veces cambió el historial en memoria. [load] lo mira para no
+  /// pisar con el disco un cambio que llegó mientras leía.
+  int _cambios = 0;
+
+  /// Si [load] ya trajo el disco a memoria alguna vez.
+  bool _cargado = false;
+
   /// La entrada que espera de [busId], o -1.
   int _activa(String busId) =>
       state.indexWhere((e) => e.busId == busId && !e.sent);
@@ -392,6 +399,7 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
 
   /// Carga el historial guardado (al arrancar la app o volver al mapa).
   Future<void> load() async {
+    final generacion = _cambios;
     // No leer una versión antigua del disco mientras una activación reciente
     // todavía está terminando de persistirse.
     await _saveQueue;
@@ -403,45 +411,81 @@ class AlertHistoryNotifier extends StateNotifier<List<AlertHistoryEntry>> {
     var raw = prefs.getString(_kHistoryKey);
     final fundido = await _migrarPorCuenta(prefs);
     if (fundido != null) raw = fundido;
-    if (raw == null || raw.isEmpty) return;
     Object? decoded;
     try {
-      decoded = jsonDecode(raw);
+      decoded = raw == null || raw.isEmpty ? const [] : jsonDecode(raw);
     } on FormatException {
       decoded = null;
     }
-    if (decoded is! List) {
-      // Ni siquiera es una lista: no hay entrada que rescatar. Se reescribe
-      // vacío para no volver a tropezar con lo mismo en cada arranque.
-      state = const [];
-      _save();
-      return;
+    // Ni siquiera es una lista: no hay entrada que rescatar, y se reescribe
+    // para no volver a tropezar con lo mismo en cada arranque. Si no, entrada
+    // por entrada: antes una sola rota (una fecha a medias, un bus que llegó
+    // como número) hacía saltar el `catch` y se perdía el historial entero,
+    // avisos activos incluidos.
+    final esLista = decoded is List;
+    var list = esLista
+        ? decoded
+            .map(AlertHistoryEntry.tryFromJson)
+            .whereType<AlertHistoryEntry>()
+            .toList()
+        : <AlertHistoryEntry>[];
+    var reescribir = !esLista || list.length != decoded.length;
+    // El historial cambió mientras se leía (el pasajero armó un aviso entre
+    // la lectura y aquí): lo leído es viejo y pisaría ese cambio.
+    if (_cambios != generacion) {
+      // Ya cargado, el cambio ya está en el disco: basta releer.
+      if (_cargado) return load();
+      // Antes de la primera carga la memoria no tenía lo del disco y quizá
+      // se leyó antes de que su guardado llegara: se juntan, y gana memoria.
+      list = _juntar(list, state);
+      reescribir = true;
     }
-    // Entrada por entrada: antes una sola rota (una fecha a medias, un bus
-    // que llegó como número) hacía saltar el `catch` y se perdía el
-    // historial entero, avisos activos incluidos.
-    final list = decoded
-        .map(AlertHistoryEntry.tryFromJson)
-        .whereType<AlertHistoryEntry>()
-        .toList();
+    _cargado = true;
     final purgado = _purgar(list);
     state = purgado;
     // Se reescribe saneado si algo se cayó: por rota o por vieja (una
     // instalación antigua puede traer el historial ya crecido). Así lo que
     // se descartó no vuelve a leerse mañana.
-    if (purgado.length != decoded.length) _save();
+    if (reescribir || purgado.length != list.length) _save();
+  }
+
+  /// [disco] con los cambios de [memoria] encima: la entrada de memoria
+  /// gana a la del disco con su mismo id, y un activo del disco se va si su
+  /// bus ya tiene otro armado en memoria (un solo activo por bus).
+  static List<AlertHistoryEntry> _juntar(
+    List<AlertHistoryEntry> disco,
+    List<AlertHistoryEntry> memoria,
+  ) {
+    final ids = {for (final e in memoria) e.id};
+    final esperando = {
+      for (final e in memoria)
+        if (!e.sent) e.busId
+    };
+    return [
+      for (final e in disco)
+        if (!ids.contains(e.id) && (e.sent || !esperando.contains(e.busId))) e,
+      ...memoria,
+    ];
   }
 
   /// Se cumple cuando lo último que se cambió ya está en el disco.
   Future<void> get guardado => _saveQueue.catchError((_) {});
 
   void _save() {
+    _cambios++;
     final purgado = _purgar(state);
     if (purgado.length != state.length) state = purgado;
-    final encoded = jsonEncode(state.map((e) => e.toJson()).toList());
+    final memoria = state;
+    final cargado = _cargado;
     _saveQueue = _saveQueue.catchError((_) {}).then((_) async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kHistoryKey, encoded);
+      // Antes de la primera carga la memoria no trae lo del disco: guardarla
+      // tal cual borraría el historial. Se escribe encima de lo que hay.
+      final lista = cargado
+          ? memoria
+          : _juntar(_leer(prefs.getString(_kHistoryKey)), memoria);
+      await prefs.setString(
+          _kHistoryKey, jsonEncode(lista.map((e) => e.toJson()).toList()));
     });
   }
 }

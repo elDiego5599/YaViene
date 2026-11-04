@@ -674,7 +674,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 key: widget.companyGuideKey,
                 title: selectedCompany?.name ?? 'Empresa',
                 subtitle: selectedCompany != null
-                    ? 'Empresa de transporte masivo'
+                    ? 'Transporte público urbano'
                     : 'Con cuál viajas',
                 // El título es el nombre elegido y por sí solo no dice de
                 // qué paso salió: «Sobusa» a secas podría ser la ruta.

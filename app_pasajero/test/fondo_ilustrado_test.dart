@@ -53,6 +53,16 @@ void main() {
     }
   });
 
+  // AUD29-39: con la barra de estado, un sol salía detrás de la hora y una
+  // marimonda bajo la batería. Ningún dibujo asoma por encima de ella.
+  test('ninguno se mete bajo la barra de estado', () {
+    const barra = 47.0;
+    for (final c in FondoIlustrado.celdas(pantalla, arriba: barra)) {
+      expect(c.centro.dy - c.lado / 2, greaterThanOrEqualTo(barra),
+          reason: '${c.centro} lado ${c.lado}');
+    }
+  });
+
   testWidgets('se apaga hacia abajo, del todo al pie de la franja',
       (tester) async {
     await tester
