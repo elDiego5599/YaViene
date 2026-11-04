@@ -157,7 +157,7 @@ void main() {
     final estilo = estiloRetocado(_voyager());
     expect(
       _por(estilo, 'background')['paint']['background-color'],
-      monteMapaHex,
+      fondoDelMapa,
     );
     final ids = (estilo['layers'] as List).map((capa) => (capa as Map)['id']);
     // Justo encima del suelo y debajo de todo lo demás: los parques, el
@@ -182,6 +182,29 @@ void main() {
       expect(calle['source-layer'], 'roads');
       expect(calle['paint']['line-color'], fondoMapaHex);
     }
+  });
+
+  // De lejos el monte salía en barrios enteros que de cerca son ciudad
+  // (dueño, 2026-11-03, «si me alejo mucho salen zonas verdes que en
+  // realidad no existen»): las calles menores, que tapan con su papel las
+  // manzanas sin uso marcado, solo vienen en las teselas desde zoom 12.
+  // Antes de eso el suelo es papel; el verde de lejos es solo el de los
+  // parques, humedales y montes que las teselas sí dibujan.
+  test('de lejos no hay monte donde de cerca hay ciudad', () {
+    final suelo = estiloRetocado(_voyager())['layers'].first['paint']
+        ['background-color'] as Map;
+    final paradas = (suelo['stops'] as List).cast<List>();
+    expect(paradas.first, [zoomDelMonte, fondoMapaHex]);
+    expect(paradas.last.last, monteMapaHex);
+    expect(zoomDelMonte, 12);
+    // Las calles menores tapan desde ese mismo zoom.
+    final calles = (estiloRetocado(_voyager())['layers'] as List)
+        .cast<Map>()
+        .singleWhere((capa) => capa['id'] == 'suelo_calles');
+    expect(
+      ((calles['paint']['line-width'] as Map)['stops'] as List).first.first,
+      lessThanOrEqualTo(zoomDelMonte),
+    );
   });
 
   // El papel que va bajo cada calle se mide en metros, como una manzana a

@@ -40,7 +40,7 @@ void main() {
     expect(pedidas, [Uri.parse(kEstiloMapa)]);
     final capas = (jsonDecode(estilo)['layers'] as List).cast<Map>();
     expect(capas.map((capa) => capa['id']), ['background']);
-    expect(capas.single['paint']['background-color'], monteMapaHex);
+    expect(capas.single['paint']['background-color'], fondoDelMapa);
   });
 
   test('sin red o con un error, el Voyager de siempre', () async {

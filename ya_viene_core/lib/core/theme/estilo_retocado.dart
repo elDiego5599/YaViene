@@ -21,10 +21,25 @@ const monteMapaHex = '#D6ECBF';
 /// para que se lean como manchas sobre él, como en Yandex.
 const parqueMapaHex = '#C4E3A5';
 
+/// Desde qué zoom el suelo es monte. Las calles menores, cuyo papel tapa las
+/// manzanas sin uso marcado, solo vienen en las teselas desde zoom 12: antes,
+/// con monte de suelo, barrios enteros salían verdes de lejos y de cerca eran
+/// ciudad (dueño, 2026-11-03). De lejos el suelo es papel y el verde es solo
+/// el de los parques, humedales y montes que las teselas dibujan.
+const zoomDelMonte = 12;
+
+/// El color del suelo: papel hasta [zoomDelMonte] y monte desde un zoom más.
+const Map<String, Object> fondoDelMapa = {
+  'stops': [
+    [zoomDelMonte, fondoMapaHex],
+    [zoomDelMonte + 1, monteMapaHex],
+  ],
+};
+
 /// La versión del retoque. El panel guarda en disco las teselas ya pintadas
 /// con la llave `id-vversión` del estilo: cada cambio de colores sube esta
 /// versión para que no salgan las pintadas con los de antes.
-const versionRetoque = '2026-11-03.2';
+const versionRetoque = '2026-11-03.3';
 
 /// Capas que no van: los rótulos de estadios, parques y lagos (los POI de
 /// Voyager) y el tinte de las zonas residenciales, que ensuciaba el papel.
@@ -169,8 +184,9 @@ List<Map<String, dynamic>> _sueloDeCiudad(String fuente) {
       'filter': _kindEn(_usosDeCiudad),
       'paint': {'fill-color': fondoMapaHex},
     },
-    // De lejos más ancho: sin la trama de calles menores (solo llegan en
-    // las teselas de zoom 14), las avenidas tienen que tapar los barrios.
+    // Más ancho mientras la trama de calles menores (que llega en las
+    // teselas de zoom 12) aún no tapa los barrios; antes de [zoomDelMonte]
+    // el suelo ya es papel y no hace falta.
     calles(
       'suelo_avenidas',
       [
@@ -192,7 +208,7 @@ List<Map<String, dynamic>> _sueloDeCiudad(String fuente) {
           ],
         ],
       ],
-      _anchoEnMetros([(9, 700), (11, 600), (13, 250), (15, 160), (18, 160)]),
+      _anchoEnMetros([(zoomDelMonte, 400), (13, 250), (15, 160), (18, 160)]),
     ),
     calles(
       'suelo_calles',
@@ -218,7 +234,7 @@ List<Map<String, dynamic>> _sueloDeCiudad(String fuente) {
           ],
         ],
       ],
-      _anchoEnMetros([(12, 120), (18, 120)]),
+      _anchoEnMetros([(zoomDelMonte, 120), (18, 120)]),
     ),
   ];
 }
@@ -255,7 +271,7 @@ const Map<String, Object> _anchoAvenida = {
 };
 
 final List<_Retoque> _retoques = [
-  _r(['background'], paint: {'background-color': monteMapaHex}),
+  _r(['background'], paint: {'background-color': fondoDelMapa}),
   // Las zonas verdes sólidas y más vivas que el monte: Voyager las pinta
   // con una veladura al 40 % que en Barranquilla casi no se veía (dueño,
   // 2026-11-03, «le faltan zonas verdes»).
