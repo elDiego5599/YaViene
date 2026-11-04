@@ -369,8 +369,10 @@ class _Marca extends StatelessWidget {
 }
 
 /// Lo que se lee suelto sobre las ilustraciones va en una píldora blanca y
-/// opaca, con la sombra de las tarjetas: los dibujos no se meten detrás de la
-/// letra.
+/// opaca: los dibujos no se meten detrás de la letra. Lleva la sombra de los
+/// botones de la barra, no la de las tarjetas: la flotante baja 48 y la barra
+/// solo deja 26 bajo la píldora, así que se cortaba en una raya recta que se
+/// veía al bajar (dueño, 2026-11-03).
 class _Pildora extends StatelessWidget {
   const _Pildora({required this.padding, required this.child});
 
@@ -384,7 +386,7 @@ class _Pildora extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.pill),
-        boxShadow: AppShadows.floating,
+        boxShadow: PildoraVidrio.sombra,
       ),
       child: Padding(padding: padding, child: child),
     );

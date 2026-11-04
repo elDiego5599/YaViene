@@ -301,6 +301,24 @@ void main() {
         moreOrLessEquals(26, epsilon: 0.5));
   });
 
+  // La barra recorta lo que se le sale por abajo: una sombra más larga que el
+  // aire bajo la píldora se corta en raya recta y, al bajar, se ve la línea
+  // (dueño, 2026-11-03).
+  testWidgets('la sombra de la marca cabe en la barra, sin cortarse',
+      (tester) async {
+    await abrirMas(tester);
+
+    final enBarra = find.descendant(
+        of: find.byType(AppBar), matching: find.byKey(MasScreen.pildoraKey));
+    final aire = tester.getRect(find.byType(AppBar)).bottom -
+        tester.getRect(enBarra).bottom;
+    final pildora = tester.widget<DecoratedBox>(enBarra);
+    for (final sombra in (pildora.decoration as BoxDecoration).boxShadow!) {
+      expect(sombra.offset.dy + sombra.blurRadius + sombra.spreadRadius,
+          lessThanOrEqualTo(aire));
+    }
+  });
+
   /// La tarjeta parece un botón: tocarla lleva al mapa (revisión externa,
   /// 2026-10-18: «la tarjeta de ruta activa no lleva al mapa»). Sin ruta,
   /// además abre el selector, como «Escoge empresa y ruta» en la hoja.
