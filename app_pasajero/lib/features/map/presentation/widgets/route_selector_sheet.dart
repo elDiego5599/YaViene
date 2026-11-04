@@ -633,6 +633,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     final selectedCompany = ref.watch(selectedCompanyProvider);
     final selectedRoute = ref.watch(selectedRouteProvider);
     final companiesAsync = ref.watch(companiesProvider);
+    final tinte =
+        selectedCompany == null ? null : colorEmpresa(selectedCompany.id);
+    final codigoElegido =
+        selectedRoute == null ? null : _routeCode(selectedRoute.name);
 
     return Padding(
       // La medida va en el Padding, no en la Column: las listas de empresa
@@ -683,6 +687,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                     : 'Empresa: ${selectedCompany.name}',
                 icon: Icons.business_outlined,
                 isActive: selectedCompany != null,
+                tinte: tinte,
                 onTap: () {
                   HapticFeedback.lightImpact();
                   _clearRouteHint();
@@ -718,11 +723,15 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
             lineDown: false,
             child: _SelectorTile(
               key: widget.routeGuideKey,
-              title: selectedRoute?.name ?? 'Ruta',
+              // Elegida, la ruta se dice como en su fila: el código en la
+              // caja y el nombre sin él (dueño, 2026-11-03).
+              title: codigoElegido?.rest ?? selectedRoute?.name ?? 'Ruta',
+              insignia: codigoElegido?.code,
               subtitle: _routeSubtitle(selectedRoute) ??
                   (selectedRoute != null ? null : 'Cuál esperas'),
               icon: Icons.alt_route_outlined,
               isActive: selectedRoute != null,
+              tinte: tinte,
               dicho: selectedRoute == null
                   ? 'Ruta. Cuál esperas'
                   : 'Ruta: ${selectedRoute.name}'
@@ -1286,9 +1295,11 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             // F13: la fila ya elegida se marca al volver a la lista, en vez de
-            // que todas se vean igual de "sin elegir".
+            // que todas se vean igual de "sin elegir". Su filo y su palomita
+            // van en el color de la insignia, que es el de la empresa (dueño,
+            // 2026-11-03): todos pasan de 3:1 sobre blanco.
             side: selected
-                ? const BorderSide(color: AppColors.primary, width: 1.5)
+                ? BorderSide(color: iconBackground, width: 1.5)
                 : const BorderSide(color: AppColors.hairline),
           ),
           clipBehavior: Clip.antiAlias,
@@ -1356,8 +1367,8 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     selected
-                        ? const Icon(Icons.check_circle_rounded,
-                            color: AppColors.primary)
+                        ? Icon(Icons.check_circle_rounded,
+                            color: iconBackground)
                         : const Icon(Icons.chevron_right_outlined,
                             size: 20, color: AppColors.textSecondary),
                   ],
@@ -1454,6 +1465,15 @@ class _SelectorTile extends StatefulWidget {
   /// voz alta es un nombre, «flecha izquierda derecha» y otro nombre.
   final String? dicho;
 
+  /// El color de la empresa elegida: viste la tarjeta activa (filo y caja
+  /// del ícono, con el ícono en blanco) como su insignia en «Elige
+  /// empresa» (dueño, 2026-11-03). Sin empresa, el verde de siempre.
+  final Color? tinte;
+
+  /// El código de la ruta elegida («C16»): va en la caja en vez del ícono,
+  /// en blanco sobre [tinte], como la insignia de su fila en «Elige ruta».
+  final String? insignia;
+
   const _SelectorTile({
     super.key,
     required this.title,
@@ -1462,6 +1482,8 @@ class _SelectorTile extends StatefulWidget {
     required this.isActive,
     this.hint,
     this.dicho,
+    this.tinte,
+    this.insignia,
     this.onTap,
   });
 
@@ -1496,12 +1518,16 @@ class _SelectorTileState extends State<_SelectorTile>
     final isActive = widget.isActive;
     final hint = widget.hint;
     final amplitud = AppMotion.reducido(context) ? 0.0 : 6.0;
+    final tinte = widget.tinte;
+    final insignia = widget.insignia;
 
     final Color borde;
     if (hint != null) {
       borde = AppColors.warning;
     } else if (isActive) {
-      borde = AppColors.primary.withValues(alpha: 0.45);
+      // Al 45 % como el verde: el filo acompaña, la caja del ícono es la
+      // que lleva el color lleno.
+      borde = (tinte ?? AppColors.primary).withValues(alpha: 0.45);
     } else {
       borde = AppColors.hairline;
     }
@@ -1576,18 +1602,34 @@ class _SelectorTileState extends State<_SelectorTile>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: isActive
-                          ? AppColors.primaryTint
-                          : AppColors.surfaceMuted,
+                      color: !isActive
+                          ? AppColors.surfaceMuted
+                          : tinte ?? AppColors.primaryTint,
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    child: Icon(
-                      widget.icon,
-                      color: isActive
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                      size: 22,
-                    ),
+                    child: insignia != null && isActive && tinte != null
+                        ? Center(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: FittedBox(
+                                child: Text(
+                                  insignia,
+                                  style: AppTextStyles.etiqueta
+                                      .copyWith(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            widget.icon,
+                            color: !isActive
+                                ? AppColors.textSecondary
+                                : tinte != null
+                                    ? Colors.white
+                                    : AppColors.primary,
+                            size: 22,
+                          ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(

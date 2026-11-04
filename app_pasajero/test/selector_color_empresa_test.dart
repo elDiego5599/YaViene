@@ -90,4 +90,43 @@ void main() {
       expect(letraInsignia(tester), Colors.white);
     });
   }
+
+  /// El fondo de la caja de 44 que lleva el ícono [icono].
+  Color? fondoIcono(WidgetTester tester, IconData icono) {
+    final caja = tester.widget<Container>(find
+        .ancestor(of: find.byIcon(icono), matching: find.byType(Container))
+        .first);
+    return (caja.decoration as BoxDecoration?)?.color;
+  }
+
+  /// Ya elegidas, la empresa y la ruta se visten del color de la empresa
+  /// (dueño, 2026-11-03): el filo, la caja del ícono y la palomita de la
+  /// fila elegida. El botón y el riel siguen en verde: dicen «listo».
+  for (final empresa in companies) {
+    testWidgets('con ${empresa.name} elegida, empresa y ruta van en su color',
+        (tester) async {
+      await abrirRutasDe(tester, empresa.name);
+      await tester.tap(find.text('C16'));
+      await tester.pumpAndSettle();
+      final color = colorEmpresa(empresa.id);
+      expect(find.text('Ver buses en vivo'), findsOneWidget);
+      expect(fondoIcono(tester, Icons.business_outlined), color);
+      // La ruta elegida lleva su código en la caja, como en la lista, y el
+      // nombre sin él (dueño, 2026-11-03).
+      expect(find.byIcon(Icons.alt_route_outlined), findsNothing);
+      expect(fondoInsignia(tester), color);
+      expect(letraInsignia(tester), Colors.white);
+      expect(find.text('Centro'), findsOneWidget);
+      expect(find.text('C16 Centro'), findsNothing);
+      expect(tester.widget<Icon>(find.byIcon(Icons.business_outlined)).color,
+          Colors.white);
+
+      await tester.tap(find.text(empresa.name));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.check_circle_rounded)).color,
+        color,
+      );
+    });
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/widgets/latido.dart';
 import '../providers/map_view_state.dart';
 import 'route_selector_sheet.dart';
@@ -175,7 +176,8 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
                                 curve: AppMotion.curvaSalida),
                             transitionBuilder: _relevoDeTexto,
                             child: selectedRoute != null
-                                ? _rutaActiva(selectedRoute.name)
+                                ? _rutaActiva(
+                                    nombreSinCodigo(selectedRoute.name)!)
                                 : _sinRuta(),
                           ),
                         ),
@@ -213,6 +215,10 @@ class _SearchPillBarState extends ConsumerState<SearchPillBar> {
   /// al revés y con «Toca para cambiar» pegado: el nombre quedaba arriba sin
   /// contexto y la instrucción sobraba en una píldora que ya se sabe tocar.
   /// La clave es la ruta: al cambiar de una a otra el texto se releva.
+  ///
+  /// El nombre va sin su código («Calle 72 Uninorte», no «C16 Calle 72
+  /// Uninorte»): el código ya lo lleva la insignia de «Elige tu ruta» y en
+  /// la píldora se comía el ancho (dueño, 2026-11-03). La voz lo dice entero.
   Widget _rutaActiva(String nombre) {
     return Column(
       key: ValueKey(nombre),

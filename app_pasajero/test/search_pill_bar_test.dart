@@ -150,6 +150,40 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('la píldora dice solo el nombre, sin el código de la ruta',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.listen(selectedRouteProvider, (_, __) {});
+    container.read(selectedRouteProvider.notifier).select(
+          const RouteInfo(
+            id: 'R-C16',
+            name: 'C16 Calle 72 Uninorte',
+            companyId: 'EMP-01',
+          ),
+        );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Align(alignment: Alignment.topCenter, child: SearchPillBar()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Dueño, 2026-11-03: el código ya lo dice la insignia de «Elige tu
+    // ruta»; arriba solo va el nombre. La voz sí lo dice entero.
+    expect(find.text('Calle 72 Uninorte'), findsOneWidget);
+    expect(find.textContaining('C16'), findsNothing);
+    expect(find.bySemanticsLabel('Ruta activa: C16 Calle 72 Uninorte'),
+        findsOneWidget);
+    handle.dispose();
+  });
+
   testWidgets('«Ruta activa» va sola, sin punto delante', (tester) async {
     // Decisión del dueño (2026-09-27): el punto verde a la izquierda
     // sobraba; el verde de la etiqueta ya dice que hay ruta puesta.
