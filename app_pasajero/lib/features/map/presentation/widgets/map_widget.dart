@@ -22,7 +22,7 @@ import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
-import 'map_pin_utils.dart' show radiusCircleFeature;
+import 'map_pin_utils.dart' show caminadaHastaLaRuta, radiusCircleFeature;
 import 'map_placeholders.dart';
 import 'tap_debouncer.dart';
 
@@ -54,6 +54,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<Object?>? _enfoqueSubscription;
   ProviderSubscription<bool>? _selectorSubscription;
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
+  ProviderSubscription<SeguidorRuta?>? _seguidorSub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
   double _currentBottomInset = 0;
 
@@ -198,6 +199,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kUserRadiusSourceId = 'user-radius-source';
   static const _kUserRadiusFillLayerId = 'user-radius-fill-layer';
   static const _kUserRadiusLineLayerId = 'user-radius-line-layer';
+  static const _kCaminadaSourceId = 'caminada-source';
+  static const _kCaminadaLineaLayerId = 'caminada-linea-layer';
+  static const _kCaminadaEsperaLayerId = 'caminada-espera-layer';
 
   /// Hasta dónde puede irse la cámara.
   ///
@@ -338,6 +342,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _enfoqueSubscription?.close();
     _selectorSubscription?.close();
     _trajectorySub?.close();
+    _seguidorSub?.close();
     _stopsSub?.close();
     // Hay que desecharlo, no solo pararlo: `TickerProviderStateMixin` afirma
     // en su propio dispose que no le queda ningún ticker vivo.
@@ -474,6 +479,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     }
     _mapController!.setGeoJsonSource(_kUserPinSourceId, emptyGeoJson);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, emptyGeoJson);
+    _mapController!.setGeoJsonSource(_kCaminadaSourceId, emptyGeoJson);
     if (_pinScreenPos != null && mounted) {
       setState(() => _pinScreenPos = null);
     }
@@ -506,6 +512,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// que siga al dedo en tiempo real sin esperar al fin del gesto.
   void _renderPin(double lat, double lon) {
     if (_mapController == null || !mounted) return;
+    _renderCaminada(lat, lon);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, {
       'type': 'FeatureCollection',
       'features': [
@@ -707,6 +714,47 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         lineWidth: 1.5,
         lineOpacity: 0.28,
       ),
+    );
+
+    // La caminada del pin al punto de la ruta donde se espera, en puntos
+    // redondos como la de a pie de Google Maps o Apple Maps: un trazo de 0
+    // con tapa redonda es un punto de 3,5 pt, y el hueco de 2 anchos los
+    // separa 7 pt de centro a centro. En la tinta al 70 %, #596C8A sobre el
+    // papel #F4F2EE: 4,7:1, más que el 3:1 de un trazo que hay que ver.
+    // Acaba en un punto blanco con aro de tinta, sobre la línea verde de la
+    // ruta: ahí se espera. Va bajo el pin y los buses.
+    await _mapController!.addSource(
+        _kCaminadaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
+    await _mapController!.addLineLayer(
+      _kCaminadaSourceId,
+      _kCaminadaLineaLayerId,
+      const LineLayerProperties(
+        lineColor: '#17325F',
+        lineOpacity: 0.7,
+        lineWidth: 3.5,
+        lineCap: 'round',
+        lineDasharray: [0, 2],
+      ),
+      filter: [
+        '==',
+        ['geometry-type'],
+        'LineString'
+      ],
+    );
+    await _mapController!.addCircleLayer(
+      _kCaminadaSourceId,
+      _kCaminadaEsperaLayerId,
+      const CircleLayerProperties(
+        circleRadius: 4.5,
+        circleColor: '#FFFFFF',
+        circleStrokeWidth: 2.5,
+        circleStrokeColor: '#17325F',
+      ),
+      filter: [
+        '==',
+        ['geometry-type'],
+        'Point'
+      ],
     );
 
     await _mapController!.addSymbolLayer(

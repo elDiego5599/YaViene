@@ -132,6 +132,40 @@ void main() {
       expect(coords.length, 49); // 48 pasos + cierre
       expect(coords.first, equals(coords.last));
     });
+
+    group('caminadaHastaLaRuta', () {
+      // Ruta por la latitud 11, de este a oeste; un grado de latitud son
+      // 111,32 km, así que 0,001 son 111 m.
+      final ruta = RutaMedible.de(const [
+        GeoPoint(lat: 11.0, lon: -74.82),
+        GeoPoint(lat: 11.0, lon: -74.80),
+      ])!;
+
+      test('va del pin al punto de la ruta donde se espera', () {
+        final caminada = caminadaHastaLaRuta(ruta, 11.001, -74.81);
+        final features = caminada['features'] as List;
+        final linea = (features.first as Map)['geometry'] as Map;
+        expect(linea['type'], 'LineString');
+        final puntos = linea['coordinates'] as List;
+        expect(puntos.first, [-74.81, 11.001]);
+        final fin = puntos.last as List;
+        expect(fin[0], closeTo(-74.81, 1e-6));
+        expect(fin[1], closeTo(11.0, 1e-6));
+        final espera = (features.last as Map)['geometry'] as Map;
+        expect(espera['type'], 'Point');
+        expect(espera['coordinates'], fin);
+      });
+
+      test('con el pin sobre la ruta no hay nada que caminar', () {
+        final caminada = caminadaHastaLaRuta(ruta, 11.00005, -74.81);
+        expect(caminada['features'], isEmpty);
+      });
+
+      test('sin ruta no hay a dónde caminar', () {
+        final caminada = caminadaHastaLaRuta(null, 11.001, -74.81);
+        expect(caminada['features'], isEmpty);
+      });
+    });
   });
 
   group('map_placeholders', () {
