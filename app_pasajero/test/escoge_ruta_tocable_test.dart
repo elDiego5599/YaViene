@@ -90,9 +90,11 @@ void main() {
     expect(container.read(routeSelectorOpenProvider), isTrue);
   });
 
-  // El ícono conserva su gris de estado vacío: el verde no gustó (dueño,
-  // 2026-09-29). Lo tocable lo dicen la frase «Toca aquí» y el hundido.
-  testWidgets('el ícono va en el gris de los demás estados, no en verde', (
+  // El ícono gris se cambió por el selector en miniatura (dueño, 2026-11-05:
+  // junto al pin de «Toca el mapa» se veía horrible). El medallón sigue
+  // blanco con su sombra, como los demás estados; el verde de un ícono no
+  // gustó (2026-09-29), así que el dibujo va en el color de una empresa.
+  testWidgets('el medallón lleva el selector en miniatura, sin ícono', (
     tester,
   ) async {
     await montar(tester);
@@ -103,10 +105,14 @@ void main() {
     expect(caja.color, AppColors.surface);
     // Blanco sobre la hoja blanca: sin sombra el medallón no se ve.
     expect(caja.boxShadow, isNotEmpty);
-    final icono = tester.widget<Icon>(
-      find.descendant(of: medallon, matching: find.byType(Icon)),
+    expect(
+      find.descendant(
+          of: medallon,
+          matching: find.byKey(const ValueKey('sena-elegir-ruta'))),
+      findsOneWidget,
     );
-    expect(icono.color, AppColors.textSecondary);
+    expect(find.descendant(of: medallon, matching: find.byType(Icon)),
+        findsNothing);
   });
 
   testWidgets('el título y la frase también lo abren', (tester) async {

@@ -30,6 +30,7 @@ import 'alert_guards.dart' as guards;
 import 'map_recenter_button.dart';
 import 'ocupacion_bus.dart';
 import 'rueda_distancia.dart';
+import 'sena_elegir_ruta.dart';
 import 'sena_tocar_bus.dart';
 import 'sena_tomar_ruta.dart';
 
@@ -992,6 +993,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       // selector, porque ahí es donde la gente tocaba (dueño, 2026-09-28).
       subtitle = 'Toca aquí para elegir la empresa y su ruta';
       icon = Icons.route_outlined;
+      // Fichas de ruta en abanico y la del frente escogida (dueño,
+      // 2026-11-05: el ícono gris se veía horrible junto al pin).
+      dibujo = const SenaElegirRuta(key: ValueKey('sena-elegir-ruta'));
     } else if (buses.isEmpty && routeTooFar) {
       // El caso más confuso de todos: el mapa está vacío no porque no haya
       // buses, sino porque la ruta entera pasa lejos. Decirlo evita que el
