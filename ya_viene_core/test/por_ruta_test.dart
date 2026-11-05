@@ -194,6 +194,39 @@ void main() {
           s.distancia(_bus(200, 0, rumbo: 90), _m(500, -400)), closeTo(700, 5));
     });
 
+    test('el otro carril también pasa por la espera, aunque el bus no', () {
+      // La ida por y = 0 hasta x = 1000, sube a y = 300, vuelve al oeste
+      // hasta x = 400, baja a y = 25 y sigue por y = 25 hasta el inicio:
+      // los dos carriles van juntos, a 25 m, solo entre x = 0 y 400.
+      // Circular, 2600 m. El punto en (200, -10) espera en la ida, x = 200
+      // (avance 200); la vuelta pasa a 25 de ahí, en el avance 2375. El bus
+      // en x = 700 de y = 300 (avance 1600), lejos de la ida: por la
+      // vuelta, 775 + 25 + 10, no los 1210 de dar la vuelta hasta la ida.
+      final juntos = RutaMedible.de([
+        _m(0, 0),
+        _m(1000, 0),
+        _m(1000, 300),
+        _m(400, 300),
+        _m(400, 25),
+        _m(0, 25),
+      ])!;
+      final s = SeguidorRuta(juntos);
+      expect(s.distancia(_bus(700, 300, rumbo: 270), _m(200, -10)),
+          closeTo(810, 5));
+    });
+
+    test('antes de una esquina cerrada no hay un paso falso', () {
+      // Ruta abierta: este por y = 0 hasta x = 500 y vuelta en punta, a
+      // 30°, hacia (153,6, 200). El punto, sobre el segundo tramo a 40 m de
+      // la esquina, en (465,36, 20): le queda la ida a 20, pero solo porque
+      // la punta se dobla sobre sí misma; la ruta pasa por él. Del bus en
+      // x = 100: 400 + 40, no los 385 de cortar por la ida.
+      final punta = RutaMedible.de([_m(0, 0), _m(500, 0), _m(153.6, 200)])!;
+      final s = SeguidorRuta(punta);
+      expect(s.distancia(_bus(100, 0, rumbo: 90), _m(465.36, 20)),
+          closeTo(440, 5));
+    });
+
     test('el punto de espera es el de la ruta más cerca del pin', () {
       final espera = rect.puntoDeEspera(_m(500, 80));
       final esperado = _m(500, 0);

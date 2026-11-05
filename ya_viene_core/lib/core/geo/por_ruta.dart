@@ -261,15 +261,13 @@ class RutaMedible {
   List<Proyeccion> _sitio(Proyeccion espera) =>
       _pasos(_geo(_sobre(espera.avance)), 2 * _empate);
 
-  /// Los metros de ruta del bus en [avanceBus] al [puntoDeEspera] de [p],
-  /// venga o ya haya pasado, más la caminada del pin a ese punto.
+  /// Los metros de ruta, desde el más cerca de los [avances] del bus, al
+  /// [puntoDeEspera] de [p], venga o ya haya pasado, más la caminada del
+  /// pin a ese punto.
   ///
   /// Nunca cuenta la vuelta entera: un bus que acaba de pasar decía 20 km
   /// con el bus a la vista; se muestra lo que hay y qué bus elige es cosa
   /// de la persona (dueño, 2026-10-19).
-  double medir(double avanceBus, GeoPoint p) => _desde([avanceBus], p);
-
-  /// [medir] desde el más cerca de varios avances del bus.
   ///
   /// Se espera en un solo sitio, el punto de la ruta más cerca del pin, y
   /// desde cualquier distancia: no se sabe hacia qué calle caminará la
