@@ -49,8 +49,8 @@ void main() {
     'Transporte público urbano': ['selector con empresa'],
     'Elige ruta': ['selector lista de rutas'],
     'Ver buses en vivo': ['selector con ruta'],
-    'Toca el mapa para indicar dónde estás': ['hoja sin punto'],
-    'Ahí ponemos tu punto de espera y medimos desde él': ['hoja sin punto'],
+    'Toca el mapa donde tomas tu bus': ['hoja sin punto'],
+    'Tu punto se pega a la ruta y medimos hasta ahí': ['hoja sin punto'],
     'Avisarme cuando esté cerca': ['hoja con bus'],
     'Aviso activado': ['hoja con aviso', 'hoja sin señal con aviso'],
     // La nota del aviso puesto en el iPhone (`_Nota.distancia`), en la

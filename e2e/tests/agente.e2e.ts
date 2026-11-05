@@ -14,5 +14,5 @@ test('un pasajero nuevo escoge su ruta y pone su punto', { skip: sinModelo }, as
   await agent.act('acepta privacidad y términos, sigue sin ubicación y entra a la app sin ver la guía');
   await agent.act('escoge la empresa Sobusa y la ruta C11 Silencio y abre los buses en vivo');
   await agent.act('toca el centro del mapa para poner el punto de espera');
-  await agent.assert('el mapa muestra la ruta C11 Silencio activa y ya no pide tocar el mapa para indicar dónde estás');
+  await agent.assert('el mapa muestra la ruta C11 Silencio activa y ya no pide tocar el mapa donde tomas tu bus');
 });

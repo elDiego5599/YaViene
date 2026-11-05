@@ -27,5 +27,5 @@ test('aceptando y sin ubicación se llega al mapa', async ({ screen }) => {
   await expect(screen.getByRole('button', /^¿Qué bus esperas\?/)).toBeVisible();
   // El permiso viene negado (e2e.config.ts): la app lo dice y ofrece Ajustes.
   await expect(screen.getByRole('button', /^Ubicación bloqueada\. Abrir/)).toBeVisible();
-  await expect(screen.getByText(/^Toca el mapa para indicar dónde estás/)).toBeVisible();
+  await expect(screen.getByText(/^Toca el mapa donde tomas tu bus/)).toBeVisible();
 });

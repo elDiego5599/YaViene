@@ -31,6 +31,7 @@ import 'map_recenter_button.dart';
 import 'ocupacion_bus.dart';
 import 'rueda_distancia.dart';
 import 'sena_tocar_bus.dart';
+import 'sena_tomar_ruta.dart';
 
 class EtaBottomSheet extends ConsumerStatefulWidget {
   const EtaBottomSheet({
@@ -974,12 +975,16 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     Widget? dibujo;
     if (!hasPosition) {
       stateKey = 'empty-no-position';
-      title = 'Toca el mapa para indicar dónde estás';
-      // Lo de arrastrar el pin ya no se dice aquí: esta frase solo se ve
-      // mientras NO hay pin, o sea desaparecía justo cuando se volvía
-      // cierta. Vive en la píldora de estado, junto al pin.
-      subtitle = 'Ahí ponemos tu punto de espera y medimos desde él';
-      icon = Icons.touch_app_outlined;
+      // El pin marca dónde se toma la ruta, no dónde está la persona
+      // (dueño, 2026-11-05): al soltarlo salta a la ruta y se mide solo la
+      // ruta hasta ahí. Lo de arrastrar el pin no se dice aquí: esta frase
+      // solo se ve mientras NO hay pin. Vive en la píldora, junto al pin.
+      title = 'Toca el mapa donde tomas tu bus';
+      subtitle = 'Tu punto se pega a la ruta y medimos hasta ahí';
+      icon = Icons.pin_drop_outlined;
+      // El pin del mapa saltando a su ruta, en vez de la mano (dueño,
+      // 2026-11-05, «ponle un icono más bonito»).
+      dibujo = const SenaTomarRuta(key: ValueKey('sena-tomar-ruta'));
     } else if (route == null) {
       stateKey = 'empty-no-route';
       title = 'Escoge empresa y ruta';
@@ -1241,8 +1246,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
             ? _Nota.distancia(radio, cambiar)
             : null
         : !locationState.hasPosition
-            ? const _Nota.paso(Icons.touch_app_outlined,
-                "Toca el mapa para indicar dónde estás")
+            ? const _Nota.paso(
+                Icons.pin_drop_outlined, "Toca el mapa donde tomas tu bus")
             : routeTooFar
                 ? const _Nota.impide(
                     Icons.wrong_location_outlined,

@@ -176,7 +176,38 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Sin tu ubicación'), findsOneWidget);
-    expect(find.text('Toca el mapa para indicar dónde estás'), findsOneWidget);
+    expect(find.text('Toca el mapa donde tomas tu bus'), findsOneWidget);
+  });
+
+  testWidgets('sin punto, la hoja dice dónde tocar con el pin sobre la ruta',
+      (tester) async {
+    // El dueño (2026-11-05): el pin marca dónde se toma la ruta, no dónde
+    // está la persona, y la mano de Material se cambia por un dibujo que
+    // dice qué pasa al tocar: el punto se pega a la ruta.
+    final container = ProviderContainer(overrides: [
+      userLocationProvider.overrideWith((ref) => _TestUserLocation()),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: EtaBottomSheet())),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final vacio = find.byKey(const ValueKey('empty-no-position'));
+    expect(vacio, findsOneWidget);
+    expect(
+      find.descendant(
+          of: vacio, matching: find.byKey(const ValueKey('sena-tomar-ruta'))),
+      findsOneWidget,
+    );
+    expect(
+        find.descendant(of: vacio, matching: find.byType(Icon)), findsNothing);
+    expect(find.text('Toca el mapa donde tomas tu bus'), findsOneWidget);
+    expect(find.text('Tu punto se pega a la ruta y medimos hasta ahí'),
+        findsOneWidget);
   });
 
   // En iPhone la distancia del aviso ocupa ese espacio: lo prueba

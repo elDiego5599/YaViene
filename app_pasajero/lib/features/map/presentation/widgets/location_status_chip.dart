@@ -46,8 +46,8 @@ class LocationStatusChip extends ConsumerWidget {
       // Sin ubicación, la píldora dice qué pasa y ofrece la salida en una
       // línea. La segunda línea («Toca el mapa para poner tu punto») se
       // fue (dueño, 2026-10-02: «mucho texto»): la hoja de abajo ya lo
-      // dice en grande en ese mismo momento —«Toca el mapa para indicar
-      // dónde estás», `empty-no-position`—, así que la píldora no es un
+      // dice en grande en ese mismo momento —«Toca el mapa donde tomas
+      // tu bus», `empty-no-position`—, así que la píldora no es un
       // callejón sin salida aunque el permiso esté bloqueado.
       UserLocationMode.permanentDenied => PildoraDatos(
           key: 'permanentDenied',
@@ -86,8 +86,8 @@ class LocationStatusChip extends ConsumerWidget {
       // no se quede clavado si algo revienta, `initialize()` acaba siempre en
       // un modo con salida.
       UserLocationMode.unknown => null,
-      // Tras «Quitar»: la hoja de abajo ya dice «Toca el mapa para indicar
-      // dónde estás»; la píldora deja el GPS a un toque (dueño, 2026-10-07).
+      // Tras «Quitar»: la hoja de abajo ya dice «Toca el mapa donde tomas
+      // tu bus»; la píldora deja el GPS a un toque (dueño, 2026-10-07).
       UserLocationMode.sinPunto => PildoraDatos(
           key: 'sinPunto',
           icon: Icons.add_location_alt_outlined,

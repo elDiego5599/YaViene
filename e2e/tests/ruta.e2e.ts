@@ -29,7 +29,7 @@ test('con Sobusa C11 el mapa muestra la ruta y pide el punto', async ({ screen }
   await screen.getByRole('button', /^C11 Silencio/).tap();
   await screen.getByRole('button', /^Ver buses en vivo$/).tap();
   await expect(screen.getByRole('button', /^Ruta activa: C11 Silencio/)).toBeVisible();
-  await expect(screen.getByText(/^Toca el mapa para indicar dónde estás/)).toBeVisible();
+  await expect(screen.getByText(/^Toca el mapa donde tomas tu bus/)).toBeVisible();
 });
 
 test('la barra de abajo lleva a Info con sus cuatro entradas', async ({ screen }) => {
