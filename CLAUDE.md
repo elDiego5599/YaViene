@@ -407,11 +407,14 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   El aviso lleva la ficha de la ruta (B18, C16; `ficha_ruta.dart`): en
   Android de ícono grande, en iOS de imagen adjunta, y en la tarjeta de
   Avisos en vez del bus, con el nombre sin el código (dueño, 2026-10-19).
-  Se espera en el punto de la ruta más cerca del pin, desde cualquier
-  distancia, y se cuenta la ruta hasta ahí más la caminada; el mapa
-  traza una línea punteada del pin a ese punto (dueño, 2026-11-04: con
-  el tope de 300 m y las calles hasta 300 m más lejos, correr el pin
-  50 m saltaba de 5,8 a 19,3 km). Solo salta con el pin a mitad de
+  El pin marca dónde se toma la ruta, no dónde está la persona (dueño,
+  2026-11-05: el bus nunca pasa por fuera de su ruta, y la 72 va de ida
+  por la 23 y vuelve por la 24): al soltarlo o tocar el mapa salta con
+  `curvaRebote` al punto de la ruta más cerca (`dondeSeTomaLaRuta`), y
+  se cuenta solo la ruta hasta ahí, sin caminada ni línea punteada (no
+  gustó). Desde cualquier distancia (2026-11-04: con el tope de 300 m,
+  correr el pin 50 m saltaba de 5,8 a 19,3 km). Con GPS se mide desde
+  el punto de la ruta más cerca, sin mover el punto azul. La cifra solo salta con el pin a mitad de
   camino entre dos calles de la ruta, o donde el otro carril se aparta
   más de 30 m (`RutaMedible.puntoDeEspera`, `pasosPorLaEspera`). La barra de
   vidrio sale al bajar, al paso del dedo, y en reposo no hay nada.

@@ -149,9 +149,9 @@ class RutaMedible {
     return (avance: elegida.avance, desvio: elegida.desvio);
   }
 
-  /// Donde la persona del pin [p] espera el bus: el punto de la ruta más
-  /// cerca de él. El mapa traza la línea del pin hasta aquí, y así se ve a
-  /// qué calle se mide (dueño, 2026-11-04).
+  /// Donde la persona del pin [p] toma el bus: el punto de la ruta más
+  /// cerca de él. El pin marca dónde se toma la ruta, no dónde está la
+  /// persona, y el mapa lo lleva hasta aquí (dueño, 2026-11-05).
   GeoPoint puntoDeEspera(GeoPoint p) => _geo(_sobre(proyectar(p).avance));
 
   GeoPoint _geo((double, double) xy) =>
@@ -262,8 +262,8 @@ class RutaMedible {
       _pasos(_geo(_sobre(espera.avance)), 2 * _empate);
 
   /// Los metros de ruta, desde el más cerca de los [avances] del bus, al
-  /// [puntoDeEspera] de [p], venga o ya haya pasado, más la caminada del
-  /// pin a ese punto.
+  /// [puntoDeEspera] de [p], venga o ya haya pasado. No se suma el camino
+  /// del pin a la ruta: el bus nunca pasa por ahí (dueño, 2026-11-05).
   ///
   /// Nunca cuenta la vuelta entera: un bus que acaba de pasar decía 20 km
   /// con el bus a la vista; se muestra lo que hay y qué bus elige es cosa
@@ -276,7 +276,7 @@ class RutaMedible {
   /// cercana, correr el pin 50 m cambiaba de 5,8 a 19,3 km en las 15 rutas
   /// (dueño, 2026-11-04). Ahora la cifra solo salta con el pin a mitad de
   /// camino entre dos calles de la ruta, donde de verdad cambia la calle
-  /// en que se espera, y el mapa traza la línea hasta ella. Donde la ruta
+  /// en que se espera, y el pin salta a ella. Donde la ruta
   /// pasa otra vez por ese sitio (el otro carril de una calle de ida y
   /// vuelta, a menos de dos [_empate]) también se espera: cuenta el paso
   /// que trae el bus más cerca. Esos pasos se buscan desde el sitio, no
@@ -285,12 +285,10 @@ class RutaMedible {
   /// carriles se separan más que eso, el otro deja de pasar por el sitio y
   /// la cifra cambia (menos del 3 % de los pines vecinos en las 15 rutas).
   double _desde(List<double> avances, GeoPoint p) {
-    final espera = proyectar(p);
-    final sitio = _sitio(espera);
+    final sitio = _sitio(proyectar(p));
     return [
       for (final a in avances)
-        for (final paso in sitio)
-          _entre(a, paso.avance) + paso.desvio + espera.desvio
+        for (final paso in sitio) _entre(a, paso.avance)
     ].reduce(math.min);
   }
 }

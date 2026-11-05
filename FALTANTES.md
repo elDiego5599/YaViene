@@ -204,7 +204,8 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   todavía avisa antes de tiempo. Falta portar la medida al backend con sus
   mismas pruebas (la U de 1500 × 400 m del core; del 2026-11-04, se
   espera en el punto de la ruta más cerca del pin, a cualquier distancia,
-  y se cuenta la ruta hasta ahí más la caminada, con el otro carril de una
+  y se cuenta solo la ruta hasta ahí (del 2026-11-05: el pin marca dónde
+  se toma el bus, no se suma la caminada), con el otro carril de una
   calle de ida y vuelta si pasa a 30 m o menos de ese punto: la ventana de
   300 m hacía saltar la C16 de 5,8 a 19,3 km al correr el pin 50 m; y
   del 2026-10-19, la distancia al paso más cerca, venga o ya haya pasado,
@@ -286,6 +287,25 @@ mide antes de sumarlo.
   (`YaVieneBackend/prototipo-aforo`), el conteo llega del servidor y
   reemplaza esa función en `ocupacionEnRuta`
   (`app_pasajero/.../widgets/ocupacion_bus.dart`).
+- **Planificador de viaje, como Q'Ruta (propuesta del dueño,
+  2026-11-04; fase 2 del piloto, no antes).** El pasajero dice dónde está y
+  a dónde va, se le arma la ruta, un botón lo lleva al mapa con la empresa y
+  la ruta puestas para activar el aviso. Con dos o más buses, el sistema
+  detecta que ya está cerca del punto donde debe bajarse, o el pasajero lo
+  avanza solo, y otro botón pone solo la siguiente empresa y ruta hasta
+  llegar. Pesa semanas, no días. Lo que exige:
+  1. **Buscar sitios**: hoy el mapa no lleva nombres de sitios y no hay
+     buscador de direcciones.
+  2. **Armar la ruta de A a B**: qué ruta pasa cerca del origen, cuál deja
+     cerca del destino, trasbordos y caminata entre buses. Es un buscador
+     de rutas completo.
+  3. **Calidad de los recorridos**: si falta o está mal el de una ruta, el
+     plan sale mal (Coochofal viene de KMZ).
+  4. **Guía de varios buses**: choca con la regla 14 del producto (se
+     sigue un solo bus a la vez, la guía no se reanuda sola); habría que
+     cambiarla por decisión del dueño.
+  Para el pitch va solo como «lo que sigue» (lámina del piloto y guion), sin
+  prometer fechas. Antes de empezar: grill-me, spec y tickets.
 
 
 Una **auditoría con ojos frescos**, en una sesión nueva sin este contexto, con

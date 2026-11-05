@@ -138,41 +138,40 @@ void main() {
 
     test('pasado el paso más cercano, cuenta lo que lo dejó atrás', () {
       // El punto en (500, 80): a 80 m de la ida y a 120 de la vuelta. El bus
-      // en x = 700 de la ida lo pasó hace 200 m: 200 + 80, ni el paso de
+      // en x = 700 de la ida lo pasó hace 200 m: 200, ni el paso de
       // enfrente (1120) ni la vuelta entera.
       final s = SeguidorRuta(rect);
       expect(
-          s.distancia(_bus(700, 0, rumbo: 90), _m(500, 80)), closeTo(280, 5));
+          s.distancia(_bus(700, 0, rumbo: 90), _m(500, 80)), closeTo(200, 5));
     });
 
     test('viniendo por la otra calle, cuenta hasta la de su pin', () {
       // El punto en (500, 80): la ida a 80, la vuelta a 120. Espera en la
       // ida. El bus en x = 900 de la vuelta, rumbo oeste: hasta x = 500 de
-      // la ida, hacia atrás, 800, más 80 (dueño, 2026-11-04: contar la
-      // calle de enfrente hacía saltar la cifra con mover el pin un poco).
+      // la ida, hacia atrás, 800 (dueño, 2026-11-04: contar la calle de
+      // enfrente hacía saltar la cifra con mover el pin un poco).
       final s = SeguidorRuta(rect);
       expect(s.distancia(_bus(900, 200, rumbo: 270), _m(500, 80)),
-          closeTo(880, 5));
+          closeTo(800, 5));
     });
 
     test('antes de la esquina no hay otro paso: la ruta sigue acercándose', () {
       // El punto en (990, 100), junto a la subida por x = 1000. La ida le
       // queda a 100 en x = 990, pero de ahí la ruta se le acerca más: el
-      // paso es la subida, a 10. Del bus en x = 900: 100 + 100 + 10.
+      // paso es la subida, a 10. Del bus en x = 900: 100 + 100.
       final s = SeguidorRuta(rect);
       expect(
-          s.distancia(_bus(900, 0, rumbo: 90), _m(990, 100)), closeTo(210, 5));
+          s.distancia(_bus(900, 0, rumbo: 90), _m(990, 100)), closeTo(200, 5));
     });
 
     test('el bus por la calle de enfrente da la vuelta hasta la del pin', () {
       // El punto en (500, 20): la ida a 20, la vuelta a 180. Espera en la
       // ida, x = 500 (avance 500). El bus en x = 300 de la vuelta (avance
-      // 1900): 1000 por la ruta, cruzando el inicio, más 20. El mapa
-      // dibuja la línea del pin a ese punto: quien espera en la otra
-      // calle corre el pin hasta ella.
+      // 1900): 1000 por la ruta, cruzando el inicio. El pin salta a ese
+      // punto: quien toma el bus en la otra calle corre el pin hasta ella.
       final s = SeguidorRuta(rect);
       expect(s.distancia(_bus(300, 200, rumbo: 270), _m(500, 20)),
-          closeTo(1020, 5));
+          closeTo(1000, 5));
     });
 
     test('sobre la ruta espera ahí, aunque la otra calle quede a 200 m', () {
@@ -182,16 +181,16 @@ void main() {
           closeTo(1000, 5));
     });
 
-    test('a 400 m de la ruta: la ruta hasta su punto más la caminada', () {
+    test('el pin marca dónde se toma la ruta: no se suma la caminada', () {
       // Rectángulo de 1000 × 500 (3000 m). El punto en (500, -400): la ida
-      // le queda a 400. El bus en x = 200 de la ida: 300 + 400, no la
-      // línea recta de 500 (dueño, 2026-11-04: pasar de 300 a 301 m del
-      // pin cambiaba la cifra de la ruta a la recta, hasta 19 km).
+      // le queda a 400. El bus en x = 200 de la ida: 300 por la ruta hasta
+      // donde se toma, sin los 400 del pin, por donde el bus nunca pasa
+      // (dueño, 2026-11-05).
       final ancho = RutaMedible.de(
           [_m(0, 0), _m(1000, 0), _m(1000, 500), _m(0, 500), _m(0, 10)])!;
       final s = SeguidorRuta(ancho);
       expect(
-          s.distancia(_bus(200, 0, rumbo: 90), _m(500, -400)), closeTo(700, 5));
+          s.distancia(_bus(200, 0, rumbo: 90), _m(500, -400)), closeTo(300, 5));
     });
 
     test('el otro carril también pasa por la espera, aunque el bus no', () {
@@ -201,7 +200,7 @@ void main() {
       // Circular, 2600 m. El punto en (200, -10) espera en la ida, x = 200
       // (avance 200); la vuelta pasa a 25 de ahí, en el avance 2375. El bus
       // en x = 700 de y = 300 (avance 1600), lejos de la ida: por la
-      // vuelta, 775 + 25 + 10, no los 1210 de dar la vuelta hasta la ida.
+      // vuelta, 775, no los 1200 de dar la vuelta hasta la ida.
       final juntos = RutaMedible.de([
         _m(0, 0),
         _m(1000, 0),
@@ -212,7 +211,7 @@ void main() {
       ])!;
       final s = SeguidorRuta(juntos);
       expect(s.distancia(_bus(700, 300, rumbo: 270), _m(200, -10)),
-          closeTo(810, 5));
+          closeTo(775, 5));
     });
 
     test('antes de una esquina cerrada no hay un paso falso', () {
@@ -278,11 +277,11 @@ void main() {
   test('en las 15 rutas, mover el pin no hace saltar la cifra', () {
     // Pines cada 100 m hasta 1 km de cada ruta, con un bus a mitad de
     // recorrido. Entre dos pines vecinos la cifra cambia a lo sumo lo que
-    // se movió su punto de espera por la ruta más lo que cambió la
-    // caminada (100 m, el paso), con holgura para dos carriles de la misma
-    // calle. Solo salta donde de verdad cambia dónde se espera: el pin a
-    // mitad de camino entre dos calles de la ruta, o el otro carril que se
-    // abre a más de 30 m del sitio de espera (o se acerca), y eso es poco.
+    // se movió su punto de espera por la ruta, con holgura para dos
+    // carriles de la misma calle. Solo salta donde de verdad cambia dónde
+    // se espera: el pin a mitad de camino entre dos calles de la ruta, o el
+    // otro carril que se abre a más de 30 m del sitio de espera (o se
+    // acerca), y eso es poco.
     // Antes, en estas rutas, saltaba de 5,8 a 19,3 km (dueño, 2026-11-04).
     const paso = 100.0;
     final datos = jsonDecode(File('assets/data/rutas.json').readAsStringSync())
@@ -354,7 +353,7 @@ void main() {
           // El punto de espera cambió de calle: el salto es de verdad.
           if (corrido > 3 * paso) continue;
           pares++;
-          final tope = corrido + paso + 50;
+          final tope = corrido + 50;
           // El otro carril entró o salió del sitio de espera.
           if (!mismoSitio(pasos[(i, j)]!, pasos[vecino]!)) {
             if ((d - dv).abs() > tope) otroCarril++;

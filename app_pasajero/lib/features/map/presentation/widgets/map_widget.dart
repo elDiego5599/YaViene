@@ -18,11 +18,12 @@ import '../utils/apertura_hasta_bus.dart';
 import '../utils/bus_hit_test.dart';
 import '../utils/camera_fit.dart';
 import '../utils/decision_camara.dart';
+import '../utils/geo.dart' show haversineMeters;
 import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
 import 'map_markers.dart' show loadBusIcons;
-import 'map_pin_utils.dart' show caminadaHastaLaRuta, radiusCircleFeature;
+import 'map_pin_utils.dart' show dondeSeTomaLaRuta, radiusCircleFeature;
 import 'map_placeholders.dart';
 import 'tap_debouncer.dart';
 
@@ -108,6 +109,15 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// El pin está siendo arrastrado: el mapa pinta el pin en la posición del
   /// dedo y las actualizaciones del GPS no deben re-pintarlo (salto visible).
   bool _pinDragging = false;
+
+  /// El salto del pin de donde lo soltaron al punto de la ruta donde se toma
+  /// el bus ([_ponerPinEnLaRuta]), con el resorte de lo recién marcado.
+  late final AnimationController _saltoCtrl;
+  ({GeoPoint desde, GeoPoint hasta})? _salto;
+
+  /// Menos que esto del pin a la ruta es estar en ella: 1 m no se ve a
+  /// ningún zoom, y así elegir la misma ruta no vuelve a guardar el pin.
+  static const double _pinSobreLaRutaMetros = 1;
 
   /// Última posición cruda recibida por bus (para propiedades del ícono).
   final Map<String, BusPosition> _rawBuses = {};
@@ -199,9 +209,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   static const _kUserRadiusSourceId = 'user-radius-source';
   static const _kUserRadiusFillLayerId = 'user-radius-fill-layer';
   static const _kUserRadiusLineLayerId = 'user-radius-line-layer';
-  static const _kCaminadaSourceId = 'caminada-source';
-  static const _kCaminadaLineaLayerId = 'caminada-linea-layer';
-  static const _kCaminadaEsperaLayerId = 'caminada-espera-layer';
 
   /// Hasta dónde puede irse la cámara.
   ///
@@ -229,6 +236,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     super.initState();
     _haloCtrl = AnimationController(vsync: this, duration: AppMotion.latido)
       ..repeat();
+    _saltoCtrl = AnimationController(vsync: this, duration: AppMotion.entrada)
+      ..addListener(_pintarSalto);
     WidgetsBinding.instance.addObserver(this);
     _mapInsetSubscription =
         ref.listenManual<double>(mapBottomInsetProvider, (previous, next) {
@@ -332,6 +341,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _haloCtrl.dispose();
+    _saltoCtrl.dispose();
     _placeholderTimeout?.cancel();
     _movingBusSubscription?.close();
     _userPinSubscription?.close();
@@ -473,13 +483,17 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // Durante el arrastre el pin sigue al dedo: un fix del GPS en el medio
       // del gesto no debe saltarlo de vuelta a la posición del GPS.
       if (_pinDragging && state.mode == UserLocationMode.gps) return;
+      // El salto a la ruta pinta el pin cuadro a cuadro hasta donde se
+      // guardó; pintarlo ya allí se comería el movimiento.
+      if (_saltoCtrl.isAnimating && state.mode == UserLocationMode.manual) {
+        return;
+      }
       _renderPin(state.lat!, state.lon!);
       unawaited(_refreshPinScreenPos());
       return;
     }
     _mapController!.setGeoJsonSource(_kUserPinSourceId, emptyGeoJson);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, emptyGeoJson);
-    _mapController!.setGeoJsonSource(_kCaminadaSourceId, emptyGeoJson);
     if (_pinScreenPos != null && mounted) {
       setState(() => _pinScreenPos = null);
     }
@@ -489,13 +503,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// el pulso "radar" sobre el mapa nativo. La proyección es barata: solo se
   /// llama cuando cambia el estado de ubicación o la cámara se detiene, no en
   /// cada frame de la animación.
-  Future<void> _refreshPinScreenPos() async {
+  Future<void> _refreshPinScreenPos([GeoPoint? donde]) async {
     if (!_layersReady || _mapController == null || !mounted) return;
     final loc = ref.read(userLocationProvider);
     if (!loc.hasPosition) return;
     try {
-      final projected =
-          await _mapController!.toScreenLocation(LatLng(loc.lat!, loc.lon!));
+      final projected = await _mapController!.toScreenLocation(
+          LatLng(donde?.lat ?? loc.lat!, donde?.lon ?? loc.lon!));
       if (!mounted) return;
       final punto = aPuntoLogico(projected, _escalaNativa);
       setState(
@@ -512,7 +526,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// que siga al dedo en tiempo real sin esperar al fin del gesto.
   void _renderPin(double lat, double lon) {
     if (_mapController == null || !mounted) return;
-    _renderCaminada(lat, lon);
     _mapController!.setGeoJsonSource(_kUserRadiusSourceId, {
       'type': 'FeatureCollection',
       'features': [
@@ -536,6 +549,35 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         },
       ],
     });
+  }
+
+  /// Guarda el pin soltado en ([lat], [lon]) donde se toma la ruta que se
+  /// sigue ([dondeSeTomaLaRuta]) y lo lleva allí con un resorte, para que
+  /// se vea a dónde fue. Sin ruta, se queda donde cayó.
+  void _ponerPinEnLaRuta(double lat, double lon) {
+    final hasta = dondeSeTomaLaRuta(_seguidorSub?.read()?.ruta, lat, lon);
+    final salta = haversineMeters(lat, lon, hasta.lat, hasta.lon) >=
+        _pinSobreLaRutaMetros;
+    // El salto arranca antes de guardar: el guardado avisa al mapa en el
+    // acto, y con el salto andando el mapa le deja el pin al salto.
+    if (salta) {
+      _salto = (desde: GeoPoint(lat: lat, lon: lon), hasta: hasta);
+      _saltoCtrl.forward(from: 0);
+    }
+    ref.read(userLocationProvider.notifier).setManualPin(hasta.lat, hasta.lon);
+    if (!salta) unawaited(_refreshPinScreenPos());
+  }
+
+  /// Un cuadro del salto: el pin y su pulso donde va el resorte.
+  void _pintarSalto() {
+    final salto = _salto;
+    if (salto == null) return;
+    final t = AppMotion.curvaRebote.transform(_saltoCtrl.value);
+    final lat = salto.desde.lat + (salto.hasta.lat - salto.desde.lat) * t;
+    final lon = salto.desde.lon + (salto.hasta.lon - salto.desde.lon) * t;
+    _renderPin(lat, lon);
+    unawaited(_refreshPinScreenPos(GeoPoint(lat: lat, lon: lon)));
+    if (_saltoCtrl.isCompleted) _salto = null;
   }
 
   @override
@@ -716,47 +758,6 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       ),
     );
 
-    // La caminada del pin al punto de la ruta donde se espera, en puntos
-    // redondos como la de a pie de Google Maps o Apple Maps: un trazo de 0
-    // con tapa redonda es un punto de 3,5 pt, y el hueco de 2 anchos los
-    // separa 7 pt de centro a centro. En la tinta al 70 %, #596C8A sobre el
-    // papel #F4F2EE: 4,7:1, más que el 3:1 de un trazo que hay que ver.
-    // Acaba en un punto blanco con aro de tinta, sobre la línea verde de la
-    // ruta: ahí se espera. Va bajo el pin y los buses.
-    await _mapController!.addSource(
-        _kCaminadaSourceId, const GeojsonSourceProperties(data: emptyGeoJson));
-    await _mapController!.addLineLayer(
-      _kCaminadaSourceId,
-      _kCaminadaLineaLayerId,
-      const LineLayerProperties(
-        lineColor: '#17325F',
-        lineOpacity: 0.7,
-        lineWidth: 3.5,
-        lineCap: 'round',
-        lineDasharray: [0, 2],
-      ),
-      filter: [
-        '==',
-        ['geometry-type'],
-        'LineString'
-      ],
-    );
-    await _mapController!.addCircleLayer(
-      _kCaminadaSourceId,
-      _kCaminadaEsperaLayerId,
-      const CircleLayerProperties(
-        circleRadius: 4.5,
-        circleColor: '#FFFFFF',
-        circleStrokeWidth: 2.5,
-        circleStrokeColor: '#17325F',
-      ),
-      filter: [
-        '==',
-        ['geometry-type'],
-        'Point'
-      ],
-    );
-
     await _mapController!.addSymbolLayer(
         _kUserPinSourceId,
         _kUserPinLayerId,
@@ -881,6 +882,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       switch (eventType) {
         case DragEventType.start:
           _pinDragging = true;
+          // Agarrarlo a medio salto lo deja en el dedo, sin acabar el salto.
+          _saltoCtrl.stop();
+          _salto = null;
           break;
         case DragEventType.drag:
           // El punto del gesto ES la posición del pin en pantalla: el pulso
@@ -893,10 +897,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         case DragEventType.end:
           _pinDragging = false;
           ref.read(pinDragLearnedProvider.notifier).markLearned();
-          ref
-              .read(userLocationProvider.notifier)
-              .setManualPin(current.latitude, current.longitude);
-          unawaited(_refreshPinScreenPos());
+          _ponerPinEnLaRuta(current.latitude, current.longitude);
           break;
       }
     });
@@ -925,10 +926,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       // MapLibre puede devolver varios features dentro de un rectángulo. No
       // basta con tomar `features.first`: cuando dos buses están cerca, el
       // primer resultado no necesariamente es el que tocó el usuario. Se
-      // proyectan las posiciones y se escoge el centro más cercano.
+      // proyectan las posiciones y se escoge el centro más cercano. Se
+      // proyecta donde el bus se ve, a medio deslizarse, y no su última
+      // fijación: puede ir hasta 15 s detrás, más lejos que el radio.
       for (final position in positions) {
+        final pintado = _busEnPantalla(position.busId) ??
+            (lat: position.lat, lon: position.lon);
         final screen = await _mapController!.toScreenLocation(
-          LatLng(position.lat, position.lon),
+          LatLng(pintado.lat, pintado.lon),
         );
         screenPoints.add(BusScreenPoint(
           busId: position.busId,
@@ -1452,9 +1457,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                   if (location.mode == UserLocationMode.manual) {
                     return;
                   }
-                  ref
-                      .read(userLocationProvider.notifier)
-                      .setManualPin(latLng.latitude, latLng.longitude);
+                  _ponerPinEnLaRuta(latLng.latitude, latLng.longitude);
                 },
                 rotateGesturesEnabled: true,
                 scrollGesturesEnabled: true,

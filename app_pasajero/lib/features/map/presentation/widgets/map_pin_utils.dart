@@ -1,11 +1,9 @@
-// Utilidades del pin: el círculo de 2 km alrededor del punto de espera y la
-// caminada del pin a la ruta. Antes el círculo era un método privado de
-// map_widget.dart.
+// Utilidades del pin: el círculo de 2 km alrededor del punto de espera y el
+// punto de la ruta donde cae el pin. Antes el círculo era un método privado
+// de map_widget.dart.
 import 'dart:math' as math;
 
 import 'package:ya_viene_core/ya_viene_core.dart';
-
-import '../utils/geo.dart';
 
 Map<String, dynamic> radiusCircleFeature(
   double lat,
@@ -32,49 +30,14 @@ Map<String, dynamic> radiusCircleFeature(
   };
 }
 
-/// Menos que esto del pin a la ruta es estar en ella: la línea quedaría
-/// debajo de la punta del pin (15 m son 3 pt a zoom 15) y el punto de
-/// espera, pegado a ella, solo ensuciaría.
-const double caminadaMinimaMetros = 15;
-
-/// La caminada del pin ([lat], [lon]) al punto de la [ruta] donde se espera
-/// el bus ([RutaMedible.puntoDeEspera]): una línea y el punto donde acaba.
+/// Dónde cae el pin soltado en ([lat], [lon]): en el punto de la [ruta]
+/// donde se toma el bus ([RutaMedible.puntoDeEspera]).
 ///
-/// La distancia del bus se cuenta hasta ese punto más esta caminada; sin
-/// verla, quien pone el pin entre dos calles no sabe por cuál se mide
-/// (dueño, 2026-11-04). Sin ruta, o con el pin sobre ella, va vacía.
-Map<String, dynamic> caminadaHastaLaRuta(
-  RutaMedible? ruta,
-  double lat,
-  double lon,
-) {
-  final espera = ruta?.puntoDeEspera(GeoPoint(lat: lat, lon: lon));
-  final caminaAlgo = espera != null &&
-      haversineMeters(lat, lon, espera.lat, espera.lon) >= caminadaMinimaMetros;
-  return {
-    'type': 'FeatureCollection',
-    'features': [
-      if (caminaAlgo) ...[
-        {
-          'type': 'Feature',
-          'geometry': {
-            'type': 'LineString',
-            'coordinates': [
-              [lon, lat],
-              [espera.lon, espera.lat],
-            ],
-          },
-          'properties': const {},
-        },
-        {
-          'type': 'Feature',
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [espera.lon, espera.lat],
-          },
-          'properties': const {},
-        },
-      ],
-    ],
-  };
+/// El pin marca dónde se toma la ruta, no dónde está la persona: el bus
+/// nunca pasa por fuera de ella, y sumarle la caminada hasta el pin medía
+/// por la calle que no era (la 72 va de ida por la 23 y vuelve por la 24;
+/// dueño, 2026-11-05). Sin ruta elegida, se queda donde lo soltaron.
+GeoPoint dondeSeTomaLaRuta(RutaMedible? ruta, double lat, double lon) {
+  final pin = GeoPoint(lat: lat, lon: lon);
+  return ruta?.puntoDeEspera(pin) ?? pin;
 }

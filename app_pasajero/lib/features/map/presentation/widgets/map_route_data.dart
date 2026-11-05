@@ -10,11 +10,11 @@ extension _MapRouteData on _MapWidgetState {
     _trajectorySub?.close();
     _stopsSub?.close();
     _seguidorSub?.close();
-    // La caminada al punto de espera se mide con la ruta: llega después del
-    // pin, y cambia con ella.
+    // El pin guardado va donde se toma esta ruta: la ruta llega después del
+    // pin, y al elegir otra el pin pasa a ella.
     _seguidorSub = ref.listenManual(
       seguidorRutaProvider(widget.routeId!),
-      (_, __) => _renderCaminadaDelPin(),
+      (_, __) => _llevarPinGuardadoALaRuta(),
       fireImmediately: true,
     );
     _trajectorySub = ref.listenManual(
@@ -168,23 +168,17 @@ extension _MapRouteData on _MapWidgetState {
     });
   }
 
-  /// Pinta la caminada de [lat], [lon] al punto de espera de la ruta que se
-  /// sigue (ver `caminadaHastaLaRuta`). Se llama también en el arrastre:
-  /// la línea va con el dedo.
-  void _renderCaminada(double lat, double lon) {
-    if (_mapController == null || !mounted) return;
-    final ruta = _seguidorSub?.read()?.ruta;
-    _mapController!.setGeoJsonSource(_MapWidgetState._kCaminadaSourceId,
-        caminadaHastaLaRuta(ruta, lat, lon));
-  }
-
-  /// La caminada del pin guardado, para cuando llega o cambia la ruta. En el
-  /// arrastre la pinta el gesto, con el pin donde está el dedo.
-  void _renderCaminadaDelPin() {
+  /// Lleva a la ruta el pin que ya estaba puesto ([_ponerPinEnLaRuta]). El
+  /// del GPS no se toca: es donde está la persona, y la distancia ya se
+  /// mide desde el punto de la ruta más cerca de él.
+  void _llevarPinGuardadoALaRuta() {
     if (!_layersReady || _pinDragging) return;
     final ubicacion = ref.read(userLocationProvider);
-    if (ubicacion.lat == null || ubicacion.lon == null) return;
-    _renderCaminada(ubicacion.lat!, ubicacion.lon!);
+    if (ubicacion.mode != UserLocationMode.manual || !ubicacion.hasPosition) {
+      return;
+    }
+    if (_seguidorSub?.read() == null) return;
+    _ponerPinEnLaRuta(ubicacion.lat!, ubicacion.lon!);
   }
 
   void teardownRouteData() {
@@ -202,8 +196,6 @@ extension _MapRouteData on _MapWidgetState {
         .setGeoJsonSource(_MapWidgetState._kStopsFijaSourceId, emptyGeoJson);
     _mapController!.setGeoJsonSource(
         _MapWidgetState._kStopsInformalSourceId, emptyGeoJson);
-    _mapController!
-        .setGeoJsonSource(_MapWidgetState._kCaminadaSourceId, emptyGeoJson);
   }
 }
 

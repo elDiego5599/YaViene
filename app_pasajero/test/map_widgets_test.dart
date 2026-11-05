@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -133,7 +134,7 @@ void main() {
       expect(coords.first, equals(coords.last));
     });
 
-    group('caminadaHastaLaRuta', () {
+    group('dondeSeTomaLaRuta', () {
       // Ruta por la latitud 11, de este a oeste; un grado de latitud son
       // 111,32 km, así que 0,001 son 111 m.
       final ruta = RutaMedible.de(const [
@@ -141,29 +142,40 @@ void main() {
         GeoPoint(lat: 11.0, lon: -74.80),
       ])!;
 
-      test('va del pin al punto de la ruta donde se espera', () {
-        final caminada = caminadaHastaLaRuta(ruta, 11.001, -74.81);
-        final features = caminada['features'] as List;
-        final linea = (features.first as Map)['geometry'] as Map;
-        expect(linea['type'], 'LineString');
-        final puntos = linea['coordinates'] as List;
-        expect(puntos.first, [-74.81, 11.001]);
-        final fin = puntos.last as List;
-        expect(fin[0], closeTo(-74.81, 1e-6));
-        expect(fin[1], closeTo(11.0, 1e-6));
-        final espera = (features.last as Map)['geometry'] as Map;
-        expect(espera['type'], 'Point');
-        expect(espera['coordinates'], fin);
+      // El pin marca dónde se toma la ruta, no dónde está la persona: el bus
+      // nunca pasa por fuera de ella (dueño, 2026-11-05).
+      test('el pin suelto a 111 m cae sobre la ruta, en su perpendicular', () {
+        final punto = dondeSeTomaLaRuta(ruta, 11.001, -74.81);
+        expect(punto.lat, closeTo(11.0, 1e-6));
+        expect(punto.lon, closeTo(-74.81, 1e-6));
       });
 
-      test('con el pin sobre la ruta no hay nada que caminar', () {
-        final caminada = caminadaHastaLaRuta(ruta, 11.00005, -74.81);
-        expect(caminada['features'], isEmpty);
+      test('pasado el final de la ruta cae en su punta', () {
+        final punto = dondeSeTomaLaRuta(ruta, 11.0, -74.79);
+        expect(punto.lat, closeTo(11.0, 1e-6));
+        expect(punto.lon, closeTo(-74.80, 1e-6));
       });
 
-      test('sin ruta no hay a dónde caminar', () {
-        final caminada = caminadaHastaLaRuta(null, 11.001, -74.81);
-        expect(caminada['features'], isEmpty);
+      test('sin ruta elegida el pin se queda donde lo soltaron', () {
+        final punto = dondeSeTomaLaRuta(null, 11.001, -74.81);
+        expect(punto.lat, 11.001);
+        expect(punto.lon, -74.81);
+      });
+
+      // Soltar el pin, ponerlo con un toque o elegir otra ruta lo llevan a
+      // ella; y ya no hay línea punteada del pin a la ruta: solo se ve el
+      // pin (dueño, 2026-11-05).
+      test('el mapa lleva el pin a la ruta y no pinta caminada', () {
+        final fuente = [
+          'lib/features/map/presentation/widgets/map_widget.dart',
+          'lib/features/map/presentation/widgets/map_route_data.dart',
+        ].map((r) => File(r).readAsStringSync()).join();
+        final fin = fuente.indexOf('case DragEventType.end:');
+        final soltar = fuente.substring(fin, fuente.indexOf('break;', fin));
+        expect(soltar, contains('_ponerPinEnLaRuta('));
+        expect(soltar, isNot(contains('setManualPin(')));
+        expect(fuente, contains('dondeSeTomaLaRuta('));
+        expect(fuente.toLowerCase(), isNot(contains('caminada')));
       });
     });
   });

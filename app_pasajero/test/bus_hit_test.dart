@@ -56,6 +56,21 @@ void main() {
       expect(selected, 'bus');
     });
 
+    // El bus se desliza entre fijaciones hasta 15 s (BusMotion): a 10 m/s
+    // lo pintado queda hasta 150 m detrás de la última fijación, más que
+    // el radio de toque. Medir contra la fijación hacía que tocar el bus
+    // que se ve no lo eligiera (prueba en el simulador, 2026-11-04).
+    test('el toque se mide contra el bus pintado, no su última fijación', () {
+      final fuente = File(
+        'lib/features/map/presentation/widgets/map_widget.dart',
+      ).readAsStringSync();
+      final inicio = fuente.indexOf('Future<bool> _doSelectBusAtTap');
+      final fin = fuente.indexOf('nearestBusId(', inicio);
+      final proyeccion = fuente.substring(inicio, fin);
+      expect(proyeccion, contains('_busEnPantalla(position.busId)'));
+      expect(proyeccion, isNot(contains('LatLng(position.lat, position.lon)')));
+    });
+
     test('el mapa no usa una coordenada nativa sin pasarla a puntos', () {
       final fuente = File(
         'lib/features/map/presentation/widgets/map_widget.dart',

@@ -631,9 +631,9 @@
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "_entre(a, paso.avance) + paso.desvio + espera.desvio",
-    "a": "_entre(a, paso.avance) + paso.desvio",
-    "que": "la caminada del pin a la ruta se suma"
+    "de": "for (final paso in sitio) _entre(a, paso.avance)",
+    "a": "for (final paso in sitio) _entre(a, paso.avance) + paso.desvio",
+    "que": "el pin marca dónde se toma la ruta: no se suma la caminada"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
