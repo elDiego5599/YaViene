@@ -182,11 +182,8 @@ void main() {
         // Cierre: la carta al centro, dentro de la zona segura.
         await tester.tap(find.text('Guardar'));
         await asentar(tester);
-        // Con el aviso armado la guía vuelve a su carta, ahora con botón.
-        comun(tester, t, 'aviso armado');
-        cartaSobreLaHoja(tester, t, 'aviso armado');
-        await tester.tap(find.byKey(const ValueKey('guide_primary')));
-        await asentar(tester);
+        // Armar el aviso dentro de la guía la lleva sola al paso siguiente:
+        // «Aviso ya activado» es solo para un aviso de antes de la guía.
         expect(mapa.container.read(mapGuideProvider).step,
             MapGuideStep.background);
         final c = carta(tester);

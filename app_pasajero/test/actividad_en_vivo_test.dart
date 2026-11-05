@@ -75,6 +75,29 @@ void main() {
     expect(nativo, contains('dismissalPolicy: .immediate'));
   });
 
+  test('al sonar, la isla se abre y se queda: no termina en el acto', () {
+    final nativo = File('ios/Runner/ActividadEnVivo.swift').readAsStringSync();
+    final inicio = nativo.indexOf('static func sonar(');
+    final fin = nativo.indexOf('static func terminar(', inicio);
+    final sonar = nativo.substring(inicio, fin);
+
+    // Una actividad terminada sale de la Dynamic Island en el acto (la
+    // política de despedida solo vale en la pantalla bloqueada): con el
+    // teléfono desbloqueado la isla se cerraba sin que nadie se enterara
+    // (dueño, 2026-11-04). Primero el aviso abre la isla, luego se queda
+    // [enLaIsla] diciendo que está cerca, y solo entonces termina; el
+    // tiempo de fondo pedido evita que iOS suspenda la app en medio.
+    final alerta = sonar.indexOf('alertConfiguration: alerta');
+    final espera = sonar.indexOf('Task.sleep');
+    final termina = sonar.indexOf('viva.end(');
+    expect(alerta, greaterThan(-1));
+    expect(espera, greaterThan(alerta));
+    expect(termina, greaterThan(espera));
+    expect(sonar, contains('beginBackgroundTask'));
+    expect(sonar, contains('endBackgroundTask'));
+    expect(nativo, contains('static let enLaIsla: TimeInterval = 25'));
+  });
+
   test('el avance: 3 km o más es el arranque, 0 m es tu punto', () {
     expect(EstadoEnVivo.avanceDe(3000), 0);
     expect(EstadoEnVivo.avanceDe(5000), 0);

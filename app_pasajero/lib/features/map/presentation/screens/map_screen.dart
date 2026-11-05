@@ -73,6 +73,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   ProviderSubscription<UserLocationState>? _locationSub;
   ProviderSubscription<MapGuideState>? _guideSub;
   ProviderSubscription<Set<String>>? _busSub;
+  ProviderSubscription<Set<String>>? _avisosSub;
   StreamSubscription<AvisoTocado>? _avisosTocados;
   bool _bienvenidaAbierta = false;
 
@@ -114,10 +115,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         }
       },
     );
-    // El paso de alerta NO se completa solo cuando ya hay un aviso activo:
-    // la guía lo muestra ("Aviso ya activado") y deja que el usuario avance
-    // con "Continuar" (un aviso restaurado de otra sesión no debe saltarse
-    // el paso en silencio).
+    // El paso del aviso se completa solo cuando el pasajero arma el aviso
+    // del bus elegido con la guía en ese paso. Un aviso que ya estaba antes
+    // (restaurado o puesto fuera de la guía) no cambia el conjunto aquí: la
+    // guía dice «Aviso ya activado» y se sigue con «Continuar».
+    _avisosSub = ref.listenManual<Set<String>>(
+      activeAlertsProvider,
+      (previous, next) {
+        if (ref.read(mapGuideProvider).step != MapGuideStep.alert) return;
+        final antes = previous ?? const <String>{};
+        final recienArmado = ref
+            .read(selectedBusesProvider)
+            .any((bus) => next.contains(bus) && !antes.contains(bus));
+        if (recienArmado) {
+          ref.read(mapGuideProvider.notifier).complete(MapGuideStep.alert);
+        }
+      },
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _initializeGuide();
@@ -148,6 +162,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _locationSub?.close();
     _guideSub?.close();
     _busSub?.close();
+    _avisosSub?.close();
     _avisosTocados?.cancel();
     super.dispose();
   }

@@ -1015,8 +1015,10 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
   ///
   /// Era un bloque gris muerto con la frase "Selecciona una ruta para
   /// continuar" escrita encima: instrucciones sobre un botón que no se
-  /// puede pulsar. Ahora hace lo que dice y dice lo que hace —lleva al
-  /// paso que falte— y cuando ya no falta ninguno, se enciende en verde.
+  /// puede pulsar. Ahora hace lo que dice y dice lo que hace: lleva
+  /// al paso que falte. Va siempre en el mismo verde (dueño, 2026-11-04: el
+  /// azul de «Elegir empresa» y «Elegir ruta» desentonaba con el verde de
+  /// «Ver buses en vivo»); #047857 da 5,48:1 con la letra blanca.
   Widget _launchButton(
       BuildContext context, Company? company, RouteInfo? route) {
     final String label;
@@ -1047,13 +1049,12 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
         if (context.mounted) Navigator.of(context).maybePop();
       };
     }
-    final listo = route != null;
 
     return ElevatedButton(
       key: widget.launchBusesGuideKey,
       onPressed: action,
       style: ElevatedButton.styleFrom(
-        backgroundColor: listo ? AppColors.primaryAccessible : AppColors.acento,
+        backgroundColor: AppColors.primaryAccessible,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(

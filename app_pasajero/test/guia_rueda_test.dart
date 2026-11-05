@@ -62,17 +62,45 @@ void main() {
     expect(guiaVista.primaryLabel, isNull,
         reason: 'se sigue con «Guardar», no con un botón de la guía');
 
-    // Guardar arma el aviso y la guía vuelve a su tarjeta de siempre.
+    // Guardar arma el aviso y la guía pasa sola al paso siguiente: el
+    // aviso lo acaba de activar el pasajero, no hay que decirle que «ya
+    // estaba activado» (dueño, 2026-11-04).
     await tester.tap(find.text('Guardar'));
     await asentar(tester);
     expect(find.text('Guardar'), findsNothing);
     expect(mapa.container.read(activeAlertsProvider), {'BUS-SQA220'});
-    expect(find.byType(MapGuideOverlay), findsOneWidget);
-    expect(
-        tester
-            .widget<MapGuideOverlay>(find.byType(MapGuideOverlay))
-            .primaryLabel,
-        isNotNull);
+    expect(mapa.container.read(mapGuideProvider).step, MapGuideStep.background);
+    expect(find.text('Aviso ya activado'), findsNothing);
+
+    await mapa.desmontar(tester);
+  });
+
+  testWidgets('un aviso de antes de la guía sí dice «Aviso ya activado»',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final mapa = await MapaDePrueba.montar(tester);
+    mapa.repo.foto([10.970]);
+    await asentar(tester);
+    mapa.container.read(selectedBusesProvider.notifier).toggleBus('BUS-SQA220');
+    await asentar(tester);
+    await tester.tap(find.text('Avisarme cuando esté cerca'));
+    await asentar(tester);
+    await tester.tap(find.text('Guardar'));
+    await asentar(tester);
+    expect(mapa.container.read(activeAlertsProvider), {'BUS-SQA220'});
+
+    final guia = mapa.container.read(mapGuideProvider.notifier);
+    await tester.runAsync(() async {
+      await guia.restart(hasLocation: true);
+      await guia.moveTo(MapGuideStep.alert);
+    });
+    await asentar(tester);
+
+    expect(mapa.container.read(mapGuideProvider).step, MapGuideStep.alert);
+    expect(find.text('Aviso ya activado'), findsOneWidget);
 
     await mapa.desmontar(tester);
   });

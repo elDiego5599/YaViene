@@ -181,9 +181,16 @@ private enum Gestor {
     }
   }
 
+  /// Lo que la isla sigue diciendo que el bus está cerca tras abrirse. Una
+  /// actividad terminada sale de la isla en el acto (la despedida solo vale
+  /// en la pantalla bloqueada), así que se termina después; cabe en los
+  /// ~30 s de fondo que iOS da tras soltar la ubicación.
+  static let enLaIsla: TimeInterval = 25
+
   /// El bus llegó: la actividad da el aviso (pantalla encendida, sonido y,
-  /// en la isla, abierta) y se queda [despedida] diciendo que está cerca. Es
-  /// el único aviso: el banner solo sale si responde `false`.
+  /// en la isla, abierta), se queda [enLaIsla] en la isla y [despedida] en
+  /// la pantalla bloqueada diciendo que está cerca. Es el único aviso: el
+  /// banner solo sale si responde `false`.
   static func sonar(busId: String, alTerminar: @escaping (Bool) -> Void) {
     guard let viva = Activity<AvisoAtributos>.activities.first(where: {
       $0.attributes.busId == busId && $0.activityState == .active
@@ -193,11 +200,25 @@ private enum Gestor {
     let contenido = ActivityContent(state: estado, staleDate: nil)
     let alerta = AlertConfiguration(
       title: "Tu bus está cerca de ti", body: "", sound: .default)
+    let sonoEn = Date()
+    // Dart desarma el aviso al saber que sonó y suelta la ubicación: sin
+    // este tiempo de fondo, iOS suspendería la app antes de terminarla.
+    var fondo = UIBackgroundTaskIdentifier.invalid
+    fondo = UIApplication.shared.beginBackgroundTask(withName: "aviso en la isla") {
+      UIApplication.shared.endBackgroundTask(fondo)
+      fondo = .invalid
+    }
     Task {
       await viva.update(contenido, alertConfiguration: alerta)
-      await viva.end(
-        contenido, dismissalPolicy: .after(Date().addingTimeInterval(despedida)))
       DispatchQueue.main.async { alTerminar(true) }
+      try? await Task.sleep(nanoseconds: UInt64(enLaIsla * 1_000_000_000))
+      await viva.end(
+        contenido, dismissalPolicy: .after(sonoEn.addingTimeInterval(despedida)))
+      DispatchQueue.main.async {
+        guard fondo != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(fondo)
+        fondo = .invalid
+      }
     }
   }
 
