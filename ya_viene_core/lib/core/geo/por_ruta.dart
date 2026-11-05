@@ -39,10 +39,6 @@ const double _empate = 15;
 /// GPS perdido): no se mide por la ruta.
 const double desvioBusMaximo = 60;
 
-/// Un punto más lejos de la ruta no espera ese bus en esa calle: se mide en
-/// línea recta (alongroute, `maxStopOffset`).
-const double desvioPuntoMaximo = 300;
-
 /// Un recorrido listo para medir: coordenadas planas en metros con origen
 /// en la ruta (error menor del 0,1 % a escala de ciudad) y largos
 /// acumulados.
@@ -153,6 +149,23 @@ class RutaMedible {
     return (avance: elegida.avance, desvio: elegida.desvio);
   }
 
+  /// Donde la persona del pin [p] espera el bus: el punto de la ruta más
+  /// cerca de él. El mapa traza la línea del pin hasta aquí, y así se ve a
+  /// qué calle se mide (dueño, 2026-11-04).
+  GeoPoint puntoDeEspera(GeoPoint p) => _geo(_sobre(proyectar(p).avance));
+
+  GeoPoint _geo((double, double) xy) =>
+      GeoPoint(lat: _lat0 + xy.$2 / _ky, lon: _lon0 + xy.$1 / _kx);
+
+  /// El punto plano de la ruta en [avance].
+  (double, double) _sobre(double avance) {
+    var i = 0;
+    while (i < _acum.length - 2 && _acum[i + 1] < avance) {
+      i++;
+    }
+    return _acum[i + 1] > _acum[i] ? _enAvance(i, avance) : (_x[i], _y[i]);
+  }
+
   /// Como [proyectar], pero solo entre los avances [desde] y [hasta] (con la
   /// vuelta en la circular). Lo que la ventana corta de un tramo se mide
   /// hasta su borde.
@@ -201,9 +214,7 @@ class RutaMedible {
   /// punto cae en las dos. Un paso es donde la ruta más se acerca a [p]
   /// antes de alejarse otra vez (ningún tramo vecino queda más cerca), a
   /// [maximo] o menos; los tramos seguidos que caen en el mismo
-  /// sitio (una esquina) son un paso. Todos cuentan, no solo el más
-  /// cercano: el pin entre dos calles de la ruta decía 15,6 km por la que
-  /// tenía enfrente con el bus a 2 km por la otra (dueño, 2026-10-19).
+  /// sitio (una esquina) son un paso.
   List<Proyeccion> _pasos(GeoPoint p, double maximo) {
     final (px, py) = _plano(p);
     final todas = _proyecciones(px, py).toList();
@@ -239,33 +250,49 @@ class RutaMedible {
     return pasos;
   }
 
-  /// Los metros de ruta del bus en [avanceBus] al paso por [p] más cerca,
-  /// venga o ya haya pasado, más el desvío del punto a la línea. Null si [p]
-  /// está a más de [desvioPuntoMaximo] de la ruta.
+  /// Los avances donde la ruta pasa por el [puntoDeEspera] de [p]: el
+  /// suyo y, donde la ruta vuelve por ese sitio (el otro carril de una
+  /// calle de ida y vuelta), también ese.
+  List<double> pasosPorLaEspera(GeoPoint p) =>
+      [for (final paso in _sitio(proyectar(p))) paso.avance];
+
+  /// Los pasos a menos de dos [_empate] del punto de espera: más lejos ya
+  /// es otra calle.
+  List<Proyeccion> _sitio(Proyeccion espera) =>
+      _pasos(_geo(_sobre(espera.avance)), 2 * _empate);
+
+  /// Los metros de ruta del bus en [avanceBus] al [puntoDeEspera] de [p],
+  /// venga o ya haya pasado, más la caminada del pin a ese punto.
   ///
   /// Nunca cuenta la vuelta entera: un bus que acaba de pasar decía 20 km
   /// con el bus a la vista; se muestra lo que hay y qué bus elige es cosa
   /// de la persona (dueño, 2026-10-19).
-  double? medir(double avanceBus, GeoPoint p) => _desde([avanceBus], p);
+  double medir(double avanceBus, GeoPoint p) => _desde([avanceBus], p);
 
   /// [medir] desde el más cerca de varios avances del bus.
   ///
-  /// Basta un paso a [desvioPuntoMaximo] o menos para medir, y entonces
-  /// cuentan los que quedan hasta [desvioPuntoMaximo] más lejos que ese,
-  /// cada uno con su desvío: con el tope fijo por paso, la calle a 334 m
-  /// del pin no contaba (la otra quedaba a 169) y el bus que pasaba por
-  /// ella decía 30 km en la C16 (dueño, 2026-10-21). Con el pin sobre la
-  /// ruta sigue siendo 300: la otra punta de una U a 400 m no cuenta.
-  double? _desde(List<double> avances, GeoPoint p) {
-    final todos = _pasos(p, double.infinity);
-    if (todos.isEmpty) return null;
-    final cerca = todos.map((paso) => paso.desvio).reduce(math.min);
-    if (cerca > desvioPuntoMaximo) return null;
+  /// Se espera en un solo sitio, el punto de la ruta más cerca del pin, y
+  /// desde cualquier distancia: no se sabe hacia qué calle caminará la
+  /// persona, y adivinarlo hacía saltar la cifra. Con un tope de 300 m a
+  /// la línea recta y contando las calles hasta 300 m más lejos que la más
+  /// cercana, correr el pin 50 m cambiaba de 5,8 a 19,3 km en las 15 rutas
+  /// (dueño, 2026-11-04). Ahora la cifra solo salta con el pin a mitad de
+  /// camino entre dos calles de la ruta, donde de verdad cambia la calle
+  /// en que se espera, y el mapa traza la línea hasta ella. Donde la ruta
+  /// pasa otra vez por ese sitio (el otro carril de una calle de ida y
+  /// vuelta, a menos de dos [_empate]) también se espera: cuenta el paso
+  /// que trae el bus más cerca. Esos pasos se buscan desde el sitio, no
+  /// desde el pin: buscados desde el pin a 800 m, los de un retorno de
+  /// 180 m aparecían y se iban, y la cifra se turnaba. Donde los dos
+  /// carriles se separan más que eso, el otro deja de pasar por el sitio y
+  /// la cifra cambia (menos del 3 % de los pines vecinos en las 15 rutas).
+  double _desde(List<double> avances, GeoPoint p) {
+    final espera = proyectar(p);
+    final sitio = _sitio(espera);
     return [
       for (final a in avances)
-        for (final paso in todos)
-          if (paso.desvio <= cerca + desvioPuntoMaximo)
-            _entre(a, paso.avance) + paso.desvio
+        for (final paso in sitio)
+          _entre(a, paso.avance) + paso.desvio + espera.desvio
     ].reduce(math.min);
   }
 }
@@ -304,8 +331,8 @@ class SeguidorRuta {
     return pr.avance;
   }
 
-  /// Lo que le falta a [bus] por la ruta hasta [punto], o null si no se
-  /// sabe: el bus fuera de la ruta o el punto lejos de ella.
+  /// Lo que le falta a [bus] por la ruta hasta [punto], o null si el bus va
+  /// fuera de ella.
   ///
   /// Se mide desde cada paso de la ruta por donde está el bus, no solo
   /// desde su carril: dos buses lado a lado, uno de ida y otro de vuelta,

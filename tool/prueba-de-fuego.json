@@ -631,21 +631,21 @@
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (cerca > desvioPuntoMaximo) return null;",
-    "a": "if (false) return null;",
-    "que": "un punto lejos de la ruta no se mide por ella"
+    "de": "_entre(a, paso.avance) + paso.desvio + espera.desvio",
+    "a": "_entre(a, paso.avance) + paso.desvio",
+    "que": "la caminada del pin a la ruta se suma"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (paso.desvio <= cerca + desvioPuntoMaximo)",
-    "a": "if (paso.desvio <= desvioPuntoMaximo)",
-    "que": "la otra calle a más de 300 m cuenta si una queda cerca"
+    "de": "_pasos(_geo(_sobre(espera.avance)), 2 * _empate);",
+    "a": "_pasos(_geo(_sobre(espera.avance)), 1);",
+    "que": "el otro carril de una calle de ida y vuelta también pasa por la espera"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",
-    "de": "if (paso.desvio <= cerca + desvioPuntoMaximo)",
-    "a": "if (true)",
-    "que": "la otra punta de una U a 400 m no cuenta"
+    "de": "GeoPoint puntoDeEspera(GeoPoint p) => _geo(_sobre(proyectar(p).avance));",
+    "a": "GeoPoint puntoDeEspera(GeoPoint p) => p;",
+    "que": "se espera en el punto de la ruta más cerca del pin"
   },
   {
     "archivo": "ya_viene_core/lib/core/geo/por_ruta.dart",

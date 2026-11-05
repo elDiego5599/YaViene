@@ -202,10 +202,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   (`revisarAvisos` en `YaVieneBackend/src/data/avisos_push.ts`) sigue en línea
   recta. Con la app cerrada, un bus a 400 m en recta y a 3 km por la ruta
   todavía avisa antes de tiempo. Falta portar la medida al backend con sus
-  mismas pruebas (la U de 1500 × 400 m del core; del 2026-10-18 y
-  2026-10-19, cuentan todos los pasos a 300 m o menos del punto, no solo
-  el más cercano: un punto entre la ida y la vuelta daba 31,7 km y luego
-  15,6 km con el bus a la vista; y
+  mismas pruebas (la U de 1500 × 400 m del core; del 2026-11-04, se
+  espera en el punto de la ruta más cerca del pin, a cualquier distancia,
+  y se cuenta la ruta hasta ahí más la caminada, con el otro carril de una
+  calle de ida y vuelta si pasa a 30 m o menos de ese punto: la ventana de
+  300 m hacía saltar la C16 de 5,8 a 19,3 km al correr el pin 50 m; y
   del 2026-10-19, la distancia al paso más cerca, venga o ya haya pasado,
   sin contar nunca la vuelta entera: con el bus 80 m pasado se sumaba la
   vuelta y salían 20 km; y desde cada paso de la ruta por donde está el

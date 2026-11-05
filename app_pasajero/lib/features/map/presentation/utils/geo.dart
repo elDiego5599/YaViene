@@ -15,9 +15,9 @@ double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
 }
 
 /// Distancia de [bus] al punto ([lat], [lon]) por el recorrido, hasta el
-/// paso más cerca, venga o ya haya pasado. Sin [seguidor] o si el bus o el
-/// punto quedan lejos de la ruta, en línea recta: es lo que se sabe, y
-/// nunca es más que por la ruta.
+/// punto de la ruta más cerca del pin, venga o ya haya pasado, más la
+/// caminada hasta ahí. Sin [seguidor] o con el bus fuera de la ruta, en
+/// línea recta: es lo que se sabe, y nunca es más que por la ruta.
 double distanciaAlBus(
   SeguidorRuta? seguidor,
   BusPosition bus,

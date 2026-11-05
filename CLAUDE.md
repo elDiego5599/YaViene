@@ -400,16 +400,20 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   paso de la ruta por donde está el bus (dos buses lado a lado, uno de
   ida y otro de vuelta, dicen lo mismo; dueño, 2026-10-19: daban 10 y
   29 km), y nunca bloquea el
-  aviso por eso; si no se puede medir (bus a más de 60 m de la ruta
-  o punto a más de 300 m), cae a la línea recta. El push del servidor
+  aviso por eso; con el bus a más de 60 m de la ruta cae a la línea
+  recta. El push del servidor
   sigue en recta (FALTANTES). La idea se publica aparte, en inglés, en
   `elDiego5599/alongroute` (`YaViene/alongroute`).
   El aviso lleva la ficha de la ruta (B18, C16; `ficha_ruta.dart`): en
   Android de ícono grande, en iOS de imagen adjunta, y en la tarjeta de
   Avisos en vez del bus, con el nombre sin el código (dueño, 2026-10-19).
-  Por la ruta cuentan todos los pasos hasta 300 m más lejos que el más
-  cercano, no solo ese (el pin entre dos calles daba 15,6 km; con la otra
-  calle a 334 m, 30 km en la C16, dueño, 2026-10-21). La barra de
+  Se espera en el punto de la ruta más cerca del pin, desde cualquier
+  distancia, y se cuenta la ruta hasta ahí más la caminada; el mapa
+  traza una línea punteada del pin a ese punto (dueño, 2026-11-04: con
+  el tope de 300 m y las calles hasta 300 m más lejos, correr el pin
+  50 m saltaba de 5,8 a 19,3 km). Solo salta con el pin a mitad de
+  camino entre dos calles de la ruta, o donde el otro carril se aparta
+  más de 30 m (`RutaMedible.puntoDeEspera`, `pasosPorLaEspera`). La barra de
   vidrio sale al bajar, al paso del dedo, y en reposo no hay nada.
   Con un bus tocado se va la píldora de tu punto y buses cerca.
   Bajo «km de ti», la tarjeta del bus dice «Ocupación aprox.» con su

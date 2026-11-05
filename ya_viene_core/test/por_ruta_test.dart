@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -128,7 +130,7 @@ void main() {
     });
   });
 
-  group('la ruta pasa dos veces cerca del punto: cuenta el paso más cerca', () {
+  group('la persona espera en el punto de la ruta más cerca de su pin', () {
     // Rectángulo circular de 1000 × 200: este por y = 0, norte, oeste por
     // y = 200 y bajada al inicio. 2400 m.
     final rect = RutaMedible.de(
@@ -143,12 +145,14 @@ void main() {
           s.distancia(_bus(700, 0, rumbo: 90), _m(500, 80)), closeTo(280, 5));
     });
 
-    test('viniendo de lejos, el paso de enfrente cuenta hacia adelante', () {
-      // El bus en x = 900 de la vuelta, rumbo oeste: 400 hasta x = 500 y 120
-      // de desvío; hacia atrás, a la ida, serían 800 + 80.
+    test('viniendo por la otra calle, cuenta hasta la de su pin', () {
+      // El punto en (500, 80): la ida a 80, la vuelta a 120. Espera en la
+      // ida. El bus en x = 900 de la vuelta, rumbo oeste: hasta x = 500 de
+      // la ida, hacia atrás, 800, más 80 (dueño, 2026-11-04: contar la
+      // calle de enfrente hacía saltar la cifra con mover el pin un poco).
       final s = SeguidorRuta(rect);
       expect(s.distancia(_bus(900, 200, rumbo: 270), _m(500, 80)),
-          closeTo(520, 5));
+          closeTo(880, 5));
     });
 
     test('antes de la esquina no hay otro paso: la ruta sigue acercándose', () {
@@ -160,34 +164,41 @@ void main() {
           s.distancia(_bus(900, 0, rumbo: 90), _m(990, 100)), closeTo(210, 5));
     });
 
-    test('fuera de la ruta cuenta el paso que trae el bus más cerca', () {
-      // El punto en (500, 20): la vuelta le queda a 180, 160 más que la ida.
-      // El bus en x = 300 de la vuelta pasó x = 500 hace 200 m: 200 + 180,
-      // no la vuelta por la ida, 1020 (dueño, 2026-10-19: 15,6 km con el
-      // bus a 2 km y el pin entre dos calles de la ruta).
+    test('el bus por la calle de enfrente da la vuelta hasta la del pin', () {
+      // El punto en (500, 20): la ida a 20, la vuelta a 180. Espera en la
+      // ida, x = 500 (avance 500). El bus en x = 300 de la vuelta (avance
+      // 1900): 1000 por la ruta, cruzando el inicio, más 20. El mapa
+      // dibuja la línea del pin a ese punto: quien espera en la otra
+      // calle corre el pin hasta ella.
       final s = SeguidorRuta(rect);
       expect(s.distancia(_bus(300, 200, rumbo: 270), _m(500, 20)),
-          closeTo(380, 5));
+          closeTo(1020, 5));
     });
 
-    test('la otra calle a más de 300 m también cuenta si una queda cerca', () {
-      // Rectángulo de 1000 × 500 (3000 m). El punto en (500, 180): la ida
-      // le queda a 180 y la vuelta a 320. El bus en x = 600 de la vuelta,
-      // rumbo oeste: 100 + 320, no 1400 + 180 por la ida (dueño,
-      // 2026-10-21: 30 km en la C16 con el bus a 335 m del pin).
+    test('sobre la ruta espera ahí, aunque la otra calle quede a 200 m', () {
+      // El punto en la ida (500, 0); el bus en la vuelta, x = 300: 1000.
+      final s = SeguidorRuta(rect);
+      expect(s.distancia(_bus(300, 200, rumbo: 270), _m(500, 0)),
+          closeTo(1000, 5));
+    });
+
+    test('a 400 m de la ruta: la ruta hasta su punto más la caminada', () {
+      // Rectángulo de 1000 × 500 (3000 m). El punto en (500, -400): la ida
+      // le queda a 400. El bus en x = 200 de la ida: 300 + 400, no la
+      // línea recta de 500 (dueño, 2026-11-04: pasar de 300 a 301 m del
+      // pin cambiaba la cifra de la ruta a la recta, hasta 19 km).
       final ancho = RutaMedible.de(
           [_m(0, 0), _m(1000, 0), _m(1000, 500), _m(0, 500), _m(0, 10)])!;
       final s = SeguidorRuta(ancho);
-      expect(s.distancia(_bus(600, 500, rumbo: 270), _m(500, 180)),
-          closeTo(420, 5));
+      expect(
+          s.distancia(_bus(200, 0, rumbo: 90), _m(500, -400)), closeTo(700, 5));
     });
 
-    test('sobre la ruta, la otra calle a 200 m también cuenta', () {
-      // El punto en la ida (500, 0); el bus en la vuelta, x = 300, a 200
-      // de pasarle enfrente: 200 + 200, no 1000 por la ida.
-      final s = SeguidorRuta(rect);
-      expect(
-          s.distancia(_bus(300, 200, rumbo: 270), _m(500, 0)), closeTo(400, 5));
+    test('el punto de espera es el de la ruta más cerca del pin', () {
+      final espera = rect.puntoDeEspera(_m(500, 80));
+      final esperado = _m(500, 0);
+      expect(espera.lat, closeTo(esperado.lat, 1e-6));
+      expect(espera.lon, closeTo(esperado.lon, 1e-6));
     });
   });
 
@@ -222,16 +233,105 @@ void main() {
       expect(RutaMedible.de([_m(0, 0), _m(0, 0)]), isNull);
     });
 
-    test('bus a más de 60 m de la ruta', () {
+    test('bus a más de 60 m de la ruta (el pin, lejos o cerca, sí se mide)',
+        () {
       final s = SeguidorRuta(idaYVuelta);
       final bus = _bus(500, 80, rumbo: 90);
       expect(s.avanceDe(bus), isNull);
       expect(s.distancia(bus, _m(200, 0)), isNull);
     });
+  });
 
-    test('punto a más de 300 m de la ruta', () {
-      final s = SeguidorRuta(idaYVuelta);
-      expect(s.distancia(_bus(500, 0, rumbo: 90), _m(200, 400)), isNull);
-    });
+  test('en las 15 rutas, mover el pin no hace saltar la cifra', () {
+    // Pines cada 100 m hasta 1 km de cada ruta, con un bus a mitad de
+    // recorrido. Entre dos pines vecinos la cifra cambia a lo sumo lo que
+    // se movió su punto de espera por la ruta más lo que cambió la
+    // caminada (100 m, el paso), con holgura para dos carriles de la misma
+    // calle. Solo salta donde de verdad cambia dónde se espera: el pin a
+    // mitad de camino entre dos calles de la ruta, o el otro carril que se
+    // abre a más de 30 m del sitio de espera (o se acerca), y eso es poco.
+    // Antes, en estas rutas, saltaba de 5,8 a 19,3 km (dueño, 2026-11-04).
+    const paso = 100.0;
+    final datos = jsonDecode(File('assets/data/rutas.json').readAsStringSync())
+        as Map<String, dynamic>;
+    final rutas = datos['rutas'] as List;
+    expect(rutas, hasLength(15));
+    for (final r in rutas.cast<Map<String, dynamic>>()) {
+      final pts = [
+        for (final w in (r['waypoints'] as List).cast<Map<String, dynamic>>())
+          GeoPoint(
+              lat: (w['lat'] as num).toDouble(),
+              lon: (w['lon'] as num).toDouble())
+      ];
+      final ruta = RutaMedible.de(pts)!;
+      final a = pts[pts.length ~/ 2], b = pts[pts.length ~/ 2 + 1];
+      final kx = 111320 * math.cos(a.lat * math.pi / 180);
+      final rumbo = math.atan2((b.lon - a.lon) * kx, (b.lat - a.lat) * 111320) *
+          180 /
+          math.pi;
+      final bus = BusPosition(
+        busId: 'B1',
+        routeId: r['routeId'] as String,
+        lat: (a.lat + b.lat) / 2,
+        lon: (a.lon + b.lon) / 2,
+        heading: (rumbo + 360) % 360,
+        speedKmh: 20,
+        timestamp: DateTime.utc(2026, 11, 4),
+        isGhostBus: false,
+      );
+      final s = SeguidorRuta(ruta);
+      double recta(GeoPoint p, GeoPoint q) =>
+          math.sqrt(math.pow((p.lon - q.lon) * kx, 2) +
+              math.pow((p.lat - q.lat) * 111320, 2));
+      final lats = pts.map((p) => p.lat), lons = pts.map((p) => p.lon);
+      final la0 = lats.reduce(math.min) - 0.01;
+      final lo0 = lons.reduce(math.min) - 0.01;
+      final dla = paso / 111320, dlo = paso / kx;
+      final nla = ((lats.reduce(math.max) + 0.01 - la0) / dla).ceil();
+      final nlo = ((lons.reduce(math.max) + 0.01 - lo0) / dlo).ceil();
+      final cifra = <(int, int), double>{};
+      final avance = <(int, int), double>{};
+      final pasos = <(int, int), List<double>>{};
+      double vuelta(double x, double y) {
+        final d = (x - y).abs();
+        return ruta.circular ? math.min(d, ruta.largo - d) : d;
+      }
+
+      bool mismoSitio(List<double> uno, List<double> otro) =>
+          uno.length == otro.length &&
+          uno.every((x) => otro.any((y) => vuelta(x, y) <= 3 * paso)) &&
+          otro.every((y) => uno.any((x) => vuelta(x, y) <= 3 * paso));
+      for (var i = 0; i < nla; i++) {
+        for (var j = 0; j < nlo; j++) {
+          final p = GeoPoint(lat: la0 + i * dla, lon: lo0 + j * dlo);
+          if (!pts.any((v) => recta(v, p) < 1000)) continue;
+          final d = s.distancia(bus, p);
+          expect(d, isNotNull, reason: '${r['routeId']} sin cifra en $p');
+          cifra[(i, j)] = d!;
+          avance[(i, j)] = ruta.proyectar(p).avance;
+          pasos[(i, j)] = ruta.pasosPorLaEspera(p);
+        }
+      }
+      var pares = 0, otroCarril = 0;
+      for (final MapEntry(key: (i, j), value: d) in cifra.entries) {
+        for (final vecino in [(i + 1, j), (i, j + 1)]) {
+          final dv = cifra[vecino];
+          if (dv == null) continue;
+          final corrido = vuelta(avance[(i, j)]!, avance[vecino]!);
+          // El punto de espera cambió de calle: el salto es de verdad.
+          if (corrido > 3 * paso) continue;
+          pares++;
+          final tope = corrido + paso + 50;
+          // El otro carril entró o salió del sitio de espera.
+          if (!mismoSitio(pasos[(i, j)]!, pasos[vecino]!)) {
+            if ((d - dv).abs() > tope) otroCarril++;
+            continue;
+          }
+          expect((d - dv).abs(), lessThanOrEqualTo(tope),
+              reason: '${r['routeId']} entre $i,$j y $vecino');
+        }
+      }
+      expect(otroCarril / pares, lessThan(0.03), reason: '${r['routeId']}');
+    }
   });
 }
