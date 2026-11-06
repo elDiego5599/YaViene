@@ -10,10 +10,16 @@
 // Sin red: los sockets son del paquete, con `autoConnect` apagado, y los
 // eventos se disparan a mano. Cada prueba va a su propio puerto para no
 // compartir con otra el `Manager` guardado.
+import 'dart:async';
+import 'dart:ui' show AppLifecycleState;
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:ya_viene_core/ya_viene_core.dart';
+import 'package:ya_viene_pasajero/core/providers/red_provider.dart';
 import 'package:ya_viene_pasajero/features/map/data/services/realtime_service.dart';
+import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_providers.dart';
 
 /// Abre los sockets del servicio con el paquete de verdad, sin conectarlos,
 /// y se queda con todos.
@@ -119,6 +125,90 @@ void main() {
     expect(fabrica.creados, hasLength(1));
 
     servicio.dispose();
+  });
+  // «En el celular jode mucho para reconectar» (dueño, 2026-11-06): al volver
+  // la app al frente, o la red, el socket esperaba su próximo reintento, que
+  // con la espera creciente del paquete y el reintento de 15 s podían ser
+  // 10 a 15 s más con el mapa quieto. Ahora se intenta en el acto.
+  test('reconectar ya abre un socket nuevo si no hay conexión', () async {
+    final fabrica = _Fabrica();
+    final servicio = RealtimeService(
+      'http://127.0.0.1:59103',
+      crearSocket: fabrica.crear,
+    )..connect();
+    servicio.subscribeToRoute('R-101');
+
+    servicio.reconectarYa();
+    await pumpEventQueue();
+
+    expect(fabrica.creados, hasLength(2));
+    final viejo = fabrica.creados.first;
+    expect(viejo.hasListeners('bus:position'), isFalse,
+        reason: 'el socket viejo se suelta del todo');
+    // El nuevo pide la sala de la ruta en cuanto conecta.
+    final nuevo = fabrica.creados.last;
+    nuevo.emitReserved('connect');
+    await pumpEventQueue();
+    expect(_suscripciones(nuevo, 'R-101'), 1);
+
+    servicio.dispose();
+  });
+
+  test('reconectar ya no toca un socket conectado ni uno cerrado a propósito',
+      () async {
+    final fabrica = _Fabrica();
+    final servicio = RealtimeService(
+      'http://127.0.0.1:59104',
+      crearSocket: fabrica.crear,
+    )..connect();
+    fabrica.creados.single.connected = true;
+
+    servicio.reconectarYa();
+    expect(fabrica.creados, hasLength(1), reason: 'ya estaba conectado');
+    // Sin transporte de verdad, un socket «conectado» no puede despedirse.
+    fabrica.creados.single.connected = false;
+
+    servicio
+      ..disconnect()
+      ..reconectarYa();
+    expect(fabrica.creados, hasLength(1),
+        reason: 'la app soltó la conexión: no se abre otra');
+
+    servicio
+      ..dispose()
+      ..reconectarYa();
+    expect(fabrica.creados, hasLength(1));
+  });
+  test('volver al frente o volver la red reconecta en el acto', () async {
+    final fabrica = _Fabrica();
+    final red = StreamController<bool>();
+    final contenedor = ProviderContainer(overrides: [
+      backendUrlProvider
+          .overrideWith(() => BackendUrl.fija('http://127.0.0.1:59105')),
+      realtimeSocketFactoryProvider.overrideWithValue(fabrica.crear),
+      hayRedProvider.overrideWith((ref) => red.stream),
+    ]);
+    addTearDown(() {
+      contenedor.dispose();
+      red.close();
+    });
+    contenedor.read(realtimeServiceProvider).connect();
+    expect(fabrica.creados, hasLength(1));
+
+    final vida = contenedor.read(appLifecycleProvider.notifier);
+    vida.state = AppLifecycleState.paused;
+    await pumpEventQueue();
+    expect(fabrica.creados, hasLength(1), reason: 'en el fondo no se intenta');
+    vida.state = AppLifecycleState.resumed;
+    await pumpEventQueue();
+    expect(fabrica.creados, hasLength(2), reason: 'de vuelta al frente');
+
+    red.add(false);
+    await pumpEventQueue();
+    expect(fabrica.creados, hasLength(2), reason: 'sin red no hay a dónde');
+    red.add(true);
+    await pumpEventQueue();
+    expect(fabrica.creados, hasLength(3), reason: 'volvió la red');
   });
 }
 

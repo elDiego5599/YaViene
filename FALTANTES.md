@@ -275,6 +275,11 @@ mide antes de sumarlo.
 
 1. **El respaldo en Fly ya está arriba** (2026-11-02, la máquina siempre
    prendida): el día anterior, cargarle los datos al día (T2.4).
+   El 2026-11-06 no contestaba (`/api/ready` sin respuesta en 15 s): el
+   pasajero y el panel de ese día se compilaron con
+   `BACKEND_URL_FALLBACK=` vacío, para no esperar 20 s a un respaldo
+   muerto ni decir «respaldo» con datos. Con Fly de vuelta, recompilar sin
+   ese define.
 2. **Con Fly arriba**: matar ngrok tres veces y cronometrar que el pasajero
    y el panel se pasan solos al respaldo en 55 s o menos (simulacro a de
    T10.5), y que al revivir ngrok vuelven solos a él en 30 s o menos

@@ -68,8 +68,15 @@ class _IdleStatusChipState extends ConsumerState<IdleStatusChip> {
           break;
       }
     });
+    // Con el socket conectado, un «sin red» del sistema no es un corte (ver
+    // abajo): si no, la vuelta del sistema sacaba «Conexión recuperada» sin
+    // que nada se hubiera caído.
     ref.listen<AsyncValue<bool>>(hayRedProvider, (_, ahora) {
-      if (ahora.valueOrNull == false) _huboCorte = true;
+      if (ahora.valueOrNull == false &&
+          ref.read(connectionStateProvider).valueOrNull !=
+              ConnectionStatus.connected) {
+        _huboCorte = true;
+      }
     });
 
     final hayRed = ref.watch(hayRedProvider).valueOrNull;
@@ -79,7 +86,11 @@ class _IdleStatusChipState extends ConsumerState<IdleStatusChip> {
     final PildoraDatos? pildora = switch ((hayRed, conexion)) {
       // Sin red el socket todavía no se ha enterado (espera a que falle su
       // latido), pero el sistema sí: se dice ya, y se dice lo que es.
-      (false, _) => const PildoraDatos(
+      // El sistema puede quedarse pegado en «sin red» (en el simulador de
+      // iOS no sale de ahí, dueño, 2026-11-06). Un socket conectado prueba
+      // que sí hay internet, así que solo se le cree con el socket caído.
+      (false, final c) when c != ConnectionStatus.connected =>
+        const PildoraDatos(
           key: 'sin-red',
           icon: Icons.wifi_off_outlined,
           iconColor: AppColors.warningAccessible,

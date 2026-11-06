@@ -1,7 +1,10 @@
+import 'dart:ui' show AppLifecycleState;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/providers/red_provider.dart';
 import '../../data/services/realtime_service.dart';
 import '../../domain/repositories/realtime_repository.dart';
 
@@ -28,6 +31,19 @@ final realtimeServiceProvider = Provider<RealtimeRepository>((ref) {
   );
   ref.listen<String>(
       backendUrlProvider, (_, url) => service.cambiarBackend(url));
+  // Al volver al frente o volver la red se intenta en el acto: el reintento
+  // del socket podía tardar 10 a 15 s más con el mapa quieto (dueño,
+  // 2026-11-06, «en el celular jode mucho para reconectar»).
+  ref.listen<AppLifecycleState>(appLifecycleProvider, (antes, ahora) {
+    if (ahora == AppLifecycleState.resumed && antes != ahora) {
+      service.reconectarYa();
+    }
+  });
+  ref.listen<AsyncValue<bool>>(hayRedProvider, (antes, ahora) {
+    if (ahora.valueOrNull == true && antes?.valueOrNull == false) {
+      service.reconectarYa();
+    }
+  });
   ref.onDispose(() {
     supervisor.dispose();
     service.dispose();

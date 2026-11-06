@@ -7,6 +7,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
+import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
+import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/ocupacion_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/screens/reportes_screen.dart';
@@ -42,17 +45,35 @@ const _celdas = [
   CeldaBusqueda(lat: 10.97, lng: -74.8, count: 12),
 ];
 
+/// La flota del panel, quieta: solo importa su catálogo de rutas, que
+/// Reportes usa para ordenar sus píldoras como las de Flota.
+class _Flota extends FleetNotifier {
+  _Flota(super.ref, FleetState inicial)
+    : super(api: FleetApi(baseUrl: 'http://localhost:3000')) {
+    state = inicial;
+  }
+
+  void llegaCatalogo(List<FleetRoute> rutas) =>
+      state = state.copyWith(routes: rutas, catalogoListo: true);
+}
+
+FleetRoute _catalogo(String id) =>
+    FleetRoute(routeId: id, name: id, total: 1, online: 1);
+
 Future<void> _montar(
   WidgetTester tester, {
   required Future<List<RutaBusquedas>> Function(int? hora) cargarRutas,
   Future<List<CeldaBusqueda>> Function(String routeId, int? hora)? cargarCalor,
   List<int?> Function(String routeId, PeriodoReporte periodo)? ocupacion,
+  // Por defecto el catálogo ya respondió vacío (o falló): orden del ranking.
+  FleetState flota = const FleetState(catalogoListo: true),
 }) async {
   await tester.binding.setSurfaceSize(const Size(1500, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        fleetProvider.overrideWith((ref) => _Flota(ref, flota)),
         reportesRutasProvider.overrideWith(
           (ref, args) => cargarRutas(args.hora),
         ),
@@ -84,6 +105,50 @@ Future<void> _montar(
 }
 
 void main() {
+  // «Las búsquedas ruta-reportes se actualizan raro» (dueño, 2026-11-06):
+  // con datos móviles los reportes llegaban antes que el catálogo de Flota;
+  // las píldoras salían en el orden del ranking, con la primera elegida, y
+  // al llegar el catálogo se reordenaban y la ruta elegida saltaba. Ahora
+  // el fantasma se queda hasta tener los dos, y se pinta una sola vez.
+  testWidgets('sin el catálogo de Flota no pinta píldoras que luego saltan', (
+    tester,
+  ) async {
+    await _montar(
+      tester,
+      flota: const FleetState(),
+      cargarRutas: (_) async => [
+        _ruta('R1', 'C16 Ruta 1', 4820, 6),
+        _ruta('R2', 'B18 Ruta 2', 40, 7),
+        _ruta('R3', 'C12 Ruta 3', 3, 12),
+      ],
+    );
+    // El fantasma late: no se calma, se avanza a mano.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.byKey(const ValueKey('pildora-ruta-R1')), findsNothing);
+    expect(find.bySemanticsLabel('Cargando reportes'), findsOneWidget);
+
+    final flota =
+        ProviderScope.containerOf(
+              tester.element(find.byType(ReportesScreen)),
+            ).read(fleetProvider.notifier)
+            as _Flota;
+    flota.llegaCatalogo([_catalogo('R3'), _catalogo('R2'), _catalogo('R1')]);
+    await tester.pumpAndSettle();
+
+    final x = [
+      for (final id in ['R3', 'R2', 'R1'])
+        tester.getTopLeft(find.byKey(ValueKey('pildora-ruta-$id'))).dx,
+    ];
+    expect(x[0], lessThan(x[1]));
+    expect(x[1], lessThan(x[2]));
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('pildora-ruta-R3'))),
+      isSemantics(isSelected: true, isButton: true),
+    );
+  });
+
   // «Igual que la flota: arriba todas las rutas y en el cuadro solo la
   // ruta tocada; por defecto, la primera» (dueño, 2026-10-27).
   testWidgets('arriba las rutas en píldoras; el cuadro, solo la elegida', (
@@ -478,6 +543,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            fleetProvider.overrideWith(
+              (ref) => _Flota(ref, const FleetState(catalogoListo: true)),
+            ),
             reportesRutasProvider.overrideWith((ref, args) async {
               periodos.add(args.periodo);
               return [_ruta('R1', 'C16 Ruta 1', 2, 0)];
@@ -664,6 +732,9 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            fleetProvider.overrideWith(
+              (ref) => _Flota(ref, const FleetState(catalogoListo: true)),
+            ),
             reportesRutasProvider.overrideWith((ref, args) async {
               periodos.add(args.periodo);
               return [_ruta('R1', 'C16 Ruta 1', 2, 0)];

@@ -39,6 +39,8 @@ class _FakeRealtimeService implements RealtimeRepository {
 
   @override
   void connect() {}
+  @override
+  void reconectarYa() {}
 
   @override
   void subscribeToRoute(String routeId) => subscribedRoutes.add(routeId);

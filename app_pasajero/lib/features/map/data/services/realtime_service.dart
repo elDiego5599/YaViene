@@ -259,6 +259,20 @@ class RealtimeService implements RealtimeRepository {
     connect();
   }
 
+  /// Intenta conectar en el acto, sin esperar el próximo reintento.
+  ///
+  /// La app la llama al volver al frente y cuando vuelve la red: el socket
+  /// llevaba ahí su espera creciente (hasta 10 s) y el reintento de 15 s, y
+  /// el mapa se quedaba quieto todo ese rato (dueño, 2026-11-06). Un socket
+  /// nuevo arranca la espera desde cero. Si ya hay conexión, o la app la
+  /// soltó a propósito, no hace nada.
+  @override
+  void reconectarYa() {
+    if (_disposed || !_quiereConexion || _socket?.connected == true) return;
+    _zona.run(_soltarSocket);
+    connect();
+  }
+
   @override
   void subscribeToRoute(String routeId) {
     _subscriptions.add(routeId);

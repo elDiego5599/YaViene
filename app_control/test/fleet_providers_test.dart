@@ -269,6 +269,23 @@ void main() {
     expect(notifier.state.buses['B-1'], bus);
   });
 
+  // Reportes espera al catálogo para ordenar sus píldoras como Flota: si
+  // las pintaba antes, con datos móviles se reordenaban y la ruta elegida
+  // saltaba cuando el catálogo llegaba tarde (dueño, 2026-11-06). Que falle
+  // también cuenta: Reportes no puede quedarse esperando para siempre.
+  test('refreshRoutes() marca el catálogo listo, llegue o falle', () async {
+    final bien = _containerWith(_FakeFleetApi(routes: const []));
+    final conRutas = bien.read(fleetProvider.notifier);
+    expect(conRutas.state.catalogoListo, isFalse);
+    await conRutas.refreshRoutes();
+    expect(conRutas.state.catalogoListo, isTrue);
+
+    final mal = _containerWith(_RutasQueFallanUnaVez());
+    final sinRed = mal.read(fleetProvider.notifier);
+    await sinRed.refreshRoutes();
+    expect(sinRed.state.catalogoListo, isTrue);
+  });
+
   test(
     'refreshRoutes() exitoso puebla el catálogo y fija el filtro por defecto',
     () async {

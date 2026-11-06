@@ -52,6 +52,14 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     if (reportes.valueOrNull case final rutas?) _previas = rutas;
     final recargando = reportes.isLoading && !reportes.hasValue;
     if (recargando && _previas != null) reportes = AsyncData(_previas!);
+    // Las píldoras van en el orden de Flota: hasta que el catálogo responda,
+    // el fantasma se queda. Sin esto, con datos móviles salían en el orden
+    // del ranking y al llegar el catálogo se reordenaban y la ruta elegida
+    // saltaba (dueño, 2026-11-06).
+    if (reportes.hasValue &&
+        !ref.watch(fleetProvider.select((s) => s.catalogoListo))) {
+      reportes = const AsyncLoading();
+    }
     final ordenadas = ordenarComoFlota(
       ordenarRutasBusquedas(reportes.valueOrNull ?? const []),
       ref

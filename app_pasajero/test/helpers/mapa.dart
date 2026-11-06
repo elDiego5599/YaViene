@@ -67,6 +67,8 @@ class RepoDePrueba implements RealtimeRepository {
   @override
   void connect() {}
   @override
+  void reconectarYa() {}
+  @override
   void disconnect() {}
   @override
   void dispose() {}

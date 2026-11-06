@@ -15,6 +15,10 @@ abstract class RealtimeRepository {
   Stream<Map<String, dynamic>> get busRemovedStream;
 
   void connect();
+
+  /// Conecta en el acto si no hay conexión y la app la quiere: al volver al
+  /// frente o al volver la red no se espera el próximo reintento.
+  void reconectarYa();
   void subscribeToRoute(String routeId);
   void unsubscribeFromRoute(String routeId);
 

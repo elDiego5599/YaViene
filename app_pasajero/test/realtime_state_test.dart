@@ -65,6 +65,8 @@ class FakeRealtimeRepository implements RealtimeRepository {
   @override
   void connect() {}
   @override
+  void reconectarYa() {}
+  @override
   void subscribeToRoute(String routeId) => subscribed.add(routeId);
   @override
   void unsubscribeFromRoute(String routeId) => unsubscribed.add(routeId);
@@ -337,14 +339,18 @@ void main() {
     redes.add(true);
     await emitir(ConnectionStatus.connected);
 
-    // El socket aún no se entera (espera su latido); el sistema sí.
+    // El sistema dice que no hay red, pero el socket sigue conectado: eso
+    // prueba que sí hay. En el simulador de iOS el aviso del sistema se
+    // queda pegado en «sin red» y la píldora no se iba nunca (dueño,
+    // 2026-11-06). Se cree al socket.
     redes.add(false);
     await tester.pump();
     await tester.pump();
-    expect(find.text('Sin internet'), findsOneWidget);
-    expect(find.text('Los buses vuelven cuando haya señal'), findsOneWidget);
+    expect(find.text('Sin internet'), findsNothing);
 
+    // Cuando el socket se cae, ahí sí: sin red es la causa.
     await emitir(ConnectionStatus.disconnected);
+    expect(find.text('Los buses vuelven cuando haya señal'), findsOneWidget);
     expect(find.text('Sin internet'), findsOneWidget);
     expect(find.text('Sin conexión con el servidor'), findsNothing);
 

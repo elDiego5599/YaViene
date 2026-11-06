@@ -304,7 +304,8 @@ final reportesRutasProvider =
     >((ref, args) async {
       // Ningún día elegido cae en el rango: vacío sin gastar una lectura.
       if (!args.periodo.cuentaAlgunDia) return const [];
-      final token = ref.watch(authProvider).session?.token;
+      // Solo el token: otro cambio de la sesión no vuelve a pedir el reporte.
+      final token = ref.watch(authProvider.select((s) => s.session?.token));
       final (desde, hasta) = rangoPeriodo(args.periodo, clock.now());
       final data = await ref
           .watch(fleetApiProvider)
@@ -350,7 +351,8 @@ final reportesCalorProvider =
     >((ref, args) async {
       // Ningún día elegido cae en el rango: vacío sin gastar una lectura.
       if (!args.periodo.cuentaAlgunDia) return const [];
-      final token = ref.watch(authProvider).session?.token;
+      // Solo el token: otro cambio de la sesión no vuelve a pedir el reporte.
+      final token = ref.watch(authProvider.select((s) => s.session?.token));
       final (desde, hasta) = rangoPeriodo(args.periodo, clock.now());
       final data = await ref
           .watch(fleetApiProvider)

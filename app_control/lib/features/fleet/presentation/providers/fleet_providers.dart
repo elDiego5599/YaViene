@@ -32,6 +32,7 @@ class FleetState {
     this.statusFilter = FleetStatusFilter.all,
     this.sessionExpired = false,
     this.flotaCargada = false,
+    this.catalogoListo = false,
   });
 
   final FleetConnection connection;
@@ -49,6 +50,12 @@ class FleetState {
   /// Ya llegó una foto entera de la flota (REST o lote del socket). Antes de
   /// eso una lista vacía no quiere decir «sin buses», sino «aún no sé».
   final bool flotaCargada;
+
+  /// El catálogo de rutas ya respondió, con rutas o con un error. Reportes
+  /// lo espera para pintar sus píldoras en el orden de Flota una sola vez:
+  /// sin esperarlo, con datos móviles se reordenaban al llegar el catálogo
+  /// y la ruta elegida saltaba (dueño, 2026-11-06).
+  final bool catalogoListo;
 
   FleetBus? get selectedBus {
     final id = selectedBusId;
@@ -115,6 +122,7 @@ class FleetState {
     FleetStatusFilter? statusFilter,
     bool? sessionExpired,
     bool? flotaCargada,
+    bool? catalogoListo,
     bool clearError = false,
   }) {
     return FleetState(
@@ -130,6 +138,7 @@ class FleetState {
       statusFilter: statusFilter ?? this.statusFilter,
       sessionExpired: sessionExpired ?? this.sessionExpired,
       flotaCargada: flotaCargada ?? this.flotaCargada,
+      catalogoListo: catalogoListo ?? this.catalogoListo,
     );
   }
 }
@@ -473,11 +482,14 @@ class FleetNotifier extends StateNotifier<FleetState> {
       state = state.copyWith(
         routes: routes,
         routeFilter: () => state.routeFilter ?? _rutaDeArranque(routes),
+        catalogoListo: true,
         clearError: true,
       );
     } catch (e) {
       if (_onSessionExpired(e)) return;
-      // El catálogo es informativo; no bloquea la flota.
+      // El catálogo es informativo; no bloquea la flota. Reportes deja de
+      // esperarlo y ordena por el ranking.
+      state = state.copyWith(catalogoListo: true);
     }
   }
 
