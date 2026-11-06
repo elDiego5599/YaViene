@@ -55,11 +55,12 @@ extension _MapRouteData on _MapWidgetState {
     return true;
   }
 
-  /// Con el pin ya encuadrado, lo abre hasta el bus más cercano si ninguno
-  /// cae cerca: sin esto, una ruta que no pasa por el pin dejaba el mapa sin
-  /// buses a la vista (AUD29-04). Si el usuario ya movió el mapa,
-  /// `moveCameraToBounds` no lo pisa.
-  void openToNearestBus() {
+  /// Encuadra el pin y, si ningún bus cae cerca, lo abre hasta el más
+  /// cercano: sin esto, una ruta que no pasa por el pin dejaba el mapa sin
+  /// buses a la vista (AUD29-04). Sin buses, o con uno ya cerca, el pin solo.
+  /// Lo llama [AperturaHastaBus], una vez por calma. Si el usuario ya movió
+  /// el mapa, `moveCameraToBounds` no lo pisa.
+  void encuadrarLaEspera() {
     final ubicacion = ref.read(userLocationProvider);
     final lat = ubicacion.lat;
     final lon = ubicacion.lon;
@@ -72,6 +73,8 @@ extension _MapRouteData on _MapWidgetState {
     ]);
     if (caja != null) {
       moveCameraToBounds(caja, animated: true, bajoLaPildora: true);
+    } else {
+      moveCameraToBounds(waitingPointBounds(lat, lon), animated: true);
     }
   }
 
@@ -179,6 +182,7 @@ extension _MapRouteData on _MapWidgetState {
     }
     if (_seguidorSub?.read() == null) return;
     _ponerPinEnLaRuta(ubicacion.lat!, ubicacion.lon!);
+    _aperturaHastaBus.cambio();
   }
 
   void teardownRouteData() {

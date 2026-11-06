@@ -119,6 +119,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que puedo hacer yo
 
+- **Golden «hoja sin ubicación»** (2026-11-06): `eta_sheet_golden_test`
+  falla por 0,35 % (1.139 px) desde antes del cambio de la cámara. Ver el
+  diff en `test/golden/failures` y entender por qué antes de regenerar.
+
 - **Búsquedas de ejemplo de Coochofal en Reportes** (2026-10-28): la
   siembra de `busquedas_demo.ts` solo cubre Sobusa y Coolitoral. Espera
   a que se cierre el cambio que otra sesión dejó a medias en ese archivo.

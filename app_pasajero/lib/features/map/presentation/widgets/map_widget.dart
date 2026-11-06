@@ -72,7 +72,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   /// La cámara ya fue al pin de la ruta recién elegida: si ningún bus cae
   /// cerca del pin, se abre hasta el más cercano (`esperaConBusMasCercano`),
   /// con el selector ya cerrado y al día con la hoja.
-  final _aperturaHastaBus = AperturaHastaBus();
+  late final _aperturaHastaBus = AperturaHastaBus(
+    momento: () => _momentoDelMapa,
+    encuadrar: () => encuadrarLaEspera(),
+  );
 
   final _decisionCamara = DecisionCamara();
 
@@ -281,9 +284,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _selectorSubscription =
         ref.listenManual<bool>(routeSelectorOpenProvider, (previous, next) {
       if (next || !mounted || !_layersReady) return;
-      if (_aperturaHastaBus.alCerrarSelector(_momentoDelMapa)) {
-        openToNearestBus();
-      }
+      _aperturaHastaBus.cambio();
     });
     // Red de seguridad: si el estilo no llega a cargar (p. ej. red lenta o
     // un fallo de MapLibre), el placeholder nunca debe quedarse para
@@ -340,6 +341,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _aperturaHastaBus.dispose();
     _haloCtrl.dispose();
     _saltoCtrl.dispose();
     _placeholderTimeout?.cancel();
@@ -591,11 +593,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       if (widget.routeId != null) {
         reloadMapData();
         _setupBusSubscription(widget.routeId!);
-        // El punto de espera no depende de los buses, así que el encuadre
-        // tampoco: si ya hay pin (o GPS) la cámara va a él ahora mismo, sin
-        // esperar al primer lote —que con una ruta sin buses no llega nunca—.
-        if (_centrarEnElUsuario(animated: true)) {
+        // Con pin (o GPS) el encuadre es de la apertura: uno solo, cuando el
+        // selector se cierre y la hoja se asiente. Ir al pin viejo ya, con el
+        // selector encima, era el primer viaje de los que se pisaban.
+        if (ref.read(userLocationProvider).hasPosition) {
           _hasFitInitialRoute = true;
+          _hasCenteredOnUser = true;
           _aperturaHastaBus.rutaElegida();
         } else {
           _aperturaHastaBus.dedo();
@@ -1055,11 +1058,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     } catch (e, st) {
       debugPrint('updateContentInsets failed: $e\n$st');
     }
-    // La hoja cambió de alto con el bus más cercano ya encuadrado: el hueco
-    // libre es otro y hay que volver a encuadrarlo.
-    if (mounted && _aperturaHastaBus.alMargen(_momentoDelMapa)) {
-      openToNearestBus();
-    }
+    // La hoja cambió de alto: el hueco libre es otro.
+    if (mounted) _aperturaHastaBus.cambio();
   }
 
   /// Aplica una solicitud de cámara pendiente (contador > 0) al mapa.
@@ -1145,7 +1145,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       _hasFitInitialRoute = true;
       fitLiveViewport(animated: true);
     }
-    if (_aperturaHastaBus.alLote(_momentoDelMapa)) openToNearestBus();
+    _aperturaHastaBus.lote();
     _enfocarBusPedido();
   }
 
