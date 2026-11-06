@@ -555,18 +555,25 @@ class _MapWidgetState extends ConsumerState<MapWidget>
 
   /// Guarda el pin soltado en ([lat], [lon]) donde se toma la ruta que se
   /// sigue ([dondeSeTomaLaRuta]) y lo lleva allí con un resorte, para que
-  /// se vea a dónde fue. Sin ruta, se queda donde cayó.
-  void _ponerPinEnLaRuta(double lat, double lon) {
+  /// se vea a dónde fue. Sin ruta, se queda donde cayó. Ese punto queda como
+  /// ancla ([UserLocationState.ancla]); [desde] es donde está pintado el pin
+  /// si no es ahí, cuando otra ruta lo lleva desde el ancla.
+  void _ponerPinEnLaRuta(double lat, double lon, {GeoPoint? desde}) {
+    final ancla = GeoPoint(lat: lat, lon: lon);
     final hasta = dondeSeTomaLaRuta(_seguidorSub?.read()?.ruta, lat, lon);
-    final salta = haversineMeters(lat, lon, hasta.lat, hasta.lon) >=
-        _pinSobreLaRutaMetros;
+    final origen = desde ?? ancla;
+    final salta =
+        haversineMeters(origen.lat, origen.lon, hasta.lat, hasta.lon) >=
+            _pinSobreLaRutaMetros;
     // El salto arranca antes de guardar: el guardado avisa al mapa en el
     // acto, y con el salto andando el mapa le deja el pin al salto.
     if (salta) {
-      _salto = (desde: GeoPoint(lat: lat, lon: lon), hasta: hasta);
+      _salto = (desde: origen, hasta: hasta);
       _saltoCtrl.forward(from: 0);
     }
-    ref.read(userLocationProvider.notifier).setManualPin(hasta.lat, hasta.lon);
+    ref
+        .read(userLocationProvider.notifier)
+        .setManualPin(hasta.lat, hasta.lon, ancla: ancla);
     if (!salta) unawaited(_refreshPinScreenPos());
   }
 

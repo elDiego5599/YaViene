@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show GeoPoint;
 
 enum UserLocationMode {
   /// Sin estado inicial todavía (no se ha inicializado).
@@ -40,12 +41,19 @@ class UserLocationState {
     this.lat,
     this.lon,
     this.updatedAt,
+    this.ancla,
   });
 
   final UserLocationMode mode;
   final double? lat;
   final double? lon;
   final DateTime? updatedAt;
+
+  /// Donde la persona puso el pin, antes de que saltara a la ruta. Cada ruta
+  /// nueva lo lleva a ella desde aquí y no desde el salto anterior: de la A a
+  /// la B y de vuelta a la A, el pin vuelve a su sitio (dueño, 2026-11-06).
+  /// Solo con pin manual.
+  final GeoPoint? ancla;
 
   bool get hasPosition => lat != null && lon != null;
   bool get isManual => mode == UserLocationMode.manual;
@@ -57,6 +65,8 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   static const _kAsked = 'user_loc_asked';
   static const _kManualLat = 'user_loc_manual_lat';
   static const _kManualLon = 'user_loc_manual_lon';
+  static const _kAnclaLat = 'user_loc_ancla_lat';
+  static const _kAnclaLon = 'user_loc_ancla_lon';
 
   /// Stream del GPS: mantiene el pin pegado al usuario mientras se mueve.
   StreamSubscription<Position>? _gpsSub;
@@ -143,15 +153,24 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     final lon = prefs.getDouble(_kManualLon);
     if (lat == null || lon == null) return false;
     if (!_coordenadasValidas(lat, lon)) {
-      await prefs.remove(_kManualLat);
-      await prefs.remove(_kManualLon);
+      await _borrarPin(prefs);
       return false;
     }
+    // Un pin guardado antes del ancla, o con un ancla que no es un punto
+    // real, cuenta desde donde quedó.
+    final anclaLat = prefs.getDouble(_kAnclaLat);
+    final anclaLon = prefs.getDouble(_kAnclaLon);
+    final ancla = anclaLat != null &&
+            anclaLon != null &&
+            _coordenadasValidas(anclaLat, anclaLon)
+        ? GeoPoint(lat: anclaLat, lon: anclaLon)
+        : GeoPoint(lat: lat, lon: lon);
     state = UserLocationState(
       mode: UserLocationMode.manual,
       lat: lat,
       lon: lon,
       updatedAt: DateTime.now(),
+      ancla: ancla,
     );
     return true;
   }
@@ -294,9 +313,14 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   }
 
   /// Pin manual: el usuario tocó el mapa. Se guarda para reencontrarlo en el
-  /// próximo arranque, con o sin permiso de GPS.
-  void setManualPin(double lat, double lon) {
+  /// próximo arranque, con o sin permiso de GPS. [ancla] es donde lo puso la
+  /// persona si el pin saltó a la ruta ([UserLocationState.ancla]); sin
+  /// ella, el pin es su propia ancla.
+  void setManualPin(double lat, double lon, {GeoPoint? ancla}) {
     if (!_coordenadasValidas(lat, lon)) return;
+    final puesta = ancla != null && _coordenadasValidas(ancla.lat, ancla.lon)
+        ? ancla
+        : GeoPoint(lat: lat, lon: lon);
     _gpsSub?.cancel();
     _gpsSub = null;
     state = UserLocationState(
@@ -304,14 +328,24 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
       lat: lat,
       lon: lon,
       updatedAt: DateTime.now(),
+      ancla: puesta,
     );
-    unawaited(_persistPin(lat, lon));
+    unawaited(_persistPin(lat, lon, puesta));
   }
 
-  Future<void> _persistPin(double lat, double lon) async {
+  Future<void> _persistPin(double lat, double lon, GeoPoint ancla) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_kManualLat, lat);
     await prefs.setDouble(_kManualLon, lon);
+    await prefs.setDouble(_kAnclaLat, ancla.lat);
+    await prefs.setDouble(_kAnclaLon, ancla.lon);
+  }
+
+  Future<void> _borrarPin(SharedPreferences prefs) async {
+    await prefs.remove(_kManualLat);
+    await prefs.remove(_kManualLon);
+    await prefs.remove(_kAnclaLat);
+    await prefs.remove(_kAnclaLon);
   }
 
   /// Quita el pin («Quitar» en el mapa) y deja el mapa sin punto, para que
@@ -325,9 +359,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     _gpsSub?.cancel();
     _gpsSub = null;
     state = const UserLocationState(mode: UserLocationMode.sinPunto);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kManualLat);
-    await prefs.remove(_kManualLon);
+    await _borrarPin(await SharedPreferences.getInstance());
   }
 
   @override

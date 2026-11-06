@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show GeoPoint;
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 
 const _kManualLat = 'user_loc_manual_lat';
@@ -311,6 +312,91 @@ void main() {
       await notifier.resumeGpsIfNeeded();
       expect(notifier.state.isManual, isTrue);
       expect(notifier.state.lat, 10.9);
+    });
+  });
+  // El pin salta a la ruta que se sigue; el ancla es donde lo puso la
+  // persona. Cada ruta nueva lo lleva a ella desde el ancla, no desde el
+  // salto anterior: de la A a la B y de vuelta a la A, el pin vuelve a su
+  // sitio en vez de irse corriendo (dueño, 2026-11-06).
+  group('ancla del pin', () {
+    test('sin ancla aparte, el ancla es el pin', () {
+      final notifier = UserLocationNotifier()..setManualPin(10.95, -74.79);
+      expect(notifier.state.ancla, const GeoPoint(lat: 10.95, lon: -74.79));
+    });
+
+    test('el pin en la ruta guarda el ancla y la persiste', () async {
+      final notifier = UserLocationNotifier()
+        ..setManualPin(10.951, -74.791,
+            ancla: const GeoPoint(lat: 10.95, lon: -74.79));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.lat, 10.951);
+      expect(notifier.state.ancla, const GeoPoint(lat: 10.95, lon: -74.79));
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getDouble('user_loc_ancla_lat'), 10.95);
+      expect(prefs.getDouble('user_loc_ancla_lon'), -74.79);
+    });
+
+    test('el arranque trae el ancla; sin ella guardada, el pin', () async {
+      const permisos =
+          MethodChannel('flutter.baseflow.com/permissions/methods');
+      final mensajero =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      mensajero.setMockMethodCallHandler(permisos, (call) async => 0);
+      addTearDown(() => mensajero.setMockMethodCallHandler(permisos, null));
+
+      SharedPreferences.setMockInitialValues({
+        _kManualLat: 10.951,
+        _kManualLon: -74.791,
+        'user_loc_ancla_lat': 10.95,
+        'user_loc_ancla_lon': -74.79,
+        'user_loc_asked': true,
+      });
+      final conAncla = UserLocationNotifier();
+      await conAncla.initialize();
+      expect(conAncla.state.ancla, const GeoPoint(lat: 10.95, lon: -74.79));
+
+      SharedPreferences.setMockInitialValues({
+        _kManualLat: 10.951,
+        _kManualLon: -74.791,
+        'user_loc_asked': true,
+      });
+      final deAntes = UserLocationNotifier();
+      await deAntes.initialize();
+      expect(deAntes.state.ancla, const GeoPoint(lat: 10.951, lon: -74.791));
+    });
+
+    test('un ancla guardada que no es un punto real vale como el pin',
+        () async {
+      const permisos =
+          MethodChannel('flutter.baseflow.com/permissions/methods');
+      final mensajero =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      mensajero.setMockMethodCallHandler(permisos, (call) async => 0);
+      addTearDown(() => mensajero.setMockMethodCallHandler(permisos, null));
+      SharedPreferences.setMockInitialValues({
+        _kManualLat: 10.951,
+        _kManualLon: -74.791,
+        'user_loc_ancla_lat': double.nan,
+        'user_loc_ancla_lon': -74.79,
+        'user_loc_asked': true,
+      });
+      final notifier = UserLocationNotifier();
+      await notifier.initialize();
+      expect(notifier.state.ancla, const GeoPoint(lat: 10.951, lon: -74.791));
+    });
+
+    test('Quitar borra el ancla', () async {
+      final notifier = UserLocationNotifier()
+        ..setManualPin(10.951, -74.791,
+            ancla: const GeoPoint(lat: 10.95, lon: -74.79));
+      await Future<void>.delayed(Duration.zero);
+      await notifier.clearManualPin();
+
+      expect(notifier.state.ancla, isNull);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getDouble('user_loc_ancla_lat'), isNull);
+      expect(prefs.getDouble('user_loc_ancla_lon'), isNull);
     });
   });
 }

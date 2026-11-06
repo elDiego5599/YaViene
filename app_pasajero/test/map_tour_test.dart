@@ -32,7 +32,7 @@ class _FakeLocation extends StateNotifier<UserLocationState>
   bool gpsAsked = false;
 
   @override
-  void setManualPin(double lat, double lon) {
+  void setManualPin(double lat, double lon, {GeoPoint? ancla}) {
     fixedPin = true;
   }
 

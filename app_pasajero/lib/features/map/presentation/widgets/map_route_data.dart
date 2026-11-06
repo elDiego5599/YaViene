@@ -173,7 +173,9 @@ extension _MapRouteData on _MapWidgetState {
 
   /// Lleva a la ruta el pin que ya estaba puesto ([_ponerPinEnLaRuta]). El
   /// del GPS no se toca: es donde está la persona, y la distancia ya se
-  /// mide desde el punto de la ruta más cerca de él.
+  /// mide desde el punto de la ruta más cerca de él. Va desde el ancla, donde
+  /// la persona lo puso: desde el salto anterior, ir y volver entre rutas lo
+  /// iba corriendo (dueño, 2026-11-06).
   void _llevarPinGuardadoALaRuta() {
     if (!_layersReady || _pinDragging) return;
     final ubicacion = ref.read(userLocationProvider);
@@ -181,7 +183,9 @@ extension _MapRouteData on _MapWidgetState {
       return;
     }
     if (_seguidorSub?.read() == null) return;
-    _ponerPinEnLaRuta(ubicacion.lat!, ubicacion.lon!);
+    final pin = GeoPoint(lat: ubicacion.lat!, lon: ubicacion.lon!);
+    final ancla = ubicacion.ancla ?? pin;
+    _ponerPinEnLaRuta(ancla.lat, ancla.lon, desde: pin);
     _aperturaHastaBus.cambio();
   }
 
