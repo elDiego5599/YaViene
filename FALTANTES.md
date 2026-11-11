@@ -45,6 +45,18 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que tienes que decidir tú
 
+- **El viaje completo** (plan en `docs/viaje-completo.md`, 2026-11-11):
+  quejas con lugar y hora, puntos de recarga, planificador, viajes de
+  origen a destino, saldo y recarga de la tarjeta, y hora de llegada. Antes
+  de la fase 1 hacen falta tus respuestas a sus ocho preguntas (sección 5),
+  sobre todo la primera: el guion del pitch dice que no buscamos ser como
+  SIBUS ni competir con el recaudo, y las fases 5 y 6 (saldo y recarga)
+  van en contra. Las decisiones D18 a D23 quedan como borradores en ese
+  archivo y pasan a `YaVieneBackend/docs/decisiones/` al cerrar su fase.
+- **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos.
+  La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
+  se abre, un rango con datos reales del piloto debajo de la distancia,
+  nunca en su lugar. Decides tú.
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por
@@ -314,7 +326,8 @@ mide antes de sumarlo.
      sigue un solo bus a la vez, la guía no se reanuda sola); habría que
      cambiarla por decisión del dueño.
   Para el pitch va solo como «lo que sigue» (lámina del piloto y guion), sin
-  prometer fechas. Antes de empezar: grill-me, spec y tickets.
+  prometer fechas. El plan ya está en `docs/viaje-completo.md` (fase 3,
+  2026-11-11); si se adelanta lo decides tú (pregunta 7 de ese plan).
 
 
 Una **auditoría con ojos frescos**, en una sesión nueva sin este contexto, con
