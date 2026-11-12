@@ -1,18 +1,9 @@
 import 'dart:math';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-const double _earthRadiusMeters = 6371000;
-
-double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
-  final dLat = _toRad(lat2 - lat1);
-  final dLon = _toRad(lon2 - lon1);
-  final a = pow(sin(dLat / 2), 2) +
-      cos(_toRad(lat1)) * cos(_toRad(lat2)) * pow(sin(dLon / 2), 2);
-  // El redondeo de coma flotante puede llevar `a` apenas fuera de [0, 1]
-  // para puntos coincidentes o antipodales; asin() no acepta ese valor.
-  final safeA = a.toDouble().clamp(0.0, 1.0);
-  return 2 * _earthRadiusMeters * asin(sqrt(safeA));
-}
+// `haversineMeters` vive en el core desde que la usan también los puntos de
+// recarga; se reexporta para no tocar a quien la importa de aquí.
+export 'package:ya_viene_core/ya_viene_core.dart' show haversineMeters;
 
 /// Distancia de [bus] al punto ([lat], [lon]) por el recorrido, hasta el
 /// punto de la ruta más cerca del pin, venga o ya haya pasado: el pin marca

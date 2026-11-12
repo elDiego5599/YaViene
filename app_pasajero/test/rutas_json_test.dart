@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
-import 'package:ya_viene_pasajero/features/map/presentation/utils/geo.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.dart';
 
 void main() {
