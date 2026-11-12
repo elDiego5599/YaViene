@@ -7,6 +7,8 @@ import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../recarga/capa_recarga.dart';
+import '../../../recarga/recarga_providers.dart';
 import '../providers/estilo_mapa_provider.dart';
 import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
@@ -18,7 +20,6 @@ import '../utils/apertura_hasta_bus.dart';
 import '../utils/bus_hit_test.dart';
 import '../utils/camera_fit.dart';
 import '../utils/decision_camara.dart';
-import '../utils/geo.dart' show haversineMeters;
 import '../utils/map_constants.dart' show MapConstants;
 import 'halo_painter.dart';
 import 'map_bus_animator.dart';
@@ -57,6 +58,8 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   ProviderSubscription<AsyncValue<RouteTrajectory>>? _trajectorySub;
   ProviderSubscription<SeguidorRuta?>? _seguidorSub;
   ProviderSubscription<AsyncValue<List<BusStop>>>? _stopsSub;
+  final CapaRecarga _capaRecarga = CapaRecarga();
+  final List<ProviderSubscription<dynamic>> _recargaSubs = [];
   double _currentBottomInset = 0;
 
   /// El cambio de margen que el mapa está aplicando todavía. En iOS ese
@@ -356,6 +359,9 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _trajectorySub?.close();
     _seguidorSub?.close();
     _stopsSub?.close();
+    for (final sub in _recargaSubs) {
+      sub.close();
+    }
     // Hay que desecharlo, no solo pararlo: `TickerProviderStateMixin` afirma
     // en su propio dispose que no le queda ningún ticker vivo.
     _busAnimTicker?.dispose();
@@ -632,6 +638,46 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     _mapController = controller;
   }
 
+  /// La capa de puntos de recarga (ver `capa_recarga.dart`): se instala con
+  /// el estilo y sigue a sus tres providers desde ahí.
+  Future<void> _instalarCapaRecarga() async {
+    final controller = _mapController;
+    if (controller == null) return;
+    final puntos = ref.read(puntosRecargaProvider).valueOrNull ?? const [];
+    await _capaRecarga.instalar(
+      controller,
+      puntos: puntos,
+      visible: ref.read(capaRecargaVisibleProvider),
+      elegidoId: ref.read(puntoRecargaElegidoProvider)?.id,
+    );
+    if (_recargaSubs.isNotEmpty) return;
+    _recargaSubs
+      ..add(ref.listenManual<bool>(capaRecargaVisibleProvider,
+          (_, visible) => _capaRecarga.mostrar(visible)))
+      ..add(ref.listenManual(puntosRecargaProvider,
+          (_, next) => next.whenData(_capaRecarga.actualizarPuntos)))
+      ..add(ref.listenManual<PuntoDeRecarga?>(puntoRecargaElegidoProvider,
+          (_, next) => _capaRecarga.elegir(next?.id)));
+  }
+
+  /// Si el toque cayó en un punto de recarga lo elige (y suelta los buses
+  /// elegidos: dos fichas a la vez no caben).
+  Future<bool> _elegirPuntoRecarga(math.Point<double> toque) async {
+    if (!ref.read(capaRecargaVisibleProvider)) return false;
+    final puntos = ref.read(puntosRecargaProvider).valueOrNull;
+    if (puntos == null) return false;
+    final id = await _capaRecarga.puntoEnToque(
+      toque,
+      escala: _escalaNativa,
+      porId: {for (final p in puntos) p.id: p},
+    );
+    if (id == null || !mounted) return false;
+    ref.read(selectedBusesProvider.notifier).clear();
+    ref.read(puntoRecargaElegidoProvider.notifier).state =
+        puntos.firstWhere((p) => p.id == id);
+    return true;
+  }
+
   Future<void> _onStyleLoadedCallback() async {
     if (!mounted || _layersReady || _styleInitInFlight) return;
     _styleInitInFlight = true;
@@ -644,6 +690,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
         debugPrint('MapWidget._loadBusIcons error: $e');
       }
       await _initializeMapSources();
+      await _instalarCapaRecarga();
       _layersReady = true;
       // Si el estilo cargó tarde (tras el timeout), se quita el banner de
       // error.
@@ -1436,6 +1483,10 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                     return;
                   }
                   if (!mounted) return;
+                  if (!guideBlocksBusTap && await _elegirPuntoRecarga(point)) {
+                    return;
+                  }
+                  if (!mounted) return;
                   // Y tocar el mapa fuera de un bus suelta el que estuviera
                   // elegido. Sin esto la hoja se quedaba clavada en un bus
                   // hasta que el usuario acertaba a tocar ese mismo bus otra
@@ -1448,6 +1499,12 @@ class _MapWidgetState extends ConsumerState<MapWidget>
                   if (!guideBlocksBusTap &&
                       ref.read(selectedBusesProvider).isNotEmpty) {
                     ref.read(selectedBusesProvider.notifier).clear();
+                    return;
+                  }
+                  // Lo mismo con la ficha de un punto de recarga: el toque
+                  // que la cierra no planta el pin.
+                  if (ref.read(puntoRecargaElegidoProvider) != null) {
+                    ref.read(puntoRecargaElegidoProvider.notifier).state = null;
                     return;
                   }
                   final location = ref.read(userLocationProvider);

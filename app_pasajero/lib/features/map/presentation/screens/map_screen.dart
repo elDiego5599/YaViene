@@ -12,6 +12,7 @@ import '../../../../core/services/bus_notification_service.dart';
 import '../../../../core/widgets/dialogo.dart';
 import '../../../notifications/presentation/providers/abrir_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
+import '../../../recarga/ficha_punto_recarga.dart';
 import '../providers/guia_atras.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
@@ -550,6 +551,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               enRespaldo: ref.watch(enRespaldoProvider),
             ),
           ),
+          // La ficha del punto de recarga tocado: ocupa el sitio de la hoja.
+          const Positioned.fill(child: FichaPuntoRecarga()),
           // T7.6: lo que tarda una posición en llegar, en el hueco que queda
           // entre la cabecera y la hoja. Solo en depuración y si se pide al
           // compilar (`RecuadroLatencia.pedido`): en release ni está en el

@@ -19,13 +19,15 @@ import '../../../../core/widgets/sheet_handle.dart';
 import '../../../../core/widgets/tamano_animado.dart';
 import '../../../notifications/presentation/providers/distancia_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
+import '../../../recarga/boton_recarga.dart';
+import '../../../recarga/pildora_recarga.dart';
+import '../../../recarga/recarga_providers.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/distancia_al_bus.dart';
 import '../providers/map_view_state.dart';
 import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
 import '../providers/user_location_provider.dart';
-import '../utils/geo.dart';
 import 'alert_guards.dart' as guards;
 import 'map_recenter_button.dart';
 import 'ocupacion_bus.dart';
@@ -660,7 +662,8 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // se apaga —no cruza la pantalla peleando con el selector, que entra por
     // el mismo lado— y vuelve sola cuando el selector se cierra, también
     // cuando no se eligió ruta, que es cuando hace falta que vuelva.
-    final apartada = ref.watch(routeSelectorOpenProvider);
+    final apartada = ref.watch(routeSelectorOpenProvider) ||
+        ref.watch(puntoRecargaElegidoProvider) != null;
     final paso = AppMotion.duracion(context, AppMotion.pausado);
     return IgnorePointer(
       ignoring: apartada,
@@ -708,7 +711,23 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
                   child: _eleccionVista == null
                       ? Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: MapRecenterButton(key: widget.recenterKey),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // Los puntos de recarga: su píldora sobre los
+                              // dos botones, que se tocan sin pisarse.
+                              const PildoraRecarga(),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const BotonRecarga(),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  MapRecenterButton(key: widget.recenterKey),
+                                ],
+                              ),
+                            ],
+                          ),
                         )
                       : const SizedBox.shrink(),
                 ),
