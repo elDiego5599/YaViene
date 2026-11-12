@@ -7,11 +7,15 @@ import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/cabecera_degradada.dart';
 import '../../../core/widgets/fondo_texturizado.dart';
+import '../../../core/widgets/tamano_animado.dart';
 import '../../../core/widgets/titulo_seccion.dart';
+import '../../map/presentation/providers/user_location_provider.dart';
 import '../data/buzon.dart';
+import 'queja.dart';
 
 /// El buzón del pasajero: un problema o una sugerencia, escrito en un
-/// campo y mandado al equipo (D14 del backend).
+/// campo y mandado al equipo (D14 del backend), o una queja sobre un bus,
+/// con su motivo y, si se quiere, la ruta, el bus, la hora y la zona (D18).
 ///
 /// Pantalla entera y no una ventana: hay un teclado abierto y un texto de
 /// hasta mil caracteres, y en una ventana sobre el mapa el teclado se come
@@ -35,6 +39,15 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   bool _recibido = false;
   EnvioReporte? _fallo;
 
+  // Lo que solo lleva la queja. Sin hora elegida va la de ahora.
+  MotivoQueja? _motivo;
+  RouteInfo? _ruta;
+  String? _bus;
+  DateTime? _hora;
+  bool _compartir = false;
+
+  bool get _esQueja => _tipo == TipoReporte.queja;
+
   @override
   void initState() {
     super.initState();
@@ -48,8 +61,41 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
     super.dispose();
   }
 
-  bool get _listo =>
-      !_enviando && _texto.text.trim().runes.length >= Buzon.minimo;
+  /// La queja se manda con su motivo y nada más; si se escribe algo, que
+  /// sea un mensaje y no dos letras.
+  bool get _listo {
+    if (_enviando) return false;
+    final letras = _texto.text.trim().runes.length;
+    if (_esQueja) {
+      return _motivo != null && (letras == 0 || letras >= Buzon.minimo);
+    }
+    return letras >= Buzon.minimo;
+  }
+
+  DatosQueja? _datosQueja() {
+    final motivo = _motivo;
+    if (!_esQueja || motivo == null) return null;
+    final punto = ref.read(userLocationProvider);
+    return DatosQueja(
+      motivo: motivo,
+      routeId: _ruta?.id,
+      busId: _bus,
+      hora: _hora ?? DateTime.now(),
+      ubicacion: switch ((punto.lat, punto.lon)) {
+        (final lat?, final lon?) => (lat: lat, lng: lon),
+        _ => null,
+      },
+      compartirLugar: _compartir,
+    );
+  }
+
+  void _elegirTipo(TipoReporte tipo) {
+    setState(() {
+      _tipo = tipo;
+      // La ruta que se está viendo en el mapa es casi siempre la de la queja.
+      if (tipo == TipoReporte.queja) _ruta ??= ref.read(selectedRouteProvider);
+    });
+  }
 
   Future<void> _enviar() async {
     FocusScope.of(context).unfocus();
@@ -57,7 +103,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
       _enviando = true;
       _fallo = null;
     });
-    final resultado = await ref.read(buzonProvider).enviar(_tipo, _texto.text);
+    final resultado = await ref
+        .read(buzonProvider)
+        .enviar(_tipo, _texto.text, queja: _datosQueja());
     if (!mounted) return;
     setState(() {
       _enviando = false;
@@ -75,6 +123,11 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
     setState(() {
       _recibido = false;
       _tipo = TipoReporte.problema;
+      _motivo = null;
+      _ruta = null;
+      _bus = null;
+      _hora = null;
+      _compartir = false;
     });
     context.go(AppRoutes.map);
   }
@@ -145,7 +198,7 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
   /// teclado abierto el botón sube con él y sigue a la mano, y con la
   /// pantalla vacía no flota a media altura.
   Widget _formulario(BuildContext context) {
-    final problema = _tipo == TipoReporte.problema;
+    final hayPunto = ref.watch(userLocationProvider).hasPosition;
     return Column(
       children: [
         Expanded(
@@ -158,82 +211,129 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
                 AppSpacing.lg,
                 AppSpacing.lg),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            // Una sola columna, entera: con hijos perezosos, lo que queda
+            // bajo el teclado no existe y el lector de pantalla no lo alcanza.
             children: [
-              const _Encabezado(),
-              // Dos bloques con su título, como Salud del iPhone (dueño,
-              // 2026-10-18: «separaciones entre títulos»).
-              const TituloSeccion('Tipo de mensaje'),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: _Opcion(
-                      key: const ValueKey('buzon_problema'),
-                      icono: Icons.report_gmailerrorred_outlined,
-                      texto: 'Un problema',
-                      detalle: 'Algo no funciona bien',
-                      tinta: AppColors.coralAccessible,
-                      tinte: AppColors.coralLight,
-                      elegida: problema,
-                      alPulsar: () =>
-                          setState(() => _tipo = TipoReporte.problema),
+                  const _Encabezado(),
+                  // Bloques con su título, como Salud del iPhone (dueño,
+                  // 2026-10-18: «separaciones entre títulos»).
+                  const TituloSeccion('Tipo de mensaje'),
+                  // Tres en columna y no en fila: con la queja (D18), de lado
+                  // cada una quedaba en 100 pt y su línea de detalle se partía.
+                  _Opcion(
+                    key: const ValueKey('buzon_problema'),
+                    icono: Icons.report_gmailerrorred_outlined,
+                    texto: 'Un problema',
+                    detalle: 'Algo no funciona bien',
+                    tinta: AppColors.coralAccessible,
+                    tinte: AppColors.coralLight,
+                    elegida: _tipo == TipoReporte.problema,
+                    alPulsar: () => _elegirTipo(TipoReporte.problema),
+                  ),
+                  const SizedBox(height: 12),
+                  _Opcion(
+                    key: const ValueKey('buzon_queja'),
+                    icono: Icons.directions_bus_outlined,
+                    texto: 'Una queja',
+                    detalle: 'Sobre un bus o su conductor',
+                    tinta: AppColors.acento,
+                    tinte: _tinteQueja,
+                    elegida: _esQueja,
+                    alPulsar: () => _elegirTipo(TipoReporte.queja),
+                  ),
+                  const SizedBox(height: 12),
+                  _Opcion(
+                    key: const ValueKey('buzon_sugerencia'),
+                    icono: Icons.lightbulb_outline_rounded,
+                    texto: 'Una sugerencia',
+                    detalle: 'Una idea para mejorar',
+                    tinta: AppColors.warningAccessible,
+                    tinte: AppColors.warningLight,
+                    elegida: _tipo == TipoReporte.sugerencia,
+                    alPulsar: () => _elegirTipo(TipoReporte.sugerencia),
+                  ),
+                  // Los campos de la queja abren y cierran el hueco con el
+                  // resorte de la app, sin empujar de golpe el mensaje.
+                  TamanoAnimado(
+                    duracion: AppMotion.normal,
+                    alineacion: Alignment.topCenter,
+                    child: _esQueja
+                        ? CamposQueja(
+                            motivo: _motivo,
+                            ruta: _ruta,
+                            bus: _bus,
+                            hora: _hora,
+                            compartir: _compartir,
+                            hayPunto: hayPunto,
+                            alElegirMotivo: (motivo) =>
+                                setState(() => _motivo = motivo),
+                            // El bus es de su ruta: con otra ruta, se suelta.
+                            alElegirRuta: (ruta) => setState(() {
+                              if (ruta.id != _ruta?.id) _bus = null;
+                              _ruta = ruta;
+                            }),
+                            alElegirBus: (bus) => setState(() => _bus = bus),
+                            alElegirHora: (hora) =>
+                                setState(() => _hora = hora),
+                            alCompartir: (compartir) =>
+                                setState(() => _compartir = compartir),
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
+                  const TituloSeccion('Tu mensaje'),
+                  // Con el filo de la app, como las opciones, y verde mientras
+                  // se escribe. Sin raya dentro (dueño, 2026-10-19: no gustó):
+                  // la nota de privacidad va fuera, bajo el campo.
+                  DecoratedBox(
+                    key: const ValueKey('buzon_tarjeta'),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                    ),
+                    child: TextField(
+                      key: const ValueKey('buzon_texto'),
+                      controller: _texto,
+                      enabled: !_enviando,
+                      minLines: _esQueja ? 4 : 7,
+                      maxLines: 12,
+                      maxLength: Buzon.maximo,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: AppTextStyles.cuerpo
+                          .copyWith(color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: switch (_tipo) {
+                          TipoReporte.problema =>
+                            'Qué pasó, en qué ruta y más o menos a qué hora.',
+                          TipoReporte.queja => 'Cuéntanos qué pasó (opcional).',
+                          TipoReporte.sugerencia =>
+                            'Qué mejorarías o qué te gustaría ver en la app.',
+                        },
+                        hintStyle: AppTextStyles.cuerpo
+                            .copyWith(color: AppColors.textSecondary),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.fromLTRB(
+                            20, 18, 20, AppSpacing.md),
+                        counterStyle: AppTextStyles.pie
+                            .copyWith(color: AppColors.textSecondary),
+                        enabledBorder: _filo(AppColors.filo, 1),
+                        disabledBorder: _filo(AppColors.filo, 1),
+                        focusedBorder: _filo(AppColors.primaryAccessible, 2),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _Opcion(
-                      key: const ValueKey('buzon_sugerencia'),
-                      icono: Icons.lightbulb_outline_rounded,
-                      texto: 'Una sugerencia',
-                      detalle: 'Una idea para mejorar',
-                      tinta: AppColors.warningAccessible,
-                      tinte: AppColors.warningLight,
-                      elegida: !problema,
-                      alPulsar: () =>
-                          setState(() => _tipo = TipoReporte.sugerencia),
-                    ),
-                  ),
+                  // La queja con ruta la ve también su empresa (D18): se dice
+                  // antes de mandarla.
+                  _NotaPrivacidad(_esQueja && _ruta != null
+                      ? 'La leen el equipo de Ya Viene y la empresa de la '
+                          'ruta. No incluyas datos personales.'
+                      : 'Lo lee el equipo de Ya Viene. '
+                          'No incluyas datos personales.'),
                 ],
               ),
-              const TituloSeccion('Tu mensaje'),
-              // Con el filo de la app, como las opciones, y verde mientras
-              // se escribe. Sin raya dentro (dueño, 2026-10-19: no gustó):
-              // la nota de privacidad va fuera, bajo el campo.
-              DecoratedBox(
-                key: const ValueKey('buzon_tarjeta'),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                ),
-                child: TextField(
-                  key: const ValueKey('buzon_texto'),
-                  controller: _texto,
-                  enabled: !_enviando,
-                  minLines: 7,
-                  maxLines: 12,
-                  maxLength: Buzon.maximo,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: AppTextStyles.cuerpo
-                      .copyWith(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: problema
-                        ? 'Qué pasó, en qué ruta y más o menos a qué hora.'
-                        : 'Qué mejorarías o qué te gustaría ver en la app.',
-                    hintStyle: AppTextStyles.cuerpo
-                        .copyWith(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding:
-                        const EdgeInsets.fromLTRB(20, 18, 20, AppSpacing.md),
-                    counterStyle: AppTextStyles.pie
-                        .copyWith(color: AppColors.textSecondary),
-                    enabledBorder: _filo(AppColors.filo, 1),
-                    disabledBorder: _filo(AppColors.filo, 1),
-                    focusedBorder: _filo(AppColors.primaryAccessible, 2),
-                  ),
-                ),
-              ),
-              const _NotaPrivacidad(),
             ],
           ),
         ),
@@ -335,7 +435,9 @@ class _Encabezado extends StatelessWidget {
 /// El candado y la nota, bajo la tarjeta del mensaje: se ve, pero no
 /// compite con el campo.
 class _NotaPrivacidad extends StatelessWidget {
-  const _NotaPrivacidad();
+  const _NotaPrivacidad(this.texto);
+
+  final String texto;
 
   @override
   Widget build(BuildContext context) {
@@ -355,7 +457,7 @@ class _NotaPrivacidad extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              'Lo lee el equipo de Ya Viene. No incluyas datos personales.',
+              texto,
               style: AppTextStyles.pie.copyWith(color: AppColors.textSecondary),
             ),
           ),
@@ -365,12 +467,15 @@ class _NotaPrivacidad extends StatelessWidget {
   }
 }
 
-/// Una de las dos opciones: tarjeta blanca y plana sobre el gris, ícono en su
-/// círculo, nombre y una línea que lo explica. Cada una tiene su color
+/// El azul de botón, en claro, para la queja: da 6,1:1 con [AppColors.acento].
+const _tinteQueja = Color(0xFFE5EDF8);
+
+/// Una de las tres opciones: tarjeta blanca y plana, ícono en su círculo, y
+/// a su lado el nombre y una línea que lo explica. Cada una tiene su color
 /// también sin elegir, el problema en coral y la sugerencia en ámbar (dueño,
 /// 2026-10-18: «todo parece igual y del mismo color»): el círculo va en su
 /// tinte claro con el ícono en su tinta. La elegida llena el círculo, toma
-/// el tinte y el filo de su color y una marca en la esquina; el cambio se
+/// el tinte y el filo de su color y una marca a la derecha; el cambio se
 /// anima (y no, con «Reducir movimiento»).
 class _Opcion extends StatelessWidget {
   const _Opcion({
@@ -427,52 +532,51 @@ class _Opcion extends StatelessWidget {
           child: InkWell(
             onTap: alPulsar,
             borderRadius: radio,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AnimatedContainer(
-                        duration: duracion,
-                        curve: AppMotion.curvaCambio,
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: elegida ? tinta : tinte,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icono,
-                            size: 22, color: elegida ? Colors.white : tinta),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        texto,
-                        style: AppTextStyles.cuerpoFuerte
-                            .copyWith(color: AppColors.textPrimary),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        detalle,
-                        style: AppTextStyles.pie
-                            .copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: duracion,
+                    curve: AppMotion.curvaCambio,
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: elegida ? tinta : tinte,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icono,
+                        size: 22, color: elegida ? Colors.white : tinta),
                   ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: AnimatedScale(
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          texto,
+                          style: AppTextStyles.cuerpoFuerte
+                              .copyWith(color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          detalle,
+                          style: AppTextStyles.pie
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  AnimatedScale(
                     scale: elegida ? 1 : 0,
                     duration: duracion,
                     curve: AppMotion.curvaEntrada,
                     child: Icon(Icons.check_circle_rounded,
                         size: 22, color: tinta),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

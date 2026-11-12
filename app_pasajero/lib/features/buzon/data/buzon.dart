@@ -3,12 +3,82 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:ya_viene_core/core/geo/celda_busqueda.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/app_info.dart';
 
-/// Qué es lo que manda el pasajero.
-enum TipoReporte { problema, sugerencia }
+/// Qué es lo que manda el pasajero. La queja es sobre un bus o una ruta
+/// (D18): lleva su motivo y llega también al panel de la empresa.
+enum TipoReporte { problema, sugerencia, queja }
+
+/// Por qué se queja. La clave es la del backend (`MOTIVOS_QUEJA` en
+/// `src/data/quejas.ts`) y el texto el mismo que leen el correo y el panel
+/// (`LITERAL_MOTIVO`); el orden también es el suyo.
+enum MotivoQueja {
+  noParo('no_paro', 'No paró'),
+  ibaLleno('iba_lleno', 'Iba lleno'),
+  malTrato('mal_trato', 'Mal trato'),
+  conduccion('conduccion', 'Conducción'),
+  otraRuta('otra_ruta', 'Otra ruta'),
+  estadoBus('estado_bus', 'Estado del bus'),
+  otro('otro', 'Otro');
+
+  const MotivoQueja(this.clave, this.texto);
+
+  final String clave;
+  final String texto;
+}
+
+/// Lo que la queja cuenta además del texto. Solo el motivo es obligatorio.
+class DatosQueja {
+  const DatosQueja({
+    required this.motivo,
+    this.routeId,
+    this.busId,
+    this.hora,
+    this.ubicacion,
+    this.compartirLugar = false,
+  });
+
+  final MotivoQueja motivo;
+  final String? routeId;
+
+  /// Sin [routeId] no se manda: el backend busca el bus dentro de su ruta.
+  final String? busId;
+
+  /// Cuándo pasó. Se manda en punto, como la guarda el backend.
+  final DateTime? hora;
+
+  /// Dónde está el pasajero. Sale del teléfono solo con [compartirLugar], y
+  /// entonces como el centro de su celda de 150 m (la rejilla de D17), nunca
+  /// como el punto.
+  final ({double lat, double lng})? ubicacion;
+  final bool compartirLugar;
+
+  Map<String, Object> get campos => {
+        'motivo': motivo.clave,
+        if (routeId case final ruta?) ...{
+          'routeId': ruta,
+          if (busId case final bus?) 'busId': bus,
+        },
+        if (ubicacion case final punto? when compartirLugar)
+          'celda': _celda(punto),
+        if (hora case final instante?) 'hora': _enPunto(instante),
+      };
+
+  static Map<String, double> _celda(({double lat, double lng}) punto) {
+    final centro = centroCeldaBusqueda(punto.lat, punto.lng);
+    return {'lat': centro.lat, 'lng': centro.lng};
+  }
+
+  /// La hora de Bogotá es UTC−5 en punto: truncar en UTC es truncar allá.
+  static String _enPunto(DateTime instante) {
+    final utc = instante.toUtc();
+    return DateTime.utc(utc.year, utc.month, utc.day, utc.hour)
+        .toIso8601String();
+  }
+}
 
 /// Lo que pasó con un reporte.
 enum EnvioReporte {
@@ -48,7 +118,14 @@ class Buzon {
 
   static const _espera = Duration(seconds: 15);
 
-  Future<EnvioReporte> enviar(TipoReporte tipo, String texto) async {
+  /// La [queja] va solo con [TipoReporte.queja], y esa siempre la lleva.
+  Future<EnvioReporte> enviar(
+    TipoReporte tipo,
+    String texto, {
+    DatosQueja? queja,
+  }) async {
+    assert((tipo == TipoReporte.queja) == (queja != null),
+        'la queja lleva sus datos, y solo ella');
     try {
       final r = await _cliente
           .post(
@@ -57,6 +134,7 @@ class Buzon {
             body: jsonEncode({
               'tipo': tipo.name,
               'texto': texto.trim(),
+              ...?queja?.campos,
               if (_plataforma case final plataforma?) 'plataforma': plataforma,
               'version': kAppVersion,
             }),

@@ -55,9 +55,9 @@ void main() {
     expect(api, contains('centroCeldaBusqueda'));
   });
 
-  test('el texto nuevo vuelve a pedir el sí, con su fecha', () {
-    // 7: las búsquedas de ruta salen del teléfono (27 de octubre).
+  test('el texto nuevo vuelve a pedir el sí', () {
+    // 7: las búsquedas de ruta salen del teléfono (27 de octubre). La fecha
+    // la lleva ahora `legal_buzon_test.dart` (8, 11 de noviembre).
     expect(kLegalVersion, greaterThanOrEqualTo(7));
-    expect(legalPrivacidad.updated, '27 de octubre de 2026');
   });
 }

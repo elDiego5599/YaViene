@@ -27,20 +27,47 @@ void main() {
     expect(texto, contains('Gmail, de Google'));
   });
 
+  test('la privacidad cuenta qué lleva una queja y quién la lee (D18)', () {
+    final texto = textoDe(legalPrivacidad);
+    expect(texto, contains('un problema, una sugerencia o una queja'));
+    expect(
+      texto,
+      contains(
+        'Una queja sobre un bus o su conductor lleva además el motivo que '
+        'elegiste y, si los pones, la ruta, el bus y la hora en punto',
+      ),
+    );
+    expect(texto, contains('Tu ubicación solo va si enciendes el interruptor'));
+    expect(texto, contains('nunca tu punto exacto'));
+    expect(
+      texto,
+      contains('se guarda 13 meses para que la empresa dueña de esa ruta'),
+    );
+    // Lo de antes ya no es verdad para la queja con zona.
+    expect(texto, isNot(contains('y tu ubicación no va.')));
+    expect(texto, isNot(contains('Lleva tu mensaje, no tu ubicación.')));
+  });
+
   test('lo que la privacidad dice que viaja es lo que manda la app', () {
     final buzon = File('lib/features/buzon/data/buzon.dart').readAsStringSync();
     final campos =
         RegExp(r"'(\w+)':").allMatches(buzon).map((m) => m.group(1)).toSet();
     expect(
       campos,
-      {'tipo', 'texto', 'plataforma', 'version'},
+      {
+        'tipo', 'texto', 'plataforma', 'version',
+        // La queja (D18): la celda va con su `lat` y su `lng`.
+        'motivo', 'routeId', 'busId', 'hora', 'celda', 'lat', 'lng',
+      },
       reason: 'si la app manda otro campo, la privacidad tiene que decirlo',
     );
+    expect(buzon, contains('centroCeldaBusqueda'));
   });
 
-  test('el texto nuevo vuelve a pedir el sí', () {
+  test('el texto nuevo vuelve a pedir el sí, con su fecha', () {
     // 6: el buzón manda lo que escribes al correo del equipo (18 de octubre).
-    // La fecha la lleva ahora `legal_busquedas_test.dart` (7, 27 de octubre).
-    expect(kLegalVersion, greaterThanOrEqualTo(6));
+    // 8: la queja puede llevar la zona y la lee la empresa (11 de noviembre).
+    expect(kLegalVersion, greaterThanOrEqualTo(8));
+    expect(legalPrivacidad.updated, '11 de noviembre de 2026');
   });
 }

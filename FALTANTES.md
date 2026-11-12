@@ -46,13 +46,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 ## Lo que tienes que decidir tú
 
 - **El viaje completo** (plan en `docs/viaje-completo.md`, 2026-11-11):
-  quejas con lugar y hora, puntos de recarga, planificador, viajes de
-  origen a destino, saldo y recarga de la tarjeta, y hora de llegada. Antes
-  de la fase 1 hacen falta tus respuestas a sus ocho preguntas (sección 5),
-  sobre todo la primera: el guion del pitch dice que no buscamos ser como
-  SIBUS ni competir con el recaudo, y las fases 5 y 6 (saldo y recarga)
-  van en contra. Las decisiones D18 a D23 quedan como borradores en ese
-  archivo y pasan a `YaVieneBackend/docs/decisiones/` al cerrar su fase.
+  ya respondiste sus preguntas y va por fases en la rama `viaje-completo`
+  (fase 1, quejas, en curso). Las decisiones D19 a D23 quedan como
+  borradores en ese archivo y pasan a `YaVieneBackend/docs/decisiones/`
+  al cerrar su fase.
+- **Los motivos de la queja** (D18, 2026-11-11): no paró, iba lleno, mal
+  trato, conducción, otra ruta, estado del bus y otro. Salen así en la app,
+  el correo y el panel; confírmalos o cámbialos.
 - **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos.
   La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
   se abre, un rango con datos reales del piloto debajo de la distancia,
@@ -85,7 +85,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   panel muestra celdas con 5 búsquedas o más. La privacidad ya lo dice
   (versión 7, 2026-10-27, app y web: solo lo ve la empresa dueña de la
   ruta, un trato en el que ganan los dos); falta que el abogado revise ese
-  texto.
+  texto. Y las quejas (D18, privacidad versión 8, 2026-11-11): motivo,
+  ruta, bus, la hora en punto y, solo si la persona lo activa, la casilla
+  de unos 150 m; las lee la empresa de la ruta, sin verificar, 13 meses.
 - **Los nombres de cuatro rutas de Coochofal** (auditoría del
   2026-10-29, AUD29-34): con la insignia del código delante, la fila se lee
   C2 Ruta C-2, C4 Ruta C4, C9 Ruta C9 y C18 Ruta C18, con el código dos
@@ -130,6 +132,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   alerta (T7.1).
 
 ## Lo que puedo hacer yo
+
+- **La privacidad de la web con las quejas** (D18, 2026-11-11): la app
+  ya va en la versión 8 (motivo, ruta, bus, hora en punto, la casilla de
+  150 m solo con el interruptor, 13 meses para la empresa de la ruta).
+  `privacidad.html` y `tests/coherencia.test.ts` de `YaVieneWeb` siguen en
+  la 7: la web está en `referentes-web` con un cambio sin commitear que no
+  es mío, así que se espeja cuando se libere.
 
 - **Golden «hoja sin ubicación»** (2026-11-06): `eta_sheet_golden_test`
   falla por 0,35 % (1.139 px) desde antes del cambio de la cámara. Ver el

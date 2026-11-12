@@ -67,12 +67,14 @@ class LegalDoc {
 // Sube a 7 el 27 de octubre de 2026: al elegir una ruta sale la casilla
 // redondeada de tu punto para los reportes de la empresa dueña (D17 del
 // backend), también en iPhone, donde antes la ubicación no salía nunca.
-const int kLegalVersion = 7;
+// Sube a 8 el 11 de noviembre de 2026: la queja (D18) puede llevar la casilla
+// de tu punto, si la compartes, y la empresa de la ruta la lee 13 meses.
+const int kLegalVersion = 8;
 
 const LegalDoc legalPrivacidad = LegalDoc(
   id: 'privacidad',
   title: 'Privacidad',
-  updated: '27 de octubre de 2026',
+  updated: '11 de noviembre de 2026',
   blocks: [
     LegalBlock.p(
       'Ya Viene es una aplicación para saber por dónde va tu bus. Para eso '
@@ -207,16 +209,31 @@ const LegalDoc legalPrivacidad = LegalDoc(
     // El buzón (D14): `buzon.dart` manda tipo, texto, plataforma y versión;
     // el backend (`reportes.ts`) lo guarda en cola, lo manda al Gmail del
     // equipo y borra la fila cuando el correo sale. Sube `kLegalVersion`:
-    // es un dato nuevo que sale del teléfono.
+    // es un dato nuevo que sale del teléfono. La queja (D18) suma lo de
+    // `DatosQueja.campos` y, con ruta, `quejas.ts` la guarda 13 meses para el
+    // panel de su empresa: también sube la versión.
     LegalBlock.heading('Si nos escribes por el buzón'),
     LegalBlock.p(
-      'El buzón de la app sirve para contarnos un problema o una sugerencia. '
+      'El buzón de la app sirve para contarnos un problema, una sugerencia o '
+      'una queja. '
       'Lo que escribes viaja a nuestro servidor con el tipo que elegiste, si '
       'tu teléfono es Android o iPhone y la versión de la app. No te pedimos '
-      'nombre ni forma de contactarte, y tu ubicación no va. El servidor lo '
+      'nombre ni forma de contactarte, y con un problema o una sugerencia tu '
+      'ubicación no va. El servidor lo '
       'manda al correo del equipo, en Gmail, y lo borra en cuanto el correo '
       'sale. Por eso te pedimos que no escribas datos personales: si los '
       'escribes, se quedan en ese correo.',
+    ),
+    LegalBlock.p(
+      'Una queja sobre un bus o su conductor lleva además el motivo que '
+      'elegiste y, si los pones, la ruta, el bus y la hora en punto en que '
+      'pasó. Tu ubicación solo va si enciendes el interruptor de compartir '
+      'la zona, y entonces va como una casilla de unos 150 metros de lado, '
+      'nunca tu punto exacto. Si la queja trae ruta, además de llegar al '
+      'correo del equipo se guarda 13 meses para que la empresa dueña de esa '
+      'ruta la lea en su panel, con lo que escribiste. Lo guardado no lleva '
+      'tu teléfono ni tu dirección IP, y la empresa la ve marcada como sin '
+      'verificar: es lo que cuenta un pasajero, no un hecho comprobado.',
     ),
     LegalBlock.heading('Con quién se apoya la app'),
     LegalBlock.bullet(
@@ -234,7 +251,8 @@ const LegalDoc legalPrivacidad = LegalDoc(
     ),
     LegalBlock.bullet(
       'Gmail, de Google: recibe en el correo del equipo lo que mandas por '
-      'el buzón. Lleva tu mensaje, no tu ubicación.',
+      'el buzón. Lleva tu mensaje y, de tu ubicación, solo la casilla de una '
+      'queja si la compartiste.',
     ),
     LegalBlock.heading('Si usaste una versión anterior'),
     LegalBlock.p(
