@@ -210,6 +210,7 @@ void main() {
     await abrirMas(tester);
     double y(Finder f) => tester.getTopLeft(f).dy;
     for (final (titulo, primeraFila) in [
+      ('Tu tarjeta', 'Saldo de la tarjeta SIBUS'),
       ('Ayuda', 'Ver guía de uso'),
       ('Información', 'Privacidad'),
     ]) {
@@ -219,8 +220,10 @@ void main() {
           reason: titulo);
       expect(y(t), lessThan(y(find.text(primeraFila))), reason: titulo);
     }
-    expect(y(find.text('Ayuda')),
+    expect(y(find.text('Tu tarjeta')),
         greaterThan(tester.getRect(find.byType(ActiveRouteCard)).bottom));
+    expect(y(find.text('Ayuda')),
+        greaterThan(y(find.text('Saldo de la tarjeta SIBUS'))));
   });
 
   testWidgets('en una pantalla baja se llega al último grupo sin desbordes',
@@ -337,6 +340,8 @@ void main() {
     final router = GoRouter(initialLocation: '/info', routes: [
       GoRoute(path: '/info', builder: (_, __) => const MasScreen()),
       GoRoute(path: AppRoutes.map, builder: (_, __) => const Text('el mapa')),
+      GoRoute(
+          path: AppRoutes.tarjeta, builder: (_, __) => const Text('el saldo')),
     ]);
     addTearDown(router.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -346,6 +351,14 @@ void main() {
     await tester.pump();
     return container;
   }
+
+  testWidgets('la fila de la tarjeta SIBUS abre su saldo', (tester) async {
+    await abrirConMapa(tester);
+    await tester.tap(find.text('Saldo de la tarjeta SIBUS'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('el saldo'), findsOneWidget);
+  });
 
   testWidgets('la tarjeta de la ruta activa lleva al mapa', (tester) async {
     final container = await abrirConMapa(tester);
@@ -403,6 +416,10 @@ void main() {
     final firma =
         find.text('Una solución de Ya Viene Tech', findRichText: true);
     expect(firma, findsOneWidget);
+    // Con la sección de la tarjeta, la firma queda bajo el borde en la
+    // pantalla de 600 de la prueba: se baja hasta ella como lo haría el dedo.
+    await tester.ensureVisible(firma);
+    await tester.pump();
     expect(
         tester.getSemantics(find.byKey(MasScreen.firmaKey)),
         matchesSemantics(

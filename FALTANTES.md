@@ -53,6 +53,12 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   SIBUS ni competir con el recaudo, y las fases 5 y 6 (saldo y recarga)
   van en contra. Las decisiones D18 a D23 quedan como borradores en ese
   archivo y pasan a `YaVieneBackend/docs/decisiones/` al cerrar su fase.
+- **El saldo de la tarjeta SIBUS de verdad** (Fase 5 hecha con saldo
+  simulado y su etiqueta «Simulación», D22, 2026-11-12). Para el real
+  hacen falta tres respuestas: quién da el saldo (un convenio con el AMB o
+  el operador del recaudo; no hay API pública), el formato del número de
+  la tarjeta (hoy se aceptan de 8 a 20 cifras, provisional) y si se
+  enseña en el pitch. La recarga (Fase 6, D23) espera a que digas sigue.
 - **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos.
   La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
   se abre, un rango con datos reales del piloto debajo de la distancia,

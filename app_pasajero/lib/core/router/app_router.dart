@@ -12,6 +12,7 @@ import '../../features/mas/presentation/mas_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/tarjeta/presentation/tarjeta_screen.dart';
 import '../widgets/aviso.dart';
 import 'pestanas_deslizantes.dart';
 import 'shell_pildora.dart';
@@ -33,6 +34,9 @@ abstract class AppRoutes {
 
   /// Privacidad y términos, uno por documento: `/legal/privacidad`.
   static const String legal = '/legal/:doc';
+
+  /// El saldo de la tarjeta SIBUS (D22), encima de las pestañas como lo legal.
+  static const String tarjeta = '/tarjeta';
 }
 
 /// El camino de un documento legal, para no escribirlo a mano en cada sitio
@@ -112,6 +116,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // existe.
           return doc == null ? const _NotFoundScreen() : LegalScreen(doc: doc);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.tarjeta,
+        name: 'tarjeta',
+        builder: (context, state) => const TarjetaScreen(),
       ),
     ],
     errorBuilder: (context, state) => const _NotFoundScreen(),
