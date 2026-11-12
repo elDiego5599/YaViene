@@ -92,4 +92,6 @@ flutter:
 
   assets:
     - assets/images/
+    # Puntos de recarga de la tarjeta (D21): tool/puntos_recarga_desde_kml.py.
+    - assets/data/puntos_recarga.json
     - assets/icon/
