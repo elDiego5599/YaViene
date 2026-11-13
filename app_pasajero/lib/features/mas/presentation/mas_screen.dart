@@ -197,6 +197,17 @@ class MasScreen extends ConsumerWidget {
                               SizedBox(
                                   height: MediaQuery.paddingOf(context).top),
                               const ActiveRouteCard(),
+                              // Lo que se usa cada semana va antes que la
+                              // ayuda: el saldo se mira más que la guía.
+                              const TituloSeccion('Tu tarjeta'),
+                              _grupo([
+                                FilaMas(
+                                  icon: Icons.contactless_outlined,
+                                  title: 'Saldo de la tarjeta SIBUS',
+                                  onTap: () =>
+                                      context.push(AppRoutes.tarjeta),
+                                ),
+                              ]),
                               const TituloSeccion('Ayuda'),
                               _grupo([
                                 FilaMas(

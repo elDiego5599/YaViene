@@ -61,6 +61,9 @@ dependencies:
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
   url_launcher: ^6.3.2
+  # El número de la tarjeta SIBUS (D22): en el Llavero de iOS y el Keystore
+  # de Android, nunca en SharedPreferences ni en el backend.
+  flutter_secure_storage: ^11.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
