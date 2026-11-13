@@ -18,20 +18,17 @@ NumeroTarjeta _tarjeta() =>
     (NumeroTarjeta.leer('12345678') as NumeroValido).numero;
 
 class _Proveedor implements ProveedorRecarga {
-  _Proveedor({
-    Uri? pagina,
-    this.estado = const RecargaPendiente(),
-    this.inicio,
-    this.paginas = const PaginasDePago(hosts: {'pagos.operador.co'}),
-  }) : pagina = pagina ?? Uri.parse('https://pagos.operador.co/pagar/$_refA');
+  _Proveedor({Uri? pagina, this.inicio})
+      : pagina = pagina ?? Uri.parse('https://pagos.operador.co/pagar/$_refA');
 
   Uri pagina;
-  ConsultaRecarga estado;
+  ConsultaRecarga estado = const RecargaPendiente();
   InicioRecarga? inicio;
   final consultadas = <ReferenciaRecarga>[];
 
   @override
-  final PaginasDePago paginas;
+  final PaginasDePago paginas =
+      const PaginasDePago(hosts: {'pagos.operador.co'});
 
   @override
   bool get simulado => true;

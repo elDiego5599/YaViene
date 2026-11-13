@@ -187,7 +187,7 @@ void main() {
           anyOf(const RecargaPendiente(), const RecargaRechazada()),
           reason: raro.length > 100 ? 'cuerpo enorme' : raro,
         );
-        expect(r, isNot(isA<RecargaAprobada>()), reason: '$raro');
+        expect(r, isNot(isA<RecargaAprobada>()), reason: raro);
       }
     });
 

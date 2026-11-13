@@ -6,6 +6,7 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/cifra_viva.dart';
 import '../../../core/widgets/dialogo.dart';
+import '../domain/recarga.dart';
 import '../domain/saldo.dart';
 import '../domain/tarjeta.dart';
 import 'tarjeta_providers.dart';
@@ -325,6 +326,10 @@ class _ConTarjeta extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.xl),
         const Divider(height: 1, thickness: 1, color: AppColors.filo),
+        const SizedBox(height: AppSpacing.lg),
+        _Recarga(numero: numero),
+        const SizedBox(height: AppSpacing.lg),
+        const Divider(height: 1, thickness: 1, color: AppColors.filo),
         const _NotaPrivacidad(),
         Align(
           alignment: Alignment.centerLeft,
@@ -337,6 +342,133 @@ class _ConTarjeta extends ConsumerWidget {
               textStyle: AppTextStyles.cuerpoFuerte,
               minimumSize: const Size(0, 44),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Recarga (D23) ──────────────────────────────────────────────────────────
+
+/// Recargar sale de la app: se abre la página del operador o del banco y se
+/// vuelve por un enlace. Aquí solo se muestra lo que el proveedor contesta;
+/// nunca un formulario de tarjeta ni una cifra a cobrar.
+class _Recarga extends ConsumerWidget {
+  const _Recarga({required this.numero});
+
+  final NumeroTarjeta numero;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificador = ref.read(recargaProvider.notifier);
+    void recargar() => notificador.recargar(numero);
+
+    final Widget cuerpo = switch (ref.watch(recargaProvider)) {
+      null => _RecargaInicio(alPulsar: recargar),
+      RecargaPendiente() => _Aviso(
+          icono: Icons.hourglass_top_rounded,
+          titulo: 'Esperando tu pago',
+          texto: 'Termina el pago en la página que se abrió. Cuando vuelvas '
+              'aquí lo confirmamos.',
+          accion: 'Comprobar',
+          alPulsar: notificador.comprobar,
+        ),
+      RecargaAprobada(:final valor) => _Aviso(
+          icono: Icons.check_circle_outline_rounded,
+          titulo: 'Recarga aprobada',
+          texto: valor == null
+              ? 'El operador confirmó tu pago. El saldo puede tardar un '
+                  'momento en actualizarse.'
+              : 'El operador confirmó tu pago de ${pesos(valor)}. El saldo '
+                  'puede tardar un momento en actualizarse.',
+          accion: 'Listo',
+          iconoAccion: Icons.check_rounded,
+          alPulsar: notificador.descartar,
+        ),
+      RecargaRechazada() => _Aviso(
+          icono: Icons.block_rounded,
+          titulo: 'El pago no se completó',
+          texto: 'El operador no lo aprobó. Puedes intentarlo de nuevo.',
+          accion: 'Intentar de nuevo',
+          alPulsar: recargar,
+        ),
+      RecargaDesconocida() => _Aviso(
+          icono: Icons.search_off_rounded,
+          titulo: 'No encontramos esta recarga',
+          texto: 'Si pagaste, el operador te la confirma por su propio '
+              'canal.',
+          accion: 'Listo',
+          iconoAccion: Icons.check_rounded,
+          alPulsar: notificador.descartar,
+        ),
+      RecargaSinRed() => _Aviso(
+          icono: Icons.wifi_off_rounded,
+          titulo: 'Sin internet',
+          texto: 'Conéctate y comprobamos tu recarga.',
+          accion: 'Comprobar',
+          alPulsar: notificador.comprobar,
+        ),
+      RecargaNoAbierta() => _Aviso(
+          icono: Icons.link_off_rounded,
+          titulo: 'No pudimos abrir el pago',
+          texto: 'No se cobró nada. Inténtalo de nuevo en un momento.',
+          accion: 'Intentar de nuevo',
+          alPulsar: recargar,
+        ),
+    };
+
+    return AnimatedSwitcher(
+      duration: AppMotion.duracion(context, AppMotion.normal),
+      switchInCurve: AppMotion.curvaEntrada,
+      switchOutCurve: AppMotion.curvaSalida,
+      layoutBuilder: (actual, previos) => Stack(
+        alignment: Alignment.topLeft,
+        children: [...previos, if (actual != null) actual],
+      ),
+      child: KeyedSubtree(
+        key: ValueKey(cuerpo is _Aviso ? cuerpo.titulo : 'inicio'),
+        child: cuerpo,
+      ),
+    );
+  }
+}
+
+/// El punto de partida: un solo botón lleno y la promesa de qué no hace Ya
+/// Viene con el dinero.
+class _RecargaInicio extends StatelessWidget {
+  const _RecargaInicio({required this.alPulsar});
+
+  final VoidCallback alPulsar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Recargar', style: AppTextStyles.subtitulo),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Pagas en la página de tu banco o del operador. Ya Viene no ve '
+          'tu tarjeta bancaria ni cobra nada.',
+          style: AppTextStyles.cuerpo.copyWith(color: AppColors.textBody),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        SizedBox(
+          height: 48,
+          child: FilledButton.icon(
+            onPressed: alPulsar,
+            icon: const Icon(Icons.add_card_rounded, size: 20),
+            label: const Text('Recargar'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.acento,
+              foregroundColor: Colors.white,
+              textStyle: AppTextStyles.boton,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
             ),
           ),
         ),

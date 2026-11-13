@@ -35,6 +35,14 @@ class AppConfig {
     return definida;
   }
 
+  /// Pasarela de pago simulada (D23). Mientras no haya convenio con un
+  /// operador o banco, la recarga habla con ella; en el simulador de iOS el
+  /// `localhost` del Mac sirve tal cual (`tool/pasarela_simulada.py`).
+  static const String recargaSimuladaUrl = String.fromEnvironment(
+    'RECARGA_SIMULADA_URL',
+    defaultValue: 'http://localhost:8099',
+  );
+
   static const String _fallbackBackendUrl = String.fromEnvironment(
     'BACKEND_URL_FALLBACK',
     defaultValue: 'https://ya-viene-backend.fly.dev',

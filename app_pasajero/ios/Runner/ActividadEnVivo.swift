@@ -50,6 +50,10 @@ enum MantenerVivo {
 enum ActividadEnVivo {
   static var canal: FlutterMethodChannel?
   private static var avisoPendiente: String?
+  /// El regreso de la pasarela (`yaviene://recarga?referencia=...`). Va en su
+  /// propia casilla para que no pise un aviso tocado. Dart lo trata como
+  /// entrada hostil: aquí solo se descarta lo que no tiene la forma.
+  private static var recargaPendiente: String?
 
   static func registrar(con registrador: FlutterPluginRegistrar) {
     let nuevoCanal = FlutterMethodChannel(
@@ -61,6 +65,11 @@ enum ActividadEnVivo {
       if llamada.method == "leerAvisoPendiente" {
         let pendiente = avisoPendiente
         avisoPendiente = nil
+        return responder(pendiente)
+      }
+      if llamada.method == "leerRecargaPendiente" {
+        let pendiente = recargaPendiente
+        recargaPendiente = nil
         return responder(pendiente)
       }
       if llamada.method == "confirmarAvisoPendiente" {
@@ -96,6 +105,13 @@ enum ActividadEnVivo {
   }
 
   static func recibir(_ url: URL, viva: Bool) {
+    if validaRecarga(url) {
+      recargaPendiente = url.absoluteString
+      if viva {
+        canal?.invokeMethod("recargaVuelta", arguments: url.absoluteString)
+      }
+      return
+    }
     guard valida(url) else { return }
     // El URL puede llegar antes de que el engine implícito o el handler Dart
     // estén listos. Conservarlo permite recuperarlo por leerAvisoPendiente.
@@ -103,6 +119,13 @@ enum ActividadEnVivo {
     if viva {
       canal?.invokeMethod("avisoTocado", arguments: url.absoluteString)
     }
+  }
+
+  private static func validaRecarga(_ url: URL) -> Bool {
+    guard url.scheme == "yaviene", url.host == "recarga",
+      url.absoluteString.count <= 512
+    else { return false }
+    return true
   }
 
   private static func valida(_ url: URL) -> Bool {

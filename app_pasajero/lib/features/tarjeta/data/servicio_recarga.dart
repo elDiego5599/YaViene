@@ -75,6 +75,9 @@ class ServicioRecarga {
     return referencia == null ? null : _resolver(referencia);
   }
 
+  /// Hay una referencia esperando respuesta del proveedor.
+  bool get hayEnCurso => _enCurso.leer() != null;
+
   /// Quitar la tarjeta (o cancelar) cierra la recarga en curso.
   Future<void> olvidar() => _enCurso.olvidar();
 

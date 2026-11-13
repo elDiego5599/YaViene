@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/data/tarjeta_guardada.dart';
+import 'package:ya_viene_pasajero/features/tarjeta/domain/recarga.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/domain/saldo.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/domain/tarjeta.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_providers.dart';
@@ -24,6 +25,14 @@ class _Fijo implements ProveedorSaldo {
   Future<ConsultaSaldo> consultar(NumeroTarjeta numero) async => respuesta;
 }
 
+/// Un estado de la recarga fijo: lo que el proveedor contestó, sin red.
+class _RecargaFija extends RecargaNotifier {
+  _RecargaFija(this.fija);
+  final ConsultaRecarga fija;
+  @override
+  ConsultaRecarga? build() => fija;
+}
+
 /// El saldo de la tarjeta SIBUS (D22) en cada uno de sus estados, con la
 /// etiqueta «Simulación» arriba mientras el saldo sea inventado (D8).
 void main() {
@@ -31,6 +40,7 @@ void main() {
     WidgetTester tester, {
     String? guardada,
     ConsultaSaldo? respuesta,
+    ConsultaRecarga? recarga,
   }) async {
     fijarPantalla(tester);
     FlutterSecureStorage.setMockInitialValues(
@@ -50,6 +60,8 @@ void main() {
               prefs: prefs,
             ),
           ),
+          if (recarga != null)
+            recargaProvider.overrideWith(() => _RecargaFija(recarga)),
           proveedorSaldoProvider.overrideWithValue(
             _Fijo(
               respuesta ??
@@ -106,5 +118,46 @@ void main() {
         guardada: '12345678', respuesta: const SaldoNoDisponible());
     await expectLater(find.byType(TarjetaScreen),
         matchesGoldenFile('goldens/tarjeta_no_disponible.png'));
+  });
+
+  testWidgets('Recarga, pendiente', (tester) async {
+    await abrir(tester,
+        guardada: '12345678', recarga: const RecargaPendiente());
+    await expectLater(find.byType(TarjetaScreen),
+        matchesGoldenFile('goldens/recarga_pendiente.png'));
+  });
+
+  testWidgets('Recarga, aprobada', (tester) async {
+    await abrir(tester,
+        guardada: '12345678', recarga: const RecargaAprobada(valor: 20000));
+    await expectLater(find.byType(TarjetaScreen),
+        matchesGoldenFile('goldens/recarga_aprobada.png'));
+  });
+
+  testWidgets('Recarga, rechazada', (tester) async {
+    await abrir(tester,
+        guardada: '12345678', recarga: const RecargaRechazada());
+    await expectLater(find.byType(TarjetaScreen),
+        matchesGoldenFile('goldens/recarga_rechazada.png'));
+  });
+
+  testWidgets('Recarga, desconocida', (tester) async {
+    await abrir(tester,
+        guardada: '12345678', recarga: const RecargaDesconocida());
+    await expectLater(find.byType(TarjetaScreen),
+        matchesGoldenFile('goldens/recarga_desconocida.png'));
+  });
+
+  testWidgets('Recarga, sin_red', (tester) async {
+    await abrir(tester, guardada: '12345678', recarga: const RecargaSinRed());
+    await expectLater(find.byType(TarjetaScreen),
+        matchesGoldenFile('goldens/recarga_sin_red.png'));
+  });
+
+  testWidgets('Recarga, no_abierta', (tester) async {
+    await abrir(tester,
+        guardada: '12345678', recarga: const RecargaNoAbierta());
+    await expectLater(find.byType(TarjetaScreen),
+        matchesGoldenFile('goldens/recarga_no_abierta.png'));
   });
 }
