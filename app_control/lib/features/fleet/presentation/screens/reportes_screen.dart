@@ -12,17 +12,21 @@ import 'package:latlong2/latlong.dart';
 import 'package:ya_viene_core/core/providers/map_providers.dart';
 import 'package:ya_viene_core/core/theme/estilo_ruta.dart';
 import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
-import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion;
+import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion, MotivoQueja;
 
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/queja_panel.dart';
 import '../providers/fleet_providers.dart' show fleetProvider;
 import '../providers/ocupacion_provider.dart';
+import '../providers/quejas_provider.dart';
 import '../providers/reportes_provider.dart';
 import '../widgets/capa_voyager.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
 import '../widgets/escala_calor.dart';
 import '../widgets/ocupacion_panel.dart';
 import '../widgets/pildoras_ruta.dart';
+
+part 'reportes_quejas.dart';
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -39,6 +43,12 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   // vista, atenuada, mientras llega la nueva. El fantasma es solo la primera
   // vez (dueño, 2026-10-26).
   List<RutaBusquedas>? _previas;
+
+  // Las quejas (D18) son otra vista de Reportes, con sus propios filtros:
+  // sin ruta elegida se ven las de toda la empresa.
+  _ModoReporte _modo = _ModoReporte.busquedas;
+  String? _rutaQueja;
+  MotivoQueja? _motivo;
 
   // Otra hora u otro periodo no cambian la ruta elegida: el dueño compara
   // la misma ruta a distintas horas.
@@ -76,82 +86,135 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
             (ruta) => ruta.id == _ruta,
             orElse: () => ordenadas.first,
           );
+    final enQuejas = _modo == _ModoReporte.quejas;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
             _CabeceraReportes(
-              hora: _hora,
+              modo: _modo,
+              onSelectModo: (modo) => setState(() => _modo = modo),
               periodo: _periodo,
-              onSelectHour: _seleccionarHora,
               onSelectPeriodo: (periodo) => setState(() => _periodo = periodo),
-              rutas: [
-                for (final ruta in ordenadas)
-                  PildoraRuta(
-                    key: ValueKey('pildora-ruta-${ruta.id}'),
-                    label: ruta.nombre,
-                    active: ruta.id == elegida?.id,
-                    onTap: () => setState(() => _ruta = ruta.id),
-                  ),
-              ],
+              filtro: enQuejas
+                  ? _FiltroMotivo(
+                      motivo: _motivo,
+                      onSelect: (motivo) => setState(() => _motivo = motivo),
+                    )
+                  : _FiltroHora(hora: _hora, onSelectHour: _seleccionarHora),
+              rutas: enQuejas
+                  ? _pildorasQuejas()
+                  : [
+                      for (final ruta in ordenadas)
+                        PildoraRuta(
+                          key: ValueKey('pildora-ruta-${ruta.id}'),
+                          label: ruta.nombre,
+                          active: ruta.id == elegida?.id,
+                          onTap: () => setState(() => _ruta = ruta.id),
+                        ),
+                    ],
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _Fundido(
-                  estado: reportes,
-                  child: reportes.when(
-                    loading: () => _dosPaneles(
-                      izquierda: const _TarjetaBusquedas(
-                        child: CargaFantasma(
-                          semanticsLabel: 'Cargando reportes',
-                          child: _ResumenFantasma(),
+            if (enQuejas)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _CuerpoQuejas(
+                    routeId: _rutaQueja,
+                    periodo: _periodo,
+                    motivo: _motivo,
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _Fundido(
+                    estado: reportes,
+                    child: reportes.when(
+                      loading: () => _dosPaneles(
+                        izquierda: const _TarjetaBusquedas(
+                          child: CargaFantasma(
+                            semanticsLabel: 'Cargando reportes',
+                            child: _ResumenFantasma(),
+                          ),
                         ),
-                      ),
-                      derecha: const _TarjetaMapaEstado(
-                        child: CargaFantasma(
-                          semanticsLabel: 'Cargando el mapa',
-                          child: _MapaFantasma(),
-                        ),
-                      ),
-                    ),
-                    error: (error, stack) => _dosPaneles(
-                      izquierda: _TarjetaBusquedas(
-                        child: _EstadoReporte(
-                          icon: Icons.error_outline,
-                          message: 'No se pudieron cargar los reportes',
-                          action: _Reintentar(
-                            key: const ValueKey('reintentar-lista'),
-                            onPressed: () => ref.invalidate(
-                              reportesRutasProvider((
-                                periodo: _periodo,
-                                hora: _hora,
-                              )),
-                            ),
+                        derecha: const _TarjetaMapaEstado(
+                          child: CargaFantasma(
+                            semanticsLabel: 'Cargando el mapa',
+                            child: _MapaFantasma(),
                           ),
                         ),
                       ),
-                      derecha: const _TarjetaMapaEstado(
-                        child: _EstadoReporte(
-                          icon: Icons.map_outlined,
-                          message: 'Elige una ruta para ver el mapa',
+                      error: (error, stack) => _dosPaneles(
+                        izquierda: _TarjetaBusquedas(
+                          child: _EstadoReporte(
+                            icon: Icons.error_outline,
+                            message: 'No se pudieron cargar los reportes',
+                            action: _Reintentar(
+                              key: const ValueKey('reintentar-lista'),
+                              onPressed: () => ref.invalidate(
+                                reportesRutasProvider((
+                                  periodo: _periodo,
+                                  hora: _hora,
+                                )),
+                              ),
+                            ),
+                          ),
+                        ),
+                        derecha: const _TarjetaMapaEstado(
+                          child: _EstadoReporte(
+                            icon: Icons.map_outlined,
+                            message: 'Elige una ruta para ver el mapa',
+                          ),
                         ),
                       ),
-                    ),
-                    data: (_) => _mostrarRuta(
-                      elegida,
-                      ordenadas: ordenadas,
-                      recargando: recargando,
+                      data: (_) => _mostrarRuta(
+                        elegida,
+                        ordenadas: ordenadas,
+                        recargando: recargando,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Todas las rutas de la flota, tengan o no búsquedas: una queja puede
+  /// caer en cualquiera.
+  List<Widget> _pildorasQuejas() {
+    final rutas = ref.watch(
+      fleetProvider.select(
+        // Un texto y no la lista: la flota cambia con cada posición y la
+        // lista nunca es igual a la anterior. El nombre lo escribe la
+        // empresa, así que sus espacios raros no pueden partir el texto.
+        (s) => [
+          for (final r in s.routes)
+            '${r.routeId}\t${r.name.replaceAll(RegExp(r'\s+'), ' ')}',
+        ].join('\n'),
+      ),
+    );
+    return [
+      PildoraRuta(
+        key: const ValueKey('pildora-queja-todas'),
+        label: 'Todas las rutas',
+        active: _rutaQueja == null,
+        onTap: () => setState(() => _rutaQueja = null),
+      ),
+      if (rutas.isNotEmpty)
+        for (final [id, nombre] in rutas.split('\n').map((r) => r.split('\t')))
+          PildoraRuta(
+            key: ValueKey('pildora-queja-$id'),
+            label: nombre,
+            active: id == _rutaQueja,
+            onTap: () => setState(() => _rutaQueja = id),
+          ),
+    ];
   }
 
   Widget _mostrarRuta(
@@ -250,17 +313,21 @@ DateTime _ultimoDia() {
 
 class _CabeceraReportes extends StatelessWidget {
   const _CabeceraReportes({
-    required this.hora,
+    required this.modo,
+    required this.onSelectModo,
     required this.periodo,
-    required this.onSelectHour,
     required this.onSelectPeriodo,
+    required this.filtro,
     required this.rutas,
   });
 
-  final int? hora;
+  final _ModoReporte modo;
+  final ValueChanged<_ModoReporte> onSelectModo;
   final PeriodoReporte periodo;
-  final ValueChanged<int?> onSelectHour;
   final ValueChanged<PeriodoReporte> onSelectPeriodo;
+
+  /// El filtro propio de la vista: la hora en búsquedas, el motivo en quejas.
+  final Widget filtro;
   final List<Widget> rutas;
 
   @override
@@ -273,6 +340,20 @@ class _CabeceraReportes extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(12, 12, 20, 12),
     child: Row(
       children: [
+        // Qué se mira va primero: las rutas y los filtros de su derecha
+        // cambian con ello. Los 8 lo alinean con las tarjetas, como la
+        // primera píldora.
+        Padding(
+          padding: const EdgeInsets.only(left: 8, right: 4),
+          child: _Segmentos<_ModoReporte>(
+            valor: modo,
+            opciones: const [
+              (_ModoReporte.busquedas, 'Búsquedas', 'modo-busquedas'),
+              (_ModoReporte.quejas, 'Quejas', 'modo-quejas'),
+            ],
+            onSelect: onSelectModo,
+          ),
+        ),
         // Las rutas como en Flota, y el cuadro de abajo habla solo de la
         // tocada (dueño, 2026-10-27). La tira lleva 9 de barra bajo sus 33:
         // bajarla 4,5 deja las píldoras al centro de los filtros de 38.
@@ -321,7 +402,7 @@ class _CabeceraReportes extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        _FiltroHora(hora: hora, onSelectHour: onSelectHour),
+        filtro,
       ],
     ),
   );
@@ -2515,9 +2596,13 @@ class _AtribucionMapa extends StatelessWidget {
   );
 }
 
-(String, String) _partirNombreRuta(RutaBusquedas route) {
-  final words = route.nombre.trim().split(RegExp(r'\s+'));
-  if (words.length < 2) return (route.id, route.nombre.trim());
+(String, String) _partirNombreRuta(RutaBusquedas route) =>
+    _partirNombre(route.id, route.nombre);
+
+/// El código de la ruta (B18, C16) y el resto de su nombre.
+(String, String) _partirNombre(String id, String nombre) {
+  final words = nombre.trim().split(RegExp(r'\s+'));
+  if (words.length < 2) return (id, nombre.trim());
   return (words.first, words.skip(1).join(' '));
 }
 

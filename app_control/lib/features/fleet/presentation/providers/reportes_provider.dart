@@ -385,6 +385,14 @@ String horaPicoLabel(int hora) {
   return '$inicio $suffix a $fin $nextSuffix';
 }
 
+/// Cuándo pasó algo, en Bogotá: «10 nov, 3 p. m.», o solo el día si no se
+/// sabe la hora.
+String cuandoLabel(DateTime instante, {required bool conHora}) {
+  final bogota = instante.toUtc().subtract(const Duration(hours: 5));
+  final dia = '${bogota.day} ${_meses[bogota.month - 1].substring(0, 3)}';
+  return conHora ? '$dia, ${horaOpcionLabel(bogota.hour)}' : dia;
+}
+
 String horaOpcionLabel(int hora) {
   final sufijo = hora < 12 ? 'a. m.' : 'p. m.';
   final hora12 = hora % 12 == 0 ? 12 : hora % 12;

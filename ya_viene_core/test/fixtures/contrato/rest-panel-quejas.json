@@ -1,0 +1,25 @@
+{
+  "quejas": [
+    {
+      "id": "<quejaId>",
+      "motivo": "no_paro",
+      "texto": "No paró en el paradero",
+      "routeId": "R-101",
+      "ruta": "B18 Tcherassi",
+      "busId": "BUS-ABC123",
+      "celda": {
+        "lat": 10.99035,
+        "lng": -74.78967
+      },
+      "hora": 1767225600000,
+      "creado": 1767225600000
+    }
+  ],
+  "celdas": [
+    {
+      "lat": 10.99035,
+      "lng": -74.78967,
+      "total": 1
+    }
+  ]
+}

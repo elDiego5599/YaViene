@@ -14,7 +14,6 @@ import '../../../core/widgets/titulo_seccion.dart';
 import '../../map/presentation/providers/tracking_providers.dart';
 import '../../map/presentation/widgets/rueda_distancia.dart'
     show franjaRuedaDistancia;
-import '../data/buzon.dart';
 
 /// Hasta cuántos días atrás se puede contar una queja: hoy y los seis de
 /// antes. El backend no recibe nada de hace más de 7 días

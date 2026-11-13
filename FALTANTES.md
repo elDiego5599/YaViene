@@ -47,9 +47,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 - **El viaje completo** (plan en `docs/viaje-completo.md`, 2026-11-11):
   ya respondiste sus preguntas y va por fases en la rama `viaje-completo`
-  (fase 1, quejas, en curso). Las decisiones D19 a D23 quedan como
-  borradores en ese archivo y pasan a `YaVieneBackend/docs/decisiones/`
-  al cerrar su fase.
+  (fase 1, quejas, cerrada el 2026-11-12: formulario del pasajero y
+  quejas en Reportes del panel; sigue la fase 3, el planificador). Las
+  decisiones D19 a D23 quedan como borradores en ese archivo y pasan a
+  `YaVieneBackend/docs/decisiones/` al cerrar su fase.
 - **Los motivos de la queja** (D18, 2026-11-11): no paró, iba lleno, mal
   trato, conducción, otra ruta, estado del bus y otro. Salen así en la app,
   el correo y el panel; confírmalos o cámbialos.

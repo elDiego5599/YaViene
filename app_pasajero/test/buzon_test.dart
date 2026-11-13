@@ -16,6 +16,7 @@ import 'package:ya_viene_core/ya_viene_core.dart'
         AppColors,
         BusPosition,
         Company,
+        MotivoQueja,
         RouteInfo,
         companiesProvider,
         routesByCompanyProvider,
@@ -722,6 +723,11 @@ void main() {
               mode: UserLocationMode.gps, lat: 10.98712, lon: -74.81234));
       final interruptor = find.byKey(const ValueKey('queja_lugar'));
       expect(tester.widget<Switch>(interruptor).value, isFalse);
+      // El consentimiento dice qué se comparte antes de encenderlo: literal
+      // blindado (inventario-estados.md, «Quejas»).
+      expect(find.text('Compartir la zona de tu punto'), findsOneWidget);
+      expect(find.text('Solo la zona (unos 150 m), no tu punto exacto.'),
+          findsOneWidget);
       await tocar(tester, const ValueKey('queja_lugar'));
       await tocar(tester, const ValueKey('queja_motivo_conduccion'));
       await enviar(tester);

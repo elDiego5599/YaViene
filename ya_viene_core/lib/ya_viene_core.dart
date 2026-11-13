@@ -9,6 +9,7 @@ export 'core/models/bus_position.dart';
 export 'core/models/bus_stop.dart';
 export 'core/models/company.dart';
 export 'core/models/connection_status.dart';
+export 'core/models/motivo_queja.dart';
 export 'core/models/route_info.dart';
 export 'core/models/route_trajectory.dart';
 

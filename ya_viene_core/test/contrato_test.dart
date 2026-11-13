@@ -84,6 +84,7 @@ void main() {
         'rest-fleet-visibility',
         'rest-panel-busquedas',
         'rest-panel-busquedas-calor',
+        'rest-panel-quejas',
         'rest-route-positions',
         'socket-panel-bus-hidden',
         'socket-panel-bus-left',

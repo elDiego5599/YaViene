@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 
+import 'package:ya_viene_core/ya_viene_core.dart' show MotivoQueja;
+
 import '../../auth/data/auth_api.dart';
 
 import '../domain/fleet_bus.dart';
 import '../domain/fleet_route.dart';
+import '../domain/queja_panel.dart';
 
 class FleetApi {
   /// [baseUrl] es el backend que resolvió el arranque (`backendUrlProvider`),
@@ -88,6 +91,33 @@ class FleetApi {
       ),
     );
     return response.data!;
+  }
+
+  /// Las quejas de las rutas de la empresa (D18): la lista y su mapa por
+  /// celda. El rango cuenta por la hora del hecho o, sin ella, la de llegada.
+  Future<ReporteQuejas> fetchQuejas(
+    String? token, {
+    required DateTime desde,
+    required DateTime hasta,
+    String? routeId,
+    MotivoQueja? motivo,
+    List<int> dias = const [],
+  }) async {
+    final response = await _guard(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/panel/quejas',
+        queryParameters: {
+          'desde': desde.toUtc().toIso8601String(),
+          'hasta': hasta.toUtc().toIso8601String(),
+          'routeId': ?routeId,
+          'motivo': ?motivo?.clave,
+          // Del 1 (lunes) al 7 (domingo); sin días, todos.
+          if (dias.isNotEmpty) 'dias': dias.join(','),
+        },
+        options: _auth(token),
+      ),
+    );
+    return ReporteQuejas.fromJson(response.data!);
   }
 
   Future<Map<String, dynamic>> fetchSearchHeatmap(

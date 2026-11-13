@@ -12,24 +12,6 @@ import '../../../core/app_info.dart';
 /// (D18): lleva su motivo y llega también al panel de la empresa.
 enum TipoReporte { problema, sugerencia, queja }
 
-/// Por qué se queja. La clave es la del backend (`MOTIVOS_QUEJA` en
-/// `src/data/quejas.ts`) y el texto el mismo que leen el correo y el panel
-/// (`LITERAL_MOTIVO`); el orden también es el suyo.
-enum MotivoQueja {
-  noParo('no_paro', 'No paró'),
-  ibaLleno('iba_lleno', 'Iba lleno'),
-  malTrato('mal_trato', 'Mal trato'),
-  conduccion('conduccion', 'Conducción'),
-  otraRuta('otra_ruta', 'Otra ruta'),
-  estadoBus('estado_bus', 'Estado del bus'),
-  otro('otro', 'Otro');
-
-  const MotivoQueja(this.clave, this.texto);
-
-  final String clave;
-  final String texto;
-}
-
 /// Lo que la queja cuenta además del texto. Solo el motivo es obligatorio.
 class DatosQueja {
   const DatosQueja({

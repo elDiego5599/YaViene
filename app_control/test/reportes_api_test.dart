@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
+import 'package:ya_viene_core/ya_viene_core.dart' show MotivoQueja;
 
 class _Adapter implements HttpClientAdapter {
   RequestOptions? request;
@@ -16,7 +17,7 @@ class _Adapter implements HttpClientAdapter {
   ) async {
     request = options;
     return ResponseBody.fromString(
-      jsonEncode({'rutas': [], 'celdas': []}),
+      jsonEncode({'rutas': [], 'celdas': [], 'quejas': []}),
       200,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
@@ -64,4 +65,38 @@ void main() {
       expect(adapter.request!.headers['Authorization'], 'Bearer sesion');
     },
   );
+
+  test('las quejas piden rango, ruta, motivo y días con el token', () async {
+    final adapter = _Adapter();
+    final dio = Dio(BaseOptions(baseUrl: 'https://panel.test'))
+      ..httpClientAdapter = adapter;
+    final api = FleetApi(baseUrl: 'https://panel.test', dio: dio);
+
+    final reporte = await api.fetchQuejas(
+      'sesion',
+      desde: DateTime.utc(2026, 10, 1),
+      hasta: DateTime.utc(2026, 10, 25),
+      routeId: 'R-101',
+      motivo: MotivoQueja.ibaLleno,
+      dias: [2, 5],
+    );
+    expect(reporte.quejas, isEmpty);
+    expect(adapter.request!.path, '/api/panel/quejas');
+    expect(adapter.request!.queryParameters, {
+      'desde': '2026-10-01T00:00:00.000Z',
+      'hasta': '2026-10-25T00:00:00.000Z',
+      'routeId': 'R-101',
+      'motivo': 'iba_lleno',
+      'dias': '2,5',
+    });
+    expect(adapter.request!.headers['Authorization'], 'Bearer sesion');
+
+    // Sin ruta, sin motivo y sin días: todo lo de la empresa en el rango.
+    await api.fetchQuejas(
+      'sesion',
+      desde: DateTime.utc(2026, 10, 1),
+      hasta: DateTime.utc(2026, 10, 25),
+    );
+    expect(adapter.request!.queryParameters.keys, ['desde', 'hasta']);
+  });
 }

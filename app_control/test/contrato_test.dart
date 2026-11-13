@@ -33,6 +33,7 @@ import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_
     show CeldaBusqueda, RutaBusquedas;
 import 'package:ya_viene_core/core/providers/app_providers.dart'
     show BackendUrl, backendUrlProvider;
+import 'package:ya_viene_core/ya_viene_core.dart' show MotivoQueja;
 
 const _backend = 'http://127.0.0.1:59141';
 
@@ -54,6 +55,7 @@ class _Contrato implements HttpClientAdapter {
     'GET /api/fleet/routes': 'rest-fleet-routes',
     'GET /api/panel/busquedas': 'rest-panel-busquedas',
     'GET /api/panel/busquedas/R-101/calor': 'rest-panel-busquedas-calor',
+    'GET /api/panel/quejas': 'rest-panel-quejas',
     'POST /api/fleet/buses': 'rest-fleet-bus-created',
     'PATCH /api/fleet/buses/BUS-XYZ987': 'rest-fleet-bus-updated',
     'POST /api/fleet/buses/visibility': 'rest-fleet-visibility-all',
@@ -189,6 +191,27 @@ void main() {
     expect(celdas.single.count, 5);
     expect(celdas.single.lat, 10.99035);
     expect(celdas.single.lng, -74.78967);
+
+    // La queja del contrato: con su celda de 150 m, su bus y su hora en
+    // milisegundos, sin placa (D18).
+    final quejas = await api.fetchQuejas(
+      'tok',
+      desde: DateTime.utc(2000),
+      hasta: DateTime.utc(2100),
+    );
+    final queja = quejas.quejas.single;
+    expect(queja.id, '<quejaId>');
+    expect(queja.motivo, MotivoQueja.noParo);
+    expect(queja.texto, 'No paró en el paradero');
+    expect(queja.routeId, 'R-101');
+    expect(queja.ruta, 'B18 Tcherassi');
+    expect(queja.busId, 'BUS-ABC123');
+    expect(queja.celda, (lat: 10.99035, lng: -74.78967));
+    expect(queja.hora, DateTime.utc(2026));
+    expect(queja.creado, DateTime.utc(2026));
+    expect(quejas.celdas.single.total, 1);
+    expect(quejas.celdas.single.lat, 10.99035);
+    expect(quejas.celdas.single.lng, -74.78967);
 
     final creado = await api.createBus(
       'tok',
