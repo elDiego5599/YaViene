@@ -176,44 +176,66 @@ class RutaMedible {
 
   /// El punto plano de la ruta en [avance].
   (double, double) _sobre(double avance) {
-    var i = 0;
-    while (i < _acum.length - 2 && _acum[i + 1] < avance) {
-      i++;
-    }
+    final i = _tramoDe(avance);
     return _acum[i + 1] > _acum[i] ? _enAvance(i, avance) : (_x[i], _y[i]);
   }
 
-  /// Como [proyectar], pero solo entre los avances [desde] y [hasta] (con la
-  /// vuelta en la circular). Lo que la ventana corta de un tramo se mide
-  /// hasta su borde.
-  Proyeccion _enVentana(GeoPoint p, double desde, double hasta) {
-    if (hasta - desde >= largo) return proyectar(p);
-    if (!circular) {
-      desde = math.max(0, desde);
-      hasta = math.min(largo, hasta);
+  /// El tramo donde cae [avance]: el primero que termina en él o después.
+  int _tramoDe(double avance) {
+    var bajo = 0, alto = _acum.length - 2;
+    while (bajo < alto) {
+      final medio = (bajo + alto) >> 1;
+      if (_acum[medio + 1] < avance) {
+        bajo = medio + 1;
+      } else {
+        alto = medio;
+      }
     }
+    return bajo;
+  }
+
+  /// Como [proyectar], pero solo entre los avances [desde] y [hasta] (con la
+  /// vuelta en la circular) y sin recorrer el resto de la ruta: es lo que
+  /// hace barato seguir un bus y buscar dónde se cruzan dos rutas. Lo que
+  /// la ventana corta de un tramo se mide hasta su borde.
+  Proyeccion proyectarEntre(GeoPoint p, double desde, double hasta) {
+    if (hasta - desde >= largo) return proyectar(p);
     final (px, py) = _plano(p);
-    final ancho = hasta - desde;
-    bool dentro(double a) =>
-        circular ? (a - desde) % largo <= ancho : a >= desde && a <= hasta;
     Proyeccion? mejor;
-    void probar(double avance, double desvio) {
-      if (mejor == null || desvio < mejor!.desvio) {
-        mejor = (avance: avance, desvio: desvio);
+    void medir(double desde, double hasta) {
+      for (var i = _tramoDe(desde);
+          i + 1 < _x.length && _acum[i] <= hasta;
+          i++) {
+        final largoTramo = _acum[i + 1] - _acum[i];
+        if (largoTramo == 0) continue;
+        final dx = _x[i + 1] - _x[i], dy = _y[i + 1] - _y[i];
+        final t = (((px - _x[i]) * dx + (py - _y[i]) * dy) /
+                (largoTramo * largoTramo))
+            .clamp(
+          math.max(0.0, (desde - _acum[i]) / largoTramo),
+          math.min(1.0, (hasta - _acum[i]) / largoTramo),
+        );
+        final desvio = math.sqrt(math.pow(px - _x[i] - t * dx, 2) +
+            math.pow(py - _y[i] - t * dy, 2));
+        if (mejor == null || desvio < mejor!.desvio) {
+          mejor = (avance: _acum[i] + t * largoTramo, desvio: desvio);
+        }
       }
     }
 
-    for (final c in _proyecciones(px, py)) {
-      if (dentro(c.avance)) {
-        probar(c.avance, c.desvio);
-        continue;
-      }
-      // Fuera: lo más cerca dentro del tramo es uno de los bordes.
-      for (final borde in [desde, hasta]) {
-        final a = circular ? borde % largo : borde;
-        if (a < _acum[c.tramo] || a > _acum[c.tramo + 1]) continue;
-        final (bx, by) = _enAvance(c.tramo, a);
-        probar(a, math.sqrt(math.pow(px - bx, 2) + math.pow(py - by, 2)));
+    if (!circular) {
+      desde = math.max(0, desde);
+      hasta = math.min(largo, hasta);
+      if (desde <= hasta) medir(desde, hasta);
+    } else {
+      final inicio = desde % largo;
+      final fin = inicio + (hasta - desde);
+      if (fin <= largo) {
+        medir(inicio, fin);
+      } else {
+        // La ventana cruza el inicio de la ruta: son dos pedazos.
+        medir(inicio, largo);
+        medir(0, fin - largo);
       }
     }
     return mejor ?? proyectar(p);
@@ -330,7 +352,7 @@ class SeguidorRuta {
     Proyeccion? pr;
     if (previo != null) {
       final dt = bus.timestamp.difference(previo.t).inMilliseconds / 1000;
-      pr = ruta._enVentana(p, previo.avance - _ventanaAtras,
+      pr = ruta.proyectarEntre(p, previo.avance - _ventanaAtras,
           previo.avance + _vMax * dt + _ventanaAdelante);
       // Fuera de la ventana no es seguir: se busca en toda la ruta.
       if (pr.desvio > desvioBusMaximo) pr = null;
