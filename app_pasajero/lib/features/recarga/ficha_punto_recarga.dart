@@ -17,9 +17,9 @@ import 'recarga_providers.dart';
 /// única acción llena es «Cómo llegar», como en Citymapper; cerrar es una X
 /// discreta arriba a la derecha.
 ///
-/// Se apoya donde la hoja de los buses, a lo ancho de la barra de abajo: la
-/// hoja se aparta mientras la ficha está, y en ningún momento hay dos
-/// tarjetas apiladas.
+/// Se apoya sobre la píldora de pestañas, a su ancho: la hoja de los buses se
+/// aparta mientras la ficha está, y en ningún momento hay dos tarjetas
+/// apiladas.
 class FichaPuntoRecarga extends ConsumerWidget {
   const FichaPuntoRecarga({super.key});
 
@@ -32,7 +32,11 @@ class FichaPuntoRecarga extends ConsumerWidget {
         padding: EdgeInsets.only(
           left: PildoraNavegacion.lado,
           right: PildoraNavegacion.lado,
-          bottom: PildoraNavegacion.hueco(MediaQuery.viewPaddingOf(context)),
+          // Encima de la píldora de pestañas, con su respiro de 8: la hoja
+          // de los buses la lleva dentro, pero la ficha es una tarjeta suelta.
+          bottom: PildoraNavegacion.hueco(MediaQuery.viewPaddingOf(context)) +
+              PildoraNavegacion.alto +
+              AppSpacing.sm,
         ),
         child: AnimatedSwitcher(
           duration: AppMotion.duracion(context, AppMotion.normal),

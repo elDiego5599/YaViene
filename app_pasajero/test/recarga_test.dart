@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/services/abrir_enlace.dart';
+import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/user_location_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/utils/map_constants.dart';
@@ -365,6 +366,19 @@ void main() {
       );
       expect(find.text('Ejemplo'), findsNothing);
       expect(find.textContaining('Horario'), findsNothing);
+    });
+
+    testWidgets('se apoya sobre la píldora de pestañas, sin taparla',
+        (tester) async {
+      final (:c, ubicacion: _) = _contenedor();
+      await pinta(tester, c, _punto('a', 0.001));
+
+      final techoDeLaPildora =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio -
+              PildoraNavegacion.hueco(EdgeInsets.zero) -
+              PildoraNavegacion.alto;
+      final fondoDeLaFicha = tester.getBottomLeft(find.byType(FilledButton)).dy;
+      expect(fondoDeLaFicha, lessThan(techoDeLaPildora));
     });
 
     testWidgets('el horario solo si la fuente lo da', (tester) async {
