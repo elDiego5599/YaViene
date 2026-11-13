@@ -3,6 +3,13 @@ library;
 // --- Geometría ---
 export 'core/geo/por_ruta.dart';
 
+// --- Lugares (buscador de origen y destino, D25) ---
+export 'core/lugares/buscador_de_lugares.dart';
+export 'core/lugares/buscador_falso.dart';
+export 'core/lugares/buscador_local.dart';
+export 'core/lugares/lugar.dart';
+export 'core/lugares/recientes_de_lugares.dart';
+
 // --- Models (capa de datos) ---
 export 'core/models/bus_motion.dart';
 export 'core/models/bus_position.dart';

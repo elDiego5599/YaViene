@@ -325,8 +325,9 @@ mide antes de sumarlo.
   detecta que ya está cerca del punto donde debe bajarse, o el pasajero lo
   avanza solo, y otro botón pone solo la siguiente empresa y ruta hasta
   llegar. Pesa semanas, no días. Lo que exige:
-  1. **Buscar sitios**: hoy el mapa no lleva nombres de sitios y no hay
-     buscador de direcciones.
+  1. **Buscar sitios**: hecho el buscador (D25: índice local de OSM y POT,
+     `BuscaLugar` en el core). Falta conectarlo al planificador y al mapa:
+     elegir en el mapa, «Tu ubicación» y la cámara hacia lo elegido.
   2. **Armar la ruta de A a B**: qué ruta pasa cerca del origen, cuál deja
      cerca del destino, trasbordos y caminata entre buses. Es un buscador
      de rutas completo.
