@@ -42,6 +42,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   (`pushType: .token` en `ios/Runner/ActividadEnVivo.swift`), mandarlo al
   servidor con el aviso y que `revisarAvisos` la ponga al día por APNs
   (tipo `liveactivity`, la clave .p8).
+- **La licencia de los puntos de recarga del AMB (D21).** La app ya los
+  muestra (1.416 puntos del mapa «Puntos para recargas SIBUS», enlazado
+  desde sibusoficial.ambq.gov.co, KML consultado el 2026-11-11, sin
+  horarios; cada ficha cita la fuente y la fecha). El AMB no publica una
+  licencia de reutilización: hace falta que confirme por escrito que
+  podemos mostrarlos, por ejemplo en la misma PQRS de D2. Mientras tanto
+  se citan como fuente y no se copia nada de Google Maps.
 
 ## Lo que tienes que decidir tú
 
@@ -54,6 +61,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **Los motivos de la queja** (D18, 2026-11-11): no paró, iba lleno, mal
   trato, conducción, otra ruta, estado del bus y otro. Salen así en la app,
   el correo y el panel; confírmalos o cámbialos.
+- **Puntos de recarga: lo que dejó la conversión (D21).** Quedaron fuera 4
+  puntos del KML que no son lugares de recarga fijos (DONDE ABDON y las
+  Van n.º 1 a 3) y 34 comparten coordenadas con otro punto, así que se ven
+  como uno solo. Dime si se quedan así o si se piden al AMB.
 - **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos.
   La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
   se abre, un rango con datos reales del piloto debajo de la distancia,

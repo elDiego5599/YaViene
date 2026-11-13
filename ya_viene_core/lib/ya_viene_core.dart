@@ -1,6 +1,7 @@
 library;
 
 // --- Geometría ---
+export 'core/geo/distancia.dart';
 export 'core/geo/por_ruta.dart';
 
 // --- Lugares (buscador de origen y destino, D25) ---
@@ -37,6 +38,9 @@ export 'core/ocupacion/ocupacion_simulada.dart';
 export 'core/providers/app_providers.dart';
 export 'core/providers/map_providers.dart';
 export 'core/providers/providers.dart';
+
+// --- Puntos de recarga (D21) ---
+export 'core/recarga/puntos_recarga.dart';
 
 // --- Theme ---
 export 'core/theme/app_motion.dart';

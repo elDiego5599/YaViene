@@ -14,7 +14,6 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/distancia.dart';
-import 'geo.dart';
 
 /// Una acción por bus: a qué bus toca y con qué palabras se anuncia.
 typedef AccionDeBus = ({String busId, String etiqueta});
