@@ -60,8 +60,19 @@ class BusNotificationService {
 
   static Future<void> init() async {
     _actividad.setMethodCallHandler((llamada) async {
-      if (llamada.method != 'avisoTocado') return;
       final carga = llamada.arguments;
+      if (llamada.method == 'recargaVuelta') {
+        if (carga is String) _recargasVueltas.agregar(carga);
+        try {
+          await _actividad.invokeMethod<String>('leerRecargaPendiente');
+        } on MissingPluginException {
+          // Sin el método nativo, el evento ya quedó en la cola de Dart.
+        } on PlatformException catch (e) {
+          debugPrint('no se pudo confirmar el regreso de la recarga: $e');
+        }
+        return;
+      }
+      if (llamada.method != 'avisoTocado') return;
       final aviso = leerUrlActividad(carga is String ? carga : null);
       if (aviso != null) {
         _tocados.agregar(aviso);
@@ -87,6 +98,15 @@ class BusNotificationService {
       // Android y versiones sin el canal de actividad no tienen este método.
     } on PlatformException catch (e) {
       debugPrint('no se pudo recuperar el toque de la actividad: $e');
+    }
+    try {
+      final enlace =
+          await _actividad.invokeMethod<String>('leerRecargaPendiente');
+      if (enlace != null) _recargasVueltas.agregar(enlace);
+    } on MissingPluginException {
+      // Android y versiones sin el canal no tienen este método.
+    } on PlatformException catch (e) {
+      debugPrint('no se pudo recuperar el regreso de la recarga: $e');
     }
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -124,6 +144,12 @@ class BusNotificationService {
   }
 
   static final _tocados = ColaEventos<AvisoTocado>();
+  static final _recargasVueltas = ColaEventos<String>();
+
+  /// Los enlaces `yaviene://recarga?...` con que la pasarela devuelve a la
+  /// persona a la app. Son texto sin confiar: quien los usa los valida
+  /// (`RecargaNotifier.alVolver`) y consulta el estado al proveedor.
+  static Stream<String> get recargasVueltas => _recargasVueltas.stream;
 
   /// Los avisos que se tocan con la app viva (en primer plano o en el
   /// fondo). El que la abrió desde cerrada llega por [tocadoAlAbrir].

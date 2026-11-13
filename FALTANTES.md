@@ -70,7 +70,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   hacen falta tres respuestas: quién da el saldo (un convenio con el AMB o
   el operador del recaudo; no hay API pública), el formato del número de
   la tarjeta (hoy se aceptan de 8 a 20 cifras, provisional) y si se
-  enseña en el pitch. La recarga (Fase 6, D23) espera a que digas sigue.
+  enseña en el pitch. La recarga (Fase 6, D23, hecha con pasarela
+  simulada, 2026-11-13) pide además el convenio para un proveedor real
+  y su regreso por universal link; mientras tanto un iPhone real no
+  alcanza la pasarela de `localhost` (`tool/pasarela_simulada.py`) y el
+  saldo simulado no sube tras una recarga aprobada.
 - **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos.
   La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
   se abre, un rango con datos reales del piloto debajo de la distancia,
