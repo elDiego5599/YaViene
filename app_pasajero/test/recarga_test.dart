@@ -37,6 +37,7 @@ PuntoDeRecarga _punto(
   double dLat, {
   Fuente? fuente,
   String nombre = 'DONDE TERESA # 1',
+  String direccion = 'CLL 76 N 18C 19',
   String? horario,
   String? municipio = 'Soledad',
 }) =>
@@ -45,7 +46,7 @@ PuntoDeRecarga _punto(
       nombre: nombre,
       lat: _lat + dLat,
       lon: _lon,
-      direccion: 'CLL 76 N 18C 19',
+      direccion: direccion,
       municipio: municipio,
       horario: horario,
       fuente: fuente ?? _sibus,
@@ -112,6 +113,8 @@ void main() {
   group('cómo se escriben', () {
     test('el nombre en tipo oración, con las siglas en mayúsculas', () {
       expect(nombreDelPunto('DONDE TERESA # 1'), 'Donde Teresa # 1');
+      expect(
+          nombreDelPunto('CLL 63 PROLON. MURILLO'), 'CLL 63 Prolon. Murillo');
       expect(nombreDelPunto('OLIMPICA CC MARBELLA'), 'Olimpica CC Marbella');
       expect(nombreDelPunto('CDA LA 38'), 'CDA la 38');
       expect(nombreDelPunto('TIENDA DE LA ESQUINA'), 'Tienda de la Esquina');
@@ -379,6 +382,14 @@ void main() {
               PildoraNavegacion.alto;
       final fondoDeLaFicha = tester.getBottomLeft(find.byType(FilledButton)).dy;
       expect(fondoDeLaFicha, lessThan(techoDeLaPildora));
+    });
+
+    testWidgets('la dirección no grita: se escribe como dirección',
+        (tester) async {
+      final (:c, ubicacion: _) = _contenedor();
+      await pinta(
+          tester, c, _punto('a', 0.001, direccion: 'CLL 63 PROLON. MURILLO'));
+      expect(find.text('CLL 63 Prolon. Murillo, Soledad'), findsOneWidget);
     });
 
     testWidgets('el horario solo si la fuente lo da', (tester) async {

@@ -79,9 +79,11 @@ class _Ficha extends ConsumerWidget {
     final metros = ubicacion.hasPosition && lat != null && lon != null
         ? haversineMeters(lat, lon, punto.lat, punto.lon).round()
         : null;
-    final direccion = punto.municipio == null
-        ? punto.direccion
-        : '${punto.direccion}, ${punto.municipio}';
+    // La fuente escribe las direcciones en mayúsculas: igual que los
+    // nombres, se leen mejor como se escriben (CLL y CRA se quedan).
+    final calle = nombreDelPunto(punto.direccion);
+    final direccion =
+        punto.municipio == null ? calle : '$calle, ${punto.municipio}';
 
     return MediaQuery.withClampedTextScaling(
       // El mismo techo que la hoja de los buses (WCAG 1.4.4, el doble).
