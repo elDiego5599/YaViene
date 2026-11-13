@@ -650,6 +650,13 @@ class _MapWidgetState extends ConsumerState<MapWidget>
       visible: ref.read(capaRecargaVisibleProvider),
       elegidoId: ref.read(puntoRecargaElegidoProvider)?.id,
     );
+    // El archivo pudo terminar de leerse mientras la capa se instalaba: lo
+    // que llegó entonces no lo vio ningún listener, así que se vuelve a
+    // poner lo último que se sabe (si no, la capa queda prendida y vacía).
+    final despues = ref.read(puntosRecargaProvider).valueOrNull;
+    if (despues != null && despues.length != puntos.length) {
+      await _capaRecarga.actualizarPuntos(despues);
+    }
     if (_recargaSubs.isNotEmpty) return;
     _recargaSubs
       ..add(ref.listenManual<bool>(capaRecargaVisibleProvider,
