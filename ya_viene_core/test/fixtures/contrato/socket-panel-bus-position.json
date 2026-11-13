@@ -13,6 +13,7 @@
   "driverPhone": "3990000001",
   "companyId": "EMP-01",
   "isGhost": false,
+  "simulado": false,
   "enTerminal": false,
   "emittedAt": 1767225600000
 }

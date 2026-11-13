@@ -57,8 +57,9 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   (fase 1, quejas, cerrada el 2026-11-12: formulario del pasajero y
   quejas en Reportes del panel; la fase 3 va con el planificador y la
   máquina de fases del viaje guiado en el core, falta la pantalla). Las
-  decisiones D19 a D23 quedan como borradores en ese archivo y pasan a
-  `YaVieneBackend/docs/decisiones/` al cerrar su fase.
+  decisiones D19 y D20 quedan como borradores en ese archivo y pasan a
+  `YaVieneBackend/docs/decisiones/` al cerrar su fase (D21 a D25 ya
+  están allá).
 - **Las medidas del viaje guiado** (Fase 3, 2026-11-13), puestas con
   criterio y a la espera de tu sí o tu cambio: el aviso «Bájate en la
   próxima» sale faltando 400 m por la ruta (unos 48 s a 30 km/h); para
@@ -86,10 +87,16 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   y su regreso por universal link; mientras tanto un iPhone real no
   alcanza la pasarela de `localhost` (`tool/pasarela_simulada.py`) y el
   saldo simulado no sube tras una recarga aprobada.
-- **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos. En el core ya está el ritmo de la ruta (`RitmoDeRuta`, rango desde lo que avanzan los buses, calla sin seis minutos vistos) y `BusPosition.simulado`; falta que el backend mande `simulado` desde `buses.is_demo` (prueba roja guardada en las notas de la sesión), mostrarlo junto a la distancia con «Simulación», y escribir D24 y la regla 5.
-  La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
-  se abre, un rango con datos reales del piloto debajo de la distancia,
-  nunca en su lugar. Decides tú.
+- **Hora de llegada (D24, decidida el 2026-11-11).** Va como rango junto
+  a la distancia, nunca en su lugar (`YaVieneBackend/docs/decisiones/D24-hora-de-llegada.md`).
+  Ya están el ritmo de la ruta en el core (`RitmoDeRuta`, calla sin seis
+  minutos vistos) y `simulado` en la posición pública, desde
+  `buses.is_demo`. Falta mostrarla en el planificador y en el viaje
+  guiado, con «Simulación» en la flota de ejemplo. La regla 5 de
+  `CLAUDE.md` todavía dice «distancia, no ETA» y la regla 15 «D1 a D14»:
+  ese archivo no lo cambio por encargo de otra sesión, dame el sí o
+  cámbialo tú a «distancia siempre; la hora, un rango honesto a su lado
+  (D24)».
 - **CARTO u OSM en el panel** (T6.11). Si es CARTO hace falta una cuenta y
   una clave; si es OSM, se queda como está y se cierra.
 - **El aviso de Gradle que queda (AUD-24).** Sale de `maplibre_gl`, que por

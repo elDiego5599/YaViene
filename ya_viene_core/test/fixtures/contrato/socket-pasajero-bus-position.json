@@ -11,5 +11,6 @@
   "receivedAt": 1767225600000,
   "sequence": 1,
   "isGhost": false,
+  "simulado": false,
   "emittedAt": 1767225600000
 }
