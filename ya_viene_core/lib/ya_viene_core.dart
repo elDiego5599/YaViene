@@ -52,6 +52,7 @@ export 'core/theme/estilo_ruta.dart';
 
 // --- Viaje de puerta a puerta (docs/viaje-completo.md) ---
 export 'core/viaje/bus_que_viene.dart';
+export 'core/viaje/guia_de_viaje.dart';
 export 'core/viaje/planear.dart';
 export 'core/viaje/red_de_rutas.dart';
 export 'core/viaje/viaje.dart';

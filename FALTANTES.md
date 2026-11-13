@@ -55,9 +55,20 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 - **El viaje completo** (plan en `docs/viaje-completo.md`, 2026-11-11):
   ya respondiste sus preguntas y va por fases en la rama `viaje-completo`
   (fase 1, quejas, cerrada el 2026-11-12: formulario del pasajero y
-  quejas en Reportes del panel; sigue la fase 3, el planificador). Las
+  quejas en Reportes del panel; la fase 3 va con el planificador y la
+  máquina de fases del viaje guiado en el core, falta la pantalla). Las
   decisiones D19 a D23 quedan como borradores en ese archivo y pasan a
   `YaVieneBackend/docs/decisiones/` al cerrar su fase.
+- **Las medidas del viaje guiado** (Fase 3, 2026-11-13), puestas con
+  criterio y a la espera de tu sí o tu cambio: el aviso «Bájate en la
+  próxima» sale faltando 400 m por la ruta (unos 48 s a 30 km/h); para
+  cambiar de bus se camina a lo sumo 150 m; y las opciones se ordenan
+  por menos buses y luego por costo (cada metro a pie pesa como cuatro
+  en bus), no solo por menos caminata como decía el plan, que ofrecía
+  rodeos de varios kilómetros por ahorrar una cuadra.
+- **La R-116 no cierra su vuelta**: empieza y termina a 58 m, y una ruta
+  cuenta como circular hasta 50 m (`_cierreCircular`). Hoy se trata como
+  ruta de ida; dime si el KMZ está corto o si de verdad no es circular.
 - **Los motivos de la queja** (D18, 2026-11-11): no paró, iba lleno, mal
   trato, conducción, otra ruta, estado del bus y otro. Salen así en la app,
   el correo y el panel; confírmalos o cámbialos.

@@ -59,6 +59,7 @@ BusPosition bus(
   double y, {
   double? rumbo,
   bool sinSenal = false,
+  int segundos = 0,
 }) =>
     BusPosition(
       busId: id,
@@ -67,6 +68,7 @@ BusPosition bus(
       lon: m(x, y).lon,
       heading: rumbo,
       speedKmh: 30,
-      timestamp: DateTime(2026, 11, 13, 10),
+      // [segundos] después: una posición igual de vieja no mueve al bus.
+      timestamp: DateTime(2026, 11, 13, 10, 0, segundos),
       isGhostBus: sinSenal,
     );
