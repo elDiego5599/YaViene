@@ -100,6 +100,23 @@ class RutaMedible {
     return circular ? math.min(d, largo - d) : d;
   }
 
+  /// Lo que anda el bus de [desde] a [hasta] en el sentido de la ruta, o
+  /// null si [hasta] queda atrás y la ruta no vuelve a empezar: el bus no
+  /// se devuelve. En la circular, hacia atrás es dar la vuelta. Para un
+  /// viaje no sirve [_entre], que toma el sentido más corto.
+  double? recorridoDirigido(double desde, double hasta) {
+    if (circular) return (hasta - desde) % largo;
+    return hasta >= desde ? hasta - desde : null;
+  }
+
+  /// Cada paso de la ruta a [maximo] metros o menos de [p], en orden de
+  /// avance: donde se puede subir o bajar caminando desde ahí. El desvío
+  /// de cada uno es esa caminata, en línea recta.
+  List<Proyeccion> pasosCerca(GeoPoint p, double maximo) => _pasos(p, maximo);
+
+  /// El punto de la ruta en [avance].
+  GeoPoint puntoEn(double avance) => _geo(_sobre(avance));
+
   /// Cada tramo con la proyección de ([px], [py]) sobre él.
   Iterable<({int tramo, double avance, double desvio})> _proyecciones(
       double px, double py) sync* {
