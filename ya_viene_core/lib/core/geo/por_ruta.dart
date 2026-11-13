@@ -35,6 +35,10 @@ const double _ventanaAdelante = 100;
 /// un carril por sentido): ahí decide el rumbo, no la cercanía.
 const double _empate = 15;
 
+/// Una esquina a menos de un centímetro de la punta de un trazo es esa
+/// punta: los largos son sumas de raíces y no caen exactos.
+const double _mismaEsquina = 0.01;
+
 /// Un bus más lejos de la ruta no va por ella (desvío por obra, otra ruta,
 /// GPS perdido): no se mide por la ruta.
 const double desvioBusMaximo = 60;
@@ -170,6 +174,25 @@ class RutaMedible {
   /// cerca de él. El pin marca dónde se toma la ruta, no dónde está la
   /// persona, y el mapa lo lleva hasta aquí (dueño, 2026-11-05).
   GeoPoint puntoDeEspera(GeoPoint p) => _geo(_sobre(proyectar(p).avance));
+
+  /// La línea de la ruta de [desde] a [hasta], en el sentido en que anda el
+  /// bus y pasando por cada esquina: lo que se pinta de un viaje. En la
+  /// circular, con [hasta] atrás de [desde], cruza el cierre de la vuelta.
+  List<GeoPoint> trazoEntre(double desde, double hasta) {
+    assert(circular || hasta >= desde, 'el bus no se devuelve');
+    final fin = hasta >= desde ? hasta : hasta + largo;
+    return [
+      puntoEn(desde),
+      // La segunda pasada es la vuelta siguiente; su primera esquina es la
+      // última de la anterior.
+      for (final vuelta in [0.0, if (fin > largo) largo])
+        for (var i = vuelta == 0 ? 0 : 1; i < _acum.length; i++)
+          if (_acum[i] + vuelta > desde + _mismaEsquina &&
+              _acum[i] + vuelta < fin - _mismaEsquina)
+            _geo((_x[i], _y[i])),
+      puntoEn(hasta),
+    ];
+  }
 
   GeoPoint _geo((double, double) xy) =>
       GeoPoint(lat: _lat0 + xy.$2 / _ky, lon: _lon0 + xy.$1 / _kx);
