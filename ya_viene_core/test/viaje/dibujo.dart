@@ -60,6 +60,7 @@ BusPosition bus(
   double? rumbo,
   bool sinSenal = false,
   int segundos = 0,
+  bool simulado = false,
 }) =>
     BusPosition(
       busId: id,
@@ -71,4 +72,5 @@ BusPosition bus(
       // [segundos] después: una posición igual de vieja no mueve al bus.
       timestamp: DateTime(2026, 11, 13, 10, 0, segundos),
       isGhostBus: sinSenal,
+      simulado: simulado,
     );

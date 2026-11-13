@@ -55,6 +55,7 @@ export 'core/viaje/bus_que_viene.dart';
 export 'core/viaje/guia_de_viaje.dart';
 export 'core/viaje/planear.dart';
 export 'core/viaje/red_de_rutas.dart';
+export 'core/viaje/ritmo_de_ruta.dart';
 export 'core/viaje/viaje.dart';
 
 // --- Widgets compartidos ---

@@ -86,7 +86,7 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   y su regreso por universal link; mientras tanto un iPhone real no
   alcanza la pasarela de `localhost` (`tool/pasarela_simulada.py`) y el
   saldo simulado no sube tras una recarga aprobada.
-- **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos.
+- **Hora de llegada (D24, abierta).** La regla dice distancia, no minutos. En el core ya está el ritmo de la ruta (`RitmoDeRuta`, rango desde lo que avanzan los buses, calla sin seis minutos vistos) y `BusPosition.simulado`; falta que el backend mande `simulado` desde `buses.is_demo` (prueba roja guardada en las notas de la sesión), mostrarlo junto a la distancia con «Simulación», y escribir D24 y la regla 5.
   La propuesta (sección 3.7 del plan) es seguir sin minutos y, si algún día
   se abre, un rango con datos reales del piloto debajo de la distancia,
   nunca en su lugar. Decides tú.

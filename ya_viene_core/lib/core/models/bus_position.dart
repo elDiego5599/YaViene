@@ -24,6 +24,10 @@ class BusPosition extends Equatable {
   /// equipo.
   final int? capturedAt;
 
+  /// Es un bus de la flota de ejemplo, no uno de verdad: lo que se calcule
+  /// con él (la hora de llegada, D24) lleva la etiqueta «Simulación».
+  final bool simulado;
+
   const BusPosition({
     required this.busId,
     required this.routeId,
@@ -36,6 +40,7 @@ class BusPosition extends Equatable {
     this.sentido,
     this.sequence,
     this.capturedAt,
+    this.simulado = false,
   });
 
   /// Lee una posición que llega por la red, o null si no se puede creer.
@@ -127,6 +132,7 @@ class BusPosition extends Equatable {
       // ([esMasNueva]); sin leerla la última en llegar ganaba.
       sequence: (json['sequence'] as num?)?.toInt(),
       capturedAt: (json['capturedAt'] as num?)?.toInt(),
+      simulado: json['simulado'] as bool? ?? false,
     );
   }
 
@@ -143,6 +149,7 @@ class BusPosition extends Equatable {
       'isGhost': isGhostBus,
       'sequence': sequence,
       'capturedAt': capturedAt,
+      'simulado': simulado,
     };
   }
 
@@ -158,6 +165,7 @@ class BusPosition extends Equatable {
     bool? isGhostBus,
     int? sequence,
     int? capturedAt,
+    bool? simulado,
   }) {
     return BusPosition(
       busId: busId ?? this.busId,
@@ -171,6 +179,7 @@ class BusPosition extends Equatable {
       isGhostBus: isGhostBus ?? this.isGhostBus,
       sequence: sequence ?? this.sequence,
       capturedAt: capturedAt ?? this.capturedAt,
+      simulado: simulado ?? this.simulado,
     );
   }
 
@@ -187,6 +196,7 @@ class BusPosition extends Equatable {
         isGhostBus,
         sequence,
         capturedAt,
+        simulado,
       ];
 }
 
