@@ -15,8 +15,8 @@ const _inicioBrillo = 0.5;
 /// líneas de rutas a 45 grados, la leyenda en blanco a la derecha y una franja
 /// blanca abajo. Sin número impreso: estas tarjetas no lo llevan a la vista.
 ///
-/// No copia los logos del AMB ni de la Alcaldía: la franja lleva solo el bus
-/// de Ya Viene.
+/// La franja lleva los logos oficiales del AMB, de SIBUS y de la Alcaldía de
+/// Barranquilla, que el dueño entregó (`assets/tarjeta/`).
 ///
 /// [ultimos4] solo alimenta la etiqueta de accesibilidad.
 class TarjetaVisual extends StatefulWidget {
@@ -187,14 +187,6 @@ class _Cuerpo extends StatelessWidget {
                   ),
                 ),
               ),
-              // El rectángulo verde translúcido de arriba a la derecha.
-              Positioned(
-                top: 0,
-                right: 26,
-                width: 58,
-                height: 46,
-                child: ColoredBox(color: _verde.withValues(alpha: 0.55)),
-              ),
               const Positioned.fill(
                 child:
                     IgnorePointer(child: CustomPaint(painter: _RutasPintor())),
@@ -243,10 +235,15 @@ class _Cuerpo extends StatelessWidget {
   ];
 }
 
-/// La franja blanca redondeada de abajo. Los logos del AMB y de la Alcaldía
-/// no los tenemos con permiso: lleva solo el bus de Ya Viene.
+/// La franja blanca redondeada de abajo con los tres logos, como la tarjeta
+/// de verdad: AMB a la izquierda, SIBUS al centro y la Alcaldía a la derecha.
+/// Cada uno va a su proporción (los PNG y el JPG traen la suya).
 class _Franja extends StatelessWidget {
   const _Franja();
+
+  static const _logoAmb = 'assets/tarjeta/logo_amb.png';
+  static const _logoSibus = 'assets/tarjeta/logo_sibus.jpg';
+  static const _logoAlcaldia = 'assets/tarjeta/logo_alcaldia_barranquilla.png';
 
   @override
   Widget build(BuildContext context) {
@@ -255,21 +252,34 @@ class _Franja extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
-      child: Center(
-        child: Container(
-          width: 24,
-          height: 24,
-          decoration: const BoxDecoration(
-            color: AppColors.successLight,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.directions_bus_rounded,
-            size: 15,
-            color: AppColors.primaryAccessible,
-          ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _Logo(_logoAmb),
+            _Logo(_logoSibus),
+            _Logo(_logoAlcaldia),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class _Logo extends StatelessWidget {
+  const _Logo(this.ruta);
+
+  final String ruta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      ruta,
+      height: 26,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      excludeFromSemantics: true,
     );
   }
 }
