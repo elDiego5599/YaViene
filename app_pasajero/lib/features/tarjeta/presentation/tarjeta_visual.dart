@@ -209,6 +209,8 @@ class _Cuerpo extends StatelessWidget {
                     'TARJETA INTELIGENTE\nPARA TRANSPORTE\n'
                     'DEL ÁREA METROPOLITANA\nDE BARRANQUILLA',
                     textAlign: TextAlign.right,
+                    // Tinta impresa: no crece con el texto grande.
+                    textScaler: TextScaler.noScaling,
                     style: leyenda,
                   ),
                 ),
