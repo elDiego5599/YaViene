@@ -377,6 +377,7 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   rótulo como las otras. El buzón (D14, D18) sigue a mano en Info, Ayuda,
   «Problemas y sugerencias» (ruta `/buzon` fuera de la barra, con su flecha
   de volver): es algo que se hace pocas veces y Info ya agrupa la ayuda.
+- **Tarjeta SIBUS dibujada** (dueño, 2026-11-14, «muy básico y feo»): degradado de la marca con la ciudad de noche (`tarjeta_visual.dart`, silueta fija con ventanas encendidas), banda blanca con el número en tinta (cifras de ancho fijo) y su filo verde; llega con resorte (`curvaRebote`) y un destello la cruza una vez, que se queda con «reducir movimiento» porque es luz. Sin tarjeta, la misma muestra los últimos 4 que se teclean. Saldo y recarga en láminas blancas con filo (`_Panel`) y las insignias de los avisos con tono (espera, fallo, bien).
 - **Pasajero**: cifra viva en la distancia de la hoja; filas del selector
   escalonadas (con espejo en la web); la hoja del selector conserva su alto;
   aviso anclado donde se armó (no sigue al pin); «Escoge empresa y ruta»

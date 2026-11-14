@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/data/tarjeta_guardada.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/domain/saldo.dart';
@@ -267,14 +266,19 @@ void main() {
   testWidgets('la cifra del saldo y su tarjeta pasan AA', (tester) async {
     await abrir(tester, guardada: _prueba);
     exigeContraste(
-      contraste(letraDe(tester, find.text(r'$12.300')), AppColors.surface),
+      contraste(letraDe(tester, find.text(r'$12.300')), Colors.white),
       4.5,
       'la cifra del saldo',
     );
     exigeContraste(
-      contraste(letraDe(tester, find.text('•••• 5678')), AppColors.primaryDeep),
+      contraste(letraDe(tester, find.text('•••• 5678')), Colors.white),
       4.5,
-      'el número enmascarado sobre la tarjeta',
+      'el número enmascarado sobre la banda blanca de la tarjeta',
+    );
+    exigeContraste(
+      contraste(letraDe(tester, find.text('Número')), Colors.white),
+      4.5,
+      'el rótulo de la banda',
     );
   });
 }

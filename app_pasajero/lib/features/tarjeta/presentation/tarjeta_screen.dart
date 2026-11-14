@@ -10,6 +10,7 @@ import '../domain/recarga.dart';
 import '../domain/saldo.dart';
 import '../domain/tarjeta.dart';
 import 'tarjeta_providers.dart';
+import 'tarjeta_visual.dart';
 
 /// El saldo y la recarga de la tarjeta SIBUS (D22, D23): la tercera pestaña
 /// de la barra de abajo, donde antes estaba el buzón (dueño, 2026-11-14).
@@ -142,7 +143,17 @@ class _SinTarjetaState extends ConsumerState<_SinTarjeta> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _TarjetaVacia(),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _campo,
+          builder: (context, valor, _) {
+            final cifras = valor.text.replaceAll(RegExp(r'\D'), '');
+            return TarjetaVisual(
+              ultimos4: cifras.length >= 4
+                  ? cifras.substring(cifras.length - 4)
+                  : null,
+            );
+          },
+        ),
         const SizedBox(height: AppSpacing.lg),
         Text('Consulta tu saldo', style: AppTextStyles.titulo),
         const SizedBox(height: AppSpacing.xs),
@@ -273,6 +284,7 @@ class _ConTarjeta extends ConsumerWidget {
         _Saldo(saldo: saldo, consultando: consultando, alConsultar: consultar),
       SaldoSinRed() => _Aviso(
           icono: Icons.wifi_off_rounded,
+          tono: _Tono.espera,
           titulo: 'Sin internet',
           texto: 'Conéctate y vuelve a consultar.',
           accion: 'Consultar de nuevo',
@@ -291,6 +303,7 @@ class _ConTarjeta extends ConsumerWidget {
       // se dicen igual: es del sistema, no del pasajero.
       SaldoNoDisponible() || null => _Aviso(
           icono: Icons.schedule_rounded,
+          tono: _Tono.espera,
           titulo: 'El saldo no está disponible ahora',
           texto: 'No es tu tarjeta, es el sistema. Mientras tanto, el '
               'validador azul del bus te lo muestra al pasarla.',
@@ -303,24 +316,23 @@ class _ConTarjeta extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _TarjetaVisual(numero: numero),
-        const SizedBox(height: AppSpacing.xl),
-        AnimatedSwitcher(
-          duration: AppMotion.duracion(context, AppMotion.normal),
-          switchInCurve: AppMotion.curvaEntrada,
-          switchOutCurve: AppMotion.curvaSalida,
-          layoutBuilder: (actual, previos) => Stack(
-            alignment: Alignment.topLeft,
-            children: [...previos, if (actual != null) actual],
+        TarjetaVisual(ultimos4: numero.ultimos4),
+        const SizedBox(height: AppSpacing.lg),
+        _Panel(
+          child: AnimatedSwitcher(
+            duration: AppMotion.duracion(context, AppMotion.normal),
+            switchInCurve: AppMotion.curvaEntrada,
+            switchOutCurve: AppMotion.curvaSalida,
+            layoutBuilder: (actual, previos) => Stack(
+              alignment: Alignment.topLeft,
+              children: [...previos, if (actual != null) actual],
+            ),
+            child:
+                KeyedSubtree(key: ValueKey(estado.runtimeType), child: estado),
           ),
-          child: KeyedSubtree(key: ValueKey(estado.runtimeType), child: estado),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        const Divider(height: 1, thickness: 1, color: AppColors.filo),
-        const SizedBox(height: AppSpacing.lg),
-        _Recarga(numero: numero),
-        const SizedBox(height: AppSpacing.lg),
-        const Divider(height: 1, thickness: 1, color: AppColors.filo),
+        const SizedBox(height: AppSpacing.md),
+        _Panel(child: _Recarga(numero: numero)),
         const _NotaPrivacidad(),
         Align(
           alignment: Alignment.centerLeft,
@@ -360,6 +372,7 @@ class _Recarga extends ConsumerWidget {
       null => _RecargaInicio(alPulsar: recargar),
       RecargaPendiente() => _Aviso(
           icono: Icons.hourglass_top_rounded,
+          tono: _Tono.espera,
           titulo: 'Esperando tu pago',
           texto: 'Termina el pago en la página que se abrió. Cuando vuelvas '
               'aquí lo confirmamos.',
@@ -368,6 +381,7 @@ class _Recarga extends ConsumerWidget {
         ),
       RecargaAprobada(:final valor) => _Aviso(
           icono: Icons.check_circle_outline_rounded,
+          tono: _Tono.bien,
           titulo: 'Recarga aprobada',
           texto: valor == null
               ? 'El operador confirmó tu pago. El saldo puede tardar un '
@@ -380,6 +394,7 @@ class _Recarga extends ConsumerWidget {
         ),
       RecargaRechazada() => _Aviso(
           icono: Icons.block_rounded,
+          tono: _Tono.fallo,
           titulo: 'El pago no se completó',
           texto: 'El operador no lo aprobó. Puedes intentarlo de nuevo.',
           accion: 'Intentar de nuevo',
@@ -396,6 +411,7 @@ class _Recarga extends ConsumerWidget {
         ),
       RecargaSinRed() => _Aviso(
           icono: Icons.wifi_off_rounded,
+          tono: _Tono.espera,
           titulo: 'Sin internet',
           texto: 'Conéctate y comprobamos tu recarga.',
           accion: 'Comprobar',
@@ -403,6 +419,7 @@ class _Recarga extends ConsumerWidget {
         ),
       RecargaNoAbierta() => _Aviso(
           icono: Icons.link_off_rounded,
+          tono: _Tono.fallo,
           titulo: 'No pudimos abrir el pago',
           texto: 'No se cobró nada. Inténtalo de nuevo en un momento.',
           accion: 'Intentar de nuevo',
@@ -515,6 +532,41 @@ class _Saldo extends StatelessWidget {
   }
 }
 
+/// Una lámina blanca con su filo, como las tarjetas de Avisos: agrupa un
+/// bloque (el saldo, la recarga) sin sombra que compita con la tarjeta.
+class _Panel extends StatelessWidget {
+  const _Panel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.filo),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// El color de la insignia de un [_Aviso]: dice de un vistazo si es algo
+/// que esperar, algo que falló, algo que salió bien o solo un dato.
+enum _Tono {
+  neutro(AppColors.surfaceMuted, AppColors.textBody),
+  espera(AppColors.warningLight, AppColors.warningAccessible),
+  fallo(AppColors.coralLight, AppColors.coralAccessible),
+  bien(AppColors.successLight, AppColors.primaryAccessible);
+
+  const _Tono(this.fondo, this.tinta);
+  final Color fondo;
+  final Color tinta;
+}
+
 /// Un estado sin saldo: ícono en su círculo, qué pasó y qué hacer.
 class _Aviso extends StatelessWidget {
   const _Aviso({
@@ -525,8 +577,10 @@ class _Aviso extends StatelessWidget {
     required this.alPulsar,
     this.iconoAccion = Icons.refresh_rounded,
     this.consultando = false,
+    this.tono = _Tono.neutro,
   });
 
+  final _Tono tono;
   final IconData icono;
   final IconData iconoAccion;
   final String titulo;
@@ -544,11 +598,11 @@ class _Aviso extends StatelessWidget {
           child: Container(
             width: 44,
             height: 44,
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceMuted,
+            decoration: BoxDecoration(
+              color: tono.fondo,
               shape: BoxShape.circle,
             ),
-            child: Icon(icono, size: 22, color: AppColors.textBody),
+            child: Icon(icono, size: 22, color: tono.tinta),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -631,179 +685,6 @@ class _BotonConsultar extends StatelessWidget {
       liveRegion: true,
       excludeSemantics: true,
       child: boton,
-    );
-  }
-}
-
-// ── La tarjeta dibujada ────────────────────────────────────────────────────
-
-/// La proporción de una tarjeta de verdad (ISO/IEC 7810 ID-1, 85,6 × 54 mm).
-const _proporcionTarjeta = 85.6 / 54;
-
-/// La tarjeta guardada, dibujada: tinta de la marca a azul de botón, el
-/// nombre del sistema, el símbolo sin contacto y solo los cuatro últimos.
-/// No copia el arte oficial del AMB: es la tarjeta de Ya Viene que la
-/// representa, como Wallet dibuja un pase sin la foto de la tarjeta.
-class _TarjetaVisual extends StatelessWidget {
-  const _TarjetaVisual({required this.numero});
-
-  final NumeroTarjeta numero;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: 'Tarjeta SIBUS terminada en ${numero.ultimos4}',
-      child: ExcludeSemantics(
-        child: AspectRatio(
-          aspectRatio: _proporcionTarjeta,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.primaryDeep, AppColors.acento],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDeep.withValues(alpha: 0.28),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              child: Stack(
-                children: [
-                  // Un brillo suave arriba a la derecha: la tarjeta tiene
-                  // relieve sin parecer una foto.
-                  Positioned(
-                    right: -60,
-                    top: -80,
-                    child: Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.16),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // La franja verde de la marca, abajo: lo único de color
-                  // vivo, para que se lea como de Ya Viene.
-                  const Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 6,
-                    child: ColoredBox(color: AppColors.primary),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 20, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'SIBUS',
-                                    style: AppTextStyles.titulo.copyWith(
-                                      color: Colors.white,
-                                      letterSpacing: 1.5,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Barranquilla',
-                                    style: AppTextStyles.pie.copyWith(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.82,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.contactless_outlined,
-                              size: 30,
-                              color: Colors.white,
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            numero.enmascarado,
-                            style: AppTextStyles.titulo.copyWith(
-                              color: Colors.white,
-                              letterSpacing: 2,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// El hueco de la tarjeta antes de guardarla: el mismo tamaño, en gris con
-/// su filo, como el «Agregar tarjeta» de Wallet.
-class _TarjetaVacia extends StatelessWidget {
-  const _TarjetaVacia();
-
-  @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: AspectRatio(
-        aspectRatio: _proporcionTarjeta,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.filo),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.contactless_outlined,
-                size: 36,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Tu tarjeta SIBUS',
-                style: AppTextStyles.cuerpoFuerte
-                    .copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
