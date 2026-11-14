@@ -12,7 +12,7 @@ const _inicioBrillo = 0.5;
 
 /// La tarjeta SIBUS dibujada como la de verdad: degradado diagonal de
 /// amarillo, verde y naranja a rojo, la ciudad de fondo con poca opacidad,
-/// líneas de rutas a 45 grados, la leyenda en blanco a la derecha y una franja
+/// líneas de rutas a 45 grados, la leyenda en blanco abajo a la izquierda y una franja
 /// blanca abajo. Sin número impreso: estas tarjetas no lo llevan a la vista.
 ///
 /// La franja lleva los logos oficiales del AMB, de SIBUS y de la Alcaldía de
@@ -104,7 +104,7 @@ class _Cuerpo extends StatelessWidget {
   /// (ahí va la letra pequeña, que no dibujamos).
   static const _margenLateral = 0.06;
   static const _altoFranja = 0.17;
-  static const _huecoAbajo = 0.10;
+  static const _huecoAbajo = 0.06;
 
   @override
   Widget build(BuildContext context) {
@@ -199,19 +199,15 @@ class _Cuerpo extends StatelessWidget {
                       child: CustomPaint(painter: _RutasPintor())),
                 ),
                 Positioned(
-                  right: 18,
-                  top: 0,
-                  bottom: franja + abajo * 2,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'TARJETA INTELIGENTE\nPARA TRANSPORTE\n'
-                      'DEL ÁREA METROPOLITANA\nDE BARRANQUILLA',
-                      textAlign: TextAlign.right,
-                      // Tinta impresa: no crece con el texto grande.
-                      textScaler: TextScaler.noScaling,
-                      style: leyenda,
-                    ),
+                  left: lateral,
+                  bottom: abajo + franja + caja.maxHeight * 0.04,
+                  child: Text(
+                    'TARJETA INTELIGENTE\nPARA TRANSPORTE\n'
+                    'DEL ÁREA METROPOLITANA\nDE BARRANQUILLA',
+                    textAlign: TextAlign.left,
+                    // Tinta impresa: no crece con el texto grande.
+                    textScaler: TextScaler.noScaling,
+                    style: leyenda,
                   ),
                 ),
                 Positioned(
@@ -246,7 +242,7 @@ class _Cuerpo extends StatelessWidget {
 /// La franja blanca de abajo con los tres logos, como la tarjeta de verdad:
 /// un rectángulo bajo de esquinas apenas redondeadas, con AMB a la izquierda,
 /// SIBUS al centro y la Alcaldía a la derecha, pequeños y con mucho blanco
-/// alrededor (cada uno ocupa la mitad del alto de la franja).
+/// alrededor (cada uno ocupa tres cuartos del alto de la franja).
 class _Franja extends StatelessWidget {
   const _Franja();
 
@@ -265,7 +261,7 @@ class _Franja extends StatelessWidget {
         builder: (context, caja) => Padding(
           padding: EdgeInsets.symmetric(
             horizontal: caja.maxWidth * 0.05,
-            vertical: caja.maxHeight * 0.25,
+            vertical: caja.maxHeight * 0.14,
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
