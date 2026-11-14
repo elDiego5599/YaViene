@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../../core/widgets/barra_vidrio.dart';
+import '../../../core/widgets/cabecera_degradada.dart';
 import '../../../core/widgets/cifra_viva.dart';
 import '../../../core/widgets/dialogo.dart';
 import '../domain/recarga.dart';
@@ -48,35 +49,54 @@ class TarjetaScreen extends ConsumerWidget {
               ),
           ],
         ),
-        body: Builder(
-          builder: (context) => SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                MediaQuery.paddingOf(context).top + AppSpacing.md,
-                AppSpacing.lg,
-                AppSpacing.xl,
-              ),
-              child: AnimatedSwitcher(
-                duration: AppMotion.duracion(context, AppMotion.normal),
-                switchInCurve: AppMotion.curvaEntrada,
-                switchOutCurve: AppMotion.curvaSalida,
-                layoutBuilder: (actual, previos) => Stack(
-                  alignment: Alignment.topCenter,
-                  children: [...previos, if (actual != null) actual],
+        // La cabecera degradada con su raya sutil, como la de Avisos: cubre
+        // la barra y termina donde empieza el cuerpo.
+        body: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Builder(
+                builder: (context) => SizedBox(
+                  height: MediaQuery.paddingOf(context).top,
+                  child: const CabeceraDegradada(
+                    key: ValueKey('tarjeta-cabecera'),
+                  ),
                 ),
-                child: switch (tarjeta) {
-                  AsyncData(value: final numero?) =>
-                    _ConTarjeta(key: const ValueKey('con'), numero: numero),
-                  AsyncData() ||
-                  AsyncError() =>
-                    const _SinTarjeta(key: ValueKey('sin')),
-                  _ => const SizedBox(key: ValueKey('leyendo'), height: 1),
-                },
               ),
             ),
-          ),
+            Builder(
+              builder: (context) => SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    MediaQuery.paddingOf(context).top + AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.xl,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: AppMotion.duracion(context, AppMotion.normal),
+                    switchInCurve: AppMotion.curvaEntrada,
+                    switchOutCurve: AppMotion.curvaSalida,
+                    layoutBuilder: (actual, previos) => Stack(
+                      alignment: Alignment.topCenter,
+                      children: [...previos, if (actual != null) actual],
+                    ),
+                    child: switch (tarjeta) {
+                      AsyncData(value: final numero?) =>
+                        _ConTarjeta(key: const ValueKey('con'), numero: numero),
+                      AsyncData() ||
+                      AsyncError() =>
+                        const _SinTarjeta(key: ValueKey('sin')),
+                      _ => const SizedBox(key: ValueKey('leyendo'), height: 1),
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
