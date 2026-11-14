@@ -56,6 +56,7 @@ class _Contrato implements HttpClientAdapter {
     'GET /api/panel/busquedas': 'rest-panel-busquedas',
     'GET /api/panel/busquedas/R-101/calor': 'rest-panel-busquedas-calor',
     'GET /api/panel/quejas': 'rest-panel-quejas',
+    'GET /api/panel/viajes': 'rest-panel-viajes',
     'POST /api/fleet/buses': 'rest-fleet-bus-created',
     'PATCH /api/fleet/buses/BUS-XYZ987': 'rest-fleet-bus-updated',
     'POST /api/fleet/buses/visibility': 'rest-fleet-visibility-all',
@@ -212,6 +213,18 @@ void main() {
     expect(quejas.celdas.single.total, 1);
     expect(quejas.celdas.single.lat, 10.99035);
     expect(quejas.celdas.single.lng, -74.78967);
+
+    // El par del contrato: dos zonas de 4×4 celdas y su total, sin ningún
+    // dato de quien buscó (D20).
+    final viajes = await api.fetchViajes(
+      'tok',
+      desde: DateTime.utc(2000),
+      hasta: DateTime.utc(2100),
+    );
+    final par = viajes.pares.single;
+    expect(par.origen, (lat: 10.989, lng: -74.79104));
+    expect(par.destino, (lat: 10.962, lng: -74.802));
+    expect(par.total, 5);
 
     final creado = await api.createBus(
       'tok',

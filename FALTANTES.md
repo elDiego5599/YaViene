@@ -57,9 +57,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   (fase 1, quejas, cerrada el 2026-11-12: formulario del pasajero y
   quejas en Reportes del panel; la fase 3 va con el planificador y la
   máquina de fases del viaje guiado en el core, falta la pantalla). Las
-  decisiones D19 y D20 quedan como borradores en ese archivo y pasan a
-  `YaVieneBackend/docs/decisiones/` al cerrar su fase (D21 a D25 ya
-  están allá).
+  decisión D19 queda como borrador en ese archivo y pasa a
+  `YaVieneBackend/docs/decisiones/` al cerrar su fase (D20 a D25 ya
+  están allá). Fase 4 (2026-11-14): el backend registra los viajes
+  (`POST /api/viajes`, rama `viaje-od`) y el panel los muestra en
+  Reportes; falta que la app envíe origen y destino al tocar «Ir»
+  (con los centros de zona, múltiplos de 4 pasos D17) y el aviso de
+  privacidad de la Ley 1581 antes de datos reales.
 - **Las medidas del viaje guiado** (Fase 3, 2026-11-13), puestas con
   criterio y a la espera de tu sí o tu cambio: el aviso «Bájate en la
   próxima» sale faltando 400 m por la ruta (unos 48 s a 30 km/h); para
