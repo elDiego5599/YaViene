@@ -20,14 +20,14 @@ class Pestana {
 /// Las cuatro pestañas, en el orden de las ramas del router.
 ///
 /// «Más» con tres puntos no decía qué había detrás (dueño, 2026-10-16): la
-/// cuarta es «Info», con su i. El mapa lleva el pin de lugar y el buzón un
-/// globo de conversación, que se leen mejor que el plano y el formulario.
+/// cuarta es «Info», con su i. El mapa lleva el pin de lugar y la tarjeta la
+/// suya de crédito, que se lee mejor que un monedero. El buzón se fue a Info
+/// (dueño, 2026-11-14).
 const kPestanas = [
   Pestana('Mapa', Icons.location_on_outlined, Icons.location_on_rounded),
   Pestana(
       'Avisos', Icons.notifications_none_rounded, Icons.notifications_rounded),
-  Pestana(
-      'Buzón', Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
+  Pestana('Tarjeta', Icons.credit_card_outlined, Icons.credit_card_rounded),
   Pestana('Info', Icons.info_outline_rounded, Icons.info_rounded),
 ];
 
@@ -381,7 +381,7 @@ class _PestanaVista extends StatelessWidget {
               pestana.rotulo,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              // La letra chica de la escala: a 12, «Buzón» cabe en su cuarto
+              // La letra chica de la escala: a 12, «Tarjeta» cabe en su cuarto
               // de píldora aun con el texto a 1,2.
               style: AppTextStyles.pie.copyWith(
                 fontWeight: puesta ? FontWeight.w700 : FontWeight.w600,

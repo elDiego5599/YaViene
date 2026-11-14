@@ -37,7 +37,7 @@ class PestanasDeslizantes extends StatefulWidget {
 
 class _PestanasDeslizantesState extends State<PestanasDeslizantes>
     with TickerProviderStateMixin {
-  /// Dónde va la fila, en pestañas: 1,5 es media Avisos y medio Buzón.
+  /// Dónde va la fila, en pestañas: 1,5 es media Avisos y medio Tarjeta.
   late final AnimationController _posicion = AnimationController.unbounded(
     vsync: this,
     value: widget.indice.toDouble(),

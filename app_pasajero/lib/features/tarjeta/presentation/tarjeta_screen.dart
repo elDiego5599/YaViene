@@ -11,7 +11,8 @@ import '../domain/saldo.dart';
 import '../domain/tarjeta.dart';
 import 'tarjeta_providers.dart';
 
-/// El saldo de la tarjeta SIBUS (D22), dentro de Info.
+/// El saldo y la recarga de la tarjeta SIBUS (D22, D23): la tercera pestaña
+/// de la barra de abajo, donde antes estaba el buzón (dueño, 2026-11-14).
 ///
 /// Arriba la tarjeta, como en Apple Wallet: el pasajero reconoce lo que
 /// lleva en el bolsillo antes de leer una cifra. Debajo, el saldo como
@@ -34,18 +35,8 @@ class TarjetaScreen extends ConsumerWidget {
             maxScaleFactor: 1.3,
             child: const Text('Tarjeta SIBUS'),
           ),
-          leading: PildoraVidrio(
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_outlined,
-                size: 20,
-                semanticLabel: 'Volver',
-              ),
-              tooltip: 'Volver',
-              color: AppColors.textPrimary,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
+          // Es una pestaña de la barra de abajo: sin flecha de volver.
+          automaticallyImplyLeading: false,
           // D8: mientras el saldo sea inventado se dice, siempre y arriba,
           // no en una nota que se pueda pasar por alto.
           actions: [

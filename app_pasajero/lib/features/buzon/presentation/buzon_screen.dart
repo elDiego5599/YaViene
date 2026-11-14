@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
-import '../../../core/router/app_router.dart';
 import '../../../core/widgets/barra_vidrio.dart';
 import '../../../core/widgets/cabecera_degradada.dart';
 import '../../../core/widgets/fondo_texturizado.dart';
@@ -115,22 +113,9 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
     });
   }
 
-  /// De vuelta al mapa, con el buzón limpio para la próxima vez: la
-  /// pestaña sigue viva detrás de la barra y, sin esto, al volver a ella
-  /// seguiría dando las gracias por lo de antes.
-  void _volver() {
-    _texto.clear();
-    setState(() {
-      _recibido = false;
-      _tipo = TipoReporte.problema;
-      _motivo = null;
-      _ruta = null;
-      _bus = null;
-      _hora = null;
-      _compartir = false;
-    });
-    context.go(AppRoutes.map);
-  }
+  /// De vuelta a Info, de donde se abrió. El buzón ya no es una pestaña que
+  /// siga viva: al salir se desmonta y la próxima vez empieza limpio.
+  void _volver() => Navigator.of(context).pop();
 
   @override
   Widget build(BuildContext context) {
@@ -148,8 +133,20 @@ class _BuzonScreenState extends ConsumerState<BuzonScreen> {
           maxScaleFactor: 1.3,
           child: const Text('¿Qué nos quieres contar?'),
         ),
-        // Sin flecha: el buzón es una pestaña de la barra de abajo.
-        automaticallyImplyLeading: false,
+        // Se abre desde una fila de Info, encima de las pestañas: lleva su
+        // flecha de volver, como lo legal.
+        leading: PildoraVidrio(
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_outlined,
+              size: 20,
+              semanticLabel: 'Volver',
+            ),
+            tooltip: 'Volver',
+            color: AppColors.textPrimary,
+            onPressed: _volver,
+          ),
+        ),
       ),
       body: SafeArea(
         top: false,
@@ -631,7 +628,7 @@ class _Fallo extends StatelessWidget {
   }
 }
 
-/// El reporte llegó: lo dice y deja volver al mapa.
+/// El reporte llegó: lo dice y deja volver a Info.
 class _Gracias extends StatelessWidget {
   const _Gracias({super.key, required this.alVolver});
 

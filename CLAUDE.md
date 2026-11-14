@@ -372,6 +372,11 @@ Skill; la tabla dice cuándo. Las que traen `disable-model-invocation: true`
   `core/widgets/ventana.dart`). `avisos_propios_test.dart` y
   `ventanas_propias_test.dart` prohíben `AlertDialog`, `showDialog` y
   `SnackBar` de fábrica.
+- **Barra del pasajero** (dueño, 2026-11-14): Mapa, Avisos, Tarjeta e Info.
+  La tarjeta (saldo y recarga SIBUS) ocupa el lugar del Buzón, con ícono y
+  rótulo como las otras. El buzón (D14, D18) sigue a mano en Info, Ayuda,
+  «Problemas y sugerencias» (ruta `/buzon` fuera de la barra, con su flecha
+  de volver): es algo que se hace pocas veces y Info ya agrupa la ayuda.
 - **Pasajero**: cifra viva en la distancia de la hoja; filas del selector
   escalonadas (con espejo en la web); la hoja del selector conserva su alto;
   aviso anclado donde se armó (no sigue al pin); «Escoge empresa y ruta»
