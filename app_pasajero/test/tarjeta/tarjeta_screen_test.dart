@@ -140,7 +140,8 @@ void main() {
       await tester.enterText(find.byType(TextField), _prueba);
       await tester.tap(find.text('Guardar tarjeta'));
       await tester.pumpAndSettle();
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
       expect(find.text(r'$12.300'), findsOneWidget);
       exigeNumeroOculto(tester);
       expect(
@@ -156,7 +157,8 @@ void main() {
         (tester) async {
       final semantica = tester.ensureSemantics();
       await abrir(tester, guardada: _prueba);
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
       expect(find.text(r'$12.300'), findsOneWidget);
       expect(find.text('Consultado a las 7:05 a. m.'), findsOneWidget);
       exigeNumeroOculto(tester);
@@ -188,7 +190,8 @@ void main() {
       await abrir(tester, guardada: _prueba, respuesta: const SaldoSinRed());
       expect(find.text('Sin internet'), findsOneWidget);
       expect(find.text('Consultar de nuevo'), findsOneWidget);
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
     });
 
     testWidgets('tarjeta no encontrada deja cambiar el número', (tester) async {
@@ -223,7 +226,8 @@ void main() {
       expect(find.byType(Dialogo), findsOneWidget);
       await tester.tap(find.text('Cancelar'));
       await tester.pumpAndSettle();
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
 
       await tester.tap(find.text('Quitar tarjeta'));
       await tester.pumpAndSettle();
@@ -263,17 +267,12 @@ void main() {
     });
   });
 
-  testWidgets('la cifra del saldo y su tarjeta pasan AA', (tester) async {
+  testWidgets('la cifra del saldo pasa AA', (tester) async {
     await abrir(tester, guardada: _prueba);
     exigeContraste(
       contraste(letraDe(tester, find.text(r'$12.300')), Colors.white),
       4.5,
       'la cifra del saldo',
-    );
-    exigeContraste(
-      contraste(letraDe(tester, find.text('•••• 5678')), Colors.white),
-      4.5,
-      'el número impreso sobre la franja blanca de la tarjeta',
     );
   });
 }

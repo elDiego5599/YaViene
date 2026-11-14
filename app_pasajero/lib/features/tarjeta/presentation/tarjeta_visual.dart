@@ -10,16 +10,15 @@ const _duracionTotal = Duration(milliseconds: 1700);
 const _finLlegada = 0.36;
 const _inicioBrillo = 0.5;
 
-/// La tarjeta SIBUS dibujada como la de verdad: una foto aérea de la ciudad
-/// (la Ventana al Mundo) teñida con el degradado verde, amarillo y naranja,
-/// la leyenda en blanco y una franja blanca con el código de barras y el
-/// número impreso diminuto a su lado, no grande como en una bancaria.
+/// La tarjeta SIBUS dibujada como la de verdad: degradado diagonal de
+/// amarillo, verde y naranja a rojo, la ciudad de fondo con poca opacidad,
+/// líneas de rutas a 45 grados, la leyenda en blanco a la derecha y una franja
+/// blanca abajo. Sin número impreso: estas tarjetas no lo llevan a la vista.
 ///
-/// No copia los logos del AMB ni de la Alcaldía: la franja lleva el bus de Ya
-/// Viene y un código de barras genérico. Evoca la tarjeta sin imitar marcas.
+/// No copia los logos del AMB ni de la Alcaldía: la franja lleva solo el bus
+/// de Ya Viene.
 ///
-/// Con [ultimos4] nulo muestra los puntos vacíos: es la vista previa viva
-/// del campo donde el pasajero todavía está escribiendo el número.
+/// [ultimos4] solo alimenta la etiqueta de accesibilidad.
 class TarjetaVisual extends StatefulWidget {
   const TarjetaVisual({super.key, this.ultimos4});
 
@@ -75,7 +74,7 @@ class _TarjetaVisualState extends State<TarjetaVisual>
                 offset: Offset(0, 18 * (1 - llegada)),
                 child: Transform.scale(
                   scale: 0.94 + 0.06 * llegada,
-                  child: _Cuerpo(ultimos4: digitos, brillo: brillo),
+                  child: _Cuerpo(brillo: brillo),
                 ),
               ),
             );
@@ -88,20 +87,21 @@ class _TarjetaVisualState extends State<TarjetaVisual>
 
 const _fondo = 'assets/tarjeta/fondo_ciudad.jpg';
 
-/// Los tres tonos de la tarjeta de verdad, del verde de abajo a la izquierda
-/// al naranja de arriba a la derecha.
-const _verde = AppColors.primary;
-const _amarillo = Color(0xFFFFD21F);
-const _naranja = Color(0xFFFF7A1A);
+/// Los tonos de la tarjeta de verdad: amarillo intenso arriba a la izquierda,
+/// verde arriba a la derecha y, abajo, naranja que se hace rojo.
+const _amarillo = Color(0xFFF5E000);
+const _verde = Color(0xFF3DAA35);
+const _naranja = Color(0xFFE8501E);
+const _rojo = Color(0xFFD9261C);
 
 class _Cuerpo extends StatelessWidget {
-  const _Cuerpo({required this.ultimos4, required this.brillo});
+  const _Cuerpo({required this.brillo});
 
-  final String? ultimos4;
   final double brillo;
 
-  /// Alto de la franja blanca de abajo.
-  static const _franja = 54.0;
+  /// Margen y alto de la franja blanca de abajo.
+  static const _margen = 10.0;
+  static const _franja = 34.0;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +113,7 @@ class _Cuerpo extends StatelessWidget {
       height: 1.25,
       shadows: [
         Shadow(
-          color: Colors.black.withValues(alpha: 0.35),
+          color: Colors.black.withValues(alpha: 0.3),
           blurRadius: 4,
         ),
       ],
@@ -123,10 +123,10 @@ class _Cuerpo extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: forma,
-          color: _verde,
+          color: _naranja,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryDeep.withValues(alpha: 0.28),
+              color: _rojo.withValues(alpha: 0.28),
               blurRadius: 24,
               offset: const Offset(0, 12),
             ),
@@ -137,53 +137,88 @@ class _Cuerpo extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // La foto en grises, multiplicada por el degradado: así queda
-              // teñida y sigue viéndose la ciudad, como en la de verdad.
-              ShaderMask(
-                blendMode: BlendMode.multiply,
-                shaderCallback: (rect) => const LinearGradient(
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                  colors: [_verde, _amarillo, _naranja],
-                  stops: [0.0, 0.52, 1.0],
-                ).createShader(rect),
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.matrix(_grisesClaros),
-                  child: Image.asset(
-                    _fondo,
-                    fit: BoxFit.cover,
-                    alignment: const Alignment(0.55, -0.2),
-                    excludeFromSemantics: true,
-                  ),
-                ),
-              ),
-              // Un velo abajo para que la leyenda blanca se lea sobre
-              // cualquier parte de la foto.
+              // El degradado diagonal: amarillo arriba a la izquierda, naranja
+              // y rojo hacia abajo a la derecha; el verde entra por la
+              // esquina de arriba a la derecha.
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.center,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x00000000), Color(0x59000000)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_amarillo, _naranja, _rojo],
+                    stops: [0.1, 0.62, 1.0],
                   ),
                 ),
               ),
-              Positioned(
-                left: 18,
-                bottom: _franja + 14,
-                width: 190,
-                child: Text(
-                  'TARJETA INTELIGENTE PARA TRANSPORTE DEL ÁREA '
-                  'METROPOLITANA DE BARRANQUILLA',
-                  style: leyenda,
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(1.05, -1.1),
+                    radius: 1.15,
+                    colors: [_verde, Color(0x003DAA35)],
+                  ),
                 ),
               ),
+              // La ciudad, en grises y con poca opacidad, solo en la franja
+              // del centro: se funde arriba y abajo con el degradado.
+              ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (rect) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x00FFFFFF),
+                    Color(0xFFFFFFFF),
+                    Color(0xFFFFFFFF),
+                    Color(0x00FFFFFF),
+                  ],
+                  stops: [0.12, 0.38, 0.66, 0.9],
+                ).createShader(rect),
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.matrix(_grises),
+                  child: Opacity(
+                    opacity: 0.3,
+                    child: Image.asset(
+                      _fondo,
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0.2, 0.1),
+                      excludeFromSemantics: true,
+                    ),
+                  ),
+                ),
+              ),
+              // El rectángulo verde translúcido de arriba a la derecha.
               Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
+                top: 0,
+                right: 26,
+                width: 58,
+                height: 46,
+                child: ColoredBox(color: _verde.withValues(alpha: 0.55)),
+              ),
+              const Positioned.fill(
+                child:
+                    IgnorePointer(child: CustomPaint(painter: _RutasPintor())),
+              ),
+              Positioned(
+                right: 18,
+                top: 0,
+                bottom: _franja + _margen * 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'TARJETA INTELIGENTE\nPARA TRANSPORTE\n'
+                    'DEL ÁREA METROPOLITANA\nDE BARRANQUILLA',
+                    textAlign: TextAlign.right,
+                    style: leyenda,
+                  ),
+                ),
+              ),
+              const Positioned(
+                left: _margen,
+                right: _margen,
+                bottom: _margen,
                 height: _franja,
-                child: _Franja(ultimos4: ultimos4),
+                child: _Franja(),
               ),
               Positioned.fill(
                 child: IgnorePointer(
@@ -197,103 +232,99 @@ class _Cuerpo extends StatelessWidget {
     );
   }
 
-  /// Grises con luz: la foto pasa a luminancia y se aclara un poco para que
-  /// el degradado multiplicado no se vea sucio.
-  static const _grisesClaros = <double>[
-    0.30, 0.59, 0.11, 0, 40, //
-    0.30, 0.59, 0.11, 0, 40,
-    0.30, 0.59, 0.11, 0, 40,
+  /// Luminancia sola: la foto pierde su color para que mande el degradado.
+  static const _grises = <double>[
+    0.30, 0.59, 0.11, 0, 0, //
+    0.30, 0.59, 0.11, 0, 0,
+    0.30, 0.59, 0.11, 0, 0,
     0, 0, 0, 1, 0,
   ];
 }
 
-/// La franja blanca de abajo: el bus de la marca, el número impreso diminuto
-/// y un código de barras genérico.
+/// La franja blanca redondeada de abajo. Los logos del AMB y de la Alcaldía
+/// no los tenemos con permiso: lleva solo el bus de Ya Viene.
 class _Franja extends StatelessWidget {
-  const _Franja({required this.ultimos4});
-
-  final String? ultimos4;
+  const _Franja();
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: Row(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: const BoxDecoration(
-                color: AppColors.successLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.directions_bus_rounded,
-                size: 17,
-                color: AppColors.primaryAccessible,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: CustomPaint(
-                      size: Size.infinite,
-                      painter: _BarrasPintor(ultimos4 ?? ''),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    ultimos4 == null ? '•••• ••••' : '•••• $ultimos4',
-                    style: AppTextStyles.pie.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: (AppTextStyles.pie.fontSize ?? 12) * 0.8,
-                      letterSpacing: 1.2,
-                      height: 1,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Center(
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: AppColors.successLight,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.directions_bus_rounded,
+            size: 15,
+            color: AppColors.primaryAccessible,
+          ),
         ),
       ),
     );
   }
 }
 
-/// Un código de barras genérico (no codifica nada): los anchos salen de los
-/// dígitos que se ven, para que cada tarjeta tenga el suyo y siempre el mismo.
-class _BarrasPintor extends CustomPainter {
-  const _BarrasPintor(this.semilla);
+/// Las líneas finas amarillo claro de la derecha, como un mapa de rutas o un
+/// circuito: trazos rectos que giran en ángulos de 45 grados, con un punto
+/// en cada extremo.
+class _RutasPintor extends CustomPainter {
+  const _RutasPintor();
 
-  final String semilla;
+  /// Cada ruta, en fracciones del ancho y del alto: arranca y avanza por
+  /// tramos horizontales, verticales o diagonales de 45 grados.
+  static const _rutas = <List<Offset>>[
+    [
+      Offset(0.50, 0.20),
+      Offset(0.62, 0.20),
+      Offset(0.68, 0.14),
+      Offset(0.78, 0.14)
+    ],
+    [Offset(0.80, 0.22), Offset(0.80, 0.12), Offset(0.86, 0.06)],
+    [
+      Offset(0.58, 0.60),
+      Offset(0.72, 0.60),
+      Offset(0.79, 0.53),
+      Offset(0.98, 0.53)
+    ],
+    [
+      Offset(0.66, 0.70),
+      Offset(0.78, 0.70),
+      Offset(0.85, 0.63),
+      Offset(0.98, 0.63)
+    ],
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final tinta = Paint()..color = AppColors.textPrimary;
-    final base = semilla.isEmpty ? '40817293' : semilla;
-    var x = 0.0;
-    var i = 0;
-    while (x < size.width) {
-      final d = int.parse(base[i % base.length]) + i * 3;
-      final barra = 1.0 + (d % 3);
-      final hueco = 1.0 + ((d ~/ 3) % 3);
-      final ancho = (x + barra > size.width) ? size.width - x : barra;
-      canvas.drawRect(Rect.fromLTWH(x, 0, ancho, size.height), tinta);
-      x += barra + hueco;
-      i++;
+    final trazo = Paint()
+      ..color = const Color(0xFFFFF59D).withValues(alpha: 0.75)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..strokeJoin = StrokeJoin.round;
+    final punto = Paint()..color = trazo.color;
+    for (final ruta in _rutas) {
+      final puntos = [
+        for (final o in ruta) Offset(o.dx * size.width, o.dy * size.height),
+      ];
+      canvas.drawPath(
+        Path()..addPolygon(puntos, false),
+        trazo,
+      );
+      canvas.drawCircle(puntos.first, 2, punto);
+      canvas.drawCircle(puntos.last, 2, punto);
     }
   }
 
   @override
-  bool shouldRepaint(_BarrasPintor viejo) => viejo.semilla != semilla;
+  bool shouldRepaint(_RutasPintor viejo) => false;
 }
 
 /// El destello que cruza la tarjeta de izquierda a derecha, en diagonal.
