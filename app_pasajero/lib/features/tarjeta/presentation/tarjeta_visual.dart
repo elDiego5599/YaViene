@@ -99,9 +99,12 @@ class _Cuerpo extends StatelessWidget {
 
   final double brillo;
 
-  /// Margen y alto de la franja blanca de abajo.
-  static const _margen = 10.0;
-  static const _franja = 34.0;
+  /// La franja blanca, en proporciones de la tarjeta de verdad (medidas de
+  /// una foto): ancho de margen lateral, alto, y el hueco que deja abajo
+  /// (ahí va la letra pequeña, que no dibujamos).
+  static const _margenLateral = 0.06;
+  static const _altoFranja = 0.17;
+  static const _huecoAbajo = 0.10;
 
   @override
   Widget build(BuildContext context) {
@@ -134,93 +137,98 @@ class _Cuerpo extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: forma,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // El degradado diagonal: amarillo arriba a la izquierda, naranja
-              // y rojo hacia abajo a la derecha; el verde entra por la
-              // esquina de arriba a la derecha.
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [_amarillo, _naranja, _rojo],
-                    stops: [0.1, 0.62, 1.0],
-                  ),
-                ),
-              ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment(1.05, -1.1),
-                    radius: 1.15,
-                    colors: [_verde, Color(0x003DAA35)],
-                  ),
-                ),
-              ),
-              // La ciudad, en grises y con poca opacidad, solo en la franja
-              // del centro: se funde arriba y abajo con el degradado.
-              ShaderMask(
-                blendMode: BlendMode.dstIn,
-                shaderCallback: (rect) => const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x00FFFFFF),
-                    Color(0xFFFFFFFF),
-                    Color(0xFFFFFFFF),
-                    Color(0x00FFFFFF),
-                  ],
-                  stops: [0.12, 0.38, 0.66, 0.9],
-                ).createShader(rect),
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.matrix(_grises),
-                  child: Opacity(
-                    opacity: 0.3,
-                    child: Image.asset(
-                      _fondo,
-                      fit: BoxFit.cover,
-                      alignment: const Alignment(0.2, 0.1),
-                      excludeFromSemantics: true,
+          child: LayoutBuilder(builder: (context, caja) {
+            final lateral = caja.maxWidth * _margenLateral;
+            final franja = caja.maxHeight * _altoFranja;
+            final abajo = caja.maxHeight * _huecoAbajo;
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                // El degradado diagonal: amarillo arriba a la izquierda,
+                // naranja y rojo hacia abajo a la derecha; el verde entra
+                // por la esquina de arriba a la derecha.
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [_amarillo, _naranja, _rojo],
+                      stops: [0.1, 0.62, 1.0],
                     ),
                   ),
                 ),
-              ),
-              const Positioned.fill(
-                child:
-                    IgnorePointer(child: CustomPaint(painter: _RutasPintor())),
-              ),
-              Positioned(
-                right: 18,
-                top: 0,
-                bottom: _franja + _margen * 2,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'TARJETA INTELIGENTE\nPARA TRANSPORTE\n'
-                    'DEL ÁREA METROPOLITANA\nDE BARRANQUILLA',
-                    textAlign: TextAlign.right,
-                    // Tinta impresa: no crece con el texto grande.
-                    textScaler: TextScaler.noScaling,
-                    style: leyenda,
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(1.05, -1.1),
+                      radius: 1.15,
+                      colors: [_verde, Color(0x003DAA35)],
+                    ),
                   ),
                 ),
-              ),
-              const Positioned(
-                left: _margen,
-                right: _margen,
-                bottom: _margen,
-                height: _franja,
-                child: _Franja(),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(painter: _DestelloPintor(brillo)),
+                // La ciudad, en grises y con poca opacidad, solo en la franja
+                // del centro: se funde arriba y abajo con el degradado.
+                ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (rect) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x00FFFFFF),
+                      Color(0xFFFFFFFF),
+                      Color(0xFFFFFFFF),
+                      Color(0x00FFFFFF),
+                    ],
+                    stops: [0.12, 0.38, 0.66, 0.9],
+                  ).createShader(rect),
+                  child: ColorFiltered(
+                    colorFilter: const ColorFilter.matrix(_grises),
+                    child: Opacity(
+                      opacity: 0.3,
+                      child: Image.asset(
+                        _fondo,
+                        fit: BoxFit.cover,
+                        alignment: const Alignment(0.2, 0.1),
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const Positioned.fill(
+                  child: IgnorePointer(
+                      child: CustomPaint(painter: _RutasPintor())),
+                ),
+                Positioned(
+                  right: 18,
+                  top: 0,
+                  bottom: franja + abajo * 2,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'TARJETA INTELIGENTE\nPARA TRANSPORTE\n'
+                      'DEL ÁREA METROPOLITANA\nDE BARRANQUILLA',
+                      textAlign: TextAlign.right,
+                      // Tinta impresa: no crece con el texto grande.
+                      textScaler: TextScaler.noScaling,
+                      style: leyenda,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: lateral,
+                  right: lateral,
+                  bottom: abajo,
+                  height: franja,
+                  child: const _Franja(),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: _DestelloPintor(brillo)),
+                  ),
+                ),
+              ],
+            );
+          }),
         ),
       ),
     );
@@ -235,9 +243,10 @@ class _Cuerpo extends StatelessWidget {
   ];
 }
 
-/// La franja blanca redondeada de abajo con los tres logos, como la tarjeta
-/// de verdad: AMB a la izquierda, SIBUS al centro y la Alcaldía a la derecha.
-/// Cada uno va a su proporción (los PNG y el JPG traen la suya).
+/// La franja blanca de abajo con los tres logos, como la tarjeta de verdad:
+/// un rectángulo bajo de esquinas apenas redondeadas, con AMB a la izquierda,
+/// SIBUS al centro y la Alcaldía a la derecha, pequeños y con mucho blanco
+/// alrededor (cada uno ocupa la mitad del alto de la franja).
 class _Franja extends StatelessWidget {
   const _Franja();
 
@@ -250,17 +259,22 @@ class _Franja extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _Logo(_logoAmb),
-            _Logo(_logoSibus),
-            _Logo(_logoAlcaldia),
-          ],
+      child: LayoutBuilder(
+        builder: (context, caja) => Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: caja.maxWidth * 0.05,
+            vertical: caja.maxHeight * 0.25,
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _Logo(_logoAmb),
+              _Logo(_logoSibus),
+              _Logo(_logoAlcaldia),
+            ],
+          ),
         ),
       ),
     );
@@ -274,12 +288,13 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      ruta,
-      height: 26,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      excludeFromSemantics: true,
+    return Expanded(
+      child: Image.asset(
+        ruta,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        excludeFromSemantics: true,
+      ),
     );
   }
 }
