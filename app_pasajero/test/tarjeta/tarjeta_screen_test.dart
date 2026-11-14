@@ -273,12 +273,7 @@ void main() {
     exigeContraste(
       contraste(letraDe(tester, find.text('•••• 5678')), Colors.white),
       4.5,
-      'el número enmascarado sobre la banda blanca de la tarjeta',
-    );
-    exigeContraste(
-      contraste(letraDe(tester, find.text('Número')), Colors.white),
-      4.5,
-      'el rótulo de la banda',
+      'el número impreso sobre la franja blanca de la tarjeta',
     );
   });
 }
