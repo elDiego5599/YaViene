@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,7 +84,7 @@ class TarjetaScreen extends ConsumerWidget {
 /// su derecha, la etiqueta de simulación (D8). Lo que se desplaza pasa por
 /// debajo: dentro de la cabecera se ve desenfocado ([FondoVidrio]) y la raya,
 /// aparte y sobre todo, queda nítida.
-class CabeceraTarjeta extends StatelessWidget {
+class CabeceraTarjeta extends StatefulWidget {
   const CabeceraTarjeta({super.key, required this.simulado});
 
   final bool simulado;
@@ -91,9 +93,24 @@ class CabeceraTarjeta extends StatelessWidget {
   static double altoTotal(BuildContext context) =>
       MediaQuery.paddingOf(context).top + kToolbarHeight;
 
-  /// Cuánto tapa el degradado: lo justo para que el título se lea y aún se
-  /// note el desenfoque de lo que pasa debajo.
-  static const _opacidadDegradado = 0.9;
+  @override
+  State<CabeceraTarjeta> createState() => _CabeceraTarjetaState();
+}
+
+class _CabeceraTarjetaState extends State<CabeceraTarjeta> {
+  /// Cuánto salió el vidrio (0 en reposo, 1 con algo pasando debajo).
+  final _progreso = ValueNotifier<double>(0);
+
+  @override
+  void dispose() {
+    _progreso.dispose();
+    super.dispose();
+  }
+
+  /// En reposo el degradado va casi entero; con algo debajo se vuelve casi
+  /// transparente para ver lo que pasa (dueño, 2026-11-14).
+  static const _opacidadReposo = 0.9;
+  static const _opacidadConContenido = 0.22;
 
   @override
   Widget build(BuildContext context) {
@@ -101,14 +118,21 @@ class CabeceraTarjeta extends StatelessWidget {
       value: SystemUiOverlayStyle.dark,
       child: SizedBox(
         key: const ValueKey('tarjeta-cabecera'),
-        height: altoTotal(context),
+        height: CabeceraTarjeta.altoTotal(context),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const FondoVidrio(),
-            const Opacity(
-              opacity: _opacidadDegradado,
-              child: DecoratedBox(
+            FondoVidrio(
+              conVelo: false,
+              alAvanzar: (t) => _progreso.value = t,
+            ),
+            ValueListenableBuilder<double>(
+              valueListenable: _progreso,
+              builder: (context, t, hijo) => Opacity(
+                opacity: lerpDouble(_opacidadReposo, _opacidadConContenido, t)!,
+                child: hijo,
+              ),
+              child: const DecoratedBox(
                 decoration:
                     BoxDecoration(gradient: CabeceraDegradada.degradado),
                 child: DecoratedBox(
@@ -127,12 +151,14 @@ class CabeceraTarjeta extends StatelessWidget {
                       maxScaleFactor: 1.3,
                       child: Text(
                         'Tarjeta SIBUS',
-                        style: AppTextStyles.titulo
-                            .copyWith(color: AppColors.textPrimary),
+                        style: AppTextStyles.titulo.copyWith(
+                          color: AppColors.textPrimary,
+                          shadows: halo,
+                        ),
                       ),
                     ),
                   ),
-                  if (simulado)
+                  if (widget.simulado)
                     const Positioned(
                       right: AppSpacing.md,
                       child: EtiquetaSimulacion(),
