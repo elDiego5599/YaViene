@@ -643,28 +643,24 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   Future<void> _instalarCapaRecarga() async {
     final controller = _mapController;
     if (controller == null) return;
-    final puntos = ref.read(puntosRecargaProvider).valueOrNull ?? const [];
+    // Los listeners van primero: la capa guarda lo último que le llegue y lo
+    // aplica al terminar de instalarse, así nada de lo que pase mientras
+    // tanto (el botón, el archivo que termina de leerse) se pierde.
+    if (_recargaSubs.isEmpty) {
+      _recargaSubs
+        ..add(ref.listenManual<bool>(capaRecargaVisibleProvider,
+            (_, visible) => _capaRecarga.mostrar(visible)))
+        ..add(ref.listenManual(puntosRecargaProvider,
+            (_, next) => next.whenData(_capaRecarga.actualizarPuntos)))
+        ..add(ref.listenManual<PuntoDeRecarga?>(puntoRecargaElegidoProvider,
+            (_, next) => _capaRecarga.elegir(next?.id)));
+    }
     await _capaRecarga.instalar(
       controller,
-      puntos: puntos,
+      puntos: ref.read(puntosRecargaProvider).valueOrNull ?? const [],
       visible: ref.read(capaRecargaVisibleProvider),
       elegidoId: ref.read(puntoRecargaElegidoProvider)?.id,
     );
-    // El archivo pudo terminar de leerse mientras la capa se instalaba: lo
-    // que llegó entonces no lo vio ningún listener, así que se vuelve a
-    // poner lo último que se sabe (si no, la capa queda prendida y vacía).
-    final despues = ref.read(puntosRecargaProvider).valueOrNull;
-    if (despues != null && despues.length != puntos.length) {
-      await _capaRecarga.actualizarPuntos(despues);
-    }
-    if (_recargaSubs.isNotEmpty) return;
-    _recargaSubs
-      ..add(ref.listenManual<bool>(capaRecargaVisibleProvider,
-          (_, visible) => _capaRecarga.mostrar(visible)))
-      ..add(ref.listenManual(puntosRecargaProvider,
-          (_, next) => next.whenData(_capaRecarga.actualizarPuntos)))
-      ..add(ref.listenManual<PuntoDeRecarga?>(puntoRecargaElegidoProvider,
-          (_, next) => _capaRecarga.elegir(next?.id)));
   }
 
   /// Si el toque cayó en un punto de recarga lo elige (y suelta los buses
@@ -686,7 +682,14 @@ class _MapWidgetState extends ConsumerState<MapWidget>
   }
 
   Future<void> _onStyleLoadedCallback() async {
-    if (!mounted || _layersReady || _styleInitInFlight) return;
+    if (!mounted || _styleInitInFlight) return;
+    if (_layersReady) {
+      // Otro estilo cargado con el mapa ya armado: MapLibre pierde las capas
+      // propias al recargarlo. La de recarga se reinstala sola (es
+      // idempotente); el resto no se toca aquí.
+      unawaited(_instalarCapaRecarga());
+      return;
+    }
     _styleInitInFlight = true;
     try {
       // Íconos de bus no fatales: si fallan (p. ej. PNG corrupto), el mapa

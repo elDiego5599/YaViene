@@ -54,9 +54,21 @@ class CapaRecarga {
   MapLibreMapController? _controller;
   bool _instalada = false;
 
-  /// Crea la fuente y las dos capas (los puntos y el aro del elegido), ambas
-  /// apagadas. Se llama con cada estilo nuevo: MapLibre las pierde al
-  /// recargarlo.
+  // Lo último que se pidió, se haya podido aplicar o no. Instalar son varias
+  // idas al mapa nativo; lo que llega en medio (el botón, el archivo que
+  // termina de leerse, el punto tocado) se guarda aquí y se aplica al final.
+  // Antes esos eventos caían en `!_instalada` y se perdían: por eso los
+  // puntos «a veces» no salían.
+  bool _visible = false;
+  List<PuntoDeRecarga> _puntos = const [];
+  String? _elegidoId;
+  List<PuntoDeRecarga>? _puntosEnLaFuente;
+
+  /// Crea la fuente y las dos capas (los puntos y el aro del elegido). Se
+  /// llama con cada estilo nuevo, y con el mismo estilo otra vez: lo que
+  /// hubiera de una instalación anterior se quita antes, porque MapLibre
+  /// rechaza un id repetido. Un fallo aquí no tumba el mapa (los puntos son
+  /// lo secundario): queda anotado y la siguiente instalación lo reintenta.
   Future<void> instalar(
     MapLibreMapController controller, {
     required List<PuntoDeRecarga> puntos,
@@ -64,56 +76,94 @@ class CapaRecarga {
     required String? elegidoId,
   }) async {
     _controller = controller;
-    await controller.addSource(
-      _fuenteId,
-      GeojsonSourceProperties(data: puntosAGeoJson(puntos)),
-    );
-    await controller.addCircleLayer(
-      _fuenteId,
-      _capaId,
-      const CircleLayerProperties(
-        circleColor: _azul,
-        circleStrokeColor: '#FFFFFF',
-        circleStrokeWidth: 1.5,
-        // 2 pt a zoom 11 (la ciudad entera) hasta 7 pt a zoom 16: ni un
-        // polvo ni una mancha.
-        circleRadius: [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          11,
-          2.5,
-          14,
-          4.5,
-          16,
-          7,
-        ],
-      ),
-      belowLayerId: _bajoCapaId,
-      enableInteraction: false,
-    );
-    await controller.addCircleLayer(
-      _fuenteId,
-      _elegidoCapaId,
-      const CircleLayerProperties(
-        circleColor: _azul,
-        circleOpacity: 0.18,
-        circleStrokeColor: _azul,
-        circleStrokeWidth: 2,
-        circleRadius: 14,
-      ),
-      belowLayerId: _bajoCapaId,
-      filter: _filtroDe(elegidoId),
-      enableInteraction: false,
-    );
-    _instalada = true;
-    await mostrar(visible);
+    _instalada = false;
+    _visible = visible;
+    _puntos = puntos;
+    _elegidoId = elegidoId;
+    _puntosEnLaFuente = null;
+    try {
+      await _quitar(controller);
+      await controller.addSource(
+        _fuenteId,
+        GeojsonSourceProperties(data: puntosAGeoJson(_puntos)),
+      );
+      _puntosEnLaFuente = _puntos;
+      await controller.addCircleLayer(
+        _fuenteId,
+        _capaId,
+        const CircleLayerProperties(
+          circleColor: _azul,
+          circleStrokeColor: '#FFFFFF',
+          circleStrokeWidth: 1.5,
+          // 2 pt a zoom 11 (la ciudad entera) hasta 7 pt a zoom 16: ni un
+          // polvo ni una mancha.
+          circleRadius: [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            11,
+            2.5,
+            14,
+            4.5,
+            16,
+            7,
+          ],
+        ),
+        belowLayerId: _bajoCapaId,
+        enableInteraction: false,
+      );
+      await controller.addCircleLayer(
+        _fuenteId,
+        _elegidoCapaId,
+        const CircleLayerProperties(
+          circleColor: _azul,
+          circleOpacity: 0.18,
+          circleStrokeColor: _azul,
+          circleStrokeWidth: 2,
+          circleRadius: 14,
+        ),
+        belowLayerId: _bajoCapaId,
+        filter: _filtroDe(_elegidoId),
+        enableInteraction: false,
+      );
+      _instalada = true;
+      await _aplicar(controller);
+    } on Object catch (e) {
+      _instalada = false;
+      debugPrint('CapaRecarga.instalar error: $e');
+    }
   }
 
-  /// El estilo se recargó: las capas ya no existen.
-  void olvidar() => _instalada = false;
+  /// Lo que quedó de una instalación anterior. El nativo avisa con un error
+  /// si no hay nada que quitar: aquí eso es lo normal.
+  Future<void> _quitar(MapLibreMapController c) async {
+    for (final capa in [_elegidoCapaId, _capaId]) {
+      try {
+        await c.removeLayer(capa);
+      } on Object {
+        // No había capa.
+      }
+    }
+    try {
+      await c.removeSource(_fuenteId);
+    } on Object {
+      // No había fuente.
+    }
+  }
+
+  /// Pone en el mapa lo último que se pidió.
+  Future<void> _aplicar(MapLibreMapController c) async {
+    if (!identical(_puntosEnLaFuente, _puntos)) {
+      _puntosEnLaFuente = _puntos;
+      await c.setGeoJsonSource(_fuenteId, puntosAGeoJson(_puntos));
+    }
+    await c.setFilter(_elegidoCapaId, _filtroDe(_elegidoId));
+    await c.setLayerVisibility(_capaId, _visible);
+    await c.setLayerVisibility(_elegidoCapaId, _visible);
+  }
 
   Future<void> mostrar(bool visible) async {
+    _visible = visible;
     final c = _controller;
     if (c == null || !_instalada) return;
     await c.setLayerVisibility(_capaId, visible);
@@ -121,12 +171,15 @@ class CapaRecarga {
   }
 
   Future<void> actualizarPuntos(List<PuntoDeRecarga> puntos) async {
+    _puntos = puntos;
     final c = _controller;
     if (c == null || !_instalada) return;
+    _puntosEnLaFuente = puntos;
     await c.setGeoJsonSource(_fuenteId, puntosAGeoJson(puntos));
   }
 
   Future<void> elegir(String? id) async {
+    _elegidoId = id;
     final c = _controller;
     if (c == null || !_instalada) return;
     await c.setFilter(_elegidoCapaId, _filtroDe(id));
