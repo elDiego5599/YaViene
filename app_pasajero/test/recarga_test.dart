@@ -386,7 +386,7 @@ void main() {
       await pinta(tester, c, _punto('a', 0.001));
 
       expect(find.text('Donde Teresa # 1'), findsOneWidget);
-      expect(find.text('CLL 76 N 18C 19, Soledad'), findsOneWidget);
+      expect(find.text('Clle 76 #18C-19, Soledad'), findsOneWidget);
       expect(find.text('Punto de recarga a 111 m de tu punto'), findsOneWidget);
       expect(
         find.text('Fuente: SIBUS, Área Metropolitana de Barranquilla, '
@@ -415,7 +415,7 @@ void main() {
       final (:c, ubicacion: _) = _contenedor();
       await pinta(
           tester, c, _punto('a', 0.001, direccion: 'CLL 63 PROLON. MURILLO'));
-      expect(find.text('CLL 63 Prolon. Murillo, Soledad'), findsOneWidget);
+      expect(find.text('Clle 63 Prolon. Murillo, Soledad'), findsOneWidget);
     });
 
     testWidgets('el horario solo si la fuente lo da', (tester) async {
@@ -471,7 +471,7 @@ void main() {
 
       for (final (texto, fondo, minimo) in [
         ('Donde Teresa # 1', AppColors.surface, 4.5),
-        ('CLL 76 N 18C 19, Soledad', AppColors.surface, 4.5),
+        ('Clle 76 #18C-19, Soledad', AppColors.surface, 4.5),
         ('Ejemplo', AppColors.warningLight, 4.5),
         ('Cómo llegar', AppColors.acento, 4.5),
       ]) {

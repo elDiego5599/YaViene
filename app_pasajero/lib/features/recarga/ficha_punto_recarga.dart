@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../core/services/abrir_enlace.dart';
+import '../../core/utils/direccion.dart';
 import '../../core/utils/distancia.dart';
 import '../../core/widgets/pildora_navegacion.dart';
 import '../map/presentation/providers/user_location_provider.dart';
@@ -82,7 +83,7 @@ class _Ficha extends ConsumerWidget {
         : null;
     // La fuente escribe las direcciones en mayúsculas: igual que los
     // nombres, se leen mejor como se escriben (CLL y CRA se quedan).
-    final calle = nombreDelPunto(punto.direccion);
+    final calle = direccionLegible(punto.direccion);
     final direccion =
         punto.municipio == null ? calle : '$calle, ${punto.municipio}';
 
