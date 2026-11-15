@@ -23,7 +23,7 @@ void main() {
     // la esquina de prueba es una que el índice de verdad sí trae.
     final esquina = await buscador.buscar('calle 30 con 38', sesgo: centro);
     expect(esquina.first.tipo, TipoLugar.cruce);
-    expect(esquina.first.nombre, 'Calle 30 con Carrera 38');
+    expect(esquina.first.nombre, 'Clle 30 con Cra 38');
   });
 
   test('dice las dos fuentes con su licencia', () {

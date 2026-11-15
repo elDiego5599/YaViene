@@ -2,7 +2,7 @@
 ///
 /// Las dos puntas pasan por [palabrasDe]: sin tildes, en minúscula y con la
 /// nomenclatura de Barranquilla escrita entera, así «Cra 46», «Kr 46» y
-/// «Carrera 46» son lo mismo y «Calle 72 # 46-20» se puede leer como una
+/// «Carrera 46» son lo mismo y «Clle 72 #46-20» se puede leer como una
 /// dirección. Lo que no se reconoce se deja como vino: nada se adivina.
 library;
 
@@ -17,6 +17,7 @@ const _abreviaturas = {
   'kra': 'carrera',
   'cl': 'calle',
   'cll': 'calle',
+  'clle': 'calle',
   'cal': 'calle',
   'av': 'avenida',
   'avd': 'avenida',

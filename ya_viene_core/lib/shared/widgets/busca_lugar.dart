@@ -261,7 +261,7 @@ class _BuscaLugarState extends State<BuscaLugar> {
             const _Mensaje(
               icono: Icons.search_off_rounded,
               titulo: 'No encontramos ese lugar',
-              cuerpo: 'Prueba con el barrio, una calle como Calle 72 con 46 '
+              cuerpo: 'Prueba con el barrio, una calle como Clle 72 con 46 '
                   'o un sitio conocido.',
             ),
             if (widget.alElegirEnMapa case final mapa?)

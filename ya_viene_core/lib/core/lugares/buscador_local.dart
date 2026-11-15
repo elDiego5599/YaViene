@@ -21,7 +21,7 @@ const kLugaresAssets = [
 /// se escribe no sale del teléfono (Ley 1581).
 ///
 /// Entiende nombres de barrios, vías y sitios, y direcciones de la
-/// nomenclatura: «Calle 72 con 46» es la esquina y «Calle 72 # 46-20», la
+/// nomenclatura: «Clle 72 con 46» es la esquina y «Clle 72 #46-20», la
 /// placa, 20 m desde esa esquina hacia la 47.
 class BuscadorLocal implements BuscadorDeLugares {
   BuscadorLocal._(this._entradas, this._vias, this.atribucion);
@@ -108,10 +108,12 @@ class BuscadorLocal implements BuscadorDeLugares {
     final porNombre = direccion?.viaSola ?? palabras;
     resultados.addAll(_porNombre(porNombre, sesgo));
 
+    // Los nombres del índice vienen largos («Carrera 46»); se dicen como se
+    // escriben aquí (dueño, 2026-11-15) en un solo sitio, a la salida.
     final vistas = <Lugar>{};
     return [
       for (final s in resultados)
-        if (vistas.add(s.lugar)) s,
+        if (vistas.add(s.lugar)) s.escritaAqui(),
     ].take(maximo).toList();
   }
 

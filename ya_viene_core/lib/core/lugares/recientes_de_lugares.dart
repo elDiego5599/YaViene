@@ -41,7 +41,9 @@ class RecientesDeLugares {
     try {
       return [
         for (final s in jsonDecode(texto) as List<dynamic>)
-          Sugerencia.fromJson(s as Map<String, dynamic>),
+          // Los guardados antes del formato de aquí se leen ya en él, así
+          // volver a elegirlos no los repite.
+          Sugerencia.fromJson(s as Map<String, dynamic>).escritaAqui(),
       ];
     } on Object {
       // Guardado por otra versión o cortado a medias: se empieza de cero

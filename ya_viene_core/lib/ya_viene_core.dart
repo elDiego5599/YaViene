@@ -8,6 +8,7 @@ export 'core/geo/por_ruta.dart';
 export 'core/lugares/buscador_de_lugares.dart';
 export 'core/lugares/buscador_falso.dart';
 export 'core/lugares/buscador_local.dart';
+export 'core/lugares/direccion_corta.dart';
 export 'core/lugares/lugar.dart';
 export 'core/lugares/recientes_de_lugares.dart';
 

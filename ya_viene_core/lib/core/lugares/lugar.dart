@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../models/route_trajectory.dart';
+import 'direccion_corta.dart';
 
 /// De dónde salió un [Lugar].
 enum OrigenLugar {
@@ -52,7 +53,7 @@ enum TipoLugar {
   /// Una calle, carrera, avenida, diagonal o transversal entera.
   via,
 
-  /// Una esquina o una placa: «Calle 72 con 46», «Calle 72 # 46-20».
+  /// Una esquina o una placa: «Clle 72 con Cra 46», «Clle 72 #46-20».
   cruce,
 
   /// Un sitio con nombre: centro comercial, universidad, hospital.
@@ -76,6 +77,18 @@ class Sugerencia extends Equatable {
   final String contexto;
 
   String get nombre => lugar.nombre!;
+
+  /// La misma, con el nombre como se escriben aquí las direcciones
+  /// ([direccionCorta]): «Calle 72 # 46-20» se muestra «Clle 72 #46-20».
+  Sugerencia escritaAqui() => Sugerencia(
+        lugar: Lugar(
+          punto: lugar.punto,
+          origen: lugar.origen,
+          nombre: direccionCorta(nombre),
+        ),
+        tipo: tipo,
+        contexto: contexto,
+      );
 
   factory Sugerencia.fromJson(Map<String, dynamic> json) => Sugerencia(
         lugar: Lugar.fromJson(json['lugar'] as Map<String, dynamic>),

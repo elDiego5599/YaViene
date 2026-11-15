@@ -16,6 +16,9 @@ void main() {
       expect(palabrasDe('Cr. 46'), ['carrera', '46']);
       expect(palabrasDe('Cl 72'), ['calle', '72']);
       expect(palabrasDe('Cll 72'), ['calle', '72']);
+      // Como se escriben las direcciones aquí (dueño, 2026-11-15).
+      expect(palabrasDe('Clle 72'), ['calle', '72']);
+      expect(palabrasDe('Clle72#46-20'), ['calle', '72', '#', '46', '20']);
       expect(palabrasDe('Av. Circunvalar'), ['avenida', 'circunvalar']);
       expect(palabrasDe('Dg 70'), ['diagonal', '70']);
       expect(palabrasDe('Tv 38'), ['transversal', '38']);

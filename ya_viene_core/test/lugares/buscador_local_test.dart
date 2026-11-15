@@ -47,7 +47,7 @@ void main() {
     expect(uninorte.first.nombre, 'Universidad del Norte');
     expect(uninorte.first.tipo, TipoLugar.sitio);
     expect(uninorte.first.contexto, 'Universidad, Puerto Colombia');
-    expect((await nombres('olaya herrera')).first, 'Carrera 46');
+    expect((await nombres('olaya herrera')).first, 'Cra 46');
   });
 
   test('cada fila dice qué es y dónde', () async {
@@ -70,10 +70,10 @@ void main() {
 
   test('entiende las abreviaturas de la nomenclatura', () async {
     for (final q in ['Cra 46', 'kr 46', 'CR 46', 'carrera 46']) {
-      expect((await nombres(q)).first, 'Carrera 46', reason: q);
+      expect((await nombres(q)).first, 'Cra 46', reason: q);
     }
-    for (final q in ['Cl 72', 'cll 72', 'calle 72']) {
-      expect((await nombres(q)).first, 'Calle 72', reason: q);
+    for (final q in ['Cl 72', 'cll 72', 'Clle 72', 'calle 72']) {
+      expect((await nombres(q)).first, 'Clle 72', reason: q);
     }
   });
 
@@ -123,6 +123,7 @@ void main() {
         'cl 72 con cra 46',
         'calle 72 con carrera 46',
         'Calle 72 #46',
+        'Clle 72 con Cra 46',
         'calle 72 y 46',
       ]) {
         final s = await buscador.buscar(q);
@@ -132,24 +133,31 @@ void main() {
       }
     });
 
-    test('la esquina se nombra entera y dice dónde', () async {
+    // Como se escriben aquí (dueño, 2026-11-15): «Clle 72 con Cra 46».
+    test('la esquina se nombra entera, a la manera de aquí, y dice dónde',
+        () async {
       final s = (await buscador.buscar('cl 72 con 46')).first;
-      expect(s.nombre, 'Calle 72 con Carrera 46');
+      expect(s.nombre, 'Clle 72 con Cra 46');
       expect(s.contexto, 'Esquina, Barranquilla');
     });
 
     test('al revés también: «Carrera 46 con 72»', () async {
       final s = (await buscador.buscar('Carrera 46 con 72')).first;
-      expect(s.nombre, 'Carrera 46 con Calle 72');
+      expect(s.nombre, 'Cra 46 con Clle 72');
       expect(_metros(s.lugar.punto, esquina), lessThan(2));
     });
 
     test('«Calle 72 # 46-20» camina 20 m desde la esquina hacia la 47',
         () async {
-      for (final q in ['Calle 72 # 46-20', 'cl 72 No. 46 - 20', 'cl72#46-20']) {
+      for (final q in [
+        'Calle 72 # 46-20',
+        'cl 72 No. 46 - 20',
+        'cl72#46-20',
+        'Clle 72 #46-20',
+      ]) {
         final s = await buscador.buscar(q);
         expect(s.first.tipo, TipoLugar.cruce, reason: q);
-        expect(s.first.nombre, 'Calle 72 # 46-20', reason: q);
+        expect(s.first.nombre, 'Clle 72 #46-20', reason: q);
         final p = s.first.lugar.punto;
         expect(_metros(p, esquina), closeTo(20, 2), reason: q);
         // Hacia la 47, que está al oeste.
@@ -164,13 +172,13 @@ void main() {
       final s = await buscador.buscar('calle 72 con 4');
       expect(
         s.where((x) => x.tipo == TipoLugar.cruce).map((x) => x.nombre),
-        ['Calle 72 con Carrera 46', 'Calle 72 con Carrera 47'],
+        ['Clle 72 con Cra 46', 'Clle 72 con Cra 47'],
       );
     });
 
     test('con la vía y el conector, sin la otra todavía, sale la vía',
         () async {
-      expect((await nombres('calle 72 con')).first, 'Calle 72');
+      expect((await nombres('calle 72 con')).first, 'Clle 72');
     });
 
     test('dos vías que no se cruzan no inventan una esquina', () async {

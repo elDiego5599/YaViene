@@ -77,6 +77,15 @@ void main() {
     expect((await recientes.lista()).map((s) => s.nombre), ['Boston']);
   });
 
+  // Los guardados antes del formato de aquí (dueño, 2026-11-15) se leen ya
+  // como «Clle 72 #46-20», y al volver a elegirlos no se duplican.
+  test('lo guardado con el nombre largo vuelve a la manera de aquí', () async {
+    await recientes.guardar(_sitio('Calle 72 # 46-20'));
+    expect((await recientes.lista()).single.nombre, 'Clle 72 #46-20');
+    await recientes.guardar(_sitio('Clle 72 #46-20'));
+    expect(await recientes.lista(), hasLength(1));
+  });
+
   test('lo que se guarda vuelve igual', () async {
     final boston = _sitio('Boston', lat: 10.99412, lon: -74.80031);
     await recientes.guardar(boston);
