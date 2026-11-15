@@ -21,7 +21,6 @@ import '../../../notifications/presentation/providers/distancia_aviso_provider.d
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../../../recarga/boton_recarga.dart';
 import '../../../recarga/pildora_recarga.dart';
-import '../../../recarga/recarga_providers.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/distancia_al_bus.dart';
 import '../providers/map_view_state.dart';
@@ -662,8 +661,7 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     // se apaga —no cruza la pantalla peleando con el selector, que entra por
     // el mismo lado— y vuelve sola cuando el selector se cierra, también
     // cuando no se eligió ruta, que es cuando hace falta que vuelva.
-    final apartada = ref.watch(routeSelectorOpenProvider) ||
-        ref.watch(puntoRecargaElegidoProvider) != null;
+    final apartada = ref.watch(hojaApartadaProvider);
     final paso = AppMotion.duracion(context, AppMotion.pausado);
     return IgnorePointer(
       ignoring: apartada,
