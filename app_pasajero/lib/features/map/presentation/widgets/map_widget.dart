@@ -647,13 +647,7 @@ class _MapWidgetState extends ConsumerState<MapWidget>
     // aplica al terminar de instalarse, así nada de lo que pase mientras
     // tanto (el botón, el archivo que termina de leerse) se pierde.
     if (_recargaSubs.isEmpty) {
-      _recargaSubs
-        ..add(ref.listenManual<bool>(capaRecargaVisibleProvider,
-            (_, visible) => _capaRecarga.mostrar(visible)))
-        ..add(ref.listenManual(puntosRecargaProvider,
-            (_, next) => next.whenData(_capaRecarga.actualizarPuntos)))
-        ..add(ref.listenManual<PuntoDeRecarga?>(puntoRecargaElegidoProvider,
-            (_, next) => _capaRecarga.elegir(next?.id)));
+      _recargaSubs.addAll(seguirCapaRecarga(ref, _capaRecarga));
     }
     await _capaRecarga.instalar(
       controller,

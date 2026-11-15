@@ -1,10 +1,28 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../map/presentation/utils/bus_hit_test.dart';
+import 'marcador_recarga.dart';
+import 'recarga_providers.dart';
+
+/// Hace que la [capa] siga a sus tres providers: el botón, el archivo (que
+/// puede terminar de leerse con la capa ya instalada) y el punto elegido.
+/// Los tipos van explícitos: sin ellos `next` es dynamic y `whenData`, que es
+/// una extensión, falla en tiempo de ejecución y los puntos nunca llegan.
+List<ProviderSubscription<Object?>> seguirCapaRecarga(
+        WidgetRef ref, CapaRecarga capa) =>
+    [
+      ref.listenManual<bool>(
+          capaRecargaVisibleProvider, (_, visible) => capa.mostrar(visible)),
+      ref.listenManual<AsyncValue<List<PuntoDeRecarga>>>(puntosRecargaProvider,
+          (_, next) => next.whenData(capa.actualizarPuntos)),
+      ref.listenManual<PuntoDeRecarga?>(
+          puntoRecargaElegidoProvider, (_, next) => capa.elegir(next?.id)),
+    ];
 
 /// Los puntos como GeoJSON para MapLibre. Solo llevan el id: el mapa no
 /// pinta nombres de sitios ni negocios (el nombre vive en la ficha).
@@ -33,8 +51,9 @@ String? idDeFeature(Map<dynamic, dynamic> feature) {
 ///
 /// Vive aparte de `MapWidget` para que el mapa solo tenga que instalarla,
 /// sincronizarla y preguntarle qué punto cayó bajo el dedo. Son puntos
-/// pequeños y sin rótulo, en el azul de los botones con filo blanco, bajo los
-/// buses: los buses son lo que la app enseña.
+/// pequeños y sin rótulo (el marcador de [MarcadorRecargaPainter]) que solo
+/// se ven cuando la persona prende la capa: los buses son lo que la app
+/// enseña.
 class CapaRecarga {
   static const _fuenteId = 'recarga-source';
   static const _capaId = 'recarga-layer';
@@ -48,8 +67,10 @@ class CapaRecarga {
   /// de todo lo que se mueve.
   static const _bajoCapaId = 'bus-selected-halo-layer';
 
-  /// Azul de los botones (`AppColors.acento`), 7,1:1 con el filo blanco.
-  static const _azul = '#1E56A8';
+  static const _imagenId = 'recarga-marcador';
+
+  /// El de [moradoRecarga], en el texto que pide MapLibre.
+  static const _morado = '#5B2E91';
 
   MapLibreMapController? _controller;
   bool _instalada = false;
@@ -88,25 +109,28 @@ class CapaRecarga {
         GeojsonSourceProperties(data: puntosAGeoJson(_puntos)),
       );
       _puntosEnLaFuente = _puntos;
-      await controller.addCircleLayer(
+      await controller.addImage(_imagenId, await pintarMarcadorRecarga());
+      await controller.addSymbolLayer(
         _fuenteId,
         _capaId,
-        const CircleLayerProperties(
-          circleColor: _azul,
-          circleStrokeColor: '#FFFFFF',
-          circleStrokeWidth: 1.5,
-          // 2 pt a zoom 11 (la ciudad entera) hasta 7 pt a zoom 16: ni un
-          // polvo ni una mancha.
-          circleRadius: [
+        const SymbolLayerProperties(
+          iconImage: _imagenId,
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+          // La imagen es de 36 pt: 11 pt con la ciudad entera, 16 a zoom 14 y
+          // 29 a zoom 16, que ya se lee la tarjeta. Todo en decimales: con
+          // enteros (11, 0.45) el iOS nativo descarta la expresión y no
+          // pinta ni un marcador, sin avisar.
+          iconSize: [
             'interpolate',
             ['linear'],
             ['zoom'],
-            11,
-            2.5,
-            14,
-            4.5,
-            16,
-            7,
+            11.0,
+            0.3,
+            14.0,
+            0.45,
+            16.0,
+            0.8
           ],
         ),
         belowLayerId: _bajoCapaId,
@@ -116,11 +140,11 @@ class CapaRecarga {
         _fuenteId,
         _elegidoCapaId,
         const CircleLayerProperties(
-          circleColor: _azul,
+          circleColor: _morado,
           circleOpacity: 0.18,
-          circleStrokeColor: _azul,
+          circleStrokeColor: _morado,
           circleStrokeWidth: 2,
-          circleRadius: 14,
+          circleRadius: 24,
         ),
         belowLayerId: _bajoCapaId,
         filter: _filtroDe(_elegidoId),

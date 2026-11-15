@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/features/recarga/capa_recarga.dart';
+import 'package:ya_viene_pasajero/features/recarga/recarga_providers.dart';
 
 /// Un mapa de mentira que lleva la cuenta de lo que MapLibre tendría: las
 /// fuentes y capas vivas, su visibilidad y los datos de la fuente. Un
@@ -16,6 +19,7 @@ class _MapaFalso extends Fake implements MapLibreMapController {
   final visibles = <String, bool>{};
   final imagenes = <String>{};
   Completer<void>? pausa;
+  dynamic iconSize;
 
   Future<void> _esperar() async => pausa == null ? null : await pausa!.future;
 
@@ -63,6 +67,7 @@ class _MapaFalso extends Fake implements MapLibreMapController {
   }) async {
     if (!capas.add(layerId)) throw StateError('capa repetida: $layerId');
     visibles[layerId] = true;
+    iconSize = properties.iconSize;
   }
 
   @override
@@ -139,10 +144,42 @@ void main() {
     expect(mapa.visibles.values, everyElement(isTrue));
   });
 
+  test('el tamaño del marcador va en decimales, o iOS no pinta ninguno',
+      () async {
+    final mapa = _MapaFalso();
+    await CapaRecarga()
+        .instalar(mapa, puntos: const [], visible: true, elegidoId: null);
+    final numeros = (mapa.iconSize as List).whereType<num>();
+    expect(numeros, isNotEmpty);
+    expect(numeros, everyElement(isA<double>()));
+  });
+
   test('un fallo al instalar no tumba el mapa y se puede reintentar', () async {
     final mapa = _MapaFalso()..fuentes['recarga-source'] = 0;
     final capa = CapaRecarga();
     await capa.instalar(mapa, puntos: const [], visible: true, elegidoId: null);
     expect(mapa.capas, isNotEmpty);
+  });
+
+  testWidgets('el archivo que termina de leerse con la capa ya puesta llega',
+      (t) async {
+    final lectura = Completer<List<PuntoDeRecarga>>();
+    final mapa = _MapaFalso();
+    final capa = CapaRecarga();
+    late WidgetRef ref;
+    await t.pumpWidget(ProviderScope(
+      overrides: [puntosRecargaProvider.overrideWith((_) => lectura.future)],
+      child: Consumer(builder: (_, r, __) {
+        ref = r;
+        return const SizedBox();
+      }),
+    ));
+    seguirCapaRecarga(ref, capa);
+    await t.runAsync(() =>
+        capa.instalar(mapa, puntos: const [], visible: true, elegidoId: null));
+    lectura.complete([_punto('a'), _punto('b'), _punto('c')]);
+    await t.pump();
+    await t.pump();
+    expect(mapa.fuentes['recarga-source'], 3);
   });
 }
