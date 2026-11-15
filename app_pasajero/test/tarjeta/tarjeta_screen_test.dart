@@ -10,6 +10,7 @@ import 'package:ya_viene_pasajero/features/tarjeta/domain/saldo.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/domain/tarjeta.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_providers.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_screen.dart';
+import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_visual.dart';
 
 import '../helpers/contraste.dart';
 
@@ -238,6 +239,44 @@ void main() {
         await const FlutterSecureStorage().read(key: TarjetaGuardada.llave),
         isNull,
       );
+    });
+  });
+
+  group('cabecera fija', () {
+    testWidgets('título y etiqueta dentro de la cabecera, y el cuerpo debajo',
+        (tester) async {
+      await abrir(tester, guardada: _prueba);
+      final cabecera =
+          tester.getRect(find.byKey(const ValueKey('tarjeta-cabecera')));
+      expect(cabecera.contains(tester.getCenter(find.text('Tarjeta SIBUS'))),
+          isTrue);
+      final pildora = tester.getRect(find.text('Simulación'));
+      expect(cabecera.contains(pildora.center), isTrue);
+      // En reposo, la tarjeta entera queda bajo la raya, con aire.
+      final tarjeta = tester.getRect(find.byType(TarjetaVisual));
+      expect(tarjeta.top, greaterThanOrEqualTo(cabecera.bottom + 16));
+    });
+
+    testWidgets('al desplazar, la cabecera no se mueve y queda sobre el cuerpo',
+        (tester) async {
+      await abrir(tester, guardada: _prueba);
+      final antes =
+          tester.getRect(find.byKey(const ValueKey('tarjeta-cabecera')));
+      await tester.drag(
+          find.byType(SingleChildScrollView), const Offset(0, -80));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byKey(const ValueKey('tarjeta-cabecera'))),
+          antes);
+      // La tarjeta pasó por debajo de la raya.
+      expect(tester.getRect(find.byType(TarjetaVisual)).top,
+          lessThan(antes.bottom));
+      // Y la cabecera se pinta después: es la última hija del Stack.
+      final pila = tester.widget<Stack>(find
+          .ancestor(
+              of: find.byKey(const ValueKey('tarjeta-cabecera')),
+              matching: find.byType(Stack))
+          .first);
+      expect(pila.children.last, isA<Positioned>());
     });
   });
 

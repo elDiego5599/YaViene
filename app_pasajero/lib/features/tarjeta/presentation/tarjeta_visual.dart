@@ -12,8 +12,9 @@ const _inicioBrillo = 0.5;
 
 /// La tarjeta SIBUS dibujada como la de verdad: degradado diagonal de
 /// amarillo, verde y naranja a rojo, la ciudad de fondo con poca opacidad,
-/// líneas de rutas a 45 grados, la leyenda en blanco abajo a la izquierda y una franja
-/// blanca abajo. Sin número impreso: estas tarjetas no lo llevan a la vista.
+/// líneas de rutas a 45 grados, la leyenda en blanco abajo a la izquierda y
+/// una franja blanca abajo. Sin número impreso: estas tarjetas no lo llevan
+/// a la vista.
 ///
 /// La franja lleva los logos oficiales del AMB, de SIBUS y de la Alcaldía de
 /// Barranquilla, que el dueño entregó (`assets/tarjeta/`).

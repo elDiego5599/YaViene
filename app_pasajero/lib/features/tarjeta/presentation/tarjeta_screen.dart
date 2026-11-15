@@ -31,48 +31,17 @@ class TarjetaScreen extends ConsumerWidget {
     return BackdropGroup(
       child: Scaffold(
         backgroundColor: AppColors.surface,
-        extendBodyBehindAppBar: true,
-        appBar: barraVidrio(
-          title: MediaQuery.withClampedTextScaling(
-            maxScaleFactor: 1.3,
-            child: const Text('Tarjeta SIBUS'),
-          ),
-          // Es una pestaña de la barra de abajo: sin flecha de volver.
-          automaticallyImplyLeading: false,
-          // D8: mientras el saldo sea inventado se dice, siempre y arriba,
-          // no en una nota que se pueda pasar por alto.
-          actions: [
-            if (simulado)
-              const Padding(
-                padding: EdgeInsets.only(right: AppSpacing.md),
-                child: Center(child: EtiquetaSimulacion()),
-              ),
-          ],
-        ),
-        // La cabecera degradada con su raya sutil, como la de Avisos: cubre
-        // la barra y termina donde empieza el cuerpo.
+        // Lo que se desplaza va debajo y la cabecera, con su raya, encima de
+        // todo: nada la tapa nunca (dueño, 2026-11-14).
         body: Stack(
           children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Builder(
-                builder: (context) => SizedBox(
-                  height: MediaQuery.paddingOf(context).top,
-                  child: const CabeceraDegradada(
-                    key: ValueKey('tarjeta-cabecera'),
-                  ),
-                ),
-              ),
-            ),
             Builder(
               builder: (context) => SafeArea(
                 top: false,
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     AppSpacing.lg,
-                    MediaQuery.paddingOf(context).top + AppSpacing.md,
+                    CabeceraTarjeta.altoTotal(context) + AppSpacing.lg,
                     AppSpacing.lg,
                     AppSpacing.xl,
                   ),
@@ -94,6 +63,93 @@ class TarjetaScreen extends ConsumerWidget {
                     },
                   ),
                 ),
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: CabeceraTarjeta(simulado: simulado),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// La cabecera fija de la pestaña: el degradado con su raya, el título y, a
+/// su derecha, la etiqueta de simulación (D8). Lo que se desplaza pasa por
+/// debajo: dentro de la cabecera se ve desenfocado ([FondoVidrio]) y la raya,
+/// aparte y sobre todo, queda nítida.
+class CabeceraTarjeta extends StatelessWidget {
+  const CabeceraTarjeta({super.key, required this.simulado});
+
+  final bool simulado;
+
+  /// Lo que mide con la barra de estado.
+  static double altoTotal(BuildContext context) =>
+      MediaQuery.paddingOf(context).top + kToolbarHeight;
+
+  /// Cuánto tapa el degradado: lo justo para que el título se lea y aún se
+  /// note el desenfoque de lo que pasa debajo.
+  static const _opacidadDegradado = 0.9;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: SizedBox(
+        key: const ValueKey('tarjeta-cabecera'),
+        height: altoTotal(context),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const FondoVidrio(),
+            const Opacity(
+              opacity: _opacidadDegradado,
+              child: DecoratedBox(
+                decoration:
+                    BoxDecoration(gradient: CabeceraDegradada.degradado),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(gradient: CabeceraDegradada.brillo),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.3,
+                      child: Text(
+                        'Tarjeta SIBUS',
+                        style: AppTextStyles.titulo
+                            .copyWith(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ),
+                  if (simulado)
+                    const Positioned(
+                      right: AppSpacing.md,
+                      child: EtiquetaSimulacion(),
+                    ),
+                ],
+              ),
+            ),
+            // La raya va sola y encima: nítida sobre lo que pasa.
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(bottom: CabeceraDegradada.raya),
+                ),
+                child: SizedBox(height: 0.5),
               ),
             ),
           ],
