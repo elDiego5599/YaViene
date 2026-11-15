@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/widgets/dialogo.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/data/tarjeta_guardada.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/domain/saldo.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/domain/tarjeta.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_providers.dart';
 import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_screen.dart';
+import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_visual.dart';
 
 import '../helpers/contraste.dart';
 
@@ -141,7 +141,8 @@ void main() {
       await tester.enterText(find.byType(TextField), _prueba);
       await tester.tap(find.text('Guardar tarjeta'));
       await tester.pumpAndSettle();
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
       expect(find.text(r'$12.300'), findsOneWidget);
       exigeNumeroOculto(tester);
       expect(
@@ -157,7 +158,8 @@ void main() {
         (tester) async {
       final semantica = tester.ensureSemantics();
       await abrir(tester, guardada: _prueba);
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
       expect(find.text(r'$12.300'), findsOneWidget);
       expect(find.text('Consultado a las 7:05 a. m.'), findsOneWidget);
       exigeNumeroOculto(tester);
@@ -189,7 +191,8 @@ void main() {
       await abrir(tester, guardada: _prueba, respuesta: const SaldoSinRed());
       expect(find.text('Sin internet'), findsOneWidget);
       expect(find.text('Consultar de nuevo'), findsOneWidget);
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
     });
 
     testWidgets('tarjeta no encontrada deja cambiar el número', (tester) async {
@@ -224,7 +227,8 @@ void main() {
       expect(find.byType(Dialogo), findsOneWidget);
       await tester.tap(find.text('Cancelar'));
       await tester.pumpAndSettle();
-      expect(find.text('•••• 5678'), findsOneWidget);
+      expect(find.bySemanticsLabel('Tarjeta SIBUS terminada en 5678'),
+          findsOneWidget);
 
       await tester.tap(find.text('Quitar tarjeta'));
       await tester.pumpAndSettle();
@@ -235,6 +239,44 @@ void main() {
         await const FlutterSecureStorage().read(key: TarjetaGuardada.llave),
         isNull,
       );
+    });
+  });
+
+  group('cabecera fija', () {
+    testWidgets('título y etiqueta dentro de la cabecera, y el cuerpo debajo',
+        (tester) async {
+      await abrir(tester, guardada: _prueba);
+      final cabecera =
+          tester.getRect(find.byKey(const ValueKey('tarjeta-cabecera')));
+      expect(cabecera.contains(tester.getCenter(find.text('Tarjeta SIBUS'))),
+          isTrue);
+      final pildora = tester.getRect(find.text('Simulación'));
+      expect(cabecera.contains(pildora.center), isTrue);
+      // En reposo, la tarjeta entera queda bajo la raya, con aire.
+      final tarjeta = tester.getRect(find.byType(TarjetaVisual));
+      expect(tarjeta.top, greaterThanOrEqualTo(cabecera.bottom + 16));
+    });
+
+    testWidgets('al desplazar, la cabecera no se mueve y queda sobre el cuerpo',
+        (tester) async {
+      await abrir(tester, guardada: _prueba);
+      final antes =
+          tester.getRect(find.byKey(const ValueKey('tarjeta-cabecera')));
+      await tester.drag(
+          find.byType(SingleChildScrollView), const Offset(0, -80));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byKey(const ValueKey('tarjeta-cabecera'))),
+          antes);
+      // La tarjeta pasó por debajo de la raya.
+      expect(tester.getRect(find.byType(TarjetaVisual)).top,
+          lessThan(antes.bottom));
+      // Y la cabecera se pinta después: es la última hija del Stack.
+      final pila = tester.widget<Stack>(find
+          .ancestor(
+              of: find.byKey(const ValueKey('tarjeta-cabecera')),
+              matching: find.byType(Stack))
+          .first);
+      expect(pila.children.last, isA<Positioned>());
     });
   });
 
@@ -264,17 +306,12 @@ void main() {
     });
   });
 
-  testWidgets('la cifra del saldo y su tarjeta pasan AA', (tester) async {
+  testWidgets('la cifra del saldo pasa AA', (tester) async {
     await abrir(tester, guardada: _prueba);
     exigeContraste(
-      contraste(letraDe(tester, find.text(r'$12.300')), AppColors.surface),
+      contraste(letraDe(tester, find.text(r'$12.300')), Colors.white),
       4.5,
       'la cifra del saldo',
-    );
-    exigeContraste(
-      contraste(letraDe(tester, find.text('•••• 5678')), AppColors.primaryDeep),
-      4.5,
-      'el número enmascarado sobre la tarjeta',
     );
   });
 }

@@ -835,14 +835,15 @@ void main() {
     });
   });
 
-  testWidgets('«Volver» lleva al mapa y el buzón queda limpio', (tester) async {
+  testWidgets('«Volver» regresa a donde se abrió y el buzón queda limpio',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final router = GoRouter(
-      initialLocation: AppRoutes.buzon,
+      initialLocation: AppRoutes.map,
       routes: [
         GoRoute(
           path: AppRoutes.map,
-          builder: (_, __) => const Scaffold(body: Text('el mapa')),
+          builder: (_, __) => const Scaffold(body: Text('Info')),
         ),
         GoRoute(path: AppRoutes.buzon, builder: (_, __) => const BuzonScreen()),
       ],
@@ -858,19 +859,20 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
+    unawaited(router.push(AppRoutes.buzon));
     await asentar(tester);
-    // Es una pestaña: no hay flecha de volver.
-    expect(find.byTooltip('Volver'), findsNothing);
+    // Se abre desde Info, encima de las pestañas: lleva su flecha de volver.
+    expect(find.byTooltip('Volver'), findsOneWidget);
 
     await tester.enterText(find.byKey(const ValueKey('buzon_texto')), 'Hola');
     await enviar(tester);
     await asentar(tester);
     await tester.tap(find.byKey(const ValueKey('buzon_volver')));
     await asentar(tester);
-    expect(find.text('el mapa'), findsOneWidget);
+    expect(find.text('Info'), findsOneWidget);
 
     // De vuelta al buzón: el formulario en blanco, no las gracias de antes.
-    router.go(AppRoutes.buzon);
+    unawaited(router.push(AppRoutes.buzon));
     await asentar(tester);
     expect(find.text('Gracias, lo recibimos'), findsNothing);
     expect(

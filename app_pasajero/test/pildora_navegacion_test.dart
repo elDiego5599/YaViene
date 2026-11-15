@@ -10,7 +10,6 @@ import 'package:ya_viene_core/ya_viene_core.dart';
 import 'package:ya_viene_pasajero/core/router/app_router.dart';
 import 'package:ya_viene_pasajero/core/widgets/aviso.dart';
 import 'package:ya_viene_pasajero/core/widgets/pildora_navegacion.dart';
-import 'package:ya_viene_pasajero/features/buzon/presentation/buzon_screen.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_tour_provider.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/map_view_state.dart';
 import 'package:ya_viene_pasajero/features/map/presentation/providers/realtime_providers.dart';
@@ -20,6 +19,7 @@ import 'package:ya_viene_pasajero/features/mas/presentation/mas_screen.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/alert_history_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/providers/proximity_alerts_provider.dart';
 import 'package:ya_viene_pasajero/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:ya_viene_pasajero/features/tarjeta/presentation/tarjeta_screen.dart';
 import 'package:ya_viene_pasajero/services/background_keep_alive.dart';
 
 import 'helpers/mapa.dart';
@@ -32,7 +32,7 @@ class _GuiaEn extends MapGuideNotifier {
 }
 
 /// La barra de abajo con las cuatro pestañas, como en Instagram (dueño,
-/// 2026-10-16): Mapa, Avisos, Buzón e Info. Reemplaza el menú lateral.
+/// 2026-10-16): Mapa, Avisos, Tarjeta e Info. Reemplaza el menú lateral.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -118,7 +118,7 @@ void main() {
         router.configuration.routes.whereType<StatefulShellRoute>().single;
     final ramas =
         shell.branches.map((b) => (b.routes.single as GoRoute).path).toList();
-    expect(ramas, ['/map', '/notifications', '/buzon', '/mas']);
+    expect(ramas, ['/map', '/notifications', '/tarjeta', '/mas']);
     // Privacidad y términos se abren por encima de la barra, con su flecha.
     expect(
       router.configuration.routes.whereType<GoRoute>().map((r) => r.path),
@@ -129,11 +129,12 @@ void main() {
   test('cada pestaña con su dibujo, sin los tres puntos (dueño, 2026-10-16)',
       () {
     // «Más» con tres puntos no decía nada: la cuarta es «Info», con su i.
-    // El mapa lleva el pin de lugar, y el buzón un globo de conversación.
+    // El mapa lleva el pin de lugar, y la tarjeta la suya de crédito
+    // (el buzón se fue a Info, 2026-11-14).
     expect(kPestanas.map((p) => (p.rotulo, p.icono, p.iconoPuesto)), [
       ('Mapa', Icons.location_on_outlined, Icons.location_on_rounded),
       ('Avisos', Icons.notifications_none_rounded, Icons.notifications_rounded),
-      ('Buzón', Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
+      ('Tarjeta', Icons.credit_card_outlined, Icons.credit_card_rounded),
       ('Info', Icons.info_outline_rounded, Icons.info_rounded),
     ]);
   });
@@ -143,7 +144,7 @@ void main() {
     await abrir(tester, '/notifications');
 
     expect(find.byType(PildoraNavegacion), findsOneWidget);
-    for (final r in ['Mapa', 'Avisos', 'Buzón', 'Info']) {
+    for (final r in ['Mapa', 'Avisos', 'Tarjeta', 'Info']) {
       expect(
         find.descendant(
           of: find.byType(PildoraNavegacion),
@@ -169,10 +170,10 @@ void main() {
     expect(camino(router), '/mas');
     expect(find.byType(MasScreen), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel(RegExp(r'^Buzón, pestaña')));
+    await tester.tap(find.bySemanticsLabel(RegExp(r'^Tarjeta, pestaña')));
     await tester.pumpAndSettle();
-    expect(camino(router), '/buzon');
-    expect(find.byType(BuzonScreen), findsOneWidget);
+    expect(camino(router), '/tarjeta');
+    expect(find.byType(TarjetaScreen), findsOneWidget);
   });
 
   testWidgets('con un aviso activo, la pestaña lleva la cuenta',
@@ -233,7 +234,8 @@ void main() {
     expect(find.byType(PildoraNavegacion), findsOneWidget);
   });
 
-  testWidgets('Info ya no trae Avisos, Buzón ni la X del menú', (tester) async {
+  testWidgets('Info ya no trae Avisos, Tarjeta ni la X del menú',
+      (tester) async {
     await abrir(tester, '/mas');
 
     expect(find.byKey(const ValueKey('drawer_close')), findsNothing);
@@ -243,11 +245,16 @@ void main() {
     );
     final textos = tester.widgetList<Text>(enMas).map((t) => t.data).toList();
     expect(textos, isNot(contains('Avisos')));
-    expect(textos, isNot(contains('Problemas y sugerencias')));
+    expect(textos, isNot(contains('Tarjeta')));
     expect(
         textos,
-        containsAll(
-            ['Ver guía de uso', 'Privacidad', 'Términos', 'Acerca de']));
+        containsAll([
+          'Ver guía de uso',
+          'Problemas y sugerencias',
+          'Privacidad',
+          'Términos',
+          'Acerca de'
+        ]));
   });
 
   testWidgets(
@@ -345,9 +352,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.descendant(
-        of: find.byType(PildoraNavegacion), matching: find.text('Buzón')));
+        of: find.byType(PildoraNavegacion), matching: find.text('Tarjeta')));
     await tester.pumpAndSettle();
-    expect(camino(router), '/buzon');
+    expect(camino(router), '/tarjeta');
   });
 
   testWidgets('con la rueda de la distancia abierta la barra se aparta',
@@ -470,7 +477,7 @@ void main() {
       await dedo.up();
       await tester.pumpAndSettle();
 
-      // Pasa por Buzón antes de llegar a Info, y cada paso se siente.
+      // Pasa por Tarjeta antes de llegar a Info, y cada paso se siente.
       expect(elegidas, [2, 3]);
       expect(toques, [
         'HapticFeedbackType.selectionClick',
@@ -482,7 +489,7 @@ void main() {
         (tester) async {
       final elegidas = await montar(tester, indice: 2);
 
-      final desde = centroDe(tester, 'Buzón');
+      final desde = centroDe(tester, 'Tarjeta');
       final hasta = centroDe(tester, 'Mapa');
       final dedo = await tester.startGesture(desde);
       for (var i = 1; i <= 20; i++) {
@@ -499,7 +506,7 @@ void main() {
         (tester) async {
       final elegidas = await montar(tester, indice: 2);
 
-      final desde = centroDe(tester, 'Buzón');
+      final desde = centroDe(tester, 'Tarjeta');
       final dedo = await tester.startGesture(desde);
       for (var i = 1; i <= 20; i++) {
         await dedo.moveTo(desde + Offset(30.0 * i, 0));

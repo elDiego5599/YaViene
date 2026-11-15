@@ -50,10 +50,11 @@ void main() {
     expect(find.text('Ya Viene'), findsOneWidget);
     expect(find.text('Sin ruta activa'), findsOneWidget);
     expect(find.text('Ver guía de uso'), findsOneWidget);
-    // Avisos y el buzón son pestañas de la barra de abajo: aquí no se
-    // repiten.
+    // Avisos y la tarjeta son pestañas de la barra de abajo: aquí no se
+    // repiten. El buzón sí vive aquí, en Ayuda (dueño, 2026-11-14).
     expect(find.text('Avisos'), findsNothing);
-    expect(find.text('Problemas y sugerencias'), findsNothing);
+    expect(find.text('Saldo de la tarjeta SIBUS'), findsNothing);
+    expect(find.text('Problemas y sugerencias'), findsOneWidget);
     // Sin cuenta (D3): ni saludo con el nombre ni «Cerrar sesión».
     expect(find.textContaining('Hola'), findsNothing);
     expect(find.text('Cerrar sesión'), findsNothing);
@@ -210,7 +211,6 @@ void main() {
     await abrirMas(tester);
     double y(Finder f) => tester.getTopLeft(f).dy;
     for (final (titulo, primeraFila) in [
-      ('Tu tarjeta', 'Saldo de la tarjeta SIBUS'),
       ('Ayuda', 'Ver guía de uso'),
       ('Información', 'Privacidad'),
     ]) {
@@ -220,10 +220,8 @@ void main() {
           reason: titulo);
       expect(y(t), lessThan(y(find.text(primeraFila))), reason: titulo);
     }
-    expect(y(find.text('Tu tarjeta')),
-        greaterThan(tester.getRect(find.byType(ActiveRouteCard)).bottom));
     expect(y(find.text('Ayuda')),
-        greaterThan(y(find.text('Saldo de la tarjeta SIBUS'))));
+        greaterThan(tester.getRect(find.byType(ActiveRouteCard)).bottom));
   });
 
   testWidgets('en una pantalla baja se llega al último grupo sin desbordes',
@@ -341,7 +339,7 @@ void main() {
       GoRoute(path: '/info', builder: (_, __) => const MasScreen()),
       GoRoute(path: AppRoutes.map, builder: (_, __) => const Text('el mapa')),
       GoRoute(
-          path: AppRoutes.tarjeta, builder: (_, __) => const Text('el saldo')),
+          path: AppRoutes.buzon, builder: (_, __) => const Text('el buzón')),
     ]);
     addTearDown(router.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(
@@ -352,12 +350,13 @@ void main() {
     return container;
   }
 
-  testWidgets('la fila de la tarjeta SIBUS abre su saldo', (tester) async {
+  testWidgets('la fila «Problemas y sugerencias» abre el buzón',
+      (tester) async {
     await abrirConMapa(tester);
-    await tester.tap(find.text('Saldo de la tarjeta SIBUS'));
+    await tester.tap(find.text('Problemas y sugerencias'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('el saldo'), findsOneWidget);
+    expect(find.text('el buzón'), findsOneWidget);
   });
 
   testWidgets('la tarjeta de la ruta activa lleva al mapa', (tester) async {

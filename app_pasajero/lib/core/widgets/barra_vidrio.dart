@@ -62,7 +62,10 @@ const halo = [
 /// cubre lo justo para leerla se desvanece hasta nada al pie de la barra.
 /// Con más contraste, opaca.
 class FondoVidrio extends StatefulWidget {
-  const FondoVidrio({super.key});
+  const FondoVidrio({super.key, this.alAvanzar});
+
+  /// Avisa del progreso (0 en reposo a 1) a quien pinta algo propio encima.
+  final ValueChanged<double>? alAvanzar;
 
   /// Los píxeles de desplazamiento en que el vidrio sale entero.
   static const recorrido = 40.0;
@@ -118,7 +121,9 @@ class _FondoVidrioState extends State<FondoVidrio> {
     if (aviso.depth != 0 || aviso.metrics.axis != Axis.vertical) return;
     final t =
         (aviso.metrics.extentBefore / FondoVidrio.recorrido).clamp(0.0, 1.0);
-    if (t != _progreso.value) _progreso.value = t;
+    if (t == _progreso.value) return;
+    _progreso.value = t;
+    widget.alAvanzar?.call(t);
   }
 
   @override

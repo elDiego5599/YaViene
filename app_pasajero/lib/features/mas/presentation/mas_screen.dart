@@ -159,7 +159,7 @@ class MasScreen extends ConsumerWidget {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           // Lo de abajo pasa por debajo de la barra, que es de vidrio como
-          // en Avisos y Buzón (dueño, 2026-10-18).
+          // en Avisos (dueño, 2026-10-18).
           extendBodyBehindAppBar: true,
           // La marca al centro, como en el arranque, y fija: al bajar se
           // escondía con lo demás (dueño, 2026-10-16). En reposo, 26 por
@@ -197,23 +197,20 @@ class MasScreen extends ConsumerWidget {
                               SizedBox(
                                   height: MediaQuery.paddingOf(context).top),
                               const ActiveRouteCard(),
-                              // Lo que se usa cada semana va antes que la
-                              // ayuda: el saldo se mira más que la guía.
-                              const TituloSeccion('Tu tarjeta'),
-                              _grupo([
-                                FilaMas(
-                                  icon: Icons.contactless_outlined,
-                                  title: 'Saldo de la tarjeta SIBUS',
-                                  onTap: () =>
-                                      context.push(AppRoutes.tarjeta),
-                                ),
-                              ]),
                               const TituloSeccion('Ayuda'),
                               _grupo([
                                 FilaMas(
                                   icon: Icons.help_outline_outlined,
                                   title: 'Ver guía de uso',
                                   onTap: () => _verGuia(context, ref),
+                                ),
+                                // El buzón se fue de la barra de abajo a
+                                // este grupo (dueño, 2026-11-14): se usa de
+                                // vez en cuando, como la guía.
+                                FilaMas(
+                                  icon: Icons.chat_bubble_outline_rounded,
+                                  title: 'Problemas y sugerencias',
+                                  onTap: () => context.push(AppRoutes.buzon),
                                 ),
                               ]),
                               const TituloSeccion('Información'),

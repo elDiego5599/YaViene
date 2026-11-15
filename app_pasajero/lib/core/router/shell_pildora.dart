@@ -71,10 +71,10 @@ class _ShellConPildoraState extends ConsumerState<ShellConPildora> {
             ref.watch(alertSelectionProvider).active);
     final reserva = ShellConPildora.reserva(media.viewPadding);
     // En el mapa la hoja crece de la barra (dueño, 2026-10-16): la barra
-    // le cede fondo, filo y sombra. Con el selector arriba la hoja se
-    // aparta, y la barra vuelve a ser la suya.
-    final fundida = navigationShell.currentIndex == 0 &&
-        !ref.watch(routeSelectorOpenProvider);
+    // le cede fondo, filo y sombra. Con el selector o la ficha de recarga
+    // la hoja se aparta, y la barra vuelve a ser la suya.
+    final fundida =
+        navigationShell.currentIndex == 0 && !ref.watch(hojaApartadaProvider);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(end: oculta ? 0 : 1),

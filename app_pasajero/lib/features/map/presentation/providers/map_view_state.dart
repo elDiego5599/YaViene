@@ -3,6 +3,7 @@ import 'dart:ui' show Rect;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
+import '../../../recarga/recarga_providers.dart';
 import '../utils/map_constants.dart';
 
 final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
@@ -16,6 +17,16 @@ final mapBottomInsetProvider = StateProvider.autoDispose<double>((ref) => 0);
 /// cerrarse el selector —también, y sobre todo, cuando no se eligió ruta.
 final routeSelectorOpenProvider =
     StateProvider.autoDispose<bool>((ref) => false);
+
+/// La hoja de abajo se aparta: el selector de ruta ocupa su sitio, o la
+/// ficha de un punto de recarga se apoya donde ella.
+///
+/// La píldora de pestañas se funde con la hoja y le cede su fondo; si solo
+/// la hoja se enterara de que se aparta, la píldora se quedaba sin su cuadro
+/// blanco. Por eso las dos leen este mismo estado.
+final hojaApartadaProvider = Provider.autoDispose<bool>((ref) =>
+    ref.watch(routeSelectorOpenProvider) ||
+    ref.watch(puntoRecargaElegidoProvider) != null);
 
 /// La tarjeta del bus pregunta a qué distancia avisar (la rueda, con
 /// «Guardar» y «Solo esta vez» o «Cancelar»). Mientras tanto la barra de

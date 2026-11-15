@@ -145,7 +145,7 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   `https://yavienetech.com` (2026-10-15). Falta mandar un número propio
   desde la web publicada y verlo en `GET /api/admin/lanzamiento`.
 
-- **Probar el buzón** (D14): desde la pestaña Buzón de la APK nueva, mandar un
+- **Probar el buzón** (D14): desde Info, Ayuda, «Problemas y sugerencias» de la APK nueva, mandar un
   problema y una sugerencia y ver que lleguen al Gmail (salen cada 30 s). Si no lo has hecho, revoca
   la contraseña de aplicación que pegaste en el chat el 2026-10-02.
 

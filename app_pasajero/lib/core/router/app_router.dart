@@ -26,7 +26,8 @@ abstract class AppRoutes {
   static const String routeDetail = '/route/:routeId';
   static const String alertSettings = '/alerts';
 
-  /// El buzón de problemas y sugerencias (D14 del backend).
+  /// El buzón de problemas y sugerencias (D14 del backend), encima de las
+  /// pestañas: se abre desde una fila de Info.
   static const String buzon = '/buzon';
 
   /// La cuarta pestaña: la guía, lo legal y los créditos, lo que antes
@@ -36,7 +37,7 @@ abstract class AppRoutes {
   /// Privacidad y términos, uno por documento: `/legal/privacidad`.
   static const String legal = '/legal/:doc';
 
-  /// El saldo de la tarjeta SIBUS (D22), encima de las pestañas como lo legal.
+  /// La tercera pestaña: el saldo y la recarga de la tarjeta SIBUS (D22, D23).
   static const String tarjeta = '/tarjeta';
 
   /// El planificador: de dónde a dónde, con qué buses (D19).
@@ -68,7 +69,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       // Las cuatro pestañas de la píldora de abajo (dueño, 2026-10-16). Cada
       // una guarda su pantalla viva al cambiar de pestaña, como en iOS: el
-      // mapa no se vuelve a montar ni el buzón pierde lo escrito. Lo legal
+      // mapa no se vuelve a montar ni la tarjeta pierde su saldo. Lo legal
       // va fuera, encima de la píldora, con su flecha de volver. Al cambiar,
       // las pantallas se deslizan en horizontal (`PestanasDeslizantes`).
       StatefulShellRoute(
@@ -86,7 +87,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ]),
           // Las tres ligeras se montan de entrada: de Mapa a Info el
-          // carrete pasa por Avisos y Buzón, y no por pantallas vacías.
+          // carrete pasa por Avisos y Tarjeta, y no por pantallas vacías.
           StatefulShellBranch(preload: true, routes: [
             GoRoute(
               path: AppRoutes.notifications,
@@ -96,9 +97,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(preload: true, routes: [
             GoRoute(
-              path: AppRoutes.buzon,
-              name: 'buzon',
-              builder: (context, state) => const BuzonScreen(),
+              path: AppRoutes.tarjeta,
+              name: 'tarjeta',
+              builder: (context, state) => const TarjetaScreen(),
             ),
           ]),
           StatefulShellBranch(preload: true, routes: [
@@ -122,9 +123,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: AppRoutes.tarjeta,
-        name: 'tarjeta',
-        builder: (context, state) => const TarjetaScreen(),
+        path: AppRoutes.buzon,
+        name: 'buzon',
+        builder: (context, state) => const BuzonScreen(),
       ),
       GoRoute(
         path: AppRoutes.viaje,
