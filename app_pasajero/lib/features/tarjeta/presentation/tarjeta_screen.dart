@@ -107,10 +107,11 @@ class _CabeceraTarjetaState extends State<CabeceraTarjeta> {
     super.dispose();
   }
 
-  /// En reposo el degradado va casi entero; con algo debajo se vuelve casi
-  /// transparente para ver lo que pasa (dueño, 2026-11-14).
+  /// En reposo el degradado va casi entero; con algo debajo cede un poco y
+  /// el vidrio es el de Info y Avisos, con su velo (dueño, 2026-11-14:
+  /// «casi transparente» era demasiado).
   static const _opacidadReposo = 0.9;
-  static const _opacidadConContenido = 0.22;
+  static const _opacidadConContenido = 0.6;
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +124,6 @@ class _CabeceraTarjetaState extends State<CabeceraTarjeta> {
           fit: StackFit.expand,
           children: [
             FondoVidrio(
-              conVelo: false,
               alAvanzar: (t) => _progreso.value = t,
             ),
             ValueListenableBuilder<double>(

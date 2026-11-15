@@ -59,8 +59,6 @@ class NotificationsScreen extends ConsumerWidget {
         // 2026-10-18).
         extendBodyBehindAppBar: true,
         appBar: barraVidrio(
-          // Casi transparente: se ve lo que pasa debajo (dueño, 2026-11-14).
-          intensidadVelo: 0.25,
           // La pestaña la llama "Avisos", el estado vacío dice "avisos" y el
           // botón del mapa dice "Avísame". Esta era la única pantalla que
           // usaba otra palabra para la misma cosa.

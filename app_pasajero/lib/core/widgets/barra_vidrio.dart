@@ -18,7 +18,6 @@ AppBar barraVidrio({
   List<Widget>? actions,
   bool automaticallyImplyLeading = true,
   double? toolbarHeight,
-  double intensidadVelo = 1,
 }) =>
     AppBar(
       // La cara la pinta [FondoVidrio]; la de la barra queda transparente y
@@ -31,7 +30,7 @@ AppBar barraVidrio({
       // oscuro, sobre lo blanco.
       systemOverlayStyle: SystemUiOverlayStyle.dark,
       centerTitle: true,
-      flexibleSpace: FondoVidrio(intensidadVelo: intensidadVelo),
+      flexibleSpace: const FondoVidrio(),
       // Un halo blanco apenas: el título se lee entero aunque pase texto
       // detrás, como en iOS, sin tapar lo de abajo.
       title: DefaultTextStyle.merge(
@@ -63,19 +62,7 @@ const halo = [
 /// cubre lo justo para leerla se desvanece hasta nada al pie de la barra.
 /// Con más contraste, opaca.
 class FondoVidrio extends StatefulWidget {
-  /// Sin [conVelo] solo queda el desenfoque: lo de abajo se ve casi entero.
-  const FondoVidrio({
-    super.key,
-    this.conVelo = true,
-    this.intensidadVelo = 1,
-    this.alAvanzar,
-  });
-
-  /// Cuánto del velo blanco queda (1 entero, 0,25 casi transparente: lo de
-  /// abajo se ve a través).
-  final double intensidadVelo;
-
-  final bool conVelo;
+  const FondoVidrio({super.key, this.alAvanzar});
 
   /// Avisa del progreso (0 en reposo a 1) a quien pinta algo propio encima.
   final ValueChanged<double>? alAvanzar;
@@ -179,26 +166,22 @@ class _FondoVidrioState extends State<FondoVidrio> {
                 ),
               ),
             ),
-          if (widget.conVelo)
-            DecoratedBox(
-              key: FondoVidrio.veloKey,
-              decoration: opaca
-                  ? BoxDecoration(
-                      color: Colors.white
-                          .withValues(alpha: t * widget.intensidadVelo))
-                  : BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: FondoVidrio.velo.begin,
-                        end: FondoVidrio.velo.end,
-                        stops: FondoVidrio.velo.stops,
-                        colors: [
-                          for (final color in FondoVidrio.velo.colors)
-                            color.withValues(
-                                alpha: color.a * t * widget.intensidadVelo),
-                        ],
-                      ),
+          DecoratedBox(
+            key: FondoVidrio.veloKey,
+            decoration: opaca
+                ? BoxDecoration(color: Colors.white.withValues(alpha: t))
+                : BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: FondoVidrio.velo.begin,
+                      end: FondoVidrio.velo.end,
+                      stops: FondoVidrio.velo.stops,
+                      colors: [
+                        for (final color in FondoVidrio.velo.colors)
+                          color.withValues(alpha: color.a * t),
+                      ],
                     ),
-            ),
+                  ),
+          ),
         ],
       ),
     );
