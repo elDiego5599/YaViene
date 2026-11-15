@@ -22,8 +22,10 @@ import '../../../notifications/presentation/providers/proximity_alerts_provider.
 import '../../../recarga/boton_recarga.dart';
 import '../../../recarga/pildora_recarga.dart';
 import '../../../recarga/recarga_providers.dart';
+import '../../../viaje/entrada_del_viaje.dart';
 import '../providers/alert_toggle_provider.dart';
 import '../providers/distancia_al_bus.dart';
+import '../providers/map_tour_provider.dart';
 import '../providers/map_view_state.dart';
 import '../providers/route_reach_provider.dart';
 import '../providers/tracking_providers.dart';
@@ -980,6 +982,9 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
     final hasPosition =
         ref.watch(userLocationProvider.select((s) => s.hasPosition));
     final route = ref.watch(selectedRouteProvider);
+    // La guía cuenta con el hueco del mapa sobre la hoja; la puerta al
+    // planificador sale cuando termina.
+    final enGuia = ref.watch(mapGuideProvider.select((g) => g.isActive));
 
     // La distancia real, no el umbral: el usuario necesita saber cuánto le
     // falta para decidir si mueve el pin o cambia de ruta.
@@ -1086,24 +1091,40 @@ class _EtaBottomSheetState extends ConsumerState<EtaBottomSheet>
       ],
     );
 
+    // Título y frase son una sola cosa: "No hay buses en el mapa" y el
+    // porqué. Sueltos, hay que deslizar dos veces para enterarse de por qué
+    // la hoja está vacía.
+    final estado = abreSelector
+        ? _EstadoTocable(
+            key: const ValueKey('empty-no-route-boton'),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              ref.read(pedirSelectorProvider.notifier).state++;
+            },
+            child: contenido,
+          )
+        : MergeSemantics(child: contenido);
+
+    final conEntrada = hasPosition && !enGuia;
+
     return KeyedSubtree(
       key: ValueKey(stateKey),
       child: Padding(
-        padding:
-            const EdgeInsets.fromLTRB(AppSpacing.lg, 10, AppSpacing.lg, 40),
-        // Título y frase son una sola cosa: "No hay buses en el mapa" y
-        // el porqué. Sueltos, hay que deslizar dos veces para enterarse
-        // de por qué la hoja está vacía.
-        child: abreSelector
-            ? _EstadoTocable(
-                key: const ValueKey('empty-no-route-boton'),
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  ref.read(pedirSelectorProvider.notifier).state++;
-                },
-                child: contenido,
+        // Con la fila debajo, su propio filo cierra la hoja: los 40 de aire
+        // que pedía el texto suelto se vuelven 24 y el mapa gana ese alto.
+        padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg, 10, AppSpacing.lg, conEntrada ? AppSpacing.lg : 40),
+        // Con el pin puesto, debajo, la puerta al planificador: ya hay de
+        // dónde salir. Fuera del bloque tocable, que abre otra cosa.
+        child: conEntrada
+            ? Column(
+                children: [
+                  estado,
+                  const SizedBox(height: AppSpacing.lg),
+                  const EntradaDelViaje(key: ValueKey('entrada-viaje')),
+                ],
               )
-            : MergeSemantics(child: contenido),
+            : estado,
       ),
     );
   }

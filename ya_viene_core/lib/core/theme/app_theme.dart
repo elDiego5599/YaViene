@@ -137,6 +137,11 @@ abstract class AppRadius {
   /// romas, como la de la calle. Con [sm] (8) sobre sus 21 de alto se
   /// volvía píldora y dejaba de parecer placa.
   static const double xs = 6.0;
+
+  /// La marca del destino en el mapa del viaje: un cuadrito de 12 pt que
+  /// se lee como cuadro, no como punto. Con [xs] (6, la mitad del lado)
+  /// se volvía círculo y se confundía con la marca de salida.
+  static const double marca = 3.0;
   static const double sm = 8.0;
   static const double md = 12.0;
   static const double lg = 16.0;

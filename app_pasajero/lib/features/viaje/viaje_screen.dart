@@ -24,6 +24,7 @@ import '../../core/utils/distancia.dart';
 import '../../core/widgets/aviso.dart';
 import '../../core/widgets/ficha_ruta.dart';
 import '../../core/widgets/sheet_handle.dart';
+import '../../core/widgets/tamano_animado.dart';
 import '../map/presentation/providers/estilo_mapa_provider.dart';
 import '../map/presentation/providers/user_location_provider.dart';
 import '../map/presentation/utils/camera_fit.dart' show FitBounds;
@@ -517,7 +518,7 @@ class _Marca extends StatelessWidget {
         decoration: BoxDecoration(
           color: destino ? AppColors.ink : AppColors.acento,
           shape: destino ? BoxShape.rectangle : BoxShape.circle,
-          borderRadius: destino ? BorderRadius.circular(3) : null,
+          borderRadius: destino ? BorderRadius.circular(AppRadius.marca) : null,
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
@@ -768,10 +769,9 @@ class _PanelDeOpciones extends ConsumerWidget {
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                     AppSpacing.md, AppSpacing.sm, AppSpacing.md, abajo + 12),
-                child: AnimatedSize(
-                  duration: AppMotion.normal,
-                  curve: AppMotion.curvaCambio,
-                  alignment: Alignment.topCenter,
+                child: TamanoAnimado(
+                  duracion: AppMotion.normal,
+                  alineacion: Alignment.topCenter,
                   child: AnimatedSwitcher(
                     duration: AppMotion.rapido,
                     switchInCurve: AppMotion.curvaEntrada,
