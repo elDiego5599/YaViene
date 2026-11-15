@@ -68,3 +68,27 @@ String? nombreSinCodigo(String? routeName) {
   final resto = nombre.split(RegExp(r'\s+')).skip(1).join(' ');
   return resto.isEmpty ? nombre : resto;
 }
+
+/// El código de una ruta y lo que queda del nombre sin él.
+typedef RouteCode = ({String code, String rest});
+
+/// «B18 Tcherassi» → («B18», «Tcherassi»).
+///
+/// Las rutas de Barranquilla se llaman por su código —el que va pintado en
+/// el parabrisas y el que la gente dice en la esquina—, y el nombre que
+/// sigue es el destino. Separarlos deja el código donde se busca de un
+/// vistazo y el destino donde se lee.
+///
+/// Devuelve `null` si la primera palabra no es un código, o si no queda
+/// nombre detrás: una ruta llamada solo «B18» pierde el título si se le
+/// arranca el código, y una llamada «Ruta Norte» no tiene ninguno.
+final _codigoDeRuta = RegExp(r'^[A-Z]{0,2}\d{1,3}[A-Z]?$');
+
+RouteCode? routeCode(String name) {
+  final words = name.trim().split(RegExp(r'\s+'));
+  if (words.length < 2) return null;
+  if (!_codigoDeRuta.hasMatch(words.first)) return null;
+  final rest = words.skip(1).join(' ');
+  if (rest.isEmpty) return null;
+  return (code: words.first, rest: rest);
+}

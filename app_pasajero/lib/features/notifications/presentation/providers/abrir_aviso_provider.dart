@@ -16,7 +16,7 @@ import '../../../map/presentation/providers/selected_buses_provider.dart';
 /// mapa se queda como estaba, que es lo que hacía tocar el aviso hasta ahora.
 final abrirAvisoProvider =
     Provider<Future<bool> Function(AvisoTocado)>((ref) => (aviso) async {
-          final encontrada = await _buscarRuta(
+          final encontrada = await buscarRuta(
             ref,
             aviso.routeId,
             companyId: aviso.companyId,
@@ -34,7 +34,10 @@ final abrirAvisoProvider =
           return true;
         });
 
-Future<(Company, RouteInfo)?> _buscarRuta(
+/// La empresa y la ruta de [routeId] en el catálogo: la que ya está
+/// escogida si es esa, y si no, la primera empresa que la tenga
+/// (empezando por [companyId]). La usan el aviso y «Ir» del planificador.
+Future<(Company, RouteInfo)?> buscarRuta(
   Ref ref,
   String routeId, {
   String? companyId,

@@ -56,7 +56,10 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   ya respondiste sus preguntas y va por fases en la rama `viaje-completo`
   (fase 1, quejas, cerrada el 2026-11-12: formulario del pasajero y
   quejas en Reportes del panel; la fase 3 va con el planificador y la
-  máquina de fases del viaje guiado en el core, falta la pantalla). Las
+  máquina de fases del viaje guiado en el core y, desde el 2026-11-14,
+  la pantalla del planificador en el pasajero (dos barras, hasta tres
+  opciones con su hora de llegada y el trazo en el mapa); falta el modo
+  guiado «Ir» con su actividad en vivo). Las
   decisiones D19 y D20 quedan como borradores en ese archivo y pasan a
   `YaVieneBackend/docs/decisiones/` al cerrar su fase (D21 a D25 ya
   están allá).
@@ -91,8 +94,8 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   a la distancia, nunca en su lugar (`YaVieneBackend/docs/decisiones/D24-hora-de-llegada.md`).
   Ya están el ritmo de la ruta en el core (`RitmoDeRuta`, calla sin seis
   minutos vistos) y `simulado` en la posición pública, desde
-  `buses.is_demo`. Falta mostrarla en el planificador y en el viaje
-  guiado, con «Simulación» en la flota de ejemplo. La regla 5 de
+  `buses.is_demo`. Ya sale en las opciones del planificador
+  (2026-11-14); falta en el viaje guiado, con «Simulación» en la flota de ejemplo. La regla 5 de
   `CLAUDE.md` todavía dice «distancia, no ETA» y la regla 15 «D1 a D14»:
   ese archivo no lo cambio por encargo de otra sesión, dame el sí o
   cámbialo tú a «distancia siempre; la hora, un rango honesto a su lado

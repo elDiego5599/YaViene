@@ -13,6 +13,7 @@ import '../../../../core/widgets/dialogo.dart';
 import '../../../notifications/presentation/providers/abrir_aviso_provider.dart';
 import '../../../notifications/presentation/providers/proximity_alerts_provider.dart';
 import '../../../recarga/ficha_punto_recarga.dart';
+import '../../../viaje/entrada_del_viaje.dart';
 import '../providers/guia_atras.dart';
 import '../providers/map_guide_copy.dart';
 import '../providers/map_tour_provider.dart';
@@ -527,6 +528,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 const IdleStatusChip(),
+                                const EntradaDelViaje(),
                               ],
                             ),
                     ),

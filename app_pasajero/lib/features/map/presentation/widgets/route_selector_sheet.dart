@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
+import '../../../../core/utils/bus_labels.dart';
 import '../../../../core/utils/color_empresa.dart';
 import '../../../../core/widgets/aviso_fallo.dart';
 import '../../../../core/widgets/entrance.dart';
@@ -636,7 +637,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
     final tinte =
         selectedCompany == null ? null : colorEmpresa(selectedCompany.id);
     final codigoElegido =
-        selectedRoute == null ? null : _routeCode(selectedRoute.name);
+        selectedRoute == null ? null : routeCode(selectedRoute.name);
 
     return Padding(
       // La medida va en el Padding, no en la Column: las listas de empresa
@@ -958,7 +959,7 @@ class _RouteSelectorSheetState extends ConsumerState<RouteSelectorSheet>
                 // suyo. Seis rutas con el mismo icono verde son seis filas
                 // que solo se distinguen leyendo; «B18», «C11», «C16» es
                 // exactamente lo que el pasajero busca en el parabrisas.
-                final codigo = _routeCode(route.name);
+                final codigo = routeCode(route.name);
                 return entra(
                     start: _escalonFila(i),
                     _compactTile(
@@ -1402,30 +1403,6 @@ String? _routeSubtitle(RouteInfo? route) {
   final b = route.terminalB ?? '';
   if (a.isEmpty && b.isEmpty) return null;
   return '$a ↔ $b';
-}
-
-/// El código de una ruta y lo que queda del nombre sin él.
-typedef RouteCode = ({String code, String rest});
-
-/// «B18 Tcherassi» → («B18», «Tcherassi»).
-///
-/// Las rutas de Barranquilla se llaman por su código —el que va pintado en
-/// el parabrisas y el que la gente dice en la esquina—, y el nombre que
-/// sigue es el destino. Separarlos deja el código donde se busca de un
-/// vistazo y el destino donde se lee.
-///
-/// Devuelve `null` si la primera palabra no es un código, o si no queda
-/// nombre detrás: una ruta llamada solo «B18» pierde el título si se le
-/// arranca el código, y una llamada «Ruta Norte» no tiene ninguno.
-final _codigoDeRuta = RegExp(r'^[A-Z]{0,2}\d{1,3}[A-Z]?$');
-
-RouteCode? _routeCode(String name) {
-  final words = name.trim().split(RegExp(r'\s+'));
-  if (words.length < 2) return null;
-  if (!_codigoDeRuta.hasMatch(words.first)) return null;
-  final rest = words.skip(1).join(' ');
-  if (rest.isEmpty) return null;
-  return (code: words.first, rest: rest);
 }
 
 const _companyInitialsStopWords = {'de', 'del', 'la', 'el', 'los', 'las', 'y'};
