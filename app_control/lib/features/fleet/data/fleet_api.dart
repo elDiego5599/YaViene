@@ -7,6 +7,7 @@ import '../../auth/data/auth_api.dart';
 import '../domain/fleet_bus.dart';
 import '../domain/fleet_route.dart';
 import '../domain/queja_panel.dart';
+import '../domain/viaje_panel.dart';
 
 class FleetApi {
   /// [baseUrl] es el backend que resolvió el arranque (`backendUrlProvider`),
@@ -118,6 +119,31 @@ class FleetApi {
       ),
     );
     return ReporteQuejas.fromJson(response.data!);
+  }
+
+  /// Los viajes buscados (D20): pares de zona a zona con k≥5 por día. La
+  /// [franja] (0 a 7, tres horas de Bogotá) deja solo esas horas.
+  Future<ReporteViajes> fetchViajes(
+    String? token, {
+    required DateTime desde,
+    required DateTime hasta,
+    int? franja,
+    List<int> dias = const [],
+  }) async {
+    final response = await _guard(
+      () => _dio.get<Map<String, dynamic>>(
+        '/api/panel/viajes',
+        queryParameters: {
+          'desde': desde.toUtc().toIso8601String(),
+          'hasta': hasta.toUtc().toIso8601String(),
+          'franja': ?franja,
+          // Del 1 (lunes) al 7 (domingo); sin días, todos.
+          if (dias.isNotEmpty) 'dias': dias.join(','),
+        },
+        options: _auth(token),
+      ),
+    );
+    return ReporteViajes.fromJson(response.data!);
   }
 
   Future<Map<String, dynamic>> fetchSearchHeatmap(

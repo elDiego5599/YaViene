@@ -1,8 +1,8 @@
 part of 'reportes_screen.dart';
 
 /// Lo que se mira en Reportes: desde dónde buscan la ruta (D17) o de qué se
-/// quejan los pasajeros (D18).
-enum _ModoReporte { busquedas, quejas }
+/// quejan los pasajeros (D18) o adónde van (D20).
+enum _ModoReporte { busquedas, quejas, viajes }
 
 class _FiltroMotivo extends StatelessWidget {
   const _FiltroMotivo({required this.motivo, required this.onSelect});

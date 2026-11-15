@@ -59,10 +59,14 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   máquina de fases del viaje guiado en el core y, desde el 2026-11-14,
   la pantalla del planificador en el pasajero (dos barras, hasta tres
   opciones con su hora de llegada y el trazo en el mapa); falta el modo
-  guiado «Ir» con su actividad en vivo). Las
-  decisiones D19 y D20 quedan como borradores en ese archivo y pasan a
-  `YaVieneBackend/docs/decisiones/` al cerrar su fase (D21 a D25 ya
-  están allá).
+  guiado «Ir» con su actividad en vivo). La
+  decisión D19 queda como borrador en ese archivo y pasa a
+  `YaVieneBackend/docs/decisiones/` al cerrar su fase (D20 a D25 ya
+  están allá). Fase 4 (2026-11-14): el backend registra los viajes
+  (`POST /api/viajes`, rama `viaje-od`) y el panel los muestra en
+  Reportes; falta que la app envíe origen y destino al tocar «Ir»
+  (con los centros de zona, múltiplos de 4 pasos D17) y el aviso de
+  privacidad de la Ley 1581 antes de datos reales.
 - **Las medidas del viaje guiado** (Fase 3, 2026-11-13), puestas con
   criterio y a la espera de tu sí o tu cambio: el aviso «Bájate en la
   próxima» sale faltando 400 m por la ruta (unos 48 s a 30 km/h); para

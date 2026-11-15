@@ -16,10 +16,12 @@ import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion, MotivoQueja;
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/queja_panel.dart';
+import '../../domain/viaje_panel.dart';
 import '../providers/fleet_providers.dart' show fleetProvider;
 import '../providers/ocupacion_provider.dart';
 import '../providers/quejas_provider.dart';
 import '../providers/reportes_provider.dart';
+import '../providers/viajes_provider.dart';
 import '../widgets/capa_voyager.dart';
 import '../widgets/control_map.dart' show ControlMap, estiloMapaProvider;
 import '../widgets/escala_calor.dart';
@@ -27,6 +29,7 @@ import '../widgets/ocupacion_panel.dart';
 import '../widgets/pildoras_ruta.dart';
 
 part 'reportes_quejas.dart';
+part 'reportes_viajes.dart';
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -49,6 +52,9 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
   _ModoReporte _modo = _ModoReporte.busquedas;
   String? _rutaQueja;
   MotivoQueja? _motivo;
+
+  // Los viajes (D20): sin franja es todo el día.
+  int? _franja;
 
   // Otra hora u otro periodo no cambian la ruta elegida: el dueño compara
   // la misma ruta a distintas horas.
@@ -87,6 +93,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
             orElse: () => ordenadas.first,
           );
     final enQuejas = _modo == _ModoReporte.quejas;
+    final enViajes = _modo == _ModoReporte.viajes;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -102,8 +109,16 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                       motivo: _motivo,
                       onSelect: (motivo) => setState(() => _motivo = motivo),
                     )
+                  : enViajes
+                  ? _FiltroFranja(
+                      franja: _franja,
+                      onSelect: (franja) => setState(() => _franja = franja),
+                    )
                   : _FiltroHora(hora: _hora, onSelectHour: _seleccionarHora),
-              rutas: enQuejas
+              // Los viajes no se cortan por ruta: son de la empresa entera.
+              rutas: enViajes
+                  ? const []
+                  : enQuejas
                   ? _pildorasQuejas()
                   : [
                       for (final ruta in ordenadas)
@@ -115,7 +130,14 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
                         ),
                     ],
             ),
-            if (enQuejas)
+            if (enViajes)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _CuerpoViajes(periodo: _periodo, franja: _franja),
+                ),
+              )
+            else if (enQuejas)
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -350,6 +372,7 @@ class _CabeceraReportes extends StatelessWidget {
             opciones: const [
               (_ModoReporte.busquedas, 'Búsquedas', 'modo-busquedas'),
               (_ModoReporte.quejas, 'Quejas', 'modo-quejas'),
+              (_ModoReporte.viajes, 'Viajes', 'modo-viajes'),
             ],
             onSelect: onSelectModo,
           ),
