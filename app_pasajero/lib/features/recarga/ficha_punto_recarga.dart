@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../../core/services/abrir_enlace.dart';
+import '../../core/utils/direccion.dart';
 import '../../core/utils/distancia.dart';
 import '../../core/widgets/pildora_navegacion.dart';
 import '../map/presentation/providers/user_location_provider.dart';
+import 'marcador_recarga.dart';
 import 'recarga_providers.dart';
 
 /// La ficha del punto de recarga tocado en el mapa.
@@ -81,7 +83,7 @@ class _Ficha extends ConsumerWidget {
         : null;
     // La fuente escribe las direcciones en mayúsculas: igual que los
     // nombres, se leen mejor como se escriben (CLL y CRA se quedan).
-    final calle = nombreDelPunto(punto.direccion);
+    final calle = direccionLegible(punto.direccion);
     final direccion =
         punto.municipio == null ? calle : '$calle, ${punto.municipio}';
 
@@ -115,23 +117,40 @@ class _Ficha extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: AppSpacing.md),
-                  _Linea(
-                    icono: Icons.place_outlined,
-                    texto: direccion,
-                    estilo: AppTextStyles.cuerpo
-                        .copyWith(color: AppColors.textPrimary),
-                  ),
-                  if (punto.horario case final horario?) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    _Linea(
-                      icono: Icons.schedule_outlined,
-                      texto: 'Horario: $horario',
-                      estilo: AppTextStyles.cuerpo
-                          .copyWith(color: AppColors.textPrimary),
+                  // Los datos van juntos en un panel tenue, como la lista de
+                  // datos de una ficha de Apple Maps: lo que se lee queda
+                  // aparte de lo que se toca.
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md - 4, vertical: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                  ],
-                  const SizedBox(height: AppSpacing.sm),
-                  _Procedencia(fuente: punto.fuente),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _Linea(
+                          icono: Icons.place_outlined,
+                          texto: direccion,
+                          estilo: AppTextStyles.cuerpo
+                              .copyWith(color: AppColors.textPrimary),
+                        ),
+                        if (punto.horario case final horario?) ...[
+                          const _Separador(),
+                          _Linea(
+                            icono: Icons.schedule_outlined,
+                            texto: 'Horario: $horario',
+                            estilo: AppTextStyles.cuerpo
+                                .copyWith(color: AppColors.textPrimary),
+                          ),
+                        ],
+                        const _Separador(),
+                        _Procedencia(fuente: punto.fuente),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   _ComoLlegar(punto: punto),
                 ],
@@ -156,26 +175,18 @@ class _Cabecera extends ConsumerWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // El medallón lleva el azul del punto en el mapa, para que la ficha
-        // se lea como la de ese punto y no como otra cosa.
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.acento.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: const Icon(
-            Icons.add_card_outlined,
-            size: 22,
-            color: AppColors.acento,
-          ),
+        // El medallón es el mismo marcador morado del mapa: la ficha se lee
+        // como la de ese punto y no como otra cosa.
+        const SizedBox(
+          width: 48,
+          height: 48,
+          child: CustomPaint(painter: MarcadorRecargaPainter(sombra: false)),
         ),
         const SizedBox(width: AppSpacing.md - 4),
         Expanded(
           child: Padding(
-            // Centra el título de 18 con el medallón de 40.
-            padding: const EdgeInsets.only(top: 1),
+            // Centra el título de 18 con el medallón de 48.
+            padding: const EdgeInsets.only(top: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -254,6 +265,17 @@ class _Cerrar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Raya fina entre dos líneas del panel, alineada con el texto.
+class _Separador extends StatelessWidget {
+  const _Separador();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Divider(height: 1, thickness: 1, color: AppColors.filo),
+      );
 }
 
 class _InsigniaEjemplo extends StatelessWidget {
