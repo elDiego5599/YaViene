@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ya_viene_core/ya_viene_core.dart';
 
 import '../map/presentation/providers/map_view_state.dart';
+import '../map/presentation/providers/user_location_provider.dart';
 import 'recarga_providers.dart';
 
 /// Prende y apaga la capa de puntos de recarga.
@@ -20,9 +21,13 @@ class BotonRecarga extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prendida = ref.watch(capaRecargaVisibleProvider);
+    // Los puntos se cuentan desde el pin: sin pin puesto no hay «cerca» y el
+    // botón sobra. Si la capa ya está prendida se queda, para poder apagarla.
+    final conPin = ref.watch(userLocationProvider.select((u) => u.hasPosition));
     // Con el selector encima o el mapa a medio pintar no hay mapa en el que
     // prender nada: se va, como el de volver a tu punto.
-    final visible = !ref.watch(routeSelectorOpenProvider) &&
+    final visible = (conPin || prendida) &&
+        !ref.watch(routeSelectorOpenProvider) &&
         !ref.watch(mapPreparingProvider);
     final rapido = AppMotion.duracion(context, AppMotion.rapido);
 

@@ -269,6 +269,32 @@ void main() {
       await tester.pumpAndSettle();
       expect(c.read(capaRecargaVisibleProvider), isFalse);
     });
+
+    testWidgets('sin pin puesto no se ve ni se puede tocar', (tester) async {
+      final (:c, ubicacion: _) = _contenedor(conPunto: false);
+      c.read(mapPreparingProvider.notifier).state = false;
+      await tester.pumpWidget(_app(c, const BotonRecarga()));
+      await tester.pumpAndSettle();
+
+      expect(
+          tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity,
+          0);
+      await tester.tap(find.byType(BotonRecarga), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(c.read(capaRecargaVisibleProvider), isFalse);
+    });
+
+    testWidgets('con la capa prendida sigue a mano para poder apagarla',
+        (tester) async {
+      final (:c, ubicacion: _) = _contenedor(conPunto: false);
+      c.read(mapPreparingProvider.notifier).state = false;
+      c.read(capaRecargaVisibleProvider.notifier).state = true;
+      await tester.pumpWidget(_app(c, const BotonRecarga()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BotonRecarga));
+      await tester.pumpAndSettle();
+      expect(c.read(capaRecargaVisibleProvider), isFalse);
+    });
   });
 
   group('PildoraRecarga', () {
