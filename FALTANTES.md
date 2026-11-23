@@ -143,6 +143,12 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   existe en ningún momento de la historia: confirmar que el hueco es a
   propósito.
 
+- **El separador del CSV para Excel** (D26, 2026-11-23): «Exportar CSV»
+  de Reportes sale con coma y punto decimal (RFC 4180). Un Excel en español
+  de Colombia espera `;` y coma decimal, y al abrirlo con doble clic puede
+  dejar todo en una columna (con «Datos, Desde texto/CSV» abre bien). Si
+  prefieres que abra directo en Excel, se cambia a `;` con decimal coma.
+
 ## Lo que tienes que hacer tú
 
 - **Probar la lista desde la web** (D15): `WEB_ORIGINS` ya abre
@@ -179,6 +185,13 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
   alerta (T7.1).
 
 ## Lo que puedo hacer yo
+
+- **Indicadores de más de 7 días** (D26, 2026-11-23): los intervalos y
+  las horas pico se calculan de lo crudo, que dura 7 días. La consolidación
+  ya guarda por día, ruta y hora los buses y la velocidad en
+  `servicio_horario` (y la calidad en `calidad_historial`), pero el
+  endpoint de indicadores aún no los lee ni guarda intervalos. Falta
+  decidir qué resumir de ellos y servir periodos largos.
 
 - **La privacidad de la web con las quejas** (D18, 2026-11-11): la app
   ya va en la versión 8 (motivo, ruta, bus, hora en punto, la casilla de
