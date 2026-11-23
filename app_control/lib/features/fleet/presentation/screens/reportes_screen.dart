@@ -15,8 +15,11 @@ import 'package:ya_viene_core/shared/widgets/carga_fantasma.dart';
 import 'package:ya_viene_core/ya_viene_core.dart' show AppMotion, MotivoQueja;
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/ventana.dart' show mostrarAvisoPanel;
+import '../../data/fleet_api.dart' show SessionExpiredException;
 import '../../domain/queja_panel.dart';
 import '../../domain/viaje_panel.dart';
+import '../providers/exportar_provider.dart';
 import '../providers/fleet_providers.dart' show fleetProvider;
 import '../providers/ocupacion_provider.dart';
 import '../providers/quejas_provider.dart';
@@ -268,6 +271,11 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen> {
     return _dosPaneles(
       izquierda: _TarjetaBusquedas(
         ruta: ruta,
+        accion: _ExportarCsv(
+          key: const ValueKey('exportar-csv'),
+          routeId: ruta.id,
+          periodo: _periodo,
+        ),
         child: AnimatedOpacity(
           opacity: recargando ? 0.45 : 1,
           duration: AppMotion.duracion(context, AppMotion.normal),
@@ -1043,8 +1051,12 @@ ButtonStyle _estiloOpcionMenu({required bool selected}) => ButtonStyle(
 );
 
 class _TarjetaBusquedas extends StatelessWidget {
-  const _TarjetaBusquedas({required this.child, this.ruta});
+  const _TarjetaBusquedas({required this.child, this.ruta, this.accion});
   final Widget child;
+
+  /// Lo que se hace con los datos de la ruta (exportarlos), a la derecha
+  /// del título.
+  final Widget? accion;
 
   /// La ruta del cuadro: su ficha y su nombre son el título, porque dentro
   /// van sus búsquedas y su ocupación (dueño, 2026-10-27).
@@ -1080,6 +1092,10 @@ class _TarjetaBusquedas extends StatelessWidget {
                           style: estilo,
                         ),
                       ),
+                      if (accion case final accion?) ...[
+                        const SizedBox(width: 12),
+                        accion,
+                      ],
                     ],
                   ),
           ),
@@ -1533,6 +1549,96 @@ class _EstadoReporte extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// «Exportar CSV»: los indicadores por hora de la ruta (buses, velocidad e
+/// intervalo) en un archivo para la hoja de cálculo. Píldora tonal en el
+/// azul de botón, como «Seleccionar» del pasajero: es una acción de la
+/// tarjeta, no la principal de la pantalla, y no compite con el título.
+class _ExportarCsv extends ConsumerStatefulWidget {
+  const _ExportarCsv({super.key, required this.routeId, required this.periodo});
+  final String routeId;
+  final PeriodoReporte periodo;
+
+  @override
+  ConsumerState<_ExportarCsv> createState() => _ExportarCsvState();
+}
+
+class _ExportarCsvState extends ConsumerState<_ExportarCsv> {
+  bool _exportando = false;
+
+  Future<void> _exportar() async {
+    setState(() => _exportando = true);
+    try {
+      final guardado = await ref.read(exportarIndicadoresProvider)(
+        widget.routeId,
+        widget.periodo,
+      );
+      if (guardado != null && mounted) {
+        mostrarAvisoPanel(
+          context,
+          'Se guardó $guardado',
+          icono: Icons.check_circle_outline_rounded,
+          tono: AppColors.online,
+        );
+      }
+    } on SessionExpiredException {
+      if (mounted) {
+        mostrarAvisoPanel(context, 'Tu sesión venció. Vuelve a entrar');
+      }
+    } catch (_) {
+      if (mounted) {
+        mostrarAvisoPanel(context, 'No se pudo exportar el CSV. Reintenta');
+      }
+    } finally {
+      if (mounted) setState(() => _exportando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Un periodo sin ningún día (solo sábados en una semana sin sábado) no
+    // tiene nada que exportar.
+    final listo = !_exportando && widget.periodo.cuentaAlgunDia;
+    return Tooltip(
+      message: 'Buses, velocidad e intervalo por hora, para Excel',
+      waitDuration: const Duration(milliseconds: 500),
+      child: TextButton.icon(
+        onPressed: listo ? _exportar : null,
+        icon: AnimatedSwitcher(
+          duration: AppMotion.duracion(context, AppMotion.normal),
+          switchInCurve: AppMotion.curvaCambio,
+          switchOutCurve: AppMotion.curvaCambio,
+          child: _exportando
+              ? const SizedBox.square(
+                  key: ValueKey('exportando'),
+                  dimension: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.boton,
+                  ),
+                )
+              : const Icon(
+                  Icons.file_download_outlined,
+                  key: ValueKey('descargar'),
+                  size: 16,
+                ),
+        ),
+        label: Text(_exportando ? 'Exportando' : 'Exportar CSV'),
+        style: TextButton.styleFrom(
+          // Tinte al 8 %: #1E56A8 sobre él queda en 6,3:1.
+          backgroundColor: AppColors.boton.withValues(alpha: 0.08),
+          foregroundColor: AppColors.boton,
+          disabledForegroundColor: AppColors.boton.withValues(alpha: 0.6),
+          disabledBackgroundColor: AppColors.boton.withValues(alpha: 0.05),
+          minimumSize: const Size(0, 32),
+          padding: const EdgeInsets.fromLTRB(10, 0, 12, 0),
+          shape: const StadiumBorder(),
+          textStyle: AppType.ui(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
 }
 
 class _Reintentar extends StatelessWidget {

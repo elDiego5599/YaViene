@@ -362,12 +362,19 @@ Future<bool> confirmarBorrado(
 /// El aviso corto de abajo: «no se pudo eliminar el bus», «no se pudo abrir
 /// WhatsApp». Era el `SnackBar` de fábrica, una barra roja o gris de lado a
 /// lado de la ventana. Ahora es una tarjeta de la familia de la [Ventana]:
-/// blanca, con su filo, su sombra y su cuadro de icono en rojo.
+/// blanca, con su filo, su sombra y su cuadro de icono en el [tono]: rojo
+/// para lo que falló, el verde de «En línea» para lo que salió bien.
 class AvisoPanel extends StatelessWidget {
-  const AvisoPanel({super.key, required this.mensaje, required this.icono});
+  const AvisoPanel({
+    super.key,
+    required this.mensaje,
+    required this.icono,
+    this.tono = AppColors.danger,
+  });
 
   final String mensaje;
   final IconData icono;
+  final Color tono;
 
   @override
   Widget build(BuildContext context) {
@@ -389,10 +396,10 @@ class AvisoPanel extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: AppColors.danger.withValues(alpha: 0.12),
+                color: tono.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              child: Icon(icono, size: 18, color: AppColors.danger),
+              child: Icon(icono, size: 18, color: tono),
             ),
           ),
           const SizedBox(width: 12),
@@ -426,6 +433,7 @@ void mostrarAvisoPanel(
   BuildContext context,
   String mensaje, {
   IconData icono = Icons.error_outline_rounded,
+  Color tono = AppColors.danger,
 }) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -441,7 +449,7 @@ void mostrarAvisoPanel(
         // 1600 una línea de aviso quedaba perdida en la barra.
         width: 440,
         duration: duracionDeAvisoPanel(mensaje),
-        content: AvisoPanel(mensaje: mensaje, icono: icono),
+        content: AvisoPanel(mensaje: mensaje, icono: icono, tono: tono),
       ),
     );
 }

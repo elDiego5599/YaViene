@@ -7,8 +7,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ya_viene_control/core/theme/app_theme.dart';
+import 'package:ya_viene_control/core/widgets/ventana.dart' show AvisoPanel;
 import 'package:ya_viene_control/features/fleet/data/fleet_api.dart';
 import 'package:ya_viene_control/features/fleet/domain/fleet_route.dart';
+import 'package:ya_viene_control/features/fleet/presentation/providers/exportar_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/fleet_providers.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/ocupacion_provider.dart';
 import 'package:ya_viene_control/features/fleet/presentation/providers/reportes_provider.dart';
@@ -67,6 +69,7 @@ Future<void> _montar(
   List<int?> Function(String routeId, PeriodoReporte periodo)? ocupacion,
   // Por defecto el catálogo ya respondió vacío (o falló): orden del ranking.
   FleetState flota = const FleetState(catalogoListo: true),
+  Future<String?> Function(String routeId, PeriodoReporte periodo)? exportar,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1500, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -98,6 +101,8 @@ Future<void> _montar(
         estiloMapaProvider.overrideWith((ref) async {
           throw StateError('El estilo no se necesita en esta prueba');
         }),
+        if (exportar != null)
+          exportarIndicadoresProvider.overrideWithValue(exportar),
       ],
       child: const MaterialApp(home: ReportesScreen()),
     ),
@@ -105,6 +110,88 @@ Future<void> _montar(
 }
 
 void main() {
+  group('Exportar CSV', () {
+    Finder pildora() => find.byKey(const ValueKey('exportar-csv'));
+    Future<void> montarCon(
+      WidgetTester tester,
+      Future<String?> Function(String, PeriodoReporte) exportar,
+    ) async {
+      await _montar(
+        tester,
+        cargarRutas: (_) async => [_ruta('R1', 'C16 Ruta 1', 12, 6)],
+        exportar: exportar,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('exporta la ruta elegida y dice con qué nombre quedó', (
+      tester,
+    ) async {
+      final pedidos = <(String, PeriodoReporte)>[];
+      final respuesta = Completer<String?>();
+      await montarCon(tester, (routeId, periodo) {
+        pedidos.add((routeId, periodo));
+        return respuesta.future;
+      });
+
+      expect(
+        find.descendant(of: pildora(), matching: find.text('Exportar CSV')),
+        findsOneWidget,
+      );
+      await tester.tap(pildora());
+      // El círculo gira mientras espera: no se asienta.
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(pedidos, [('R1', PeriodoReporte.mes)]);
+      // Mientras tanto no se pide dos veces.
+      expect(find.text('Exportando'), findsOneWidget);
+      await tester.tap(pildora());
+      await tester.pump();
+      expect(pedidos, hasLength(1));
+
+      respuesta.complete('indicadores-R1.csv');
+      await tester.pumpAndSettle();
+      expect(find.text('Se guardó indicadores-R1.csv'), findsOneWidget);
+      // Lo que salió bien va en verde: el rojo queda para los fallos.
+      final check = tester.widget<Icon>(
+        find.descendant(
+          of: find.byType(AvisoPanel),
+          matching: find.byIcon(Icons.check_circle_outline_rounded),
+        ),
+      );
+      expect(check.color, AppColors.online);
+      expect(find.text('Exportar CSV'), findsOneWidget);
+    });
+
+    testWidgets('cerrar el diálogo de guardar no avisa nada', (tester) async {
+      await montarCon(tester, (_, _) async => null);
+      await tester.tap(pildora());
+      await tester.pumpAndSettle();
+      expect(find.byType(AvisoPanel), findsNothing);
+      expect(find.text('Exportar CSV'), findsOneWidget);
+    });
+
+    testWidgets('un error lo dice y deja reintentar', (tester) async {
+      await montarCon(tester, (_, _) async => throw StateError('500'));
+      await tester.tap(pildora());
+      await tester.pumpAndSettle();
+      expect(
+        find.text('No se pudo exportar el CSV. Reintenta'),
+        findsOneWidget,
+      );
+      expect(find.text('Exportar CSV'), findsOneWidget);
+    });
+
+    testWidgets('la sesión vencida pide volver a entrar', (tester) async {
+      await montarCon(
+        tester,
+        (_, _) async => throw const SessionExpiredException(),
+      );
+      await tester.tap(pildora());
+      await tester.pumpAndSettle();
+      expect(find.text('Tu sesión venció. Vuelve a entrar'), findsOneWidget);
+    });
+  });
+
   // «Las búsquedas ruta-reportes se actualizan raro» (dueño, 2026-11-06):
   // con datos móviles los reportes llegaban antes que el catálogo de Flota;
   // las píldoras salían en el orden del ranking, con la primera elegida, y

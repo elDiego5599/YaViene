@@ -170,6 +170,40 @@ class FleetApi {
     return response.data!;
   }
 
+  /// Los indicadores de servicio de una ruta (buses, velocidad e intervalo
+  /// hora por hora) en CSV, tal como los arma el backend, para guardarlos y
+  /// abrirlos en una hoja de cálculo. El nombre viene en
+  /// `Content-Disposition`; sin él, se llama por la ruta.
+  Future<({String texto, String nombre})> fetchIndicadoresCsv(
+    String? token, {
+    required String routeId,
+    required DateTime desde,
+    required DateTime hasta,
+    List<int> dias = const [],
+  }) async {
+    final response = await _guard(
+      () => _dio.get<String>(
+        '/api/panel/indicadores/${Uri.encodeComponent(routeId)}',
+        queryParameters: {
+          'desde': desde.toUtc().toIso8601String(),
+          'hasta': hasta.toUtc().toIso8601String(),
+          // Del 1 (lunes) al 7 (domingo); sin días, todos.
+          if (dias.isNotEmpty) 'dias': dias.join(','),
+          'formato': 'csv',
+        },
+        options: _auth(token).copyWith(responseType: ResponseType.plain),
+      ),
+    );
+    final disposicion = response.headers.value('content-disposition') ?? '';
+    final nombre = RegExp(r'filename="([^"]+)"').firstMatch(disposicion)?[1];
+    return (
+      texto: response.data!,
+      nombre:
+          nombre ??
+          'indicadores-${routeId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_')}.csv',
+    );
+  }
+
   Future<FleetBus> setVisibility(
     String? token,
     String busId,

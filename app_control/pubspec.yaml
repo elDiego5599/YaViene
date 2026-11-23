@@ -49,6 +49,10 @@ dependencies:
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
   dio: ^5.11.0
+  # «Exportar CSV» de Reportes: el diálogo de guardar de macOS y Windows, para
+  # que el archivo quede donde la persona elige. En macOS el sandbox solo
+  # deja escribir lo que ella eligió ahí (`files.user-selected.read-write`).
+  file_selector: ^1.0.3
   socket_io_client: ^3.1.6
   flutter_secure_storage: ^11.2.0
   window_manager: ^0.5.2
