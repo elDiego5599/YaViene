@@ -4,6 +4,8 @@ Sistema de monitoreo de buses en tiempo real para ciudades como Barranquilla.
 El GPS va instalado en el bus y publica su posición; el pasajero ve los buses
 en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
 
+https://github.com/user-attachments/assets/703f7e39-8563-45f2-8bf8-7df276f4e8d7
+
 ## Componentes
 
 | Carpeta | Qué es |
@@ -56,6 +58,8 @@ indicadores de servicio que mide una empresa de buses:
 El panel lo muestra en Reportes, filtrable por fechas y días de la semana, y
 lo exporta a **CSV** listo para Excel en español (punto y coma, coma
 decimal) o para Python y R.
+
+https://github.com/user-attachments/assets/d75367b7-f283-429a-97d8-b8ea5a116311
 
 ## Inteligencia artificial
 
