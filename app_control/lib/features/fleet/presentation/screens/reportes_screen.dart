@@ -1601,7 +1601,9 @@ class _ExportarCsvState extends ConsumerState<_ExportarCsv> {
     // tiene nada que exportar.
     final listo = !_exportando && widget.periodo.cuentaAlgunDia;
     return Tooltip(
-      message: 'Buses, velocidad e intervalo por hora, para Excel',
+      message:
+          'Buses, velocidad e intervalo por hora, para Excel.\n'
+          'El intervalo cubre solo los últimos 7 días',
       waitDuration: const Duration(milliseconds: 500),
       child: TextButton.icon(
         onPressed: listo ? _exportar : null,

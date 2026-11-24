@@ -5,12 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// Candado de los derechos (entitlements) del panel en macOS (T3.14).
 ///
 /// El panel solo necesita salir a la red (HTTPS y el socket hacia el
-/// backend) y guardar la sesión en el llavero. El llavero que usa es el
+/// backend), guardar la sesión en el llavero y escribir el CSV de Reportes
+/// donde la persona elija en la ventana de guardar
+/// (`files.user-selected.read-write`: solo ese archivo, nada más del disco). El llavero que usa es el
 /// clásico (`usesDataProtectionKeychain: false` en auth_providers.dart), que
 /// dentro del sandbox no pide ningún derecho: el de protección de datos sí
 /// exige `keychain-access-groups`, y con la firma «ad hoc» ese derecho da
 /// -34018 y no se guardaba nada. Por eso aquí la lista es exacta: cualquier
-/// derecho de más (cámara, archivos, servidor, `keychain-access-groups`) es
+/// derecho de más (cámara, carpetas enteras, servidor, `keychain-access-groups`) es
 /// superficie que nadie pidió, y cualquiera de menos (sin sandbox, sin red)
 /// es un panel que no sirve o que corre suelto.
 ///
@@ -19,12 +21,16 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const runner = 'macos/Runner';
 
-  test('Release.entitlements: sandbox y red de cliente, nada más', () {
-    expect(_derechos('$runner/Release.entitlements'), {
-      'com.apple.security.app-sandbox': true,
-      'com.apple.security.network.client': true,
-    });
-  });
+  test(
+    'Release.entitlements: sandbox, red de cliente y el archivo elegido',
+    () {
+      expect(_derechos('$runner/Release.entitlements'), {
+        'com.apple.security.app-sandbox': true,
+        'com.apple.security.network.client': true,
+        'com.apple.security.files.user-selected.read-write': true,
+      });
+    },
+  );
 
   test(
     'DebugProfile.entitlements: lo de release más lo que pide flutter run',
@@ -37,6 +43,7 @@ void main() {
         'com.apple.security.app-sandbox': true,
         'com.apple.security.cs.allow-jit': true,
         'com.apple.security.network.client': true,
+        'com.apple.security.files.user-selected.read-write': true,
         'com.apple.security.network.server': true,
       });
     },

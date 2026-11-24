@@ -186,12 +186,11 @@ Nada de esto se fuerza; se retoma cuando llegue la respuesta o la cuenta.
 
 ## Lo que puedo hacer yo
 
-- **Indicadores de más de 7 días** (D26, 2026-11-23): los intervalos y
-  las horas pico se calculan de lo crudo, que dura 7 días. La consolidación
-  ya guarda por día, ruta y hora los buses y la velocidad en
-  `servicio_horario` (y la calidad en `calidad_historial`), pero el
-  endpoint de indicadores aún no los lee ni guarda intervalos. Falta
-  decidir qué resumir de ellos y servir periodos largos.
+- **El intervalo de más de 7 días** (D26, 2026-11-24): buses, velocidad y
+  hora pico ya salen de `servicio_horario` en cualquier periodo; el
+  intervalo (mediana y p90) aún se mide solo con lo crudo, que dura 7 días,
+  y el panel lo dice en «Exportar CSV». Falta consolidar los pasos por el
+  punto de la ruta para medirlo en periodos largos.
 
 - **La privacidad de la web con las quejas** (D18, 2026-11-11): la app
   ya va en la versión 8 (motivo, ruta, bus, hora en punto, la casilla de
