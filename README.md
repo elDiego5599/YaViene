@@ -1,5 +1,7 @@
 # YaViene — Transporte público en tiempo real
 
+> **Note:** This project targets Barranquilla, Colombia, so its docs and earlier commit history are in Spanish. New commits are in English.
+
 Sistema de monitoreo de buses en tiempo real para ciudades como Barranquilla.
 El GPS va instalado en el bus y publica su posición; el pasajero ve los buses
 en un mapa y recibe un aviso cuando el suyo se acerca a su parada.
